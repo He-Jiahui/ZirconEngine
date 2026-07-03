@@ -1,0 +1,29 @@
+Runtime text editor retained subpixel spacing fix validation - 2026-07-03
+
+Source changes:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+  - Tightened per-grapheme advance projection tolerance from broad visual slack to subpixel noise bounds.
+  - Runtime-to-host advance projection now fails closed when host grapheme advances cannot be computed.
+  - Added regression: runtime_positioned_glyphs_rejects_quarter_pixel_tab_label_jitter.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+  - Changed retained glyph placement from floor subpixel binning to nearest 1/3px binning with next-pixel carry.
+  - Added regression: retained_glyph_placement_uses_nearest_subpixel_bin_without_left_bias.
+
+Verification commands:
+1. rustfmt --edition 2021 --check zircon_editor\src\ui\retained_host\host_contract\paint_text\draw\layout.rs zircon_editor\src\ui\retained_host\host_contract\paint_text\draw\glyphs.rs
+   Result: passed, exit code 0.
+
+2. git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+   Result: passed, exit code 0. Git printed CRLF working-tree warnings only.
+
+3. Focused Cargo status:
+   Result: deferred. Existing cargo/rustc lanes were already running on the workstation, so this slice did not start another long editor compile.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_editor_retained_subpixel_spacing_fix_preview_20260703.png
+- SHA256: ED53B97AE58A6930F41054B323BA3D475E8A80D44BCC7AB223E121485DA50F4B
+- Purpose: comparison proof for old floor-bin/loose-projection behavior versus nearest-bin/strict-guard behavior on the reported editor tab-label strings.
+- Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets: 0 matches.
+
+Open validation:
+- Live editor window capture remains open until the active cargo/rustc lanes clear and a runnable editor build is available.

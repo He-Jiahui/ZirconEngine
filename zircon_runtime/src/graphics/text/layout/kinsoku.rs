@@ -1,6 +1,34 @@
 use super::line_break::LineBreakChunk;
 use zircon_runtime_interface::ui::surface::UiTextRange;
 
+const FORBIDDEN_LINE_START_CLOSING_PUNCTUATION: &[char] = &[
+    '、', '。', '，', '．', '・', '：', '；', '！', '？', '）', '］', '｝', '｠', '】', '〕', '〉',
+    '》', '」', '』', '〗', '〙', '〛', '’', '”', '〟', '〞',
+];
+const FORBIDDEN_LINE_START_SMALL_KANA: &[char] = &[
+    'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'っ', 'ゃ', 'ゅ', 'ょ', 'ゎ', 'ゕ', 'ゖ', 'ァ', 'ィ', 'ゥ', 'ェ',
+    'ォ', 'ッ', 'ャ', 'ュ', 'ョ', 'ヮ', 'ヵ', 'ヶ', 'ㇰ', 'ㇱ', 'ㇲ', 'ㇳ', 'ㇴ', 'ㇵ', 'ㇶ', 'ㇷ',
+    'ㇸ', 'ㇹ', 'ㇺ', 'ㇻ', 'ㇼ', 'ㇽ', 'ㇾ', 'ㇿ',
+];
+const FORBIDDEN_LINE_START_HALFWIDTH: &[char] = &[
+    '｡', '｣', '､', '･', 'ｧ', 'ｨ', 'ｩ', 'ｪ', 'ｫ', 'ｯ', 'ｬ', 'ｭ', 'ｮ', 'ｰ', 'ﾞ', 'ﾟ',
+];
+const FORBIDDEN_LINE_START_JAPANESE_NON_STARTERS: &[char] =
+    &['ー', '々', '〻', 'ゝ', 'ゞ', 'ヽ', 'ヾ'];
+const FORBIDDEN_LINE_START_SPACING_VOICING_MARKS: &[char] = &['゛', '゜'];
+const FORBIDDEN_LINE_START_JLREQ_HYPHENS: &[char] = &['‐', '〜', '゠', '–'];
+const JLREQ_INSEPARABLE_PAIRS: &[(char, char)] = &[
+    ('—', '—'),
+    ('…', '…'),
+    ('‥', '‥'),
+    ('〳', '〵'),
+    ('〴', '〵'),
+];
+const FORBIDDEN_LINE_END_OPENING_PUNCTUATION: &[char] = &[
+    '（', '｛', '｟', '［', '【', '〔', '〈', '《', '「', '『', '〖', '〘', '〚', '‘', '“', '〝',
+    '｢',
+];
+
 pub(super) fn apply_kinsoku_start_rules<'a>(
     text: &'a str,
     chunks: Vec<LineBreakChunk<'a>>,
@@ -9,7 +37,9 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
     let mut chunk_iter = chunks.into_iter().peekable();
 
     while let Some(mut chunk) = chunk_iter.next() {
-        if starts_with_forbidden_line_start(chunk.text) {
+        if starts_with_forbidden_line_start(chunk.text)
+            || completes_jlreq_inseparable_pair(adjusted.last(), chunk.text)
+        {
             if let Some(previous) = adjusted.last_mut() {
                 let start = previous.visual_range.start;
                 let end = chunk.visual_range.end;
@@ -39,14 +69,15 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
                     && text.is_char_boundary(start)
                     && text.is_char_boundary(end)
                 {
-                    let next = chunk_iter.next().expect("peeked next chunk must exist");
-                    chunk.text = &text[start..end];
-                    chunk.visual_range.end = end;
-                    chunk.source_range.end = next.source_range.end;
-                    if chunk.break_suffix.is_none() {
-                        chunk.break_suffix = next.break_suffix;
+                    if let Some(next) = chunk_iter.next() {
+                        chunk.text = &text[start..end];
+                        chunk.visual_range.end = end;
+                        chunk.source_range.end = next.source_range.end;
+                        if chunk.break_suffix.is_none() {
+                            chunk.break_suffix = next.break_suffix;
+                        }
+                        chunk.allow_glyph_fallback = false;
                     }
-                    chunk.allow_glyph_fallback = false;
                 }
             }
         }
@@ -62,12 +93,13 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
                         && text.is_char_boundary(start)
                         && text.is_char_boundary(end)
                     {
-                        let next = chunk_iter.next().expect("peeked next chunk must exist");
-                        chunk.text = &text[start..end];
-                        chunk.visual_range.end = end;
-                        chunk.source_range.end = next.source_range.end;
-                        if chunk.break_suffix.is_none() {
-                            chunk.break_suffix = next.break_suffix;
+                        if let Some(next) = chunk_iter.next() {
+                            chunk.text = &text[start..end];
+                            chunk.visual_range.end = end;
+                            chunk.source_range.end = next.source_range.end;
+                            if chunk.break_suffix.is_none() {
+                                chunk.break_suffix = next.break_suffix;
+                            }
                         }
                     }
                 }
@@ -77,7 +109,9 @@ pub(super) fn apply_kinsoku_start_rules<'a>(
 
         // Let closing punctuation overhang with the preceding glyph instead of
         // allowing glyph fallback to put it at the start of the next line.
-        if has_protected_forbidden_prefix(chunk.text) || has_protected_forbidden_suffix(chunk.text)
+        if has_protected_forbidden_prefix(chunk.text)
+            || has_protected_forbidden_suffix(chunk.text)
+            || has_jlreq_inseparable_pair(chunk.text)
         {
             chunk.allow_glyph_fallback = false;
         }
@@ -143,6 +177,40 @@ fn starts_with_forbidden_line_start(text: &str) -> bool {
     text.chars().next().is_some_and(is_forbidden_line_start)
 }
 
+fn completes_jlreq_inseparable_pair(
+    previous: Option<&LineBreakChunk<'_>>,
+    current_text: &str,
+) -> bool {
+    let Some(previous_char) = previous.and_then(|chunk| chunk.text.chars().next_back()) else {
+        return false;
+    };
+    let Some(current_char) = current_text.chars().next() else {
+        return false;
+    };
+
+    is_jlreq_inseparable_pair(previous_char, current_char)
+}
+
+fn has_jlreq_inseparable_pair(text: &str) -> bool {
+    let mut chars = text.chars();
+    let Some(mut previous_char) = chars.next() else {
+        return false;
+    };
+
+    for current_char in chars {
+        if is_jlreq_inseparable_pair(previous_char, current_char) {
+            return true;
+        }
+        previous_char = current_char;
+    }
+
+    false
+}
+
+fn is_jlreq_inseparable_pair(previous_char: char, current_char: char) -> bool {
+    JLREQ_INSEPARABLE_PAIRS.contains(&(previous_char, current_char))
+}
+
 fn has_protected_forbidden_prefix(text: &str) -> bool {
     text.chars().count() > 1 && text.chars().next().is_some_and(is_forbidden_line_end)
 }
@@ -156,53 +224,17 @@ fn has_protected_forbidden_suffix(text: &str) -> bool {
 }
 
 fn is_forbidden_line_start(ch: char) -> bool {
-    matches!(
-        ch,
-        '、' | '。'
-            | '，'
-            | '．'
-            | '・'
-            | '：'
-            | '；'
-            | '！'
-            | '？'
-            | '）'
-            | '］'
-            | '｝'
-            | '】'
-            | '〕'
-            | '〉'
-            | '》'
-            | '」'
-            | '』'
-            | '’'
-            | '”'
-            | 'ぁ'
-            | 'ぃ'
-            | 'ぅ'
-            | 'ぇ'
-            | 'ぉ'
-            | 'っ'
-            | 'ゃ'
-            | 'ゅ'
-            | 'ょ'
-            | 'ゎ'
-            | 'ァ'
-            | 'ィ'
-            | 'ゥ'
-            | 'ェ'
-            | 'ォ'
-            | 'ッ'
-            | 'ャ'
-            | 'ュ'
-            | 'ョ'
-            | 'ヮ'
-    )
+    FORBIDDEN_LINE_START_CLOSING_PUNCTUATION.contains(&ch)
+        || FORBIDDEN_LINE_START_SMALL_KANA.contains(&ch)
+        || FORBIDDEN_LINE_START_HALFWIDTH.contains(&ch)
+        || FORBIDDEN_LINE_START_JAPANESE_NON_STARTERS.contains(&ch)
+        || FORBIDDEN_LINE_START_SPACING_VOICING_MARKS.contains(&ch)
+        || FORBIDDEN_LINE_START_JLREQ_HYPHENS.contains(&ch)
 }
 
 fn is_forbidden_line_end(ch: char) -> bool {
-    matches!(
-        ch,
-        '（' | '｛' | '［' | '【' | '〔' | '〈' | '《' | '「' | '『' | '‘' | '“'
-    )
+    FORBIDDEN_LINE_END_OPENING_PUNCTUATION.contains(&ch)
 }
+
+#[cfg(test)]
+mod tests;

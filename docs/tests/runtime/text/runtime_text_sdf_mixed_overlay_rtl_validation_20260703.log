@@ -1,0 +1,41 @@
+runtime_text_sdf_mixed_overlay_rtl_rustfmt_visual_cargo_deferred
+date: 2026-07-03 +08:00
+
+scope:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+
+implemented:
+- validate_mixed_native_overlay_layout_support now accepts explicit UiTextDirection::RightToLeft beside LeftToRight.
+- HorizontalTb + None wrap + non-Justify RTL text can build a local native overlay for failed SDF atlas spans.
+- UiTextDirection::Auto and UiTextDirection::Mixed remain unsupported for mixed overlay and continue to whole-batch native fallback with unsupported_text_direction diagnostics.
+
+new regression coverage in sdf_fallback.rs:
+- sdf_atlas_fallback_overlays_failed_spans_for_horizontal_rtl_text
+- sdf_atlas_fallback_rejects_ambiguous_horizontal_text_direction
+
+verification:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  result: passed, exit code 0
+- code token check:
+  UiTextDirection::LeftToRight | UiTextDirection::RightToLeft found in validation gate.
+  sdf_atlas_fallback_overlays_failed_spans_for_horizontal_rtl_text found.
+  sdf_atlas_fallback_rejects_ambiguous_horizontal_text_direction found.
+- proof image:
+  docs/tests/runtime/text/runtime_text_sdf_mixed_overlay_rtl_preview_20260703.png
+  sha256: 93624C9615FDCBBCE04234B6AFAC193355D5DAEDFE1569DCB2A0AF3317E45C97
+- target same-name scan:
+  target: preview 0, validation log 0
+  E:\cargo-targets: preview 0, validation log 0
+  D:\cargo-targets: preview 0, validation log 0
+
+cargo:
+- focused Cargo was deferred because external cargo/rustc lanes were active:
+  cargo 39744, cargo 39796, rustc 4688.
+- This log does not claim cargo check/test green.
+
+remaining:
+- Full native/SDF paragraph parity for complex RTL and shaped bidi runs.
+- Vertical/justify/wrapped mixed overlay.
+- Independent oversized fallback.
+- Alpha bitmap atlas and glyphon TextAtlas cutover.
+- Live editor typography screenshot QA.

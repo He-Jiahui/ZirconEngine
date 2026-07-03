@@ -11,7 +11,7 @@ fn editor_manager_runs_ui_asset_binding_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_binding_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_binding_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_binding_inspector_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -78,7 +78,7 @@ fn editor_manager_runs_ui_asset_structured_binding_inspector_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_structured_binding_inspector");
     let ui_asset_path = unique_temp_dir("zircon_editor_asset_structured_binding_inspector_file")
-        .join("structured-binding.ui.toml");
+        .join("structured-binding.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET);
 
@@ -198,7 +198,7 @@ fn editor_manager_runs_ui_asset_relative_nested_binding_payload_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_relative_nested_binding_payload");
     let ui_asset_path = unique_temp_dir("zircon_editor_asset_relative_nested_binding_payload_file")
-        .join("relative-binding.ui.toml");
+        .join("relative-binding.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET);
 
@@ -322,8 +322,8 @@ fn editor_manager_runs_ui_asset_relative_nested_binding_payload_actions() {
 fn editor_manager_runs_ui_asset_binding_payload_suggestion_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_binding_payload_suggestion");
-    let ui_asset_path = unique_temp_dir("zircon_editor_asset_binding_payload_suggestion_file")
-        .join("layout.ui.toml");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_binding_payload_suggestion_file").join("layout.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STRUCTURED_BINDING_UI_LAYOUT_ASSET);
 
@@ -379,7 +379,7 @@ fn editor_manager_runs_ui_asset_binding_payload_suggestions_relative_to_selected
     let path = unique_temp_path("zircon_editor_asset_binding_payload_relative_suggestion");
     let ui_asset_path =
         unique_temp_dir("zircon_editor_asset_binding_payload_relative_suggestion_file")
-            .join("layout.ui.toml");
+            .join("layout.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(
         &ui_asset_path,
@@ -498,7 +498,7 @@ fn editor_manager_runs_ui_asset_palette_and_tree_authoring_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_tree_authoring");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_tree_authoring_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_tree_authoring_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -572,7 +572,7 @@ fn editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_tree_selection_undo");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_tree_selection_undo_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_tree_selection_undo_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 

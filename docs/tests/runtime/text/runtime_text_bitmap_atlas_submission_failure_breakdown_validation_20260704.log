@@ -1,0 +1,30 @@
+Zircon runtime text bitmap atlas submission failure breakdown validation
+Date: 2026-07-04
+Scope: zircon_runtime::graphics::text::atlas::render_submission
+
+Scenario:
+- 4 bitmap atlas sources are submitted to the report builder.
+- 1 source has empty content and must be counted as source validation failure.
+- 1 color source has an expected 16-byte payload but supplies 15 bytes and must be counted as data length mismatch.
+- 1 alpha source is allocated and remains eligible for upload and draw work.
+- 1 alpha source is blocked by same-frame page reservation pressure with max_pages_per_format=1.
+
+Expected report totals:
+- source_count = 4
+- allocated_glyph_count = 1
+- allocation_failure_count = 3
+- unsupported_format_failure_count = 0
+- empty_content_failure_count = 1
+- data_length_mismatch_failure_count = 1
+- page_reservation_blocked_failure_count = 1
+- oversized_glyph_failure_count = 0
+- source_validation_failure_count() = 2
+- atlas_capacity_failure_count() = 1
+- upload_command_count = 1
+- partial_upload_count = 1
+- draw_command_count = 1
+
+Acceptance notes:
+- The diagnostic report can distinguish invalid source data from atlas capacity pressure.
+- Failed sources do not suppress upload and GPU work for successfully allocated glyphs.
+- Preview artifact is stored outside Cargo target directories.

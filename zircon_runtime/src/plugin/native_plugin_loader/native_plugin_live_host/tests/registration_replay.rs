@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use super::super::super::behavior_calls::NativePluginBehavior;
 use super::*;
+use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::{SystemStage, World};
 
 static DIST_SYSTEM_BRIDGE_TICK_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -52,6 +53,80 @@ fn dist_system_plugin_loads_and_ticks_via_bridge() {
     assert_eq!(DIST_SYSTEM_BRIDGE_TICK_COUNT.load(Ordering::SeqCst), 1);
 }
 
+#[test]
+fn native_registration_replay_reports_typed_schema_error() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_registration_replay_plugin_with_schema(
+                "physics",
+                "zircon.native.registration-manifest/2",
+            ),
+        );
+    }
+
+    let error = host
+        .replay_runtime_plugin_registration_manifest_via_bridge_result(
+            &mut RuntimeExtensionRegistry::default(),
+            &native_live_host_bridge_lifecycle_state(false),
+            "physics",
+        )
+        .expect_err("unsupported registration manifest schema should be typed");
+
+    assert!(matches!(
+        error,
+        NativePluginRegistrationReplayError::UnsupportedManifestSchema {
+            plugin_id,
+            actual,
+            expected: "zircon.native.registration-manifest/3"
+        } if plugin_id == "physics" && actual == "zircon.native.registration-manifest/2"
+    ));
+}
+
+#[test]
+fn native_registration_replay_reports_typed_duplicate_system_error() {
+    let host = NativePluginLiveHost::default();
+    host.load_reported_plugins(
+        NativePluginLoadReport {
+            discovered: Vec::new(),
+            loaded: vec![native_live_host_dist_system_plugin()],
+            diagnostics: Vec::new(),
+        },
+        PluginModuleKind::Runtime,
+    )
+    .expect("test should load the native runtime plugin");
+    let lifecycle = native_live_host_bridge_lifecycle_state(false);
+    let mut registry = RuntimeExtensionRegistry::default();
+    host.replay_runtime_plugin_registration_manifest_via_bridge_result(
+        &mut registry,
+        &lifecycle,
+        "physics",
+    )
+    .expect("first replay should register the native system");
+
+    let error = host
+        .replay_runtime_plugin_registration_manifest_via_bridge_result(
+            &mut registry,
+            &lifecycle,
+            "physics",
+        )
+        .expect_err("second replay should return typed duplicate system error");
+
+    assert!(matches!(
+        error,
+        NativePluginRegistrationReplayError::RegisterNativeSystem {
+            plugin_id,
+            system_id,
+            source: RuntimeExtensionRegistryError::DuplicatePluginSystem(source_system_id)
+        } if plugin_id == "physics"
+            && system_id == "physics.runtime_tick"
+            && source_system_id == "physics.runtime_tick"
+    ));
+}
+
 fn native_live_host_dist_system_plugin() -> LoadedNativePlugin {
     let mut plugin = native_live_host_test_plugin_with_bridge_manifest("physics");
     if let Some(report) = plugin.runtime_entry_report.as_mut() {
@@ -96,6 +171,24 @@ bridge_method = "sample_count"
             restore_state: None,
             unload: None,
         });
+    }
+    plugin
+}
+
+fn native_live_host_registration_replay_plugin_with_schema(
+    plugin_id: &str,
+    schema: &str,
+) -> LoadedNativePlugin {
+    let mut plugin = native_live_host_dist_system_plugin();
+    plugin.plugin_id = plugin_id.to_string();
+    if let Some(descriptor) = plugin.descriptor.as_mut() {
+        descriptor.plugin_id = plugin_id.to_string();
+    }
+    if let Some(report) = plugin.runtime_entry_report.as_mut() {
+        report.plugin_id = plugin_id.to_string();
+        if let Some(behavior) = report.behavior.as_mut() {
+            behavior.registration_manifest_schema = Some(schema.to_string());
+        }
     }
     plugin
 }

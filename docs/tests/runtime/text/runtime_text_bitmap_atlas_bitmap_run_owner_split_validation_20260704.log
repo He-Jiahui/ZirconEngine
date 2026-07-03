@@ -1,0 +1,22 @@
+Zircon runtime text bitmap_run folder-backed owner split validation
+Date: 2026-07-04
+Scope: zircon_runtime::graphics::text::atlas::bitmap_run
+
+Before:
+- bitmap_run.rs owned declarations, validation, allocation, dirty marking, upload command generation, failure records, blocked retry queue, run orchestration, and tests hook.
+- Root file line count before split: 366.
+
+After:
+- bitmap_run.rs keeps module declarations, crate-private exports, padding constant, and the run orchestration loop.
+- bitmap_run/types.rs owns GlyphAtlasBitmapSource, GlyphAtlasBitmapGlyph, and GlyphAtlasBitmapRunPlan.
+- bitmap_run/failure.rs owns allocation failure reasons, failure records, blocked retry queue records, and failure recording.
+- bitmap_run/validation.rs owns bitmap source validation and expected payload length math.
+- bitmap_run/allocation.rs owns page reservation, same-frame eviction guard handling, allocation trial, and dirty-page marking.
+- bitmap_run/upload.rs owns dirty-page upload command projection and PartialRect/FullPage selection.
+- bitmap_run/tests.rs remains the private behavior regression owner.
+
+Acceptance notes:
+- The parent API re-exported through atlas/mod.rs is preserved.
+- The root bitmap_run.rs is navigational/orchestration-only instead of a mixed implementation file.
+- This is a structure slice; it does not claim real wgpu upload/draw, glyphon TextAtlas cutover, or live editor typography QA.
+- Preview artifact is stored outside Cargo target directories.

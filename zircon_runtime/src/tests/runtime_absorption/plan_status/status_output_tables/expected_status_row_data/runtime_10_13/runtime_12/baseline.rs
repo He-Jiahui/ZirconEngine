@@ -38,6 +38,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 12 Input stack 2026-07-01 current audit recheck",
+        &[
+            "input_stack_20260701_current_audit_static_passed_cargo_deferred",
+            "runtime/framework/test owner 12/20/7",
+            "behavior-test anchors 15/15",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
+        ],
+    ),
+    (
         "Runtime 12 Input stack inventory split",
         &[
             "input_stack_inventory_split_static_passed_cargo_deferred_tests_deferred",
@@ -62,6 +71,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "input_protocol_types_live_in_runtime_input_surface",
             "1 passed; 0 failed; 4704 filtered out",
             "342 passed; 11 failed; 1 ignored",
+        ],
+    ),
+    (
+        "Runtime 12 input_manager child test owner audit sync",
+        &[
+            "runtime_12_input_manager_child_test_owner_audit_sync_static_passed_cargo_deferred",
+            "input/tests/input_manager/{frame_state,host_requests}.rs",
+            "missing_behavior_test_anchors = []",
+            "targeted `plan_status.rs` status-table/index/last_refined checks 3/3",
         ],
     ),
 ];

@@ -19,10 +19,12 @@ pub(crate) use mesh_pass::{
 };
 pub(crate) use mesh_pipeline::FALLBACK_MESH_SHADER;
 pub(crate) use mesh_pipeline_cache::{
+    create_mesh_prewarm_validation_pipeline_layout,
     mesh_pipeline_standard_material_template_source,
     mesh_pipeline_standard_material_template_source_for_geometry,
-    mesh_pipeline_standard_material_template_source_for_shader_pass, MeshPipelineCache,
-    MeshPipelineShaderSource,
+    mesh_pipeline_standard_material_template_source_for_shader_pass,
+    mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
+    validate_mesh_prewarm_request_render_pipeline, MeshPipelineCache, MeshPipelineShaderSource,
 };
 pub(crate) use prepared_queue::{
     prepare_mesh_queue, PreparedMeshQueueStats, PreparedMeshVirtualGeometryExecutionStats,

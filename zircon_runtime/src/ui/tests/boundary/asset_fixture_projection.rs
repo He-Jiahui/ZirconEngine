@@ -93,7 +93,7 @@ fn runtime_ui_manager_loads_fixture_documents_from_asset_files() {
             && manager_source.contains("UiV2SurfaceBuilder::build_surface_from_compiled_document")
             && manager_source.contains("apply_pointer_dispatch_dirty(&result)")
             && manager_source.contains("rebuild_dirty(self.root_size())"),
-        "runtime ui manager should load fixture documents through the v2 heap-resident file cache and refresh the persistent surface by dirty domain"
+        "runtime ui manager should load fixture documents through the .zui prototype file cache and refresh the persistent surface by dirty domain"
     );
 
     for forbidden in [
@@ -111,11 +111,11 @@ fn runtime_ui_manager_loads_fixture_documents_from_asset_files() {
 }
 
 #[test]
-fn ui_v2_surface_projection_does_not_call_template_tree_builder() {
+fn zui_surface_projection_does_not_call_template_tree_builder() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let surface_builder_source =
         fs::read_to_string(manifest_dir.join("src/ui/v2/surface_builder.rs"))
-            .expect("ui v2 surface_builder.rs should be readable");
+            .expect(".zui surface builder source should be readable");
     let mut combined_source = surface_builder_source;
     for relative in [
         "src/ui/v2/surface_tree/mod.rs",
@@ -128,7 +128,7 @@ fn ui_v2_surface_projection_does_not_call_template_tree_builder() {
         combined_source.push('\n');
         combined_source.push_str(
             &fs::read_to_string(manifest_dir.join(relative)).unwrap_or_else(|error| {
-                panic!("ui v2 surface tree file {relative} should be readable: {error}")
+                panic!(".zui surface tree source {relative} should be readable: {error}")
             }),
         );
     }
@@ -136,7 +136,7 @@ fn ui_v2_surface_projection_does_not_call_template_tree_builder() {
     for required in ["UiV2ArenaNode", "UiTreeNode", "UiTemplateNodeMetadata"] {
         assert!(
             combined_source.contains(required),
-            "ui v2 surface projection should build runtime tree data directly with `{required}`"
+            ".zui surface projection should build runtime tree data directly with `{required}`"
         );
     }
 
@@ -148,7 +148,7 @@ fn ui_v2_surface_projection_does_not_call_template_tree_builder() {
     ] {
         assert!(
             !combined_source.contains(forbidden),
-            "ui v2 surface projection should not depend on old template tree path `{forbidden}`"
+            ".zui surface projection should not depend on old template tree path `{forbidden}`"
         );
     }
 }

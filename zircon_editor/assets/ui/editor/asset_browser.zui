@@ -119,6 +119,7 @@ events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "workbenc
 [nodes.toolbar_kind_primary_row]
 component = "HorizontalBox"
 control_id = "AssetBrowserToolbarKindPrimaryRow"
+props = { surface_variant = "inset", radius = 4.0, border_width = 1.0, z_index = -1 }
 layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }, { node = "toolbar_kind_primary_spacer" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
 
@@ -338,7 +339,7 @@ layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "S
 [nodes.content_preview_card_name]
 component = "Label"
 control_id = "AssetBrowserContentPreviewName"
-props = { text = "workbench_host_window.ui.toml", font_size = 10.0, font_weight = 600, overflow = "elide" }
+props = { text = "workbench_page_chrome.zui", font_size = 10.0, font_weight = 600, overflow = "elide" }
 layout = { width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
 [nodes.content_preview_card_meta]

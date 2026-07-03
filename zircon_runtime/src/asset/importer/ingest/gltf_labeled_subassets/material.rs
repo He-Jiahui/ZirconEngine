@@ -110,6 +110,9 @@ fn material_asset_from_gltf_material(
     MaterialAsset {
         name: material.name().map(str::to_owned),
         shader: default_pbr_shader_reference(),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: pbr.base_color_factor(),
         base_color_texture,
         normal_texture,
@@ -228,6 +231,9 @@ fn default_material_asset(uri: AssetUri) -> MaterialAsset {
     MaterialAsset {
         name: Some("DefaultMaterial".to_string()),
         shader: default_pbr_shader_reference(),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,

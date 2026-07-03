@@ -1,8 +1,8 @@
 use std::cell::RefCell;
 
-use glyphon::{Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Wrap};
+use glyphon::{Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Weight, Wrap};
 use unicode_segmentation::UnicodeSegmentation;
-use zircon_runtime_interface::ui::surface::{UiTextDirection, UiTextRange};
+use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
 use crate::core::framework::render::{
     ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedTextLine,
@@ -311,7 +311,7 @@ fn cluster_flags(
 }
 
 fn attrs_for_style<'a>(request: TextShapeRequest<'a>) -> Attrs<'a> {
-    match request
+    let attrs = match request
         .style
         .font_family
         .as_deref()
@@ -321,7 +321,10 @@ fn attrs_for_style<'a>(request: TextShapeRequest<'a>) -> Attrs<'a> {
     {
         Some(family) => Attrs::new().family(Family::Name(family)),
         None => Attrs::new(),
-    }
+    };
+    attrs.weight(Weight(UiResolvedStyle::normalized_font_weight(
+        request.style.font_weight,
+    )))
 }
 
 fn resolved_line_height(request: TextShapeRequest<'_>) -> f32 {

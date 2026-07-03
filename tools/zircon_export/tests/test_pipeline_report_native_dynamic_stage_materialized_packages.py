@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.tests.export_test_support import (
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
     _native_dynamic_content_hash,
     _native_dynamic_package_export,
     _native_dynamic_plugins_file_manifest,

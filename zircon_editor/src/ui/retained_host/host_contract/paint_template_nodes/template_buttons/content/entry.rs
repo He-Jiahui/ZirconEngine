@@ -8,9 +8,11 @@ use super::glyph::{
     has_trailing_chevron, leading_glyph_rect, push_content_asset_icon, push_content_glyph,
     trailing_glyph_rect,
 };
-use super::metrics::{button_label_font_size, content_offset_y, measured_label_width};
+use super::metrics::{
+    button_label_font_size, button_label_paint_style, content_offset_y, max_label_slot_width,
+    measured_label_width,
+};
 use super::text::push_button_label;
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_button_content(
     commands: &mut Vec<HostPaintCommand>,
@@ -28,8 +30,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     let glyph_width = button_glyph_width(node, glyph);
     let chevron_width = chevron_width(glyph);
     let font_size = button_label_font_size(node, rect);
-    let content_width = (measured_label_width(&label, font_size) + glyph_width + chevron_width)
-        .min((rect.width - METRICS.button_pad_x * 2.0).max(1.0));
+    let text_style = button_label_paint_style(node);
+    let content_width =
+        (measured_label_width(&label, font_size, text_style) + glyph_width + chevron_width)
+            .min(max_label_slot_width(node, rect));
     let mut x = rect.x + (rect.width - content_width).max(0.0) * 0.5;
 
     if has_leading_asset_icon(node) {
@@ -79,6 +83,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
             content_y_offset,
             (content_width - glyph_width - chevron_width).max(1.0),
             font_size,
+            text_style,
             label,
             style.text,
             opacity,

@@ -14,7 +14,7 @@ from tools.zircon_export.native_dynamic_payload import (
     native_dynamic_content_hash,
     native_dynamic_plugins_file_manifest,
 )
-from tools.zircon_export.platform_bundle import (
+from tools.zircon_export.platform_bundle_strategy_handoff import (
     validate_report_allows_native_plugins,
     validate_report_strategy_diagnostics,
     validate_report_uses_strategy,
@@ -95,6 +95,35 @@ class PlatformBundleInputTests(unittest.TestCase):
             self.assertIsNone(bundle_manifest["delta_pack"])
             self.assertFalse(
                 (out / "bundle" / "windows-release" / report_delta.name).exists()
+            )
+
+    def test_stage_rejects_empty_host_executable_input(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            out = root / "out"
+            host = out / "compile" / "zircon_runtime.exe"
+            pack = root / "pack-output" / "assets.zrpack"
+            delta_pack = root / "pack-output" / "assets.delta.zrpd"
+            host.parent.mkdir(parents=True, exist_ok=True)
+            host.write_bytes(b"")
+            _write_validate_report_with_strategies(out, ["library_embed"])
+            _write_compile_host_report(out, host)
+            _write_stage_report(out, "cook_assets", fatal=False)
+            _write_pack_report(out, pack, delta_pack)
+            args = _export_args(out=out, stage="platform_bundle", dry_run=False)
+            args.host_executable = str(host)
+
+            exit_code = _run_stage_quiet(args)
+
+            report = _read_json(out / "stages" / "platform_bundle" / "report.json")
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIsNone(report["host_executable"])
+            self.assertIsNone(report["bundle_manifest"])
+            self.assertFalse((out / "bundle" / "windows-release").exists())
+            self.assertTrue(
+                any("host executable" in item and "is empty" in item for item in report["diagnostics"]),
+                report["diagnostics"],
             )
 
     def test_validate_strategy_helpers_reject_report_directory(self) -> None:

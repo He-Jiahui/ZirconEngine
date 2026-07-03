@@ -1,6 +1,7 @@
 //! Shared text shaping owner. Third-party text backend types stay in leaf modules.
 
 mod cosmic;
+mod font_id;
 mod line_break;
 mod script_segment;
 
@@ -9,6 +10,8 @@ mod tests;
 
 use crate::core::framework::render::{ShapedGlyphRun, TextShapeRequest, TextShapingService};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
+
+pub(crate) use font_id::{annotate_fallback_font_ids, font_query_for_style};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct SharedTextShapingService;

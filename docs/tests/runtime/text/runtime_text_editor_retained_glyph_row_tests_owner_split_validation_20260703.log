@@ -1,0 +1,30 @@
+Runtime text editor retained glyph row tests owner split validation
+status: runtime_text_editor_retained_glyph_row_tests_owner_split_rustfmt_visual_cargo_deferred
+date: 2026-07-03
+row_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
+tests_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
+row_lines: 237
+row_test_attrs: 0
+row_mod_tests_entries: 1
+tests_lines: 58
+tests_test_attrs: 6
+test_names:
+  - sampled_coverage_averages_balanced_supersampled_strokes
+  - sampled_coverage_preserves_single_pixel_supersampled_strokes
+  - sampled_coverage_clamps_to_bitmap_edge
+  - sampled_subpixel_coverage_averages_rgb_channels_independently
+  - sampled_subpixel_coverage_preserves_native_rgb_channels
+  - strong_text_uses_selected_font_face_without_synthetic_extra_pass
+target_same_name_matches: 0
+target_match_paths:
+  - none
+cargo_validation: deferred; external cargo/rustc lanes active, so this slice is proven by rustfmt/static checks and visual proof only.
+active_cargo_rustc_processes:
+  - cargo 17884
+  - cargo 27424
+  - cargo 42916
+  - cargo 44708
+  - rustc 18400
+  - rustc 22492
+png_sha256: 278C8287FD6DF141044833641F538C2147C75A115A8FAEAAA6E147D09B2D49DC
+log_sha256_before_hash_line: B5533623D749200EEC2C8CD91D91EACB04B1F3B4B0AB047E767F6F9753B10C18

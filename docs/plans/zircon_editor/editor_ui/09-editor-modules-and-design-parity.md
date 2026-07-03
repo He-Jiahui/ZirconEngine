@@ -72,7 +72,7 @@ status: planned
 | Hierarchy | 搜索 + 树（图标、可见性/锁定列、拖拽重排、context menu）（`hierarchy-drawer-content-spec.png`） | 场景树双向：重命名/重排/删除/新建（06 TreeView 命令 → editor command） |
 | Inspector | 对象头（名称/启用/tag/layer）+ 组件分节（Transform VectorRow、材质槽、组件增删）（`inspector-drawer-content-spec.png`） | 反射驱动属性编辑（UiReflectionSnapshot/Diff）→ property mutation → 场景写回；undo/redo |
 | Asset Browser | 左 folder tree + 右网格/列表切换 + 过滤 + 缩略图 + 导入入口（`asset-grid-drawer-content-spec.png`） | 目录式 project 资产层；导入走 importer；双击打开对应编辑器 |
-| Console | 级别过滤 + 搜索 + 虚拟滚动日志 + 详情区（`console-drawer-content-spec.png`） | runtime/editor 日志流实时接入（03 M5 富文本 span） |
+| Console | 级别过滤 + 搜索 + 虚拟滚动日志 + 详情区（`console-drawer-content-spec.png`） | runtime/editor 日志流实时接入（03 M5 富文本 span）。（2026-07-02 评审收口，U9）富文本 span/装饰器 schema 权威 = `docs/plans/zircon_runtime/text/07`（BBCode+HTML 子集）；此处依赖读作「**text/07 span 契约 + 03 M5 接入**」——03 M5 已收窄为 Console/Inspector 的编辑器侧接入切片，原文保留作历史对照 |
 
 **批次 2 —— 资产型编辑器（每个 = main tab 页 + 专属 drawer 组）**
 

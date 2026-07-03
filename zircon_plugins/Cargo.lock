@@ -5935,6 +5935,7 @@ name = "zircon_editor"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "fontdb",
  "fontdue",
  "gltf",
  "image",
@@ -5944,9 +5945,11 @@ dependencies = [
  "serde",
  "serde_json",
  "softbuffer",
+ "swash",
  "thiserror 2.0.18",
  "toml",
  "tracing",
+ "unicode-segmentation",
  "winit",
  "zircon_runtime",
  "zircon_runtime_interface",
@@ -6001,6 +6004,7 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_animation_runtime",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6299,6 +6303,7 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
  "zircon_plugin_net_runtime",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6440,6 +6445,7 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
  "zircon_plugin_physics_runtime",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -7011,12 +7017,15 @@ dependencies = [
  "ron",
  "serde",
  "serde_json",
+ "swash",
  "taffy",
  "thiserror 2.0.18",
  "tobj",
  "toml",
  "tracing",
  "ttf-parser 0.25.1",
+ "unicode-linebreak",
+ "unicode-script",
  "unicode-segmentation",
  "uuid",
  "wgpu",

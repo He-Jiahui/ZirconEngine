@@ -73,8 +73,8 @@ fn runtime_15_asset_ui_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        16,
-        "asset UI child modules should preserve the original 16 parent tests"
+        19,
+        "asset UI child modules should preserve the current 19 parent tests"
     );
 
     assert_contains_all(
@@ -104,7 +104,7 @@ fn runtime_15_asset_ui_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn importer_decodes_ui_theme_assets_from_theme_toml",
-            "fn importer_decodes_ui_layout_widget_and_style_assets_from_ui_toml",
+            "fn importer_decodes_zui_view_and_style_assets_from_zui",
             "fn importer_decodes_zui_component_assets_from_zui",
         ],
     );

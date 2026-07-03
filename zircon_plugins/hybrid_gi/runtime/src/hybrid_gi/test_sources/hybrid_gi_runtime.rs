@@ -3980,7 +3980,7 @@ fn mesh_at(
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
     }
 }
 
@@ -3988,7 +3988,7 @@ fn directional_light(node_id: u64, intensity: f32) -> RenderDirectionalLightSnap
     RenderDirectionalLightSnapshot {
         node_id,
         light_id: node_id,
-        layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
         direction: Vec3::new(-0.4, -1.0, -0.2),
         color: Vec3::new(1.0, 0.95, 0.9),
         intensity,

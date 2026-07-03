@@ -3,6 +3,10 @@ use std::sync::{mpsc, Arc};
 
 use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
 use crate::graphics::backend::RenderBackend;
+use crate::graphics::resource_limits::{
+    GPU_SCENE_COMPUTE_STORAGE_BUFFERS_PER_SHADER_STAGE,
+    HZB_OCCLUSION_PASS_STORAGE_BUFFERS_PER_SHADER_STAGE,
+};
 use crate::graphics::scene::gpu_scene::{
     GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GPU_PRIMITIVE_FLAG_VISIBLE,
     GPU_SCENE_INVALID_PAYLOAD_SLOT,
@@ -44,6 +48,14 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
         return;
     };
     let device = &backend.device;
+    if !hzb_occlusion_supported_by_limits(&device.limits()) {
+        eprintln!(
+            "skipping hzb occlusion wgpu test: device limit max_storage_buffers_per_shader_stage={} is below required {}",
+            device.limits().max_storage_buffers_per_shader_stage,
+            HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
+        return;
+    }
     let queue = &backend.queue;
     let (scene_layout, _scene_uniform_buffer, scene_bind_group) = test_scene_bind_group(device);
     let mut gpu_scene = test_gpu_scene(device);
@@ -155,6 +167,19 @@ fn hzb_occlusion_culler_shader_declares_expected_bindings() {
     assert!(HZB_OCCLUSION_CULL_SHADER
         .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@compute @workgroup_size(64, 1, 1)"));
+}
+
+#[test]
+fn hzb_occlusion_limit_gate_matches_pipeline_storage_buffer_layout() {
+    assert_eq!(
+        hzb_occlusion_storage_buffer_binding_count(),
+        HZB_OCCLUSION_PASS_STORAGE_BUFFERS_PER_SHADER_STAGE
+    );
+    assert_eq!(
+        GPU_SCENE_COMPUTE_STORAGE_BUFFERS_PER_SHADER_STAGE
+            + hzb_occlusion_storage_buffer_binding_count(),
+        HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+    );
 }
 
 #[test]
@@ -302,7 +327,7 @@ fn test_instance_data(translate_z: f32) -> GpuInstanceData {
         primitive_index: u32::MAX,
         flags: 0,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
-        _pad0: 0,
+        morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
     }
 }
 

@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.cli import run_pack
+from tools.zircon_export.pack_stage import run_pack
 from tools.zircon_export.tests.export_test_support import _pack_args
 
 

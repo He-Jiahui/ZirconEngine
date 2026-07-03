@@ -1,0 +1,25 @@
+Runtime text editor per-grapheme spacing guard validation - 2026-07-03
+
+Source change:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+- Added per-grapheme advance matching before runtime advances are projected onto the retained host glyph face.
+- Regression added: runtime_positioned_glyphs_rejects_per_grapheme_jitter_even_when_total_width_matches.
+
+Verification commands:
+1. rustfmt --edition 2021 --check zircon_editor\src\ui\retained_host\host_contract\paint_text\draw\layout.rs
+   Result: passed, exit code 0.
+
+2. cargo test -p zircon_editor runtime_positioned_glyphs --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-text-spacing-0703 --message-format short --color never -- --nocapture --test-threads=1
+   Result: timed out after 904 seconds during Windows compile with no Rust diagnostics printed by the wrapper.
+   Follow-up: matching owned cargo/rustc processes for E:\cargo-targets\zircon-editor-text-spacing-0703 were stopped after timeout.
+   No zircon_editor test binary was available under E:\cargo-targets\zircon-editor-text-spacing-0703\debug\deps at the time of inspection.
+   This Cargo command is NOT counted as passing.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_editor_per_grapheme_spacing_guard_preview_20260703.png
+- SHA256: 7991429B66A536B05D538C05947EBAD6FB7D6049EF894F1D6EE4F8E32406A5F8
+- Purpose: comparison proof image for old total-width-only projection versus the new per-grapheme guard fallback. It is not a live editor-window capture.
+- Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets: 0 matches.
+
+Open validation:
+- Live Workbench/Asset Browser/Component Atlas window-level typography screenshot QA remains open because focused editor Cargo validation did not reach a runnable binary in this slice.

@@ -7,9 +7,9 @@ use crate::asset::{
     ShaderTextureSlotAsset,
 };
 use crate::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
+    FallbackSkyboxKind, MaterialPropertyKind, PreviewEnvironmentExtract, RenderFrameExtract,
     RenderMaterialValidationError, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderWorldSnapshotHandle, ShaderAssetKind, ViewportCameraSnapshot,
 };
 use crate::core::math::Vec4;
 use crate::graphics::{
@@ -238,6 +238,7 @@ fn test_extract() -> RenderFrameExtract {
 fn shader_contract() -> ShaderAsset {
     ShaderAsset {
         uri: AssetUri::parse("res://shaders/material-only.zshader").unwrap(),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: String::new(),
         wgsl_source:
@@ -255,19 +256,20 @@ fn shader_contract() -> ShaderAsset {
         property_schema: vec![
             ShaderMaterialPropertyAsset {
                 name: "base_color".to_string(),
-                kind: "vec4".to_string(),
+                kind: MaterialPropertyKind::Vec4,
                 required: true,
                 default: None,
                 editor: Default::default(),
             },
             ShaderMaterialPropertyAsset {
                 name: "emissive_power".to_string(),
-                kind: "float".to_string(),
+                kind: MaterialPropertyKind::Float,
                 required: true,
                 default: None,
                 editor: Default::default(),
             },
         ],
+        options: Vec::new(),
         texture_slots: vec![ShaderTextureSlotAsset {
             name: "base_color".to_string(),
             kind: "texture2d".to_string(),
@@ -276,8 +278,18 @@ fn shader_contract() -> ShaderAsset {
             sampler: Some("linear_repeat".to_string()),
             group: Some("Surface".to_string()),
             label: Some("Base Color".to_string()),
+            option: None,
+            st: false,
             editor: Default::default(),
         }],
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
@@ -287,7 +299,7 @@ fn shader_contract() -> ShaderAsset {
 fn material_with_contract_gaps(shader: AssetReference) -> MaterialAsset {
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "MaterialOnly"
 
 [shader]

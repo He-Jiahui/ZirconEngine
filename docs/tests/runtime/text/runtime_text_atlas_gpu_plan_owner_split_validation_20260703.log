@@ -1,0 +1,10 @@
+runtime_text_atlas_gpu_plan_owner_split
+date=2026-07-03
+issue=render_gpu_plan.rs accumulated multiple GPU contract domains and would become a structure-convention risk
+owner=zircon_runtime::graphics::text::atlas::render_gpu_plan
+before=render_gpu_plan.rs 720 lines; mixed vertex layout, bind group, viewport transform, draw command, pipeline contract, draw-plan assembly, tests
+after=render_gpu_plan.rs 477 lines; child owners bind_group.rs=51, draw_command.rs=57, pipeline.rs=29, vertex.rs=91, viewport.rs=50
+behavior=mechanical folder-backed split; existing tests retained; no GPU draw-plan output contract changed
+rustfmt=passed for render_gpu_plan.rs and child owner files
+cargo=deferred because external cargo/rustc lanes were active
+target_output=none

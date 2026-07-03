@@ -1,0 +1,32 @@
+Runtime text editor retained pen-origin subpixel phase validation - 2026-07-03
+
+Source changes:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+  - RuntimeTextGlyph now carries both bitmap-left x and pen-origin origin_x.
+  - Runtime-to-host grapheme projection preserves pen origin so glyph side bearings do not choose raster phase.
+  - Added regression: runtime_positioned_glyphs_keep_pen_origin_for_subpixel_phase.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+  - RetainedGlyphPlacement now receives glyph.origin_x for subpixel bin selection.
+  - glyph.x remains a finite fallback, but normal placement phase follows the glyph pen origin.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
+  - CachedGlyphMetrics.x_offset is now relative to the glyph pen origin for both swash and fontdue fallback rasters.
+  - Added regressions: swash_metrics_x_offset_is_relative_to_pen_origin and fontdue_fallback_metrics_x_offset_is_relative_to_pen_origin.
+
+Verification commands:
+1. rustfmt --edition 2021 --check zircon_editor\src\ui\retained_host\host_contract\paint_text\draw\layout.rs zircon_editor\src\ui\retained_host\host_contract\paint_text\draw\glyphs.rs zircon_editor\src\ui\retained_host\host_contract\paint_text\raster.rs
+   Result: passed, exit code 0.
+
+2. git diff --check -- <touched docs/code/log files for this pen-origin phase slice>
+   Result: passed, exit code 0. Git printed LF-to-CRLF working-tree warnings only.
+
+3. Focused Cargo status:
+   Result: deferred. Existing cargo/rustc lanes were already running on the workstation, so this slice did not start another long editor compile.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_editor_pen_origin_phase_preview_20260703.png
+- SHA256: 03CA205AC0C1BD890C37955AEBEB8BE57C7242C9C3542D6DCB9D21F4F8C24032
+- Purpose: small DengXian file-label comparison showing the old bitmap-left-bearing phase rule versus the new pen-origin phase rule on the reported editor strings.
+- Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets: 0 matches.
+
+Open validation:
+- Focused editor tests and live editor window capture remain open until the active cargo/rustc lanes clear and a runnable editor build is available.

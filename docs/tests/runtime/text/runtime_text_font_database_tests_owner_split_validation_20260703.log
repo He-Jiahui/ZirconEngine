@@ -1,0 +1,13 @@
+status=runtime_text_fr_m1_fr_m2_font_database_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+scope=FR-M1/FR-M2 FontDatabase tests owner split
+changed_files=zircon_runtime/src/graphics/text/font/database.rs; zircon_runtime/src/graphics/text/font/database/tests.rs
+database_rs_lines=459
+database_rs_inline_tests=0
+database_tests_rs_lines=336
+database_tests_rs_tests=10
+behavior=structure-only; no font matching, registration, fallback, descriptor, glyphon, SDF, or render-path behavior changed in this slice
+rustfmt=passed earlier for database.rs and database/tests.rs; final scoped check rerun passed after docs update
+cargo=deferred; active_external_lanes_count=12; active_external_lanes=cargo:10096, cargo:20768, cargo:23548, cargo:32180, cargo:36568, cargo:42476, cargo:46620, cargo:48488, rustc:15744, rustc:25968, rustc:35384, rustc:42212
+proof_png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_font_database_tests_owner_split_preview_20260703.png
+proof_log=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_font_database_tests_owner_split_validation_20260703.log

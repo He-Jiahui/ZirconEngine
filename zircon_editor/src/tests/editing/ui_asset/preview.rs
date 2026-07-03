@@ -4,7 +4,7 @@ use crate::ui::{asset_editor::UiAssetPreviewHost, template::EditorTemplateRuntim
 #[test]
 fn ui_asset_editor_session_compiles_preview_surface_and_projects_reflection_state() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout.ui.toml",
+        "asset://ui/tests/layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -31,7 +31,7 @@ fn ui_asset_editor_session_compiles_preview_surface_and_projects_reflection_stat
 #[test]
 fn ui_asset_editor_session_preserves_last_good_preview_when_source_turns_invalid() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout.ui.toml",
+        "asset://ui/tests/layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -68,7 +68,7 @@ fn ui_asset_editor_session_preserves_last_good_preview_when_source_turns_invalid
 #[test]
 fn ui_asset_editor_session_undo_and_redo_source_edits_restore_preview_state() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout.ui.toml",
+        "asset://ui/tests/layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Source,
     );
@@ -117,7 +117,7 @@ fn ui_asset_editor_session_undo_and_redo_source_edits_restore_preview_state() {
 #[test]
 fn ui_asset_editor_session_switches_modes_and_updates_selection_from_hierarchy() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/styled-layout.ui.toml",
+        "asset://ui/tests/styled-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -163,7 +163,7 @@ fn ui_asset_editor_session_switches_modes_and_updates_selection_from_hierarchy()
 #[test]
 fn ui_asset_editor_session_switches_preview_presets_and_rebuilds_preview_surface() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout.ui.toml",
+        "asset://ui/tests/layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -275,7 +275,7 @@ fn ui_asset_preview_host_resizes_retained_surface_without_rebuilding_tree_state(
 #[test]
 fn ui_asset_editor_session_applies_editor_only_mock_preview_values_without_dirtying_source() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/mock-preview.ui.toml",
+        "asset://ui/tests/mock-preview.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -327,7 +327,7 @@ fn ui_asset_editor_session_applies_editor_only_mock_preview_values_without_dirty
 #[test]
 fn ui_asset_editor_session_projects_mock_preview_property_kinds_for_selected_node() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/mock-preview.ui.toml",
+        "asset://ui/tests/mock-preview.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -361,7 +361,7 @@ fn ui_asset_editor_session_projects_mock_preview_property_kinds_for_selected_nod
 #[test]
 fn ui_asset_editor_session_supports_cross_node_preview_mock_subjects_without_changing_selection() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/cross-node-preview.ui.toml",
+        "asset://ui/tests/cross-node-preview.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -426,7 +426,7 @@ fn ui_asset_editor_session_supports_cross_node_preview_mock_subjects_without_cha
 #[test]
 fn ui_asset_editor_session_projects_rich_preview_mock_kinds_and_state_graph() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/rich-preview.ui.toml",
+        "asset://ui/tests/rich-preview.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -517,7 +517,7 @@ fn ui_asset_editor_session_projects_rich_preview_mock_kinds_and_state_graph() {
 #[test]
 fn ui_asset_editor_session_edits_preview_mock_collection_entries_structurally() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/rich-preview.ui.toml",
+        "asset://ui/tests/rich-preview.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -588,7 +588,7 @@ fn ui_asset_editor_session_edits_preview_mock_collection_entries_structurally() 
 #[test]
 fn ui_asset_editor_session_edits_preview_mock_object_entries_structurally() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/rich-preview.ui.toml",
+        "asset://ui/tests/rich-preview.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );

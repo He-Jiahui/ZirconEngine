@@ -1,0 +1,36 @@
+Runtime Text bitmap atlas upload report validation
+Date: 2026-07-04 +08:00
+Slice: runtime_text_at_m1_at_m3_bitmap_atlas_upload_report_rustfmt_static_visual_cargo_deferred
+
+Scope:
+- GlyphAtlasBitmapRunPlan now carries upload_commands derived from bitmap dirty_pages.
+- Partial dirty pages emit GlyphAtlasUploadMode::PartialRect commands through the shared atlas upload owner.
+- Dirty rects that cover an entire page emit GlyphAtlasUploadMode::FullPage commands.
+- Upload commands preserve page_key, sampling_semantics, bytes_per_row, rows_per_image, source_offset, and upload_byte_len semantics from glyph_atlas_upload_command(...).
+
+Changed source:
+- zircon_runtime/src/graphics/text/atlas/bitmap_run.rs
+- zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs
+
+Checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs: passed.
+- git diff --check -- zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs: passed.
+- Focused Cargo: deferred because external cargo/rustc lanes were active during this slice.
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_report_preview_20260704.png
+- Visual proof SHA256: 73ED0A486E26219B814CF076B7571D8708DF1F108B730F7B5F9FF2D6E875FEB1
+
+Target placement:
+- Proof files are intentionally under docs/tests/runtime/text.
+- Same-name scans for repo target and external Cargo target roots are recorded after this log is written.
+
+Post-log target scan:
+- target: 0 same-name matches
+- E:\cargo-targets: 0 same-name matches
+- D:\cargo-targets: 0 same-name matches
+- F:\cargo-targets: 0 same-name matches
+
+Cargo/rustc activity observed after slice:
+- External cargo/rustc processes were still active, including cargo PIDs 14088, 30132, 38684, 48452 and rustc PID 14776.
+- No new Cargo lane was started for this slice.

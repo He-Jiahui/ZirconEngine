@@ -42,6 +42,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
   - zircon_runtime_interface/src/ui/surface/render/batch.rs
   - zircon_runtime_interface/src/ui/surface/render/cache.rs
@@ -64,6 +65,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  - tools/tests/test_runtime_sdf_fallback_glyph_index_type.py
+  - tools/tests/test_plugin_docs_current_status_runtime_sdf_fallback_glyph_index_type.py
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
@@ -135,6 +139,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
   - zircon_runtime_interface/src/ui/surface/render/batch.rs
   - zircon_runtime_interface/src/ui/surface/render/cache.rs
@@ -522,6 +527,8 @@ screen-space UI batch planner 会优先消费 `text_layout.lines`：每个 resol
 
 M6 文本收敛切片进一步把 `UiTextPaint` 的 editable decoration 事实接入 runtime screen-space planner。planner 会从 `UiRenderCommand::to_paint_elements(...)` 读取 shared text payload：selection decoration 进入普通 UI quad draw，作为文本下方的局部高亮；caret 和 composition underline 进入 `post_text_draws`，在 glyphon/SDF text pass 之后重新绑定 UI quad pipeline 画在文本上方。这样 editor native painter 和 runtime WGPU path 都消费同一组 selection/caret/composition underline frame，不再各自用字符数或节点 frame 重新估算。
 
+2026-06-30 的 editable source/visual geometry 切片把这组 decoration frame 的计算从 `UiRenderCommand` 拆到 `zircon_runtime_interface::ui::surface::render::text_geometry`。该 owner 使用 `UiResolvedTextRun.source_range` 到 `visual_range` 的映射和 resolved `glyph_advances`，所以 soft hyphen source `3..5` 显示为单个 `-` 时，selection、composition underline 和 caret 都落在同一个可视 cell 上，而不是按源字节长度扩成两个字符宽。
+
 同一 M6 链路现在也让 rich runs 成为 shared paint fact。`UiTextPaint.runs` 会把 `UiShapedTextCluster` 转成 `UiTextPaintRun`，保留 run text、source/visual range、frame、font/color 继承和 `UiTextRunPaintStyle`。runtime screen-space planner 优先按这些 runs 生成 text batches；glyphon native backend 把 Strong/Emphasis/Code 映射为 bold、italic、monospace attrs；editor native painter 也按同一 run DTO 进行软件 fallback 样式绘制。没有 `text_layout` 的手写 overlay 才继续使用旧整段 text fallback。
 
 新增回归 [`text_layout.rs`](../../zircon_runtime/src/ui/tests/text_layout.rs) 锁住两类行为：
@@ -534,6 +541,7 @@ M6 文本收敛切片进一步把 `UiTextPaint` 的 editable decoration 事实�
 - `editable_text_state_applies_selection_and_composition_actions` 证明 selection replacement、composition visible update 和 composition commit 走同一 editable text state helper
 - `screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches` 证明 graphics planner 会按 resolved line 生成 text batches，而不是吞掉 extract 阶段的排版结果
 - `screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws` 证明 runtime WGPU planner 使用 shared text decoration frames，并把 selection 与 caret/composition 分到正确的 text 前/后绘制阶段
+- `ui_text_decorations_use_run_visual_ranges_for_non_isomorphic_source_ranges` 证明 source/visual byte 长度不一致的 editable run 仍按 resolved visual range 生成 decoration frame
 - `screen_space_ui_plan_splits_rich_text_runs_from_shared_paint` 证明 graphics planner 按 shared rich paint runs 拆分 batch，并保留 Strong/Code 样式标记
 - `text_attrs_maps_shared_rich_run_style_to_glyphon_attrs` 证明 glyphon native path 从 shared run style 得到 bold、italic、monospace attrs
 
@@ -758,3 +766,4 @@ M1 这里再补了一条最小默认策略：
   - 当前全工作区验证同样仍被邻域 editor/hybrid-GI 漂移阻塞，因此 M1 这里记录的是 targeted boundary/text regressions 绿灯，而不是工作区全绿
 
 这些验证合起来，把“目录规则”“shared 加载链路”“字体/typography 合同”“native/sdf 批次分流”同时锁住。
+2026-07-03 `plugins_13_m5_t1_runtime_sdf_fallback_glyph_index_type` records the plugin-workspace support fix for the SDF mixed fallback owner. `fallback_spans_for_text_run(...)` now declares `glyph_index: usize`, so `glyph_index.saturating_add(...)` and `SdfAtlasGlyphFallbackSpan.start_glyph_index` share the same integer type instead of relying on ambiguous `0` inference. Guard coverage is `tools/tests/test_runtime_sdf_fallback_glyph_index_type.py` plus `tools/tests/test_plugin_docs_current_status_runtime_sdf_fallback_glyph_index_type.py`. Focused validation passed `cargo check -p zircon_runtime --lib --locked` with existing warnings; `sdf_atlas_fallback_` Rust 单测超时未采信.

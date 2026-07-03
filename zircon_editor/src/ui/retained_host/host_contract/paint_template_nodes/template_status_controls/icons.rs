@@ -3,9 +3,9 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_icon_button_style;
 use super::super::template_status_control_geometry::{
     status_control_offset_rect, status_icon_button_glyph_rect, status_icon_button_radius,
+    workbench_status_metrics,
 };
 use super::super::template_status_glyphs::{push_status_icon_glyph, StatusIconKind};
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_icon_button(
     commands: &mut Vec<HostPaintCommand>,
@@ -54,7 +54,7 @@ fn push_status_icon_surface(
         return;
     }
     let border_width = if border.is_some() {
-        METRICS.border_width
+        workbench_status_metrics().border_width
     } else {
         0.0
     };

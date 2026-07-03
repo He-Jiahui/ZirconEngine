@@ -17,6 +17,9 @@ impl MeshPassProcessor for VelocityPassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
+        if batch.disabled_passes.disables_velocity() {
+            return;
+        }
         if batch.queue_profile.early_z_eligible()
             && batch.queue_profile.velocity_history_eligible()
             && batch.has_previous_velocity_transform

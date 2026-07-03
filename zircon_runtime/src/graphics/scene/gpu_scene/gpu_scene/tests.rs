@@ -152,7 +152,7 @@ fn test_instance_data(translate_x: f32) -> GpuInstanceData {
         primitive_index: u32::MAX,
         flags: 0,
         payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
-        _pad0: 0,
+        morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
     }
 }
 

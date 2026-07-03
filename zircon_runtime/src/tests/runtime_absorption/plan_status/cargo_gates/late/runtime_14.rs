@@ -37,16 +37,14 @@ fn runtime_14_module_family_cargo_gate_stays_visible_until_filters_pass() {
         "Runtime 14 index row",
         runtime_14_index_row,
         &[
-            "Runtime 14 计划/四族文档",
-            "独立 `root_entries.rs` rustc 守卫曾通过 10/10",
-            "Cargo/重跑 rustc 待 active lane 清空",
+            "Runtime 14 animation/navigation/diagnostic_log/engine_module 四族裁决",
+            "runtime_14_module_family_cargo_gate_stays_visible_until_filters_pass",
+            "完整 Runtime 14 filters/full sweep 仍 pending",
         ],
     );
 
-    let runtime_14_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P17 |"))
-        .expect("Runtime index should keep the P17 module-family problem row");
+    let runtime_14_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P17", "module-family");
     assert_contains_all(
         "Runtime index P17 row",
         runtime_14_problem_row,

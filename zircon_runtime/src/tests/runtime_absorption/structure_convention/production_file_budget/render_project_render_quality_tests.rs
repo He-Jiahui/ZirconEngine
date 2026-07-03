@@ -3,6 +3,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_project_render_quality_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/project_render.rs");
+    let project_scenes = read_runtime_src("graphics/tests/project_render/project_scenes.rs");
     let quality = read_runtime_src("graphics/tests/project_render/render_quality.rs");
 
     let plan_04 = read_repo("docs/plans/zircon_runtime/render/04-visibility-culling.md");
@@ -14,20 +15,33 @@ fn runtime_15_project_render_quality_tests_are_child_owner() {
     let render_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
     assert_contains_all(
-        "project-render parent keeps base project render tests, shared fixtures, and child mount",
+        "project-render parent keeps shared fixtures and child mounts",
         &parent,
         &[
+            "mod project_scenes;",
             "mod render_quality;",
-            "fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay(",
-            "fn example_vampire_scene_renders_visible_mesh_pixels(",
-            "fn directory_project_material_shader_drives_pipeline_color_output(",
-            "fn wire_only_mode_reduces_filled_surface_pixels(",
             "fn unique_temp_project_root(",
             "fn project_asset_manager_with_first_wave_plugin_importers(",
             "fn submit_snapshot(",
             "fn average_channel(",
         ],
     );
+
+    for scene_products_anchor in [
+        "fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay(",
+        "fn example_vampire_scene_renders_visible_mesh_pixels(",
+        "fn directory_project_material_shader_drives_pipeline_color_output(",
+        "fn wire_only_mode_reduces_filled_surface_pixels(",
+    ] {
+        assert!(
+            !parent.contains(scene_products_anchor),
+            "project_render.rs should delegate `{scene_products_anchor}` to project_scenes.rs"
+        );
+        assert!(
+            project_scenes.contains(scene_products_anchor),
+            "project_scenes.rs should own `{scene_products_anchor}`"
+        );
+    }
 
     for moved_anchor in [
         "fn temporal_history_rotates_history_when_scene_material_changes(",

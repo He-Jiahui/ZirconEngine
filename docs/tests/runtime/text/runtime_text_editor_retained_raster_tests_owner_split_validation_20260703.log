@@ -1,0 +1,41 @@
+Runtime text editor retained raster tests owner split validation
+status: runtime_text_editor_retained_raster_tests_owner_split_rustfmt_visual_cargo_deferred
+date: 2026-07-03
+raster_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
+tests_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
+raster_lines: 317
+raster_test_attrs: 0
+raster_mod_tests_entries: 1
+tests_lines: 104
+tests_test_attrs: 8
+test_names:
+  - retained_text_raster_uses_swash_for_ui_face
+  - swash_subpixel_mask_preserves_rgb_coverage_for_retained_host
+  - swash_subpixel_mask_can_follow_grayscale_smoothing_preference
+  - swash_render_format_tracks_text_smoothing_preference
+  - retained_text_raster_cache_separates_subpixel_bins_for_same_glyph
+  - retained_text_raster_normalizes_invalid_subpixel_offsets
+  - swash_metrics_x_offset_is_relative_to_pen_origin
+  - fontdue_fallback_metrics_x_offset_is_relative_to_pen_origin
+target_same_name_matches: 0
+target_match_paths:
+  - none
+cargo_validation: deferred; external cargo/rustc lanes active, so this slice is proven by rustfmt/static checks and visual proof only.
+active_cargo_rustc_processes:
+  - cargo 33880
+  - cargo 40068
+  - cargo 40272
+  - cargo 40792
+  - cargo 41004
+  - cargo 43144
+  - cargo 44380
+  - cargo 45716
+  - cargo 46156
+  - cargo 48840
+  - rustc 9536
+  - rustc 31560
+  - rustc 34060
+  - rustc 34764
+  - rustc 47480
+png_sha256: 4ADD02208C254F4881083E594F7181BCF02D9C4DCD4CDA3F9232BAECE4FEB77D
+log_sha256_before_hash_line: 380901B7C09A0030A2C4C1E868AC48048592308F8CC0F36B6EA6F4DB2D3E36E5

@@ -1,11 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::material_editor::MaterialEditorProjection;
+use zircon_runtime::asset::assets::generate_material_artifact;
 use zircon_runtime::asset::{
     AssetUri, MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset, ShaderSourceLanguage,
     ShaderTextureSlotAsset,
 };
-use zircon_runtime::core::framework::render::RenderMaterialDiagnosticSource;
+use zircon_runtime::core::framework::render::{
+    MaterialPropertyKind, RenderMaterialDiagnosticSource, ShaderAssetKind,
+};
 
 #[test]
 fn material_editor_projection_groups_shader_properties_and_material_overrides() {
@@ -163,7 +166,7 @@ fn material_editor_projection_preserves_material_and_generic_shader_diagnostics(
 fn material_editor_projection_maps_missing_required_shader_property() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Incomplete Material"
 
 [shader]
@@ -187,7 +190,7 @@ url = "res://shaders/pbr.zshader"
 fn material_asset() -> MaterialAsset {
     MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Preview Material"
 
 [shader]
@@ -210,8 +213,59 @@ url = "res://textures/extra.png"
 }
 
 fn shader_asset() -> ShaderAsset {
+    let property_schema = vec![
+        ShaderMaterialPropertyAsset {
+            name: "base_color".to_string(),
+            kind: MaterialPropertyKind::Vec4,
+            required: true,
+            default: Some(toml::Value::Array(vec![
+                toml::Value::Float(1.0),
+                toml::Value::Float(1.0),
+                toml::Value::Float(1.0),
+                toml::Value::Float(1.0),
+            ])),
+            editor: editor_hints("Surface", "Base Color"),
+        },
+        ShaderMaterialPropertyAsset {
+            name: "roughness".to_string(),
+            kind: MaterialPropertyKind::Float,
+            required: false,
+            default: Some(toml::Value::Float(0.5)),
+            editor: editor_hints("Surface", "Roughness"),
+        },
+    ];
+    let options = Vec::new();
+    let texture_slots = vec![
+        ShaderTextureSlotAsset {
+            name: "albedo".to_string(),
+            kind: "texture2d".to_string(),
+            required: false,
+            default: Some("white".to_string()),
+            sampler: Some("linear_repeat".to_string()),
+            group: Some("Surface".to_string()),
+            label: Some("Albedo".to_string()),
+            option: None,
+            st: false,
+            editor: BTreeMap::new(),
+        },
+        ShaderTextureSlotAsset {
+            name: "normal".to_string(),
+            kind: "texture2d".to_string(),
+            required: false,
+            default: Some("normal".to_string()),
+            sampler: Some("linear_repeat".to_string()),
+            group: Some("Surface".to_string()),
+            label: Some("Normal".to_string()),
+            option: None,
+            st: false,
+            editor: BTreeMap::new(),
+        },
+    ];
+    let generated_material = generate_material_artifact(&property_schema, &options, &texture_slots);
+
     ShaderAsset {
         uri: AssetUri::parse("res://shaders/pbr.zshader").unwrap(),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: String::new(),
         wgsl_source: String::new(),
@@ -221,49 +275,17 @@ fn shader_asset() -> ShaderAsset {
         source_files: Vec::new(),
         imports: Vec::new(),
         shader_defs: Vec::new(),
-        property_schema: vec![
-            ShaderMaterialPropertyAsset {
-                name: "base_color".to_string(),
-                kind: "vec4".to_string(),
-                required: true,
-                default: Some(toml::Value::Array(vec![
-                    toml::Value::Float(1.0),
-                    toml::Value::Float(1.0),
-                    toml::Value::Float(1.0),
-                    toml::Value::Float(1.0),
-                ])),
-                editor: editor_hints("Surface", "Base Color"),
-            },
-            ShaderMaterialPropertyAsset {
-                name: "roughness".to_string(),
-                kind: "float".to_string(),
-                required: false,
-                default: Some(toml::Value::Float(0.5)),
-                editor: editor_hints("Surface", "Roughness"),
-            },
-        ],
-        texture_slots: vec![
-            ShaderTextureSlotAsset {
-                name: "albedo".to_string(),
-                kind: "texture2d".to_string(),
-                required: false,
-                default: Some("white".to_string()),
-                sampler: Some("linear_repeat".to_string()),
-                group: Some("Surface".to_string()),
-                label: Some("Albedo".to_string()),
-                editor: BTreeMap::new(),
-            },
-            ShaderTextureSlotAsset {
-                name: "normal".to_string(),
-                kind: "texture2d".to_string(),
-                required: false,
-                default: Some("normal".to_string()),
-                sampler: Some("linear_repeat".to_string()),
-                group: Some("Surface".to_string()),
-                label: Some("Normal".to_string()),
-                editor: BTreeMap::new(),
-            },
-        ],
+        property_schema,
+        options,
+        texture_slots,
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: generated_material.property_layout,
+        material_option_table: generated_material.option_table,
+        generated_material_wgsl: generated_material.wgsl_source,
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: vec![
@@ -283,7 +305,7 @@ fn editor_hints(group: &str, label: &str) -> BTreeMap<String, String> {
 fn material_editor_projection_maps_runtime_validation_errors_to_rows() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 [shader]
 uuid = "00000000-0000-0000-0000-000000000001"
 url = "res://shaders/pbr.zshader"

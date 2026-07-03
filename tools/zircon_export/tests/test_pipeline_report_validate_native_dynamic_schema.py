@@ -8,11 +8,13 @@ from pathlib import Path
 from tools.zircon_export.pipeline_report import build_pipeline_report
 from tools.zircon_export.tests.export_test_support import (
     _write_compile_host_report,
-    _write_native_dynamic_report,
-    _write_native_dynamic_stage_plugins,
     _write_pack_report,
     _write_stage_report,
     _write_validate_report_with_native_dynamic_exports,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
+    _write_native_dynamic_report,
+    _write_native_dynamic_stage_plugins,
 )
 
 

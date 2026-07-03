@@ -59,10 +59,8 @@ fn runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation() {
         ],
     );
 
-    let runtime_04_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P7 |"))
-        .expect("Runtime index should keep the P7 asset pipeline problem row");
+    let runtime_04_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P7", "asset pipeline");
     assert_contains_all(
         "Runtime index P7 row",
         runtime_04_problem_row,

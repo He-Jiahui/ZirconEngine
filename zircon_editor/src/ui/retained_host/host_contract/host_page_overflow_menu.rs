@@ -1,8 +1,9 @@
 use super::data::{FrameRect, HostWindowPresentationData};
 use super::menu_popup_metrics::{
     menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_INSET,
-    MENU_POPUP_ROW_HEIGHT, MENU_POPUP_SHELL_MARGIN,
+    MENU_POPUP_ROW_HEIGHT,
 };
+use crate::ui::retained_host::popup_anchor_metrics::clamp_popup_x_to_bounds;
 use crate::ui::workbench::page_tabs::MAIN_PAGE_TAB_OVERFLOW_POPUP_WIDTH;
 
 pub(in crate::ui::retained_host::host_contract) struct HostPageOverflowRowHit {
@@ -37,10 +38,12 @@ pub(in crate::ui::retained_host::host_contract) fn host_page_overflow_popup_fram
         .width
         .max(presentation.host_layout.center_band_frame.width)
         .max(overflow.x + overflow.width);
-    let max_x = (shell_width - MAIN_PAGE_TAB_OVERFLOW_POPUP_WIDTH - MENU_POPUP_SHELL_MARGIN)
-        .max(MENU_POPUP_SHELL_MARGIN);
-    let x = (overflow.x + overflow.width - MAIN_PAGE_TAB_OVERFLOW_POPUP_WIDTH)
-        .clamp(MENU_POPUP_SHELL_MARGIN, max_x);
+    let x = clamp_popup_x_to_bounds(
+        overflow.x + overflow.width - MAIN_PAGE_TAB_OVERFLOW_POPUP_WIDTH,
+        0.0,
+        shell_width,
+        MAIN_PAGE_TAB_OVERFLOW_POPUP_WIDTH,
+    );
     Some(FrameRect {
         x,
         y: overflow.y + overflow.height + MENU_POPUP_ANCHOR_GAP,

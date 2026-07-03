@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::{GeometrySourceId, GEOMETRY_SOURCE_ID_SKINNED_MESH};
+use crate::core::framework::render::{
+    GeometrySourceId, GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+};
 use crate::core::framework::scene::Mobility;
 use crate::graphics::scene::resources::PipelineKey;
 
@@ -86,10 +88,16 @@ impl MeshDrawQueueProfile {
         if self.uses_skinned_gpu_skinning {
             match self.geometry_source {
                 MeshDrawGeometrySource::Prepared
-                | MeshDrawGeometrySource::DynamicGpuSkinningSource => {
+                | MeshDrawGeometrySource::DynamicGpuSkinningSource
+                | MeshDrawGeometrySource::DynamicCpuMorphedGpuSkinningSource => {
                     return GEOMETRY_SOURCE_ID_SKINNED_MESH;
                 }
-                MeshDrawGeometrySource::Dynamic => {}
+                MeshDrawGeometrySource::DynamicGpuSkinnedMorphedSource => {
+                    return GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH;
+                }
+                MeshDrawGeometrySource::Dynamic
+                | MeshDrawGeometrySource::DynamicGpuMorphedSource
+                | MeshDrawGeometrySource::DynamicCpuMorphedSource => {}
             }
         }
         self.geometry_source.shader_geometry_source_id()
@@ -134,7 +142,8 @@ impl MeshDrawQueueProfile {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
+        GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
     };
     use crate::core::framework::scene::Mobility;
 
@@ -172,6 +181,83 @@ mod tests {
         assert_eq!(
             profile.shader_geometry_source_id(),
             GEOMETRY_SOURCE_ID_STATIC_MESH
+        );
+    }
+
+    #[test]
+    fn queue_profile_preserves_cpu_morphed_gpu_skinning_source_metadata() {
+        let profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::Opaque,
+            MeshDrawGeometrySource::DynamicCpuMorphedGpuSkinningSource,
+            Mobility::Dynamic,
+            false,
+            true,
+            false,
+        );
+
+        assert!(profile
+            .geometry_source()
+            .uses_cpu_morphed_gpu_skinning_source());
+        assert_eq!(
+            profile.shader_geometry_source_id(),
+            GEOMETRY_SOURCE_ID_SKINNED_MESH
+        );
+    }
+
+    #[test]
+    fn queue_profile_preserves_direct_cpu_morphed_source_metadata() {
+        let profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::Opaque,
+            MeshDrawGeometrySource::DynamicCpuMorphedSource,
+            Mobility::Dynamic,
+            false,
+            false,
+            false,
+        );
+
+        assert!(profile.geometry_source().uses_cpu_morphed_source());
+        assert!(!profile
+            .geometry_source()
+            .uses_cpu_morphed_gpu_skinning_source());
+        assert_eq!(
+            profile.shader_geometry_source_id(),
+            GEOMETRY_SOURCE_ID_STATIC_MESH
+        );
+    }
+
+    #[test]
+    fn queue_profile_maps_gpu_morphed_source_to_morphed_shader_geometry() {
+        let profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::Opaque,
+            MeshDrawGeometrySource::DynamicGpuMorphedSource,
+            Mobility::Dynamic,
+            false,
+            false,
+            false,
+        );
+
+        assert!(profile.geometry_source().uses_gpu_morph_payload_source());
+        assert_eq!(
+            profile.shader_geometry_source_id(),
+            GEOMETRY_SOURCE_ID_MORPHED_MESH
+        );
+    }
+
+    #[test]
+    fn queue_profile_maps_gpu_skinned_morphed_source_to_skinned_morphed_shader_geometry() {
+        let profile = MeshDrawQueueProfile::new(
+            MeshDrawQueuePhase::Opaque,
+            MeshDrawGeometrySource::DynamicGpuSkinnedMorphedSource,
+            Mobility::Dynamic,
+            false,
+            true,
+            false,
+        );
+
+        assert!(profile.geometry_source().uses_gpu_morph_payload_source());
+        assert_eq!(
+            profile.shader_geometry_source_id(),
+            GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH
         );
     }
 }

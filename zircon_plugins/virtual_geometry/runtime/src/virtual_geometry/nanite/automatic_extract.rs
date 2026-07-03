@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use zircon_runtime::asset::{ModelAsset, VirtualGeometryAsset};
+use zircon_runtime::asset::{MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset};
 use zircon_runtime::core::framework::render::{
     RenderMeshSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryBvhVisualizationNode, RenderVirtualGeometryCluster,
@@ -13,6 +13,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCpuReferenceSelectedCluster, RenderVirtualGeometryDebugState,
     RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
     RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
+    RenderVirtualGeometryPagePayload,
 };
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Transform, Vec3};
@@ -22,6 +23,7 @@ use super::cpu_reference::{
     VirtualGeometryCpuReferenceConfig, VirtualGeometryCpuReferenceFrame,
     VirtualGeometryCpuReferenceLeafCluster,
 };
+use super::page_payload::render_page_payloads_for_asset;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct VirtualGeometryAutomaticExtractInstance {
@@ -29,6 +31,8 @@ pub(crate) struct VirtualGeometryAutomaticExtractInstance {
     source_model: Option<ResourceId>,
     transform: Transform,
     asset: VirtualGeometryAsset,
+    vertices: Vec<MeshVertex>,
+    indices: Vec<u32>,
 }
 
 impl VirtualGeometryAutomaticExtractInstance {
@@ -43,6 +47,25 @@ impl VirtualGeometryAutomaticExtractInstance {
             source_model,
             transform,
             asset,
+            vertices: Vec::new(),
+            indices: Vec::new(),
+        }
+    }
+
+    pub(crate) fn from_model_primitive(
+        entity: EntityId,
+        source_model: Option<ResourceId>,
+        transform: Transform,
+        primitive: ModelPrimitiveAsset,
+        asset: VirtualGeometryAsset,
+    ) -> Self {
+        Self {
+            entity,
+            source_model,
+            transform,
+            vertices: primitive.vertices,
+            indices: primitive.indices,
+            asset,
         }
     }
 }
@@ -52,6 +75,7 @@ pub(crate) struct VirtualGeometryAutomaticExtractOutput {
     extract: RenderVirtualGeometryExtract,
     cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     bvh_visualization_instances: Vec<RenderVirtualGeometryBvhVisualizationInstance>,
+    resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
 }
 
 impl VirtualGeometryAutomaticExtractOutput {
@@ -59,11 +83,13 @@ impl VirtualGeometryAutomaticExtractOutput {
         extract: RenderVirtualGeometryExtract,
         cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
         bvh_visualization_instances: Vec<RenderVirtualGeometryBvhVisualizationInstance>,
+        resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
     ) -> Self {
         Self {
             extract,
             cpu_reference_instances,
             bvh_visualization_instances,
+            resident_page_payloads,
         }
     }
 
@@ -79,6 +105,10 @@ impl VirtualGeometryAutomaticExtractOutput {
         &self,
     ) -> &[RenderVirtualGeometryBvhVisualizationInstance] {
         &self.bvh_visualization_instances
+    }
+
+    pub(crate) fn resident_page_payloads(&self) -> &[RenderVirtualGeometryPagePayload] {
+        &self.resident_page_payloads
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -146,15 +176,18 @@ where
             continue;
         };
         for primitive in model.primitives {
-            let Some(asset) = primitive.virtual_geometry else {
+            let Some(asset) = primitive.virtual_geometry.clone() else {
                 continue;
             };
-            automatic_instances.push(VirtualGeometryAutomaticExtractInstance::new(
-                mesh.node_id,
-                Some(mesh.model.id()),
-                mesh.transform,
-                asset,
-            ));
+            automatic_instances.push(
+                VirtualGeometryAutomaticExtractInstance::from_model_primitive(
+                    mesh.node_id,
+                    Some(mesh.model.id()),
+                    mesh.transform,
+                    primitive,
+                    asset,
+                ),
+            );
         }
     }
 
@@ -181,6 +214,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
     let mut hierarchy_child_ids = Vec::new();
     let mut pages = Vec::new();
     let mut page_dependencies = Vec::new();
+    let mut resident_page_payloads = Vec::new();
     let mut instances = Vec::new();
     let mut cpu_reference_instances = Vec::new();
     let mut bvh_visualization_instances = Vec::new();
@@ -247,6 +281,12 @@ fn build_virtual_geometry_automatic_extract_with_config(
         }
         page_dependencies.extend(render_extract_page_dependencies_for_asset(
             &instance.asset,
+            &page_remap,
+        ));
+        resident_page_payloads.extend(render_page_payloads_for_asset(
+            &instance.asset,
+            &instance.vertices,
+            &instance.indices,
             &page_remap,
         ));
 
@@ -329,6 +369,7 @@ fn build_virtual_geometry_automatic_extract_with_config(
         },
         cpu_reference_instances,
         bvh_visualization_instances,
+        resident_page_payloads,
     ))
 }
 

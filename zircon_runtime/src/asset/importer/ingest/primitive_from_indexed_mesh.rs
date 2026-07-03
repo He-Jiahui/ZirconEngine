@@ -90,28 +90,30 @@ pub(super) fn primitive_from_indexed_mesh(
         },
     );
 
-    Ok(ModelPrimitiveAsset {
+    let mut primitive = ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
         mesh: None,
         virtual_geometry,
-    })
+    };
+    primitive.assign_virtual_geometry_vertex_ordinals();
+    Ok(primitive)
 }
 
 pub(super) fn backfill_virtual_geometry_for_model(model: &mut ModelAsset) {
     let source_hint = model.uri.to_string();
     for (primitive_index, primitive) in model.primitives.iter_mut().enumerate() {
-        if primitive.virtual_geometry.is_some() {
-            continue;
+        if primitive.virtual_geometry.is_none() {
+            primitive.virtual_geometry = cook_virtual_geometry_from_mesh(
+                &primitive.vertices,
+                &primitive.indices,
+                VirtualGeometryCookConfig {
+                    mesh_name: Some(format!("primitive_{primitive_index}")),
+                    source_hint: Some(source_hint.clone()),
+                    ..VirtualGeometryCookConfig::default()
+                },
+            );
         }
-        primitive.virtual_geometry = cook_virtual_geometry_from_mesh(
-            &primitive.vertices,
-            &primitive.indices,
-            VirtualGeometryCookConfig {
-                mesh_name: Some(format!("primitive_{primitive_index}")),
-                source_hint: Some(source_hint.clone()),
-                ..VirtualGeometryCookConfig::default()
-            },
-        );
+        primitive.assign_virtual_geometry_vertex_ordinals();
     }
 }

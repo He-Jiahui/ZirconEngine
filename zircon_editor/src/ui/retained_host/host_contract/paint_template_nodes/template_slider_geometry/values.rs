@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::metrics::SLIDER_THUMB_SIZE;
+use super::metrics::workbench_slider_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_percent(
     node: &TemplatePaneNodeData,
@@ -53,7 +53,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_
     if node.layout_icon_size > 0.0 {
         node.layout_icon_size
     } else {
-        SLIDER_THUMB_SIZE
+        workbench_slider_metrics().thumb_size
     }
 }
 

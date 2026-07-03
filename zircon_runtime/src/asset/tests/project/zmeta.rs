@@ -5,14 +5,10 @@ use crate::asset::{
     AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
     AssetKind, AssetMetaDocument, AssetSourceUnit, AssetUri, AssetUuid, DataAsset, DataAssetFormat,
     FunctionAssetImporter, ImportedAsset, ImportedAssetEntry, MaterialAsset, ProjectManager,
-    ProjectManifest, ProjectPaths, ShaderAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ShaderTextureSlotAsset, ZShaderDocument,
+    ProjectManifest, ProjectPaths, ShaderAsset, ShaderOptionAsset, ShaderSourceFileAsset,
+    ShaderSourceLanguage, ShaderTextureSlotAsset, ZShaderDocumentV2, ZShaderV2Error,
 };
-use crate::core::framework::render::{
-    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
-    RenderShaderBindingResourceType, RenderShaderDefinitionValue,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
-};
+use crate::core::framework::render::ShaderAssetKind;
 use crate::core::resource::ResourceState;
 use crate::plugin::PluginPackageManifest;
 
@@ -34,6 +30,9 @@ fn material_for_shader(shader_uri: &AssetUri) -> MaterialAsset {
     MaterialAsset {
         name: Some("UnlitMaterial".to_string()),
         shader: crate::asset::AssetReference::from_locator(shader_uri.clone()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,

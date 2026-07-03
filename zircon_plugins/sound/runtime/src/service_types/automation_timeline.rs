@@ -5,7 +5,6 @@ use zircon_runtime::core::framework::sound::{
 use crate::automation::binding::normalized_automation_binding;
 use crate::automation::curve::sample_automation_curve;
 use crate::automation::target::apply_automation_target;
-use crate::automation::values::ensure_finite_value;
 
 use super::DefaultSoundManager;
 
@@ -28,7 +27,6 @@ impl DefaultSoundManager {
         binding: SoundAutomationBindingId,
         value: f32,
     ) -> Result<(), SoundError> {
-        ensure_finite_value("automation value", value)?;
         let mut state = self.state.lock().expect("sound state mutex poisoned");
         let binding_descriptor = state
             .automation_bindings

@@ -4,6 +4,7 @@ use bytemuck::bytes_of;
 
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{is_finite_mat4, Mat4};
+use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::depth_attachment_operations;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
@@ -53,6 +54,7 @@ impl ShadowMapRenderer {
         pass_name: &str,
         atlas_view: &wgpu::TextureView,
         mesh_pipelines: &mut MeshPipelineCache,
+        streamer: &ResourceStreamer,
         slot_passes: &[ShadowAtlasSlotPass],
         frame: &ViewportRenderFrame,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
@@ -115,6 +117,7 @@ impl ShadowMapRenderer {
                 self.replay_shadow_command_stream(
                     device,
                     mesh_pipelines,
+                    streamer,
                     &mut pass,
                     gpu_scene_bind_group,
                     mesh_draw_commands,
@@ -133,6 +136,7 @@ impl ShadowMapRenderer {
         &self,
         device: &wgpu::Device,
         mesh_pipelines: &mut MeshPipelineCache,
+        streamer: &ResourceStreamer,
         pass: &mut wgpu::RenderPass<'pass>,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'pass>>,
         mesh_draw_commands: MeshDrawCommandStream<'pass>,
@@ -150,7 +154,11 @@ impl ShadowMapRenderer {
                         command.pipeline_variant_id,
                     ) {
                         let pipeline = mesh_pipelines
-                            .ensure_shadow_pipeline_for_variant(device, command.pipeline_variant_id)
+                            .ensure_shadow_pipeline_for_variant(
+                                device,
+                                streamer,
+                                command.pipeline_variant_id,
+                            )
                             .expect(
                                 "shadow alpha mask command must resolve a cache-backed pipeline variant",
                             );
@@ -164,7 +172,11 @@ impl ShadowMapRenderer {
                         command.pipeline_variant_id,
                     ) {
                         let pipeline = mesh_pipelines
-                            .ensure_shadow_pipeline_for_variant(device, command.pipeline_variant_id)
+                            .ensure_shadow_pipeline_for_variant(
+                                device,
+                                streamer,
+                                command.pipeline_variant_id,
+                            )
                             .expect(
                                 "shadow depth command must resolve a cache-backed pipeline variant",
                             );

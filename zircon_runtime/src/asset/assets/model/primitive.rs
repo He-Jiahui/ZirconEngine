@@ -7,6 +7,11 @@ use crate::core::framework::render::{
 
 use super::VirtualGeometryAsset;
 
+pub const VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_JOINT_SLOT: usize = 0;
+pub const VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_JOINT_SLOT: usize = 1;
+const VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_MASK: u32 = 0xffff;
+const VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_SHIFT: u32 = 16;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ModelPrimitiveAsset {
     pub vertices: Vec<MeshVertex>,
@@ -19,6 +24,33 @@ pub struct ModelPrimitiveAsset {
 }
 
 impl ModelPrimitiveAsset {
+    pub fn assign_virtual_geometry_vertex_ordinals(&mut self) {
+        if self.virtual_geometry.is_none() {
+            return;
+        }
+
+        for (ordinal, vertex) in self.vertices.iter_mut().enumerate() {
+            let [low, high] = Self::encode_virtual_geometry_vertex_ordinal(
+                ordinal.try_into().unwrap_or(u32::MAX),
+            );
+            vertex.joint_indices[VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_JOINT_SLOT] = low;
+            vertex.joint_indices[VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_JOINT_SLOT] = high;
+        }
+    }
+
+    pub fn encode_virtual_geometry_vertex_ordinal(ordinal: u32) -> [u16; 2] {
+        [
+            (ordinal & VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_MASK) as u16,
+            (ordinal >> VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_SHIFT) as u16,
+        ]
+    }
+
+    pub fn decode_virtual_geometry_vertex_ordinal(joint_indices: [u16; 4]) -> u32 {
+        u32::from(joint_indices[VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_JOINT_SLOT])
+            | (u32::from(joint_indices[VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_JOINT_SLOT])
+                << VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_SHIFT)
+    }
+
     pub fn render_mesh_descriptor(&self) -> RenderMeshDescriptor {
         let bounds =
             RenderMeshBounds::from_positions(self.vertices.iter().map(|vertex| vertex.position));

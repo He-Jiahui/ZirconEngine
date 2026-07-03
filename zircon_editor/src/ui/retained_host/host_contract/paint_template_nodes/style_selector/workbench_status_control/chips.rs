@@ -1,46 +1,52 @@
 use super::super::resolved_state_for_node;
 use super::helpers::{declared_color, is_unavailable_status_state};
 use super::model::WorkbenchStatusChipStyle;
-use super::palette::WORKBENCH_STATUS_FLAT_TRANSPARENT;
+use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_status_chip_style(
     node: &TemplatePaneNodeData,
 ) -> WorkbenchStatusChipStyle {
     let state = resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::Generic);
+    let palette = workbench_status_control_palette();
 
     WorkbenchStatusChipStyle {
-        background: status_chip_background(state),
-        border: status_chip_border(state),
-        text: status_chip_text_color(node, state),
+        background: status_chip_background(state, &palette),
+        border: status_chip_border(state, &palette),
+        text: status_chip_text_color(node, state, &palette),
         state,
     }
 }
 
-fn status_chip_background(state: UiPainterResolvedState) -> [u8; 4] {
+fn status_chip_background(
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            PALETTE.surface_disabled
+            palette.surface_disabled
         }
-        UiPainterResolvedState::Pressed => PALETTE.surface_pressed,
+        UiPainterResolvedState::Pressed => palette.surface_pressed,
         UiPainterResolvedState::Selected | UiPainterResolvedState::Checked => {
-            PALETTE.surface_selected
+            palette.surface_selected
         }
         UiPainterResolvedState::Focused
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
-        | UiPainterResolvedState::Hovered => PALETTE.surface_hover,
-        UiPainterResolvedState::Normal => WORKBENCH_STATUS_FLAT_TRANSPARENT,
+        | UiPainterResolvedState::Hovered => palette.surface_hover,
+        UiPainterResolvedState::Normal => palette.flat_transparent,
     }
 }
 
-fn status_chip_border(state: UiPainterResolvedState) -> [u8; 4] {
+fn status_chip_border(
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            PALETTE.border_disabled
+            palette.border_disabled
         }
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
@@ -48,17 +54,21 @@ fn status_chip_border(state: UiPainterResolvedState) -> [u8; 4] {
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Checked => PALETTE.focus_ring,
+        | UiPainterResolvedState::Checked => palette.focus_ring,
         UiPainterResolvedState::Hovered | UiPainterResolvedState::Normal => {
-            WORKBENCH_STATUS_FLAT_TRANSPARENT
+            palette.flat_transparent
         }
     }
 }
 
-fn status_chip_text_color(node: &TemplatePaneNodeData, state: UiPainterResolvedState) -> [u8; 4] {
+fn status_chip_text_color(
+    node: &TemplatePaneNodeData,
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
     if is_unavailable_status_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else {
-        declared_color(node.value_color).unwrap_or(PALETTE.text_muted)
+        declared_color(node.value_color).unwrap_or(palette.text_muted)
     }
 }

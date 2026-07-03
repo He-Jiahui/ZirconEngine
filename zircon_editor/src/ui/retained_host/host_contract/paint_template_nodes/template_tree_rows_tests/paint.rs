@@ -2,13 +2,14 @@ use crate::ui::layouts::common::model_rc;
 
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::super::template_tree_row_geometry::{tree_disclosure_rect, tree_icon_rect};
 use super::super::push_tree_row_commands;
 use super::support::{changed_pixel_count, pixel_at, tree_node};
 
 #[test]
-fn selected_tree_row_paints_muted_surface_left_indicator_icon_and_actions() {
+fn selected_tree_row_paints_muted_selected_fill_neutral_outline_icon_and_actions() {
     let bytes = paint_template_nodes_for_test(
         280,
         48,
@@ -22,8 +23,9 @@ fn selected_tree_row_paints_muted_surface_left_indicator_icon_and_actions() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 280, 4, 19), PALETTE.accent);
+    assert_eq!(pixel_at(&bytes, 280, 4, 19), PALETTE.border);
     assert_eq!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_pressed);
+    assert_ne!(pixel_at(&bytes, 280, 14, 19), PALETTE.surface_selected);
     assert!(changed_pixel_count(&bytes, 280, 50, 10, 40, 24) > 0);
     assert!(changed_pixel_count(&bytes, 280, 230, 13, 40, 18) > 0);
 }
@@ -185,4 +187,111 @@ fn tree_row_disclosure_and_actions_paint_shell_asset_pixels() {
             node.control_id
         );
     }
+}
+
+#[test]
+fn tree_row_actions_use_standard_icon_button_slots() {
+    for (node, action_keys) in [
+        (
+            tree_node(
+                "WorkbenchScenePropsItem",
+                "TreeRow",
+                "tree-row",
+                "Props",
+                2,
+                true,
+            ),
+            ["eye.svg", "more-vertical.svg"],
+        ),
+        (
+            tree_node(
+                "WorkbenchScenePlayerStartItem",
+                "TreeRow",
+                "tree-row",
+                "PlayerStart",
+                0,
+                false,
+            ),
+            ["eye.svg", "lock.svg"],
+        ),
+    ] {
+        let rect = FrameRect {
+            x: node.frame.x,
+            y: node.frame.y,
+            width: node.frame.width,
+            height: node.frame.height,
+        };
+        let mut commands = Vec::new();
+
+        let handled = push_tree_row_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        assert!(handled);
+        let action_slots = tree_action_button_slot_commands(&commands);
+        assert_eq!(
+            action_slots.len(),
+            2,
+            "{} should paint one button slot per visible action",
+            node.control_id
+        );
+        for resource_key in action_keys {
+            let action_image =
+                tree_action_image_command(&commands, resource_key).expect(resource_key);
+            assert_frame_size(&action_image.frame, 16.0, 16.0);
+            let action_slot = tree_action_button_slot_for_image(&commands, &action_image.frame)
+                .expect("tree row action image should be centered in a button slot");
+            assert_frame_size(&action_slot.frame, 20.0, 20.0);
+            assert_eq!(action_slot.background_color, Some(PALETTE.surface_hover));
+            assert_eq!(action_slot.border_color, Some(PALETTE.border));
+            assert_eq!(action_slot.border_width, 1.0);
+            assert_eq!(action_slot.corner_radius, 4.0);
+            assert_eq!(action_slot.z_index + 1, action_image.z_index);
+        }
+    }
+}
+
+fn tree_action_image_command<'a>(
+    commands: &'a [HostPaintCommand],
+    resource_key: &str,
+) -> Option<&'a HostPaintCommand> {
+    commands.iter().find(|command| {
+        command
+            .image_pixels
+            .as_ref()
+            .is_some_and(|image| image.resource_key.contains(resource_key))
+    })
+}
+
+fn tree_action_button_slot_commands(commands: &[HostPaintCommand]) -> Vec<&HostPaintCommand> {
+    commands
+        .iter()
+        .filter(|command| is_tree_action_button_slot_command(command))
+        .collect()
+}
+
+fn tree_action_button_slot_for_image<'a>(
+    commands: &'a [HostPaintCommand],
+    image: &FrameRect,
+) -> Option<&'a HostPaintCommand> {
+    commands.iter().find(|command| {
+        is_tree_action_button_slot_command(command) && rect_contains(&command.frame, image)
+    })
+}
+
+fn is_tree_action_button_slot_command(command: &HostPaintCommand) -> bool {
+    command.frame.width == 20.0
+        && command.frame.height == 20.0
+        && command.background_color == Some(PALETTE.surface_hover)
+        && command.border_color == Some(PALETTE.border)
+}
+
+fn assert_frame_size(frame: &FrameRect, width: f32, height: f32) {
+    assert_eq!(frame.width, width);
+    assert_eq!(frame.height, height);
+}
+
+fn rect_contains(outer: &FrameRect, inner: &FrameRect) -> bool {
+    outer.x <= inner.x
+        && outer.y <= inner.y
+        && outer.x + outer.width >= inner.x + inner.width
+        && outer.y + outer.height >= inner.y + inner.height
 }

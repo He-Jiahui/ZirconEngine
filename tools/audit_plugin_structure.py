@@ -12,6 +12,9 @@ from plugin_structure_audits.dependency_boundary import (
 )
 from plugin_structure_audits.manifest_schema import audit_plugin_manifest_schema
 from plugin_structure_audits.registration import audit_plugin_registration_conformance
+from plugin_structure_audits.retired_ui_assets import (
+    audit_retired_ui_asset_conformance,
+)
 from plugin_structure_audits.skeleton import audit_plugin_skeleton_conformance
 
 
@@ -29,6 +32,7 @@ def build_report(root: Path) -> dict[str, Any]:
     registration_conformance = audit_plugin_registration_conformance(root).to_json()
     capability_conformance = audit_plugin_capability_conformance(root).to_json()
     dependency_boundary = audit_plugin_dependency_boundary(root).to_json()
+    retired_ui_asset_conformance = audit_retired_ui_asset_conformance(root).to_json()
     skeleton_sample_is_clean = (
         skeleton_conformance["sample_conformance_status"] == "sample-clean"
     )
@@ -46,6 +50,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "registration_conformance": registration_conformance,
         "capability_conformance": capability_conformance,
         "standalone_distribution_conformance": dependency_boundary,
+        "retired_ui_asset_conformance": retired_ui_asset_conformance,
         "plugin_skeleton_gate": {
             "m2_gate_status": skeleton_gate_status,
             "migration_debt_count": skeleton_migration_debt_count,
@@ -54,6 +59,18 @@ def build_report(root: Path) -> dict[str, Any]:
             "missing_plugin_toml": manifest_schema["missing_plugin_toml"],
             "manifest_schema_violations": manifest_schema[
                 "manifest_schema_violations"
+            ],
+            "generated_manifest_header_violations": manifest_schema[
+                "generated_manifest_header_violations"
+            ],
+            "feature_provider_package_projection_count": manifest_schema[
+                "feature_provider_package_projection_count"
+            ],
+            "retired_ui_asset_files": retired_ui_asset_conformance[
+                "retired_ui_asset_files"
+            ],
+            "zui_only_layout_status": retired_ui_asset_conformance[
+                "zui_only_layout_status"
             ],
             "skeleton_migration_debt_count": skeleton_conformance[
                 "migration_debt_count"
@@ -123,6 +140,7 @@ def build_report(root: Path) -> dict[str, Any]:
         "classified-and-clear"
         if report["summary"]["missing_plugin_toml"] == 0
         and report["summary"]["manifest_schema_violations"] == 0
+        and report["summary"]["retired_ui_asset_files"] == 0
         else "migration-debt-present"
     )
     return report
@@ -132,6 +150,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     manifest_schema = report["plugin_manifest_schema_uniform"]
     capability = report["capability_conformance"]
     standalone = report["standalone_distribution_conformance"]
+    retired_ui_assets = report["retired_ui_asset_conformance"]
     lines = [
         "# Plugin Structure Audit",
         "",
@@ -140,6 +159,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Present plugin manifests: {manifest_schema['manifest_count']}",
         f"- Missing plugin.toml: {manifest_schema['missing_plugin_toml']}",
         f"- Manifest schema violations: {manifest_schema['manifest_schema_violations']}",
+        f"- Generated manifest header violations: {manifest_schema['generated_manifest_header_violations']}",
+        f"- Feature-provider package projections: {manifest_schema['feature_provider_package_projection_count']}",
+        f"- Retired UI asset files: {retired_ui_assets['retired_ui_asset_files']}",
+        f"- ZUI-only layout status: `{retired_ui_assets['zui_only_layout_status']}`",
         f"- Skeleton sample status: `{report['skeleton_conformance']['sample_conformance_status']}`",
         f"- Core workspace dependency status: `{report['skeleton_conformance']['core_workspace_dependency_status']}`",
         f"- Core workspace dependency count: {report['skeleton_conformance']['core_workspace_dependency_count']}",
@@ -178,6 +201,20 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.extend(
             f"- {violation}"
             for violation in manifest_schema["manifest_schema_violation_details"]
+        )
+    if manifest_schema["generated_manifest_header_violation_paths"]:
+        lines.append("")
+        lines.append("## Generated Manifest Header Violations")
+        lines.extend(
+            f"- `{path}`"
+            for path in manifest_schema["generated_manifest_header_violation_paths"]
+        )
+    if retired_ui_assets["retired_ui_asset_file_paths"]:
+        lines.append("")
+        lines.append("## Retired UI Asset Files")
+        lines.extend(
+            f"- `{path}`"
+            for path in retired_ui_assets["retired_ui_asset_file_paths"]
         )
     skeleton = report["skeleton_conformance"]
     if skeleton["sample_violations"]:

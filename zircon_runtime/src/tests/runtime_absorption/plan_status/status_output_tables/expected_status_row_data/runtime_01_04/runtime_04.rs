@@ -47,6 +47,25 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 04 Asset pipeline 2026-07-01 current audit recheck",
+        &[
+            "asset_pipeline_20260701_current_audit_static_passed_cargo_deferred",
+            "source files 22/22",
+            "behavior-test anchors 20/20",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
+        ],
+    ),
+    (
+        "Runtime 04 artifact-store child owner audit sync",
+        &[
+            "runtime_04_artifact_store_child_owner_audit_sync_static_passed_cargo_deferred",
+            "asset/tests/assets/artifact_store/{scene_components,scene_script}.rs",
+            "artifact_store_roundtrip_count = 4",
+            "missing_behavior_test_anchors = []",
+            "standalone `asset_pipeline.rs` passed 1/1",
+        ],
+    ),
+    (
         "Runtime 04 Asset pipeline inventory split",
         &[
             "asset_pipeline_inventory_split_static_passed_cargo_deferred_tests_deferred",

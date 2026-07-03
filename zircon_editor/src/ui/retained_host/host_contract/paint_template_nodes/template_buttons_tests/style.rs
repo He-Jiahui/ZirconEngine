@@ -98,7 +98,7 @@ fn workbench_secondary_button_uses_declared_surface_color() {
 }
 
 #[test]
-fn workbench_primary_row_uses_declared_metrics_and_brightness() {
+fn workbench_primary_row_uses_low_emphasis_tokens_and_declared_metrics() {
     let mut primary = positioned_button_node(
         "WorkbenchPrimaryButton",
         "Primary",
@@ -117,8 +117,8 @@ fn workbench_primary_row_uses_declared_metrics_and_brightness() {
 
     assert_eq!(primary_rect.x, 15.0);
     assert_eq!(primary_rect.y, 7.0);
-    assert_eq!(primary_style.surface, [31, 48, 53, 255]);
-    assert_eq!(primary_style.border, [42, 166, 184, 255]);
+    assert_eq!(primary_style.surface, PRIMARY_SURFACE);
+    assert_eq!(primary_style.border, OUTLINED_BORDER);
 
     let mut secondary = positioned_button_node(
         "WorkbenchSecondaryButton",
@@ -277,6 +277,33 @@ fn workbench_icon_delete_row_uses_declared_content_tones_and_radius() {
 }
 
 #[test]
+fn workbench_danger_button_uses_low_emphasis_surface_with_danger_content() {
+    let mut node = positioned_button_node(
+        "WorkbenchDangerButton",
+        "Delete",
+        "danger",
+        12.0,
+        8.0,
+        88.0,
+        32.0,
+    );
+    node.validation_level = "danger".into();
+    node.button_style = resolved_button_style(
+        PALETTE.error_container,
+        PALETTE.error,
+        [208, 90, 80, 255],
+        1.0,
+    );
+
+    let style = button_style(&node, button_kind(&node));
+
+    assert_eq!(style.surface, PALETTE.surface_pressed);
+    assert_eq!(style.border, PALETTE.border);
+    assert_eq!(style.text, [208, 90, 80, 255]);
+    assert_eq!(style.glyph, [208, 90, 80, 255]);
+}
+
+#[test]
 fn workbench_button_applies_declared_visual_brightness() {
     let mut node = positioned_button_node(
         "WorkbenchButtonIcon",
@@ -324,7 +351,7 @@ fn workbench_button_style_selector_applies_state_priority_before_painting() {
 }
 
 #[test]
-fn asset_browser_tab_like_button_uses_slate_indicator_style() {
+fn asset_browser_toolbar_chip_uses_segmented_selected_style_without_tab_indicator() {
     let mut node = positioned_button_node(
         "AssetBrowserKindAllChip",
         "All",
@@ -342,15 +369,15 @@ fn asset_browser_tab_like_button_uses_slate_indicator_style() {
 
     let style = button_style(&node, button_kind(&node));
 
-    assert_eq!(style.surface, PALETTE.surface_hover);
+    assert_eq!(style.surface, PALETTE.surface);
     assert_eq!(style.border, PALETTE.border);
-    assert_eq!(style.border_width, 0.0);
+    assert_eq!(style.border_width, 1.0);
     assert_eq!(style.text, PALETTE.text);
     assert_eq!(style.glyph, PALETTE.text);
 }
 
 #[test]
-fn inactive_asset_browser_tab_like_button_keeps_toolbar_surface_clear() {
+fn inactive_asset_browser_toolbar_chip_keeps_toolbar_surface_clear() {
     let mut node = positioned_button_node(
         "AssetBrowserKindTextureButton",
         "Texture",
@@ -392,6 +419,32 @@ fn hovered_asset_browser_view_tab_uses_low_emphasis_hover_surface() {
     let style = button_style(&node, button_kind(&node));
 
     assert_eq!(style.surface, PALETTE.surface_hover);
+    assert_eq!(style.border_width, 0.0);
+    assert_eq!(style.text, PALETTE.text);
+    assert_eq!(style.glyph, PALETTE.text);
+}
+
+#[test]
+fn asset_browser_utility_tab_keeps_slate_indicator_style() {
+    let mut node = positioned_button_node(
+        "AssetBrowserPreviewTabButton",
+        "Preview",
+        "outlined",
+        12.0,
+        8.0,
+        72.0,
+        24.0,
+    );
+    node.selected = true;
+    node.focused = true;
+    node.action_id = "workbench.asset.utility_tab.set".into();
+    node.button_style =
+        resolved_button_style(PALETTE.accent, PALETTE.focus_ring, PALETTE.focus_ring, 1.0);
+
+    let style = button_style(&node, button_kind(&node));
+
+    assert_eq!(style.surface, PALETTE.surface_pressed);
+    assert_eq!(style.border, PALETTE.border);
     assert_eq!(style.border_width, 0.0);
     assert_eq!(style.text, PALETTE.text);
     assert_eq!(style.glyph, PALETTE.text);
@@ -478,7 +531,7 @@ fn prominent_workbench_command_button_uses_muted_surface_with_accent_text() {
 }
 
 #[test]
-fn asset_import_command_button_uses_muted_surface_with_accent_text() {
+fn asset_import_command_button_uses_primary_accent_fill_with_theme_foreground() {
     let mut node =
         positioned_button_node("ImportModel", "Import", "primary", 12.0, 8.0, 96.0, 26.0);
     node.action_id = "workbench.asset.import_model".into();
@@ -491,9 +544,9 @@ fn asset_import_command_button_uses_muted_surface_with_accent_text() {
 
     let style = button_style(&node, button_kind(&node));
 
-    assert_eq!(style.surface, PALETTE.surface_pressed);
-    assert_eq!(style.border, PALETTE.border);
+    assert_eq!(style.surface, PALETTE.accent);
+    assert_eq!(style.border, PALETTE.accent);
     assert_eq!(style.border_width, 1.0);
-    assert_eq!(style.text, PALETTE.accent);
-    assert_eq!(style.glyph, PALETTE.accent);
+    assert_eq!(style.text, PALETTE.shell_background);
+    assert_eq!(style.glyph, PALETTE.shell_background);
 }

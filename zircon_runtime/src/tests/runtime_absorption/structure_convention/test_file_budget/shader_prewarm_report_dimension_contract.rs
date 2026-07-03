@@ -98,7 +98,7 @@ fn runtime_15_shader_prewarm_report_dimension_contract_is_wired() {
         "python regressions cover report dimension contract and acceptance handoff",
         &combined_prewarm_tests,
         &[
-            "test_prewarm_shaders_validates_wgpu_report_after_success",
+            "test_prewarm_shaders_validates_staged_acceptance_after_success",
             "expected_pass_types",
             "expected_quality_tiers",
             "expected_geometry_sources",

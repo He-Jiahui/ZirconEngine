@@ -1,0 +1,40 @@
+use super::*;
+
+pub(super) fn assert_native_typed_error_source_anchors(label: &str, source: &str) {
+    assert_contains_all(
+        label,
+        source,
+        &[
+            "Runtime 15 M3 native plugin loader typed-error review guard child-owner split",
+            "runtime_15_native_plugin_loader_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "Runtime 15 M3 native live-host lifecycle-paths typed-error review guard child-owner split",
+            "runtime_15_native_live_host_lifecycle_paths_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "Runtime 15 M3 native live-host replay-runtime typed-error review guard child-owner split",
+            "runtime_15_native_live_host_replay_runtime_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "Runtime 15 M3 native plugin descriptor ABI typed-error review guard child-owner split",
+            "runtime_15_native_plugin_descriptor_abi_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/string_helpers.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/descriptor_abi.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/entry_abi.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/bridge_lifecycle.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/diagnostics.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths/hot_reload.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths/lifecycle.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths/loading.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/bridge_methods.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/registration_replay.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/runtime_behavior.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs",
+            "review_f5_native_plugin_string_helpers_use_typed_error",
+            "review_f5_native_plugin_descriptor_abi_uses_typed_error",
+            "review_f5_native_plugin_entry_abi_uses_typed_error",
+            "review_f5_native_live_host_registration_replay_uses_typed_error",
+            "review_f5_native_live_host_bridge_methods_use_typed_error",
+            "review_f5_native_live_host_runtime_behavior_uses_typed_error",
+        ],
+    );
+}

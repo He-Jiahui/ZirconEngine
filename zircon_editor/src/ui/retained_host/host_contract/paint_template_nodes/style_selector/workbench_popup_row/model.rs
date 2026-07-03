@@ -44,7 +44,7 @@ impl WorkbenchPopupRowState {
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchPopupRowStyle
 {
     pub background: Option<[u8; 4]>,
-    pub selection_mark: Option<[u8; 4]>,
+    pub outline: Option<[u8; 4]>,
     pub text: [u8; 4],
     pub shortcut: [u8; 4],
     pub adornment: [u8; 4],

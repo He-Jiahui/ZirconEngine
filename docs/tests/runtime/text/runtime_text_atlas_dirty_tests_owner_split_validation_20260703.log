@@ -1,0 +1,44 @@
+runtime_text_atlas_dirty_tests_owner_split_validation_20260703
+date: 2026-07-03
+scope: structure-only split of atlas dirty private tests into folder-backed owner
+
+files:
+  zircon_runtime/src/graphics/text/atlas/dirty.rs
+  zircon_runtime/src/graphics/text/atlas/dirty/tests.rs
+
+rustfmt:
+  command: rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/dirty.rs zircon_runtime/src/graphics/text/atlas/dirty/tests.rs
+  exit_code: 0
+  output: <empty>
+
+structure_count:
+
+File                                                  Lines Tests TestHooks
+----                                                  ----- ----- ---------
+zircon_runtime\src\graphics\text\atlas\dirty.rs          33     0         1
+zircon_runtime\src\graphics\text\atlas\dirty\tests.rs    34     2         0
+
+manual_trailing_whitespace_scan:
+PASS no trailing whitespace in untracked owner paths
+
+cargo_status:
+  focused Cargo deferred because external cargo/rustc lanes were active; no Cargo green is claimed for this slice.
+
+ProcessName    Id   CPU StartTime
+-----------    --   --- ---------
+cargo        2956  5.02 2026/7/3 周五 23:10:50
+cargo       17496 10.27 2026/7/3 周五 23:00:44
+cargo       19700  0.03 2026/7/3 周五 23:09:38
+cargo       35884  6.95 2026/7/3 周五 23:09:38
+cargo       37568  0.06 2026/7/3 周五 23:00:43
+cargo       48672  0.06 2026/7/3 周五 23:10:50
+rustc       27544  5.12 2026/7/3 周五 23:11:42
+rustc       41404 31.91 2026/7/3 周五 23:11:11
+rustc       41448  1.31 2026/7/3 周五 23:11:46
+
+proof_artifact_target_scan:
+PASS same-name proof artifacts not found under target roots
+
+preview_image:
+  path: docs/tests/runtime/text/runtime_text_atlas_dirty_tests_owner_split_preview_20260703.png
+  sha256: 346A131FC464D77DA5AA021AEED41576E3C4A2AE4D33A6EBC083CD3CD0A2691A

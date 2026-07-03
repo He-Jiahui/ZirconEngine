@@ -10,6 +10,8 @@ fn render_product_diagnostics_record_skinned_mesh_queue_count() {
     let stats = RenderStats {
         submitted_frames: 12,
         last_mesh_skinned_draw_count: 3,
+        last_mesh_gpu_morphed_source_draw_count: 2,
+        last_mesh_gpu_skinned_morphed_source_draw_count: 1,
         last_mesh_skinned_palette_upload_count: 2,
         last_mesh_skinned_previous_palette_upload_count: 1,
         last_mesh_skinned_gpu_source_candidate_count: 1,
@@ -23,6 +25,18 @@ fn render_product_diagnostics_record_skinned_mesh_queue_count() {
     record(&mut store, &stats);
 
     assert_series(&store, "render.mesh.queue.skinned_draw_count", 3.0, "count");
+    assert_series(
+        &store,
+        "render.mesh.queue.gpu_morphed_source_draw_count",
+        2.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.gpu_skinned_morphed_source_draw_count",
+        1.0,
+        "count",
+    );
     assert_series(
         &store,
         "render.mesh.queue.skinned_palette_upload_count",

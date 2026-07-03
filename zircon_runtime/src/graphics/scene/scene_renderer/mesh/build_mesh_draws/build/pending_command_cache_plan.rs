@@ -1,10 +1,13 @@
 use crate::core::framework::render::{PrimitiveRelevance, RenderMeshStaticState, RenderPhase};
-use crate::core::framework::scene::{EntityId, Mobility};
+use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
-    MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
+    MeshDrawQueuePhase, MeshDrawQueueProfile,
 };
 
-use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry};
+use super::geometry_source_selection::{
+    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_queue_profile,
+};
+use super::pending_mesh_draw::PendingMeshDraw;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct PendingMeshCommandCachePlanStats {
@@ -96,26 +99,16 @@ fn pending_mesh_command_cache_plan_item(
     pending_draw: &PendingMeshDraw,
 ) -> PendingMeshCommandCachePlanItem {
     PendingMeshCommandCachePlanItem::new(
-        pending_mesh_draw_queue_profile(pending_draw),
-        pending_draw.static_state,
-        pending_draw.cast_shadows,
-    )
-}
-
-fn pending_mesh_draw_queue_profile(pending_draw: &PendingMeshDraw) -> MeshDrawQueueProfile {
-    MeshDrawQueueProfile::new(
-        MeshDrawQueuePhase::from_pipeline_flags(
-            pending_draw.pipeline_key.is_transparent(),
-            pending_draw.pipeline_key.is_alpha_mask(),
+        pending_mesh_draw_queue_profile(
+            pending_draw,
+            pending_draw_has_enabled_skinned_gpu_source(pending_draw),
         ),
-        match pending_draw.mesh {
-            PendingMeshGeometry::Prepared(_) => MeshDrawGeometrySource::Prepared,
-            PendingMeshGeometry::Dynamic(_) => MeshDrawGeometrySource::Dynamic,
+        if pending_draw.material_uniform_override_payload.is_some() {
+            RenderMeshStaticState::from_transform_static(false)
+        } else {
+            pending_draw.static_state
         },
-        pending_draw.mobility,
-        pending_draw.indirect_draw_ref.is_some(),
-        pending_draw.skinned_gpu_source.is_some(),
-        pending_draw.mesh_lod.is_some(),
+        pending_draw.cast_shadows,
     )
 }
 

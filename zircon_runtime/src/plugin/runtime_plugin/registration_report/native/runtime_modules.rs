@@ -1,4 +1,3 @@
-use crate::core::ModuleDescriptor;
 use crate::plugin::{PluginModuleKind, PluginPackageManifest, RuntimeExtensionRegistry};
 
 pub(super) fn register_native_package_runtime_modules(
@@ -11,13 +10,7 @@ pub(super) fn register_native_package_runtime_modules(
         .iter()
         .filter(|module| module.kind == PluginModuleKind::Runtime)
     {
-        if let Err(error) = extensions.register_module(ModuleDescriptor::new(
-            module.name.clone(),
-            format!(
-                "Native dynamic runtime plugin module provided by {}",
-                package_manifest.id
-            ),
-        )) {
+        if let Err(error) = extensions.register_module(module.module_descriptor()) {
             diagnostics.push(error.to_string());
         }
     }

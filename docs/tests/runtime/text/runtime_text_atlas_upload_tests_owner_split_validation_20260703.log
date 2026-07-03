@@ -1,0 +1,44 @@
+runtime_text_atlas_upload_tests_owner_split_validation_20260703
+date: 2026-07-03
+scope: structure-only split of atlas upload private tests into folder-backed owner
+
+files:
+  zircon_runtime/src/graphics/text/atlas/upload.rs
+  zircon_runtime/src/graphics/text/atlas/upload/tests.rs
+
+rustfmt:
+  command: rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/upload.rs zircon_runtime/src/graphics/text/atlas/upload/tests.rs
+  exit_code: 0
+  output: <empty>
+
+structure_count:
+
+File                                                   Lines Tests TestHooks
+----                                                   ----- ----- ---------
+zircon_runtime\src\graphics\text\atlas\upload.rs         105     0         1
+zircon_runtime\src\graphics\text\atlas\upload\tests.rs   100     4         0
+
+manual_trailing_whitespace_scan:
+PASS no trailing whitespace in untracked owner paths
+
+cargo_status:
+  focused Cargo deferred because external cargo/rustc lanes were active; no Cargo green is claimed for this slice.
+
+ProcessName    Id    CPU StartTime
+-----------    --    --- ---------
+cargo       17496   7.67 2026/7/3 周五 23:00:44
+cargo       18928  16.47 2026/7/3 周五 22:26:43
+cargo       28064   0.05 2026/7/3 周五 22:26:43
+cargo       37568   0.06 2026/7/3 周五 23:00:43
+cargo       41844  12.31 2026/7/3 周五 22:47:48
+cargo       46920   0.06 2026/7/3 周五 22:47:48
+rustc       16180 191.30 2026/7/3 周五 23:01:33
+rustc       30864   0.34 2026/7/3 周五 23:05:00
+rustc       41388   0.19 2026/7/3 周五 23:05:00
+
+proof_artifact_target_scan:
+PASS same-name proof artifacts not found under target roots
+
+preview_image:
+  path: docs/tests/runtime/text/runtime_text_atlas_upload_tests_owner_split_preview_20260703.png
+  sha256: AF0133A10A92AA0C1579044BF0DABD760BA72CF78331E6005182E9A26534F7BC

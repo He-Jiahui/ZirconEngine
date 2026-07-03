@@ -1,0 +1,8 @@
+runtime_text_editor_retained_sync_tests_owner_split_validation_20260704
+Scope: retained-host paint_text/sync.rs production owner plus child sync/tests.rs test owner.
+Code change: moved poisoned mutex regression from inline mod tests into paint_text/sync/tests.rs; sync.rs now contains only lock_recovering_poison<T> plus #[cfg(test)] mod tests;.
+Behavior: no production behavior change; recoverable mutex helper still returns poisoned.into_inner() for cache paths.
+rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/sync.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/sync/tests.rs: passed
+Static scan: sync.rs has 0 hits for expect(, panic!, catch_unwind, and HashMap.
+Focused Cargo: deferred because external cargo/rustc lanes were active during this slice.
+Preview: E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_sync_tests_owner_split_preview_20260704.png

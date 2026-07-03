@@ -17,7 +17,7 @@ from .pipeline_report_schema_primitives import (
     validate_object_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
-from .pipeline_report_schema_table import (
+from .pipeline_report_schema_string_array import (
     string_array_no_blank_entries_schema_diagnostics,
     string_array_trimmed_non_empty_entries_schema_diagnostics,
 )

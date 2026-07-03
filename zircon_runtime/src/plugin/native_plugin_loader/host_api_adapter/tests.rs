@@ -89,6 +89,44 @@ fn native_system_enters_schedule_as_conservative_node() {
 }
 
 #[test]
+fn native_host_api_adapter_reports_unknown_stage_with_typed_error() {
+    let stage = SystemStage::ORDER.len() as u32;
+    let error = stage_from_abi(stage)
+        .expect_err("unknown host API stage should report typed adapter error");
+
+    assert!(matches!(
+        &error,
+        NativeHostApiAdapterError::UnknownSystemStage { stage: actual } if *actual == stage
+    ));
+    assert_eq!(
+        error.to_string(),
+        format!("unknown native system stage {stage}")
+    );
+    assert!(std::error::Error::source(&error).is_none());
+}
+
+#[test]
+fn native_host_api_adapter_utf8_error_preserves_source() {
+    let bytes = [0xff];
+    let error = unsafe {
+        read_utf8(ZrByteSlice {
+            data: bytes.as_ptr(),
+            len: bytes.len(),
+        })
+    }
+    .expect_err("invalid host API byte slice should report typed UTF-8 error");
+
+    assert!(matches!(
+        &error,
+        NativeHostApiAdapterError::InvalidUtf8 { .. }
+    ));
+    assert!(
+        std::error::Error::source(&error).is_some(),
+        "invalid UTF-8 adapter error should preserve Utf8Error source"
+    );
+}
+
+#[test]
 fn native_host_api_v3_rejects_unknown_registration_handles() {
     let api = NativeHostApiV3RegistrationScope {
         handle: ZrRuntimePluginHandle::invalid(),

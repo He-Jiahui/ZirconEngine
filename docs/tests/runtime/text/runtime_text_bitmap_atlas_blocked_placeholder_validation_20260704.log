@@ -1,0 +1,28 @@
+Zircon runtime text bitmap atlas blocked placeholder validation
+Date: 2026-07-04
+Scope: zircon_runtime::graphics::text::atlas::{bitmap_run,render_submission}
+
+Scenario:
+- Frame index 43 submits two AlphaMask 12x12 bitmap glyph sources to a 16x16 atlas page with padding 2 and max_pages_per_format=1.
+- The first source allocates, uploads, and draws.
+- The second source is blocked by same-frame page reservation pressure.
+
+Expected run-plan evidence:
+- blocked_glyphs.len() = 1
+- placeholder_glyphs.len() = 1
+- placeholder_glyphs[0].source_index = 1 in the same-frame eviction test
+- placeholder_glyphs[0].retry_frame_index = 44
+- placeholder_glyphs[0].mode = TransparentQuad
+- placeholder_glyphs[0].screen_rect is copied from the blocked source
+
+Expected submission-report evidence:
+- blocked_retry_count = 1
+- placeholder_glyph_count = 1
+- next_retry_frame_index = Some(44)
+- upload_command_count remains 1 for the allocated glyph
+- draw_command_count remains 1 for the allocated glyph
+
+Acceptance notes:
+- Blocked glyphs now have a current-frame placeholder data-plane in addition to next-frame retry data.
+- The placeholder mode is explicit and non-panicking.
+- Preview artifact is stored outside Cargo target directories.

@@ -1,0 +1,35 @@
+Runtime text atlas sampling semantics validation
+Date: 2026-07-03
+
+Slice:
+  AT-M2/AT-M3 SubpixelMask atlas sampling semantics boundary.
+
+Support-first unblock:
+  The first focused lib-test compile surfaced an existing test fixture drift in
+  zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs:
+  InitLevel::Foundation no longer exists in the current runtime init-level enum.
+  The fixture was updated to InitLevel::Kernel before accepting the atlas tests.
+
+Commands:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/mod.rs zircon_runtime/src/graphics/text/atlas/page.rs zircon_runtime/src/graphics/text/atlas/upload.rs zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
+  cargo test -p zircon_runtime render_text_atlas --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-sampling-semantics --message-format short --color never -- --nocapture --test-threads=1
+
+Result:
+  rustfmt passed.
+  Focused cargo test passed: 14 passed; 0 failed; 0 ignored; 6050 filtered out.
+  Existing warning noise remained, but no Rust compile or test failure was reported.
+
+Covered owner tests:
+  render_text_atlas_subpixel_mask_uses_distinct_rgba_page_format
+  render_text_atlas_rgba_storage_keeps_color_and_subpixel_blend_semantics_distinct
+  render_text_atlas_upload_command_preserves_subpixel_sampling_semantics
+
+Visual proof:
+  docs/tests/runtime/text/runtime_text_atlas_sampling_semantics_preview_20260703.png
+  SHA256 647C26CE1CA939D2BFABB9713BF5BBF9EE70146492F68DBBA39D1B6BDB31A5CA
+
+Target-directory proof:
+  Same-name scan for runtime_text_atlas_sampling_semantics_preview_20260703.png:
+    E:\Git\ZirconEngine\target = 0
+    E:\cargo-targets = 0
+    D:\cargo-targets = 0

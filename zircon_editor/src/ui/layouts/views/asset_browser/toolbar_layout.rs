@@ -6,13 +6,14 @@ const COMPACT_CONTROL_OFFSET_Y: f32 = 1.0;
 const COMPACT_TOOLBAR_SIDE_PAD: f32 = 8.0;
 const COMPACT_ROOT_GAP: f32 = 6.0;
 const COMPACT_GROUP_GAP: f32 = 8.0;
+const COMPACT_GROUP_FRAME_PAD: f32 = 3.0;
 const COMPACT_ROW_GAP: f32 = 4.0;
 const COMPACT_SEARCH_MIN_WIDTH: f32 = 160.0;
 const COMPACT_SEARCH_PREFERRED_RATIO: f32 = 0.38;
 const COMPACT_SEARCH_PREFERRED_MIN_WIDTH: f32 = 240.0;
 const COMPACT_IMPORT_PATH_MIN_WIDTH: f32 = 180.0;
 const COMPACT_IMPORT_PATH_MAX_WIDTH: f32 = 260.0;
-const COMPACT_IMPORT_PATH_VISIBLE_WIDTH: f32 = 860.0;
+const COMPACT_IMPORT_PATH_VISIBLE_WIDTH: f32 = 1040.0;
 const COMPACT_VIEW_BUTTON_GAP: f32 = 4.0;
 const COMPACT_VIEW_GROUP_VISIBLE_WIDTH: f32 = 560.0;
 
@@ -104,15 +105,7 @@ fn layout_single_toolbar_row(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32,
         search_width,
         COMPACT_CONTROL_HEIGHT,
     );
-    set_node_frame(
-        nodes,
-        "AssetBrowserToolbarKindPrimaryRow",
-        x,
-        y,
-        width,
-        COMPACT_TOOLBAR_HEIGHT,
-    );
-    layout_kind_chips(nodes, chip_x, row_y, chip_width_limit);
+    let chips_width = layout_kind_chips(nodes, chip_x, row_y, chip_width_limit);
     if view.visible {
         set_node_frame(
             nodes,
@@ -134,13 +127,14 @@ fn layout_single_toolbar_row(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32,
         hide_node(nodes, "AssetBrowserViewModeListButton", view_x, row_y);
         hide_node(nodes, "AssetBrowserViewModeThumbButton", view_x, row_y);
     }
+    layout_filter_group_frame(nodes, chip_x, row_y, chips_width, view_x, view);
 
     hide_node(nodes, "LocateSelectedAsset", row_x + row_width, row_y);
     hide_node(nodes, "AssetBrowserImportLabel", import_x, row_y);
     layout_import_group(nodes, import_x, row_y, import);
 }
 
-fn layout_kind_chips(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32, width_limit: f32) {
+fn layout_kind_chips(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32, width_limit: f32) -> f32 {
     let selected_chip = KIND_CHIPS
         .iter()
         .find(|(control_id, _)| is_selected(nodes, control_id))
@@ -164,6 +158,7 @@ fn layout_kind_chips(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32, width_l
 
     let mut cursor_x = x;
     let mut has_visible_chip = false;
+    let mut used_width = 0.0;
     for &(control_id, fallback_width) in KIND_CHIPS {
         if !visible.contains(&control_id) {
             hide_node(nodes, control_id, x + width_limit, y);
@@ -171,6 +166,7 @@ fn layout_kind_chips(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32, width_l
         }
         if has_visible_chip {
             cursor_x += COMPACT_ROW_GAP;
+            used_width += COMPACT_ROW_GAP;
         }
         let chip_width = control_width(nodes, control_id, fallback_width);
         set_node_frame(
@@ -182,8 +178,10 @@ fn layout_kind_chips(nodes: &mut [ViewTemplateNodeData], x: f32, y: f32, width_l
             COMPACT_CONTROL_HEIGHT,
         );
         cursor_x += chip_width;
+        used_width += chip_width;
         has_visible_chip = true;
     }
+    used_width
 }
 
 fn chip_stack_width(nodes: &[ViewTemplateNodeData], control_ids: &[&str]) -> f32 {
@@ -276,6 +274,31 @@ fn layout_import_group(
             COMPACT_CONTROL_HEIGHT,
         );
     }
+}
+
+fn layout_filter_group_frame(
+    nodes: &mut [ViewTemplateNodeData],
+    x: f32,
+    y: f32,
+    chips_width: f32,
+    view_x: f32,
+    view: CompactViewGroup,
+) {
+    let right_edge = if view.visible {
+        view_x + view.width
+    } else {
+        x + chips_width
+    };
+    let group_x = x - COMPACT_GROUP_FRAME_PAD;
+    let group_width = (right_edge - x + COMPACT_GROUP_FRAME_PAD * 2.0).max(0.0);
+    set_node_frame(
+        nodes,
+        "AssetBrowserToolbarKindPrimaryRow",
+        group_x,
+        y,
+        group_width,
+        COMPACT_CONTROL_HEIGHT,
+    );
 }
 
 struct CompactViewGroup {

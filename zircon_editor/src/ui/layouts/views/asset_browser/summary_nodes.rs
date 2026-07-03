@@ -3,8 +3,8 @@ use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 
+use super::labels::{asset_state_label, summary_resource_kind_label};
 use super::thumbnail_nodes::asset_display_name_lines;
-use super::{asset_state_label, compact_resource_kind_label};
 
 const SUMMARY_NAME_CONTROL_ID: &str = "AssetBrowserContentPreviewName";
 const SUMMARY_NAME_CONTINUATION_CONTROL_ID: &str = "AssetBrowserContentPreviewNameContinuation";
@@ -16,6 +16,10 @@ const SUMMARY_NAME_FONT_SIZE: f32 = 10.0;
 const SUMMARY_NAME_FONT_WEIGHT: i32 = 600;
 const SUMMARY_NAME_CONTINUATION_FONT_SIZE: f32 = 9.0;
 const SUMMARY_NAME_CONTINUATION_FONT_WEIGHT: i32 = 500;
+const SUMMARY_FILE_NAME_VISIBLE_CHAR_LIMIT: usize = 36;
+const SUMMARY_FILE_NAME_MAX_PREFIX_CHARS: usize = 20;
+const SUMMARY_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 10;
+const SUMMARY_FILE_NAME_ELLIPSIS: &str = "...";
 
 pub(super) fn sync_asset_browser_summary_nodes(
     nodes: &mut Vec<ViewTemplateNodeData>,
@@ -35,7 +39,7 @@ pub(super) fn append_asset_browser_summary_nodes(
 ) {
     let selected_asset = selected_asset(snapshot);
     let (name, name_continuation) = selected_asset
-        .map(|asset| asset_display_name_lines(asset.display_name.as_str()))
+        .map(summary_display_name_lines)
         .unwrap_or_else(|| ("No Asset Selected".to_string(), String::new()));
     update_summary_name_node(nodes, name);
     nodes.push(summary_label_node(
@@ -118,7 +122,7 @@ fn selected_asset(snapshot: &AssetWorkspaceSnapshot) -> Option<&AssetItemSnapsho
 }
 
 fn summary_type_label(asset: &AssetItemSnapshot) -> String {
-    compact_resource_kind_label(asset.kind).to_ascii_uppercase()
+    summary_resource_kind_label(asset.kind).to_string()
 }
 
 fn summary_revision_label(asset: &AssetItemSnapshot) -> String {
@@ -126,6 +130,73 @@ fn summary_revision_label(asset: &AssetItemSnapshot) -> String {
         .resource_revision
         .map(|revision| format!("rev {revision}"))
         .unwrap_or_else(|| "untracked".to_string())
+}
+
+fn summary_display_name_lines(asset: &AssetItemSnapshot) -> (String, String) {
+    let name = asset.display_name.trim();
+    if is_file_like_summary_name(name, asset.extension.as_str()) {
+        return (
+            summary_file_like_display_title(name, asset.extension.as_str()),
+            String::new(),
+        );
+    }
+
+    asset_display_name_lines(name)
+}
+
+fn is_file_like_summary_name(display_name: &str, extension: &str) -> bool {
+    let extension = extension.trim().trim_start_matches('.');
+    if extension.is_empty() {
+        return false;
+    }
+
+    display_name
+        .rsplit_once('.')
+        .is_some_and(|(_, suffix)| suffix.eq_ignore_ascii_case(extension))
+}
+
+fn summary_file_like_display_title(display_name: &str, extension: &str) -> String {
+    if display_name.chars().count() <= SUMMARY_FILE_NAME_VISIBLE_CHAR_LIMIT {
+        return display_name.to_string();
+    }
+
+    let Some((stem, suffix)) = display_name.rsplit_once('.') else {
+        return display_name.to_string();
+    };
+    let extension = extension.trim().trim_start_matches('.');
+    if !suffix.eq_ignore_ascii_case(extension) {
+        return display_name.to_string();
+    }
+
+    let suffix_char_count = suffix.chars().count();
+    let ellipsis_char_count = SUMMARY_FILE_NAME_ELLIPSIS.chars().count();
+    let available_stem_chars = SUMMARY_FILE_NAME_VISIBLE_CHAR_LIMIT
+        .saturating_sub(ellipsis_char_count + 1 + suffix_char_count);
+    if available_stem_chars < 2 {
+        return display_name.to_string();
+    }
+
+    let tail_chars = SUMMARY_FILE_NAME_EXTENSION_TAIL_STEM_CHARS.min(available_stem_chars / 2);
+    let prefix_chars =
+        SUMMARY_FILE_NAME_MAX_PREFIX_CHARS.min(available_stem_chars.saturating_sub(tail_chars));
+    let stem_char_count = stem.chars().count();
+    if prefix_chars == 0 || tail_chars == 0 || stem_char_count <= prefix_chars + tail_chars {
+        return display_name.to_string();
+    }
+
+    let prefix = first_n_chars(stem, prefix_chars);
+    let tail = last_n_chars(stem, tail_chars);
+    format!("{prefix}{SUMMARY_FILE_NAME_ELLIPSIS}{tail}.{suffix}")
+}
+
+fn first_n_chars(text: &str, count: usize) -> String {
+    text.chars().take(count).collect()
+}
+
+fn last_n_chars(text: &str, count: usize) -> String {
+    let chars = text.chars().collect::<Vec<_>>();
+    let start = chars.len().saturating_sub(count);
+    chars[start..].iter().copied().collect()
 }
 
 fn summary_type_badge_node() -> ViewTemplateNodeData {
@@ -200,7 +271,7 @@ mod tests {
         }));
         assert!(nodes.iter().any(|node| {
             node.control_id == SUMMARY_TYPE_CONTROL_ID
-                && node.text == "UI"
+                && node.text == "UI Layout"
                 && node.text_tone == "accent"
                 && node.font_size == 8.0
                 && node.font_weight == 700
@@ -222,8 +293,57 @@ mod tests {
             visible_assets: vec![AssetItemSnapshot {
                 uuid: "asset-a".to_string(),
                 locator: "res://a".to_string(),
-                display_name: "workbench_host_window.zui".to_string(),
-                file_name: "workbench_host_window.zui".to_string(),
+                display_name: "NavigationSettingsRuntimeProfile".to_string(),
+                file_name: "NavigationSettingsRuntimeProfile".to_string(),
+                extension: String::new(),
+                kind: ResourceKind::Data,
+                preview_artifact_path: String::new(),
+                dirty: false,
+                diagnostics: Vec::new(),
+                selected: false,
+                resource_state: None,
+                resource_revision: Some(42),
+            }],
+            ..AssetWorkspaceSnapshot::default()
+        };
+        let mut nodes = vec![ViewTemplateNodeData {
+            node_id: "asset_browser.content_preview.name".into(),
+            control_id: "AssetBrowserContentPreviewName".into(),
+            role: "Label".into(),
+            text: "NavigationSettingsRuntimeProfile".into(),
+            frame: ViewTemplateFrameData::default(),
+            ..ViewTemplateNodeData::default()
+        }];
+
+        append_asset_browser_summary_nodes(&mut nodes, &snapshot);
+
+        let name = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserContentPreviewName")
+            .expect("summary name node should exist");
+        let continuation = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserContentPreviewNameContinuation")
+            .expect("summary continuation node should exist");
+        assert_eq!(name.text.as_str(), "NavigationSettings");
+        assert_eq!(name.font_size, 10.0);
+        assert_eq!(name.font_weight, 600);
+        assert_eq!(continuation.text.as_str(), "RuntimeProfile");
+        assert_eq!(continuation.role.as_str(), "Label");
+        assert_eq!(continuation.font_size, 9.0);
+        assert_eq!(continuation.font_weight, 500);
+        assert_eq!(continuation.text_tone.as_str(), "muted");
+    }
+
+    #[test]
+    fn summary_nodes_keep_file_like_selected_names_on_single_line() {
+        let snapshot = AssetWorkspaceSnapshot {
+            selected_asset_uuid: Some("asset-a".to_string()),
+            visible_assets: vec![AssetItemSnapshot {
+                uuid: "asset-a".to_string(),
+                locator: "res://ui/editor/workbench_page_chrome.zui".to_string(),
+                display_name: "workbench_page_chrome.zui".to_string(),
+                file_name: "workbench_page_chrome.zui".to_string(),
                 extension: "zui".to_string(),
                 kind: ResourceKind::UiLayout,
                 preview_artifact_path: String::new(),
@@ -239,7 +359,7 @@ mod tests {
             node_id: "asset_browser.content_preview.name".into(),
             control_id: "AssetBrowserContentPreviewName".into(),
             role: "Label".into(),
-            text: "workbench_host_window.zui".into(),
+            text: "workbench_page_chrome.zui".into(),
             frame: ViewTemplateFrameData::default(),
             ..ViewTemplateNodeData::default()
         }];
@@ -254,14 +374,9 @@ mod tests {
             .iter()
             .find(|node| node.control_id == "AssetBrowserContentPreviewNameContinuation")
             .expect("summary continuation node should exist");
-        assert_eq!(name.text.as_str(), "workbench_host");
-        assert_eq!(name.font_size, 10.0);
-        assert_eq!(name.font_weight, 600);
-        assert_eq!(continuation.text.as_str(), "window.zui");
-        assert_eq!(continuation.role.as_str(), "Label");
-        assert_eq!(continuation.font_size, 9.0);
-        assert_eq!(continuation.font_weight, 500);
-        assert_eq!(continuation.text_tone.as_str(), "muted");
+        assert_eq!(name.text.as_str(), "workbench_page_chrome.zui");
+        assert_eq!(continuation.text.as_str(), "");
+        assert_eq!(continuation.frame.height, 0.0);
     }
 
     #[test]

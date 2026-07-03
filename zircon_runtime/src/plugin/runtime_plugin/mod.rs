@@ -11,7 +11,9 @@ mod runtime_plugin_catalog;
 
 pub use descriptor::{RuntimePluginDescriptor, RuntimePluginDescriptorBuilder};
 pub use feature_registration_report::RuntimePluginFeatureRegistrationReport;
-pub use lifecycle_context::{CapabilityView, PluginFinishContext, PluginRuntimeContext};
+pub use lifecycle_context::{
+    CapabilityView, PluginFinishContext, PluginReadyContext, PluginRuntimeContext,
+};
 pub use registration_report::RuntimePluginRegistrationReport;
 pub use runtime_plugin::RuntimePlugin;
 pub use runtime_plugin::RuntimePluginFeature;

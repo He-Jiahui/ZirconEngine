@@ -129,7 +129,7 @@ fn runtime_15_ui_architecture_tests_are_folder_backed() {
         ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py",
     );
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
     );
     assert_contains_all(
         "UI architecture audit script reads folder-backed guard owners",

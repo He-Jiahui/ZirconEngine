@@ -1,7 +1,7 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -11,14 +11,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     opacity: f32,
     style: &WorkbenchTextFieldStyle,
 ) {
+    let metrics = current_host_metrics();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
         Some(style.surface),
         Some(style.border),
-        METRICS.border_width,
-        METRICS.radius_control,
+        metrics.border_width,
+        metrics.radius_control,
         opacity,
     ));
 }

@@ -149,9 +149,7 @@ pub trait EngineEntry: Send + Sync + fmt::Debug {
         for descriptor in &descriptors {
             runtime.register_module(descriptor.clone())?;
         }
-        for descriptor in &descriptors {
-            runtime.activate_module(&descriptor.name)?;
-        }
+        runtime.activate_registered_modules()?;
 
         Ok(runtime.handle())
     }
@@ -337,9 +335,7 @@ impl EngineEntry for BuiltinEngineEntry {
         for descriptor in &descriptors {
             runtime.register_module(descriptor.clone())?;
         }
-        for descriptor in &descriptors {
-            runtime.activate_module(&descriptor.name)?;
-        }
+        runtime.activate_registered_modules()?;
         self.store_entry_config(&runtime);
 
         Ok(runtime.handle())
@@ -360,7 +356,7 @@ fn plugin_group_for_config(
             builder = builder.add(module).map_err(plugin_group_core_error)?;
         }
     }
-    Ok(builder.finish())
+    builder.try_finish().map_err(plugin_group_core_error)
 }
 
 fn plugin_group_builder_for_config(

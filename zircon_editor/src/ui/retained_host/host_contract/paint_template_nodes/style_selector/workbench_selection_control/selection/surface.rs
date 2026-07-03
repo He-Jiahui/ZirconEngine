@@ -1,12 +1,8 @@
 use super::super::colors::declared_style_background;
 use super::super::model::WorkbenchSelectionControlKind;
-use super::super::palette::{
-    WORKBENCH_CHECKBOX_CHECKED_FILL, WORKBENCH_RADIO_CHECKED_FILL,
-    WORKBENCH_SELECTION_MARK_IDLE_FILL,
-};
+use super::super::palette::WorkbenchSelectionControlPalette;
 use super::super::state::{is_hot, is_unavailable_selection_state};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(super) fn control_surface(
@@ -14,34 +10,35 @@ pub(super) fn control_surface(
     kind: WorkbenchSelectionControlKind,
     state: UiPainterResolvedState,
     checked: bool,
+    palette: WorkbenchSelectionControlPalette,
 ) -> [u8; 4] {
     if is_unavailable_selection_state(state) {
-        return PALETTE.surface_disabled;
+        return palette.surface_disabled;
     }
     match kind {
         WorkbenchSelectionControlKind::Checkbox => {
             if checked {
-                WORKBENCH_CHECKBOX_CHECKED_FILL
+                palette.checkbox_checked_fill
             } else {
-                declared_style_background(node).unwrap_or(WORKBENCH_SELECTION_MARK_IDLE_FILL)
+                declared_style_background(node).unwrap_or(palette.mark_idle_fill)
             }
         }
         WorkbenchSelectionControlKind::Radio => {
             if checked {
-                WORKBENCH_RADIO_CHECKED_FILL
+                palette.radio_checked_fill
             } else {
-                declared_style_background(node).unwrap_or(WORKBENCH_SELECTION_MARK_IDLE_FILL)
+                declared_style_background(node).unwrap_or(palette.mark_idle_fill)
             }
         }
         WorkbenchSelectionControlKind::Toggle => {
             if checked {
-                PALETTE.surface_selected
+                palette.toggle_checked_surface
             } else if state == UiPainterResolvedState::Pressed {
-                PALETTE.surface_pressed
+                palette.toggle_pressed_surface
             } else if is_hot(state) {
-                PALETTE.surface_hover
+                palette.toggle_hover_surface
             } else {
-                declared_style_background(node).unwrap_or(PALETTE.track)
+                declared_style_background(node).unwrap_or(palette.toggle_track)
             }
         }
     }

@@ -1,0 +1,15 @@
+Runtime Text SDF upload tests owner split validation - 2026-07-03
+status=runtime_text_sm_m1_sdf_upload_tests_owner_split_rustfmt_visual_cargo_deferred
+production_file=E:\Git\ZirconEngine\zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_upload.rs
+production_lines=205
+production_inline_tests=0
+test_file=E:\Git\ZirconEngine\zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_upload\tests.rs
+test_lines=483
+test_blocks=9
+behavior_delta=none; moved existing inline tests into folder-backed owner file only
+rustfmt_check=passed for sdf_upload.rs and sdf_upload/tests.rs
+target_scan_matches_for_sdf_upload_tests_owner_split=0
+active_cargo_rustc_snapshot=cargo 31168, cargo 45648, cargo 46996, cargo 47744, rustc 18348, rustc 32576
+cargo_status=deferred because external cargo/rustc lanes are active
+preview_png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_sdf_upload_tests_owner_split_preview_20260703.png
+preview_png_sha256=1E6E6743CFAB3954551F115BF6B9A9B8818180CB86F6008C6FE0818C7E9768ED

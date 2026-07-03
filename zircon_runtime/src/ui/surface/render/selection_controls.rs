@@ -30,12 +30,13 @@ const RADIO_CHECKED_BORDER: &str = "#4c5b63";
 const RADIO_DOT_SIZE: f32 = 7.0;
 const TOGGLE_TRACK_WIDTH: f32 = 34.0;
 const TOGGLE_TRACK_HEIGHT: f32 = 18.0;
-const TOGGLE_THUMB_SIZE: f32 = 14.0;
+const TOGGLE_THUMB_SIZE: f32 = 12.0;
 const TOGGLE_RIGHT_INSET: f32 = 8.0;
 const TOGGLE_THUMB_INSET: f32 = 2.0;
 const TOGGLE_TRACK_IDLE: &str = "#232d33";
 const TOGGLE_THUMB_IDLE: &str = "#7c878e";
-const TOGGLE_THUMB_ON: &str = "#e8ecee";
+const TOGGLE_BORDER_ON: &str = "#414b54";
+const TOGGLE_THUMB_ON: &str = "#a4aeb4";
 const TOGGLE_HOVER: &str = "#1a2429";
 const TOGGLE_PRESSED: &str = "#223139";
 const BORDER_FOCUS: &str = "#35c7d0";
@@ -563,10 +564,10 @@ fn toggle_border_color<'a>(
 ) -> &'a str {
     if state.unavailable() {
         MARK_DISABLED_BORDER
-    } else if state.active() {
-        ACCENT
     } else if state.hot() {
         color_attribute(metadata, "border_color").unwrap_or(BORDER_FOCUS)
+    } else if state.active() {
+        TOGGLE_BORDER_ON
     } else {
         color_attribute(metadata, "border_color").unwrap_or(MARK_IDLE_BORDER)
     }

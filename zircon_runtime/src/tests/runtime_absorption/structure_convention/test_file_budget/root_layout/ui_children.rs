@@ -112,9 +112,9 @@ const UI_TEST_BUDGET_GUARDS: [(&str, &str, &str); 25] = [
         "fn runtime_15_ui_runtime_input_ownership_tests_are_folder_backed",
     ),
     (
-        "UI runtime input reply routes test-budget child owns reply-routes guard",
+        "UI runtime input reply routes test-budget child owns reply-routes aggregate guard",
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs",
-        "fn runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed",
+        "fn runtime_15_ui_runtime_input_reply_route_guard_child_owners_are_folder_backed",
     ),
     (
         "UI runtime window event ABI test-budget child owns ABI child guard",
@@ -142,7 +142,7 @@ fn runtime_15_test_file_budget_root_layout_ui_child_scan_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second.rs",
     );
 
     assert_contains_all(

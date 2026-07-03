@@ -16,6 +16,218 @@ from tools.zircon_export.tests.export_test_support import (
 
 
 class CompileHostPlanLinkedCrateSchemaTests(unittest.TestCase):
+    def test_compile_host_rejects_plan_missing_expected_plugin_link_provider(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compile_plan = _compile_host_plan()
+            compile_plan["expected_runtime_plugins"] = ["rendering"]
+            compile_plan["linked_runtime_crates"] = []
+            validate_report = root / "validate.json"
+            validate_report.write_text(
+                json_dumps(
+                    {
+                        "stage": "Validate",
+                        "profile": "windows-release",
+                        "fatal": False,
+                        "diagnostics": [],
+                        "plan_summary": {
+                            "library_embed_compile_host": compile_plan,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = _compile_host_args(
+                out=root / "out",
+                validate_report=validate_report,
+            )
+            args.dry_run = False
+
+            with mock.patch(
+                "tools.zircon_export.compile_host.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 0),
+            ) as cargo_call:
+                exit_code = _run_compile_host_quiet(args)
+
+            report = json_loads(
+                (
+                    root
+                    / "out"
+                    / "stages"
+                    / "compile_host"
+                    / "report.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertEqual(exit_code, 2)
+            cargo_call.assert_not_called()
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["command"], [])
+            self.assertIsNone(report["host_executable"])
+            self.assertTrue(
+                any(
+                    "CompileHost plan linked_runtime_crates must include "
+                    "provider_package_id rendering for expected_runtime_plugins[0]"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
+    def test_compile_host_rejects_plan_linked_crate_identity_mismatch_before_execution(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "crate_name",
+                "zircon_plugin_physics_runtime",
+                "CompileHost plan linked_runtime_crates[0].crate_name "
+                "must match provider_package_id rendering as "
+                "zircon_plugin_rendering_runtime",
+            ),
+            (
+                "path",
+                "zircon_plugins/physics/runtime",
+                "CompileHost plan linked_runtime_crates[0].path must match "
+                "provider_package_id rendering",
+            ),
+        )
+        for field, value, expected_diagnostic in cases:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    root = Path(temp_dir)
+                    compile_plan = _compile_host_plan()
+                    linked_crate = {
+                        "crate_name": "zircon_plugin_rendering_runtime",
+                        "path": "zircon_plugins/rendering/runtime",
+                        "provider_package_id": "rendering",
+                        "registration_kind": "runtime_plugin",
+                    }
+                    linked_crate[field] = value
+                    compile_plan["expected_runtime_plugins"] = ["rendering"]
+                    compile_plan["linked_runtime_crates"] = [linked_crate]
+                    validate_report = root / "validate.json"
+                    validate_report.write_text(
+                        json_dumps(
+                            {
+                                "stage": "Validate",
+                                "profile": "windows-release",
+                                "fatal": False,
+                                "diagnostics": [],
+                                "plan_summary": {
+                                    "library_embed_compile_host": compile_plan,
+                                },
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+                    args = _compile_host_args(
+                        out=root / "out",
+                        validate_report=validate_report,
+                    )
+                    args.dry_run = False
+
+                    with mock.patch(
+                        "tools.zircon_export.compile_host.subprocess.run",
+                        return_value=subprocess.CompletedProcess([], 0),
+                    ) as cargo_call:
+                        exit_code = _run_compile_host_quiet(args)
+
+                    report = json_loads(
+                        (
+                            root
+                            / "out"
+                            / "stages"
+                            / "compile_host"
+                            / "report.json"
+                        ).read_text(encoding="utf-8")
+                    )
+                    self.assertEqual(exit_code, 2)
+                    cargo_call.assert_not_called()
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["command"], [])
+                    self.assertIsNone(report["host_executable"])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_compile_host_rejects_plan_unexpected_linked_crate_provider_before_execution(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            compile_plan = _compile_host_plan()
+            compile_plan["expected_runtime_plugins"] = ["rendering"]
+            compile_plan["linked_runtime_crates"] = [
+                {
+                    "crate_name": "zircon_plugin_rendering_runtime",
+                    "path": "zircon_plugins/rendering/runtime",
+                    "provider_package_id": "rendering",
+                    "registration_kind": "runtime_plugin",
+                },
+                {
+                    "crate_name": "zircon_plugin_physics_runtime",
+                    "path": "zircon_plugins/physics/runtime",
+                    "provider_package_id": "physics",
+                    "registration_kind": "runtime_plugin",
+                },
+            ]
+            validate_report = root / "validate.json"
+            validate_report.write_text(
+                json_dumps(
+                    {
+                        "stage": "Validate",
+                        "profile": "windows-release",
+                        "fatal": False,
+                        "diagnostics": [],
+                        "plan_summary": {
+                            "library_embed_compile_host": compile_plan,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            args = _compile_host_args(
+                out=root / "out",
+                validate_report=validate_report,
+            )
+            args.dry_run = False
+
+            with mock.patch(
+                "tools.zircon_export.compile_host.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 0),
+            ) as cargo_call:
+                exit_code = _run_compile_host_quiet(args)
+
+            report = json_loads(
+                (
+                    root
+                    / "out"
+                    / "stages"
+                    / "compile_host"
+                    / "report.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertEqual(exit_code, 2)
+            cargo_call.assert_not_called()
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertEqual(report["command"], [])
+            self.assertIsNone(report["host_executable"])
+            self.assertTrue(
+                any(
+                    "CompileHost plan linked_runtime_crates[1]."
+                    "provider_package_id must be listed in expected_runtime_plugins"
+                    in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_compile_host_rejects_plan_with_padded_linked_crate_field(
         self,
     ) -> None:

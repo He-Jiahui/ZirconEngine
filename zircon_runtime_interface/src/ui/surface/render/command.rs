@@ -1,22 +1,15 @@
 use serde::{Deserialize, Serialize};
-use unicode_segmentation::UnicodeSegmentation;
 
 use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::{UiFrame, UiGeometry, UiLayoutMetrics, UiPixelSnapping};
 
+use super::text_geometry::editable_text_decorations;
 use super::text_shape::text_paint_runs_from_shaped;
 use super::{
-    UiBrushPayload, UiBrushSet, UiClipMode, UiClipState, UiEditableTextState, UiPaintEffects,
-    UiPaintElement, UiPaintPayload, UiRenderCommandKind, UiRenderResourceKey, UiRenderResourceKind,
-    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextPaint, UiTextPaintDecoration,
-    UiTextPaintDecorationKind, UiTextRange, UiVisualAssetRef,
+    UiBrushPayload, UiBrushSet, UiClipMode, UiClipState, UiPaintEffects, UiPaintElement,
+    UiPaintPayload, UiRenderCommandKind, UiRenderResourceKey, UiRenderResourceKind,
+    UiResolvedStyle, UiResolvedTextLayout, UiTextPaint, UiVisualAssetRef,
 };
-
-const TEXT_SELECTION_COLOR: &str = "#4d89ff66";
-const TEXT_CARET_COLOR: &str = "#e8eef7";
-const TEXT_COMPOSITION_UNDERLINE_COLOR: &str = "#4d89ff";
-const TEXT_CARET_WIDTH: f32 = 1.0;
-const TEXT_COMPOSITION_UNDERLINE_HEIGHT: f32 = 2.0;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderCommand {
@@ -283,6 +276,7 @@ impl UiRenderCommand {
                     &self.style.foreground_color,
                     &self.style.font,
                     &self.style.font_family,
+                    self.style.font_weight,
                     self.style.font_size,
                     self.style.line_height,
                 )
@@ -294,8 +288,10 @@ impl UiRenderCommand {
             color: self.style.foreground_color.clone(),
             font: self.style.font.clone(),
             font_family: self.style.font_family.clone(),
+            font_weight: self.style.font_weight,
             font_size: self.style.font_size,
             line_height: self.style.line_height,
+            writing_mode: self.style.text_writing_mode,
             render_mode: self.style.text_render_mode,
             overflow: self.style.text_overflow,
             shaped,
@@ -326,13 +322,19 @@ fn text_font_resource_key(style: &UiResolvedStyle) -> UiRenderResourceKey {
 }
 
 fn text_font_resource_id(style: &UiResolvedStyle) -> String {
-    style
+    let font_id = style
         .font
         .as_deref()
         .or(style.font_family.as_deref())
+        .map(str::trim)
         .filter(|value| !value.trim().is_empty())
         .unwrap_or("default")
-        .to_string()
+        .to_string();
+    format!(
+        "{}:w{}",
+        font_id,
+        UiResolvedStyle::normalized_font_weight(style.font_weight)
+    )
 }
 
 fn text_atlas_resource_key(
@@ -348,180 +350,6 @@ fn text_atlas_resource_key(
             style.text_render_mode
         ),
     )
-}
-
-fn editable_text_decorations(
-    layout: &UiResolvedTextLayout,
-    editable: &UiEditableTextState,
-) -> Vec<UiTextPaintDecoration> {
-    let mut decorations = Vec::new();
-    if let Some(selection) = editable.selection.as_ref() {
-        let range = selection.range();
-        if range.start < range.end {
-            for frame in text_range_frames(layout, range, TextDecorationMetric::Selection) {
-                decorations.push(UiTextPaintDecoration::selection(
-                    range,
-                    frame,
-                    TEXT_SELECTION_COLOR,
-                ));
-            }
-        }
-    }
-
-    if let Some(composition) = editable.composition.as_ref() {
-        for frame in text_range_frames(
-            layout,
-            composition.range,
-            TextDecorationMetric::CompositionUnderline,
-        ) {
-            decorations.push(UiTextPaintDecoration::composition_underline(
-                composition.range,
-                frame,
-                TEXT_COMPOSITION_UNDERLINE_COLOR,
-            ));
-        }
-    }
-
-    if let Some(frame) = caret_frame(layout, editable.caret.offset) {
-        decorations.push(UiTextPaintDecoration {
-            kind: UiTextPaintDecorationKind::Caret,
-            range: UiTextRange {
-                start: editable.caret.offset,
-                end: editable.caret.offset,
-            },
-            frame,
-            color: TEXT_CARET_COLOR.to_string(),
-        });
-    }
-    decorations
-}
-
-#[derive(Clone, Copy)]
-enum TextDecorationMetric {
-    Selection,
-    CompositionUnderline,
-}
-
-fn text_range_frames(
-    layout: &UiResolvedTextLayout,
-    range: UiTextRange,
-    metric: TextDecorationMetric,
-) -> Vec<UiFrame> {
-    let mut frames = Vec::new();
-    for line in &layout.lines {
-        for run in &line.runs {
-            let start = range.start.max(run.source_range.start);
-            let end = range.end.min(run.source_range.end);
-            if start >= end {
-                continue;
-            }
-            let visual_start =
-                run.visual_range.start + start.saturating_sub(run.source_range.start);
-            let visual_end = run.visual_range.start + end.saturating_sub(run.source_range.start);
-            let visual_start = grapheme_floor(line.text.as_str(), visual_start);
-            let visual_end = grapheme_ceil(line.text.as_str(), visual_end);
-            let x0 = visual_x(line, visual_start);
-            let x1 = visual_x(line, visual_end);
-            let (y, height) = match metric {
-                TextDecorationMetric::Selection => (line.frame.y, line.frame.height),
-                TextDecorationMetric::CompositionUnderline => (
-                    line.frame.bottom() - TEXT_COMPOSITION_UNDERLINE_HEIGHT,
-                    TEXT_COMPOSITION_UNDERLINE_HEIGHT,
-                ),
-            };
-            frames.push(UiFrame::new(
-                x0.min(x1),
-                y,
-                (x1 - x0).abs().max(TEXT_CARET_WIDTH),
-                height,
-            ));
-        }
-    }
-    frames
-}
-
-fn caret_frame(layout: &UiResolvedTextLayout, offset: usize) -> Option<UiFrame> {
-    let line = layout
-        .lines
-        .iter()
-        .find(|line| offset >= line.source_range.start && offset <= line.source_range.end)
-        .or_else(|| layout.lines.last())?;
-    let visual_offset = line
-        .runs
-        .iter()
-        .find_map(|run| {
-            (offset >= run.source_range.start && offset <= run.source_range.end)
-                .then(|| run.visual_range.start + offset.saturating_sub(run.source_range.start))
-        })
-        .unwrap_or(line.visual_range.end);
-    Some(UiFrame::new(
-        visual_x(line, visual_offset),
-        line.frame.y,
-        TEXT_CARET_WIDTH,
-        line.frame.height,
-    ))
-}
-
-fn visual_x(line: &UiResolvedTextLine, visual_offset: usize) -> f32 {
-    let text = line.text.as_str();
-    let offset = grapheme_floor(text, visual_offset.min(text.len()));
-    let total_units = text.graphemes(true).count();
-    let before_units = text[..offset].graphemes(true).count();
-    if line.glyph_advances.len() == total_units {
-        return line.frame.x
-            + line
-                .glyph_advances
-                .iter()
-                .take(before_units)
-                .map(|advance| sanitized_advance(*advance))
-                .sum::<f32>();
-    }
-
-    let total_units = total_units.max(1) as f32;
-    let before_units = before_units as f32;
-    line.frame.x + (line.frame.width.max(0.0) * before_units / total_units)
-}
-
-fn sanitized_advance(advance: f32) -> f32 {
-    if advance.is_finite() {
-        advance.max(0.0)
-    } else {
-        0.0
-    }
-}
-
-fn grapheme_floor(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset > 0 && !text.is_char_boundary(offset) {
-        offset -= 1;
-    }
-    for (start, grapheme) in text.grapheme_indices(true) {
-        let end = start + grapheme.len();
-        if start < offset && offset < end {
-            return start;
-        }
-        if start >= offset {
-            break;
-        }
-    }
-    offset
-}
-
-fn grapheme_ceil(text: &str, offset: usize) -> usize {
-    let mut offset = offset.min(text.len());
-    while offset < text.len() && !text.is_char_boundary(offset) {
-        offset += 1;
-    }
-    for (start, grapheme) in text.grapheme_indices(true) {
-        let end = start + grapheme.len();
-        if start < offset && offset < end {
-            return end;
-        }
-        if start >= offset {
-            break;
-        }
-    }
-    offset
 }
 
 fn render_clip_frame(frame: UiFrame, metrics: UiLayoutMetrics) -> UiFrame {

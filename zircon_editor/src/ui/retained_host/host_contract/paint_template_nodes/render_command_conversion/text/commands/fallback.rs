@@ -1,8 +1,10 @@
-use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiTextPaint, UiTextRunPaintStyle};
+use zircon_runtime_interface::ui::surface::{UiRenderCommand, UiTextPaint};
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
-use crate::ui::retained_host::host_contract::paint_template_nodes::render_command_conversion::style::aligned_text_x;
+use crate::ui::retained_host::host_contract::paint_template_nodes::render_command_conversion::style::{
+    aligned_text_x, text_paint_style_from_resolved_style,
+};
 
 pub(super) fn push_fallback_text_command(
     output: &mut Vec<HostPaintCommand>,
@@ -27,7 +29,7 @@ pub(super) fn push_fallback_text_command(
         color,
         text.font_size.max(1.0),
         text.line_height.max(text.font_size).max(1.0),
-        UiTextRunPaintStyle::default(),
+        text_paint_style_from_resolved_style(&command.style),
         command.opacity,
     ));
 }

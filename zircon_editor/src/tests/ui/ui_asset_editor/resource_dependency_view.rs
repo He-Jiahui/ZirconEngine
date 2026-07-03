@@ -35,7 +35,7 @@ set = { self = { background_image = "asset://images/background.png" } }
 #[test]
 fn ui_asset_editor_session_exposes_resource_dependencies_after_compile() {
     let session = open_design_session(
-        "asset://ui/tests/resource_dependency_view.ui.toml",
+        "asset://ui/tests/resource_dependency_view.zui",
         RESOURCE_DEPENDENCY_LAYOUT,
     );
 
@@ -64,7 +64,7 @@ fn ui_asset_editor_session_exposes_resource_dependencies_after_compile() {
 #[test]
 fn ui_asset_editor_session_exposes_resource_diagnostics_after_compile() {
     let session = open_design_session(
-        "asset://ui/tests/resource_dependency_view.ui.toml",
+        "asset://ui/tests/resource_dependency_view.zui",
         RESOURCE_DEPENDENCY_LAYOUT,
     );
 
@@ -78,7 +78,7 @@ fn ui_asset_editor_session_exposes_resource_diagnostics_after_compile() {
 #[test]
 fn ui_asset_editor_resource_dependencies_refresh_after_source_edit() {
     let mut session = open_design_session(
-        "asset://ui/tests/resource_dependency_view.ui.toml",
+        "asset://ui/tests/resource_dependency_view.zui",
         RESOURCE_DEPENDENCY_LAYOUT,
     );
     assert!(session
@@ -107,7 +107,7 @@ fn ui_asset_editor_resource_dependencies_refresh_after_source_edit() {
 #[test]
 fn ui_asset_editor_resource_view_clears_when_resource_compile_fails() {
     let mut session = open_design_session(
-        "asset://ui/tests/resource_dependency_view.ui.toml",
+        "asset://ui/tests/resource_dependency_view.zui",
         RESOURCE_DEPENDENCY_LAYOUT,
     );
     assert!(!session.resource_dependencies().is_empty());
@@ -128,7 +128,7 @@ fn ui_asset_editor_resource_view_clears_when_resource_compile_fails() {
 #[test]
 fn ui_asset_editor_resource_view_reports_resolver_missing_files() {
     let mut session = open_design_session(
-        "asset://ui/tests/resource_dependency_view.ui.toml",
+        "asset://ui/tests/resource_dependency_view.zui",
         RESOURCE_DEPENDENCY_LAYOUT,
     );
     let temp_root = std::env::temp_dir().join(format!(

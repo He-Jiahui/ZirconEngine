@@ -12,8 +12,8 @@ fn activity_drawer_window_source() -> String {
 #[test]
 fn activity_drawer_window_declares_neutral_drawer_slots() {
     let source = activity_drawer_window_source();
-    let document = UiV2AssetLoader::load_toml_str(&source)
-        .expect("activity drawer window v2 asset should parse");
+    let document =
+        UiV2AssetLoader::load_toml_str(&source).expect("activity_drawer_window.zui should parse");
 
     let component = document
         .components

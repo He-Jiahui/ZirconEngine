@@ -16,6 +16,9 @@ related_code:
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_order.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -49,6 +52,9 @@ implementation_files:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_order.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -85,6 +91,9 @@ tests:
   - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
   - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
   - cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
+  - zircon_runtime::builtin::runtime_modules::tests::registration::behavior::target_runtime_modules_follow_descriptor_activation_order
+  - zircon_app::plugins::tests::builtin_plugin_groups_finish_in_descriptor_activation_order
+  - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never
   - .github/workflows/ci.yml
 doc_type: module-detail
 ---
@@ -131,6 +140,8 @@ Errors are explicit instead of panic-driven. Duplicate module keys, missing keys
 - `Headless` profile starts from `HeadlessPlugins`.
 
 For default, dev, editor, runtime, and headless groups, modules returned by project manifests, linked runtime plugin registrations, native plugin reports, and optional editor insertion are appended when they are not already present in the selected group. For `RuntimeProfileId::Minimal`, unmatched modules are intentionally ignored: the runtime modules returned by the wider resolver may still describe the full client baseline, but the minimal profile keeps only modules already present in `MinimalPlugins`.
+
+Frameworks 02 moves final ordering out of the app group layer. `PluginGroupBuilder` still records the selected membership for diagnostics and replacement policy, but `BuiltinEngineEntry` hands the full descriptor set to the runtime kernel before activation. The runtime sorts by `ModuleDescriptor::init_level` and declared module dependencies, so app profiles no longer preserve a manual "list order is startup order" contract. Ordering errors stay fatal through `RuntimeModuleLoadReport`; the app must reject them instead of falling back to legacy group order.
 
 `BuiltinEngineEntry::bootstrap` calls `module_descriptors()` on the resolved group, stores app-owned bootstrap config, then registers and activates every descriptor through `CoreRuntime`. It stores the app-owned config again after activation so modules that install default runtime config cannot overwrite the selected entry render/platform profile. Service initialization order, duplicate service detection, dependency resolution, and shutdown rules remain runtime-owned.
 
@@ -181,6 +192,8 @@ The editor-host live build uses the same provider-aware profile boundary. `zirco
 The plugin tests cover ordering, replacement, disabled module omission, duplicate keys, missing anchors, disabled-anchor insertion errors, and built-in group membership. Built-in group membership now explicitly checks that `DefaultPlugins`, `DevPlugins`, and `HeadlessPlugins` include platform/input descriptors while `MinimalPlugins` stays core-only. Entry tests verify that runtime entries expose the resolved group name and module selection report while preserving existing descriptor and bootstrap behavior, including the `RuntimeProfileId::Minimal` special case that selects `MinimalPlugins`, the `RuntimeProfileId::Dev` special case that selects `DevPlugins`, the formatted module-selection diagnostic summary with platform monitor-inventory/window-event/window-lifecycle/window-metrics/IME/keyboard-events/cursor-boundary/cursor-options/mouse-buttons/mouse-wheel/touch-events/pointer-position/raw-mouse-motion/gamepad-events/gamepad-rumble and selected window descriptor lines, base runner-level diagnostics before bootstrap, first-party provider-aware runner diagnostics, linked runtime-plugin registration diagnostics that include externally contributed module descriptors, and linked runtime-plugin bridge lifecycle state installation. Profile bootstrap tests also cover profile-to-entry projection, platform/render/window config persistence for runtime/headless/minimal entries, and, when the first-party provider features are enabled, linked registration closure for required `client_2d` providers plus optional animation/net/particles and navigation provider wiring.
 
 Fresh 2026-06-13 scoped validation for the bridge lifecycle bootstrap slice: `rustfmt --edition 2021` passed for `zircon_app/src/entry/builtin_modules.rs`, `zircon_app/src/entry/engine_entry.rs`, `zircon_app/src/entry/tests/profile_bootstrap.rs`, and `zircon_app/src/entry/runtime_library/runtime_session.rs`. `cargo test -p zircon_app --lib runtime_plugin_bootstrap_installs_bridge_lifecycle_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-entry-0613 --message-format short --color never -- --test-threads=1 --nocapture` passed once before test-fixture manifest declaration cleanup. The same compile also caught the missing `ZrStatusCode::BridgeNotEnabled` runtime-library status mapping, now fixed. Post-cleanup default-feature and `core-min` reruns timed out in runtime compilation while unrelated Cargo lanes were active, so no final post-cleanup Cargo pass is claimed.
+
+Fresh Frameworks 02 M2/M3 documentation sync on 2026-07-03 records the hard cutover from app-owned list ordering to runtime descriptor ordering. Scoped rustfmt and `cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never` passed earlier with existing warnings; focused runtime lib tests for descriptor order timed out during Windows compile/link and are not counted as passing.
 
 Latest scoped validation on 2026-05-16 used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target` because other active sessions were using the shared Cargo target directories:
 

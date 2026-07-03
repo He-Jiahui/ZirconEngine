@@ -62,7 +62,7 @@ impl ArtifactCacheUiV2AssetDocument {
         toml::to_string(document)
             .map(|document_toml| Self { document_toml })
             .map_err(|source| AssetImportError::TomlSerialize {
-                context: "serialize ui v2 asset document cache",
+                context: "serialize .zui asset document cache",
                 source,
             })
     }
@@ -70,7 +70,7 @@ impl ArtifactCacheUiV2AssetDocument {
     pub(super) fn into_view_asset(self) -> Result<UiV2ViewAsset, AssetImportError> {
         UiV2ViewAsset::from_toml_str(&self.document_toml).map_err(|source| {
             AssetImportError::UiV2Document {
-                context: "deserialize ui v2 view document cache",
+                context: "deserialize .zui view document cache",
                 source,
             }
         })
@@ -79,7 +79,7 @@ impl ArtifactCacheUiV2AssetDocument {
     pub(super) fn into_component_asset(self) -> Result<UiV2ComponentAsset, AssetImportError> {
         UiV2ComponentAsset::from_toml_str(&self.document_toml).map_err(|source| {
             AssetImportError::UiV2Document {
-                context: "deserialize ui v2 component document cache",
+                context: "deserialize .zui component document cache",
                 source,
             }
         })
@@ -88,7 +88,7 @@ impl ArtifactCacheUiV2AssetDocument {
     pub(super) fn into_style_asset(self) -> Result<UiV2StyleAsset, AssetImportError> {
         UiV2StyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
             AssetImportError::UiV2Document {
-                context: "deserialize ui v2 style document cache",
+                context: "deserialize .zui style document cache",
                 source,
             }
         })

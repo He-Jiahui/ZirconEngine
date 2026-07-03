@@ -80,17 +80,17 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.sound.mixer_console.Open"));
+        .any(|menu| menu.operation().as_str() == "view.sound.mixer_console.open"));
     assert!(registration
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.sound.acoustic_debug.Open"));
+        .any(|menu| menu.operation().as_str() == "view.sound.acoustic_debug.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.sound.mixer_console.Open"));
+        .any(|operation| operation.path().as_str() == "view.sound.mixer_console.open"));
     for path in SOUND_MIXER_OPERATION_PATHS
         .iter()
         .chain(SOUND_AUDIO_SOURCE_OPERATION_PATHS)
@@ -111,7 +111,7 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
         .extensions
         .operations()
         .descriptors()
-        .find(|operation| operation.path().as_str() == "Sound.Mixer.Track.Create")
+        .find(|operation| operation.path().as_str() == "sound.mixer.track.create")
         .expect("create track operation");
     assert!(create_track.undoable().is_some());
 }

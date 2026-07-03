@@ -38,20 +38,29 @@ def shader_prewarm_dimension_summary_lines(
     report: Mapping[str, object],
 ) -> tuple[str, ...]:
     summary = report.get("dimension_summary")
-    validation_line = _format_wgpu_module_validation(
-        report.get("wgpu_module_validation")
+    validation_lines = tuple(
+        line
+        for line in (
+            _format_wgpu_validation(
+                report.get("wgpu_module_validation"),
+                "module",
+            ),
+            _format_wgpu_validation(
+                report.get("wgpu_pipeline_validation"),
+                "render pipeline",
+            ),
+        )
+        if line
     )
     provenance_line = _format_source_provenance(report.get("source_provenance"))
     if not isinstance(summary, Mapping):
         lines = ["shader prewarm dimension summary:"]
-        if validation_line:
-            lines.append(validation_line)
+        lines.extend(validation_lines)
         if provenance_line:
             lines.append(provenance_line)
         return tuple(lines) if len(lines) > 1 else ()
     lines = ["shader prewarm dimension summary:"]
-    if validation_line:
-        lines.append(validation_line)
+    lines.extend(validation_lines)
     if provenance_line:
         lines.append(provenance_line)
     for field, label in _DIMENSION_SUMMARY_GROUPS:
@@ -67,6 +76,7 @@ def validate_shader_prewarm_report_contract(
     report_path: Path,
     *,
     require_wgpu_module_validation: bool = False,
+    require_wgpu_pipeline_validation: bool = False,
     require_source_provenance: bool = False,
     expected_pass_types: Sequence[str] = (),
     expected_quality_tiers: Sequence[str] = (),
@@ -76,6 +86,7 @@ def validate_shader_prewarm_report_contract(
 ) -> None:
     if (
         not require_wgpu_module_validation
+        and not require_wgpu_pipeline_validation
         and not require_source_provenance
         and not expected_pass_types
         and not expected_quality_tiers
@@ -103,7 +114,17 @@ def validate_shader_prewarm_report_contract(
         raise RuntimeError("shader prewarm report did not confirm WGPU module validation")
 
     if require_wgpu_module_validation:
-        _validate_wgpu_module_validation_contract(report)
+        _validate_wgpu_validation_contract(
+            report,
+            "wgpu_module_validation",
+            "module",
+        )
+    if require_wgpu_pipeline_validation:
+        _validate_wgpu_validation_contract(
+            report,
+            "wgpu_pipeline_validation",
+            "render pipeline",
+        )
     if require_source_provenance:
         _validate_source_provenance_contract(report)
     _validate_expected_dimension_contract(
@@ -133,20 +154,24 @@ def parse_shader_id_record(raw_value: str, label: str) -> tuple[str, int]:
     return token, id_value
 
 
-def _validate_wgpu_module_validation_contract(report: Mapping[str, object]) -> None:
-    validation = report.get("wgpu_module_validation")
+def _validate_wgpu_validation_contract(
+    report: Mapping[str, object],
+    field: str,
+    label: str,
+) -> None:
+    validation = report.get(field)
     if not isinstance(validation, Mapping) or not bool(validation.get("enabled", False)):
-        raise RuntimeError("shader prewarm report did not confirm WGPU module validation")
+        raise RuntimeError(_wgpu_validation_missing_message(label))
 
     requested = _count_value(validation, "requested")
     validated = _count_value(validation, "validated")
     failed = _count_value(validation, "failed")
     skipped = _count_value(validation, "skipped")
     if requested <= 0:
-        raise RuntimeError("shader prewarm report did not confirm WGPU module validation")
+        raise RuntimeError(_wgpu_validation_missing_message(label))
     if validated != requested or failed or skipped:
         raise RuntimeError(
-            "shader prewarm WGPU module validation did not validate every "
+            f"shader prewarm WGPU {label} validation did not validate every "
             "requested variant: "
             f"requested={requested} validated={validated} "
             f"failed={failed} skipped={skipped}"
@@ -162,11 +187,19 @@ def _validate_wgpu_module_validation_contract(report: Mapping[str, object]) -> N
         or failed != report_failed
     ):
         raise RuntimeError(
-            "shader prewarm WGPU module validation counts did not match "
+            f"shader prewarm WGPU {label} validation counts did not match "
             "report totals: "
             f"requested={report_requested}/{requested} "
             f"written={report_written}/{validated} failed={report_failed}/{failed}"
         )
+
+
+def _wgpu_validation_missing_message(label: str) -> str:
+    messages = {
+        "module": "shader prewarm report did not confirm WGPU module validation",
+        "render pipeline": "shader prewarm report did not confirm WGPU render pipeline validation",
+    }
+    return messages.get(label, f"shader prewarm report did not confirm WGPU {label} validation")
 
 
 def _validate_source_provenance_contract(report: Mapping[str, object]) -> None:
@@ -204,12 +237,9 @@ def _validate_source_provenance_contract(report: Mapping[str, object]) -> None:
         written = _count_value(source, "written")
         failed = _count_value(source, "failed")
         if (
-            not isinstance(source_label, str)
-            or not source_label
-            or not isinstance(source_hash, str)
-            or not source_hash
-            or not isinstance(template_revision, str)
-            or not template_revision
+            not _is_nonblank_string(source_label)
+            or not _is_nonblank_string(source_hash)
+            or not _is_nonblank_string(template_revision)
             or requested <= 0
             or written + failed != requested
         ):
@@ -464,16 +494,37 @@ def _validate_expected_shader_dimension_ids(
         )
     if missing:
         raise RuntimeError(
-            f"shader prewarm report is missing requested {label}s: "
+            _shader_dimension_missing_message(label)
+            + ": "
             + ", ".join(_format_shader_id_record(token, id_value) for token, id_value in missing)
         )
     expected_ids = tuple(str(id_value) for _, id_value in expected_records)
     incomplete = _incomplete_dimension_counts(group, expected_ids)
     if incomplete:
         raise RuntimeError(
-            f"shader prewarm report did not fully write requested {label}s: "
+            _shader_dimension_incomplete_message(label)
+            + ": "
             + ", ".join(incomplete)
         )
+
+
+def _shader_dimension_missing_message(label: str) -> str:
+    messages = {
+        "shader geometry source id": "shader prewarm report is missing requested shader geometry source ids",
+        "shader shading model id": "shader prewarm report is missing requested shader shading model ids",
+    }
+    return messages.get(label, f"shader prewarm report is missing requested {label}s")
+
+
+def _shader_dimension_incomplete_message(label: str) -> str:
+    messages = {
+        "shader geometry source id": "shader prewarm report did not fully write requested shader geometry source ids",
+        "shader shading model id": "shader prewarm report did not fully write requested shader shading model ids",
+    }
+    return messages.get(
+        label,
+        f"shader prewarm report did not fully write requested {label}s",
+    )
 
 
 def _shader_dimension_id_records(
@@ -584,7 +635,7 @@ def _format_source_provenance(provenance: object) -> str | None:
     return f"  source provenance: {'; '.join(entries)}"
 
 
-def _format_wgpu_module_validation(validation: object) -> str | None:
+def _format_wgpu_validation(validation: object, label: str) -> str | None:
     if not isinstance(validation, Mapping):
         return None
     enabled = bool(validation.get("enabled", False))
@@ -596,7 +647,7 @@ def _format_wgpu_module_validation(validation: object) -> str | None:
         return None
     state = "enabled" if enabled else "disabled"
     return (
-        "  WGPU module validation: "
+        f"  WGPU {label} validation: "
         f"{state} requested={requested} validated={validated} "
         f"failed={failed} skipped={skipped}"
     )
@@ -627,6 +678,10 @@ def _count_value(counts: Mapping[str, object], field: str) -> int:
     if value is None:
         value = counts.get(f"{field}_count", 0)
     return _non_negative_int(value)
+
+
+def _is_nonblank_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value == value.strip()
 
 
 def _non_negative_int(value: object) -> int:

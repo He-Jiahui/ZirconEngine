@@ -1,0 +1,57 @@
+type Slice = super::Slice;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
+    (
+        "Runtime 15 M3 asset loader typed-error review guard child-owner split",
+        &[
+            "runtime_15_asset_loader_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/animation_binary.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/artifact_importer.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/mesh_obj.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/texture.rs",
+            "review_f5_texture_loader_uses_typed_error",
+            "review_f5_mesh_loader_and_obj_decoder_use_typed_errors",
+            "review_f5_animation_asset_binary_uses_typed_errors",
+            "review_f7_asset_artifact_errors_use_asset_import_error_sources",
+            "runtime_15_code_review_findings_tests_are_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 asset records typed-error review guard child-owner split",
+        &[
+            "runtime_15_asset_records_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/authoring.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/font.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/meta.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/navigation.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/sound.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/zshader.rs",
+            "review_f5_asset_authoring_uses_typed_error",
+            "review_f5_navigation_asset_uses_typed_error",
+            "review_f5_font_asset_uses_typed_error_source",
+            "review_f5_sound_asset_uses_typed_error",
+            "review_f5_zshader_v2_replaces_user_shader_definitions",
+            "review_f5_asset_meta_uses_typed_error",
+            "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
+            "runtime_15_code_review_findings_tests_are_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 shader prewarm CLI typed-error review guard child-owner split",
+        &[
+            "runtime_15_shader_prewarm_cli_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli/args_boundary.rs",
+            "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli/run_boundary.rs",
+            "review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary",
+            "review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary",
+            "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
+            "runtime_15_code_review_findings_tests_are_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+];

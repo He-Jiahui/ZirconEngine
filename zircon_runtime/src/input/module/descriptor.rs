@@ -3,9 +3,11 @@ use std::sync::Arc;
 use crate::core::manager::{InputActionManagerHandle, InputManagerHandle};
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use crate::engine_module::{factory, qualified_name};
+use crate::platform::PLATFORM_MODULE_NAME;
 
 use super::super::runtime::{DefaultInputManager, InputDriver};
 use super::InputConfig;
@@ -25,6 +27,8 @@ pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
         INPUT_MODULE_NAME,
         "High-level input routing and action maps",
     )
+    .with_init_level(InitLevel::Servers)
+    .with_module_dependency(ModuleDependencySpec::named(PLATFORM_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(INPUT_MODULE_NAME, ServiceKind::Driver, "InputDriver"),
         StartupMode::Immediate,

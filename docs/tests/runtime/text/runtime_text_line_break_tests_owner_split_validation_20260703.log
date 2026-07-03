@@ -1,0 +1,17 @@
+Runtime text line-break tests owner split validation - 2026-07-03
+
+Source changes:
+- zircon_runtime/src/graphics/text/layout/line_break/mod.rs keeps production line-break entry code plus the cfg(test) tests mount.
+- zircon_runtime/src/graphics/text/layout/line_break/tests.rs owns 14 existing CJK/glue/WordSmart regression tests.
+
+Static verification:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/layout/line_break/mod.rs zircon_runtime/src/graphics/text/layout/line_break/tests.rs: passed, exit code 0.
+- Structure count: mod.rs = 107 lines / 0 inline #[test] / 1 test hook; tests.rs = 192 lines / 14 #[test].
+
+Cargo status:
+- Deferred: external cargo/rustc lanes were already active, so this slice did not start another compile/test writer.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_line_break_tests_owner_split_preview_20260703.png
+- Purpose: static proof image for line_break tests owner split and target-placement requirement.
+- Target scan: repo target, E:\cargo-targets, and D:\cargo-targets same-name counts are 0.

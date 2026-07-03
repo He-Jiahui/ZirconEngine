@@ -1,0 +1,33 @@
+runtime_text_sdf_render_tests_owner_split_rustfmt_visual_cargo_deferred
+Date: 2026-07-03
+Scope: zircon_runtime SDF render private test owner split
+
+Changed files:
+- Deleted tracked oversized test owner: zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
+- Added folder-backed owners:
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs (178 lines, shared fixtures + module wiring)
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs (240 lines, 6 tests)
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs (76 lines, 5 tests)
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs (403 lines, 10 tests)
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs (120 lines, 2 tests)
+
+Validation:
+1. rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
+   Result: passed, exit code 0.
+2. Static owner scan:
+   draw_plan.rs: lines=240, tests=6, fns=6
+   layout_placement.rs: lines=403, tests=10, fns=10
+   mod.rs: lines=178, tests=0, fns=7
+   prepare_report.rs: lines=120, tests=2, fns=2
+   shader_contract.rs: lines=76, tests=5, fns=5
+3. Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets:
+   NO_MATCHING_VALIDATION_ARTIFACTS_IN_TARGETS
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_sdf_render_tests_owner_split_preview_20260703.png
+- PNG SHA256: B9534C9D2F1610B79F2F732538BA7F31F79BDAC6B9241CA42522CF3476A41917
+
+Cargo status:
+- Cargo was not started for this implementation slice because external cargo/rustc lanes were active.
+- This log does not claim Cargo green, full native/SDF paragraph parity, or live editor window typography QA.
+

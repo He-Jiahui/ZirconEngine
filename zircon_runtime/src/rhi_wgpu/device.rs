@@ -3,12 +3,10 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::rhi::{
     BindGroupDesc, BindGroupHandle, BindGroupLayoutDesc, BindGroupLayoutHandle, BufferDesc,
-    BufferHandle, BufferUsage, CommandList, CommandListCommand, FenceValue, IndexFormat,
-    PipelineDesc, PipelineHandle, PipelineLayoutDesc, PipelineLayoutHandle, RenderBackendCaps,
-    RenderDevice, RenderPassColorAttachmentDesc, RenderPassDepthStencilAttachmentDesc,
-    RenderQueueClass, RenderScissorRect, RenderViewportDesc, RhiError, SamplerDesc, SamplerHandle,
-    ShaderModuleDesc, ShaderModuleHandle, TextureCopyRegion, TextureDesc, TextureHandle,
-    TextureUsage, TransientAllocatorStats,
+    BufferHandle, BufferUsage, CommandList, FenceValue, PipelineDesc, PipelineHandle,
+    PipelineLayoutDesc, PipelineLayoutHandle, RenderBackendCaps, RenderDevice, RenderQueueClass,
+    RhiError, SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, TextureDesc,
+    TextureHandle, TextureUsage, TransientAllocatorStats,
 };
 
 use super::bind_group_validation::{validate_bind_group_desc, BindGroupResourceLookup};
@@ -23,6 +21,10 @@ use super::resource_validation::{
     validate_bind_group_layout_desc, validate_buffer_desc, validate_sampler_desc,
     validate_texture_desc,
 };
+
+mod command_list;
+
+pub use self::command_list::WgpuCommandList;
 
 #[derive(Clone, Debug)]
 pub struct WgpuRenderDevice {
@@ -541,202 +543,6 @@ impl RenderDevice for WgpuRenderDevice {
             .ok_or(RhiError::UnknownTexture(handle.raw()))?;
         ensure_texture_usage(handle.raw(), &texture.desc, TextureUsage::COPY_SRC)?;
         Ok(texture.contents.clone())
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct WgpuCommandList {
-    queue_class: RenderQueueClass,
-    label: Option<String>,
-    commands: Vec<CommandListCommand>,
-}
-
-impl WgpuCommandList {
-    pub fn new(queue_class: RenderQueueClass, label: impl Into<String>) -> Self {
-        Self {
-            queue_class,
-            label: Some(label.into()),
-            commands: Vec::new(),
-        }
-    }
-}
-
-impl CommandList for WgpuCommandList {
-    fn queue_class(&self) -> RenderQueueClass {
-        self.queue_class
-    }
-
-    fn label(&self) -> Option<&str> {
-        self.label.as_deref()
-    }
-
-    fn recorded_commands(&self) -> &[CommandListCommand] {
-        &self.commands
-    }
-
-    fn push_debug_marker(&mut self, label: &str) {
-        self.commands.push(CommandListCommand::DebugMarker {
-            label: label.to_string(),
-        });
-    }
-
-    fn push_debug_group(&mut self, label: &str) {
-        self.commands.push(CommandListCommand::PushDebugGroup {
-            label: label.to_string(),
-        });
-    }
-
-    fn pop_debug_group(&mut self) {
-        self.commands.push(CommandListCommand::PopDebugGroup);
-    }
-
-    fn copy_buffer_to_buffer(
-        &mut self,
-        source: BufferHandle,
-        destination: BufferHandle,
-        source_offset: u64,
-        destination_offset: u64,
-        size: u64,
-    ) {
-        self.commands.push(CommandListCommand::CopyBufferToBuffer {
-            source,
-            destination,
-            source_offset,
-            destination_offset,
-            size,
-        });
-    }
-
-    fn copy_buffer_to_texture(
-        &mut self,
-        source: BufferHandle,
-        destination: TextureHandle,
-        source_offset: u64,
-        bytes_per_row: u64,
-        region: TextureCopyRegion,
-    ) {
-        self.commands.push(CommandListCommand::CopyBufferToTexture {
-            source,
-            destination,
-            source_offset,
-            bytes_per_row,
-            region,
-        });
-    }
-
-    fn copy_texture_to_buffer(
-        &mut self,
-        source: TextureHandle,
-        destination: BufferHandle,
-        destination_offset: u64,
-        bytes_per_row: u64,
-        region: TextureCopyRegion,
-    ) {
-        self.commands.push(CommandListCommand::CopyTextureToBuffer {
-            source,
-            destination,
-            destination_offset,
-            bytes_per_row,
-            region,
-        });
-    }
-
-    fn begin_render_pass(
-        &mut self,
-        label: &str,
-        color_attachments: Vec<RenderPassColorAttachmentDesc>,
-        depth_stencil_attachment: Option<RenderPassDepthStencilAttachmentDesc>,
-    ) {
-        self.commands.push(CommandListCommand::BeginRenderPass {
-            label: label.to_string(),
-            color_attachments,
-            depth_stencil_attachment,
-        });
-    }
-
-    fn end_render_pass(&mut self) {
-        self.commands.push(CommandListCommand::EndRenderPass);
-    }
-
-    fn set_pipeline(&mut self, pipeline: PipelineHandle) {
-        self.commands
-            .push(CommandListCommand::SetPipeline { pipeline });
-    }
-
-    fn set_bind_group(&mut self, slot: u32, bind_group: BindGroupHandle) {
-        self.commands
-            .push(CommandListCommand::SetBindGroup { slot, bind_group });
-    }
-
-    fn set_viewport(&mut self, viewport: RenderViewportDesc) {
-        self.commands
-            .push(CommandListCommand::SetViewport { viewport });
-    }
-
-    fn set_scissor_rect(&mut self, rect: RenderScissorRect) {
-        self.commands
-            .push(CommandListCommand::SetScissorRect { rect });
-    }
-
-    fn set_vertex_buffer(&mut self, slot: u32, buffer: BufferHandle, offset: u64, size: u64) {
-        self.commands.push(CommandListCommand::SetVertexBuffer {
-            slot,
-            buffer,
-            offset,
-            size,
-        });
-    }
-
-    fn set_index_buffer(
-        &mut self,
-        buffer: BufferHandle,
-        offset: u64,
-        size: u64,
-        format: IndexFormat,
-    ) {
-        self.commands.push(CommandListCommand::SetIndexBuffer {
-            buffer,
-            offset,
-            size,
-            format,
-        });
-    }
-
-    fn draw(
-        &mut self,
-        vertex_start: u32,
-        vertex_count: u32,
-        instance_start: u32,
-        instance_count: u32,
-    ) {
-        self.commands.push(CommandListCommand::Draw {
-            vertex_start,
-            vertex_count,
-            instance_start,
-            instance_count,
-        });
-    }
-
-    fn draw_indexed(
-        &mut self,
-        index_start: u32,
-        index_count: u32,
-        base_vertex: i32,
-        instance_start: u32,
-        instance_count: u32,
-    ) {
-        self.commands.push(CommandListCommand::DrawIndexed {
-            index_start,
-            index_count,
-            base_vertex,
-            instance_start,
-            instance_count,
-        });
-    }
-
-    fn dispatch_compute(&mut self, x: u32, y: u32, z: u32) {
-        self.commands
-            .push(CommandListCommand::DispatchCompute { x, y, z });
     }
 }
 

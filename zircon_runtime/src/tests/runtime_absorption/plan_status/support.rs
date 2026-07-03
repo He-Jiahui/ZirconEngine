@@ -100,11 +100,27 @@ pub(super) fn assert_contains_all(label: &str, source: &str, anchors: &[&str]) {
 }
 
 pub(super) fn runtime_index_row_for<'a>(index_source: &'a str, filename: &str) -> &'a str {
-    let filename_cell = format!("| `{filename}` |");
     index_source
         .lines()
-        .find(|line| line.contains(&filename_cell))
+        .find(|line| {
+            let cells = markdown_table_cells(line);
+            cells.len() >= 2 && first_backtick_value(cells[1]) == Some(filename)
+        })
         .unwrap_or_else(|| panic!("runtime index should include subplan row for `{filename}`"))
+}
+
+pub(super) fn runtime_index_problem_row_for<'a>(
+    index_source: &'a str,
+    problem_id: &str,
+    label: &str,
+) -> &'a str {
+    index_source
+        .lines()
+        .find(|line| {
+            let cells = markdown_table_cells(line);
+            cells.first().copied() == Some(problem_id)
+        })
+        .unwrap_or_else(|| panic!("Runtime index should keep the {problem_id} {label} problem row"))
 }
 
 pub(super) fn index_section_between<'a>(

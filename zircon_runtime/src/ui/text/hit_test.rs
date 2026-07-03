@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
         UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun,
-        UiTextCaretAffinity, UiTextDirection,
+        UiTextCaretAffinity, UiTextDirection, UiTextWritingMode,
     },
 };
 
@@ -24,7 +24,12 @@ pub(crate) struct UiTextHitTest {
 /// so pointer selection, render extract, and later shaping backends share one
 /// geometry source.
 pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint) -> UiTextHitTest {
-    let Some(line_index) = text_line_index_for_y(layout, point.y) else {
+    let vertical_rl = is_vertical_rl(layout);
+    let Some(line_index) = (if vertical_rl {
+        text_column_index_for_vertical_rl_x(layout, point.x)
+    } else {
+        text_line_index_for_y(layout, point.y)
+    }) else {
         return UiTextHitTest {
             line_index: None,
             source_offset: layout.source_range.start,
@@ -35,13 +40,23 @@ pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint
     };
     let line = &layout.lines[line_index];
     let style = style_for_layout(layout, line);
-    let grapheme_index = visual_grapheme_index_for_x(line, point.x, &style);
+    let grapheme_index = if vertical_rl {
+        visual_grapheme_index_for_y(line, point.y, &style)
+    } else {
+        visual_grapheme_index_for_x(line, point.x, &style)
+    };
 
     UiTextHitTest {
         line_index: Some(line_index),
         source_offset: line_source_offset_for_grapheme_index(line, grapheme_index),
         visual_grapheme_index: grapheme_index,
-        affinity: if point.x <= line.frame.x {
+        affinity: if vertical_rl {
+            if point.y <= line.frame.y {
+                UiTextCaretAffinity::Upstream
+            } else {
+                UiTextCaretAffinity::Downstream
+            }
+        } else if point.x <= line.frame.x {
             UiTextCaretAffinity::Upstream
         } else {
             UiTextCaretAffinity::Downstream
@@ -62,6 +77,27 @@ fn text_line_index_for_y(layout: &UiResolvedTextLayout, y: f32) -> Option<usize>
         .or_else(|| layout.lines.len().checked_sub(1))
 }
 
+fn text_column_index_for_vertical_rl_x(layout: &UiResolvedTextLayout, x: f32) -> Option<usize> {
+    let mut nearest = None;
+    for (index, line) in layout.lines.iter().enumerate() {
+        if x >= line.frame.x && x <= line.frame.right() {
+            return Some(index);
+        }
+        let distance = if x < line.frame.x {
+            line.frame.x - x
+        } else {
+            x - line.frame.right()
+        };
+        if nearest
+            .map(|(_, nearest_distance): (usize, f32)| distance < nearest_distance)
+            .unwrap_or(true)
+        {
+            nearest = Some((index, distance));
+        }
+    }
+    nearest.map(|(index, _)| index)
+}
+
 fn visual_grapheme_index_for_x(
     line: &UiResolvedTextLine,
     point_x: f32,
@@ -78,12 +114,11 @@ fn visual_grapheme_index_for_x(
             point_x - line.frame.x
         }
     };
-    let measured_x = relative_x.clamp(0.0, line.measured_width.max(0.0));
+    let advances = resolved_grapheme_advances(line, style, grapheme_count);
+    let advance_width = advances.iter().sum::<f32>();
+    let measured_x = relative_x.clamp(0.0, line.measured_width.max(advance_width).max(0.0));
     let mut cursor_x = 0.0_f32;
-    for (index, width) in measured_grapheme_widths(&line.text, style)
-        .into_iter()
-        .enumerate()
-    {
+    for (index, width) in advances.into_iter().enumerate() {
         if measured_x <= cursor_x + width * 0.5 {
             return index;
         }
@@ -92,13 +127,74 @@ fn visual_grapheme_index_for_x(
     grapheme_count
 }
 
+fn visual_grapheme_index_for_y(
+    line: &UiResolvedTextLine,
+    point_y: f32,
+    style: &UiResolvedStyle,
+) -> usize {
+    let grapheme_count = grapheme_count(&line.text);
+    if grapheme_count == 0 {
+        return 0;
+    }
+
+    let relative_y = point_y - line.frame.y;
+    let advances = resolved_grapheme_advances(line, style, grapheme_count);
+    let advance_height = advances.iter().sum::<f32>();
+    let measured_y = relative_y.clamp(
+        0.0,
+        line.measured_width
+            .max(line.frame.height)
+            .max(advance_height)
+            .max(0.0),
+    );
+    let mut cursor_y = 0.0_f32;
+    for (index, height) in advances.into_iter().enumerate() {
+        if measured_y <= cursor_y + height * 0.5 {
+            return index;
+        }
+        cursor_y += height;
+    }
+    grapheme_count
+}
+
+fn resolved_grapheme_advances(
+    line: &UiResolvedTextLine,
+    style: &UiResolvedStyle,
+    grapheme_count: usize,
+) -> Vec<f32> {
+    if line.glyph_advances.len() == grapheme_count {
+        let advances = line
+            .glyph_advances
+            .iter()
+            .map(|advance| sanitized_advance(*advance))
+            .collect::<Vec<_>>();
+        if advances.iter().any(|advance| *advance > 0.0) {
+            return advances;
+        }
+    }
+    measured_grapheme_widths(&line.text, style)
+}
+
+fn sanitized_advance(advance: f32) -> f32 {
+    if advance.is_finite() {
+        advance.max(0.0)
+    } else {
+        0.0
+    }
+}
+
 fn style_for_layout(layout: &UiResolvedTextLayout, line: &UiResolvedTextLine) -> UiResolvedStyle {
     UiResolvedStyle {
         font_size: layout.font_size,
         line_height: layout.line_height,
         text_direction: line.direction,
+        text_writing_mode: layout.writing_mode,
         ..UiResolvedStyle::default()
     }
+}
+
+fn is_vertical_rl(layout: &UiResolvedTextLayout) -> bool {
+    matches!(layout.writing_mode, UiTextWritingMode::VerticalRl)
 }
 
 fn line_source_offset_for_grapheme_index(line: &UiResolvedTextLine, index: usize) -> usize {

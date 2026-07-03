@@ -18,8 +18,8 @@ fn ui_asset_direct_references_include_collected_resource_dependencies() {
             "res://textures/logo.png",
             "res://textures/root-icon.png",
             "res://textures/theme-bg.png",
-            "res://ui/common/button.ui.toml",
-            "res://ui/theme/editor.ui.toml",
+            "res://ui/common/button.zui",
+            "res://ui/theme/editor.zui",
         ]
     );
 }
@@ -42,7 +42,7 @@ fn ui_asset_direct_references_deduplicate_imported_and_resource_locators() {
     assert_eq!(
         references
             .iter()
-            .filter(|locator| locator.as_str() == "res://ui/common/button.ui.toml")
+            .filter(|locator| locator.as_str() == "res://ui/common/button.zui")
             .count(),
         1
     );
@@ -63,7 +63,7 @@ fn ui_v2_asset_direct_references_include_imports_and_resources() {
         vec![
             "res://fonts/inter.font.toml",
             "res://fonts/system.ttf",
-            "res://ui/common/button.v2.ui.toml",
+            "res://ui/common/button.zui",
             "res://ui/theme/editor_material.zui",
         ]
     );

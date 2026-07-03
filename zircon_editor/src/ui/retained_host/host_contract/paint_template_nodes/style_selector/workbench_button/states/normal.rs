@@ -1,45 +1,43 @@
 use super::super::model::{WorkbenchButtonKind, WorkbenchButtonStyle};
-use super::super::palette::{
-    DANGER_BORDER, DANGER_SURFACE, DANGER_TEXT, OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT,
-    PRIMARY_SURFACE, PRIMARY_TEXT, TERTIARY_BORDER, TERTIARY_SURFACE, TERTIARY_TEXT,
-};
+use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use zircon_runtime_interface::ui::style::ButtonInteractionState;
 
 pub(super) fn normal_button_style(
     kind: WorkbenchButtonKind,
     interaction: ButtonInteractionState,
 ) -> WorkbenchButtonStyle {
+    let palette = current_host_palette();
     match kind {
         WorkbenchButtonKind::Primary => WorkbenchButtonStyle {
-            surface: PRIMARY_SURFACE,
-            border: OUTLINED_BORDER,
+            surface: palette.surface_pressed,
+            border: palette.border,
             border_width: 1.0,
-            text: PRIMARY_TEXT,
-            glyph: PRIMARY_TEXT,
+            text: palette.text,
+            glyph: palette.text,
             interaction,
         },
         WorkbenchButtonKind::Secondary => WorkbenchButtonStyle {
-            surface: OUTLINED_SURFACE,
-            border: OUTLINED_BORDER,
+            surface: palette.surface_pressed,
+            border: palette.border,
             border_width: 1.0,
-            text: OUTLINED_TEXT,
-            glyph: OUTLINED_TEXT,
+            text: palette.text,
+            glyph: palette.text,
             interaction,
         },
         WorkbenchButtonKind::Tertiary => WorkbenchButtonStyle {
-            surface: TERTIARY_SURFACE,
-            border: TERTIARY_BORDER,
+            surface: [0, 0, 0, 0],
+            border: [0, 0, 0, 0],
             border_width: 1.0,
-            text: TERTIARY_TEXT,
-            glyph: TERTIARY_TEXT,
+            text: palette.text_muted,
+            glyph: palette.text_muted,
             interaction,
         },
         WorkbenchButtonKind::Danger => WorkbenchButtonStyle {
-            surface: DANGER_SURFACE,
-            border: DANGER_BORDER,
+            surface: palette.surface_pressed,
+            border: palette.border,
             border_width: 1.0,
-            text: DANGER_TEXT,
-            glyph: DANGER_TEXT,
+            text: palette.error,
+            glyph: palette.error,
             interaction,
         },
     }

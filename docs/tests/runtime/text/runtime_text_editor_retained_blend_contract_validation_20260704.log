@@ -1,0 +1,11 @@
+runtime_text_editor_retained_blend_contract_validation_20260704
+Scope: retained-host CPU text blend owner paint_text/blend.rs plus child test owner paint_text/blend/tests.rs.
+Code change: blend.rs now mounts #[cfg(test)] mod tests; blend/tests.rs owns tests for alpha blend, transparent no-op, independent RGB SubpixelMask coverage, and foreground-alpha-scaled SubpixelMask coverage.
+rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/blend/tests.rs: passed
+Focused Cargo: deferred because external cargo/rustc lanes were active during this slice.
+Expected test values locked by unit tests:
+  alpha [200,40,80,128] over [100,120,140,255] -> [150,79,109,255]
+  alpha [200,40,80,0] over [100,120,140,255] -> unchanged [100,120,140,255]
+  subpixel coverage [255,0,128] -> [200,120,109,255]
+  subpixel full coverage with source alpha 128 -> [150,79,109,255]
+Preview: E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_blend_contract_preview_20260704.png

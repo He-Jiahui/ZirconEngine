@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cache.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
-  - zircon_runtime/src/scene/ecs/query/query_state/helpers.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/many_item_array.rs
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs
@@ -32,7 +32,7 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cache.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
-  - zircon_runtime/src/scene/ecs/query/query_state/helpers.rs
+  - zircon_runtime/src/scene/ecs/query/query_state/many_item_array.rs
   - zircon_runtime/src/scene/ecs/query/query_state/mutable.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only.rs
   - zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs
@@ -157,7 +157,7 @@ The split follows the local query directory and Bevy's `bevy_ecs::query` precede
 - `query_mut_iter.rs` owns full mutable query iteration over the cached entity slice.
 - `query_many_mut_iter.rs` and `query_many_unique_mut_iter.rs` own many-target mutable iteration over caller-provided entity lists.
 - `query_combinations_iter.rs` and `query_combinations_mut_iter.rs` own K-combination enumeration for read-only and mutable query data.
-- `query_state/helpers.rs` owns shared fixed-size collection helpers.
+- `query_state/many_item_array.rs` owns shared many-query fixed-array collection helpers.
 - `query_state/system_param.rs` owns the `SystemParam` implementation that turns query state into `Query<'world, D, F>`.
 
 ## Mutable Many Cache Membership

@@ -73,6 +73,16 @@ impl WgpuRenderFramework {
             .read_output_target_texture_rgba_for_tests(&texture_id)
             .map_err(render_framework_backend_error)
     }
+
+    #[cfg(test)]
+    pub(crate) fn last_scene_velocity_readback_rg16_float_bytes_for_tests(
+        &self,
+    ) -> Option<Vec<u8>> {
+        let _operation_guard = self.lock_operation();
+        self.lock_state()
+            .renderer
+            .last_scene_velocity_readback_rg16_float_bytes()
+    }
 }
 
 #[cfg(test)]

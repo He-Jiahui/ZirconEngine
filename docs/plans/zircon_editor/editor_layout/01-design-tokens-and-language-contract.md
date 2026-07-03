@@ -45,6 +45,7 @@ status: in_progress
 | **色板(palette)** | 近黑面板色阶 `surface.0=#111416`、`surface.1=#171a1d`、`surface.2=#1b1f23`、`surface.3=#252b31`;强调色 `accent=#3cc7d6`;边框/分隔/文本前景色 | STYLE-NOTES 色板;teal 仅用于激活/选中/焦点/关键态 |
 | **控件规格(controls)** | 控件高 `control.height=28..32px`、`control.radius=低圆角`、`border.width=1px`、扁平态 | STYLE-NOTES 控件规则;禁止渐变/辉光/阴影 |
 | **密度与间距(density)** | 行高、间隙(`gap.s/m/l`)、抽屉内边距 | STYLE-NOTES 密度 + 工作台壳布局 |
+| **字排(typography)**(2026-07-02 评审收口新增) | 字号阶(`font.body/strong/code/...`)、行高比(`line_height_ratio`)、字重 | 17 §3.6 与 15b 的裁决:行高/字号唯一权威=本组 token,runtime `DEFAULT_FONT_SIZE`/`DEFAULT_LINE_HEIGHT_SCALE` 与 15b `METRICS.font_body/line_height_ratio` 均改为本组投影 |
 | **状态语义(state-roles)** | 各状态用哪组色(default/hovered/focused/selected/pressed/disabled) | 与选择器优先级 disabled>pressed>selected/focused>hovered>default 一致 |
 
 ### 3.2 设计语言契约文档
@@ -54,6 +55,17 @@ status: in_progress
 ### 3.3 Token 喂入路径
 
 token 资产 → 样式选择器输入(不绕过 `UiPainterStyleSelector`)→ 绘制族消费。组件 `.zui` 引用 token 名而非裸色值,保证改一处 token 全局生效。
+
+### 3.4 Token 引用文法与自定义属性注册表(2026-07-02 评审收口)
+
+评审发现 token 引用写法在各计划中已出现五种并存:`$--left-drawer-width`(02/13)、`$gap.m`(13)、`$editor.surface.1`(10)、`var(--editor-surface-1)`(20)、`editor.surface.recessed`(15c `.zui`)。本计划作为 token 语言权威,在此定稿**唯一引用文法**:
+
+1. **规范 token 名**:点分层级小写名(`editor.surface.1`、`gap.m`、`control.height`),这是 token 的唯一身份,资产/文档/诊断一律用它。
+2. **内联形态** `$<token名>`(如 `$gap.m`、`$editor.surface.1`):用于 `.zui` 属性值与约束 token 位;`$--x` 前缀写法(02/13 早期)登记为兼容别名,收束期解析器双收,收束后仅规范形态。
+3. **级联形态** `var(--<token名,点换连字符>)`(如 `var(--editor-surface-1)`):仅用于 20 的 USS 级联规则文本;点分名↔连字符名的映射是**机械双射**(`.`→`-`),不允许手工命名偏离。
+4. **token → 自定义属性注册表**(20 §3.3 依赖的交付项,在此立项):S2 增补交付——`EditorDesignTokens` 全量字段自动注册为级联引擎的自定义属性(`--editor-surface-1` 等),20 的 `var()` 解析只查此注册表,禁止第二份 token→值映射。
+
+资产扫描 / 渲染 guard / 级联解析三处校验统一以本节文法为准。
 
 ## 4. 接口与数据结构草案(Rust)
 
@@ -83,7 +95,7 @@ pub fn apply_tokens_to_selector(tokens: &EditorDesignTokens, selector: &mut UiPa
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 | -- | --- | --- | --- | --- |
 | S1 | token 资产骨架 + 契约文档 | design_tokens.rs / editor_tokens.zui / design-language-contract.md | `cargo check -p zircon_runtime_interface --locked` | 新建,无旧路径 |
-| S2 | token 喂入选择器 + 组件引用 token 名 | style_selector / 组件 `.zui` | `cargo test -p zircon_editor --lib --locked` | 删除组件内联裸色值 |
+| S2 | token 喂入选择器 + 组件引用 token 名;(2026-07-02 评审收口)增补交付:token → 自定义属性注册表(§3.4-4,供 20 级联 var() 消费)+ token 引用文法统一(§3.4,兼容别名双收) | style_selector / 组件 `.zui` | `cargo test -p zircon_editor --lib --locked` | 删除组件内联裸色值 |
 
 ## 7. 测试矩阵
 

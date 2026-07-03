@@ -54,13 +54,13 @@ version = 2
 display_name = "Imported Card View"
 
 [imports]
-widgets = ["res://ui/editor/test_card.v2.ui.toml#Card"]
+widgets = ["res://ui/editor/test_card.zui#Card"]
 
 [root]
 node = "root"
 
 [nodes.root]
-component = "res://ui/editor/test_card.v2.ui.toml#Card"
+component = "res://ui/editor/test_card.zui#Card"
 control_id = "ImportedCard"
 classes = ["instance-class"]
 props = { variant = "filled" }
@@ -229,7 +229,7 @@ fn ui_asset_editor_v2_authoring_keeps_v2_source_on_edit_and_canonical_save() {
 #[test]
 fn ui_asset_editor_v2_authoring_instantiates_imported_component_slots_for_preview() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/editor/imported_card_view.v2.ui.toml",
+        "res://ui/editor/imported_card_view.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -243,7 +243,7 @@ fn ui_asset_editor_v2_authoring_instantiates_imported_component_slots_for_previe
         UiV2AssetLoader::load_toml_str(V2_IMPORTED_CARD_TOML).expect("v2 imported component asset");
 
     session
-        .register_v2_widget_import("res://ui/editor/test_card.v2.ui.toml", component)
+        .register_v2_widget_import("res://ui/editor/test_card.zui", component)
         .expect("register v2 component prototype import");
 
     assert!(session.diagnostics().is_empty());
@@ -295,7 +295,7 @@ fn ui_asset_editor_v2_authoring_instantiates_imported_component_slots_for_previe
             == Some("ImportedCardBody")
     }));
     let canonical = session.canonical_source().expect("v2 canonical source");
-    assert!(canonical.contains("res://ui/editor/test_card.v2.ui.toml#Card"));
+    assert!(canonical.contains("res://ui/editor/test_card.zui#Card"));
     assert!(canonical.contains("[nodes.body_text]"));
     assert!(!canonical.contains("[nodes.card_root]"));
 }
@@ -303,7 +303,7 @@ fn ui_asset_editor_v2_authoring_instantiates_imported_component_slots_for_previe
 #[test]
 fn ui_asset_editor_v2_component_asset_opens_as_editable_component_tree() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/editor/test_card.v2.ui.toml",
+        "res://ui/editor/test_card.zui",
         UiAssetKind::Widget,
         UiAssetEditorMode::Design,
     );
@@ -358,7 +358,7 @@ fn ui_asset_editor_v2_component_asset_opens_as_editable_component_tree() {
 #[test]
 fn ui_asset_editor_v2_component_asset_patches_props_and_state_from_authoring_session() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/editor/test_card.v2.ui.toml",
+        "res://ui/editor/test_card.zui",
         UiAssetKind::Widget,
         UiAssetEditorMode::Design,
     );
@@ -419,7 +419,7 @@ fn ui_asset_editor_v2_component_asset_patches_props_and_state_from_authoring_ses
 #[test]
 fn ui_asset_editor_v2_component_asset_rejects_missing_component_root() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/editor/missing_component_root.v2.ui.toml",
+        "res://ui/editor/missing_component_root.zui",
         UiAssetKind::Widget,
         UiAssetEditorMode::Design,
     );
@@ -440,7 +440,7 @@ fn ui_asset_editor_v2_component_asset_rejects_missing_component_root() {
 #[test]
 fn ui_asset_editor_v2_component_asset_rejects_cyclic_component_projection() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/editor/cyclic_component_root.v2.ui.toml",
+        "res://ui/editor/cyclic_component_root.zui",
         UiAssetKind::Widget,
         UiAssetEditorMode::Design,
     );

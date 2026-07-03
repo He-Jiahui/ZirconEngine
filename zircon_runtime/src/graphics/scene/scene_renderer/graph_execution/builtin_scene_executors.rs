@@ -44,9 +44,6 @@ pub(super) fn particle_billboard_executor(
 pub(super) fn depth_prepass_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    let normal_attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let depth_attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::SCENE_DEPTH)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
@@ -54,9 +51,7 @@ pub(super) fn depth_prepass_executor(
     let gpu = context.require_gpu()?;
     gpu.record_depth_prepass_to_resources(
         &pass_name,
-        PostProcessGraphResourceNames::GBUFFER_NORMAL,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        normal_attachment_ops,
         depth_attachment_ops,
     )
 }
@@ -94,6 +89,9 @@ pub(super) fn deferred_gbuffer_executor(
     let attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let normal_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let material_attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
@@ -102,9 +100,11 @@ pub(super) fn deferred_gbuffer_executor(
     gpu.record_deferred_gbuffer_to_resources(
         &pass_name,
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
+        PostProcessGraphResourceNames::GBUFFER_NORMAL,
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         attachment_ops,
+        normal_attachment_ops,
         material_attachment_ops,
     )
 }

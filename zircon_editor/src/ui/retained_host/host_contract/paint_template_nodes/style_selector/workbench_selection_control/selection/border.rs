@@ -1,9 +1,8 @@
 use super::super::colors::declared_style_border;
 use super::super::model::WorkbenchSelectionControlKind;
-use super::super::palette::{WORKBENCH_RADIO_CHECKED_BORDER, WORKBENCH_SELECTION_MARK_IDLE_BORDER};
+use super::super::palette::WorkbenchSelectionControlPalette;
 use super::super::state::{is_hot, is_unavailable_selection_state};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(super) fn control_border(
@@ -11,34 +10,37 @@ pub(super) fn control_border(
     kind: WorkbenchSelectionControlKind,
     state: UiPainterResolvedState,
     checked: bool,
+    palette: WorkbenchSelectionControlPalette,
 ) -> [u8; 4] {
     if is_unavailable_selection_state(state) {
-        return PALETTE.border_disabled;
+        return palette.border_disabled;
     }
     match kind {
         WorkbenchSelectionControlKind::Checkbox => {
             if is_hot(state) {
-                PALETTE.focus_ring
+                palette.focus_ring
             } else if checked {
-                PALETTE.accent
+                palette.accent
             } else {
-                declared_style_border(node).unwrap_or(WORKBENCH_SELECTION_MARK_IDLE_BORDER)
+                declared_style_border(node).unwrap_or(palette.mark_idle_border)
             }
         }
         WorkbenchSelectionControlKind::Radio => {
             if is_hot(state) {
-                PALETTE.focus_ring
+                palette.focus_ring
             } else if checked {
-                WORKBENCH_RADIO_CHECKED_BORDER
+                palette.radio_checked_border
             } else {
-                declared_style_border(node).unwrap_or(WORKBENCH_SELECTION_MARK_IDLE_BORDER)
+                declared_style_border(node).unwrap_or(palette.mark_idle_border)
             }
         }
         WorkbenchSelectionControlKind::Toggle => {
-            if checked || is_hot(state) {
-                PALETTE.accent
+            if is_hot(state) {
+                palette.focus_ring
+            } else if checked {
+                palette.toggle_checked_border
             } else {
-                declared_style_border(node).unwrap_or(PALETTE.border)
+                declared_style_border(node).unwrap_or(palette.border)
             }
         }
     }

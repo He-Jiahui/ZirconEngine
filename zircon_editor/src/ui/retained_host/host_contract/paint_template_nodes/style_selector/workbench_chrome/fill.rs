@@ -1,52 +1,67 @@
 use super::model::WorkbenchChromeKind;
-use super::palette::{
-    WORKBENCH_CHROME_DRAWER_BG, WORKBENCH_CHROME_DRAWER_BODY_BG, WORKBENCH_CHROME_MAIN_BG,
-    WORKBENCH_CHROME_PANEL_BG, WORKBENCH_CHROME_RAIL_BG, WORKBENCH_CHROME_ROOT_BG,
-    WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_TAB_BG, WORKBENCH_CHROME_TOPBAR_BG,
-    WORKBENCH_CHROME_VIEWPORT_FRAME_BG,
-};
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use super::palette::WorkbenchChromePalette;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_fill(
     kind: WorkbenchChromeKind,
     state: UiPainterResolvedState,
+    palette: &WorkbenchChromePalette,
 ) -> Option<[u8; 4]> {
     if kind == WorkbenchChromeKind::DrawerColumn {
         return None;
     }
-    let normal = normal_chrome_fill(kind);
+    if kind == WorkbenchChromeKind::ContentPanel {
+        return Some(content_panel_fill(state, palette));
+    }
+    let normal = normal_chrome_fill(kind, palette);
     Some(match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            PALETTE.surface_disabled
+            palette.surface_disabled
         }
-        UiPainterResolvedState::Pressed => PALETTE.surface_pressed,
-        UiPainterResolvedState::Hovered => PALETTE.surface_hover,
+        UiPainterResolvedState::Pressed => palette.surface_pressed,
+        UiPainterResolvedState::Hovered => palette.surface_hover,
         UiPainterResolvedState::Focused
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Checked => PALETTE.surface_selected,
+        | UiPainterResolvedState::Checked => palette.surface_selected,
         UiPainterResolvedState::Normal => normal,
     })
 }
 
-fn normal_chrome_fill(kind: WorkbenchChromeKind) -> [u8; 4] {
+fn content_panel_fill(state: UiPainterResolvedState, palette: &WorkbenchChromePalette) -> [u8; 4] {
+    match state {
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
+            palette.surface_disabled
+        }
+        UiPainterResolvedState::Normal
+        | UiPainterResolvedState::Hovered
+        | UiPainterResolvedState::Pressed
+        | UiPainterResolvedState::Focused
+        | UiPainterResolvedState::Open
+        | UiPainterResolvedState::Dragging
+        | UiPainterResolvedState::DropHovered
+        | UiPainterResolvedState::Selected
+        | UiPainterResolvedState::Checked => palette.content_bg,
+    }
+}
+
+fn normal_chrome_fill(kind: WorkbenchChromeKind, palette: &WorkbenchChromePalette) -> [u8; 4] {
     match kind {
-        WorkbenchChromeKind::WindowRoot => WORKBENCH_CHROME_ROOT_BG,
-        WorkbenchChromeKind::TopToolbar => WORKBENCH_CHROME_TOPBAR_BG,
-        WorkbenchChromeKind::MainBand => WORKBENCH_CHROME_MAIN_BG,
-        WorkbenchChromeKind::ActivityRail => WORKBENCH_CHROME_RAIL_BG,
+        WorkbenchChromeKind::WindowRoot => palette.root_bg,
+        WorkbenchChromeKind::TopToolbar => palette.topbar_bg,
+        WorkbenchChromeKind::MainBand => palette.main_bg,
+        WorkbenchChromeKind::ActivityRail => palette.rail_bg,
         WorkbenchChromeKind::ScenePanel
-        | WorkbenchChromeKind::ContentPanel
         | WorkbenchChromeKind::InspectorPanel
-        | WorkbenchChromeKind::InspectorSection => WORKBENCH_CHROME_PANEL_BG,
-        WorkbenchChromeKind::ViewportPanel => WORKBENCH_CHROME_VIEWPORT_FRAME_BG,
-        WorkbenchChromeKind::ComponentDrawer => WORKBENCH_CHROME_DRAWER_BG,
-        WorkbenchChromeKind::DrawerBody => WORKBENCH_CHROME_DRAWER_BODY_BG,
+        | WorkbenchChromeKind::InspectorSection => palette.panel_bg,
+        WorkbenchChromeKind::ContentPanel => palette.content_bg,
+        WorkbenchChromeKind::ViewportPanel => palette.viewport_frame_bg,
+        WorkbenchChromeKind::ComponentDrawer => palette.drawer_bg,
+        WorkbenchChromeKind::DrawerBody => palette.drawer_body_bg,
         WorkbenchChromeKind::DrawerColumn => unreachable!("drawer columns do not draw a fill"),
-        WorkbenchChromeKind::StatusBar => WORKBENCH_CHROME_STATUS_BG,
-        WorkbenchChromeKind::TabsBand => WORKBENCH_CHROME_TAB_BG,
+        WorkbenchChromeKind::StatusBar => palette.status_bg,
+        WorkbenchChromeKind::TabsBand => palette.tab_bg,
     }
 }

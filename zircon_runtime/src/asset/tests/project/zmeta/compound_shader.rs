@@ -28,38 +28,21 @@ fn project_manager_imports_compound_zshader_package_with_subassets() {
     fs::write(
         shader_dir.join("unlit.zshader"),
         r#"
-version = 1
+kind = "surface"
+version = 2
+shading_model = "unlit"
 import_path = "zircon::unlit"
 wgsl_files = ["unlit.wgsl"]
-shader_defs = ["USE_UNLIT", "ALPHA_CLIP"]
 
-[[shader_def_values]]
-name = "TONEMAPPING_LUT_TEXTURE_BINDING_INDEX"
-kind = "uint"
-value = 2
-
-[[shader_def_values]]
-name = "ENABLE_FOG"
+[[options]]
+name = "USE_UNLIT"
 kind = "bool"
-value = false
+default = true
 
-[[shader_def_values]]
-name = "DEBUG_MODE"
-kind = "int"
-value = -1
-
-[pipeline_layout]
-push_constant_ranges = ["draw_index:0..4"]
-
-[[pipeline_layout.bind_groups]]
-group = 3
-label = "material"
-
-[[pipeline_layout.bind_groups.bindings]]
-binding = 0
-label = "material_uniforms"
-resource_type = "uniform_buffer"
-visibility = ["vertex", "fragment"]
+[[options]]
+name = "ALPHA_CLIP"
+kind = "bool"
+default = false
 
 [[imports]]
 source = "zircon::lighting"
@@ -67,16 +50,6 @@ redirect = { uuid = "22222222-2222-4222-8222-222222222222", url = "res://shaders
 
 [[imports]]
 source = "naga_oil::math"
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-file = "unlit.wgsl"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
-file = "unlit.wgsl"
 
 [[properties]]
 name = "base_color"
@@ -153,9 +126,11 @@ fn fs_main() -> @location(0) vec4f {
 
     match manager.load_artifact(&shader_uri).unwrap() {
         ImportedAsset::Shader(shader) => {
+            assert_eq!(shader.kind, ShaderAssetKind::Surface);
             assert_eq!(shader.source_files.len(), 1);
             assert_eq!(shader.source_files[0].path, "unlit.wgsl");
             assert_eq!(shader.import_path.as_deref(), Some("zircon::unlit"));
+            assert_eq!(shader.shading_model.as_deref(), Some("unlit"));
             assert_eq!(shader.imports.len(), 2);
             assert_eq!(shader.imports[0].source, "zircon::lighting");
             assert_eq!(
@@ -174,47 +149,25 @@ fn fs_main() -> @location(0) vec4f {
                 AssetUri::parse("res://shaders/shared_lighting").unwrap()
             );
             assert_eq!(shader.entry_points.len(), 2);
-            assert_eq!(
-                shader.shader_defs,
-                vec![
-                    RenderShaderDefinitionValue::from("USE_UNLIT"),
-                    RenderShaderDefinitionValue::from("ALPHA_CLIP"),
-                    RenderShaderDefinitionValue::uint("TONEMAPPING_LUT_TEXTURE_BINDING_INDEX", 2),
-                    RenderShaderDefinitionValue::bool("ENABLE_FOG", false),
-                    RenderShaderDefinitionValue::int("DEBUG_MODE", -1),
-                ]
-            );
+            assert!(shader.shader_defs.is_empty());
             assert_eq!(shader.variant_keys()[0].defines, shader.shader_defs);
+            assert_eq!(shader.options.len(), 2);
+            assert_eq!(shader.options[0].name, "USE_UNLIT");
+            assert_eq!(shader.options[0].default, Some(toml::Value::Boolean(true)));
+            assert_eq!(shader.options[1].name, "ALPHA_CLIP");
+            assert_eq!(shader.options[1].default, Some(toml::Value::Boolean(false)));
             assert_eq!(shader.property_schema.len(), 1);
             assert_eq!(shader.property_schema[0].name, "base_color");
             assert_eq!(shader.texture_slots.len(), 1);
             assert_eq!(shader.texture_slots[0].name, "base_color");
             assert_eq!(shader.texture_slots[0].default.as_deref(), Some("white"));
-            assert_eq!(
-                shader.pipeline_layout,
-                RenderShaderPipelineLayoutDescriptor {
-                    bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
-                        group: 3,
-                        label: Some("material".to_string()),
-                        bindings: vec![RenderShaderBindingDescriptor {
-                            binding: 0,
-                            label: Some("material_uniforms".to_string()),
-                            resource_type: RenderShaderBindingResourceType::UniformBuffer,
-                            visibility: vec![
-                                RenderShaderStage::Vertex,
-                                RenderShaderStage::Fragment,
-                            ],
-                        }],
-                    }],
-                    push_constant_ranges: vec!["draw_index:0..4".to_string()],
-                }
-            );
+            assert_eq!(shader.pipeline_layout, Default::default());
             assert!(shader.validation_diagnostics.is_empty());
 
             let readiness = shader.readiness_report();
             assert!(readiness.is_ready());
             assert!(readiness.uses_runtime_wgsl());
-            assert!(readiness.has_pipeline_layout);
+            assert!(!readiness.has_pipeline_layout);
             assert!(readiness.has_redirected_import_dependencies());
             assert_eq!(readiness.dependency_count, 1);
             assert_eq!(readiness.imports.len(), 2);
@@ -227,14 +180,7 @@ fn fs_main() -> @location(0) vec4f {
                 .entry_points
                 .iter()
                 .all(|entry| entry.diagnostic.is_none()));
-            assert_eq!(readiness.shader_defs.len(), 5);
-            assert!(readiness
-                .shader_defs
-                .iter()
-                .all(|definition| definition.diagnostic.is_none()));
-            assert_eq!(readiness.shader_defs[2].value.value_as_string(), "2");
-            assert_eq!(readiness.shader_defs[3].value.value_as_string(), "false");
-            assert_eq!(readiness.shader_defs[4].value.value_as_string(), "-1");
+            assert!(readiness.shader_defs.is_empty());
             assert!(readiness.validation_diagnostics.is_empty());
 
             let mut material = material_for_shader(&shader_uri);
@@ -260,4 +206,219 @@ fn fs_main() -> @location(0) vec4f {
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_derives_include_shader_import_path_from_project_and_package_path() {
+    let root = unique_temp_project_root("project_manager_shader_import_path_derivation");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Shader Package Sandbox",
+        AssetUri::parse("res://shaders/noise").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let shader_uri = AssetUri::parse("res://shaders/noise").unwrap();
+    let shader_meta_path = paths.assets_root().join("shaders").join("noise.zmeta");
+    let mut shader_meta =
+        AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
+    shader_meta.unit = AssetSourceUnit::Compound;
+    fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
+    shader_meta.save(&shader_meta_path).unwrap();
+
+    let shader_dir = paths.assets_root().join("shaders").join("noise");
+    fs::create_dir_all(&shader_dir).unwrap();
+    fs::write(
+        shader_dir.join("noise.zshader"),
+        r#"
+kind = "include"
+version = 2
+wgsl_files = ["noise.wgsl"]
+"#,
+    )
+    .unwrap();
+    fs::write(
+        shader_dir.join("noise.wgsl"),
+        r#"
+fn shader_noise_value() -> f32 {
+    return 1.0;
+}
+"#,
+    )
+    .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    match manager.load_artifact(&shader_uri).unwrap() {
+        ImportedAsset::Shader(shader) => {
+            assert_eq!(shader.kind, ShaderAssetKind::Include);
+            assert_eq!(
+                shader.import_path.as_deref(),
+                Some("shader_package_sandbox::noise")
+            );
+            assert!(shader.validation_diagnostics.is_empty());
+        }
+        other => panic!("unexpected compound shader artifact: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_reports_redundant_explicit_shader_import_path() {
+    let root = unique_temp_project_root("project_manager_shader_import_path_redundant");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Shader Warning Sandbox",
+        AssetUri::parse("res://shaders/cloth/common").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let shader_uri = AssetUri::parse("res://shaders/cloth/common").unwrap();
+    let shader_meta_path = paths
+        .assets_root()
+        .join("shaders")
+        .join("cloth")
+        .join("common.zmeta");
+    let mut shader_meta =
+        AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
+    shader_meta.unit = AssetSourceUnit::Compound;
+    fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
+    shader_meta.save(&shader_meta_path).unwrap();
+
+    let shader_dir = paths
+        .assets_root()
+        .join("shaders")
+        .join("cloth")
+        .join("common");
+    fs::create_dir_all(&shader_dir).unwrap();
+    fs::write(
+        shader_dir.join("common.zshader"),
+        r#"
+kind = "surface"
+version = 2
+shading_model = "standard_pbr"
+import_path = "shader_warning_sandbox::cloth::common"
+wgsl_files = ["common.wgsl"]
+"#,
+    )
+    .unwrap();
+    fs::write(
+        shader_dir.join("common.wgsl"),
+        r#"
+fn shader_common_value() -> f32 {
+    return 1.0;
+}
+"#,
+    )
+    .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    match manager.load_artifact(&shader_uri).unwrap() {
+        ImportedAsset::Shader(shader) => {
+            assert_eq!(shader.kind, ShaderAssetKind::Surface);
+            assert_eq!(
+                shader.import_path.as_deref(),
+                Some("shader_warning_sandbox::cloth::common")
+            );
+            assert!(shader.validation_diagnostics.is_empty());
+        }
+        other => panic!("unexpected compound shader artifact: {other:?}"),
+    }
+    let record = manager
+        .registry()
+        .get_by_locator(&shader_uri)
+        .expect("shader record");
+    assert!(record.diagnostics.iter().any(|diagnostic| diagnostic
+        .message
+        .contains("duplicates the derived shader import path")));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_reports_duplicate_shader_import_path_conflicts() {
+    let root = unique_temp_project_root("project_manager_shader_import_path_conflict");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Shader Conflict Sandbox",
+        AssetUri::parse("res://shaders/a").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let first_uri = write_include_shader_package(&paths, "a", "conflict::shared");
+    let second_uri = write_include_shader_package(&paths, "b", "conflict::shared");
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    assert!(manager
+        .registry()
+        .get_by_locator(&first_uri)
+        .expect("first shader record")
+        .diagnostics
+        .is_empty());
+    let second_record = manager
+        .registry()
+        .get_by_locator(&second_uri)
+        .expect("second shader record");
+    assert!(second_record.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("import_path `conflict::shared` conflicts")
+    }));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &str) -> AssetUri {
+    let shader_uri = AssetUri::parse(&format!("res://shaders/{name}")).unwrap();
+    let shader_meta_path = paths
+        .assets_root()
+        .join("shaders")
+        .join(format!("{name}.zmeta"));
+    let mut shader_meta =
+        AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
+    shader_meta.unit = AssetSourceUnit::Compound;
+    fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
+    shader_meta.save(&shader_meta_path).unwrap();
+
+    let shader_dir = paths.assets_root().join("shaders").join(name);
+    fs::create_dir_all(&shader_dir).unwrap();
+    fs::write(
+        shader_dir.join(format!("{name}.zshader")),
+        format!(
+            r#"
+kind = "include"
+version = 2
+import_path = "{import_path}"
+wgsl_files = ["{name}.wgsl"]
+"#
+        ),
+    )
+    .unwrap();
+    fs::write(
+        shader_dir.join(format!("{name}.wgsl")),
+        format!(
+            r#"
+fn shader_{name}_value() -> f32 {{
+    return 1.0;
+}}
+"#
+        ),
+    )
+    .unwrap();
+    shader_uri
 }

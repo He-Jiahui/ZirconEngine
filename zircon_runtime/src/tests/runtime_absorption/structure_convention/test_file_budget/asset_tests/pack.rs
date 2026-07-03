@@ -16,7 +16,7 @@ fn runtime_15_asset_pack_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
 
     assert_contains_all(
@@ -173,6 +173,74 @@ fn runtime_15_asset_pack_tests_are_folder_backed() {
                 "asset/tests/pack.rs",
                 "asset/tests/pack/delta_installer.rs",
                 "runtime_15_asset_pack_tests_are_folder_backed",
+            ],
+        );
+    }
+}
+
+#[test]
+fn runtime_15_asset_pack_header_readers_are_panic_free() {
+    let reader = read_runtime_src("asset/pack/reader.rs");
+    let delta = read_runtime_src("asset/pack/delta.rs");
+    let pack_doc = read_repo("docs/zircon_runtime/asset/pack.md");
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/asset_tests.rs",
+    );
+
+    assert_contains_all(
+        "asset pack reader owns typed header helpers",
+        &reader,
+        &[
+            "pub(crate) fn read_header_u32(bytes: &[u8], offset: usize) -> Result<u32, ZrPackError>",
+            "pub(crate) fn read_header_u64(bytes: &[u8], offset: usize) -> Result<u64, ZrPackError>",
+            "fn read_header_bytes<const N: usize>",
+            "ok_or(ZrPackError::HeaderTooSmall)",
+        ],
+    );
+    assert_contains_all(
+        "asset pack delta reuses typed header helpers",
+        &delta,
+        &[
+            "reader::{read_header_u32, read_header_u64, validate_chunk_payload_extent}",
+            "let version = read_header_u32(bytes, 4)?;",
+            "let manifest_offset = read_header_u64(bytes, 8)? as usize;",
+            "let manifest_size = read_header_u64(bytes, 16)? as usize;",
+        ],
+    );
+    for (label, source) in [("reader", reader.as_str()), ("delta", delta.as_str())] {
+        for forbidden in [
+            "expect(\"header version bytes\")",
+            "expect(\"header offset bytes\")",
+            "expect(\"header size bytes\")",
+            "try_into().expect(\"header",
+            "try_into().unwrap()",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "asset pack {label} should not rely on panic-based header conversion `{forbidden}`"
+            );
+        }
+    }
+
+    for (label, source) in [
+        ("pack doc", pack_doc.as_str()),
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 asset pack panic-free header readers",
+                "runtime_15_asset_pack_header_readers_panic_free_static_passed_cargo_deferred",
+                "read_header_u64",
+                "runtime_15_asset_pack_header_readers_are_panic_free",
             ],
         );
     }

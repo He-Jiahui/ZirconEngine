@@ -1,0 +1,61 @@
+pub(super) const STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "runtime_15_typed_error_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
+    "Runtime 15 M3 typed-error structure assertions guard folder-backed split",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/convergence_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/delegation.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/child_ownership.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/status_mirrors.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/native_plugin_loader.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence.rs",
+    "runtime_15_typed_error_structure_assertions_are_child_owner",
+    "runtime_15_typed_error_structure_assertions_children_are_child_owned",
+    "runtime_15_typed_error_native_plugin_loader_structure_is_child_owner",
+    "runtime_15_typed_error_structure_moved_guard_absence_is_child_owner",
+    "runtime_15_typed_error_structure_assertions_guard_folder_backed_status_is_current",
+    "Cargo gate deferred",
+];
+
+pub(super) const NATIVE_PLUGIN_LOADER_GUARD_CHILD_OWNER_SPLIT: &[&str] = &[
+    "runtime_15_typed_error_native_plugin_loader_structure_guard_child_owner_split_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/native_plugin_loader.rs",
+    "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs",
+    "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs",
+    "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime.rs",
+    "runtime_15_typed_error_native_plugin_loader_structure_is_child_owner",
+    "runtime_15_typed_error_structure_assertions_are_child_owner",
+    "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
+    "47 typed-error review guards",
+    "Cargo gate deferred",
+];
+
+pub(super) const MOVED_GUARD_ABSENCE_CHILD_OWNER_SPLIT: &[&str] = &[
+    "runtime_15_typed_error_structure_moved_guard_absence_child_owner_split_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence.rs",
+    "runtime_15_typed_error_structure_moved_guard_absence_is_child_owner",
+    "runtime_15_typed_error_structure_assertions_are_child_owner",
+    "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
+    "runtime_15_code_review_findings_structure_guard_children_are_mounted",
+    "47 typed-error review guards",
+    "Cargo gate deferred",
+];
+
+pub(super) const MOVED_GUARD_ABSENCE_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "runtime_15_typed_error_moved_guard_absence_guard_folder_backed_static_passed_cargo_deferred",
+    "Runtime 15 M3 typed-error moved-guard absence guard folder-backed split",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence/preserved_guards.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence/parent_backflow.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence/path_anchors.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence/budgets.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence/status_mirrors.rs",
+    "runtime_15_typed_error_structure_moved_guard_absence_is_child_owner",
+    "runtime_15_typed_error_moved_guard_absence_preserved_guards_are_child_owned",
+    "runtime_15_typed_error_moved_guard_absence_parent_backflow_guards_are_child_owned",
+    "runtime_15_typed_error_moved_guard_absence_path_anchors_are_child_owned",
+    "runtime_15_typed_error_moved_guard_absence_children_line_budgets_are_current",
+    "runtime_15_typed_error_moved_guard_absence_guard_folder_backed_status_is_current",
+    "Cargo gate deferred",
+];

@@ -10,10 +10,10 @@ mod text;
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::WorkbenchTableRowStyle;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::{
     WORKBENCH_TABLE_HEADER_BG, WORKBENCH_TABLE_HEADER_TEXT, WORKBENCH_TABLE_HOVER_BG,
-    WORKBENCH_TABLE_ROW_BG, WORKBENCH_TABLE_SELECTED_BG, WORKBENCH_TABLE_SEPARATOR,
-    WORKBENCH_TABLE_TAIL_BG,
+    WORKBENCH_TABLE_SELECTED_BG, WORKBENCH_TABLE_SEPARATOR, WORKBENCH_TABLE_TAIL_BG,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::select_workbench_table_row_style;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use state::is_hot as is_hot_workbench_table_row_state;

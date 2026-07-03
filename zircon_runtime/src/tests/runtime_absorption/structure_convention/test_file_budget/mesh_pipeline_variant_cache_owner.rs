@@ -139,11 +139,11 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
         "render pass execution calls only variant-aware non-Base pass entries",
         &non_base_render_paths,
         &[
-            "ensure_gbuffer_pipeline_for_variant(device, gbuffer_variant_id)",
+            "ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)",
             "ensure_depth_prepass_pipeline_for_variant",
             "ensure_taa_reactive_mask_pipeline_for_variant",
-            "ensure_shadow_pipeline_for_variant(device, command.pipeline_variant_id)",
-            "ensure_velocity_pipeline_for_variant(self.device, command.pipeline_variant_id)",
+            ".ensure_shadow_pipeline_for_variant(",
+            ".ensure_velocity_pipeline_for_variant(",
         ],
     );
     assert_no_direct_pipeline_call(

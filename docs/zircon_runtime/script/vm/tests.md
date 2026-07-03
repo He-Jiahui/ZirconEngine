@@ -9,6 +9,7 @@ related_code:
   - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/primary.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
 implementation_files:
   - zircon_runtime/src/script/vm/tests.rs
@@ -20,6 +21,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/tests/support.rs
   - zircon_runtime/src/script/vm/tests/lifecycle_failures.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/primary.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
@@ -27,6 +29,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - runtime_15_script_vm_tests_are_folder_backed
+  - runtime_15_script_vm_primary_guard_is_child_owner
   - runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code
   - rustfmt --edition 2021 --check zircon_runtime/src/script/vm/tests.rs zircon_runtime/src/script/vm/tests/*.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs
   - cargo test -p zircon_runtime --lib runtime_15_script_vm_tests_are_folder_backed --no-default-features --features core-min --locked
@@ -52,9 +55,13 @@ doc_type: module-detail
 
 Runtime 15 M3 script VM test folder split status: `runtime_15_script_vm_tests_folder_split_static_passed_cargo_timeout_no_result`.
 
+Runtime 15 M3 script VM primary guard child-owner split status: `runtime_15_script_vm_primary_guard_child_owner_split_static_passed_cargo_deferred`.
+
 The split reduced `script/vm/tests.rs` from 1456 lines to 41 lines. The largest child owner is `script/vm/tests/reflection_docs.rs` at 324 lines, and the 32 script VM tests remain below the Runtime 15 800-line test-owner budget.
 
 `runtime_15_script_vm_tests_are_folder_backed` verifies the parent/child module layout, representative moved-test anchors, preserved test count, owner line budgets, and synchronized status anchors across Runtime 15, the runtime index, the structure convention, review findings, this document, and status-output expectations.
+
+`runtime_15_script_vm_primary_guard_is_child_owner` verifies `structure_convention/test_file_budget/script_vm_tests.rs` delegates the primary script VM folder-backed checks to `structure_convention/test_file_budget/script_vm_tests/primary.rs`, while hot-reload coordinator and gameplay host checks remain in the parent until their own guard-owner splits.
 
 Runtime 15 F12 script reflection macro fixture dead-code cleanup status: `runtime_15_script_reflection_macro_fixture_dead_code_cleanup_static_passed_cargo_deferred`. `runtime_15_script_reflection_macro_fixtures_do_not_suppress_dead_code` verifies `reflection_docs.rs` has no `#[allow(dead_code)]`, that TestVec3 fields, TestEnum::A, and the nested Point fixture have real read sites, and that Runtime 15/status mirror anchors stay synchronized.
 

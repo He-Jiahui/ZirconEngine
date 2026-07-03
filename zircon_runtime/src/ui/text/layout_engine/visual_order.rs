@@ -3,7 +3,9 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use super::super::grapheme::{grapheme_indices, leading_grapheme_continuation_len};
-use super::{is_ltr_char, is_rtl_char, source_subrange, CandidateLine};
+use super::candidate_line::CandidateLine;
+use super::direction::{is_ltr_char, is_rtl_char};
+use super::range_mapping::source_subrange;
 
 #[derive(Clone, Debug)]
 struct VisualTextToken {
@@ -185,9 +187,11 @@ fn visual_text_clusters(runs: &[UiResolvedTextRun]) -> Vec<VisualTextCluster> {
                     continuation_len,
                     grapheme_direction(&run.text[..continuation_len]),
                 );
-                push_visual_cluster_part(clusters.last_mut().unwrap(), token);
-                emitted_text.push_str(&run.text[..continuation_len]);
-                consumed = continuation_len;
+                if let Some(cluster) = clusters.last_mut() {
+                    push_visual_cluster_part(cluster, token);
+                    emitted_text.push_str(&run.text[..continuation_len]);
+                    consumed = continuation_len;
+                }
             }
         }
 

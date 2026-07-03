@@ -901,3 +901,37 @@ keeps load-manifest discovery coverage. Runtime 15 records this as
 `runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed` preventing the importer fixture
 test from flowing back into the parent. Cargo remains deferred for this structure slice while external
 runtime cargo/rustc lanes are active.
+
+## Frameworks 02 M3 Opus Importer Manifest Assertion Hard Cutover
+
+The Opus split importer package manifest test now follows the current runtime-plus-dist module
+contract. `zircon_plugins/opus_importer/runtime/src/lib.rs` locates the `opus_importer.runtime`
+module by name instead of asserting a single manifest module, so the native dist module can remain
+declared in the same package manifest. This keeps the runtime importer contract aligned with the
+standalone distribution rollout and avoids reintroducing the old single-module package shape.
+
+Validation for this slice is scoped: `rustfmt --edition 2021 --check
+zircon_plugins\opus_importer\runtime\src\lib.rs` passed, the remaining
+`manifest.modules.len()` scan hit is the SDK single-module builder example, and focused
+`cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_opus_importer_runtime
+package_manifest_declares_opus_importer_dist_contract --locked --jobs 1 --target-dir
+E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2 --message-format short --color
+never -- --nocapture --test-threads=1` passed 1/1. The full plugin workspace test execution
+was subsequently covered by the segmented default-member gate:
+`segment1-critical-fixes-rerun2.status.json` covered the Opus runtime package with ExitCode 0, and
+the six segment status files under `E:\cargo-targets\zircon-plugin-workspace-segment-0703-codex`
+cover all 120 `zircon_plugins` default workspace members with `MissingCount=0` and `ExtraCount=0`.
+
+## Frameworks 02 M3 Texture Importer DDS Caps2 Diagnostic Hard Cutover
+
+The texture importer DDS dual-cubemap regression now follows the current container diagnostic
+contract. `zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs` expects the
+`DDSCAPS2_CUBEMAP caps2 policy` message produced by the DDS parser instead of the retired
+`legacy caps2` wording. This keeps the test aligned with the current explicit caps2 policy and does
+not add a parser fallback or old diagnostic alias.
+
+Validation for this slice passed focused status
+`E:\cargo-targets\zircon-plugin-workspace-segment-0703-codex\texture-importer-dds-dual-cubemap-focused.status.json`
+with ExitCode 0. The follow-up `segment2-importers-dist-rerun2.status.json` gate also passed with
+ExitCode 0, covering the importer/dist package segment and confirming
+`zircon_plugin_texture_importer_runtime` at 144/144 tests.

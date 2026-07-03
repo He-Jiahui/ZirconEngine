@@ -191,6 +191,10 @@ fn material_validation_error_source(
         | RenderMaterialValidationError::MissingRequiredProperty { source, .. }
         | RenderMaterialValidationError::MissingRequiredTextureSlot { source, .. }
         | RenderMaterialValidationError::UnknownTextureSlot { source, .. }
+        | RenderMaterialValidationError::UnknownMaterialOption { source, .. }
+        | RenderMaterialValidationError::MaterialOptionTypeMismatch { source, .. }
+        | RenderMaterialValidationError::InvalidMaterialQueueOffset { source, .. }
+        | RenderMaterialValidationError::InvalidMaterialParent { source, .. }
         | RenderMaterialValidationError::MissingWgslCapture { source, .. }
         | RenderMaterialValidationError::ShaderReadinessDiagnostic { source, .. } => Some(*source),
     }

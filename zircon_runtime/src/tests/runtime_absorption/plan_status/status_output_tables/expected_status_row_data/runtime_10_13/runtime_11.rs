@@ -74,6 +74,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 11 JobSystem 2026-07-01 current audit recheck",
+        &[
+            "job_system_20260701_current_audit_static_passed_cargo_deferred",
+            "expected_module_count = 9",
+            "behavior-test anchors 13/13",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
+        ],
+    ),
+    (
         "Runtime 11 JobSystem inventory split",
         &[
             "job_system_inventory_split_static_passed_cargo_deferred_tests_deferred",

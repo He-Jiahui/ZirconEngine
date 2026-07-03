@@ -30,14 +30,27 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/access.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs
+  - tools/tests/test_runtime_plugin_descriptor_provided_interface_projection.py
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
+  - zircon_runtime/src/plugin/runtime_plugin/registration_report/native/runtime_modules.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/native.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/manifest_schema_modules.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/identity.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
@@ -282,6 +295,8 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments/count.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
 implementation_files:
   - zircon_runtime/src/plugin/mod.rs
@@ -300,11 +315,18 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/access.rs
+  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/presence.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_validation/capabilities/rows.rs
@@ -534,11 +556,19 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_rejects_invalid_bridge_interface_declarations
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs::native_runtime_plugin_registration_report_accepts_interface_only_dependency_rows
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest/feature_modules.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest/capability_status.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_package_manifest.rs::runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_catalog_features.rs::runtime_15_runtime_plugin_catalog_features_dependency_report_tests_are_child_owner
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/interfaces.rs
   - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_custom_shading_model_descriptors
   - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs::plugin_package_manifest_declares_custom_geometry_source_descriptors
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs::runtime_plugin_registration_collects_package_manifest_declared_runtime_contributions
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs::runtime_plugin_descriptor_projects_embedded_module_descriptor_to_manifest
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::runtime_plugin_lifecycle_uses_module_descriptor_order
+  - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never
+  - cargo test -p zircon_runtime --lib runtime_plugin_lifecycle_uses_module_descriptor_order --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 Frameworks 02 M3 catalog descriptor ordering: timed out during Windows lib-test compile/link after fixing a test-only InitLevel name; not counted as passing)
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_shading_model_descriptor.rs::runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_geometry_source_descriptor.rs::runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired
   - python -m py_compile tools/zircon_build.py tools/tests/test_zircon_build_plugin_carriers.py (2026-06-27 Plugin shading-model descriptor registration: passed)
@@ -709,6 +739,7 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/editor_only.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/net.rs
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions/runtime_family.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/manifest_contributions.rs::runtime_15_manifest_contributions_tests_are_folder_backed
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/modules.rs
@@ -1118,6 +1149,35 @@ sync keeps the F8 top review row at
 `convention + Runtime 04 + Runtime 06 + Runtime 15 / review closed` without changing descriptor
 runtime behavior.
 
+Frameworks 02 M3 starts RuntimePlugin descriptor convergence by embedding a runtime
+`ModuleDescriptor` inside `RuntimePluginDescriptor`. The builder still defaults the module identity
+to `<package_id>.runtime` at construction, but package-manifest projection no longer reconstructs
+that string from `package_id`. The generated `PluginModuleManifest::Runtime` row reads
+`descriptor.module_descriptor().name`, so a plugin's runtime module identity, init level, and module
+dependencies now live in the same kernel descriptor vocabulary that built-in modules use. Capability,
+target-mode, system-set, system-anchor, maturity, and packaging metadata remain plugin/package
+metadata and continue to project through the existing package-manifest rows.
+
+`plugins_13_m5_t1_runtime_descriptor_provided_interface_projection` extends the same
+descriptor-to-manifest projection to bridge interface declarations. `RuntimePluginDescriptorBuilder::with_provided_interface_id`
+stores ids such as `PHYSICS_QUERY_INTERFACE_ID` in descriptor `provided_interfaces`, and
+`RuntimePluginDescriptor::package_manifest()` projects them into `PluginPackageManifest.provides_interfaces`
+through the package-manifest row owner. This keeps `zircon_plugin_physics_runtime` linked manifest
+generation aligned with its runtime export of `PhysicsQueryInterface`; the same source descriptor now
+declares `.with_provided_interface_id(PHYSICS_QUERY_INTERFACE_ID)` and package validation can compare
+the declared interface against the SDK export. The regression anchor is
+`runtime_plugin_descriptor_projects_public_metadata_to_package_manifest`, with static drift coverage in
+`tools/tests/test_runtime_plugin_descriptor_provided_interface_projection.py`. Validation:
+`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime --locked --all-targets`
+passed with existing warnings; the focused Rust 单测两次超时未采信.
+
+Because `ModuleDescriptor` owns a lifecycle trait object, `RuntimePluginDescriptor` equality compares
+the stable descriptor data fields instead of treating the trait object pointer as part of descriptor
+identity. `RuntimePluginDescriptorBuilder::with_module_descriptor(...)` is the hard cutover entry for
+custom runtime plugin module identity; `with_init_level(...)` and `with_module_dependency(...)` update
+the embedded kernel descriptor directly. No old projection fallback or parallel runtime-module name
+field was added.
+
 Package validation treats system sets and system anchors as module-owned namespace declarations.
 Each value must be non-empty, lowercase dot-namespaced, prefixed by the package id, and unique inside
 the declaring module row. Registration reports then check the dynamic side of the contract: every
@@ -1149,7 +1209,7 @@ owner-tracked runtime registration and avoids using manifest-only placeholders a
 - `provides_interfaces` rows must declare unique, non-empty, trimmed, lowercase dot-namespaced interface ids.
 - Dependency `interfaces` entries must be unique within that dependency row and use the same lowercase dot-namespace shape.
 - A dependency row must declare a capability, at least one interface, or both.
-- Existing plugin manifests continue to deserialize because the new fields use serde defaults.
+- Runtime module descriptor fields (`description`, `init_level`, `module_dependencies`) project through `PluginModuleManifest::module_descriptor()`; empty manifest descriptions receive the deterministic kind/name default before runtime registry validation, while explicit descriptor fields must still satisfy the module schema.
 - This layer records declared dependency metadata; `RuntimePluginCatalog` resolves required bridge interface dependency closure after registration reports are merged. Required dependency rows with interface ids become blocking `bridge.strong_dependency_missing` diagnostics when the provider package is absent or does not declare the requested interface. Optional interface dependency rows remain non-blocking. The same required rows drive `RuntimePluginCatalog::strong_bridge_dependents(...)` and `strong_bridge_disable_blockers(...)`, which list dependents for future strong-target disable rejection.
 
 ## Test Coverage
@@ -1168,6 +1228,8 @@ The workspace-shape plugin contract now also checks `RuntimePluginDescriptor::bu
 
 The 2026-06-24 Runtime 15 M3 manifest contributions test folder split (`Runtime 15 M3 manifest contributions test folder split` / `runtime_15_manifest_contributions_tests_folder_split_static_passed_cargo_deferred`) keeps these static manifest contribution guards folder-backed. `manifest_contributions.rs` now mounts `manifest_contributions/editor_only.rs` and `manifest_contributions/net.rs`; the parent plus children preserve 13 tests, each owner stays below the Runtime 15 800-line test-file budget, and `runtime_15_manifest_contributions_tests_are_folder_backed` locks the layout. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not claimed as passing.
 
+The 2026-07-01 Runtime 15 M3 manifest contributions runtime-family test child-owner split (`Runtime 15 M3 manifest contributions runtime-family test child-owner split` / `runtime_15_manifest_contributions_runtime_family_tests_child_owner_split_static_passed_cargo_deferred`) keeps the non-rendering runtime package-manifest assertions in `manifest_contributions/runtime_family.rs`. The parent now mounts `editor_only`, `net`, and `runtime_family`; the parent plus children still preserve 13 tests, and the structure guard locks the runtime-family moved tests, child path, status row, and 800-line owner budgets. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not claimed as passing.
+
 The 2026-06-24 Runtime 15 M3 runtime plugin package manifest test folder split (`Runtime 15 M3 runtime plugin package manifest test folder split` / `runtime_15_runtime_plugin_package_manifest_tests_folder_split_static_passed_cargo_deferred`) keeps package-manifest registration-report guards folder-backed. `runtime_plugin_package_manifest.rs` now mounts `runtime_plugin_package_manifest/feature_modules.rs`; the parent plus child preserve 35 tests, each owner stays below the Runtime 15 800-line test-file budget, and `runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed` locks the layout. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not claimed as passing.
 
 The plugin architecture follow-up extends `RuntimePluginDescriptor` projection coverage so descriptor
@@ -1181,6 +1243,49 @@ plugin_extensions::runtime_plugin_descriptor --locked --jobs 1 --target-dir
 D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never --
 --nocapture` was attempted on 2026-06-12 and timed out after 10 minutes under concurrent runtime
 Cargo load; no pass is claimed for that command yet.
+
+Frameworks 02 M3 adds focused descriptor projection coverage for the embedded module descriptor.
+`runtime_plugin_descriptor_projects_embedded_module_descriptor_to_manifest` asserts that custom
+runtime module identity, init level, and module dependency data are held by
+`RuntimePluginDescriptor::module_descriptor()` and that the package manifest runtime module row reads
+the same module name. Scoped rustfmt passed for the touched descriptor owner and test file. The
+server-feature type check `cargo check -p zircon_app --lib --locked --no-default-features --features
+target-server --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703
+--message-format short --color never` passed with existing warnings. Focused test execution of
+`cargo test -p zircon_runtime --lib
+runtime_plugin_descriptor_projects_embedded_module_descriptor_to_manifest --locked
+--no-default-features --features target-server --jobs 1 --target-dir
+E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never --
+--nocapture --test-threads=1` timed out twice during Windows lib-test compilation without producing
+a test result; the second owned cargo/rustc process tree was stopped, so this doc does not claim the
+focused test as passing.
+
+Frameworks 02 M3 also routes RuntimePlugin catalog construction through the embedded module
+descriptor sorter. `runtime_plugin_catalog/registration/order.rs` is the child owner for collecting
+`RuntimePluginDescriptor::module_descriptor()` values, calling `sort_module_activation_order(...)`,
+and returning ordered plugin/descriptor lists to `from_plugins(...)`, `from_descriptors(...)`, and
+`from_lifecycle_plugins(...)`. Lifecycle finish now follows that descriptor order instead of caller
+input order. If ordering fails, the catalog records a diagnostic and uses deterministic
+init-level/module-name/package-id ordering only to keep collecting diagnostics; this is not an
+old-order fallback. The focused test
+`runtime_plugin_lifecycle_uses_module_descriptor_order` covers an out-of-order input list where a
+Scene-level runtime plugin depends on a Kernel-level runtime plugin. Scoped rustfmt passed and the
+server-feature app check passed with existing warnings. The first focused test run caught a
+test-only nonexistent `InitLevel::Foundation` reference, fixed to `InitLevel::Kernel`; the rerun
+timed out during Windows lib-test compile/link after 604s, and matching target-dir cargo/rustc
+processes were stopped, so no focused test pass is claimed.
+
+Frameworks 02 M3 then extends descriptor projection to native package/feature reports and SDK-authored
+module manifests. `PluginModuleManifest` carries `description`, `init_level`, and
+`module_dependencies`, and `PluginModuleManifest::module_descriptor()` is the package-manifest owner
+that turns those fields into a runtime `ModuleDescriptor`. Native package and native feature report
+builders now consume that projection directly, so `InitLevel` and module dependency declarations are
+not dropped when ABI v3 registration manifests are replayed into the runtime extension registry. The
+SDK mirrors the same vocabulary through `PluginModuleBuilder`, `RuntimePluginDeclaration`, and the
+prelude re-exports, while `manifest_schema_modules.py` validates the new TOML fields in the existing
+module-row schema owner. Scoped rustfmt, the structure-audit manifest-schema unittest, and the
+app/server check passed; the plugin SDK `--locked` check was blocked before compile by
+`zircon_plugins/Cargo.lock` requiring an update, so this doc does not claim a plugin workspace pass.
 
 The bridge-manifest follow-up adds `PluginInterfaceManifest`, top-level `provides_interfaces`,
 dependency-level `interfaces`, package validation for interface namespace and uniqueness, and static
@@ -1231,3 +1336,30 @@ E:\cargo-targets\zircon-runtime-plugin-asset-importer-metadata-subgroups` passed
 runtime warnings only. The log is
 `.codex/tmp/asset_m6_runtime_check_after_editor_visible_frame_split_20260603.log`; it is a scoped
 library type-check and does not replace the full plugin/workspace gates above.
+
+2026-07-01 Runtime 15 package-manifest capability-status test owner follow-up:
+`Runtime 15 M3 runtime plugin package manifest capability-status test child-owner split` /
+`runtime_15_runtime_plugin_package_manifest_capability_status_tests_child_owner_split_static_passed_cargo_deferred`
+keeps runtime package-manifest registration-report guards folder-backed. `runtime_plugin_package_manifest.rs`
+now mounts both `runtime_plugin_package_manifest/feature_modules.rs` and
+`runtime_plugin_package_manifest/capability_status.rs`; the new child owns capability-status capability
+namespace, target-mode, Bevy reference, and note metadata validation tests. Parent, feature-module child,
+and capability-status child preserve 36 tests and stay below the Runtime 15 800-line test-file budget.
+`runtime_15_runtime_plugin_package_manifest_tests_are_folder_backed` locks the layout; Cargo remains
+deferred under the Runtime 15 implementation-slice cadence and is not claimed as passing.
+Scoped rustfmt, standalone structure exacts, standalone production/test global budget exacts,
+standalone plan-status, conflict-marker scan, trailing-whitespace scan, and scoped diff-check
+all passed; the diff-check output only reported LF/CRLF normalization warnings.
+
+2026-07-01 Runtime 15 runtime plugin catalog feature-dependency report test owner follow-up:
+`Runtime 15 M3 runtime plugin catalog feature-dependency report test child-owner split` /
+`runtime_15_runtime_plugin_catalog_features_dependency_report_tests_child_owner_split_static_passed_cargo_deferred`
+keeps catalog optional-feature dependency-report tests folder-backed. `runtime_plugin_catalog_features.rs`
+now mounts `runtime_plugin_catalog_features/feature_dependency_reports.rs`; the parent keeps catalog
+completion, external feature projection, runtime extension merge, and shared sound/animation fixtures,
+while the child owns optional dependency status, provider selection, invalid primary dependency, target
+mismatch, disabled-provider, and cycle diagnostics. Parent plus child preserve 11 tests and stay below
+the Runtime 15 800-line test-file budget. `runtime_15_runtime_plugin_catalog_features_dependency_report_tests_are_child_owner`
+locks the layout; Cargo remains deferred under active cargo/rustc lanes and is not claimed as passing.
+
+2026-07-01 Plan 08 package-manifest shader descriptor mirror: `Plugin shading-model descriptor registration`, `render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`, `test_zircon_build_discovers_plugin_shading_model_descriptors_as_shader_ids`, and `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired`. This mirrors the manifest descriptor registration guard only; broader shader/product validation remains in the render Plan 08 gates.

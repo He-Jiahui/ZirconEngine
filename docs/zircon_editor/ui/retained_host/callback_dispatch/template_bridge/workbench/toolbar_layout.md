@@ -33,6 +33,10 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
 tests:
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
+  - cargo test -p zircon_editor --lib compact_workbench_toolbar_uses_slate_command_density --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo build -q -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary
+  - direct zircon_editor test binary capture_m3_gui_acceptance_visual_artifacts --ignored --exact --test-threads=1 --nocapture (2026-06-29: passed, refreshed docs/tests/editor/editor-window-m3-workbench-900x620.png)
   - cargo test -p zircon_editor --lib compact_workbench_file_and_module_commands_use_toolbar_icon_family --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib toolbar_shell_svg_icons_load_as_real_pixels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib semantic_shell_icon_aliases_load_as_real_pixels --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture
@@ -63,6 +67,8 @@ status: implemented-focused-passed-build-screenshot-passed
 
 At widths up to `COMPACT_TOOLBAR_MAX_WIDTH`, the toolbar keeps Scene, Effect, Ability, Tags, Perception, and Material visible with readable widths. Behavior, Render, Assets, VFX, and HUD are hidden behind the overflow entry. Diff, Simulate, and secondary tool/run groups are hidden until full-toolbar width.
 
+The compact module command group now reserves 276 px for the primary text commands: Save is 72 px, Browse is 92 px, Compile is 104 px, and the two inter-command gaps remain 4 px. The full command group is 350 px so the same primary command widths still fit when Diff and Simulate become visible. This follows the Slate toolbar rule used by the current design slice: keep primary text commands readable first, then collapse secondary commands instead of compressing primary labels into `Sa...`.
+
 `WorkbenchModuleMore` dispatches `workbench.module.more.open` and participates in preview action registration. The action now opens `WorkbenchModuleOverflowMenu`, a retained `WorkbenchPopupMenu` node declared in the Workbench window template. The overflow menu lists the hidden module tabs and routes selection back through the same tab dispatch path used by visible module tabs.
 
 `WorkbenchModuleMore` uses `zircon_editor_shell/toolbar/more-vertical.svg` so the compact module overflow trigger reads as a toolbar menu/overflow affordance. It no longer reuses the tab/file-shaped `editor_pages/workbench/tabs/tab-overflow.svg` placeholder. The rendering path still uses the existing SVG visual asset raster path first and the established glyph fallback only when an asset is missing.
@@ -78,6 +84,8 @@ When the toolbar is not compact, `toolbar_layout.rs` collapses the overflow trig
 ## Visual Evidence
 
 The screenshot harness refreshes `docs/tests/editor/editor-window-m3-workbench-900x620.png`. The validated 900px toolbar no longer displays `Sc...`, `Eff...`, or `Abili...` in the top module strip. The focused overflow screenshot writes `docs/tests/editor/editor-window-m3-workbench-module-overflow-900x620.png`, showing the More popup anchored below the toolbar with Behavior, Render, Assets, VFX, and HUD rows.
+
+The 2026-06-29 readable command-label pass refreshed `docs/tests/editor/editor-window-m3-workbench-900x620.png` at 11:08:56 and the related M3 editor screenshots under `docs/tests/editor`. The validated 900px toolbar shows complete `Save`, `Browse`, and `Compile` labels. Build output used `D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary`, and a repo `target` scan found no matching editor screenshot artifacts.
 
 The 2026-06-26 two-row toolbar pass refreshed `docs/tests/editor/editor-window-m3-workbench-900x620.png` at 16:13:41 and `docs/tests/editor/editor-window-m3-asset-browser-900x620.png` at 16:13:47. The validated 900px toolbar no longer places module tabs and Save/Browse/Compile in the same row; document tabs begin below the two-row toolbar. Build output used `D:\cargo-targets\zircon-editor-components-0626`, and screenshots were written under `docs/tests/editor`, not Cargo `target`.
 

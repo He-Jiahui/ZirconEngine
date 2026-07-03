@@ -30,5 +30,7 @@ pub use runtime_owner::{
 };
 pub use transparent::{ParticleGpuTransparentRenderConfig, ParticleGpuTransparentRenderParams};
 
-pub(crate) use program::{PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS};
+pub(crate) use program::{
+    PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS, PARTICLE_GPU_WORKGROUP_SIZE,
+};
 pub(crate) use shaders::{generate_particle_gpu_transparent_wgsl, generate_particle_gpu_wgsl};

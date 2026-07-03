@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.pipeline_report_pack_stage_schema import (
+from tools.zircon_export.pipeline_report_pack_file_evidence import (
     PACK_BINARY_HEADER_SIZE,
     zrpack_content_hash,
 )
@@ -15,10 +15,12 @@ from tools.zircon_export.tests.export_test_support import (
     _pack_binary_bytes,
     _write_compile_host_report,
     _write_pack_report,
-    _write_platform_bundle_report_with_native_plugins_payload,
     _write_validate_report_with_strategies,
     json_dumps,
     json_loads,
+)
+from tools.zircon_export.tests.platform_bundle_export_test_support import (
+    _write_platform_bundle_report_with_native_plugins_payload,
 )
 
 

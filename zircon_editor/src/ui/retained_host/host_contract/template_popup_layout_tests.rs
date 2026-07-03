@@ -1,6 +1,10 @@
+use super::metrics::TEMPLATE_POPUP_ANCHOR_GAP;
 use super::*;
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, TemplateNodeFrameData, TemplatePaneNodeData,
+};
+use crate::ui::retained_host::popup_anchor_metrics::{
+    clamp_popup_x_to_bounds, SLATE_POPUP_ANCHOR_METRICS,
 };
 
 #[test]
@@ -12,7 +16,7 @@ fn dropdown_option_popup_frame_within_opens_above_when_below_overflows() {
         .expect("popup should have a frame");
 
     assert_eq!(popup.x, 20.0);
-    assert_eq!(popup.y, 32.0);
+    assert_eq!(popup.y, 33.0);
     assert_eq!(popup.width, 100.0);
     assert_eq!(popup.height, 84.0);
 }
@@ -25,7 +29,7 @@ fn dropdown_option_popup_frame_within_keeps_default_when_above_also_overflows() 
     let popup = dropdown_option_popup_frame_within(&control, 3, &bounds)
         .expect("popup should have a frame");
 
-    assert_eq!(popup.y, 44.0);
+    assert_eq!(popup.y, 43.0);
 }
 
 #[test]
@@ -36,8 +40,26 @@ fn dropdown_option_popup_frame_within_clamps_right_edge() {
     let popup = dropdown_option_popup_frame_within(&control, 2, &bounds)
         .expect("popup should have a frame");
 
-    assert_eq!(popup.x, 80.0);
+    assert_eq!(popup.x, 72.0);
     assert_eq!(popup.width, 80.0);
+}
+
+#[test]
+fn dropdown_option_popup_frame_within_uses_shared_anchor_margin_tokens() {
+    assert_eq!(
+        TEMPLATE_POPUP_ANCHOR_GAP,
+        SLATE_POPUP_ANCHOR_METRICS.anchor_gap
+    );
+    assert_eq!(
+        dropdown_option_popup_frame_within(
+            &rect(2.0, 20.0, 80.0, 28.0),
+            2,
+            &rect(0.0, 0.0, 160.0, 160.0),
+        )
+        .expect("popup should have a frame")
+        .x,
+        clamp_popup_x_to_bounds(2.0, 0.0, 160.0, 80.0)
+    );
 }
 
 #[test]

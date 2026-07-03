@@ -16,7 +16,7 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let script_vm_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -49,7 +49,10 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("script VM doc", script_vm_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
+        (
+            "status-output M3 lock-poison row data",
+            status_rows.as_str(),
+        ),
     ] {
         assert_contains_all(
             label,

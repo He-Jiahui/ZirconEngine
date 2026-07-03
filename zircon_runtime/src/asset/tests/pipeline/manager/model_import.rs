@@ -37,6 +37,7 @@ fn asset_manager_imports_model_toml_with_virtual_geometry_payload() {
     expected_model.primitives[0].mesh = Some(AssetReference::from_locator(
         AssetUri::parse("res://models/nanite_teapot.model.toml#Mesh0/Primitive0").unwrap(),
     ));
+    expected_model.primitives[0].assign_virtual_geometry_vertex_ordinals();
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager

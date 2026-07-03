@@ -19,8 +19,10 @@ use crate::ui::{
 };
 
 use super::{
-    outcome::UiInputDispatchOutcome, pointer_table::UiActivePointerTable, timers::UiInputTimerState,
+    ime_host_requests::append_ime_host_requests_for_result, outcome::UiInputDispatchOutcome,
+    pointer_table::UiActivePointerTable, timers::UiInputTimerState,
 };
+use crate::core::framework::input::ImeHostRequest;
 
 #[derive(Default)]
 pub struct UiInputManager {
@@ -28,6 +30,7 @@ pub struct UiInputManager {
     navigation: UiNavigationDispatcher,
     pointers: UiActivePointerTable,
     timers: UiInputTimerState,
+    ime_host_requests: Vec<ImeHostRequest>,
 }
 
 impl UiInputManager {
@@ -59,6 +62,10 @@ impl UiInputManager {
         &self.timers
     }
 
+    pub fn drain_ime_host_requests(&mut self) -> Vec<ImeHostRequest> {
+        std::mem::take(&mut self.ime_host_requests)
+    }
+
     pub fn dispatch_input_event(
         &mut self,
         surface: &mut UiSurface,
@@ -73,6 +80,7 @@ impl UiInputManager {
         self.arm_double_click_from_pointer_release(pointer_release);
         self.update_active_pointer_table(surface, &result, active_pointer_event);
         self.arm_timers_from_component_events(surface, timestamp, &result);
+        self.record_ime_host_requests_from_result(&result);
         Ok(result)
     }
 
@@ -84,7 +92,10 @@ impl UiInputManager {
         match event {
             UiWindowInputPumpEvent::Input(input) => self.dispatch_input_event(surface, input),
             UiWindowInputPumpEvent::Window(window) => {
-                input::dispatch_window_event(surface, &self.pointer, &self.navigation, window)
+                let result =
+                    input::dispatch_window_event(surface, &self.pointer, &self.navigation, window)?;
+                self.record_ime_host_requests_from_result(&result);
+                Ok(result)
             }
         }
     }
@@ -112,17 +123,19 @@ impl UiInputManager {
         for target in self.timers.drain_expired_typeahead(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            results.push(input::dispatch_input_event(
+            let result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
                 UiInputEvent::TypeaheadTimer(UiTypeaheadTimerInputEvent { metadata, target }),
-            )?);
+            )?;
+            self.record_ime_host_requests_from_result(&result);
+            results.push(result);
         }
         for (target, option_id) in self.timers.drain_expired_submenu_hover(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            results.push(input::dispatch_input_event(
+            let result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
@@ -131,12 +144,14 @@ impl UiInputManager {
                     target,
                     option_id,
                 }),
-            )?);
+            )?;
+            self.record_ime_host_requests_from_result(&result);
+            results.push(result);
         }
         for (target, tooltip_id) in self.timers.drain_expired_tooltips(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            results.push(input::dispatch_input_event(
+            let result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
@@ -146,12 +161,14 @@ impl UiInputManager {
                     tooltip_id,
                     owner: Some(target),
                 }),
-            )?);
+            )?;
+            self.record_ime_host_requests_from_result(&result);
+            results.push(result);
         }
         for (target, toast_id) in self.timers.drain_expired_toasts(now) {
             let mut metadata = UiInputEventMetadata::new(now, UiInputSequence::new(0));
             metadata.synthetic = true;
-            results.push(input::dispatch_input_event(
+            let result = input::dispatch_input_event(
                 surface,
                 &self.pointer,
                 &self.navigation,
@@ -160,9 +177,15 @@ impl UiInputManager {
                     target,
                     toast_id,
                 }),
-            )?);
+            )?;
+            self.record_ime_host_requests_from_result(&result);
+            results.push(result);
         }
         Ok(results)
+    }
+
+    fn record_ime_host_requests_from_result(&mut self, result: &UiInputDispatchResult) {
+        append_ime_host_requests_for_result(result, &mut self.ime_host_requests);
     }
 
     fn arm_timers_from_component_events(

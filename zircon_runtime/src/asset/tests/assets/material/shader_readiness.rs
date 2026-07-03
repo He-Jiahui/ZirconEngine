@@ -4,7 +4,7 @@
 fn material_asset_reports_shader_contract_diagnostics_without_blocking_import() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Mismatch"
 
 [shader]
@@ -76,7 +76,7 @@ url = "res://textures/extra.png"
 fn material_asset_reports_missing_required_shader_texture_slot() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "MissingTexture"
 
 [shader]
@@ -118,7 +118,7 @@ fallback = "white"
 fn material_asset_readiness_includes_shader_payload_readiness_diagnostics() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "ShaderReadiness"
 
 [shader]
@@ -168,7 +168,7 @@ url = "res://shaders/readiness.zshader"
 fn material_asset_readiness_reports_material_local_diagnostics_without_blocking() {
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "ImportedMaterial"
 
 [shader]
@@ -213,7 +213,7 @@ fn shader_declared_texture_slot_overrides_standard_material_bridge() {
     );
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 
 [shader]
 uuid = "00000000-0000-0000-0000-000000000001"
@@ -240,6 +240,8 @@ url = "res://shaders/custom.zshader"
         sampler: None,
         group: None,
         label: None,
+        option: None,
+        st: false,
         editor: Default::default(),
     }];
 

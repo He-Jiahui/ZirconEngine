@@ -1,261 +1,129 @@
 use super::support::{
-    first_backtick_value, frontmatter_status, index_section_between, leading_plan_id,
-    markdown_table_cells, referenced_plan_ids, runtime_index_row_for, runtime_subplan_sources,
+    assert_contains_all, first_backtick_value, frontmatter_status, index_section_between,
+    leading_plan_id, markdown_table_cells, referenced_plan_ids, runtime_index_row_for,
+    runtime_subplan_sources,
 };
 
-#[test]
-fn runtime_index_subplan_map_covers_existing_plan_files_without_stale_rows() {
-    let index_source = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let subplan_filenames: Vec<_> = runtime_subplan_sources()
-        .into_iter()
-        .map(|(filename, _)| filename)
-        .collect();
-    let subplan_section = index_section_between(
-        index_source,
-        "## 3. 子计划地图与执行顺序",
-        "### 3.1 已知但暂不立项的缺口",
-    );
-    let mut mapped_filenames = Vec::new();
+const TEST_ATTRIBUTE: &str = concat!("#[", "test", "]");
 
-    for line in subplan_section.lines() {
-        let cells = markdown_table_cells(line);
-        if cells.len() == 4
-            && cells[0] != "计划"
-            && !cells[0].chars().all(|character| character == '-')
-        {
-            let filename = first_backtick_value(cells[1])
-                .unwrap_or_else(|| panic!("runtime index subplan row `{line}` should link a file"));
-            let plan_id = leading_plan_id(filename).unwrap_or_else(|| {
-                panic!("runtime subplan filename `{filename}` should start with a two-digit id")
-            });
-            assert!(
-                cells[0].starts_with(plan_id),
-                "runtime index subplan row `{}` should use plan id `{plan_id}` from `{filename}`",
-                cells[0]
-            );
-            assert!(
-                subplan_filenames.iter().any(|subplan| subplan == filename),
-                "runtime index subplan row should not reference stale file `{filename}`"
-            );
-            mapped_filenames.push(filename.to_owned());
-        }
-    }
-
-    mapped_filenames.sort();
-    assert_eq!(
-        mapped_filenames, subplan_filenames,
-        "runtime index subplan map should exactly cover runtime 01-14 subplan files"
-    );
-}
+#[path = "index_tables/index_consistency.rs"]
+mod index_consistency;
+#[path = "index_tables/status_anchors.rs"]
+mod status_anchors;
+#[path = "index_tables/subplan_map.rs"]
+mod subplan_map;
 
 #[test]
-fn runtime_index_problem_rows_reference_existing_subplans() {
-    let index_source = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let subplan_ids: Vec<_> = runtime_subplan_sources()
-        .into_iter()
-        .map(|(filename, _)| {
-            leading_plan_id(&filename)
-                .unwrap_or_else(|| {
-                    panic!("runtime subplan filename `{filename}` should start with a two-digit id")
-                })
-                .to_owned()
-        })
-        .collect();
-    let problem_section =
-        index_section_between(index_source, "| # | 问题 | 证据 | 子计划 |", "### 2.3");
-    let mut observed_problem_ids = Vec::new();
-
-    for line in problem_section.lines() {
-        let cells = markdown_table_cells(line);
-        if cells.len() == 4
-            && cells[0] != "#"
-            && !cells[0].chars().all(|character| character == '-')
-        {
-            assert!(
-                cells[0].starts_with('P'),
-                "runtime problem row `{line}` should keep a P-number"
-            );
-            let plan_id = leading_plan_id(cells[3]).unwrap_or_else(|| {
-                panic!(
-                    "runtime problem row `{}` should point at a two-digit runtime subplan",
-                    cells[0]
-                )
-            });
-            assert!(
-                subplan_ids.iter().any(|subplan| subplan == plan_id),
-                "runtime problem row `{}` points at missing subplan `{plan_id}`",
-                cells[0]
-            );
-            observed_problem_ids.push(cells[0].to_owned());
-        }
-    }
-
-    assert!(
-        observed_problem_ids.len() >= subplan_ids.len(),
-        "runtime problem table should keep at least one problem/status row per subplan family"
+fn runtime_15_plan_status_index_tables_guard_child_owner_split() {
+    let parent = include_str!("index_tables.rs");
+    let subplan_map = include_str!("index_tables/subplan_map.rs");
+    let status_anchors = include_str!("index_tables/status_anchors.rs");
+    let index_consistency = include_str!("index_tables/index_consistency.rs");
+    let runtime_15_plan = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
     );
-    assert!(
-        observed_problem_ids
-            .windows(2)
-            .all(|pair| pair[0] != pair[1]),
-        "runtime problem table should not duplicate adjacent problem ids"
+    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let structure_convention =
+        include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let review_findings =
+        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let module_convention =
+        include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let session_note = include_str!(
+        "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md",
     );
-}
-
-#[test]
-fn runtime_index_execution_dependencies_reference_existing_subplans() {
-    let index_source = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let subplan_ids: Vec<_> = runtime_subplan_sources()
-        .into_iter()
-        .map(|(filename, _)| {
-            leading_plan_id(&filename)
-                .unwrap_or_else(|| {
-                    panic!("runtime subplan filename `{filename}` should start with a two-digit id")
-                })
-                .to_owned()
-        })
-        .collect();
-    let subplan_section = index_section_between(
-        index_source,
-        "## 3. 子计划地图与执行顺序",
-        "### 3.1 已知但暂不立项的缺口",
+    let status_row_data = include_str!(
+        "status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
     );
-    let mut checked_dependency_rows = 0usize;
-
-    for line in subplan_section.lines() {
-        let cells = markdown_table_cells(line);
-        if cells.len() == 4
-            && cells[0] != "计划"
-            && !cells[0].chars().all(|character| character == '-')
-        {
-            let filename = first_backtick_value(cells[1])
-                .unwrap_or_else(|| panic!("runtime index subplan row `{line}` should link a file"));
-            let plan_id = leading_plan_id(filename).unwrap_or_else(|| {
-                panic!("runtime subplan filename `{filename}` should start with a two-digit id")
-            });
-            let dependency_cell = cells[2];
-            let dependency_ids = referenced_plan_ids(dependency_cell);
-            if dependency_cell != "无" && !dependency_cell.contains("无（") {
-                assert!(
-                    !dependency_ids.is_empty(),
-                    "runtime index dependency cell `{dependency_cell}` for plan `{plan_id}` should reference an existing subplan id or explicitly say `无`"
-                );
-            }
-            for dependency_id in dependency_ids {
-                assert!(
-                    subplan_ids.iter().any(|subplan| subplan == dependency_id),
-                    "runtime index dependency cell `{dependency_cell}` for plan `{plan_id}` references missing subplan `{dependency_id}`"
-                );
-            }
-            checked_dependency_rows += 1;
-        }
-    }
-
-    assert_eq!(
-        checked_dependency_rows,
-        subplan_ids.len(),
-        "runtime index execution order should declare one dependency cell per runtime subplan"
+    let status_map = include_str!(
+        "status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
     );
-}
+    let date_map = include_str!(
+        "status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
+    );
 
-#[test]
-fn runtime_index_status_map_matches_subplan_frontmatter() {
-    let index_source = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    assert_contains_all(
+        "plan-status index table parent mounts child owners",
+        parent,
+        &[
+            "mod index_consistency;",
+            "mod status_anchors;",
+            "mod subplan_map;",
+            "runtime_15_plan_status_index_tables_guard_child_owner_split",
+        ],
+    );
 
-    for (filename, source) in runtime_subplan_sources() {
-        let status = frontmatter_status(&source)
-            .unwrap_or_else(|| panic!("runtime plan {filename} should keep a frontmatter status"));
-        let row = runtime_index_row_for(index_source, &filename);
-        let expected_status_cell = format!("| {status}");
-        assert!(
-            row.contains(&expected_status_cell),
-            "runtime index row for `{filename}` should mirror frontmatter status `{status}`"
-        );
-    }
-}
-
-#[test]
-fn runtime_index_in_progress_rows_record_remaining_gate() {
-    let index_source = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let remaining_gate_markers = [
-        "Cargo",
-        "cargo",
-        "待",
-        "pending",
-        "owner",
-        "active lane",
-        "阻塞",
-        "超时",
-        "窗口",
+    let moved_guard_names = [
+        "runtime_index_subplan_map_covers_existing_plan_files_without_stale_rows",
+        "runtime_15_runtime_index_subplan_map_covers_01_15_status_locked",
+        "runtime_15_runtime_index_problem_row_parser_covers_p01_p17_status_locked",
+        "runtime_15_runtime_03_module_doc_status_index_anchors_are_locked",
+        "runtime_15_runtime_07_scene_asset_status_index_anchors_are_locked",
+        "runtime_15_runtime_07_owner_budget_status_index_anchors_are_locked",
+        "runtime_15_runtime_02_generated_status_index_anchors_are_locked",
+        "runtime_15_runtime_10_behavior_status_index_anchors_are_locked",
+        "runtime_15_runtime_cargo_attempt_status_index_anchors_are_locked",
+        "runtime_index_problem_rows_reference_existing_subplans",
+        "runtime_index_execution_dependencies_reference_existing_subplans",
+        "runtime_index_status_map_matches_subplan_frontmatter",
+        "runtime_index_in_progress_rows_record_remaining_gate",
+        "runtime_known_backlog_gaps_keep_owner_and_trigger_columns",
     ];
-
-    for (filename, source) in runtime_subplan_sources() {
-        let status = frontmatter_status(&source)
-            .unwrap_or_else(|| panic!("runtime plan {filename} should keep a frontmatter status"));
-        if status != "in_progress" {
-            continue;
-        }
-
-        let row = runtime_index_row_for(index_source, &filename);
+    let children = format!("{subplan_map}\n{status_anchors}\n{index_consistency}");
+    for moved_guard_name in moved_guard_names {
         assert!(
-            remaining_gate_markers
-                .iter()
-                .any(|marker| row.contains(marker)),
-            "runtime index row for in-progress plan `{filename}` should record the remaining gate or blocker"
+            !parent.contains(&format!("fn {moved_guard_name}")),
+            "plan-status index table parent should not retain moved guard `{moved_guard_name}`"
+        );
+        assert!(
+            children.contains(&format!("fn {moved_guard_name}")),
+            "plan-status index table children should retain moved guard `{moved_guard_name}`"
         );
     }
-}
 
-#[test]
-fn runtime_known_backlog_gaps_keep_owner_and_trigger_columns() {
-    let index_source = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let backlog_start = index_source
-        .find("### 3.1 已知但暂不立项的缺口")
-        .expect("runtime index should keep the known-backlog section");
-    let backlog_section = &index_source[backlog_start..];
-    let backlog_section = backlog_section
-        .split_once("阶段划分:")
-        .map(|(section, _)| section)
-        .expect("runtime index known-backlog section should end before the phase split");
-    let mut backlog_rows = Vec::new();
-
-    for line in backlog_section.lines() {
-        let cells = markdown_table_cells(line);
-        if cells.len() == 3
-            && cells[0] != "缺口"
-            && !cells[0].chars().all(|character| character == '-')
-        {
-            backlog_rows.push(cells);
-        }
-    }
-
-    for expected_gap in [
-        "网络复制 runtime 侧",
-        "音频 runtime 服务面",
-        r#"FFI panic 安全（extern "C" 边界 catch_unwind 审计）"#,
-        "输入录制/回放",
-        "脚本调试器/断点面",
-        "存档/会话持久化语义",
-        "本地化/i18n",
+    assert_eq!(
+        parent.matches(TEST_ATTRIBUTE).count()
+            + subplan_map.matches(TEST_ATTRIBUTE).count()
+            + status_anchors.matches(TEST_ATTRIBUTE).count()
+            + index_consistency.matches(TEST_ATTRIBUTE).count(),
+        15,
+        "plan-status index table split should preserve the 14 moved tests plus the parent layout guard"
+    );
+    for (path, source) in [
+        ("plan_status/index_tables.rs", parent),
+        ("plan_status/index_tables/subplan_map.rs", subplan_map),
+        ("plan_status/index_tables/status_anchors.rs", status_anchors),
+        (
+            "plan_status/index_tables/index_consistency.rs",
+            index_consistency,
+        ),
     ] {
         assert!(
-            backlog_rows.iter().any(|cells| cells[0] == expected_gap),
-            "runtime index backlog should keep known gap `{expected_gap}`"
+            source.lines().count() < 800,
+            "{path} should remain below the Runtime 15 test-owner budget after child-owner split"
         );
     }
 
-    for cells in backlog_rows {
-        assert!(
-            !cells[1].is_empty() && !cells[2].is_empty(),
-            "runtime backlog gap `{}` should keep evidence and owner/trigger cells",
-            cells[0]
-        );
-        assert!(
-            ["owner", "backlog", "归 ", "触发", "立项", "需求", "稳定"]
-                .iter()
-                .any(|marker| cells[2].contains(marker)),
-            "runtime backlog gap `{}` should name an owner or trigger condition",
-            cells[0]
-        );
+    let status_anchors = [
+        "Runtime 15 M3 plan-status index-tables child-owner split",
+        "runtime_15_plan_status_index_tables_child_owner_split_static_passed_cargo_deferred",
+        "plan_status/index_tables.rs",
+        "plan_status/index_tables/subplan_map.rs",
+        "plan_status/index_tables/status_anchors.rs",
+        "plan_status/index_tables/index_consistency.rs",
+        "runtime_15_plan_status_index_tables_guard_child_owner_split",
+    ];
+    for (label, source) in [
+        ("Runtime 15 subplan", runtime_15_plan),
+        ("runtime index", runtime_index),
+        ("engine code structure convention", structure_convention),
+        ("engine code review findings", review_findings),
+        ("module convention doc", module_convention),
+        ("runtime implementation session note", session_note),
+        ("Runtime 15 status row data", status_row_data),
+        ("Runtime 15 expected status map", status_map),
+        ("Runtime 15 expected date map", date_map),
+    ] {
+        assert_contains_all(label, source, &status_anchors);
     }
 }

@@ -1,8 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_selection_control_geometry::{
-    selection_label_gap, toggle_thumb_rect, toggle_track_rect, SELECTION_MARK_INSET_X,
-    SELECTION_TEXT_INSET_Y,
+    selection_label_gap, toggle_thumb_rect, toggle_track_rect, workbench_selection_control_metrics,
 };
 use super::labels::push_selection_label;
 use super::style::{
@@ -18,11 +17,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     opacity: f32,
 ) {
     let track = toggle_track_rect(node, rect);
+    let metrics = workbench_selection_control_metrics();
     let label_rect = FrameRect {
-        x: rect.x + SELECTION_MARK_INSET_X,
-        y: rect.y + SELECTION_TEXT_INSET_Y,
-        width: (track.x - rect.x - SELECTION_MARK_INSET_X - selection_label_gap(node)).max(1.0),
-        height: (rect.height - SELECTION_TEXT_INSET_Y * 2.0).max(1.0),
+        x: rect.x + metrics.mark_inset_x,
+        y: rect.y + metrics.text_inset_y,
+        width: (track.x - rect.x - metrics.mark_inset_x - selection_label_gap(node)).max(1.0),
+        height: (rect.height - metrics.text_inset_y * 2.0).max(1.0),
     };
     push_selection_label(
         commands,

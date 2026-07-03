@@ -357,6 +357,8 @@ impl RenderFramework for FakeRenderFramework {
             last_mesh_alpha_mask_shadow_caster_draw_count: 2,
             last_mesh_prepared_geometry_draw_count: 5,
             last_mesh_dynamic_geometry_draw_count: 7,
+            last_mesh_gpu_morphed_source_draw_count: 2,
+            last_mesh_gpu_skinned_morphed_source_draw_count: 1,
             last_mesh_skinned_draw_count: 3,
             last_mesh_skinned_palette_upload_count: 2,
             last_mesh_skinned_previous_palette_upload_count: 1,

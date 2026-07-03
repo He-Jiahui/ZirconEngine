@@ -13,8 +13,8 @@ use super::module_overflow_menu::{
 const COMPACT_TOOLBAR_MAX_WIDTH: f32 = 1100.0;
 const FULL_TOOLBAR_MIN_WIDTH: f32 = 1440.0;
 const MODULE_COMMAND_GROUP_CONTROL_ID: &str = "WorkbenchModuleCommands";
-const MODULE_COMMAND_GROUP_COMPACT_WIDTH: f32 = 248.0;
-const MODULE_COMMAND_GROUP_FULL_WIDTH: f32 = 330.0;
+const MODULE_COMMAND_GROUP_COMPACT_WIDTH: f32 = 276.0;
+const MODULE_COMMAND_GROUP_FULL_WIDTH: f32 = 350.0;
 
 const COMPACT_HIDDEN_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleBehavior",

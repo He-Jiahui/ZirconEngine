@@ -5,6 +5,10 @@ use zircon_runtime_interface::ui::{
     layout::{Anchor, AxisConstraint, Pivot, Position, UiFrame},
 };
 
+use crate::ui::retained_host::popup_anchor_metrics::{
+    clamp_popup_x_to_bounds, toolbar_popup_render_gap, POPUP_EDGE_MARGIN,
+};
+
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::module_overflow_menu::{
@@ -136,7 +140,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             ("popup_offset_x", UiValue::Float(0.0)),
             (
                 "popup_offset_y",
-                UiValue::Float(-TOOLBAR_POPUP_RENDER_GAP as f64),
+                UiValue::Float(-toolbar_popup_render_gap() as f64),
             ),
             ("placement", UiValue::String("bottom-start".to_string())),
             (
@@ -217,8 +221,6 @@ fn toolbar_menu_for_action(
 }
 
 const WORKBENCH_TOP_TOOLBAR_REGION_CONTROL_ID: &str = "WorkbenchWindowTopToolbarRegion";
-const TOOLBAR_POPUP_EDGE_MARGIN: f32 = 8.0;
-const TOOLBAR_POPUP_RENDER_GAP: f32 = 4.0;
 const TOOLBAR_MENU_FRAME_EPSILON: f32 = 0.01;
 
 #[derive(Clone, Copy)]
@@ -256,17 +258,7 @@ fn toolbar_menu_x(
 }
 
 fn clamp_menu_x_to_root(authored_x: f32, root_frame: UiFrame, menu_width: f32) -> f32 {
-    if root_frame.width <= 0.0 || menu_width <= 0.0 {
-        return authored_x.max(0.0);
-    }
-    let margin = TOOLBAR_POPUP_EDGE_MARGIN.min(root_frame.width * 0.5);
-    let min_x = root_frame.x + margin;
-    let max_x = root_frame.right() - margin - menu_width;
-    if max_x >= min_x {
-        authored_x.clamp(min_x, max_x)
-    } else {
-        root_frame.x.max(root_frame.right() - menu_width)
-    }
+    clamp_popup_x_to_bounds(authored_x, root_frame.x, root_frame.width, menu_width)
 }
 
 fn node_position_for_absolute_frame(
@@ -288,11 +280,11 @@ fn resolved_menu_axis(axis: AxisConstraint, cached_extent: f32) -> f32 {
         axis.min,
         cached_extent,
         axis.max,
-        TOOLBAR_POPUP_EDGE_MARGIN,
+        POPUP_EDGE_MARGIN,
     ]
     .into_iter()
     .find(|value| value.is_finite() && *value > 0.0)
-    .unwrap_or(TOOLBAR_POPUP_EDGE_MARGIN)
+    .unwrap_or(POPUP_EDGE_MARGIN)
 }
 
 fn positions_are_near(left: Position, right: Position) -> bool {

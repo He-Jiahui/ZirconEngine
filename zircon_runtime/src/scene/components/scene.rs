@@ -5,9 +5,9 @@ use crate::core::framework::physics::{
     PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
 };
 use crate::core::framework::render::{
-    ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderMaterialAlphaMode,
-    RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
-    DEFAULT_RENDER_LAYER_MASK,
+    MaterialPropertyOverrideBlock, ProjectionMode, RenderCameraClearColor, RenderCameraTarget,
+    RenderMaterialAlphaMode, RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100,
+    DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec3, Vec4};
@@ -216,6 +216,11 @@ pub struct MeshRenderer {
     pub primitives: Vec<MeshRendererPrimitiveBinding>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lods: Vec<MeshRendererLodLevel>,
+    #[serde(
+        default,
+        skip_serializing_if = "MaterialPropertyOverrideBlock::is_empty"
+    )]
+    pub material_property_overrides: MaterialPropertyOverrideBlock,
     pub tint: Vec4,
     #[serde(default)]
     pub material_alpha_mode: RenderMaterialAlphaMode,
@@ -237,6 +242,7 @@ impl MeshRenderer {
             morph_weights: Vec::new(),
             primitives: Vec::new(),
             lods: Vec::new(),
+            material_property_overrides: MaterialPropertyOverrideBlock::default(),
             tint: Vec4::ONE,
             material_alpha_mode: RenderMaterialAlphaMode::Opaque,
         }

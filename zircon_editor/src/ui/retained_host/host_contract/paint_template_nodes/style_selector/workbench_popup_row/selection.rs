@@ -1,7 +1,7 @@
+use super::super::workbench_row_selection::selected_row_outline_color;
 use super::model::{WorkbenchPopupRowState, WorkbenchPopupRowStyle};
-use super::palette::WORKBENCH_POPUP_ROW_DANGER_TEXT;
 use super::state::{is_hot, is_unavailable};
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_popup_row_style(
@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 
     WorkbenchPopupRowStyle {
         background: popup_row_background(state, marked, hot),
-        selection_mark: popup_row_selection_mark(state, marked),
+        outline: popup_row_outline(state, marked),
         text: popup_row_text_color(row, state),
         shortcut: popup_row_shortcut_color(state),
         adornment: popup_row_adornment_color(row, state, marked, hot),
@@ -24,36 +24,39 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 }
 
 fn popup_row_background(state: UiPainterResolvedState, marked: bool, hot: bool) -> Option<[u8; 4]> {
+    let palette = current_host_palette();
     if is_unavailable(state) {
         None
     } else if marked {
-        Some(PALETTE.surface_pressed)
+        Some(palette.surface_pressed)
     } else if hot {
-        Some(PALETTE.surface_hover)
+        Some(palette.surface_hover)
     } else {
         None
     }
 }
 
-fn popup_row_selection_mark(state: UiPainterResolvedState, marked: bool) -> Option<[u8; 4]> {
-    (marked && !is_unavailable(state)).then_some(PALETTE.focus_ring)
+fn popup_row_outline(state: UiPainterResolvedState, marked: bool) -> Option<[u8; 4]> {
+    (marked && !is_unavailable(state)).then_some(selected_row_outline_color())
 }
 
 fn popup_row_text_color(row: WorkbenchPopupRowState, state: UiPainterResolvedState) -> [u8; 4] {
+    let palette = current_host_palette();
     if is_unavailable(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if row.danger {
-        WORKBENCH_POPUP_ROW_DANGER_TEXT
+        palette.error
     } else {
-        PALETTE.text
+        palette.text
     }
 }
 
 fn popup_row_shortcut_color(state: UiPainterResolvedState) -> [u8; 4] {
+    let palette = current_host_palette();
     if is_unavailable(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else {
-        PALETTE.text_muted
+        palette.text_muted
     }
 }
 
@@ -63,13 +66,14 @@ fn popup_row_adornment_color(
     marked: bool,
     hot: bool,
 ) -> [u8; 4] {
+    let palette = current_host_palette();
     if is_unavailable(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if row.danger {
-        WORKBENCH_POPUP_ROW_DANGER_TEXT
+        palette.error
     } else if marked || hot {
-        PALETTE.text
+        palette.text
     } else {
-        PALETTE.text_muted
+        palette.text_muted
     }
 }

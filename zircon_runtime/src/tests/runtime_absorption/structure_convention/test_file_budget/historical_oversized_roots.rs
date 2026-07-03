@@ -14,7 +14,11 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     let ui_shared_parent = read_runtime_src("ui/tests/shared_core.rs");
     let ui_shared_layout = read_runtime_src("ui/tests/shared_core/layout_surface.rs");
     let ui_shared_input = read_runtime_src("ui/tests/shared_core/input_visibility.rs");
+    let ui_shared_input_hit_visibility =
+        read_runtime_src("ui/tests/shared_core/input_visibility/hit_visibility.rs");
     let ui_shared_scroll = read_runtime_src("ui/tests/shared_core/scroll_mutation.rs");
+    let ui_shared_scroll_virtual =
+        read_runtime_src("ui/tests/shared_core/scroll_mutation/virtual_scroll.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -22,7 +26,7 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
     );
 
     assert_contains_all(
@@ -87,14 +91,17 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     assert_contains_all(
         "historical oversized child owners keep representative tests",
         &format!(
-            "{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
             core_framework_surface,
             core_render_product,
             core_phase_queue,
             ui_v2_style,
             ui_v2_file_cache,
             ui_shared_layout,
-            ui_shared_scroll
+            ui_shared_input,
+            ui_shared_input_hit_visibility,
+            ui_shared_scroll,
+            ui_shared_scroll_virtual
         ),
         &[
             "time_framework_tracks_real_virtual_and_fixed_clocks",

@@ -309,13 +309,13 @@ fn runtime_extension_registry_rejects_invalid_ui_component_plugin_ids() {
 }
 
 #[test]
-fn runtime_extension_registry_rejects_invalid_ui_component_documents() {
+fn runtime_extension_registry_rejects_non_zui_ui_component_documents() {
     let mut registry = RuntimeExtensionRegistry::default();
     let error = registry
         .register_ui_component(UiComponentDescriptor::new(
             "weather.Ui.CloudLayerInspector",
             "weather",
-            "asset://weather/editor/cloud_layer_inspector.ui.toml",
+            "asset://weather/editor/cloud_layer_inspector.toml",
         ))
         .unwrap_err();
     assert!(error.to_string().contains(".zui"));

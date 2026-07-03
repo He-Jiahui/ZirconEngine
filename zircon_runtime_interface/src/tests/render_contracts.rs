@@ -12,7 +12,7 @@ use crate::ui::{
         UiResourceUvRect, UiShapedGlyph, UiShapedGlyphRotation, UiShapedText, UiTextCaret,
         UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextOverflow, UiTextPaint,
         UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode,
-        UiTextRunKind, UiTextSelection, UiVisualAssetRef,
+        UiTextRunKind, UiTextSelection, UiTextWritingMode, UiVisualAssetRef,
     },
 };
 
@@ -273,6 +273,7 @@ fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
             foreground_color: Some("#ffffff".to_string()),
             font: Some("fonts/Inter.ttf".to_string()),
             font_family: Some("Inter".to_string()),
+            font_weight: 650,
             font_size: 18.0,
             line_height: 22.0,
             text_render_mode: UiTextRenderMode::Sdf,
@@ -312,7 +313,7 @@ fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
     );
     assert_eq!(
         text.shaped.as_ref().unwrap().font_key.as_ref().unwrap().id,
-        "fonts/Inter.ttf"
+        "fonts/Inter.ttf:w650"
     );
     assert_eq!(
         text.shaped
@@ -336,6 +337,8 @@ fn ui_paint_element_derives_text_shape_payload_from_text_layout() {
     assert_eq!(text.runs[0].kind, UiTextRunKind::Strong);
     assert_eq!(text.runs[0].text, "Zirc");
     assert_eq!(text.runs[0].frame, UiFrame::new(4.0, 8.0, 36.0, 22.0));
+    assert_eq!(text.font_weight, 650);
+    assert_eq!(text.runs[0].font_weight, 650);
     assert!(text.runs[0].style.strong);
 }
 
@@ -999,6 +1002,176 @@ fn ui_shaped_text_contract_uses_measured_glyph_advances() {
 }
 
 #[test]
+fn ui_shaped_text_contract_derives_vertical_rl_glyph_bounds() {
+    let source = "A縦".to_string();
+    let layout = UiResolvedTextLayout {
+        direction: UiTextDirection::LeftToRight,
+        writing_mode: UiTextWritingMode::VerticalRl,
+        font_size: 10.0,
+        line_height: 12.0,
+        measured_width: 12.0,
+        measured_height: 20.0,
+        source_range: UiTextRange {
+            start: 0,
+            end: source.len(),
+        },
+        lines: vec![UiResolvedTextLine {
+            text: source.clone(),
+            frame: UiFrame::new(20.0, 4.0, 10.0, 20.0),
+            source_range: UiTextRange {
+                start: 0,
+                end: source.len(),
+            },
+            visual_range: UiTextRange {
+                start: 0,
+                end: source.len(),
+            },
+            measured_width: 20.0,
+            glyph_advances: vec![8.0, 12.0],
+            baseline: 8.0,
+            direction: UiTextDirection::LeftToRight,
+            runs: vec![UiResolvedTextRun {
+                kind: UiTextRunKind::Plain,
+                text: source.clone(),
+                source_range: UiTextRange {
+                    start: 0,
+                    end: source.len(),
+                },
+                visual_range: UiTextRange {
+                    start: 0,
+                    end: source.len(),
+                },
+                direction: UiTextDirection::LeftToRight,
+            }],
+            ellipsized: false,
+        }],
+        ..UiResolvedTextLayout::default()
+    };
+
+    let shaped =
+        UiShapedText::from_resolved_layout(source.clone(), &layout, UiTextRenderMode::Native);
+    let paint = UiTextPaint::from_shaped_text(shaped.clone(), Some("#ffffff".to_string()));
+
+    assert_eq!(shaped.writing_mode, UiTextWritingMode::VerticalRl);
+    assert_eq!(
+        shaped.lines[0].glyphs[0].visual_frame,
+        UiFrame::new(20.0, 4.0, 10.0, 8.0)
+    );
+    assert_eq!(
+        shaped.lines[0].glyphs[1].visual_frame,
+        UiFrame::new(20.0, 12.0, 10.0, 12.0)
+    );
+    assert_eq!(
+        shaped.lines[0].glyphs[0].rotation,
+        UiShapedGlyphRotation::Cw90
+    );
+    assert_eq!(
+        shaped.lines[0].glyphs[1].rotation,
+        UiShapedGlyphRotation::None
+    );
+    assert_eq!(paint.writing_mode, UiTextWritingMode::VerticalRl);
+    assert_eq!(paint.runs[0].frame, UiFrame::new(20.0, 4.0, 10.0, 20.0));
+}
+
+#[test]
+fn ui_text_decorations_use_vertical_rl_geometry() {
+    let source = "縦書文".to_string();
+    let layout = UiResolvedTextLayout {
+        direction: UiTextDirection::LeftToRight,
+        writing_mode: UiTextWritingMode::VerticalRl,
+        font_size: 10.0,
+        line_height: 12.0,
+        measured_width: 12.0,
+        measured_height: 36.0,
+        source_range: UiTextRange {
+            start: 0,
+            end: source.len(),
+        },
+        editable: Some(UiEditableTextState {
+            text: source.clone(),
+            caret: UiTextCaret {
+                offset: 6,
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+            selection: Some(UiTextSelection {
+                anchor: 3,
+                focus: source.len(),
+            }),
+            composition: Some(UiTextComposition {
+                range: UiTextRange { start: 0, end: 6 },
+                text: "縦書".to_string(),
+                restore_text: None,
+            }),
+            read_only: false,
+        }),
+        lines: vec![UiResolvedTextLine {
+            text: source.clone(),
+            frame: UiFrame::new(20.0, 10.0, 12.0, 36.0),
+            source_range: UiTextRange {
+                start: 0,
+                end: source.len(),
+            },
+            visual_range: UiTextRange {
+                start: 0,
+                end: source.len(),
+            },
+            measured_width: 36.0,
+            glyph_advances: vec![10.0, 14.0, 12.0],
+            baseline: 8.0,
+            direction: UiTextDirection::LeftToRight,
+            runs: vec![UiResolvedTextRun {
+                kind: UiTextRunKind::Plain,
+                text: source.clone(),
+                source_range: UiTextRange {
+                    start: 0,
+                    end: source.len(),
+                },
+                visual_range: UiTextRange {
+                    start: 0,
+                    end: source.len(),
+                },
+                direction: UiTextDirection::LeftToRight,
+            }],
+            ellipsized: false,
+        }],
+        ..UiResolvedTextLayout::default()
+    };
+    let command = UiRenderCommand {
+        node_id: UiNodeId::new(76),
+        kind: UiRenderCommandKind::Text,
+        frame: UiFrame::new(20.0, 10.0, 12.0, 36.0),
+        clip_frame: None,
+        z_index: 0,
+        style: UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            text_writing_mode: UiTextWritingMode::VerticalRl,
+            ..UiResolvedStyle::default()
+        },
+        text_layout: Some(layout),
+        text: Some(source),
+        image: None,
+        opacity: 1.0,
+    };
+
+    let element = command.to_paint_element(0);
+    let UiPaintPayload::Text { text } = element.payload else {
+        panic!("expected text payload");
+    };
+
+    assert_eq!(text.writing_mode, UiTextWritingMode::VerticalRl);
+    assert!(text.decorations.iter().any(|decoration| decoration.kind
+        == UiTextPaintDecorationKind::Selection
+        && decoration.frame == UiFrame::new(20.0, 20.0, 12.0, 26.0)));
+    assert!(text.decorations.iter().any(|decoration| decoration.kind
+        == UiTextPaintDecorationKind::CompositionUnderline
+        && decoration.frame == UiFrame::new(30.0, 10.0, 2.0, 24.0)));
+    assert!(text.decorations.iter().any(|decoration| decoration.kind
+        == UiTextPaintDecorationKind::Caret
+        && decoration.frame == UiFrame::new(20.0, 34.0, 12.0, 1.0)));
+}
+
+#[test]
 fn ui_text_decorations_snap_to_grapheme_cluster_edges() {
     let accent = "a\u{0301}";
     let source = format!("{accent}b");
@@ -1093,6 +1266,114 @@ fn ui_text_decorations_snap_to_grapheme_cluster_edges() {
     assert!(text.decorations.iter().any(|decoration| decoration.kind
         == UiTextPaintDecorationKind::Caret
         && decoration.frame == UiFrame::new(15.0, 0.0, 1.0, 12.0)));
+}
+
+#[test]
+fn ui_text_decorations_use_run_visual_ranges_for_non_isomorphic_source_ranges() {
+    let source = "pre\u{00ad}fix".to_string();
+    let layout = UiResolvedTextLayout {
+        direction: UiTextDirection::LeftToRight,
+        font_size: 10.0,
+        line_height: 12.0,
+        source_range: UiTextRange {
+            start: 0,
+            end: source.len(),
+        },
+        editable: Some(UiEditableTextState {
+            text: source.clone(),
+            caret: UiTextCaret {
+                offset: 5,
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+            selection: Some(UiTextSelection {
+                anchor: 3,
+                focus: 5,
+            }),
+            composition: Some(UiTextComposition {
+                range: UiTextRange { start: 3, end: 5 },
+                text: "-".to_string(),
+                restore_text: None,
+            }),
+            read_only: false,
+        }),
+        lines: vec![UiResolvedTextLine {
+            text: "pre-fix".to_string(),
+            frame: UiFrame::new(0.0, 0.0, 70.0, 12.0),
+            source_range: UiTextRange {
+                start: 0,
+                end: source.len(),
+            },
+            visual_range: UiTextRange { start: 0, end: 7 },
+            measured_width: 70.0,
+            glyph_advances: vec![10.0; 7],
+            baseline: 8.0,
+            direction: UiTextDirection::LeftToRight,
+            runs: vec![
+                UiResolvedTextRun {
+                    kind: UiTextRunKind::Plain,
+                    text: "pre".to_string(),
+                    source_range: UiTextRange { start: 0, end: 3 },
+                    visual_range: UiTextRange { start: 0, end: 3 },
+                    direction: UiTextDirection::LeftToRight,
+                },
+                UiResolvedTextRun {
+                    kind: UiTextRunKind::Plain,
+                    text: "-".to_string(),
+                    source_range: UiTextRange { start: 3, end: 5 },
+                    visual_range: UiTextRange { start: 3, end: 4 },
+                    direction: UiTextDirection::LeftToRight,
+                },
+                UiResolvedTextRun {
+                    kind: UiTextRunKind::Plain,
+                    text: "fix".to_string(),
+                    source_range: UiTextRange { start: 5, end: 8 },
+                    visual_range: UiTextRange { start: 4, end: 7 },
+                    direction: UiTextDirection::LeftToRight,
+                },
+            ],
+            ellipsized: false,
+        }],
+        ..UiResolvedTextLayout::default()
+    };
+    let command = UiRenderCommand {
+        node_id: UiNodeId::new(75),
+        kind: UiRenderCommandKind::Text,
+        frame: UiFrame::new(0.0, 0.0, 70.0, 12.0),
+        clip_frame: None,
+        z_index: 0,
+        style: UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        },
+        text_layout: Some(layout),
+        text: Some(source),
+        image: None,
+        opacity: 1.0,
+    };
+
+    let element = command.to_paint_element(0);
+    let UiPaintPayload::Text { text } = element.payload else {
+        panic!("expected text payload");
+    };
+
+    assert!(text.decorations.iter().any(|decoration| decoration.kind
+        == UiTextPaintDecorationKind::Selection
+        && decoration.frame == UiFrame::new(30.0, 0.0, 10.0, 12.0)));
+    assert!(text.decorations.iter().any(|decoration| decoration.kind
+        == UiTextPaintDecorationKind::CompositionUnderline
+        && decoration.frame == UiFrame::new(30.0, 10.0, 10.0, 2.0)));
+    assert!(text.decorations.iter().any(|decoration| decoration.kind
+        == UiTextPaintDecorationKind::Caret
+        && decoration.frame == UiFrame::new(40.0, 0.0, 1.0, 12.0)));
+    let shaped = text
+        .shaped
+        .as_ref()
+        .expect("text paint carries shaped data");
+    assert_eq!(
+        shaped.lines[0].glyphs[3].source_range,
+        UiTextRange { start: 3, end: 5 }
+    );
 }
 
 #[test]

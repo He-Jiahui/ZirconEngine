@@ -3,6 +3,7 @@ use crate::asset::{
     AlphaMode, AssetUri, ImportedAsset, MaterialAsset, ModelAsset, ModelPrimitiveAsset,
     ShaderAsset, ShaderSourceLanguage,
 };
+use crate::core::framework::render::ShaderAssetKind;
 
 use super::{builtin_pbr_wgsl, builtin_reference};
 
@@ -39,6 +40,9 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
             ImportedAsset::Material(MaterialAsset {
                 name: Some("Builtin Default".to_string()),
                 shader: builtin_reference("builtin://shader/pbr.wgsl"),
+                parent: None,
+                options: Default::default(),
+                queue: None,
                 base_color: [1.0, 1.0, 1.0, 1.0],
                 base_color_texture: None,
                 normal_texture: None,
@@ -60,6 +64,9 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
             ImportedAsset::Material(MaterialAsset {
                 name: Some("Builtin Missing".to_string()),
                 shader: builtin_reference("builtin://shader/pbr.wgsl"),
+                parent: None,
+                options: Default::default(),
+                queue: None,
                 base_color: [1.0, 0.0, 1.0, 1.0],
                 base_color_texture: None,
                 normal_texture: None,
@@ -80,6 +87,7 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
             "builtin://shader/pbr.wgsl",
             ImportedAsset::Shader(ShaderAsset {
                 uri: AssetUri::parse("builtin://shader/pbr.wgsl").expect("builtin shader uri"),
+                kind: ShaderAssetKind::Surface,
                 source_language: ShaderSourceLanguage::Wgsl,
                 source: builtin_pbr_wgsl().to_string(),
                 wgsl_source: builtin_pbr_wgsl().to_string(),
@@ -90,7 +98,16 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
                 imports: Vec::new(),
                 shader_defs: Vec::new(),
                 property_schema: Vec::new(),
+                options: Vec::new(),
                 texture_slots: Vec::new(),
+                shading_model: None,
+                render_state: Default::default(),
+                queue: None,
+                disabled_passes: Vec::new(),
+                resources: Vec::new(),
+                material_property_layout: Default::default(),
+                material_option_table: Default::default(),
+                generated_material_wgsl: String::new(),
                 editor: Default::default(),
                 pipeline_layout: Default::default(),
                 validation_diagnostics: Vec::new(),

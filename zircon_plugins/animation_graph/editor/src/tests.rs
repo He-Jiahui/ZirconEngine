@@ -15,7 +15,7 @@ fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas
     editor_plugin()
         .register_editor_extensions(&mut registry)
         .expect("animation graph authoring registration");
-    let operation = EditorOperationPath::parse("AnimationGraph.Authoring.Compile")
+    let operation = EditorOperationPath::parse("animation_graph.authoring.compile")
         .expect("valid animation graph operation path");
     let descriptor = registry
         .operations()

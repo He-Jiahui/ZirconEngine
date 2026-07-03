@@ -3,6 +3,7 @@ mod automatic_extract;
 mod cpu_reference;
 #[allow(dead_code)]
 mod execution_mode;
+mod page_payload;
 
 #[cfg(test)]
 #[allow(unused_imports)]

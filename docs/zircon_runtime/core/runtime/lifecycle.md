@@ -3,6 +3,38 @@ related_code:
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
+  - zircon_runtime/src/engine_module/mod.rs
+  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/descriptors/mod.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_order.rs
+  - zircon_runtime/src/core/runtime/runtime.rs
+  - zircon_runtime/src/core/runtime/handle/activation.rs
+  - zircon_runtime/src/core/runtime/handle/activation/batch.rs
+  - zircon_runtime/src/core/runtime/handle/activation/module_lifecycle.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/tasks.rs
+  - zircon_runtime/src/core/runtime/modules/time.rs
+  - zircon_runtime/src/core/runtime/modules/frame_count.rs
+  - zircon_runtime/src/core/runtime/modules/diagnostics.rs
+  - zircon_runtime/src/foundation/module.rs
+  - zircon_runtime/src/platform/module.rs
+  - zircon_runtime/src/input/module/descriptor.rs
+  - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/scene/module/mod.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/script/vm/module/module_descriptor.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
+  - zircon_app/src/plugins/builder.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/builtin_modules.rs
+  - zircon_editor/src/ui/host/module.rs
   - zircon_runtime/src/core/runtime/descriptors/registry_name.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
@@ -15,6 +47,14 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
+  - zircon_app/src/plugins/tests.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/service_count_paths.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/service_list_caches.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
@@ -28,6 +68,38 @@ implementation_files:
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
+  - zircon_runtime/src/engine_module/mod.rs
+  - zircon_runtime/src/core/framework/error.rs
+  - zircon_runtime/src/core/runtime/descriptors/mod.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs
+  - zircon_runtime/src/core/runtime/descriptors/module_order.rs
+  - zircon_runtime/src/core/runtime/runtime.rs
+  - zircon_runtime/src/core/runtime/handle/activation.rs
+  - zircon_runtime/src/core/runtime/handle/activation/batch.rs
+  - zircon_runtime/src/core/runtime/handle/activation/module_lifecycle.rs
+  - zircon_runtime/src/core/runtime/modules/log.rs
+  - zircon_runtime/src/core/runtime/modules/tasks.rs
+  - zircon_runtime/src/core/runtime/modules/time.rs
+  - zircon_runtime/src/core/runtime/modules/frame_count.rs
+  - zircon_runtime/src/core/runtime/modules/diagnostics.rs
+  - zircon_runtime/src/foundation/module.rs
+  - zircon_runtime/src/platform/module.rs
+  - zircon_runtime/src/input/module/descriptor.rs
+  - zircon_runtime/src/asset/module.rs
+  - zircon_runtime/src/scene/module/mod.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/script/vm/module/module_descriptor.rs
+  - zircon_runtime/src/ui/module.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
+  - zircon_app/src/plugins/builder.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/builtin_modules.rs
+  - zircon_editor/src/ui/host/module.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
@@ -39,6 +111,12 @@ implementation_files:
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/tests/registration/structure.rs
+  - zircon_runtime/src/core/runtime/tests/registration/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/service_count_paths.rs
+  - zircon_runtime/src/core/runtime/tests/registration/structure/service_list_caches.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
@@ -52,6 +130,7 @@ plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
@@ -59,9 +138,30 @@ tests:
   - zircon_runtime/src/core/runtime/handle/core_handle.rs::tests::core_handle_registry_accessors_recover_poisoned_runtime_locks
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_accessors
   - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::core_runtime_deactivation::runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed
+  - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_descriptor_defaults_to_post_without_module_dependencies
+  - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_activation_order_sorts_levels_and_declared_dependencies
+  - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_activation_order_rejects_missing_module_dependency
+  - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_activation_order_rejects_dependency_on_later_init_level
+  - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_activation_order_reports_same_level_cycles
+  - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_lifecycle_default_hooks_are_noop_and_ready
+  - zircon_runtime::core::runtime::tests::activation::behavior::module_lifecycle::module_lifecycle_hooks_wrap_activation_and_deactivation
+  - zircon_runtime::core::runtime::tests::activation::behavior::module_lifecycle::module_ready_polling_allows_later_ready_result
+  - zircon_runtime::core::runtime::tests::activation::behavior::module_lifecycle::module_ready_timeout_resets_module_and_started_services
+  - zircon_runtime::core::runtime::tests::activation::behavior::module_lifecycle::module_finish_error_resets_module_and_started_services
+  - zircon_runtime::core::runtime::tests::activation::behavior::module_lifecycle::activate_registered_modules_finishes_only_after_all_modules_are_ready
+  - zircon_runtime::core::runtime::tests::activation::behavior::module_lifecycle::activate_registered_modules_rolls_back_all_started_modules_on_finish_error
+  - zircon_runtime::builtin::runtime_modules::tests::registration::behavior::target_runtime_modules_follow_descriptor_activation_order
+  - zircon_app::plugins::tests::builtin_plugin_groups_finish_in_descriptor_activation_order
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/core/runtime/handle/registration/service_lists/types.rs zircon_runtime/src/core/runtime/handle/registration/service_lists/specialized.rs zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs zircon_runtime/src/core/runtime/handle/registration/register_module.rs
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/lifecycle.rs zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs zircon_runtime/src/core/runtime/descriptors/module_dependency_spec.rs zircon_runtime/src/core/runtime/descriptors/module_order.rs zircon_runtime/src/core/runtime/descriptors/mod.rs zircon_runtime/src/core/runtime/mod.rs zircon_runtime/src/core/mod.rs zircon_runtime/src/engine_module/mod.rs zircon_runtime/src/core/framework/error.rs zircon_runtime/src/core/runtime/tests/registration/behavior.rs zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/lifecycle.rs zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs zircon_runtime/src/core/runtime/handle/activation.rs zircon_runtime/src/core/runtime/handle/activation/module_lifecycle.rs zircon_runtime/src/core/runtime/runtime.rs zircon_runtime/src/core/runtime/mod.rs zircon_runtime/src/core/mod.rs zircon_runtime/src/engine_module/mod.rs zircon_runtime/src/core/framework/error.rs zircon_runtime/src/core/runtime/tests/activation/behavior.rs zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/core/runtime/handle/activation/batch.rs zircon_runtime/src/core/runtime/handle/activation.rs zircon_runtime/src/core/runtime/runtime.rs zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/builtin/runtime_modules/core_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs zircon_runtime/src/builtin/runtime_modules/load_report/report.rs zircon_runtime/src/builtin/runtime_modules/assembly.rs zircon_app/src/plugins/builder.rs zircon_app/src/entry/engine_entry.rs zircon_app/src/entry/builtin_modules.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs zircon_app/src/plugins/tests.rs
+  - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never
+  - cargo check -p zircon_runtime --lib --locked --no-default-features --features core-min --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-coremin-0703 --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked
+  - cargo test -p zircon_runtime module_activation_order --lib --locked --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-0702 --message-format short --color never -- --nocapture --test-threads=1
 doc_type: module-detail
 ---
 
@@ -72,11 +172,57 @@ doc_type: module-detail
 ## Ownership Boundary
 
 - `StartupMode` describes whether a registered service starts immediately or waits for lazy resolution.
+- `InitLevel` describes module activation layers in order: Kernel, Servers, Scene, Editor, and Post. New descriptors default to Post until they opt into an earlier level.
 - `LifecycleState` describes the runtime state of modules and services: registered, initializing, running, stopping, or unloaded.
 - `ServiceKind` is the canonical driver/manager/plugin classifier used by `RegistryName`, dependency validation, and service table logic.
+- `ModuleLifecycle` defines the shared build/ready/finish/cleanup hook vocabulary. The default implementation is behavior-preserving: build, finish, and cleanup are no-ops, while ready returns true.
 - The curated `zircon_runtime::core::{LifecycleState, StartupMode, ServiceKind}` facade remains because these types are public runtime vocabulary, but the physical owner is now the runtime kernel.
 
-The lifecycle module defines vocabulary only. Registration ordering, dependency validation, activation, deactivation, and resolution behavior stay in their existing runtime handle and descriptor owners.
+The lifecycle module defines vocabulary only. Registration ordering, dependency validation, activation, deactivation, and resolution behavior stay in their existing runtime handle and descriptor owners. Frameworks 02 M1 wires descriptor ordering and lifecycle hooks through those existing owners instead of moving behavior into the root lifecycle vocabulary module.
+
+## Frameworks 02 M1 lifecycle/order foundation
+
+`frameworks_02_m1_lifecycle_order_foundation_rustfmt_lib_check_passed_tests_blocked`
+
+Frameworks 02 M1 establishes the new lifecycle vocabulary and ordering contracts without adding compatibility aliases for retired architecture. `InitLevel` is exported through `core`, `runtime`, and `engine_module` as canonical module kernel vocabulary. `ModuleDescriptor` now carries `init_level` and `module_dependencies`, with default `InitLevel::Post` and an empty dependency set so existing descriptors keep their current order until they declare newer semantics.
+
+`ModuleDependencySpec` and `sort_module_activation_order(...)` live under the descriptor owner. The sorter rejects duplicate modules, missing module dependencies, dependencies on later init levels, and same-level dependency cycles with typed `CoreError` variants instead of string diagnostics. Traversal is stable by init level and declaration index, and dependency lookup returns typed errors rather than panicking on an internal map miss.
+
+The focused behavior tests cover descriptor defaults, level/dependency ordering, missing dependencies, later-level dependency rejection, same-level cycle reporting, and default lifecycle hooks. `rustfmt --edition 2021 --check --config skip_children=true` passed for the touched files, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-0702 --message-format short --color never` passed with existing repository warnings. Direct lib-test execution is not counted as passing because the current test build is blocked before these tests execute by the active `graphics/text/raster/swash.rs` lib-test dependency resolution issue (`could not find swash in the list of imported crates`).
+
+## Frameworks 02 M1 activation lifecycle progression
+
+`frameworks_02_m1_activation_lifecycle_progression_rustfmt_passed_cargo_blocked`
+
+The second M1 slice connects the lifecycle vocabulary to single-module activation without changing builtin profile assembly yet. `ModuleDescriptor` now owns an `Arc<dyn ModuleLifecycle>` and defaults to `NoopModuleLifecycle`, so descriptors that do not opt into hooks keep the previous activation behavior without a compatibility branch. `CoreHandle::activate_module_with_ready_timeout(...)` runs build, resolves immediate services, polls ready within the caller-supplied budget, runs finish, and only then marks the module Running. `activate_module(...)` uses a zero ready budget, which is behavior-preserving for the default ready=true path and returns a typed `ModuleReadyTimeout` for modules that explicitly report not ready.
+
+`core/runtime/handle/activation/module_lifecycle.rs` owns the hook invocation, ready polling, typed timeout construction, and startup-service rollback helper. Activation failures after startup now reset the initializing module and the module's immediate startup service entries to Registered with no instance, avoiding a half-running module after ready timeout or finish failure. Deactivation calls cleanup before plugin bridge deactivation and service unload, keeping cleanup in the PreDeactivation window while services are still available.
+
+Focused tests were added for hook order across activation/deactivation, ready polling that becomes true, ready timeout rollback, and finish-error rollback. Scoped rustfmt passed for the touched activation/runtime/test files. Cargo validation is currently blocked by unrelated active shader/material work: `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-0702 --message-format short --color never` stops in `asset/artifact/cache_payload.rs` (`ZMaterialQueueOverride` not exported from `asset`) and `graphics/pipeline/declarations/renderer_feature_contract_diagnostic.rs` (new `RenderMaterialValidationError` variants not covered). This section does not claim Cargo or focused test green for the activation lifecycle slice.
+
+## Frameworks 02 M1 batch activation finish barrier
+
+`frameworks_02_m1_batch_activation_finish_barrier_rustfmt_passed_cargo_blocked`
+
+The third M1 slice adds the cross-module activation phase barrier needed before M2 can replace builtin hand ordering. `CoreHandle::activate_registered_modules_with_ready_timeout(...)` snapshots registered module descriptors, sorts them through `sort_module_activation_order(...)`, marks all non-running modules Initializing, then runs build for the full ordered set, startup-service resolution for the full set, ready polling for the full set, and finish for the full set. Modules are marked Running only after every finish hook succeeds, so a module cannot observe another module as Running before the batch has crossed the finish barrier.
+
+`core/runtime/handle/activation/batch.rs` owns this batch progression and rollback. If build, startup-service resolution, ready, or finish fails, every pending module in the batch is reset to Registered and every immediate startup service resolved during the batch is reset to Registered with no instance. The single-module activation path remains available for direct/lazy resolution, while the registered-module batch API is the planned kernel entry for profile assembly and later RuntimePlugin convergence.
+
+Focused tests cover sorted Kernel/Servers/Scene batch ordering with no finish before all ready hooks, and finish-failure rollback across multiple modules plus their immediate services. Scoped rustfmt passed for the touched batch/activation/runtime/test files. Cargo validation remains blocked outside this owner by active shader/material drift: the current runtime lib check stops in graphics scene material paths because `MaterialDisabledPasses` is not exported from `graphics::scene::resources`, and `CachedMeshDrawKey` initializers now miss `disabled_passes`. This section does not claim Cargo or focused test green for the batch slice.
+
+## Frameworks 02 M2 descriptor-sorted builtin/profile assembly
+
+`frameworks_02_m2_builtin_profile_descriptor_sorting_rustfmt_app_server_check_passed`
+
+Frameworks 02 M2 switches builtin module and app plugin assembly from handwritten order to descriptor-owned order. Runtime profiles and app plugin groups now decide only which modules are present. `ModuleDescriptor::init_level` plus `ModuleDependencySpec` decide the activation sequence through `sort_module_activation_order(...)`, so missing dependencies or layer violations become typed runtime load diagnostics instead of silent list drift.
+
+The builtin runtime module set now includes the kernel foundations directly in `runtime_core_modules_for_target_with_render_features(...)`: Foundation, log, tasks, time, frame count, diagnostics core, platform, input, asset, scene, optional graphics, and script. Minimal profile assembly uses the same sorter over its smaller module set. Target/profile load reports convert sorting failures into fatal diagnostics, and `zircon_app` checks those diagnostics before bootstrapping instead of continuing with a partially ordered list.
+
+App plugin groups gained `try_finish(...)`, which sorts enabled entries by descriptor order and returns a structured `PluginGroupError::ModuleOrder` when group membership violates the kernel contract. `finish(...)` remains as the assertion-style convenience path for built-in groups. `EngineEntry` and `BuiltinEngineEntry` now register all selected descriptors first and activate through `CoreRuntime::activate_registered_modules(...)`, so M2 consumes the M1 batch finish barrier rather than reintroducing per-module Running publication.
+
+Descriptor declarations were added to the builtin modules: Kernel level for foundation/log/tasks/time/frame count/diagnostics, Servers level for platform/input/asset, Scene level for scene/graphics/UI, Editor level for the editor module, and Post for script. Dependencies now encode the expected lower-layer owners; for example frame count depends on time, asset depends on foundation and tasks, graphics depends on platform/asset/scene, UI depends on input/scene/graphics, and editor depends on the runtime/editor-facing module set. No fallback list or old-order compatibility path was kept.
+
+Focused tests were added for target runtime module order and built-in app plugin group order. Scoped rustfmt passed for the M2 runtime/app/editor descriptor, assembly, bootstrap, and test files. The first app server check exposed an owned `PluginGroupBuilder::try_finish(...)` return-type bug; the fix wraps the descriptor-sorted group in `Ok(ResolvedPluginGroup { ... })`. After that correction, `cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never` passed with existing repository warnings. Focused runtime/app tests are still not counted as passing for M2 because the milestone has not run the declared test stage.
 
 ## Validation
 

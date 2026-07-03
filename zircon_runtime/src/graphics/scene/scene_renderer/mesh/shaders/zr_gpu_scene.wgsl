@@ -16,7 +16,7 @@ struct ZrGpuInstanceData {
     primitive_index: u32,
     flags: u32,
     payload_slot: u32,
-    _pad0: u32,
+    morph_payload_slot: u32,
 };
 
 struct ZrGpuLightData {
@@ -44,12 +44,18 @@ struct ZrGpuSceneVisibleInstanceRemapParams {
 @group(3) @binding(4) var<uniform> zr_previous_skinned_joint_palette: ZrSkinnedJointPaletteUniform;
 @group(3) @binding(5) var<storage, read> zr_visible_instance_remap: array<u32>;
 @group(3) @binding(6) var<uniform> zr_visible_instance_remap_params: ZrGpuSceneVisibleInstanceRemapParams;
+@group(3) @binding(7) var<storage, read> zr_morph_deltas: array<vec4<f32>>;
+@group(3) @binding(8) var<storage, read> zr_morph_weights: array<f32>;
+@group(3) @binding(9) var<storage, read> zr_virtual_geometry_pages: array<vec4<u32>>;
+@group(3) @binding(10) var<storage, read> zr_virtual_geometry_clusters: array<vec4<f32>>;
+@group(3) @binding(11) var<storage, read> zr_morph_payloads: array<vec4<u32>>;
 
 const ZR_GPU_LIGHT_TYPE_DIRECTIONAL: u32 = 0u;
 const ZR_GPU_LIGHT_TYPE_POINT: u32 = 1u;
 const ZR_GPU_LIGHT_TYPE_SPOT: u32 = 2u;
 const ZR_GPU_LIGHT_TYPE_RECT: u32 = 3u;
 const ZR_GPU_LIGHT_FLAG_CASTS_SHADOW: u32 = 1u;
+const ZR_GPU_SCENE_INVALID_PAYLOAD_SLOT: u32 = 0xffffffffu;
 
 fn zr_gpu_scene_light_count() -> u32 {
     return min(zr_visible_instance_remap_params.values.y, arrayLength(&zr_light_data));
@@ -100,6 +106,35 @@ fn zr_gpu_scene_primitive(instance: ZrGpuInstanceData) -> ZrGpuPrimitiveData {
 
 fn zr_gpu_scene_primitive_for_instance(instance_index: u32) -> ZrGpuPrimitiveData {
     return zr_gpu_scene_primitive(zr_gpu_scene_instance(instance_index));
+}
+
+fn zr_gpu_scene_valid_payload_slot(payload_slot: u32, element_count: u32) -> bool {
+    return payload_slot != ZR_GPU_SCENE_INVALID_PAYLOAD_SLOT && payload_slot < element_count;
+}
+
+fn zr_gpu_scene_morph_delta(delta_index: u32) -> vec3<f32> {
+    return zr_gpu_scene_morph_delta_row(delta_index).xyz;
+}
+
+fn zr_gpu_scene_morph_delta_row(delta_index: u32) -> vec4<f32> {
+    if (delta_index < arrayLength(&zr_morph_deltas)) {
+        return zr_morph_deltas[delta_index];
+    }
+    return vec4<f32>(0.0);
+}
+
+fn zr_gpu_scene_morph_weight(weight_index: u32) -> f32 {
+    if (weight_index < arrayLength(&zr_morph_weights)) {
+        return zr_morph_weights[weight_index];
+    }
+    return 0.0;
+}
+
+fn zr_gpu_scene_morph_payload(payload_slot: u32) -> vec4<u32> {
+    if (zr_gpu_scene_valid_payload_slot(payload_slot, arrayLength(&zr_morph_payloads))) {
+        return zr_morph_payloads[payload_slot];
+    }
+    return vec4<u32>(0u);
 }
 
 fn zr_world_from_local(instance_index: u32) -> mat4x4<f32> {

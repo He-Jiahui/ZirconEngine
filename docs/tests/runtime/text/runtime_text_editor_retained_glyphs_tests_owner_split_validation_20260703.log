@@ -1,0 +1,37 @@
+Runtime text editor retained glyph draw tests owner split validation
+status: runtime_text_editor_retained_glyphs_tests_owner_split_rustfmt_visual_cargo_deferred
+date: 2026-07-03
+glyphs_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+tests_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
+glyphs_lines: 119
+glyphs_test_attrs: 0
+glyphs_mod_tests_entries: 1
+tests_lines: 45
+tests_test_attrs: 4
+test_names:
+  - logical_raster_extent_downsamples_scaled_bitmap_bounds
+  - logical_raster_extent_keeps_native_subpixel_bitmap_bounds
+  - retained_glyph_placement_uses_stable_subpixel_bins_instead_of_rounding_each_glyph
+  - retained_glyph_placement_uses_nearest_subpixel_bin_without_left_bias
+target_same_name_matches: 0
+target_match_paths:
+  - none
+cargo_validation: deferred; external cargo/rustc lanes active, so this slice is proven by rustfmt/static checks and visual proof only.
+active_cargo_rustc_processes:
+  - cargo 33880
+  - cargo 40068
+  - cargo 40272
+  - cargo 40792
+  - cargo 41004
+  - cargo 43144
+  - cargo 44380
+  - cargo 45716
+  - cargo 46156
+  - cargo 48840
+  - rustc 31560
+  - rustc 34060
+  - rustc 34764
+  - rustc 41280
+  - rustc 47480
+png_sha256: E06ADE35E0FD6295E25D68A34ED60FFE714489ACE4CB6F7BA54A3DA724672168
+log_sha256_before_hash_line: 2298B37027E1A2B589E421C223B8F00D4F48F04DFE6C3AECA512B3EA32ECD77E

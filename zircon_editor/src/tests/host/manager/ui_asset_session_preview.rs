@@ -13,7 +13,7 @@ use super::support::*;
 fn editor_manager_opens_and_saves_ui_asset_editor_sessions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_session");
-    let ui_asset_path = unique_temp_dir("zircon_editor_asset_session_file").join("test.ui.toml");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_session_file").join("test.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
 
@@ -71,7 +71,7 @@ fn editor_manager_runs_ui_asset_preview_preset_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_preview_presets");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_preview_presets_file").join("layout.ui.toml");
+        unique_temp_dir("zircon_editor_asset_preview_presets_file").join("layout.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
 
@@ -119,8 +119,7 @@ fn editor_manager_runs_ui_asset_preview_preset_actions() {
 fn editor_manager_runs_ui_asset_mock_preview_actions_without_dirtying_source() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_mock_preview");
-    let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_mock_preview_file").join("layout.ui.toml");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_mock_preview_file").join("layout.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, MOCK_PREVIEW_UI_LAYOUT_ASSET);
 
@@ -179,7 +178,7 @@ fn editor_manager_runs_ui_asset_nested_mock_preview_actions_without_dirtying_sou
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_nested_mock_preview");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_nested_mock_preview_file").join("layout.ui.toml");
+        unique_temp_dir("zircon_editor_asset_nested_mock_preview_file").join("layout.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, MOCK_PREVIEW_UI_LAYOUT_ASSET);
 
@@ -267,17 +266,17 @@ fn editor_manager_resolves_ui_asset_imports_and_interactive_session_commands() {
         .join("assets")
         .join("ui")
         .join("widgets")
-        .join("button.ui.toml");
+        .join("button.zui");
     let style_path = project_root
         .join("assets")
         .join("ui")
         .join("styles")
-        .join("theme.ui.toml");
+        .join("theme.zui");
     let layout_path = project_root
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(widget_path.parent().unwrap()).unwrap();
     fs::create_dir_all(style_path.parent().unwrap()).unwrap();
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
@@ -331,8 +330,8 @@ version = 1
 display_name = "Editor Layout"
 
 [imports]
-widgets = ["res://ui/widgets/button.ui.toml#ToolbarButton"]
-styles = ["res://ui/styles/theme.ui.toml"]
+widgets = ["res://ui/widgets/button.zui#ToolbarButton"]
+styles = ["res://ui/styles/theme.zui"]
 
 [root]
 node = "root"
@@ -345,7 +344,7 @@ children = [{ child = "toolbar" }]
 
 [nodes.toolbar]
 kind = "reference"
-component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
+component_ref = "res://ui/widgets/button.zui#ToolbarButton"
 control_id = "ToolbarHost"
 "#,
     );
@@ -353,7 +352,7 @@ control_id = "ToolbarHost"
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
 
     let pane = manager
@@ -391,7 +390,7 @@ fn editor_manager_runs_ui_asset_style_authoring_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_style_authoring");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_style_authoring_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_style_authoring_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -460,7 +459,7 @@ fn editor_manager_selects_ui_asset_nodes_from_source_byte_offsets() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_source_byte_offset");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_source_byte_offset_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_source_byte_offset_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -520,7 +519,7 @@ fn editor_manager_runs_ui_asset_preview_mock_suggestion_actions_relative_to_sele
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_mock_preview_suggestion");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_mock_preview_suggestion_file").join("layout.ui.toml");
+        unique_temp_dir("zircon_editor_asset_mock_preview_suggestion_file").join("layout.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, DEEP_MOCK_PREVIEW_UI_LAYOUT_ASSET);
 

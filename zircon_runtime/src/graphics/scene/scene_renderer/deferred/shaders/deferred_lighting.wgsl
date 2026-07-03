@@ -234,18 +234,6 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
     return vec4<f32>(color, albedo.a);
 }
 
-fn shade_deferred_standard_pbr(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>) -> vec4<f32> {
-    return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_STANDARD_PBR_ID);
-}
-
-fn shade_deferred_blinn_phong(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>) -> vec4<f32> {
-    return shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_BLINN_PHONG_ID);
-}
-
-fn shade_deferred_unlit(albedo: vec4<f32>) -> vec4<f32> {
-    return albedo;
-}
-
 @fragment
 fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let coord = vec2<i32>(position.xy);
@@ -265,5 +253,6 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
         return shade_deferred_blinn_phong(position, coord, albedo, material, normal);
     }
+    // zr-deferred-lighting-custom-shading-model-dispatch
     return shade_deferred_standard_pbr(position, coord, albedo, material, normal);
 }

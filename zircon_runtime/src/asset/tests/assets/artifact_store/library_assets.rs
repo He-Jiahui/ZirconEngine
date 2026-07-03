@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::framework::render::MaterialPropertyKind;
 
 #[test]
 fn artifact_store_roundtrips_physics_material_assets_in_library() {
@@ -53,14 +54,9 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
                 .unwrap(),
         ),
     );
-    let mut texture_default = toml::Table::new();
-    texture_default.insert(
-        "fallback".to_string(),
-        toml::Value::String("white".to_string()),
-    );
-    texture_default.insert("uv_channel".to_string(), toml::Value::Integer(1));
     let shader = ShaderAsset {
         uri: AssetUri::parse("res://shaders/pbr.zshader").unwrap(),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@vertex fn vs_main() -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }"
             .to_string(),
@@ -83,27 +79,19 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
             RenderShaderDefinitionValue::uint("ALPHA_CLIP", 1),
             RenderShaderDefinitionValue::bool("USE_FOG", false),
         ],
-        property_schema: vec![
-            ShaderMaterialPropertyAsset {
-                name: "tint".to_string(),
-                kind: "vec4".to_string(),
-                required: false,
-                default: Some(toml::Value::Array(vec![
-                    toml::Value::Float(1.0),
-                    toml::Value::Float(0.8),
-                    toml::Value::Float(0.6),
-                    toml::Value::Float(1.0),
-                ])),
-                editor: BTreeMap::from([("widget".to_string(), "color".to_string())]),
-            },
-            ShaderMaterialPropertyAsset {
-                name: "normal_map".to_string(),
-                kind: "texture".to_string(),
-                required: false,
-                default: Some(toml::Value::Table(texture_default)),
-                editor: BTreeMap::from([("slot".to_string(), "normal".to_string())]),
-            },
-        ],
+        property_schema: vec![ShaderMaterialPropertyAsset {
+            name: "tint".to_string(),
+            kind: MaterialPropertyKind::Vec4,
+            required: false,
+            default: Some(toml::Value::Array(vec![
+                toml::Value::Float(1.0),
+                toml::Value::Float(0.8),
+                toml::Value::Float(0.6),
+                toml::Value::Float(1.0),
+            ])),
+            editor: BTreeMap::from([("widget".to_string(), "color".to_string())]),
+        }],
+        options: Vec::new(),
         texture_slots: vec![
             ShaderTextureSlotAsset {
                 name: "base_color".to_string(),
@@ -113,6 +101,8 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
                 sampler: Some("linear_repeat".to_string()),
                 group: Some("Surface".to_string()),
                 label: Some("Base Color Texture".to_string()),
+                option: None,
+                st: false,
                 editor: BTreeMap::from([("slot".to_string(), "base_color".to_string())]),
             },
             ShaderTextureSlotAsset {
@@ -123,9 +113,19 @@ fn artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata() {
                 sampler: None,
                 group: None,
                 label: None,
+                option: None,
+                st: false,
                 editor: BTreeMap::new(),
             },
         ],
+        shading_model: Some("standard_pbr".to_string()),
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: editor_metadata,
         pipeline_layout: Default::default(),
         validation_diagnostics: vec!["authoring note".to_string()],

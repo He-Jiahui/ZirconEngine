@@ -4,6 +4,64 @@ use crate::scene::SystemStage;
 
 use super::behavior_validation::ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3;
 
+pub(super) type NativePluginRegistrationManifestResult<T> =
+    std::result::Result<T, NativePluginRegistrationManifestError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginRegistrationManifestError {
+    InvalidToml(toml::de::Error),
+    UnsupportedSchema {
+        actual: String,
+        expected: &'static str,
+    },
+    UnsupportedSystemStage {
+        stage: String,
+    },
+    MissingSystemField {
+        system_id: String,
+        field_name: &'static str,
+    },
+}
+
+impl std::fmt::Display for NativePluginRegistrationManifestError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidToml(error) => {
+                write!(
+                    formatter,
+                    "native registration manifest TOML is invalid: {error}"
+                )
+            }
+            Self::UnsupportedSchema { actual, expected } => write!(
+                formatter,
+                "native registration manifest schema `{actual}` is unsupported; expected {expected}"
+            ),
+            Self::UnsupportedSystemStage { stage } => write!(
+                formatter,
+                "native registration manifest system stage `{stage}` is unsupported"
+            ),
+            Self::MissingSystemField {
+                system_id,
+                field_name,
+            } => write!(
+                formatter,
+                "native registration manifest system `{system_id}` is missing {field_name}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginRegistrationManifestError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::InvalidToml(error) => Some(error),
+            Self::UnsupportedSchema { .. }
+            | Self::UnsupportedSystemStage { .. }
+            | Self::MissingSystemField { .. } => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct NativePluginRegistrationManifest {
@@ -23,19 +81,19 @@ pub(super) struct NativePluginRegistrationManifest {
 }
 
 impl NativePluginRegistrationManifest {
-    pub(super) fn from_toml(text: &str) -> Result<Self, String> {
-        let manifest: Self = toml::from_str(text)
-            .map_err(|error| format!("native registration manifest TOML is invalid: {error}"))?;
+    pub(super) fn from_toml(text: &str) -> NativePluginRegistrationManifestResult<Self> {
+        let manifest: Self =
+            toml::from_str(text).map_err(NativePluginRegistrationManifestError::InvalidToml)?;
         manifest.validate()?;
         Ok(manifest)
     }
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> NativePluginRegistrationManifestResult<()> {
         if self.schema.trim() != ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3 {
-            return Err(format!(
-                "native registration manifest schema `{}` is unsupported; expected {}",
-                self.schema, ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3
-            ));
+            return Err(NativePluginRegistrationManifestError::UnsupportedSchema {
+                actual: self.schema.clone(),
+                expected: ZIRCON_NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3,
+            });
         }
         for system in &self.systems {
             system.stage()?;
@@ -74,11 +132,11 @@ pub(super) struct NativePluginRegistrationSystem {
 }
 
 impl NativePluginRegistrationSystem {
-    pub(super) fn stage(&self) -> Result<SystemStage, String> {
+    pub(super) fn stage(&self) -> NativePluginRegistrationManifestResult<SystemStage> {
         system_stage_from_manifest(&self.stage)
     }
 
-    pub(super) fn bridge_interface(&self) -> Result<&str, String> {
+    pub(super) fn bridge_interface(&self) -> NativePluginRegistrationManifestResult<&str> {
         required_non_empty(
             self.bridge_interface.as_deref(),
             &self.id,
@@ -86,7 +144,7 @@ impl NativePluginRegistrationSystem {
         )
     }
 
-    pub(super) fn bridge_method(&self) -> Result<&str, String> {
+    pub(super) fn bridge_method(&self) -> NativePluginRegistrationManifestResult<&str> {
         required_non_empty(self.bridge_method.as_deref(), &self.id, "bridge_method")
     }
 }
@@ -117,7 +175,7 @@ pub(super) struct NativePluginRegistrationExtension {
     pub schema: String,
 }
 
-fn system_stage_from_manifest(stage: &str) -> Result<SystemStage, String> {
+fn system_stage_from_manifest(stage: &str) -> NativePluginRegistrationManifestResult<SystemStage> {
     match stage {
         "First" => Ok(SystemStage::First),
         "PreUpdate" => Ok(SystemStage::PreUpdate),
@@ -128,23 +186,28 @@ fn system_stage_from_manifest(stage: &str) -> Result<SystemStage, String> {
         "PostUpdate" => Ok(SystemStage::PostUpdate),
         "Last" => Ok(SystemStage::Last),
         "RenderExtract" => Ok(SystemStage::RenderExtract),
-        _ => Err(format!(
-            "native registration manifest system stage `{stage}` is unsupported"
-        )),
+        _ => Err(
+            NativePluginRegistrationManifestError::UnsupportedSystemStage {
+                stage: stage.to_string(),
+            },
+        ),
     }
 }
 
 fn required_non_empty<'a>(
     value: Option<&'a str>,
     system_id: &str,
-    field_name: &str,
-) -> Result<&'a str, String> {
+    field_name: &'static str,
+) -> NativePluginRegistrationManifestResult<&'a str> {
     value
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            format!("native registration manifest system `{system_id}` is missing {field_name}")
-        })
+        .ok_or_else(
+            || NativePluginRegistrationManifestError::MissingSystemField {
+                system_id: system_id.to_string(),
+                field_name,
+            },
+        )
 }
 
 #[cfg(test)]
@@ -188,5 +251,52 @@ bridge_method = "sample_count"
             manifest.systems[0].bridge_interface().unwrap(),
             "native.live_host.bridge.v1"
         );
+    }
+
+    #[test]
+    fn native_registration_manifest_reports_unsupported_stage_with_typed_error() {
+        let error = NativePluginRegistrationManifest::from_toml(
+            r#"
+schema = "zircon.native.registration-manifest/3"
+
+[[systems]]
+id = "physics.runtime_tick"
+module = "runtime"
+stage = "BeforeBreakfast"
+bridge_interface = "native.live_host.bridge.v1"
+bridge_method = "sample_count"
+"#,
+        )
+        .expect_err("unsupported stage should report typed registration manifest error");
+
+        assert!(matches!(
+            error,
+            NativePluginRegistrationManifestError::UnsupportedSystemStage { stage }
+                if stage == "BeforeBreakfast"
+        ));
+    }
+
+    #[test]
+    fn native_registration_manifest_reports_missing_bridge_method_with_typed_error() {
+        let error = NativePluginRegistrationManifest::from_toml(
+            r#"
+schema = "zircon.native.registration-manifest/3"
+
+[[systems]]
+id = "physics.runtime_tick"
+module = "runtime"
+stage = "Update"
+bridge_interface = "native.live_host.bridge.v1"
+"#,
+        )
+        .expect_err("missing bridge method should report typed registration manifest error");
+
+        assert!(matches!(
+            error,
+            NativePluginRegistrationManifestError::MissingSystemField {
+                system_id,
+                field_name: "bridge_method"
+            } if system_id == "physics.runtime_tick"
+        ));
     }
 }

@@ -77,10 +77,8 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
         ],
     );
 
-    let runtime_02_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P2 |"))
-        .expect("Runtime index should keep the P2 core spine/root surface problem row");
+    let runtime_02_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P2", "core spine/root surface");
     assert_contains_all(
         "Runtime index P2 row",
         runtime_02_problem_row,
@@ -92,10 +90,8 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
         ],
     );
 
-    let runtime_02_generated_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P8 |"))
-        .expect("Runtime index should keep the P8 generated-code problem row");
+    let runtime_02_generated_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P8", "generated-code");
     assert_contains_all(
         "Runtime index P8 row",
         runtime_02_generated_problem_row,

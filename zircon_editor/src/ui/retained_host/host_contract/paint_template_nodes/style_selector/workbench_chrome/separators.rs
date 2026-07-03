@@ -1,13 +1,14 @@
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use super::palette::WorkbenchChromePalette;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_separator(
     normal: [u8; 4],
     state: UiPainterResolvedState,
+    palette: &WorkbenchChromePalette,
 ) -> [u8; 4] {
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            PALETTE.border_disabled
+            palette.border_disabled
         }
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
@@ -15,8 +16,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Checked => PALETTE.border,
-        UiPainterResolvedState::Hovered => PALETTE.border,
+        | UiPainterResolvedState::Checked => palette.border,
+        UiPainterResolvedState::Hovered => palette.border,
         UiPainterResolvedState::Normal => normal,
     }
 }

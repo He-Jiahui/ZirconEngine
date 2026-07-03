@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
@@ -26,6 +27,7 @@ related_code:
 implementation_files:
   - docs/zircon_runtime/core/frame_schedule.md
   - zircon_runtime/src/dynamic_api/session.rs
+  - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module/world_driver.rs
@@ -43,7 +45,7 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/time/fixed_step_plan.rs zircon_runtime/src/tests/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/scene/level_system.rs zircon_runtime/src/scene/module/world_driver.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - source scans for retired raw-delta level tick and world-driver second advance paths
-  - schedule_frame_loop_boundary targeted audit: source files 18/18, guard/test files 8/8, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, Runtime 03 guard anchors 14/14, behavior_test_anchor_count = 13, missing_behavior_test_anchors = [], doc_anchors = 10/10, mirror-doc aggregate guard present, frame schedule module-doc anchors 3/3, risks = []
+  - schedule_frame_loop_boundary targeted audit: source files 19/19, guard/test files 8/8, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, Runtime 03 guard anchors 14/14, behavior_test_anchor_count = 13, missing_behavior_test_anchors = [], doc_anchors = 10/10, mirror-doc aggregate guard present, frame schedule module-doc anchors 3/3, risks = []
   - schedule_frame_loop_inventory_split_static_passed_cargo_deferred_tests_deferred: source/guard inventory split into schedule_frame_loop_source_inventory.py, anchor inventory split into schedule_frame_loop_anchor_inventory.py, boundary audit kept at 475 lines, standalone schedule_frame_loop.rs 1/1, standalone plan_status.rs 33/33, Cargo gates deferred
   - schedule_frame_loop_markdown_split_static_passed_cargo_deferred_tests_deferred: Markdown renderer split into schedule_frame_loop_markdown.py, boundary audit reduced to 368 lines, markdown owner 146 lines, standalone schedule_frame_loop.rs 1/1, standalone plan_status.rs 33/33, Cargo gates deferred
   - schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration
@@ -77,7 +79,7 @@ The remaining higher-level design choice is whether a future UI/render plan want
 
 1. The dynamic ABI entry `zircon_runtime/src/dynamic_api/session.rs` exposes `tick_frame(handle)`.
 2. `RuntimeDynamicSession::tick_frame` calls `self.runtime.tick_time(self.profile.max_fixed_steps_per_frame())`.
-3. The profile cap comes from `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME = 8`, returned through `max_fixed_steps_per_frame()`.
+3. The profile cap comes from `DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME = 8` in `zircon_runtime/src/dynamic_api/session/profile.rs`, returned through `max_fixed_steps_per_frame()`.
 4. `CoreHandle::tick_time(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:43` samples `FrameClock::tick()` and delegates to `advance_time_by(...)`.
 5. `CoreHandle::advance_time_by(...)` at `zircon_runtime/src/core/runtime/handle/time.rs:29` advances `RuntimeTimeClocks`, then records time diagnostics at `record_time_diagnostics(...)` around `zircon_runtime/src/core/runtime/handle/time.rs:77`.
 6. `RuntimeTimeClocks::advance_by(...)` at `zircon_runtime/src/core/runtime/time.rs:45` advances real time, virtual time, fixed overstep, and drains a `FixedStepPlan`.
@@ -192,7 +194,7 @@ Detailed owner notes live in `docs/zircon_runtime/scene/ecs/schedule_parallel_ex
 
 ## Structural Audit Mirror
 
-`schedule_frame_loop_source_inventory.py` now owns the source/guard file inventory, stage count, fixed-loop count, and dynamic-session tick-count source scans; `schedule_frame_loop_anchor_inventory.py` owns the SystemStage, RuntimeTimeAdvance, FixedStepPlan, UI extract, stage ordering, schedule runner, parallel executor, behavior-test, mirror-doc, and Cargo gate anchors; `schedule_frame_loop_markdown.py` owns `render_schedule_frame_loop_boundary_markdown`. `schedule_frame_loop_boundary` mirrors this document without running Cargo and is now the audit reader, missing-anchor checker, and risk classifier at 368 lines; the Markdown owner is 146 lines. Current static evidence reports source files 18/18, guard/test files 8/8, `SystemStage` count and variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 14/14, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `doc_anchors = 10/10`, `mirror_docs_guard_present = true`, frame schedule module-doc anchors 3/3, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`. `runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 03, the runtime index, the M0 review, and runtime-interface convergence; `schedule_frame_loop_markdown_split_static_passed_cargo_deferred_tests_deferred` records the renderer split plus standalone `schedule_frame_loop.rs` 1/1 and `plan_status.rs` 33/33 evidence while `ecs_schedule/time/session/schedule_parallel` Cargo gates remain deferred.
+`schedule_frame_loop_source_inventory.py` now owns the source/guard file inventory, stage count, fixed-loop count, and dynamic-session tick-count source scans, including the split `dynamic_api/session/profile.rs` owner for the fixed-step cap. `schedule_frame_loop_anchor_inventory.py` owns the SystemStage, RuntimeTimeAdvance, FixedStepPlan, UI extract, stage ordering, schedule runner, parallel executor, behavior-test, mirror-doc, and Cargo gate anchors; `schedule_frame_loop_markdown.py` owns `render_schedule_frame_loop_boundary_markdown`. `schedule_frame_loop_boundary` mirrors this document without running Cargo and is now the audit reader, missing-anchor checker, and risk classifier at 368 lines; the Markdown owner is 146 lines. Current static evidence reports source files 19/19, guard/test files 8/8, `SystemStage` count and variants 9/9, fixed-loop stages 3/3, dynamic-session `.tick_time(...)` calls 1/1, Runtime 03 guard anchors 14/14, `behavior_test_anchor_count = 13`, `missing_behavior_test_anchors = []`, `doc_anchors = 10/10`, `mirror_docs_guard_present = true`, frame schedule module-doc anchors 3/3, no `WorldDriver` second `advance_time_by(...)` references, no dynamic-session raw-delta level tick references, and `risks = []`. `runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts` keeps this document aligned with Runtime 03, the runtime index, the M0 review, and runtime-interface convergence; `schedule_frame_loop_session_profile_owner_audit_sync_static_passed_cargo_deferred` records the profile-owner audit sync while `ecs_schedule/time/session/schedule_parallel` Cargo gates remain deferred.
 
 ## Follow-Up Work
 

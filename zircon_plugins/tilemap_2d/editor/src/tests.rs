@@ -10,7 +10,7 @@ fn tilemap_authoring_registration_exposes_menu_items_and_payload_schemas() {
         .register_editor_extensions(&mut registry)
         .expect("tilemap authoring registration");
     let operation =
-        EditorOperationPath::parse("Tilemap2d.Authoring.Paint").expect("operation path");
+        EditorOperationPath::parse("tilemap_2d.authoring.paint").expect("operation path");
     let descriptor = registry
         .operations()
         .descriptor(&operation)

@@ -1,4 +1,5 @@
 use super::state::is_unavailable_segmented_state;
+use super::WORKBENCH_SEGMENT_SELECTED_BACKGROUND;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -9,7 +10,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selecte
     if is_unavailable_segmented_state(state) {
         PALETTE.surface_disabled
     } else {
-        PALETTE.surface_selected
+        WORKBENCH_SEGMENT_SELECTED_BACKGROUND
     }
 }
 

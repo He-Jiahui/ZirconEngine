@@ -63,7 +63,7 @@ status: in-progress
 
 ### 2.2 真实缺口
 
-1. **winit 翻译双实现**：editor 侧 `host_contract/native_input_translation.rs`（190 行，直接用 winit 类型）+ `native_keyboard.rs` + `native_pointer/` 一份；runtime 预览侧 `zircon_runtime/src/rhi/ui_surface.rs`、`rhi_wgpu/ui_surface.rs` 另一份。editor 直接依赖 `zircon_runtime`（zircon_editor/Cargo.toml:24，rlib），单实现可落 runtime owner 模块。
+1. **winit 翻译双实现**：editor 侧 `host_contract/native_input_translation.rs`（190 行，直接用 winit 类型）+ `native_keyboard.rs` + `native_pointer/` 一份；runtime 预览侧 `zircon_runtime/src/rhi/ui_surface.rs`、`rhi_wgpu/ui_surface.rs` 另一份。editor 直接依赖 `zircon_runtime`（zircon_editor/Cargo.toml:24，rlib），单实现可落 runtime owner 模块。（2026-07-02 评审收口，勘误注）按 M1.S2 核验结论修订现状：`rhi/ui_surface.rs`、`rhi_wgpu/ui_surface.rs` 当前仅有 surface descriptor 转换逻辑，**无 winit 输入翻译段可迁**；「另一份」表述按当前代码不成立，重复翻译实际只存在于 editor 侧一份。收口方向不变（runtime `ui/platform_input` 单实现），本条原文保留作历史对照。
 2. **无统一 manager 门面**：批入口以 `(surface, pointer_dispatcher, navigation_dispatcher)` 参数对穿透各层（window_pump.rs:19–56）；tooltip/双击计时、多指针实例表没有统一 owner。
 3. **触摸不成体系**：`UiWindowTouchPhase` 已进平台事件，但 per-pointer-id 活动指针表、primary touch 鼠标语义合成、cancel 清理未实现（`state/` 只有单指针痕迹）。
 4. **路由次序未单点固化**：策略枚举齐全，但 capture→popup→preview→direct→bubble→focus-path 的全链次序与外点关闭判定散在 dispatch.rs 与 route_policy.rs，缺一处权威实现与矩阵测试。
@@ -76,6 +76,18 @@ status: in-progress
 - `UiWindowInputPumpBatch` 维持唯一平台事件载体地位；按 M1 盘点结论补缺 variant（重点核对触摸与 IME preedit 区段表达）。
 - winit → Zircon 翻译收口为 runtime 单实现（新增 `zircon_runtime/src/ui/platform_input/`，editor 与 runtime 预览两宿主共用）；editor host 只持有 EventLoop 并喂 batch，不再解释 winit 语义。
 
+#### 3.1.1 IME 职责分工（2026-07-02 评审收口）
+
+与 `docs/plans/zircon_runtime/text/08` 的职责表**互为镜像**，两处以本裁决为准（U8）：
+
+| 职责 | 归属 |
+|------|------|
+| winit 基线入站翻译（`Ime::Preedit/Commit/Enabled/Disabled/DeleteSurrounding` → `UiWindowPlatformInputEvent`） | zircon_runtime `ui/platform_input`（**本计划 01 拥有**） |
+| 平台特化（TSF/IMM32/IBus/fcitx）与出站 host request 应用（enable/disable、候选窗 anchor rect） | zircon_app 平台层（text/08 IM-M2） |
+| iface dispatch DTO（`UiImeInputEvent` 等载体）变更 | 由 01 与 text/08 **协同一次合并**，不各自演进 |
+
+focus→IME 生命周期次序：焦点进入可编辑节点 → `enable + anchor rect`；焦点离开 → `commit preedit → disable`；popup 抢焦期间 Esc **先取消组合再关 popup**（详见 §3.2 键盘/焦点次序矩阵）。
+
 ### 3.2 路由层（对应 FSlateApplication）
 
 `zircon_runtime/src/ui/dispatch/input_manager/`（新增 owner 模块）：
@@ -84,6 +96,13 @@ status: in-progress
 - 路由顺序固定且单点实现：**capture target → popup 层级（含外点关闭判定）→ preview/tunnel（root→leaf）→ direct（leaf）→ bubble（leaf→root）→ focus-path（键盘）→ default-action**，与现有 `UiInputRoutePolicy` 枚举一一对应。
 - 鼠标：hover enter/leave 成对、press/release/click/double-click 合成、wheel 沿 hit path 冒泡到第一个可滚动节点、capture 期间只发 capture 目标。
 - 键盘：focus path 路由；Tab/Shift+Tab 走 navigation 阶段；Enter/Space 激活；Escape 自顶向下关闭最上层 popup；其余字符进文本编辑链（计划 03）。
+  - focus→IME 生命周期次序矩阵（2026-07-02 评审收口，U8）：
+
+    | 触发 | 次序 |
+    |------|------|
+    | 焦点进入可编辑节点 | IME `enable` + 上报候选窗 anchor rect |
+    | 焦点离开可编辑节点 | 先 `commit preedit`，再 IME `disable` |
+    | popup 抢焦期间按 Esc | **先取消当前组合（cancel composition），再关最上层 popup**；两步不可在同一按键内合并跳过 |
 - 触摸：pointer id 映射为 `UiActivePointerTable` 独立条目，与鼠标共享 hit/route 核心；primary touch 合成鼠标语义。
 - Tooltip：hover 驻留计时归 `input_manager::timers`，`tick()` 在帧首注入 `UiTooltipTimerInputEvent`；任何 pointer/keyboard 活动取消。
 
@@ -206,10 +225,10 @@ winit EventLoop（editor UiHostWindow / runtime preview window）
 
 | # | 切片 | 交付物 / 涉及文件 | 验证命令 | 硬切换 |
 |---|------|------------------|---------|--------|
-| M1.S1 | 翻译盘点矩阵：以 editor `native_input_translation` 现行为金标准，固化 winit↔`UiWindowPlatformInputEventKind` 全 variant 映射测试；列出触摸/IME 缺口清单 | `zircon_editor/src/tests/host/retained_window/native_input_translation.rs`（扩充） | `cargo test -p zircon_editor --lib native_input_translation --locked` | 无删除 |
+| M1.S1 | 翻译盘点矩阵：以 editor `native_input_translation` 现行为金标准，固化 winit↔`UiWindowPlatformInputEventKind` 全 variant 映射测试；列出触摸/IME 缺口清单。（2026-07-02 评审收口）盘点矩阵补条款：**IME 激活期间 KeyboardText 抑制**——printable 字符与 `Ime::Commit` 必须去重（IME enabled 时抑制 KeyboardText/字符事件直发，仅走 Commit 通道），防止双输入 | `zircon_editor/src/tests/host/retained_window/native_input_translation.rs`（扩充） | `cargo test -p zircon_editor --lib native_input_translation --locked` | 无删除 |
 | M1.S2 | `platform_input::winit_translation` 单实现落地，rhi/rhi_wgpu ui_surface 翻译段并入 | 新增 platform_input/；核验 rhi/ui_surface.rs、rhi_wgpu/ui_surface.rs 当前仅有 surface descriptor 逻辑，无 winit 输入翻译段可迁 | `cargo check -p zircon_runtime --lib --locked` | rhi 两处输入翻译段按当前代码核验为不存在；S3 删除 editor 本地翻译 |
 | M1.S3 | editor/app 切换调用方；删除 editor 本地翻译 | event_loop/platform_input.rs；删 native_input_translation.rs 与 native_input_translation/**；保留经核验非翻译的 native_keyboard.rs | `cargo test -p zircon_editor --lib --locked` | 删 editor-local 翻译树 + event_loop/input.rs 指针/滚轮翻译段 |
-| M1.S4 | interface 触摸/IME variant 补缺（按 S1 清单，集中一次） | `zircon_runtime_interface/src/ui/window/input.rs` | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
+| M1.S4 | interface 触摸/IME variant 补缺（按 S1 清单，集中一次）。（2026-07-02 评审收口，U8）iface dispatch DTO（`UiImeInputEvent` 等）变更与 text/08 **协同一次合并**，不各自演进 | `zircon_runtime_interface/src/ui/window/input.rs` | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
 | M2.S1 | input_manager 骨架：UiInputManager 持双分发器，window_pump 批入口改走 manager（行为等价收编） | 新增 input_manager/{mod,manager,outcome}.rs；改 window_pump.rs | `cargo test -p zircon_runtime --lib window_pump --locked` | window_pump 旧签名删除 |
 | M2.S2 | 路由次序单点化：routing.rs 固化七阶段次序；dispatch.rs 改由其驱动 | 新增 routing.rs；改 dispatch.rs、route_policy.rs | `cargo check -p zircon_runtime --lib --locked` | dispatch.rs 内散落次序逻辑删除 |
 | M2.S3 | 路由矩阵测试：capture 抢占、popup 外点关闭只关最上层、preview 先于 bubble、focus-path 键盘、default-action 兜底 | input_manager 模块内 #[cfg(test)] | `cargo test -p zircon_runtime --lib input_manager --locked` | 无删除 |

@@ -48,7 +48,7 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
                 "code_static_passed_cargo_pending",
                 "plugin::native",
                 "root_reexport_count = 0",
-                "native_namespace_reexport_count = 60",
+                "native_namespace_reexport_count = 64",
             ][..],
         ),
         (
@@ -56,7 +56,8 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
             &[
                 "code_static_passed_cargo_pending",
                 "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace",
-                "native loader test files 3/3",
+                "native loader test files 4/4",
+                "native test namespace import files 3/3",
                 "native test root import leaks 0/0",
             ][..],
         ),
@@ -118,10 +119,8 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         ],
     );
 
-    let runtime_06_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P4 |"))
-        .expect("Runtime index should keep the P4 plugin surface problem row");
+    let runtime_06_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P4", "plugin surface");
     assert_contains_all(
         "Runtime index P4 row",
         runtime_06_problem_row,
@@ -129,7 +128,7 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "native_plugin_public_surface.m4_gate_status=classified-and-clear",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 60",
+            "native_namespace_reexport_count = 64",
         ],
     );
 
@@ -141,8 +140,9 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
             "m4_gate_status",
             "classified-and-clear",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 60",
-            "native loader test files 3/3",
+            "native_namespace_reexport_count = 64",
+            "native loader test files 4/4",
+            "native test namespace import files 3/3",
             "native test root import leaks 0/0",
             "fallback lifecycle failure tests 4/4",
         ],
@@ -155,8 +155,8 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
             "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
             "native_plugin_public_surface",
             "classified-and-clear",
-            "native namespace re-export 60/60",
-            "native test namespace import files 2/2",
+            "native namespace re-export 64/64",
+            "native test namespace import files 3/3",
             "fallback lifecycle failure tests 4/4",
         ],
     );

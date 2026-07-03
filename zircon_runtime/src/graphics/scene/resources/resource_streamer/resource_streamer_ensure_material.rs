@@ -1,6 +1,6 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-use crate::asset::{AssetReference, ShaderAsset};
+use crate::asset::{AssetReference, MaterialAsset, ShaderAsset};
 use crate::core::framework::render::{
     RenderImageUsage, RenderMaterialAlphaMode, RenderMaterialDiagnosticSource,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
@@ -17,12 +17,13 @@ use crate::graphics::types::GraphicsError;
 use super::super::prepared::PreparedMaterial;
 use super::super::{
     default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
-    MaterialRuntime, PipelineKey,
+    MaterialDisabledPasses, MaterialRuntime, PipelineKey,
 };
 use super::resource_streamer_validate_material_shader_layout::renderer_material_layout_diagnostics;
 use super::ResourceStreamer;
 
 const FALLBACK_MATERIAL_URI: &str = "builtin://missing-material";
+const MAX_MATERIAL_PARENT_DEPTH: usize = 4;
 
 impl ResourceStreamer {
     pub(crate) fn ensure_material(
@@ -41,35 +42,52 @@ impl ResourceStreamer {
         {
             return material_prepare_result(id, &prepared.runtime.readiness_report);
         }
-        let (material, missing_material_fallback, prepared_revision) = match self
-            .asset_manager
-            .load_material_asset(id)
-        {
-            Ok(material) => (material, None, requested_revision),
-            Err(error) => {
-                let fallback_uri = fallback_material_uri();
-                let fallback_id = self.asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
+        let (material, missing_material_fallback, prepared_revision, loaded_material_id) =
+            match self.asset_manager.load_material_asset(id) {
+                Ok(material) => (material, None, requested_revision, id),
+                Err(error) => {
+                    let fallback_uri = fallback_material_uri();
+                    let fallback_id = self.asset_manager.resolve_asset_id(&fallback_uri).ok_or_else(
                         || {
                             GraphicsError::Asset(format!(
                                 "missing material {id} ({error}); fallback material {fallback_uri} is not registered"
                             ))
                         },
                     )?;
-                let material = self.asset_manager.load_material_asset(fallback_id).map_err(
+                    let material = self.asset_manager.load_material_asset(fallback_id).map_err(
                         |fallback_error| {
                             GraphicsError::Asset(format!(
                                 "missing material {id} ({error}); fallback material {fallback_uri} failed to load: {fallback_error}"
                             ))
                         },
                     )?;
-                (material, Some(missing_material_fallback_usage(id)), None)
-            }
-        };
+                    (
+                        material,
+                        Some(missing_material_fallback_usage(id)),
+                        None,
+                        fallback_id,
+                    )
+                }
+            };
+        let (material, parent_validation_errors) =
+            self.material_with_parent_chain(loaded_material_id, material);
         let shader_contract = self.load_shader_contract(material.shader.clone());
         let descriptor = shader_contract
             .as_ref()
             .map(|shader| material.standard_material_descriptor_for_shader(shader))
             .unwrap_or_else(|| material.standard_material_descriptor());
+        let material_option_bits = shader_contract
+            .as_ref()
+            .map(|shader| material.material_option_bits_for_shader(shader))
+            .unwrap_or(0);
+        let material_layout_hash = shader_contract
+            .as_ref()
+            .map(|shader| shader.material_property_layout.layout_hash)
+            .unwrap_or(0);
+        let disabled_passes = shader_contract
+            .as_ref()
+            .map(|shader| MaterialDisabledPasses::from_shader_pass_names(&shader.disabled_passes))
+            .unwrap_or_default();
         let shader_resolver = self.asset_manager.clone();
         let texture_resolver = self.asset_manager.clone();
         let mut readiness = if let Some(shader) = shader_contract.as_ref() {
@@ -105,6 +123,25 @@ impl ResourceStreamer {
         if let Some((validation_error, fallback_usage)) = missing_material_fallback {
             readiness.push_validation_error_once(validation_error);
             readiness.push_fallback_usage_once(fallback_usage);
+        }
+        if let Some(shader) = shader_contract.as_ref() {
+            if let Some(token) = shader.shading_model.as_deref() {
+                if token.parse::<RenderMaterialLightingModel>().is_err() {
+                    readiness.push_validation_error_once(
+                        RenderMaterialValidationError::UnregisteredShadingModel {
+                            path: "shading_model".to_string(),
+                            token: token.to_string(),
+                        },
+                    );
+                    readiness.push_fallback_usage_once(RenderMaterialFallbackUsage {
+                        reason: RenderMaterialFallbackReason::Validation,
+                        fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
+                    });
+                }
+            }
+        }
+        for error in parent_validation_errors {
+            readiness.push_validation_error_once(error);
         }
         let uses_renderer_material_abi_fallback = if let Some(shader) = shader_contract.as_ref() {
             let abi_diagnostics = renderer_material_layout_diagnostics(shader);
@@ -242,8 +279,17 @@ impl ResourceStreamer {
             RenderMaterialPropertyValueSummary::from_values(&shader_property_values);
         let shader_property_value_states =
             RenderMaterialPropertyValueState::from_values(&shader_property_values);
-        let shader_property_uniform_payload =
-            RenderMaterialPropertyUniformPayload::from_values(&shader_property_values);
+        let shader_property_uniform_payload = shader_contract
+            .as_ref()
+            .map(|shader| {
+                RenderMaterialPropertyUniformPayload::from_layout_and_values(
+                    &shader.material_property_layout,
+                    &shader_property_values,
+                )
+            })
+            .unwrap_or_else(|| {
+                RenderMaterialPropertyUniformPayload::from_values(&shader_property_values)
+            });
         for diagnostic in shader_property_uniform_payload.unsupported_diagnostics() {
             readiness.push_diagnostic_once(diagnostic);
         }
@@ -330,6 +376,7 @@ impl ResourceStreamer {
             unlit,
             cast_shadows: descriptor.cast_shadows,
             receive_shadows: descriptor.receive_shadows,
+            disabled_passes,
             render_queue: descriptor.render_queue,
             render_queue_value: descriptor.render_queue_value,
             material_queue: descriptor.material_queue,
@@ -356,6 +403,8 @@ impl ResourceStreamer {
             pipeline_key: PipelineKey {
                 shader_id: pipeline_shader_id,
                 shader_revision: pipeline_shader_revision,
+                material_layout_hash,
+                material_option_bits,
                 double_sided: descriptor.double_sided,
                 alpha_blend,
                 alpha_mask,
@@ -450,6 +499,74 @@ impl ResourceStreamer {
             .resolve_asset_id(&reference.locator)
             .and_then(|id| self.asset_manager.load_shader_asset(id).ok())
     }
+
+    fn material_with_parent_chain(
+        &self,
+        root_id: ResourceId,
+        material: MaterialAsset,
+    ) -> (MaterialAsset, Vec<RenderMaterialValidationError>) {
+        let root_shader = material.shader.clone();
+        let mut diagnostics = Vec::new();
+        let mut visited = BTreeSet::from([root_id]);
+        let mut lineage = vec![(root_id, material)];
+
+        loop {
+            let Some(parent_reference) = lineage
+                .last()
+                .and_then(|(_, material)| material.parent.clone())
+            else {
+                break;
+            };
+            if lineage.len() > MAX_MATERIAL_PARENT_DEPTH {
+                diagnostics.push(invalid_parent_diagnostic(format!(
+                    "material parent chain exceeds depth limit {MAX_MATERIAL_PARENT_DEPTH}"
+                )));
+                break;
+            }
+            let Some(parent_id) = self
+                .asset_manager
+                .resolve_asset_id(&parent_reference.locator)
+            else {
+                diagnostics.push(invalid_parent_diagnostic(format!(
+                    "material parent `{}` is not registered",
+                    parent_reference.locator
+                )));
+                break;
+            };
+            if !visited.insert(parent_id) {
+                diagnostics.push(invalid_parent_diagnostic(format!(
+                    "material parent chain contains cycle at {parent_id}"
+                )));
+                break;
+            }
+            let Ok(parent) = self.asset_manager.load_material_asset(parent_id) else {
+                diagnostics.push(invalid_parent_diagnostic(format!(
+                    "material parent `{}` failed to load",
+                    parent_reference.locator
+                )));
+                break;
+            };
+            if parent.shader != root_shader {
+                diagnostics.push(invalid_parent_diagnostic(format!(
+                    "material parent `{}` uses shader `{}` but child uses `{}`",
+                    parent_reference.locator, parent.shader.locator, root_shader.locator
+                )));
+                break;
+            }
+            lineage.push((parent_id, parent));
+        }
+
+        let mut effective = lineage
+            .pop()
+            .map(|(_, material)| material)
+            .expect("material lineage contains root");
+        while let Some((_, mut child)) = lineage.pop() {
+            child.inherit_parent_values_from(&effective);
+            effective = child;
+        }
+        effective.parent = None;
+        (effective, diagnostics)
+    }
 }
 
 fn material_prepare_result(
@@ -504,6 +621,14 @@ fn missing_material_fallback_usage(
             fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
         },
     )
+}
+
+fn invalid_parent_diagnostic(diagnostic: String) -> RenderMaterialValidationError {
+    RenderMaterialValidationError::InvalidMaterialParent {
+        source: RenderMaterialDiagnosticSource::MaterialOverride,
+        path: "parent".to_string(),
+        diagnostic,
+    }
 }
 
 fn is_standard_texture_slot(slot: &str) -> bool {

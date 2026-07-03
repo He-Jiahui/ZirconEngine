@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use crate::ui::event_ui::UiEventManager;
+use crate::{graphics::GRAPHICS_MODULE_NAME, input::INPUT_MODULE_NAME, scene::SCENE_MODULE_NAME};
 
 pub const UI_MODULE_NAME: &str = "UiModule";
 pub const UI_RUNTIME_DRIVER_NAME: &str = "UiModule.Driver.UiRuntimeDriver";
@@ -24,6 +26,10 @@ pub struct UiModule;
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(UI_MODULE_NAME, "Runtime UI widgets and layout")
+        .with_init_level(InitLevel::Scene)
+        .with_module_dependency(ModuleDependencySpec::named(INPUT_MODULE_NAME))
+        .with_module_dependency(ModuleDependencySpec::named(SCENE_MODULE_NAME))
+        .with_module_dependency(ModuleDependencySpec::named(GRAPHICS_MODULE_NAME))
         .with_driver(DriverDescriptor::new(
             qualified_name(UI_MODULE_NAME, ServiceKind::Driver, "UiRuntimeDriver"),
             StartupMode::Immediate,

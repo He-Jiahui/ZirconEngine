@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.cli import main
+from tools.zircon_export.tests.plugin_validate_support import _replace_manifest_line
 
 
 class PluginBuildTests(unittest.TestCase):
@@ -224,6 +225,167 @@ class PluginBuildTests(unittest.TestCase):
                     "native_dynamic_fixture.zrpack",
                     "plugin.toml",
                 ],
+            )
+
+    def test_plugin_build_rejects_asset_pack_with_retired_ui_suffixes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            crate_name = "zircon_plugin_native_dynamic_fixture_native"
+            _write_dist_plugin_workspace(repo_root, crate_name, assets=True)
+            plugin_root = repo_root / "zircon_plugins" / "native_dynamic_fixture"
+            ui_root = plugin_root / "assets" / "ui"
+            ui_root.mkdir(parents=True, exist_ok=True)
+            (ui_root / "retired_component.ui.toml").write_text(
+                '[asset]\nkind = "component"\n',
+                encoding="utf-8",
+            )
+            (ui_root / "retired_panel.v2.ui.toml").write_text(
+                '[asset]\nkind = "view"\n',
+                encoding="utf-8",
+            )
+            _write_fake_cargo_build_script(repo_root)
+            _write_fake_cargo_pack_script(repo_root)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "plugin",
+                        "build",
+                        "native_dynamic_fixture",
+                        "--repo-root",
+                        str(repo_root),
+                        "--out",
+                        str(root / "out"),
+                        "--target-dir",
+                        str(root / "target"),
+                        "--platform",
+                        "windows-x86_64",
+                        "--mode",
+                        "release",
+                        "--cargo",
+                        sys.executable,
+                    ]
+                )
+
+            self.assertEqual(exit_code, 2)
+            self.assertFalse(
+                (root / "repo" / "cargo_pack_manifest.json").exists(),
+                "asset pack command must not run after retired UI asset suffix diagnostics",
+            )
+            self.assertIn(
+                "plugin native_dynamic_fixture distribution.assets[0] matched retired UI asset suffix assets/ui/retired_component.ui.toml; use .zui",
+                output.getvalue(),
+            )
+            self.assertIn(
+                "plugin native_dynamic_fixture distribution.assets[0] matched retired UI asset suffix assets/ui/retired_panel.v2.ui.toml; use .zui",
+                output.getvalue(),
+            )
+
+    def test_plugin_build_rejects_asset_pack_with_zui_kind_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            crate_name = "zircon_plugin_native_dynamic_fixture_native"
+            _write_dist_plugin_workspace(repo_root, crate_name, assets=True)
+            plugin_root = repo_root / "zircon_plugins" / "native_dynamic_fixture"
+            ui_root = plugin_root / "assets" / "ui"
+            ui_root.mkdir(parents=True, exist_ok=True)
+            (ui_root / "bad_kind.zui").write_text(
+                '[asset]\nkind = "blueprint"\n',
+                encoding="utf-8",
+            )
+            _write_fake_cargo_build_script(repo_root)
+            _write_fake_cargo_pack_script(repo_root)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "plugin",
+                        "build",
+                        "native_dynamic_fixture",
+                        "--repo-root",
+                        str(repo_root),
+                        "--out",
+                        str(root / "out"),
+                        "--target-dir",
+                        str(root / "target"),
+                        "--platform",
+                        "windows-x86_64",
+                        "--mode",
+                        "release",
+                        "--cargo",
+                        sys.executable,
+                    ]
+                )
+
+            self.assertEqual(exit_code, 2)
+            self.assertFalse(
+                (root / "repo" / "cargo_pack_manifest.json").exists(),
+                "asset pack command must not run after .zui asset.kind diagnostics",
+            )
+            self.assertIn(
+                "plugin native_dynamic_fixture distribution.assets[0] "
+                "matched .zui asset assets/ui/bad_kind.zui has unsupported "
+                "asset.kind blueprint; expected one of component, style, "
+                "theme_tokens, view",
+                output.getvalue(),
+            )
+
+    def test_plugin_build_rejects_asset_pack_with_retired_ui_suffix_patterns(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            repo_root = root / "repo"
+            crate_name = "zircon_plugin_native_dynamic_fixture_native"
+            _write_dist_plugin_workspace(repo_root, crate_name, assets=True)
+            plugin_root = repo_root / "zircon_plugins" / "native_dynamic_fixture"
+            _replace_manifest_line(
+                plugin_root / "plugin.toml",
+                'assets = ["assets/**"]',
+                'assets = ["assets/ui/missing_component.ui.toml", '
+                '"assets/ui/missing_panel.v2.ui.toml"]',
+            )
+            _write_fake_cargo_build_script(repo_root)
+            _write_fake_cargo_pack_script(repo_root)
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "plugin",
+                        "build",
+                        "native_dynamic_fixture",
+                        "--repo-root",
+                        str(repo_root),
+                        "--out",
+                        str(root / "out"),
+                        "--target-dir",
+                        str(root / "target"),
+                        "--platform",
+                        "windows-x86_64",
+                        "--mode",
+                        "release",
+                        "--cargo",
+                        sys.executable,
+                    ]
+                )
+
+            self.assertEqual(exit_code, 2)
+            self.assertFalse(
+                (root / "repo" / "cargo_pack_manifest.json").exists(),
+                "asset pack command must not run after retired UI asset suffix pattern diagnostics",
+            )
+            self.assertIn(
+                "plugin native_dynamic_fixture distribution.assets[0] targets retired UI asset suffix assets/ui/missing_component.ui.toml; use .zui",
+                output.getvalue(),
+            )
+            self.assertIn(
+                "plugin native_dynamic_fixture distribution.assets[1] targets retired UI asset suffix assets/ui/missing_panel.v2.ui.toml; use .zui",
+                output.getvalue(),
             )
 
     def test_native_plugin_load_manifest_assembles_signed_entries(self) -> None:

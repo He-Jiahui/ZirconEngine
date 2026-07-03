@@ -1,5 +1,6 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::identity::ButtonGlyph;
 use super::segments;
 
@@ -12,6 +13,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     color: [u8; 4],
     opacity: f32,
 ) {
+    if let Some(asset_name) = button_glyph_asset_name(glyph) {
+        if push_icon_asset_pixels(
+            commands,
+            asset_name,
+            rect,
+            clip,
+            order,
+            Some(color),
+            opacity,
+        ) {
+            return;
+        }
+    }
+
     match glyph {
         ButtonGlyph::Plus => segments::push_segments(
             commands,
@@ -51,5 +66,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
             ],
         ),
         ButtonGlyph::None => {}
+    }
+}
+
+fn button_glyph_asset_name(glyph: ButtonGlyph) -> Option<&'static str> {
+    match glyph {
+        ButtonGlyph::Plus => Some("add"),
+        ButtonGlyph::Trash => Some("trash"),
+        ButtonGlyph::ChevronDown => Some("dropdown"),
+        ButtonGlyph::None => None,
     }
 }

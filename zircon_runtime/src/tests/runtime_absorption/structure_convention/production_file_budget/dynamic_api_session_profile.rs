@@ -15,10 +15,10 @@ fn runtime_15_dynamic_api_session_profile_is_child_owner() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
     let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
     );
     let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
     );
 
     assert_contains_all(
@@ -31,7 +31,7 @@ fn runtime_15_dynamic_api_session_profile_is_child_owner() {
             "struct RuntimeDynamicSession",
             "impl RuntimeDynamicSession",
             "fn new(",
-            "fn tick_frame(&mut self) -> Result<(), String>",
+            "fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>",
         ],
     );
     for moved_owner in [

@@ -206,7 +206,7 @@ fn runtime_15_core_runtime_lock_poison_guard_child_owner_split() {
     let session_note =
         read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     for (label, source) in [

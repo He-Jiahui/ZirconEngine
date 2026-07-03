@@ -144,6 +144,7 @@ fn register_material(
                 shader: AssetReference::from_locator(
                     AssetUri::parse("builtin://shader/pbr.wgsl").unwrap(),
                 ),
+                parent: None,
                 base_color,
                 base_color_texture: None,
                 normal_texture: None,
@@ -157,6 +158,8 @@ fn register_material(
                 double_sided: false,
                 property_values,
                 texture_slots: Default::default(),
+                options: Default::default(),
+                queue: None,
                 validation_diagnostics: Vec::new(),
             },
         )

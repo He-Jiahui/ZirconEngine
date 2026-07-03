@@ -26,7 +26,8 @@ const WORKBENCH_SELECTION_SELECTED_SURFACE: &str = "#173942";
 const WORKBENCH_SELECTION_ACCENT: &str = "#2aa6b8";
 const WORKBENCH_RADIO_SELECTED_SURFACE: &str = "#1b272d";
 const WORKBENCH_RADIO_SELECTED_BORDER: &str = "#4c5b63";
-const WORKBENCH_TOGGLE_SELECTED_THUMB: &str = "#e8ecee";
+const WORKBENCH_TOGGLE_SELECTED_BORDER: &str = "#414b54";
+const WORKBENCH_TOGGLE_SELECTED_THUMB: &str = "#a4aeb4";
 const UI_HOST_WINDOW_ROOT_CONTROL_ID: &str = "UiHostWindowRoot";
 
 pub(crate) fn to_host_contract_workbench_window_nodes(
@@ -502,7 +503,7 @@ fn normalize_workbench_selection_control_style_values(
         set_toml_string_aliases(
             values,
             &["border", "border_color"],
-            WORKBENCH_SELECTION_ACCENT,
+            WORKBENCH_TOGGLE_SELECTED_BORDER,
         );
         set_toml_string_aliases(
             values,

@@ -96,6 +96,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         || slice == "Runtime 07 owner-budget 30-hotspot current audit sync"
     {
         Some("mirror_docs_static_passed_cargo_pending")
+    } else if slice == "Runtime 07 owner-budget 0-hotspot current audit sync" {
+        Some("mirror_docs_static_passed_cargo_deferred")
     } else if slice == "Runtime 09 UI input route authority" {
         Some("runtime_09_m1_1_ui_input_route_authority_static_passed_cargo_pending")
     } else if slice == "Runtime 09 navigation legacy reply rename" {
@@ -122,6 +124,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo_pending")
     } else if slice == "Runtime 09 UI architecture Markdown renderer split" {
         Some("ui_architecture_markdown_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 09 UI entry map audit sync" {
+        Some("runtime_09_ui_entry_map_audit_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 09 taffy bridge pass order" {
         Some("runtime_09_m2_1_taffy_bridge_pass_order_static_passed_cargo_pending")
     } else if slice == "Runtime 09 virtualization scroll boundary" {
@@ -136,6 +140,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("host_request_payload_boundary_static_passed_cargo_pending")
     } else if slice == "Runtime 10 Dynamic API current audit recheck" {
         Some("dynamic_api_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 10 Dynamic API 2026-07-01 current audit recheck" {
+        Some("dynamic_api_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 10 Dynamic API test boundary Markdown renderer split" {
         Some("dynamic_api_test_markdown_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 10 dynamic_api_session Cargo 验证窗口探测" {
@@ -152,6 +158,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_10_dynamic_api_validation_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 10 session lifecycle inventory split" {
         Some("runtime_10_session_lifecycle_inventory_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 10 session profile owner audit sync" {
+        Some("runtime_10_session_profile_owner_audit_sync_static_passed_cargo_deferred")
+    } else if slice == "Runtime 10 host-request payload test owner split" {
+        Some("runtime_10_host_request_payload_test_owner_split_static_passed_cargo_timeout_no_result")
     } else if slice == "Runtime 10 failure boundary inventory split" {
         Some("runtime_10_failure_boundary_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 10 ABI source inventory split" {
@@ -168,6 +178,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("plugin_surface_lifecycle_markdown_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 06 native plugin public-surface Markdown renderer split" {
         Some("native_plugin_public_surface_markdown_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 06 native hot-update/replay public-surface audit sync" {
+        Some("runtime_06_native_hot_update_replay_public_surface_audit_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 06 F8 RuntimePluginDescriptor builder scaffold" {
         Some("runtime_plugin_descriptor_builder_scaffold_coremin_check_passed")
     } else if slice == "Runtime 06 F8 first-party RuntimePluginDescriptor builder migration" {
@@ -202,6 +214,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("mirror_docs_static_passed_cargo_pending")
     } else if slice == "Runtime 08 ECS 数据面 current audit recheck" {
         Some("ecs_kernel_data_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 08 ECS 数据面 2026-07-01 current audit recheck" {
+        Some("ecs_kernel_data_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 08 ECS source/test inventory split" {
         Some("ecs_kernel_data_source_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 08 ECS anchor inventory split" {
@@ -210,6 +224,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("ecs_kernel_data_markdown_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 08 QueryState Markdown renderer split" {
         Some("ecs_query_state_markdown_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 08 QueryState many_item_array audit sync" {
+        Some("runtime_08_query_state_many_item_array_audit_sync_static_passed_cargo_deferred")
+    } else if slice == "Runtime 08 ECS hard-cutover owner inventory sync" {
+        Some("runtime_08_ecs_hard_cutover_owner_inventory_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 08 F5 world typed mutation errors" {
         Some("world_typed_mutation_errors_coremin_check_passed_partial")
     } else if slice == "Runtime 08 F5 dynamic component typed errors" {

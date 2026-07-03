@@ -75,7 +75,13 @@ pub use scene::{
     RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext, SceneRenderer,
 };
-pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
+pub use shader::{
+    assemble_shader_ide_surface_preview, builtin_shader_ide_module_sources,
+    parse_shader_ide_wgsl_module, validate_shader_ide_wgsl_module,
+    write_shader_ide_env_for_project, MaterialGraphAsset, ShaderGraphAsset, ShaderIdeEnvReport,
+    ShaderIdePreviewError, ShaderIdePreviewVariant, ShaderIdeSurfacePreview,
+    ShaderIdeWgslCheckError, ShaderIdeWgslModuleValidation, ShaderProgramAsset, ShaderVariantKey,
+};
 pub use solari_runtime_provider::{SolariRuntimeProvider, SolariRuntimeProviderRegistration};
 pub use types::{
     GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle,

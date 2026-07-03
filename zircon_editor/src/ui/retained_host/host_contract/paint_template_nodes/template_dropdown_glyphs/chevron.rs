@@ -1,8 +1,11 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
+use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::metrics::{dropdown_chevron_right, dropdown_chevron_size};
 use super::segments::push_segments;
+
+const DROPDOWN_CHEVRON_ICON: &str = "dropdown";
 
 const DROPDOWN_CHEVRON_SEGMENTS: &[(f32, f32, f32, f32)] = &[
     (3.0, 5.0, 2.0, 2.0),
@@ -25,6 +28,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
         width: chevron_size,
         height: chevron_size,
     };
+    if push_icon_asset_pixels(
+        commands,
+        DROPDOWN_CHEVRON_ICON,
+        &chevron,
+        clip,
+        order,
+        Some(style.chevron),
+        opacity,
+    ) {
+        return;
+    }
+
     push_segments(
         commands,
         &chevron,

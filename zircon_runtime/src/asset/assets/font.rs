@@ -43,9 +43,9 @@ impl FontAssetRenderStrategy {
 
     pub fn effective_render_mode(
         &self,
-        legacy_render_mode: Option<UiTextRenderMode>,
+        schema_v1_render_mode: Option<UiTextRenderMode>,
     ) -> Option<UiTextRenderMode> {
-        let mode = legacy_render_mode.or(self.default_mode);
+        let mode = schema_v1_render_mode.or(self.default_mode);
         let allow_native = self.allow_native.unwrap_or(true);
         let allow_sdf = self.allow_sdf.unwrap_or(true);
         match mode {

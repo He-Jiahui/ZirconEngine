@@ -26,6 +26,23 @@ class ZirconBuildShaderPrewarmWgpuReportContractTests(unittest.TestCase):
                     require_wgpu_module_validation=True,
                 )
 
+    def test_validate_report_contract_requires_wgpu_pipeline_validation_when_requested(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report_path = Path(temp_dir) / "shader_variants_report.json"
+            report_path.write_text(
+                json.dumps({"requested_count": 6, "written_count": 6}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "did not confirm WGPU render pipeline validation",
+            ):
+                validate_shader_prewarm_report_contract(
+                    report_path,
+                    require_wgpu_pipeline_validation=True,
+                )
+
     def test_validate_report_contract_accepts_wgpu_validation_counts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             report_path = Path(temp_dir) / "shader_variants_report.json"
@@ -50,6 +67,32 @@ class ZirconBuildShaderPrewarmWgpuReportContractTests(unittest.TestCase):
             validate_shader_prewarm_report_contract(
                 report_path,
                 require_wgpu_module_validation=True,
+            )
+
+    def test_validate_report_contract_accepts_wgpu_pipeline_validation_counts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            report_path = Path(temp_dir) / "shader_variants_report.json"
+            report_path.write_text(
+                json.dumps(
+                    {
+                        "requested_count": 6,
+                        "written_count": 6,
+                        "failed_count": 0,
+                        "wgpu_pipeline_validation": {
+                            "enabled": True,
+                            "requested_count": 6,
+                            "validated_count": 6,
+                            "failed_count": 0,
+                            "skipped_count": 0,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            validate_shader_prewarm_report_contract(
+                report_path,
+                require_wgpu_pipeline_validation=True,
             )
 
     def test_validate_report_contract_rejects_wgpu_validation_total_mismatch(self):

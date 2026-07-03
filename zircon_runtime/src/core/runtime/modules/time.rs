@@ -1,4 +1,4 @@
-use crate::core::ModuleDescriptor;
+use crate::core::{InitLevel, ModuleDescriptor};
 use crate::engine_module::EngineModule;
 
 pub const TIME_MODULE_NAME: &str = "TimeModule";
@@ -17,5 +17,6 @@ impl EngineModule for TimeModule {
 
     fn descriptor(&self) -> ModuleDescriptor {
         ModuleDescriptor::new(TIME_MODULE_NAME, self.module_description())
+            .with_init_level(InitLevel::Kernel)
     }
 }

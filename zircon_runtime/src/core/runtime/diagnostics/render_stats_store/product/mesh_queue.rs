@@ -68,6 +68,20 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.mesh.queue.gpu_morphed_source_draw_count",
+        frame_index,
+        stats.last_mesh_gpu_morphed_source_draw_count,
+        &["render", "mesh", "queue", "morph", "gpu_source"],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.gpu_skinned_morphed_source_draw_count",
+        frame_index,
+        stats.last_mesh_gpu_skinned_morphed_source_draw_count,
+        &["render", "mesh", "queue", "morph", "gpu_source", "skinned"],
+    );
+    record_count(
+        store,
         "render.mesh.queue.skinned_draw_count",
         frame_index,
         stats.last_mesh_skinned_draw_count,

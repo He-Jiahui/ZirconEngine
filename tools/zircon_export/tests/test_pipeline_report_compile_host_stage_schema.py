@@ -135,6 +135,27 @@ class CompileHostStageSchemaTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_report_stage_rejects_compile_host_empty_host_executable(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            host_executable = out / "compile" / "zircon_runtime.exe"
+            _write_compile_host_report(out, host_executable)
+            host_executable.write_bytes(b"")
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertTrue(
+                any(
+                    "compile_host report host_executable" in diagnostic
+                    and "is empty" in diagnostic
+                    for diagnostic in report["diagnostics"]
+                ),
+                report["diagnostics"],
+            )
+
     def test_report_stage_rejects_compile_host_link_plan_blank_feature_entry(
         self,
     ) -> None:

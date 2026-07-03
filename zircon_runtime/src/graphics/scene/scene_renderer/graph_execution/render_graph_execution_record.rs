@@ -75,6 +75,8 @@ pub struct RenderGraphExecutionRecord {
     pass_profile_records: Vec<RenderGraphPassProfileRecord>,
     history_copy_report: RenderHistoryCopyReport,
     scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
+    #[cfg(test)]
+    scene_velocity_readback_rg16_float_bytes: Option<Vec<u8>>,
     exposure_readback_report: RenderExposureReadbackReport,
     color_lut_readback_report: RenderColorLutReadbackReport,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
@@ -243,6 +245,11 @@ impl RenderGraphExecutionRecord {
     }
 
     #[cfg(test)]
+    pub fn set_scene_velocity_readback_rg16_float_bytes(&mut self, bytes: Vec<u8>) {
+        self.scene_velocity_readback_rg16_float_bytes = Some(bytes);
+    }
+
+    #[cfg(test)]
     pub fn set_exposure_readback_report(&mut self, report: RenderExposureReadbackReport) {
         self.exposure_readback_report = report;
     }
@@ -403,6 +410,11 @@ impl RenderGraphExecutionRecord {
 
     pub fn scene_velocity_readback_report(&self) -> RenderSceneVelocityReadbackReport {
         self.scene_velocity_readback_report
+    }
+
+    #[cfg(test)]
+    pub fn scene_velocity_readback_rg16_float_bytes(&self) -> Option<&[u8]> {
+        self.scene_velocity_readback_rg16_float_bytes.as_deref()
     }
 
     pub fn exposure_readback_report(&self) -> RenderExposureReadbackReport {

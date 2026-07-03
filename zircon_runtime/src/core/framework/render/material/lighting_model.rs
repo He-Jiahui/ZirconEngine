@@ -45,7 +45,9 @@ impl FromStr for RenderMaterialLightingModel {
         let trimmed = value.trim();
         let normalized = trimmed.to_ascii_lowercase();
         match normalized.as_str() {
-            "pbr" | "standard" | "physically_based" | "physically-based" => Ok(Self::Pbr),
+            "pbr" | "standard" | "standard_pbr" | "physically_based" | "physically-based" => {
+                Ok(Self::Pbr)
+            }
             "blinn_phong" | "blinn-phong" | "blinn phong" => Ok(Self::BlinnPhong),
             "unlit" | "unshaded" => Ok(Self::Unlit),
             _ => {

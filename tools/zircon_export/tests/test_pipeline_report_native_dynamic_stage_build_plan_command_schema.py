@@ -208,6 +208,28 @@ class PipelineReportNativeDynamicStageBuildPlanCommandSchemaTests(
                     expected_diagnostic,
                 )
 
+    def test_report_stage_rejects_native_dynamic_build_plan_command_target_triple_override(
+        self,
+    ) -> None:
+        package = _native_build_plan_package()
+        cases = (
+            [*package["command"], "--target", "x86_64-unknown-linux-gnu"],
+            [*package["command"], "--target=x86_64-unknown-linux-gnu"],
+        )
+        for command in cases:
+            with self.subTest(command=command):
+                self._assert_native_dynamic_report_field_diagnostic(
+                    "native_build_plan",
+                    _native_build_plan(
+                        packages=[
+                            _native_build_plan_package(command=command),
+                        ]
+                    ),
+                    "native_dynamic report native_build_plan.packages[0].command "
+                    "must not include --target because export target descriptor "
+                    "owns platform target selection",
+                )
+
     def test_report_stage_rejects_native_dynamic_build_plan_command_package_broadening(
         self,
     ) -> None:

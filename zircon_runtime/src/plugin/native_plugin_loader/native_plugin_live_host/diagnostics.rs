@@ -5,6 +5,28 @@ use super::super::{
 };
 use super::keys::module_kind_label;
 
+pub(super) type NativePluginBehaviorDiagnosticResult<T> =
+    std::result::Result<T, NativePluginBehaviorDiagnosticError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginBehaviorDiagnosticError {
+    FailedStatus {
+        label: String,
+        status_code: u32,
+        diagnostics: Vec<String>,
+    },
+}
+
+impl std::fmt::Display for NativePluginBehaviorDiagnosticError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::FailedStatus { diagnostics, .. } => formatter.write_str(&diagnostics.join("; ")),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginBehaviorDiagnosticError {}
+
 pub(super) fn load_report_diagnostics(report: &NativePluginLoadReport) -> Vec<String> {
     let mut diagnostics = report.diagnostics.clone();
     diagnostics.extend(report.descriptor_diagnostics());
@@ -34,12 +56,13 @@ pub(super) fn diagnostics_for_plugin(
 pub(super) fn diagnostics_from_behavior_report(
     label: &str,
     report: NativePluginBehaviorCallReport,
-) -> Result<Vec<String>, String> {
+) -> NativePluginBehaviorDiagnosticResult<Vec<String>> {
     if report.status_code == ZIRCON_NATIVE_PLUGIN_STATUS_OK {
         return Ok(report.diagnostics);
     }
+    let status_code = report.status_code;
     let diagnostics = if report.diagnostics.is_empty() {
-        vec![format!("{label} returned status {}", report.status_code)]
+        vec![format!("{label} returned status {status_code}")]
     } else {
         report
             .diagnostics
@@ -47,7 +70,11 @@ pub(super) fn diagnostics_from_behavior_report(
             .map(|message| format!("{label}: {message}"))
             .collect()
     };
-    Err(diagnostics.join("; "))
+    Err(NativePluginBehaviorDiagnosticError::FailedStatus {
+        label: label.to_string(),
+        status_code,
+        diagnostics,
+    })
 }
 
 pub(super) fn report_diagnostics(

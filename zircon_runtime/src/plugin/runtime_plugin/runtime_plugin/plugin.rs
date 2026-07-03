@@ -1,12 +1,17 @@
+use crate::core::ModuleDescriptor;
 use crate::plugin::{
-    PluginFinishContext, PluginPackageManifest, PluginRuntimeContext, ProjectPluginSelection,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    PluginFinishContext, PluginPackageManifest, PluginReadyContext, PluginRuntimeContext,
+    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 
 use super::super::RuntimePluginDescriptor;
 
 pub trait RuntimePlugin {
     fn descriptor(&self) -> &RuntimePluginDescriptor;
+
+    fn module_descriptor(&self) -> &ModuleDescriptor {
+        self.descriptor().module_descriptor()
+    }
 
     fn package_manifest(&self) -> PluginPackageManifest {
         self.descriptor().package_manifest()
@@ -21,6 +26,13 @@ pub trait RuntimePlugin {
         _registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         Ok(())
+    }
+
+    fn ready(
+        &self,
+        _context: &PluginReadyContext<'_>,
+    ) -> Result<bool, RuntimeExtensionRegistryError> {
+        Ok(true)
     }
 
     fn finish(

@@ -13,7 +13,7 @@ fn editor_main_frame_source() -> String {
 fn editor_main_frame_asset_is_minimal_window_host() {
     let source = editor_main_frame_source();
     let document =
-        UiV2AssetLoader::load_toml_str(&source).expect("editor main frame v2 asset should parse");
+        UiV2AssetLoader::load_toml_str(&source).expect("editor_main_frame.zui should parse");
 
     assert_eq!(document.asset.id, "editor.host.editor_main_frame");
     assert!(source.contains("name = \"task_bar\""));

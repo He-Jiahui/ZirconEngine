@@ -94,6 +94,10 @@ impl VirtualGeometrySubmissionDetail {
         self.submission_slot
     }
 
+    pub(crate) fn payload_slot(self) -> Option<u32> {
+        self.submission_slot
+    }
+
     pub(crate) fn state(self) -> RenderVirtualGeometryExecutionState {
         self.state
     }

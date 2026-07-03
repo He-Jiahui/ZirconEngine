@@ -11,7 +11,7 @@ fn runtime_15_production_file_budget_guard_child_owner_split() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs",
     );
 
     assert_contains_all(

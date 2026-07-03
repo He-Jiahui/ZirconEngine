@@ -6,6 +6,9 @@ from collections.abc import Mapping
 from pathlib import Path
 
 _BLAKE3_HEX_LENGTH = 64
+_WRITTEN_VARIANT_SOURCE_LABELS_MISSING_SOURCE_PROVENANCE = (
+    "written variant source labels missing source provenance"
+)
 
 
 class ReportedWrittenVariant:
@@ -97,12 +100,12 @@ def reported_written_variants(
             source=f"written_variants[{index}].cache_hash",
         )
         source_label = raw_variant.get("source_label")
-        if source_label is not None and (
-            not isinstance(source_label, str) or not source_label
+        if source_label is not None and not _is_trimmed_nonblank_string(
+            source_label
         ):
             raise RuntimeError(
                 "shader prewarm report contains invalid written cache variant "
-                f"entry at index {index}: missing source_label"
+                f"entry at index {index}: invalid source_label"
             )
         variants.append(
             ReportedWrittenVariant(
@@ -164,8 +167,8 @@ def validate_written_variant_source_labels(
     )
     if unknown:
         raise RuntimeError(
-            "shader prewarm cache written variant source labels missing source "
-            "provenance: "
+            "shader prewarm cache "
+            f"{_WRITTEN_VARIANT_SOURCE_LABELS_MISSING_SOURCE_PROVENANCE}: "
             + ", ".join(unknown)
         )
 
@@ -180,9 +183,14 @@ def _source_provenance_labels(report: Mapping[str, object]) -> set[str] | None:
     labels = {
         source.get("source_label")
         for source in sources.values()
-        if isinstance(source, Mapping) and isinstance(source.get("source_label"), str)
+        if isinstance(source, Mapping)
+        and _is_trimmed_nonblank_string(source.get("source_label"))
     }
-    return {label for label in labels if label}
+    return set(labels)
+
+
+def _is_trimmed_nonblank_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value == value.strip()
 
 
 def _duplicates(values) -> list[str]:

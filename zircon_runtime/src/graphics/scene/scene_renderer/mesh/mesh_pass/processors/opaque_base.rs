@@ -18,6 +18,9 @@ impl MeshPassProcessor for OpaqueBasePassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
+        if batch.disabled_passes.disables_base() {
+            return;
+        }
         let phase = match batch.phase() {
             MeshDrawQueuePhase::Opaque => RenderPhase::Opaque3d,
             MeshDrawQueuePhase::AlphaMask => RenderPhase::AlphaMask3d,

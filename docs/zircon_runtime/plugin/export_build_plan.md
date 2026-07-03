@@ -26,8 +26,10 @@ related_code:
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/release_adapters.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
@@ -58,8 +60,10 @@ implementation_files:
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/release_adapters.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
@@ -348,6 +352,18 @@ non-regression, total 16-test preservation, per-owner line budgets, and cross-do
 anchors. Cargo remains deferred under the Runtime 15 implementation-slice cadence and is not
 claimed as passing.
 
+2026-07-01 Runtime 15 M3 export build plan profile feature matrix test child-owner split
+(`runtime_15_export_build_plan_profile_feature_matrix_tests_child_owner_split_static_passed_cargo_deferred`):
+`export_build_plan.rs` now also mounts `export_build_plan/profile_feature_matrix.rs`, moving the
+profile feature TOML projection, invalid required-plugin combination, validate-report summary, and
+LibraryEmbed feature-matrix tests out of the parent. The parent is 423 lines and retains 7 tests
+plus shared helpers; `catalog_projection.rs` is 243 lines with 5 tests, and
+`profile_feature_matrix.rs` is 268 lines with 4 tests. The existing
+`runtime_15_export_build_plan_tests_are_folder_backed` guard now locks both child mounts,
+representative moved-test non-regression, total 16-test preservation, per-owner line budgets, and
+cross-document/status anchors. Cargo remains deferred while external cargo/rustc lanes are active
+and is not claimed as passing.
+
 2026-06-24 Runtime 15 M3 export build plan platform test folder split
 (`runtime_15_export_build_plan_platform_tests_folder_split_static_passed_cargo_deferred`):
 `export_build_plan_platform.rs` now mounts `export_build_plan_platform/browser_hosts.rs`, keeping
@@ -441,3 +457,16 @@ and
 `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_build_export_desktop_editor --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-export-m6-editor-dispatch-0614 --message-format short --color never`.
 Focused `cargo test -p zircon_editor export_wizard_compile_host_path --lib ...` timed out twice
 during lib-test compilation without target output; no focused handoff test pass is claimed.
+
+2026-07-01 Runtime 15 M3 export build plan platform release-adapter test child-owner split
+(`runtime_15_export_build_plan_platform_release_adapter_tests_child_owner_split_static_passed_cargo_deferred`):
+`export_build_plan_platform.rs` now mounts `export_build_plan_platform/release_adapters.rs`
+alongside the existing `export_build_plan_platform/browser_hosts.rs`. The new child owns signing,
+store-upload, and CDN upload release adapter validation while the parent keeps platform policy,
+host scaffold, package manifest, callback adapter, binding/resource glue, and child mounts.
+`runtime_15_export_build_plan_platform_tests_are_folder_backed` locks both child owners,
+moved-test non-regression, total 10-test preservation, per-owner line budgets, and
+cross-document/status anchors. Cargo remains deferred under the Runtime 15 implementation-slice
+cadence and is not claimed as passing.
+Scoped rustfmt passed, standalone structure exacts plus production/test global budget exacts passed
+3/3, and standalone plan-status passed 42/42.

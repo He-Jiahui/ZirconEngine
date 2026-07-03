@@ -80,16 +80,21 @@ status: planned
 
 - 本计划假定 asset 大模块的句柄/生命周期/事件契约稳定；若 Bevy-Style Asset Stack 计划调整 handle 语义，本计划同步适配，UI 侧不自建第二套句柄。
 - 材质类 UI 引用（UI 特效材质）等待渲染计划 `docs/plans/zircon_runtime/render/08-material-shader-permutation.md` 的资产接口，先以 TextureAsset 路径兜底。
+- （2026-07-02 评审收口）字体资产 schema 演进（TTC/WOFF2/变量字体）归 `docs/plans/zircon_runtime/text/01` FR-M2，本计划只消费其产物；`UiResourceResolver::Font` 走 text/01 的 `FontFaceId` 契约。
 
 ## 4. 接口与数据结构草案
 
 ```rust
 // 新增 zircon_runtime/src/asset/assets/ui_theme.rs（样板：assets/font.rs）
+// （2026-07-02 评审收口，U6）theme 文档 = asset.kind = theme_tokens 的 `.zui` profile（生产已有 editor_tokens.zui），
+// 复用 `.zui` importer 分派做物化/facade 注册，不引入第二载体；
+// 原 `from_toml_str` 独立 TOML 载体草案作废。
 pub struct UiThemeAssetDocument {
     pub theme: UiThemeDocument,                 // 04 M1 类型（interface style/theme.rs）
 }
 impl UiThemeAssetDocument {
-    pub fn from_toml_str(document: &str) -> Result<Self, UiAssetDocumentError>;   // 现有错误类型
+    // （作废草案）pub fn from_toml_str(document: &str) -> Result<Self, UiAssetDocumentError>;
+    pub fn from_zui_theme_tokens(document: &str) -> Result<Self, UiAssetDocumentError>;   // 经 .zui profile 分派
 }
 
 // 新增 zircon_runtime/src/asset/assets/ui_icon.rs
@@ -115,7 +120,7 @@ pub struct UiResourceResolver { /* 依赖索引 + asset facade 句柄缓存 + �
 pub enum UiResolvedUiResource {
     Icon { atlas_slot: UiIconAtlasSlot },       // 新增（M4 图标通道）
     Texture { handle: /* asset facade 句柄类型 */ },
-    Font { font_id: UiFontId },                 // 03 M2 类型
+    Font { face_id: FontFaceId },               // （2026-07-02 评审收口）改用 text/01 契约类型 FontFaceId（原 UiFontId 草案作废）
     Theme { fingerprint: u64 },
     Placeholder { diagnostic_index: usize },    // 解析失败兜底
 }
@@ -167,7 +172,7 @@ impl UiCompiledArtifactStore {
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
-| M1.S1 | `UiThemeAsset` + `UiIconAsset` 类型与注册（照 font.rs 样板：assets + facade + importer ingest） | ui_theme.rs、ui_icon.rs、facade/impls.rs | `cargo test -p zircon_runtime --lib asset --locked` | 无删除 |
+| M1.S1 | `UiThemeAsset` + `UiIconAsset` 类型与注册（照 font.rs 样板：assets + facade + importer ingest）。（2026-07-02 评审收口）theme 侧改为：为 `asset.kind = theme_tokens` 补物化/facade 注册，**复用 `.zui` importer 分派**，不引入第二载体；`UiThemeAssetDocument::from_toml_str` 草案作废。M1 **不含字体切片**（原 03 弱依赖改指向 text/01 FR-M2） | ui_theme.rs、ui_icon.rs、facade/impls.rs | `cargo test -p zircon_runtime --lib asset --locked` | 无删除 |
 | M1.S2 | `UiAssetDependencyIndex`：编译期收集三类引用写入（复用 ui_v2_asset_references + resource_ref/collect） | dependency_index.rs、loader.rs | `cargo test -p zircon_runtime --lib dependency_index --locked` | 无删除 |
 | M1.S3 | 双向查询测试 + 与 node 脚本结论一致性对比（CI 双跑） | 测试 + CI 脚本 | 同上 + node 脚本 | node 脚本降级为把关 |
 | M2.S1 | watch → classify → 级联指纹失效贯通（fold_events 接 dependency_index） | watch 消费侧、invalidation/ | `cargo test -p zircon_runtime --lib invalidation --locked` | 无删除 |
@@ -176,7 +181,7 @@ impl UiCompiledArtifactStore {
 | M3.S1 | `UiResourceResolver` 消费级解析（icon/texture/font/theme 四类） | resource_ref/resolver.rs | `cargo test -p zircon_runtime --lib resource_resolver --locked` | resolve 职责收口 |
 | M3.S2 | 占位资源 + 诊断：缺失引用不 panic、不空白、诊断可查询 | resolver.rs | 同上 | 无删除 |
 | M3.S3 | resource browser 数据面：双向查询暴露给 editor（供 09 批次 3） | editor 消费接口 | `cargo test -p zircon_editor --lib --locked` | 无删除 |
-| M4.S1 | 图标通道：SVG 解析（限定子集）→ 栅格（tessellation/SDF，衔接 03 raster 策略）→ atlas slot | ui/icon_atlas/ | `cargo test -p zircon_runtime --lib icon_atlas --locked` | 无删除 |
+| M4.S1 | （2026-07-02 评审收口）先评估**复用 graphics/text 图集设施**（R8/Rgba8 格式分组分页、脏矩形上传、页 LRU，text/04/05），避免重复建设；评估通过则图标通道挂其图集，仅在结论否定时才自建 icon_atlas。其余：SVG 解析（限定子集）→ 栅格（tessellation/SDF，衔接 03 raster 策略）→ atlas slot | ui/icon_atlas/（或 graphics/text 图集复用点） | `cargo test -p zircon_runtime --lib icon_atlas --locked` | 无删除 |
 | M4.S2 | 默认图标包 + 图标渲染对拍 + asset 测试 | editor assets/icons/ | `cargo test -p zircon_editor --lib --locked` + 实机 | 模板内联 icon 路径切资产引用 |
 | M5.S1 | `UiCompiledArtifactStore` 落盘（指纹含 schema/编译器版本，失配即弃） | cache/persistent.rs | `cargo test -p zircon_runtime --lib persistent_cache --locked` | 无删除 |
 | M5.S2 | 冷启动接缓存：v2 loader 先查 store；冷启动时间对比基准记录 | v2/loader.rs、file_cache.rs | 同上 + 启动计时 | 无删除 |
@@ -206,7 +211,7 @@ impl UiCompiledArtifactStore {
 
 | 里程碑 | 前置 | 被依赖 |
 |--------|------|--------|
-| M1 | 04 M1（UiThemeDocument 类型） | 05 M2/M3、03 M2（字体注册，弱）、06 全部（DoD 第 1 条） |
+| M1 | 04 M1（UiThemeDocument 类型） | 05 M2/M3、06 全部（DoD 第 1 条）。（2026-07-02 评审收口）M1 不含字体切片；原「03 M2（字体注册，弱）」被依赖项改指向 text/01 FR-M2 |
 | M2 | 05 M1 | 04 M6（主题热重载）、07 M3（motion 资产热重载） |
 | M3 | 05 M1 | 06 M1（Icon 组件）、09 批次 3（Reference Finder） |
 | M4 | 05 M3、03 M1（栅格策略） | 06 M1（Icon/IconButton DoD） |
@@ -243,3 +248,4 @@ impl UiCompiledArtifactStore {
 | 日期 | 范围 | 状态 | 完成项目 | 验证 |
 | --- | --- | --- | --- | --- |
 | 2026-06-28 | Plan 11 M5 UI asset management `.zui` scope guard | editor_ui_11_m5_ui_asset_management_plan_zui_scope_guard_passed | §1 当前目标已从 `.zui` 单组件 + `.v2.ui.toml` 页面模板改为 `.zui` UI 文档统一入口，并明确 component / view / style / theme_tokens 由 `asset.kind` profile 承载；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不作为当前页面模板或布局描述入口。 | 新增 `test_ui_asset_management_plan_uses_zui_for_current_asset_scope`；RED 先失败列出旧 `.v2.ui.toml` 页面模板口径，GREEN 后通过。该切片不改生产代码、不运行 Cargo。 |
+| 2026-07-02 | 评审收口（文档修订） | editor_ui_05_review_alignment_recorded | M1.S1 theme 侧改为 theme_tokens profile 物化/facade 注册（U6，from_toml_str 草案作废）；`UiResourceResolver::Font` 改用 text/01 `FontFaceId`；§3.4 补字体资产 schema 演进归 text/01 FR-M2；M4.S1 改为先评估复用 graphics/text 图集设施（text/04/05）；M1 明确不含字体切片。 | 文档修订，无代码变更。 |

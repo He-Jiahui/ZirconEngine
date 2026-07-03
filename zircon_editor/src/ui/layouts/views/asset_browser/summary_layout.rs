@@ -2,22 +2,20 @@ use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 
 const SUMMARY_CARD_INSET_X: f32 = 8.0;
 const SUMMARY_CARD_INSET_Y: f32 = 6.0;
-const SUMMARY_VISUAL_MIN_WIDTH: f32 = 48.0;
-const SUMMARY_VISUAL_MAX_WIDTH: f32 = 64.0;
-const SUMMARY_VISUAL_WIDTH_RATIO: f32 = 0.18;
-const SUMMARY_TEXT_GAP: f32 = 14.0;
+const SUMMARY_VISUAL_MAX_EDGE: f32 = 44.0;
+const SUMMARY_TEXT_GAP: f32 = 10.0;
 const SUMMARY_TEXT_RIGHT_INSET: f32 = 10.0;
 const SUMMARY_TEXT_MIN_WIDTH: f32 = 32.0;
-const SUMMARY_NAME_OFFSET_Y: f32 = 7.0;
-const SUMMARY_NAME_HEIGHT: f32 = 12.0;
-const SUMMARY_NAME_CONTINUATION_OFFSET_Y: f32 = 19.0;
-const SUMMARY_NAME_CONTINUATION_HEIGHT: f32 = 12.0;
+const SUMMARY_NAME_OFFSET_Y: f32 = 6.0;
+const SUMMARY_NAME_HEIGHT: f32 = 14.0;
+const SUMMARY_NAME_CONTINUATION_OFFSET_Y: f32 = 20.0;
+const SUMMARY_NAME_CONTINUATION_HEIGHT: f32 = 13.0;
 const SUMMARY_META_ROW_OFFSET_Y: f32 = 27.0;
 const SUMMARY_META_ROW_STACKED_OFFSET_Y: f32 = 36.0;
 const SUMMARY_META_ROW_HEIGHT: f32 = 12.0;
-const SUMMARY_TYPE_BADGE_MIN_WIDTH: f32 = 28.0;
-const SUMMARY_TYPE_BADGE_MAX_WIDTH: f32 = 48.0;
-const SUMMARY_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.42;
+const SUMMARY_TYPE_BADGE_MIN_WIDTH: f32 = 40.0;
+const SUMMARY_TYPE_BADGE_MAX_WIDTH: f32 = 76.0;
+const SUMMARY_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.50;
 const SUMMARY_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.0;
 const SUMMARY_TYPE_BADGE_TEXT_WIDTH_RATIO: f32 = 0.56;
 const SUMMARY_TYPE_BADGE_PADDING_X: f32 = 6.0;
@@ -37,10 +35,8 @@ pub(super) fn apply_compact_content_preview_summary_layout(
     width: f32,
     height: f32,
 ) {
-    let visual_width = (width * SUMMARY_VISUAL_WIDTH_RATIO)
-        .clamp(SUMMARY_VISUAL_MIN_WIDTH, SUMMARY_VISUAL_MAX_WIDTH)
-        .min((width - SUMMARY_CARD_INSET_X * 2.0).max(0.0));
-    let text_x = x + SUMMARY_CARD_INSET_X + visual_width + SUMMARY_TEXT_GAP;
+    let visual_edge = summary_visual_slot_edge(width, height);
+    let text_x = x + SUMMARY_CARD_INSET_X + visual_edge + SUMMARY_TEXT_GAP;
     let text_width = (x + width - text_x - SUMMARY_TEXT_RIGHT_INSET).max(SUMMARY_TEXT_MIN_WIDTH);
     let continuation_height = summary_name_continuation_height(nodes);
     let meta_y = y + summary_meta_row_offset_y(continuation_height);
@@ -60,8 +56,8 @@ pub(super) fn apply_compact_content_preview_summary_layout(
         "AssetBrowserContentPreviewVisual",
         x + SUMMARY_CARD_INSET_X,
         y + SUMMARY_CARD_INSET_Y,
-        visual_width,
-        (height - SUMMARY_CARD_INSET_Y * 2.0).max(28.0),
+        visual_edge,
+        visual_edge,
     );
     set_node_frame(
         nodes,
@@ -119,6 +115,15 @@ pub(super) fn apply_compact_content_preview_summary_layout(
         revision_width,
         SUMMARY_META_ROW_HEIGHT,
     );
+}
+
+fn summary_visual_slot_edge(width: f32, height: f32) -> f32 {
+    let available_width = (width - SUMMARY_CARD_INSET_X * 2.0).max(0.0);
+    let available_height = (height - SUMMARY_CARD_INSET_Y * 2.0).max(0.0);
+    available_width
+        .min(available_height)
+        .min(SUMMARY_VISUAL_MAX_EDGE)
+        .max(0.0)
 }
 
 fn summary_name_continuation_height(nodes: &[ViewTemplateNodeData]) -> f32 {
@@ -221,7 +226,7 @@ mod tests {
                 "Mesh | Ready | rev 12",
             ),
             node("AssetBrowserContentPreviewTypeBadge", "Panel", ""),
-            node("AssetBrowserContentPreviewType", "Label", "MESH"),
+            node("AssetBrowserContentPreviewType", "Label", "UI Layout"),
             node("AssetBrowserContentPreviewState", "Label", "Ready"),
             node("AssetBrowserContentPreviewRevision", "Label", "rev 12"),
         ];
@@ -240,12 +245,34 @@ mod tests {
 
         assert_eq!(card.width, 420.0);
         assert!(visual.x > card.x);
+        assert_eq!(visual.width, visual.height);
+        assert!(
+            visual.width <= SUMMARY_VISUAL_MAX_EDGE,
+            "summary icon slot should stay square and compact: {:?}",
+            visual
+        );
         assert!(name.x > visual.x + visual.width);
+        assert!(
+            name.height >= 14.0,
+            "summary primary title should keep a baseline-safe slot for compact file names: {:?}",
+            name
+        );
+        assert!(
+            name.x - (visual.x + visual.width) <= SUMMARY_TEXT_GAP,
+            "summary text should sit near the square preview slot: visual={:?}, name={:?}",
+            visual,
+            name
+        );
         assert_eq!(continuation.x, name.x);
-        assert!(continuation.y > name.y);
+        assert!(continuation.y >= name.y + name.height);
         assert!(continuation.height > 0.0);
         assert_eq!(legacy_meta.height, 0.0);
         assert!(type_badge.y >= continuation.y + continuation.height);
+        assert!(
+            type_badge.width > 48.0 && type_badge.width <= SUMMARY_TYPE_BADGE_MAX_WIDTH,
+            "summary type badge should expand for readable labels without escaping its cap: {:?}",
+            type_badge
+        );
         assert_eq!(type_label.x, type_badge.x + SUMMARY_TYPE_BADGE_TEXT_INSET_X);
         assert!(state.x > type_badge.x + type_badge.width);
         assert!(revision.x > state.x);
@@ -268,9 +295,16 @@ mod tests {
         apply_compact_content_preview_summary_layout(&mut nodes, 80.0, 320.0, 420.0, 50.0);
 
         let name = frame(&nodes, "AssetBrowserContentPreviewName");
+        let visual = frame(&nodes, "AssetBrowserContentPreviewVisual");
         let continuation = frame(&nodes, "AssetBrowserContentPreviewNameContinuation");
         let type_badge = frame(&nodes, "AssetBrowserContentPreviewTypeBadge");
 
+        assert_eq!(visual.width, visual.height);
+        assert!(
+            visual.width <= SUMMARY_VISUAL_MAX_EDGE,
+            "single-line summary preview should use a compact square slot: {:?}",
+            visual
+        );
         assert_eq!(continuation.height, 0.0);
         assert!(type_badge.y > name.y);
         assert!(

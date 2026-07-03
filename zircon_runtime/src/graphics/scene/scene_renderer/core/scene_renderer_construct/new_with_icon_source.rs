@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::framework::render::ShadingModelDescriptor;
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
@@ -47,6 +47,7 @@ impl SceneRenderer {
             render_pass_executors,
             runtime_prepare_collectors,
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -56,11 +57,13 @@ impl SceneRenderer {
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
         let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
+        let plugin_geometry_sources = plugin_geometry_sources.into_iter().collect::<Vec<_>>();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
         let core = SceneRendererCore::new_with_icon_source(
@@ -71,8 +74,10 @@ impl SceneRenderer {
             backend.backend_name(),
             icon_source,
             &render_features,
+            plugin_geometry_sources,
+            plugin_shading_models.iter().cloned(),
             runtime_prepare_collectors,
-        );
+        )?;
         let streamer = ResourceStreamer::new_with_plugin_shading_models(
             asset_manager,
             &backend.device,

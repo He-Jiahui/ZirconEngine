@@ -75,12 +75,15 @@ status: in_progress
 
 > 现有 `1100/760` 阈值并入 Regular 内的"compact/ultra-compact 钳制档"(保留行为),`640/1260` 作为**折叠/加宽**的新边界。三档 = 截图验收档,内部仍可细分 compact 子档。
 
+补:高度维度决策(2026-07-02 评审收口):`bp.short` 式**高度 tier** 登记为**已知非目标**——当前矮窗行为靠 `COMPACT/ULTRA_BOTTOM_*` compact 钳制兜底(§1 现状表),不进本文断点 tier 体系;若后续矮窗(如 640x420 以下)出现结构级降级需求,另行立项,不在 S15.5 范围内追加。
+
 ### 2.2 token 化阈值(逻辑单位,遵 `13`/`16`)
 断点阈值与抽屉宽/底高改为**约束 token**(接 `region_binding/workbench_constraint_token_name.rs` 体系),且 token 值是 **DPI 无关逻辑单位**(`16` §3.2):`--breakpoint-narrow`/`--breakpoint-wide`/`--breakpoint-ultra`、`--left-drawer-width`/`--right-drawer-width`/`--bottom-output-height`、`--drawer-rail-width`(折叠后 rail 宽)。`region_frames.rs` 的裸 `1100/760/340/220/196…` 收敛为 token 默认值(单源,可被布局预设 `04` 覆盖)。tier 判定取逻辑宽度后再与这些逻辑阈值比较。
 
 ### 2.3 抽屉折叠到 rail(新 tier)
 - Narrow tier:把指定侧抽屉的 `RegionState` 强制走已存在的 collapsed rail 约束,几何产出 `--drawer-rail-width`(仅图标条/内容壳隐藏,点击图标弹出 overlay 抽屉的交互归 03/07),复用 `region/tool_region/collapsed_constraints.rs` 的折叠约束。
 - 折叠优先级:先折 Right(属性/细节),再折 Left(放置/文件);活动抽屉(用户正在用的)最后折。
+- 折叠焦点转移(2026-07-02 评审收口):若折叠发生时键盘焦点位于被折叠抽屉的子树内,焦点**还原到该抽屉对应的 rail 图标**(可聚焦),不静默丢焦;还原语义走 19 的焦点作用域还原(稳定逻辑标识 + 回退作用域首个可聚焦),该用例已回挂 19 测试矩阵。
 - 与 `compute_window_min_width` 协同:折叠后窗口 min 宽显著下降,640px 才真正可用。
 
 ### 2.4 统一响应式协同

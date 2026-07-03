@@ -72,8 +72,8 @@ Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_t
 | `wgpu` / `naga` | `29.0.1` / `29.0.1` | `zircon_runtime::graphics` | default runtime client/editor-host profile through render features | Renderer plan owns upgrades; `zircon_runtime_interface` must stay free of both dependencies. |
 | `taffy` | `0.10` | `zircon_runtime::ui::layout` | runtime UI | Replace only behind the runtime layout bridge after editor UI plan sign-off. |
 | `glam` | `0.32.1` with `serde` | workspace + interface/runtime/editor consumers | none | Precision and ABI seam decisions stay under runtime foundation docs. |
-| `glyphon` | `0.11.0` | runtime render/text submission | runtime UI/render | Current layout backend is still heuristic; glyphon is a render-side/native-text intent, not the active layout shaper. |
-| `fontsdf` | `0.5.3` | runtime text/raster policy | runtime UI/render | Stays local to runtime text/raster policy until SDF atlas implementation replaces the heuristic layout path. |
+| `glyphon` | `0.11.0` | runtime render/text submission | runtime UI/render | Current layout metrics are served by `UiSharedTextShaper` through the `SharedTextService` active backend; glyphon is the native render/backend intent and font submission path. |
+| `fontsdf` | `0.5.3` | runtime text/raster policy | runtime UI/render | Stays local to runtime text/raster policy; SDF render mode now shares layout metrics through `SharedTextService` while later atlas/raster milestones decide final draw/cache policy. |
 | `image` | `0.25.10` | asset import and texture/image processing | none | Shared importer policy owns format expansion. |
 | `gltf` / `tobj` | `1.4.1` / `4.0.3` | runtime asset import and mesh ingest | none | Model-importer plugin work may move behavior outward, but runtime still owns current built-in importer paths. |
 | `notify` | `9.0.0-rc.3` | runtime/editor asset watch paths | none | Upgrade only in a dedicated milestone after `9.0` final is available and watcher event compatibility is checked. |
@@ -93,7 +93,7 @@ The runtime plan previously mentioned several libraries that are not present in 
 
 | Name | Current decision | Owner or follow-up |
 |---|---|---|
-| `cosmic-text` | Not introduced. The current text layout backend is `UiHeuristicTextShaper`; glyphon is only the native render/backend intent. | Future complex text demand may introduce cosmic-text through `UiTextShaper`, not by bypassing that trait. |
+| `cosmic-text` | Not introduced. The current text layout backend is `UiSharedTextShaper`; glyphon is the native render/backend intent and uses the shared text service for layout metrics. | Future complex text demand may introduce cosmic-text through `UiTextShaper`, not by bypassing that trait. |
 | `kira` | Not introduced. Sound runtime uses the existing plugin-owned stack, currently based on `cpal` and custom mixer/DSP/HRTF/occlusion paths. | Sound plugin plan owns audio backend decisions. |
 | `tar` | Not introduced. ZIP is the current desktop/editor archive container; `tar` remains a possible CI/server artifact format only after a separate artifact policy lands. | Do not add to manifests without a server/CI artifact policy and guard update. |
 | `fontdue` | Not introduced in runtime. It remains a temporary `zircon_editor` retained-host text fallback. | Tracked in [Runtime Editor-Only Dependency Backlog](../editor-and-tooling/runtime-editor-only-dependency-backlog.md); remove or replace under the editor UI text plan once retained-host text rendering consumes runtime UI text/glyphon/SDF. |
@@ -139,9 +139,9 @@ Runtime text currently has three separate responsibilities:
 
 | Layer | Current owner | Current state |
 |---|---|---|
-| Layout and measurement | `zircon_runtime::ui::text::UiTextShaper` | Active backend is heuristic; `heuristic_text_shaper_matches_public_layout_entrypoint` and `text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land` lock that behavior. |
+| Layout and measurement | `zircon_runtime::ui::text::UiTextShaper` | Active backend is `SharedTextService`; `shared_text_shaper_matches_public_layout_entrypoint` and `text_shaper_stack_uses_shared_text_service_for_font_backends` lock that behavior. |
 | Font/raster policy | `zircon_runtime::ui::text` | Font registry and raster policy exist; SDF/native layout backends are not connected yet. |
-| GPU/native submission | runtime graphics/UI render paths with `glyphon` | Render-side dependency exists; layout backend remains heuristic until a future text milestone swaps the `UiTextShaper` implementation. |
+| GPU/native submission | runtime graphics/UI render paths with `glyphon` | Render-side dependency exists; Native/SDF render modes currently consume shared layout metrics until a future text milestone swaps the `UiTextShaper` implementation. |
 
 `cosmic-text`, Parley, Swash, or HarfBuzz may only enter through a replacement implementation of `UiTextShaper`. They must not duplicate public text layout entry points or bypass the existing `UiResolvedTextLayout` contract.
 

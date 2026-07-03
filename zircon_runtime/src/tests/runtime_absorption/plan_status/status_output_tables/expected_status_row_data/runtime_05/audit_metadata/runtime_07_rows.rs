@@ -22,28 +22,29 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 05 status-output Runtime 07 owner-budget row",
         &[
-            "Runtime 07 owner-budget 30-hotspot current audit sync",
-            "large_file_hotspot_count = 30",
-            "runtime-other=13",
-            "direct `performance_hotpath_boundary_audit` risks=0 / hotspots=30",
+            "Runtime 07 owner-budget 0-hotspot current audit sync",
+            "large_file_m1_gate_status = classified-and-clear",
+            "large_file_hotspot_count = 0",
+            "large_file_migration_debt_count = 0",
+            "direct `performance_hotpath_boundary_audit` risks=0 / hotspots=0",
         ],
     ),
     (
         "Runtime 05 plan-status owner-budget current mirror fix",
         &[
             "runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs",
-            "large_file_hotspot_count = 30",
-            "runtime-other=13",
-            "Runtime 07 owner-budget 30-hotspot current audit sync",
+            "large_file_hotspot_count = 0",
+            "large_file_m1_gate_status = classified-and-clear",
+            "Runtime 07 owner-budget 0-hotspot current audit sync",
         ],
     ),
     (
         "Runtime 05 Runtime 07 owner-budget status 审计元数据",
         &[
-            "runtime_07_owner_budget_status_index_anchor_count = 7",
-            "runtime_07_owner_budget_status_guard_anchor_count = 6",
+            "runtime_07_owner_budget_status_index_anchor_count = 9",
+            "runtime_07_owner_budget_status_guard_anchor_count = 8",
             "runtime_07_owner_budget_status_guard_present = true",
-            "index 7/7",
+            "index 9/9",
         ],
     ),
 ];

@@ -1,7 +1,8 @@
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::style::{
-    segmented_control_style, selected_segment_border_width, selected_segment_underline_color,
-    selected_segment_underline_height, tab_style, tab_text_color,
+    segmented_control_style, selected_segment_border_width, selected_segment_surface_color,
+    selected_segment_underline_color, selected_segment_underline_height, tab_style, tab_text_color,
+    SEGMENT_SELECTED_BACKGROUND,
 };
 use super::support::{segmented_node, tab_node};
 use crate::ui::retained_host::primitives::Color;
@@ -12,6 +13,18 @@ fn selected_segment_style_defaults_to_underlined_slate_tab_without_declaration()
     let node = segmented_node();
 
     assert_eq!(selected_segment_border_width(&node), 0.0);
+    assert_eq!(
+        selected_segment_surface_color(&node),
+        SEGMENT_SELECTED_BACKGROUND
+    );
+    assert_eq!(
+        selected_segment_surface_color(&node),
+        PALETTE.surface_pressed
+    );
+    assert_ne!(
+        selected_segment_surface_color(&node),
+        PALETTE.surface_selected
+    );
     assert_eq!(selected_segment_underline_height(&node), 2.0);
     assert_eq!(selected_segment_underline_color(&node), PALETTE.accent);
 }

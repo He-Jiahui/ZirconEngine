@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 
 #[test]
 fn material_asset_management_record_set_sorts_and_summarizes_records() {
@@ -7,6 +7,9 @@ fn material_asset_management_record_set_sorts_and_summarizes_records() {
     let material_with_issues = MaterialAsset {
         name: Some("ManagedGrid".to_string()),
         shader: shader.clone(),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,
@@ -39,6 +42,9 @@ fn material_asset_management_record_set_sorts_and_summarizes_records() {
     let ready_material = MaterialAsset {
         name: Some("ManagedReady".to_string()),
         shader: shader.clone(),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,

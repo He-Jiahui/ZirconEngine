@@ -80,10 +80,8 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
         ],
     );
 
-    let runtime_07_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P5 |"))
-        .expect("Runtime index should keep the P5 runtime performance problem row");
+    let runtime_07_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P5", "runtime performance");
     assert_contains_all(
         "Runtime index P5 row",
         runtime_07_problem_row,

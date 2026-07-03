@@ -1,23 +1,31 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use zircon_runtime::asset::ZShaderDocumentV2;
+
+use crate::error::{ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult};
+
 pub(super) fn collect_files_with_extension(
     root: &Path,
     extension: &str,
     files: &mut Vec<PathBuf>,
-) -> Result<(), String> {
+) -> ShaderPrewarmAssetScanResult<()> {
     if !root.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(root)
-        .map_err(|error| format!("failed to read shader package {}: {error}", root.display()))?
+    for entry in
+        fs::read_dir(root).map_err(|source| ShaderPrewarmAssetScanError::ReadShaderPackage {
+            path: root.to_path_buf(),
+            source,
+        })?
     {
-        let entry = entry.map_err(|error| {
-            format!(
-                "failed to read shader package {} entry: {error}",
-                root.display()
-            )
-        })?;
+        let entry =
+            entry.map_err(
+                |source| ShaderPrewarmAssetScanError::ReadShaderPackageEntry {
+                    path: root.to_path_buf(),
+                    source,
+                },
+            )?;
         let path = entry.path();
         if path.is_dir() {
             collect_files_with_extension(&path, extension, files)?;
@@ -77,4 +85,41 @@ pub(super) fn stable_label_for_path(asset_root: &Path, path: &Path) -> String {
         .collect::<Vec<_>>()
         .join("/");
     format!("asset-scan://{normalized}")
+}
+
+pub(super) fn wgsl_files_for_document(
+    package_dir: &Path,
+    document: &ZShaderDocumentV2,
+) -> ShaderPrewarmAssetScanResult<Vec<PathBuf>> {
+    if !document.wgsl_files().is_empty() {
+        return Ok(document.wgsl_files().iter().map(PathBuf::from).collect());
+    }
+    let mut files = Vec::new();
+    collect_files_with_extension(package_dir, "wgsl", &mut files)?;
+    files.sort();
+    files
+        .into_iter()
+        .map(|path| {
+            path.strip_prefix(package_dir)
+                .map(PathBuf::from)
+                .map_err(
+                    |source| ShaderPrewarmAssetScanError::ShaderSourceOutsidePackageDir {
+                        source_path: path.clone(),
+                        package_dir: package_dir.to_path_buf(),
+                        source,
+                    },
+                )
+        })
+        .collect()
+}
+
+pub(super) fn primary_zshader_path(package_dir: &Path) -> Option<PathBuf> {
+    let mut files = Vec::new();
+    collect_files_with_extension(package_dir, "zshader", &mut files).ok()?;
+    files.sort();
+    files.into_iter().next()
+}
+
+pub(super) fn content_hash(source: &str) -> String {
+    blake3::hash(source.as_bytes()).to_hex().to_string()
 }

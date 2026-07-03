@@ -18,6 +18,12 @@ const WRITTEN_VARIANT_UNIQUENESS_STATUS: &str =
     "render_plan08_build_tool_written_variant_uniqueness_contract_python_passed_cargo_deferred";
 const WRITTEN_HASH_SHAPE_STATUS: &str =
     "render_plan08_build_tool_staged_prewarm_written_cache_hash_shape_python_passed_cargo_deferred";
+const SOURCE_LABEL_NONBLANK_STATUS: &str =
+    "render_plan08_build_tool_source_label_nonblank_contract_python_passed_cargo_deferred";
+const SOURCE_LABEL_TRIM_STATUS: &str =
+    "render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred";
+const EXPLICIT_REGISTRY_STATUS: &str =
+    "render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
@@ -27,6 +33,9 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
     let build_tool = read_repo("tools/zircon_build.py");
     let acceptance_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
+    let acceptance_handoff_tests =
+        read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_handoff.py");
+    let acceptance_test_sources = format!("{acceptance_tests}{acceptance_handoff_tests}");
     let prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let permutation_registry_tests =
         read_repo("tools/tests/test_zircon_build_shader_permutation_registry_contract.py");
@@ -66,12 +75,16 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
             "staged shader prewarm acceptance requires all requested variants written",
             "staged shader prewarm acceptance requires written cache variants",
             "staged shader prewarm acceptance requires written cache variant ",
+            "value = variant.get(field)",
+            "field == \"source_label\" and value != value.strip()",
             "\"cache_hash\"",
             "\"canonical_string\"",
             "\"source_label\"",
             "validate_shader_prewarm_report_contract(",
             "validate_shader_prewarm_cache_artifact_contract(",
             "validate_shader_resource_registry_export_contract(",
+            "or config.shader_prewarm_resource_registry_path",
+            "report_path=config.shader_prewarm_report_path",
             "require_wgpu_module_validation=getattr(",
             "require_source_provenance=True",
             "expected_pass_types=_PRODUCT_MATERIAL_MESH_PASS_TYPES",
@@ -90,6 +103,8 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
             "def validate_unique_written_variant_identity(",
             "def validate_cache_hash_shape(",
             "def validate_written_variant_source_labels(",
+            "def _is_trimmed_nonblank_string(",
+            "invalid source_label",
             "_BLAKE3_HEX_LENGTH = 64",
             "duplicate written cache variant identity",
             "cache_hash=",
@@ -107,10 +122,11 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
     );
     assert_contains_all(
         "python tests lock acceptance behavior and build handoff",
-        &acceptance_tests,
+        &acceptance_test_sources,
         &[
             "test_acceptance_contract_validates_report_cache_and_exported_registry",
-            "test_acceptance_contract_skips_export_validation_for_explicit_registry",
+            "test_acceptance_contract_validates_explicit_registry_against_report",
+            "test_acceptance_contract_rejects_explicit_registry_without_ready_revision",
             "test_acceptance_contract_rejects_runtime_fallback_layout_drift",
             "test_acceptance_contract_accepts_runtime_fallback_layout",
             "test_acceptance_contract_rejects_empty_success_report",
@@ -119,6 +135,8 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
             "test_acceptance_contract_requires_written_variant_identity",
             "test_acceptance_contract_rejects_incomplete_written_variant_identity",
             "test_acceptance_contract_requires_written_variant_source_label_identity",
+            "test_acceptance_contract_rejects_blank_written_variant_source_label",
+            "test_acceptance_contract_rejects_untrimmed_written_variant_source_label",
             "test_acceptance_contract_rejects_duplicate_written_variant_identity",
             "test_acceptance_contract_rejects_invalid_written_variant_cache_hash_shape",
             "test_acceptance_contract_rejects_forward_only_staged_pass_report",
@@ -160,6 +178,10 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
         (
             "tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py",
             acceptance_tests.as_str(),
+        ),
+        (
+            "tools/tests/test_zircon_build_shader_prewarm_acceptance_handoff.py",
+            acceptance_handoff_tests.as_str(),
         ),
         (
             "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs",
@@ -204,7 +226,15 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
                 WRITTEN_VARIANT_UNIQUENESS_STATUS,
                 "Build-tool staged prewarm written cache-hash shape acceptance",
                 WRITTEN_HASH_SHAPE_STATUS,
+                "Build-tool source-label nonblank contract",
+                SOURCE_LABEL_NONBLANK_STATUS,
+                "Build-tool source-label trim contract",
+                SOURCE_LABEL_TRIM_STATUS,
+                "Build-tool explicit registry exact revision acceptance",
+                EXPLICIT_REGISTRY_STATUS,
                 "test_acceptance_contract_validates_report_cache_and_exported_registry",
+                "test_acceptance_contract_validates_explicit_registry_against_report",
+                "test_acceptance_contract_rejects_explicit_registry_without_ready_revision",
                 "test_acceptance_contract_rejects_forward_only_staged_pass_report",
                 "expected_pass_types",
                 "taa_reactive_mask",
@@ -214,12 +244,16 @@ fn runtime_15_shader_prewarm_acceptance_contract_is_wired() {
                 "test_acceptance_contract_requires_written_variant_identity",
                 "test_acceptance_contract_rejects_incomplete_written_variant_identity",
                 "test_acceptance_contract_requires_written_variant_source_label_identity",
+                "test_acceptance_contract_rejects_blank_written_variant_source_label",
+                "test_acceptance_contract_rejects_untrimmed_written_variant_source_label",
                 "test_acceptance_contract_rejects_duplicate_written_variant_identity",
                 "test_acceptance_contract_rejects_invalid_written_variant_cache_hash_shape",
+                "test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label",
                 "test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity",
                 "tools/zircon_build_shader_prewarm_written_variants.py",
                 "duplicate written cache variant identity",
                 "runtime fallback root",
+                "usable shader ResourceRecord revisions",
                 "runtime_15_shader_prewarm_acceptance_contract_is_wired",
             ],
         );

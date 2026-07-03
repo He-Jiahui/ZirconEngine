@@ -20,9 +20,24 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_shading_model.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
@@ -55,9 +70,22 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
@@ -82,6 +110,12 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_light_buffer_for_all_builtin_light_types
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_receives_gpu_light_buffer
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_is_valid_wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_rejects_unknown_shading_model_deferred_include (2026-07-01 Deferred lighting include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_uses_custom_shading_model_deferred_include_source (2026-07-01 Deferred lighting include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs::tests::exported_include_source_set_feeds_forward_and_gbuffer_template_requests (2026-07-01 Project/plugin shading-model include source set: direct lib-test binary passed 1/1; Cargo wrapper deferred)
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs::runtime_custom_shading_model_sources_compile_as_wgpu_modules (2026-07-01 Custom shading-model runtime WGPU module validation: passed 1/1)
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs::custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source (2026-07-01 Deferred lighting custom include WGPU pipeline validation: passed 1/1)
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_shading_model.rs::render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss (2026-07-01 Custom shading-model product material-pass staged cache WGPU validation: passed 1/1)
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs::tests::light_grid_builder_marks_directional_light_across_all_tiles_and_bins
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs::tests::light_grid_builder_culls_point_light_to_screen_and_depth_ranges
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs::tests::light_grid_builder_increases_tile_size_to_fit_mask_budget
@@ -132,6 +166,67 @@ light-grid path. Directional lights use the existing single-shadow receiver
 when the packed light marks `casts_shadow`, while point, spot, and rect lights
 use range attenuation and type-specific cone or facing filters. Deferred
 lighting binds the same group3 GPUScene layout used by mesh passes.
+
+Deferred lighting include source dispatch is now request-level instead of
+hardcoded entirely inside `deferred_lighting.wgsl`. The default
+`DEFERRED_LIGHTING_SHADER` still includes GPUScene, light-grid, shadow, and the
+built-in StandardPBR/BlinnPhong/Unlit deferred leaf functions, but
+`assemble_deferred_lighting_shader_source(...)` can also receive
+`ShadingModelDescriptor.deferred_include` rows and request-local plugin WGSL
+through `with_shading_model_deferred_include_source(...)`. Missing plugin
+sources return `UnknownDeferredInclude`; the custom toon test
+`deferred_lighting_shader_uses_custom_shading_model_deferred_include_source`
+locks the `zr_shade_deferred_toon.wgsl` injection path. Status:
+`render_plan08_deferred_lighting_include_source_dispatch_static_passed_cargo_deferred`.
+`ShadingModelIncludeSourceSet::from_project_asset_manager(...)` now resolves
+project/plugin ready shader assets into deferred include sources, and
+`DeferredLightingShaderSourceRequest::with_shading_model_deferred_include_sources(...)`
+copies that deferred lane into the same request source path.
+
+Runtime shading-model include source handoff closes the deferred lighting
+pipeline construction step under status
+`render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred`.
+`DeferredSceneResources::new(...)` now receives the project asset manager and
+plugin shading-model descriptors, and `create_lighting_pipeline(...)` assembles
+the lighting WGSL with `assemble_deferred_lighting_shader_source(...)` before
+creating the WGPU render pipeline. The same streamer handoff also reaches
+deferred GBuffer geometry recording, so plugin GBuffer encode includes and
+plugin deferred lighting includes now share one runtime source-set owner.
+Custom shading-model runtime WGPU module validation is now closed for the
+Forward/Base and deferred GBuffer source consumers under status
+`render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred`.
+`runtime_custom_shading_model_sources_compile_as_wgpu_modules` proves authored
+`zr_shading_toon.wgsl` and `zr_gbuffer_encode_toon.wgsl` sources can pass
+through `ResourceStreamer` and create WGPU shader modules. Deferred lighting
+custom include WGPU pipeline validation is now closed under status
+`render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred`.
+`custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source`
+uses product lighting and GPUScene layouts plus `create_lighting_pipeline(...)`
+to create the deferred lighting render pipeline from project plugin include
+sources. Product scene/readback evidence, RenderDoc capture, and broader
+miss=0 remain separate acceptance gates.
+
+Custom shading-model product material-pass staged-cache validation exposed the
+runtime graph context boundary for deferred lighting. The Lighting stage needs
+deferred resources and mesh draw lists so the deferred graph executor can access
+GBuffer/light context, but it does not need the GBuffer recording streamer.
+`RenderPassExecutionGpuContext::with_deferred_lighting_renderer(...)` therefore
+attaches only deferred resources and draw lists, while
+`with_deferred_renderer(deferred, streamer, mesh_draw_lists)` remains the
+GBuffer-only path that can record deferred geometry. The focused product test
+`render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss`
+submits `lighting_model = "custom:toon"` through deferred GBuffer, lighting,
+post-process, TAA reactive mask, and Velocity while requiring staged disk hits
+and compile miss=0. Status:
+`render_plan08_custom_shading_model_product_material_pass_staged_cache_wgpu_passed_renderdoc_deferred`.
+
+The custom second-launch follow-up keeps the same lighting graph contract but
+runs it through two fresh product frameworks. Test
+`render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss`
+requires both launches to hit the staged fallback cache for the custom
+shading-model material, exercise the Velocity frame with previous transforms,
+and leave the runtime shader cache root empty. Status:
+`render_plan08_custom_shading_model_second_launch_staged_cache_wgpu_passed_renderdoc_deferred`.
 
 `SceneUniform` no longer contains directional, point, or spot light payloads;
 it keeps camera matrices, ambient color, and motion state. Non-lighting WGSL

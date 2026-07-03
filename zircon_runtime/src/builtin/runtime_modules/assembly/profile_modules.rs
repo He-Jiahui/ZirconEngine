@@ -17,8 +17,7 @@ pub(super) fn runtime_modules_for_runtime_profile(
 ) -> RuntimeModuleLoadReport {
     if profile_id == RuntimeProfileId::Minimal {
         let profile = RuntimeProfileDescriptor::for_id(profile_id);
-        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
-            .with_runtime_plugin_availability(runtime_profile_availability(&profile));
+        return minimal_profile_runtime_modules_report(runtime_profile_availability(&profile));
     }
 
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
@@ -51,12 +50,11 @@ pub(super) fn runtime_modules_for_runtime_profile_manifest_with_plugin_registrat
     let registrations = registrations.into_iter().collect::<Vec<_>>();
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
     if profile_id == RuntimeProfileId::Minimal {
-        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
-            .with_runtime_plugin_availability(runtime_profile_manifest_availability(
-                &profile,
-                manifest,
-                registrations.iter().copied(),
-            ));
+        return minimal_profile_runtime_modules_report(runtime_profile_manifest_availability(
+            &profile,
+            manifest,
+            registrations.iter().copied(),
+        ));
     }
 
     runtime_modules_for_profile_manifest_with_plugin_registration_reports(
@@ -98,12 +96,11 @@ pub(super) fn runtime_modules_for_runtime_profile_manifest_with_plugin_and_featu
         .collect::<Vec<_>>();
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
     if profile_id == RuntimeProfileId::Minimal {
-        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules())
-            .with_runtime_plugin_availability(runtime_profile_manifest_availability(
-                &profile,
-                manifest,
-                registrations.iter(),
-            ));
+        return minimal_profile_runtime_modules_report(runtime_profile_manifest_availability(
+            &profile,
+            manifest,
+            registrations.iter(),
+        ));
     }
 
     let mut report = super::registration_reports::runtime_modules_for_target_with_plugin_and_feature_registration_reports(
@@ -115,4 +112,16 @@ pub(super) fn runtime_modules_for_runtime_profile_manifest_with_plugin_and_featu
     report.runtime_plugin_availability =
         runtime_profile_manifest_availability(&profile, manifest, registrations.iter());
     report
+}
+
+fn minimal_profile_runtime_modules_report(
+    availability: crate::plugin::RuntimePluginAvailabilityReport,
+) -> RuntimeModuleLoadReport {
+    match minimal_profile_runtime_modules() {
+        Ok(modules) => {
+            RuntimeModuleLoadReport::new(modules).with_runtime_plugin_availability(availability)
+        }
+        Err(error) => RuntimeModuleLoadReport::from_core_error(error)
+            .with_runtime_plugin_availability(availability),
+    }
 }

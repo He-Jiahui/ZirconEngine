@@ -714,7 +714,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     let toggle = template_contract_node(&nodes, "WorkbenchToggleOn");
     assert_eq!(toggle.value_number, 34.0);
-    assert_eq!(toggle.layout_icon_size, 14.0);
+    assert_eq!(toggle.layout_icon_size, 12.0);
     assert_eq!(toggle.layout_content_offset_x, 10.0);
     assert_eq!(toggle.layout_content_offset_y, 18.0);
     assert_eq!(
@@ -723,11 +723,11 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     );
     assert_eq!(
         style_color_u8(toggle.button_style.element.foreground_color.as_ref()),
-        Some([232, 236, 238, 255])
+        Some([164, 174, 180, 255])
     );
     assert_eq!(
         style_color_u8(toggle.button_style.element.border_color.as_ref()),
-        Some([42, 166, 184, 255])
+        Some([65, 75, 84, 255])
     );
     assert!(toggle.frame.x >= component_labs.frame.x);
     assert!(
@@ -946,7 +946,7 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert!(input_focused.focused);
     assert_eq!(
         render_border_for_control(&bridge, "WorkbenchInputFocused").as_deref(),
-        Some("#1b98a0")
+        Some("#2a3238")
     );
     let input_disabled = template_contract_node(&nodes, "WorkbenchInputDisabled");
     assert!(input_disabled.disabled);
@@ -3250,11 +3250,11 @@ fn componentized_workbench_pointer_focuses_input_fields_without_authored_binding
     assert!(control_component_focused(&bridge, "WorkbenchInputText"));
     assert_eq!(
         render_background_for_control(&bridge, "WorkbenchInputText").as_deref(),
-        Some("#11191c")
+        Some("#151b1f")
     );
     assert_eq!(
         render_border_for_control(&bridge, "WorkbenchInputText").as_deref(),
-        Some("#1b98a0")
+        Some("#2a3238")
     );
     assert!(effects
         .dirty_domains()
@@ -3281,7 +3281,11 @@ fn componentized_workbench_pointer_focuses_input_fields_without_authored_binding
     );
     assert_eq!(
         render_background_for_control(&bridge, "WorkbenchInputStepper").as_deref(),
-        Some("#11191c")
+        Some("#151b1f")
+    );
+    assert_eq!(
+        render_border_for_control(&bridge, "WorkbenchInputStepper").as_deref(),
+        Some("#2a3238")
     );
     assert!(effects
         .dirty_domains()

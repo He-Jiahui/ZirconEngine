@@ -12,6 +12,7 @@ pub(super) fn push_button_label(
     y_offset: f32,
     width: f32,
     font_size: f32,
+    text_style: UiTextRunPaintStyle,
     label: String,
     color: [u8; 4],
     opacity: f32,
@@ -30,7 +31,7 @@ pub(super) fn push_button_label(
         color,
         font_size,
         line_height,
-        UiTextRunPaintStyle::default(),
+        text_style,
         opacity,
     ));
 }

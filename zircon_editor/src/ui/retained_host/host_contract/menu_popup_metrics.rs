@@ -1,8 +1,12 @@
+use crate::ui::retained_host::popup_anchor_metrics::SLATE_POPUP_ANCHOR_METRICS;
+
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_EDGE_INSET: f32 = 6.0;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_ROW_HEIGHT: f32 = 28.0;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_ROW_GAP: f32 = 2.0;
-pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_ANCHOR_GAP: f32 = 3.0;
-pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_SHELL_MARGIN: f32 = 8.0;
+pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_ANCHOR_GAP: f32 =
+    SLATE_POPUP_ANCHOR_METRICS.anchor_gap;
+pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_SHELL_MARGIN: f32 =
+    SLATE_POPUP_ANCHOR_METRICS.edge_margin;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_MIN_VISIBLE_HEIGHT: f32 = 72.0;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_TEXT_INSET_X: f32 = 8.0;
 pub(in crate::ui::retained_host::host_contract) const MENU_POPUP_TEXT_INSET_Y: f32 = 6.0;

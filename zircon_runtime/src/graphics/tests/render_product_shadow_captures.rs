@@ -177,6 +177,9 @@ fn register_shadow_capture_material(
     let material = MaterialAsset {
         name: Some(name.to_string()),
         shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: None,
         normal_texture: None,

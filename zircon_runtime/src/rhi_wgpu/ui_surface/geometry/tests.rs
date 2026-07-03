@@ -2,6 +2,7 @@ use crate::rhi::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
     UiSurfaceImageUvRect, UiSurfaceRect, UiSurfaceTextStyle,
 };
+use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 use super::*;
 
@@ -263,6 +264,8 @@ fn wgpu_ui_surface_text_bounds_clip_to_damage_and_command_clip() {
         kind: UiSurfaceCommandKind::Text {
             text: "Status".to_string(),
             color: [255, 255, 255, 255],
+            font_family: None,
+            font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
             font_size: 12.0,
             line_height: 14.0,
             style: UiSurfaceTextStyle::Regular,
@@ -293,6 +296,8 @@ fn wgpu_ui_surface_text_skips_disjoint_damage() {
         kind: UiSurfaceCommandKind::Text {
             text: "Hidden".to_string(),
             color: [255, 255, 255, 255],
+            font_family: None,
+            font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
             font_size: 12.0,
             line_height: 14.0,
             style: UiSurfaceTextStyle::Regular,

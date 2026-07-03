@@ -7,7 +7,24 @@ related_code:
   - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
   - dev/bevy/crates/bevy_render/src/render_resource/bind_group_layout.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/snapshot.rs
+  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/page_payload.rs
   - zircon_runtime/src/core/framework/render/shader/mod.rs
+  - zircon_runtime/src/core/framework/render/shader/ide_env.rs
+  - zircon_runtime/src/bin/zircon_shader_ide_env/args.rs
+  - zircon_runtime/src/bin/zircon_shader_ide_env/run.rs
+  - zircon_runtime/src/bin/zircon_shader_ide_env/main.rs
+  - zircon_runtime/src/graphics/shader/ide_env_generation.rs
+  - zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs
+  - zircon_runtime/src/graphics/shader/ide_preview.rs
+  - zircon_runtime/src/graphics/shader/ide_validation.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_runtime/src/core/framework/render/shader/module_import.rs
+  - zircon_runtime/src/core/framework/render/shader/asset_kind.rs
+  - zircon_runtime/src/core/framework/render/shader/render_state.rs
+  - zircon_runtime/src/core/framework/render/shader/queue.rs
+  - zircon_runtime/src/core/framework/render/shader/resource.rs
   - zircon_runtime/src/core/framework/render/shader/stage.rs
   - zircon_runtime/src/core/framework/render/shader/entry_point.rs
   - zircon_runtime/src/core/framework/render/shader/geometry_source.rs
@@ -18,6 +35,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/core/framework/render/shader/pipeline_layout.rs
+  - zircon_runtime/src/core/framework/render/shader/compute_dispatch.rs
+  - zircon_runtime/src/core/framework/render/shader/fullscreen_pass.rs
+  - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/asset/assets/material/alpha_mode.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
@@ -25,9 +45,13 @@ related_code:
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/shader/zshader.rs
+  - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/tests/project/zmeta/compound_shader.rs
   - zircon_runtime/src/asset/assets/shader/entry_point.rs
   - zircon_runtime/src/asset/assets/shader/dependency.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/shader_runtime.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs
@@ -35,18 +59,74 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_shader_quality.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/fullscreen_pass.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/prewarm_pipeline_validation.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/morph.rs
+  - zircon_runtime/src/graphics/scene/gpu_scene/virtual_geometry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/geometry_source_selection.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_resident_upload.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_submission_detail.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/extract_output.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/page_payload.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/automatic_extract.rs
+  - zircon_plugins/virtual_geometry/runtime/src/provider.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_asset_payload_decode.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_cluster_payload_upload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/geometry_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
@@ -56,20 +136,31 @@ related_code:
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/graphics/shader/template/mod.rs
   - zircon_runtime/src/graphics/shader/template/assemble.rs
-  - zircon_runtime/src/graphics/shader/template/include_registry.rs
+  - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_runtime/src/graphics/shader/template/material_surface.rs
   - zircon_runtime/src/graphics/shader/template/pass_specialization.rs
+  - zircon_runtime/src/graphics/shader/template/deferred_gbuffer.rs
   - zircon_runtime/src/graphics/shader/template/taa_reactive_mask.rs
   - zircon_runtime/src/graphics/shader/template/validation.rs
   - zircon_runtime/src/graphics/shader/template/tests.rs
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_surface_types.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_static.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_morphed.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned_morphed.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_gbuffer.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_depth.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_depth_alpha.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
@@ -78,21 +169,49 @@ related_code:
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_velocity_alpha.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_taa_reactive_mask.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/test_support.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/staged_prewarm.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/shading_model_parity.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/staged_prewarm/material_passes.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/mod.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/case.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/manifest.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/fixture.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/pipeline.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/assertions.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/second_launch.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_shading_model.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_second_launch.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/product_png.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_staged_cache.rs
+  - zircon_runtime/src/graphics/tests/project_render.rs
+  - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/render_plan08_three_shading_models_forward_deferred_parity.rs
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
@@ -103,11 +222,15 @@ related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/error.rs
   - zircon_runtime/src/core/resource/manager/registry_export.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
   - zircon_plugins/virtual_geometry/plugin.toml
+  - zircon_plugins/native_dynamic_fixture/assets/shader.wgsl.zmeta
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest/geometry_source.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_live_resource_registry.rs
@@ -115,9 +238,23 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry_auto_export.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_permutation_registry_auto_export.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_geometry_source_descriptor.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_shading_model_descriptor.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_revision.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_export_file.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_cli_dry_run.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_cli_selection.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_command.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_fixture.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_live_wgpu.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_wrapper_no_proxy.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_wrapper_orchestration.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_runtime_staged_cache_hit.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_material_passes_staged_cache.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_product_staged_cache.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_live_asset_roots.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/depth_prepass_pure_depth_product_migration.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_module_validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_pipeline_validation.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs
@@ -131,6 +268,14 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_staged_wgpu_handoff_command_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_auto_export.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_page_cluster_shader_bindings.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_resident_buffers_upload.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/morph_storage_buffers_upload.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/morph_payload_projection.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/morph_payload_slot_indexing.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/morph_geometry_source_selection.rs
+  - zircon_runtime/src/graphics/shader/template/tests.rs::render_shader_template_validates_morphed_geometry_sources_with_payload_slots
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_mesh_pass_processors.rs
   - tools/zircon_build.py
   - tools/zircon_build_shader_prewarm.py
@@ -140,6 +285,7 @@ related_code:
   - tools/zircon_build_shader_prewarm_acceptance.py
   - tools/zircon_build_shader_prewarm_written_variants.py
   - tools/tests/test_zircon_build_shader_prewarm.py
+  - tools/tests/test_zircon_build_shader_prewarm_wrapper_orchestration.py
   - tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_command_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py
@@ -151,6 +297,18 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/shader/mod.rs
+  - zircon_runtime/src/core/framework/render/shader/ide_env.rs
+  - zircon_runtime/src/bin/zircon_shader_ide_env/args.rs
+  - zircon_runtime/src/bin/zircon_shader_ide_env/run.rs
+  - zircon_runtime/src/bin/zircon_shader_ide_env/main.rs
+  - zircon_runtime/src/graphics/shader/ide_env_generation.rs
+  - zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs
+  - zircon_runtime/src/graphics/shader/ide_preview.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_runtime/src/core/framework/render/shader/asset_kind.rs
+  - zircon_runtime/src/core/framework/render/shader/render_state.rs
+  - zircon_runtime/src/core/framework/render/shader/queue.rs
+  - zircon_runtime/src/core/framework/render/shader/resource.rs
   - zircon_runtime/src/core/framework/render/shader/stage.rs
   - zircon_runtime/src/core/framework/render/shader/entry_point.rs
   - zircon_runtime/src/core/framework/render/shader/geometry_source.rs
@@ -180,15 +338,42 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_shader_quality.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
+  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/geometry_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
@@ -198,20 +383,30 @@ implementation_files:
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/graphics/shader/template/mod.rs
   - zircon_runtime/src/graphics/shader/template/assemble.rs
-  - zircon_runtime/src/graphics/shader/template/include_registry.rs
+  - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_runtime/src/graphics/shader/template/material_surface.rs
   - zircon_runtime/src/graphics/shader/template/pass_specialization.rs
+  - zircon_runtime/src/graphics/shader/template/deferred_gbuffer.rs
   - zircon_runtime/src/graphics/shader/template/taa_reactive_mask.rs
   - zircon_runtime/src/graphics/shader/template/validation.rs
   - zircon_runtime/src/graphics/shader/template/tests.rs
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_surface_types.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_static.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_morphed.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned_morphed.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_gbuffer.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_depth.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_depth_alpha.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
@@ -220,15 +415,25 @@ implementation_files:
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_velocity_alpha.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_taa_reactive_mask.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/test_support.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs
   - zircon_runtime/src/dynamic_api/mod.rs
@@ -241,11 +446,13 @@ implementation_files:
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/core/resource/manager/registry_export.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
   - zircon_plugins/virtual_geometry/plugin.toml
+  - zircon_plugins/native_dynamic_fixture/assets/shader.wgsl.zmeta
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest/geometry_source.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_live_resource_registry.rs
@@ -254,6 +461,7 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_asset_roots_auto_export.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/depth_prepass_pure_depth_product_migration.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_module_validation.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_pipeline_validation.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs
@@ -268,6 +476,17 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_staged_wgpu_handoff_command_contract.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_auto_export.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_export_file.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_cli_dry_run.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_cli_selection.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_command.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_fixture.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_live_wgpu.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_wrapper_no_proxy.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_wrapper_orchestration.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_runtime_staged_cache_hit.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_live_asset_roots.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_mesh_pass_processors.rs
   - tools/zircon_build.py
@@ -277,6 +496,7 @@ implementation_files:
   - tools/zircon_build_shader_prewarm_acceptance.py
   - tools/zircon_build_shader_prewarm_written_variants.py
   - tools/tests/test_zircon_build_shader_prewarm.py
+  - tools/tests/test_zircon_build_shader_prewarm_wrapper_orchestration.py
   - tools/tests/test_zircon_build_shader_prewarm_command_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py
@@ -294,7 +514,140 @@ plan_sources:
   - docs/superpowers/plans/2026-05-24-shader-readiness-report.md
   - docs/superpowers/plans/2026-05-25-typed-shader-definitions.md
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
+  - docs/plans/zircon_runtime/shader/01-shader-asset-kinds-and-zshader-v2.md
+  - docs/plans/zircon_runtime/shader/05-ide-and-authoring-dx.md
 tests:
+  - rustfmt --edition 2021 zircon_runtime/src/asset/mod.rs zircon_runtime/src/asset/assets/mod.rs zircon_runtime/src/asset/assets/shader/mod.rs zircon_runtime/src/asset/assets/shader/zshader.rs zircon_runtime/src/asset/tests/assets/shader_readiness.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/shader/asset_kind.rs zircon_runtime/src/core/framework/render/shader/queue.rs zircon_runtime/src/core/framework/render/shader/render_state.rs zircon_runtime/src/core/framework/render/shader/resource.rs (2026-07-02 SH01-M1 zshader v2 contract parse: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/mod.rs (2026-07-03 Frameworks 02 M3 plugin workspace ShaderIdeModuleSource facade backfill: passed)
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-plugins-workspace-build-0703 --message-format short --color never" (2026-07-03 Frameworks 02 M3 plugin workspace ShaderIdeModuleSource facade backfill: first rerun exposed missing facade export; final rerun passed in 23m04s with existing warnings)
+  - cargo test -p zircon_runtime --lib zshader_v2 --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh01-m1 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SH01-M1 zshader v2 contract parse: passed, 3 passed, 5948 filtered; existing repository warnings only)
+  - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/zshader.rs (2026-07-02 SH01-M2 zshader v2 importer cutover review guard: passed)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never (2026-07-02 SH01-M2 zshader v2 importer cutover: passed with existing repository warnings)
+  - cargo check -p zircon_runtime --tests --locked --jobs 1 --message-format short --color never (2026-07-02 SH01-M2 zshader v2 importer cutover test compile: passed with existing repository warnings)
+  - cargo test -p zircon_runtime --lib zshader_v2 --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh01-m2 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 SH01-M2 zshader v2 importer cutover: passed, 5 passed, 5952 filtered; existing repository warnings only)
+  - git ls-files '*.zshader' plus static scan for version = 1, pipeline_layout, shader_defs, and shader_def_values (2026-07-02 SH01-M2 repository zshader migration: passed, no tracked matches)
+  - cargo check -p zircon_runtime --bin zircon_shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never (2026-07-03 SH05-M2 default shader IDE preview output: passed with existing repository warnings after an earlier cold-build timeout produced no counted result)
+  - cargo test -p zircon_runtime --bin zircon_shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M2 default shader IDE preview and incremental stub diff: passed 5/5, covering --variants parsing, module_map/stubs/generated material, default preview WGSL, segment JSON, and one-byte module diff rewrites)
+  - cargo check -p zircon_runtime --bin zircon_shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never (2026-07-03 SH05-M2 Naga stub parse/default preview validate gate: passed with existing repository warnings; follow-up bin test reruns timed out twice at 304s due concurrent external cargo/rustc lanes and are not counted)
+  - cargo test -p zircon_runtime --lib shader_ide_preview_paths_are_scoped_by_source_uri_and_variant --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M2 lib helper check: blocked by unrelated missing `graphics/scene/scene_renderer/ui/text/sdf_fallback.rs` test module; not counted as passed)
+  - rustfmt --edition 2021 --check --config skip_children=true on `graphics/shader/ide_env_generation.rs`, `graphics/shader/ide_env_generation/tests.rs`, `bin/zircon_shader_ide_env/run.rs`, graphics facade exports, editor project sync hook, and ResourceStreamer accessor import repair (2026-07-03 SH05-M2 shared generator/editor refresh structure split: passed)
+  - cargo check -p zircon_runtime --bin zircon_shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never (2026-07-03 SH05-M2 shared generator/runtime bin recheck: passed with existing repository warnings)
+  - cargo test -p zircon_runtime --bin zircon_shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M2 post-split CLI args test: passed 1/1; generator behavior tests moved to `graphics/shader/ide_env_generation/tests.rs`)
+  - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-editor-refresh --message-format short --color never (2026-07-03 SH05-M2 editor refresh hook typecheck: passed with existing warnings after SDF test-owner imports and SH05 WGSL contract convergence)
+  - cargo test -p zircon_runtime --lib shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M2 post-split library generator tests: passed 6/6, covering generator output, incremental diff, validation context, and invalid-stub diagnostics)
+  - cargo test -p zircon_runtime --lib shader_template_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05 shared surface/GBuffer contract regression: passed 20/20 after moving `ZrDeferredGBufferOutput` and deferred material flag helpers into `zr_surface_types.wgsl`)
+  - cargo test -p zircon_runtime --lib shader_module --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-shader-module --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M1/SH03 focused shader_module gate: passed 6/6, covering module import directive parsing/stripping, builtin token classification, and module registry transitive resolution/cycle/include stripping regressions)
+  - cargo test -p zircon_runtime --lib property_layout --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH02 property layout and generated-material Naga focused gate: passed 4/4)
+  - cargo test -p zircon_runtime --lib render_shader_template --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH02/SH05 template focused gate: first run exposed a status-support mirror gap, final rerun passed 18/18 after restoring the render shader template assembly support anchors)
+  - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-tabs-0701 --message-format short --color never (2026-07-01 shader prewarm source-hash helper support fix: passed with existing warnings)
+  - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-tabs-0701 --message-format short --color never (2026-07-01 editor build gate after shader prewarm source-hash helper support fix: passed with existing warnings)
+  - zircon_runtime/src/graphics/shader/template/tests.rs::render_shader_template_uses_shading_model_descriptor_forward_include (2026-07-01 Descriptor-driven forward shading include dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/shader/template/tests.rs::render_shader_template_rejects_unknown_shading_model_forward_include (2026-07-01 Descriptor-driven forward shading include dispatch: added; Cargo result not claimed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/shader/template/assemble.rs zircon_runtime/src/graphics/shader/template/include_registry.rs zircon_runtime/src/graphics/shader/template/tests.rs (2026-07-01 Descriptor-driven forward shading include dispatch: passed)
+  - zircon_runtime/src/graphics/shader/template/tests.rs::render_shader_template_uses_custom_shading_model_forward_include_source (2026-07-01 Custom forward shading include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/shader/template/tests.rs::render_deferred_gbuffer_template_rejects_unknown_shading_model_gbuffer_include (2026-07-01 Deferred GBuffer shading include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/shader/template/tests.rs::render_deferred_gbuffer_template_uses_custom_shading_model_gbuffer_include_source (2026-07-01 Deferred GBuffer shading include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_rejects_unknown_shading_model_deferred_include (2026-07-01 Deferred lighting include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_uses_custom_shading_model_deferred_include_source (2026-07-01 Deferred lighting include source dispatch: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs::tests::exported_include_source_set_feeds_forward_and_gbuffer_template_requests (2026-07-02 selected plugin/source-registry Cargo-wrapper backfill: passed 1/1 with 5839 filtered)
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs::tests::project_shader_records_match_include_tokens_without_wgsl_extension (2026-07-01 Project/plugin shading-model include source set: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/material/shading_models/include_sources.rs::tests::project_shader_records_report_missing_plugin_include_source (2026-07-01 Project/plugin shading-model include source set: added; Cargo result not claimed)
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs::runtime_custom_shading_model_sources_compile_as_wgpu_modules (2026-07-01 Custom shading-model runtime WGPU module validation: passed 1/1)
+  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs::custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source (2026-07-01 Deferred lighting custom include WGPU pipeline validation: passed 1/1)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/shader/template/assemble.rs zircon_runtime/src/graphics/shader/template/include_registry.rs zircon_runtime/src/graphics/shader/template/tests.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs (2026-07-01 Custom forward shading include source dispatch: passed; Cargo/Naga/WGPU deferred while external cargo/rustc lanes were active)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/shader/template/deferred_gbuffer.rs zircon_runtime/src/graphics/shader/template/include_registry.rs zircon_runtime/src/graphics/shader/template/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/{assembly_assertions,docs_anchors,gbuffer_cache}.rs (2026-07-01 Deferred GBuffer shading include source dispatch: passed; source/docs anchors, line budgets, whitespace/conflict scan, and scoped diff-check passed; Cargo/Naga/WGPU deferred while external cargo/rustc lanes were active)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/{deferred_lighting_include,docs_anchors,wgsl_contracts}.rs (2026-07-01 Deferred lighting include source dispatch: passed; source/docs anchors, line budgets, whitespace/conflict scan, and scoped diff-check passed; Cargo/Naga/WGPU deferred while external cargo/rustc lanes were active)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/material/shading_models/include_sources.rs zircon_runtime/src/graphics/material/mod.rs zircon_runtime/src/graphics/material/shading_models/mod.rs zircon_runtime/src/graphics/shader/template/assemble.rs zircon_runtime/src/graphics/shader/template/deferred_gbuffer.rs zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs (2026-07-01 Project/plugin shading-model include source set: passed; source anchors and line budgets passed; Cargo/Naga/WGPU deferred while external cargo/rustc lanes were active)
+  - rustfmt --edition 2021 --check on runtime shading-model include source handoff files passed on 2026-07-01; `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-shading-runtime-handoff-0701 --message-format short --color never` passed with repository warnings only after one earlier timeout attempt
+  - cargo test -p zircon_runtime --lib runtime_custom_shading_model_sources_compile_as_wgpu_modules --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-custom-shading-wgpu-nodefault-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Custom shading-model runtime WGPU module validation: passed 1/1 with repository warnings only after earlier default-feature lib-test compile/link timeouts)
+  - cargo test -p zircon_runtime --lib custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-deferred-lighting-custom-pipeline-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Deferred lighting custom include WGPU pipeline validation: passed 1/1 with repository warnings only)
+  - cargo test -p zircon_runtime --lib render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-custom-shading-product-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Custom shading-model product material-pass staged cache WGPU validation: passed 1/1 with repository warnings only)
+  - cargo test -p zircon_runtime --lib render_product_custom_shading_model --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 Custom shading-model product group Cargo-wrapper WGPU backfill: passed 3/3 with 5850 filtered and repository warnings only)
+  - cargo test -p zircon_runtime --lib render_product_project_plugin_registry_material_passes_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-custom-shading-product-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Standard registry material-pass staged-cache regression after custom shading-model product path: passed 1/1 with repository warnings only)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_generated_shader_permutation_registry_document_exports_selected_plugin_shading_model_descriptors (2026-07-01 Plugin shading-model descriptor registry export: RED then passed)
+  - python -m unittest tools.tests.test_zircon_build_plugin_carriers tools.tests.test_zircon_build_shader_prewarm (2026-07-01 Plugin shading-model descriptor registry export: passed, 41 tests)
+  - python -m py_compile tools\zircon_build.py tools\zircon_build_shader_prewarm.py tools\tests\test_zircon_build_shader_prewarm.py tools\tests\test_zircon_build_plugin_carriers.py (2026-07-01 Plugin shading-model descriptor registry export: passed)
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs::tests::shader_prewarm_permutation_registry_merges_custom_shading_model_descriptors (2026-07-01 Plugin shading-model descriptor registry export: added; Cargo result not claimed)
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_shading_model_descriptor.rs::runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired (2026-07-01 Plugin shading-model descriptor registry export: updated; Cargo result not claimed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs (2026-07-01 Edited shader ResourceRecord revision export: passed; focused Cargo deferred while unrelated cargo/rustc lanes were active)
+  - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs::shader_reimport_exports_updated_revision_for_prewarm_registry (2026-07-02 selected plugin/source-registry Cargo-wrapper backfill: passed 1/1 with 5839 filtered)
+  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs::tests::plugin_registration_inputs_collect_shading_model_descriptors (2026-07-02 selected plugin/source-registry Cargo-wrapper backfill: passed 1/1 with 5839 filtered)
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs; cargo test -p zircon_runtime render_product_skinned_mesh_gpu_morph_matches_cpu_baked_reference_pixels --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-morph-parity-0630 --message-format short --color never -- --nocapture --test-threads=1; generated test binary direct morph regression filter render_product_direct_mesh_ passed 2/2 (2026-06-30 Skinned Morph GPU-vs-CPU product parity: passed)
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs; cargo test -p zircon_runtime render_product_direct_mesh_ --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-morph-parity-0630 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-30 Morph GPU-vs-CPU product parity: passed 2/2, covering GPU source guard and CPU-baked reference pixel/readback parity)
+  - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 --message-format short --color never (2026-06-30 Project/plugin registry product/material-pass staged-cache WGPU closeout: passed with repository warnings; status render_plan08_project_plugin_registry_product_material_passes_staged_cache_wgpu_passed_renderdoc_deferred)
+  - rustfmt --edition 2021 --check --config skip_children=true on resource limits, request-device limits, GPUScene binding, HZB occlusion, temporal descriptor filtering, pipeline compile temporal tests, frame extract, product material-pass assertions, and UI text layout helper files (2026-06-30 Project/plugin registry product/material-pass staged-cache WGPU closeout: passed)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 offscreen_device_limits -- --nocapture --test-threads=1 (2026-06-30 HZB/mesh storage-buffer device-limit synthesis: passed, 3/3)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 hzb_occlusion_limit_gate -- --nocapture --test-threads=1 (2026-06-30 HZB occlusion storage-buffer layout gate: passed, 2/2)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 taa_resolve_ -- --nocapture --test-threads=1 (2026-06-30 temporal history binding filtering: passed, 10/10)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings -- --nocapture --test-threads=1 (2026-06-30 GPUScene compute-visible storage layout budget: passed, 1/1)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 render_view_select_camera_descriptor_preserves_explicit_anti_alias -- --nocapture --test-threads=1 (2026-06-30 frame extract explicit anti-alias preservation: passed, 1/1)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 render_product_project_plugin_registry_materials_use_staged_prewarm_without_compile_miss -- --nocapture --test-threads=1 (2026-06-30 raw project/plugin registry product staged-cache WGPU closeout: passed, 1/1)
+  - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 render_product_project_plugin_registry_material_passes_use_staged_prewarm_without_compile_miss -- --nocapture --test-threads=1 (2026-06-30 material-pass project/plugin registry staged-cache WGPU closeout: passed, 1/1; a later duplicate rerun was inconclusive during Cargo rebuild/lock and is not counted as a regression)
+  - cargo test -p zircon_runtime render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-registry-second-launch-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Project/plugin registry material-pass second-launch miss=0: timed out after about 1204s with no test result and no reusable `zircon_runtime` test binary; matching target-dir cargo/rustc processes were stopped, so no WGPU pass is claimed; a short rerun using `E:\cargo-targets\zircon-plan08-support-repair-0630` was stopped at 2026-07-01 04:56 +08:00 while still compiling dependencies, with no stdout test result; a second bounded rerun using `E:\cargo-targets\zircon-plan08-registry-second-launch-0701` was stopped at 2026-07-01 05:03 +08:00 while still compiling/linking `zircon_runtime`, with warning-only stderr and no stdout test result; a final bounded rerun launched from `target\codex-plan08-rerun-0701-final` against the same target dir was stopped at 2026-07-01 05:15 +08:00 while still compiling/linking `zircon_runtime`, with no `zircon_runtime` test binary produced, empty stdout, and warning-only stderr)
+  - E:\cargo-targets\zircon-plan08-custom-shading-second-launch-guard-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --test-threads=1 --nocapture (2026-07-01 Project/plugin registry material-pass second-launch direct-binary WGPU backfill: passed, 1/1, 5806 filtered, 14.95s; status render_plan08_project_plugin_registry_material_passes_second_launch_direct_binary_wgpu_passed_renderdoc_deferred)
+  - E:\cargo-targets\zircon-plan08-custom-shading-second-launch-guard-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired --test-threads=1 --nocapture (2026-07-01 Project/plugin registry material-pass structure guard after direct-binary backfill: passed, 1/1, 5806 filtered, 0.44s)
+  - cargo test -p zircon_runtime --lib render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 Project/plugin registry material-pass second-launch Cargo-wrapper WGPU backfill: passed 1/1 with 5842 filtered in 12.86s; status render_plan08_project_plugin_registry_material_passes_second_launch_cargo_wrapper_wgpu_passed_renderdoc_deferred)
+  - cargo test -p zircon_runtime --lib render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-product-default-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 Project/plugin registry material-pass second-launch default-feature WGPU backfill: passed 1/1 with 6177 filtered in 14.96s after fixing the standard registry fixture to use registry_material_pass_runtime_surface_source / fn zr_material_surface(; status render_plan08_project_plugin_registry_material_passes_second_launch_default_features_wgpu_passed_renderdoc_deferred)
+  - cargo test -p zircon_runtime --lib render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-product-default-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 Project/plugin registry material-pass second-launch no-default regression after surface-source fix: passed 1/1 with 6171 filtered in 12.75s)
+  - cargo test -p zircon_runtime --lib registry_material_pass_runtime_surface_source_uses_surface_entry_contract --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-product-default-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 registry material-pass runtime surface entry contract: passed 1/1 with 6171 filtered)
+  - cargo test -p zircon_runtime --lib graphics::tests::render_product_mesh_cache::project_plugin_registry_staged_cache::render_product_project_plugin_registry_materials_use_staged_prewarm_without_compile_miss --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-product-default-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 Plan 08 staged-prewarm product sweep default-feature current WGPU refresh: passed 1/1 with 6197 filtered, test body 5.65s after raw registry runtime surface/key fix and a 10m 04s build)
+  - cargo test -p zircon_runtime --lib staged_prewarm_without_compile_miss --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-product-default-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 Plan 08 staged-prewarm product sweep default-feature current WGPU refresh: initial current rerun failed 10/11 at raw project/plugin registry product; final rerun passed 11/11 with 6187 filtered, test body 48.90s after a 7m 36s build; status render_plan08_staged_prewarm_product_sweep_default_features_current_wgpu_refresh_passed_renderdoc_deferred)
+  - E:\cargo-targets\zircon-plan08-project-plugin-png-0703\debug\deps\zircon_runtime-0a7825d39d44b0c4.exe graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::product_png::export_project_plugin_registry_material_passes_product_png --ignored --exact --nocapture --test-threads=1 (2026-07-04 Project/plugin registry material-pass product readback PNG: passed 1/1 with 6290 filtered and 6.58s; status render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs zircon_runtime/src/graphics/tests/render_product_mesh_cache/shading_model_parity.rs zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/render_plan08_three_shading_models_forward_deferred_parity.rs (2026-07-01 Plan 08 three shading-model forward/deferred product parity: passed; status render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred; guard runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired; RenderDoc/product capture deferred)
+  - cargo test -p zircon_runtime --lib light_grid_external_fallback_buffers_satisfy_materialization_report --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 disabled clustered-lighting light-grid execution fallback: passed 1/1)
+  - cargo test -p zircon_runtime --lib render_product_three_shading_models_forward_deferred_parity --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Plan 08 three shading-model Forward + Deferred product parity: passed 1/1, 5818 filtered out)
+  - cargo test -p zircon_runtime --lib render_product_three_shading_models_forward_deferred_parity --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-default-0702 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 Plan 08 three shading-model forward/deferred product parity default-feature WGPU backfill: passed 1/1, 5876 filtered out, 11.81s; status render_plan08_three_shading_models_forward_deferred_parity_default_features_wgpu_passed_renderdoc_deferred; initial default-feature compile blocker fixed by a test-scope `SdfAtlasRect` import in `graphics/scene/scene_renderer/ui/text.rs`)
+  - cargo test -p zircon_runtime --lib runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Plan 08 three shading-model structure/docs guard: passed 1/1, 5822 filtered after helper/fixture guard expansion; direct generated-binary rerun after final docs sync passed 1/1, 5825 filtered)
+  - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired --test-threads=1 --nocapture (2026-07-02 Plan 08 three shading-model default-feature status/docs guard: direct generated-binary passed 1/1, 5873 filtered, 0.41s after the Cargo wrapper timed out during compile/link)
+  - cargo test -p zircon_runtime --lib deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Plan 08 Deferred project-shader/GBuffer probe fixture repair: passed 1/1, 5825 filtered; status render_plan08_deferred_project_shader_gbuffer_probe_wgpu_passed_renderdoc_deferred; earlier direct generated-binary rerun also passed 1/1 after an initial 120s Cargo build timeout)
+  - python -m py_compile tools\zircon_build.py tools\tests\test_zircon_build_shader_prewarm_wrapper_orchestration.py (2026-06-30 Project/plugin registry production wrapper no-proxy WGPU run: passed; status render_plan08_project_plugin_registry_production_wrapper_no_proxy_wgpu_passed_product_renderdoc_deferred)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm_wrapper_orchestration.ZirconBuildShaderPrewarmWrapperOrchestrationTests.test_runtime_server_wrapper_uses_client_features_for_preview_binary (2026-06-30 Project/plugin registry production wrapper no-proxy WGPU run: passed; guard runtime_15_shader_prewarm_project_plugin_registry_wrapper_no_proxy_is_wired)
+  - cargo test -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-wrapper-no-proxy-0630-guard --message-format short --color never runtime_15_shader_prewarm_project_plugin_registry_wrapper_no_proxy_is_wired -- --nocapture --test-threads=1 (2026-06-30 Project/plugin registry production wrapper no-proxy WGPU run: passed, 1/1 with repository warnings)
+  - python -u tools\zircon_build.py --targets runtime --plugins native_dynamic_fixture --out target\codex-plan08-wrapper-no-proxy-0630 --mode debug --runtime-features target-server --jobs 1 --prewarm-shaders --validate-wgpu-shaders --shader-asset-root target\codex-plan08-wrapper-no-proxy-0630\project_assets --shader-quality-tier medium --shader-geometry-source static (2026-06-30 Project/plugin registry production wrapper no-proxy WGPU run: real no-proxy public command passed; runtime lib target-server, preview executable target-client, prewarm cargo run target-server, report 18/18 written and 18/18 WGPU module validated; RenderDoc/product remains deferred)
+  - rustfmt --edition 2021 --check on render_product_mesh_cache.rs, render_product_mesh_cache/project_plugin_registry_staged_cache.rs, runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wired, and test_file_budget/mod.rs (2026-06-30 Project/plugin registry product staged-cache miss=0: source/static pass; Cargo/WGPU execution timed out after about 904s with no result)
+  - rustfmt --edition 2021 --check on mesh_pipeline_cache/ensure_pipeline.rs, runtime_15_shader_prewarm_project_plugin_registry_runtime_staged_cache_hit_is_wired, and test_file_budget/mod.rs (2026-06-30 Project/plugin registry runtime staged-cache hit: source/static pass; Cargo/WGPU execution deferred)
+  - rustfmt --edition 2021 --check on VG model primitive ordinal encoding, mesh asset conversion, importer assertions, VG WGSL include, mesh shader source guard, and runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired (2026-06-29 VirtualGeometry meshlet vertex ordinal: static pass; Cargo deferred)
+  - Direct generated-binary focused runs on `virtual_geometry_vertex_ordinals`, `model_primitive_converts_to_mesh_asset_with_builtin_attributes`, `importer_decodes_obj_into_model_asset`, `importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh`, `importer_decodes_triangle_gltf_into_model_asset`, `default_importer_decodes_gltf_without_first_wave_plugin_fixture`, and `mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings` (2026-07-02 VirtualGeometry meshlet vertex ordinal: direct-binary asset/shader pass; ProjectAssetManager fixture source fixed, Cargo rerun deferred)
+  - ProjectAssetManager VG fixture source guard and stale-binary audit (2026-07-02 status `render_plan08_virtual_geometry_project_asset_manager_fixture_source_guarded_cargo_rerun_deferred`; `asset_manager_imports_model_toml_with_virtual_geometry_payload` source expected fixture uses `assign_virtual_geometry_vertex_ordinals()`, stale binary timestamp `2026-07-02 05:27:25 +08:00` failed and is not counted)
+  - cargo test -p zircon_runtime --lib asset::tests::pipeline::manager::model_import::asset_manager_imports_model_toml_with_virtual_geometry_payload --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-readback-0702 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-02 ProjectAssetManager VG fixture Cargo-wrapper rerun: status `render_plan08_virtual_geometry_project_asset_manager_fixture_cargo_wrapper_passed_renderdoc_deferred`; passed 1/1, 5911 filtered, repository-existing warnings only)
+  - rustfmt --edition 2021 --check on runtime VG extract sidecar/context/snapshot builder, virtual_geometry plugin nanite page payload/automatic extract/provider/imported extract test, and runtime_15_virtual_geometry_asset_payload_decode_is_wired (2026-06-29 VirtualGeometry asset payload decode: static pass; Cargo deferred)
+  - cargo check -q -p zircon_plugin_virtual_geometry_runtime --lib --target-dir target\codex-plan08-vg-asset-payload-decode-0629 --locked --jobs 1 (2026-06-29 VirtualGeometry asset payload decode: timed out after about 304s; no check result, not counted as passed)
+  - rustfmt --edition 2021 --check on virtual_geometry_debug_snapshot payload DTO/re-export, production VG debug snapshot builder, GPUScene virtual-geometry ABI, mesh build resident upload owner, and runtime_15_virtual_geometry_cluster_payload_upload_is_wired (2026-06-29 VirtualGeometry cluster payload upload: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 (2026-06-29 VirtualGeometry cluster payload upload: timed out after about 304s; no check result, not counted as passed)
+  - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_cluster_words_follow_resident_page_payloads --exact --test-threads=1 --nocapture (2026-07-02 VirtualGeometry cluster payload upload direct-binary WGPU backfill: passed 1/1, 5881 filtered)
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_cluster_words_follow_resident_page_payloads --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-cargo-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry resident/cluster upload Cargo-wrapper backfill: status `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`; passed 1/1, 6063 filtered, repository-existing warnings only)
+  - rustfmt --edition 2021 --check on GPUScene layout/runtime/mod/virtual_geometry upload owner, mesh build resident upload, gpu_scene_sync, VirtualGeometry submission/execution projection, and runtime_15_virtual_geometry_resident_buffers_upload_is_wired (2026-06-29 VirtualGeometry resident buffers upload: passed)
+  - cargo check -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 (2026-06-29 VirtualGeometry resident buffers upload: passed in warmed target with existing warnings)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 render_gpu_scene_uploads_virtual_geometry_resident_buffers -- --exact --nocapture --test-threads=1 (2026-06-29 VirtualGeometry resident buffers upload: timed out after about 304s while compiling lib-test; no result, not counted as passed)
+  - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe graphics::scene::gpu_scene::virtual_geometry::tests::render_gpu_scene_uploads_virtual_geometry_resident_buffers --exact --test-threads=1 --nocapture (2026-07-02 VirtualGeometry resident buffers upload direct-binary WGPU backfill: passed 1/1 with 5881 filtered)
+  - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_page_rows_follow_submission_slots --exact --test-threads=1 --nocapture (2026-07-02 VirtualGeometry resident buffers upload direct-binary WGPU backfill: passed 1/1 with 5881 filtered)
+  - cargo test -p zircon_runtime --lib graphics::scene::gpu_scene::virtual_geometry::tests::render_gpu_scene_uploads_virtual_geometry_resident_buffers --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry resident/cluster upload Cargo-wrapper backfill: status `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`; passed 1/1, 6037 filtered, repository-existing warnings only)
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_page_rows_follow_submission_slots --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-cargo-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry resident/cluster upload Cargo-wrapper backfill: status `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`; passed 1/1, 6060 filtered, repository-existing warnings only)
+  - cargo test -p zircon_runtime --lib graphics::scene::gpu_scene::virtual_geometry::tests::render_gpu_scene_uploads_virtual_geometry_resident_buffers --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-default-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry resident/cluster upload default-feature Cargo-wrapper backfill: status `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`; warmed rerun passed 1/1, 6094 filtered, repository-existing warnings only after the initial compile/link timeout was not counted)
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_page_rows_follow_submission_slots --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-default-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry resident/cluster upload default-feature Cargo-wrapper backfill: status `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`; passed 1/1, 6097 filtered, repository-existing warnings only)
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_cluster_words_follow_resident_page_payloads --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-default-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry resident/cluster upload default-feature Cargo-wrapper backfill: status `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`; passed 1/1, 6097 filtered, repository-existing warnings only)
+  - rustfmt --edition 2021 --check on GeometrySource descriptor, virtual_geometry plugin descriptor/manifest fixtures, GPUScene binding/runtime, mesh pipeline shader source fixtures, and runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired (2026-06-29 VirtualGeometry page/cluster shader bindings: passed)
+  - python -m py_compile tools/tests/test_zircon_build_shader_prewarm.py (2026-06-29 VirtualGeometry page/cluster shader bindings: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_generated_shader_permutation_registry_document_exports_selected_plugin_descriptors (2026-06-29 VirtualGeometry page/cluster shader bindings: passed, 1 test)
+  - cargo check -q -p zircon_runtime --lib --target-dir target\codex-plan08-vg-page-cluster-bindings-0629 --locked --jobs 1 (2026-06-29 VirtualGeometry page/cluster shader bindings: timed out after about 300s while compiling; no result, not counted as passed)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-vg-page-cluster-bindings-0629 --locked --jobs 1 mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings -- --exact --nocapture --test-threads=1 (2026-06-29 VirtualGeometry page/cluster shader bindings: timed out after about 300s while compiling; no result, not counted as passed)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-vg-page-cluster-bindings-0629 --locked --jobs 1 render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings -- --exact --nocapture --test-threads=1 (2026-06-29 VirtualGeometry page/cluster shader bindings: timed out after about 300s while compiling; no result, not counted as passed)
+  - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings --exact --test-threads=1 --nocapture (2026-07-02 VirtualGeometry page/cluster shader bindings direct-binary backfill: passed 1/1, 5881 filtered)
+  - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe graphics::scene::gpu_scene::binding::tests::render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings --exact --test-threads=1 --nocapture (2026-07-02 VirtualGeometry page/cluster shader bindings direct-binary WGPU-layout backfill: passed 1/1, 5881 filtered)
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry page/cluster shader bindings Cargo-wrapper WGPU-layout backfill: passed 1/1, 5984 filtered, build 17m45s; an earlier same-command compile failed before tests on a concurrent `swash` dependency snapshot and is not counted)
+  - cargo test -p zircon_runtime --lib graphics::scene::gpu_scene::binding::tests::render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry page/cluster shader bindings Cargo-wrapper WGPU-layout backfill: passed 1/1, 5992 filtered, build 14m59s)
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-default-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry page/cluster shader bindings default-feature Cargo-wrapper WGPU-layout backfill: status `render_plan08_virtual_geometry_page_cluster_shader_bindings_default_features_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`; passed 1/1, 6106 filtered, build 12m55s)
+  - cargo test -p zircon_runtime --lib graphics::scene::gpu_scene::binding::tests::render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-default-0703 --message-format short --color never -- --exact --nocapture --test-threads=1 (2026-07-03 VirtualGeometry page/cluster shader bindings default-feature Cargo-wrapper WGPU-layout backfill: status `render_plan08_virtual_geometry_page_cluster_shader_bindings_default_features_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`; passed 1/1, 6108 filtered, build 13m56s)
+  - cargo test -p zircon_runtime --lib runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-vg-upload-default-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 VirtualGeometry page/cluster shader bindings default-feature Cargo-wrapper WGPU-layout backfill: status `render_plan08_virtual_geometry_page_cluster_shader_bindings_default_features_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`; passed 1/1, 6111 filtered, build 9m51s)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs (2026-06-29 Runtime custom geometry descriptor non-Base staged cache hit WGPU pipelines: passed)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-runtime-custom-geometry-cache-0629 --locked --jobs 1 graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::ensure_pipeline::tests::runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_without_compile_miss -- --exact --nocapture --test-threads=1 (2026-06-29 Runtime custom geometry descriptor non-Base staged cache hit WGPU pipelines: passed, 1 test, 0 failed, 5467 filtered out)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-runtime-custom-geometry-cache-0629 --locked --jobs 1 dynamic_api::shader_prewarm::tests::builtin_ -- --nocapture --test-threads=1 (2026-06-29 Runtime custom geometry descriptor non-Base staged cache hit WGPU pipelines: passed, 4 tests, 0 failed, 5464 filtered out)
+  - cargo check -q -p zircon_runtime --lib --target-dir target\codex-plan08-runtime-custom-geometry-cache-0629 --locked --jobs 1 (2026-06-29 Runtime custom geometry descriptor staged cache hit WGPU pipeline: passed with existing warnings)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-runtime-custom-geometry-cache-0629 --locked --jobs 1 graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::ensure_pipeline::tests::runtime_custom_geometry_descriptor_pipeline_uses_staged_prewarm_without_compile_miss -- --exact --nocapture --test-threads=1 (2026-06-29 Runtime custom geometry descriptor staged cache hit WGPU pipeline: passed, 1 test, 0 failed, 5463 filtered out)
+  - rustfmt --edition 2021 --check on touched runtime module, WGPU construction, SceneRenderer construction, and mesh_pipeline_cache files (2026-06-29 Runtime custom geometry descriptor staged cache hit WGPU pipeline: passed)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 render_product_material_mesh_passes_second_launch_use_staged_prewarm_without_compile_miss -- --nocapture --test-threads=1 (2026-06-29 Product material mesh staged prewarm: passed, 1 test, 0 failed, 5480 filtered out)
+  - cargo test -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::ensure_pipeline::tests::runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_without_compile_miss -- --exact --nocapture --test-threads=1 (2026-06-29 Runtime custom geometry descriptor non-Base staged cache rerun on product target: passed, 1 test, 0 failed, 5480 filtered out)
+  - cargo check -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 (2026-06-29 DepthPrepass pure-depth and GBuffer normal-target product graph contract: passed with existing warnings)
   - rustfmt --edition 2021 zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/depth_prepass_pure_depth_product_migration.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-27 Runtime pure-depth DepthPrepass product migration: passed)
   - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-depth-prepass-pure-depth-check --message-format short --color never (2026-06-27 Runtime pure-depth DepthPrepass product migration: passed with existing warnings)
   - cargo test -p zircon_runtime --lib depth_prepass_mesh_pipeline_creates_on_wgpu_device_with_template_shader --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-depth-prepass-pure-depth-check --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27 Runtime pure-depth DepthPrepass product migration: timed out after 15 minutes in Windows lib-test link, no test result)
@@ -304,6 +657,12 @@ tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-wgpu-module-prewarm-check --message-format short --color never (2026-06-27 Prewarm opt-in WGPU shader-module validation: passed with existing warnings)
   - cargo check -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-wgpu-module-prewarm-check --message-format short --color never (2026-06-27 Prewarm opt-in WGPU shader-module validation: passed with existing warnings)
   - cargo run -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-wgpu-module-prewarm-run-build --message-format short --color never -- --project-root . --cache-dir target/codex-plan08-wgpu-module-prewarm-run/cache --report target/codex-plan08-wgpu-module-prewarm-run/report.json --builtin-fallback --validate-wgpu-modules --pretty (2026-06-27 Prewarm opt-in WGPU shader-module validation: timed out after 604s in Windows compile/run setup, no report, not counted as passed)
+  - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_acceptance.py tools/zircon_build_shader_prewarm_report_contract.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_command_contract.py tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py (2026-06-30 Prewarm opt-in WGPU render-pipeline validation: passed)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract (2026-06-30 Prewarm opt-in WGPU render-pipeline validation: passed, 8 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_dimension_summary_lines_format_wgpu_pipeline_validation_counts tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_build_command_forwards_wgpu_shader_pipeline_validation tools.tests.test_zircon_build_shader_prewarm_acceptance_contract.ZirconBuildShaderPrewarmAcceptanceContractTests.test_acceptance_contract_requires_pipeline_validation_when_enabled (2026-06-30 Prewarm opt-in WGPU render-pipeline validation: passed, 3 tests; status render_plan08_prewarm_wgpu_render_pipeline_validation_gate_focused_tests_passed_product_deferred; guard runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired)
+  - E:\cargo-targets\zircon-plan08-pipeline-prewarm-0630-tests\debug\deps\zircon_runtime-d7a749791e79d863.exe mesh_prewarm_pipeline_validation --test-threads=1 --nocapture (2026-06-30 Prewarm opt-in WGPU render-pipeline validation: passed, 2 tests; creates Forward/GBuffer/DepthPrepass/Shadow/Velocity/TAA reactive-mask render pipelines)
+  - E:\cargo-targets\zircon-plan08-pipeline-prewarm-0630-tests\debug\deps\zircon_runtime-d7a749791e79d863.exe wgpu_pipeline_validation --test-threads=1 --nocapture (2026-06-30 Prewarm opt-in WGPU render-pipeline validation: behavior tests passed 2/2 before docs sync; after docs sync the same filter covers structure guard status render_plan08_prewarm_wgpu_render_pipeline_validation_gate_focused_tests_passed_product_deferred)
+  - cargo test -q -p zircon_runtime --lib mesh_prewarm_pipeline_validation --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-pipeline-prewarm-0630-tests -- --test-threads=1 --nocapture (2026-06-30 Prewarm opt-in WGPU render-pipeline validation: Cargo wrapper timed out while rebuilding/relinking the large lib-test binary; direct generated-binary run above is the counted WGPU evidence)
   - rustfmt --edition 2021 zircon_runtime/src/core/resource/manager/registry_export.rs zircon_runtime/src/core/resource/manager/mod.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_live_resource_registry.rs (2026-06-27 Live ResourceManager shader registry export)
   - cargo test -p zircon_runtime --lib resource_manager_exports_ready_records_for_kind_with_live_revisions --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-live-resource-registry-0627 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-27 Live ResourceManager shader registry export: wrapper timed out after 1204s with no test result)
   - target/codex-plan08-live-resource-registry-0627/debug/deps/zircon_runtime-09d65f3d4d31577f.exe resource_manager_exports_ready_records_for_kind_with_live_revisions --test-threads=1 --nocapture (2026-06-27 Live ResourceManager shader registry export: passed, 1 test)
@@ -337,7 +696,7 @@ tests:
   - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool source provenance report contract: passed, 23 tests)
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_report_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool source provenance report contract: passed)
   - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm.py (2026-06-28 Build-tool shader resource registry export contract: passed)
-  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_skips_export_contract_for_explicit_registry tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_requires_resource_records tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_wrapped_resources tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_raw_array (2026-06-28 Build-tool shader resource registry export contract: RED then passed, 5 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_uses_same_acceptance_entry_for_explicit_registry tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_requires_resource_records tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_wrapped_resources tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_validate_registry_export_contract_accepts_raw_array (2026-06-28 Build-tool shader resource registry export contract: RED then passed, 5 tests; explicit registry handoff later moved into staged acceptance)
   - python -m unittest tools.tests.test_zircon_build_shader_prewarm (2026-06-28 Build-tool shader resource registry export contract: passed, 27 tests)
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader resource registry export contract: passed)
   - cargo test -p zircon_runtime --lib runtime_15_shader_prewarm_resource_registry_export_contract_is_wired --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-registry-export-contract-0628 --message-format short --color never -- --nocapture (2026-06-28 Build-tool shader resource registry export contract: blocked before compile because Cargo.lock would need update under --locked; not counted as passed)
@@ -416,7 +775,7 @@ tests:
   - PYTHONDONTWRITEBYTECODE=1 python -m unittest tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_acceptance_contract tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_command_contract tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract tools.tests.test_zircon_build_shader_prewarm_source_provenance_contract tools.tests.test_zircon_build_shader_prewarm_wgpu_report_contract tools.tests.test_zircon_build_shader_prewarm_resource_registry_contract (2026-06-28 Build-tool shader prewarm report dimension totals match contract: passed, 92 tests)
   - python -m py_compile tools/zircon_build_shader_prewarm_report_contract.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py (2026-06-28 Build-tool shader prewarm report dimension totals match contract: passed with isolated PYTHONPYCACHEPREFIX)
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs (2026-06-28 Build-tool shader prewarm report dimension totals match contract: passed)
-  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_skips_export_contract_for_explicit_registry tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool shader prewarm cache artifact contract: RED then passed, 5 tests)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_validates_wgpu_report_after_success tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_prewarm_shaders_uses_same_acceptance_entry_for_explicit_registry tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool shader prewarm cache artifact contract: RED then passed, 5 tests; explicit registry handoff later moved into staged acceptance)
   - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py (2026-06-28 Build-tool shader prewarm cache artifact contract: passed)
   - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Build-tool shader prewarm cache artifact contract: passed, 38 tests)
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Build-tool shader prewarm cache artifact contract: passed)
@@ -432,7 +791,7 @@ tests:
   - python -m py_compile tools/zircon_build.py tools/zircon_build_shader_prewarm.py tools/zircon_build_shader_prewarm_cache_artifacts.py tools/tests/test_zircon_build_shader_prewarm.py tools/tests/test_zircon_build_shader_prewarm_dimension_contract.py tools/tests/test_zircon_build_shader_prewarm_cache_contract.py (2026-06-28 Prewarm cache hash shape contract: passed)
   - python -m unittest tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_prewarm_dimension_contract tools.tests.test_zircon_build_shader_prewarm_cache_contract (2026-06-28 Prewarm cache hash shape contract: passed, 44 tests)
   - rustfmt --edition 2021 --check zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs (2026-06-28 Prewarm cache hash shape contract: passed)
-  - rustfmt --edition 2021 zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/runtime/diagnostics/render_stats_store/shader_variant.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs zircon_runtime/src/graphics/tests/render_product_mesh_cache/staged_prewarm.rs (2026-06-27 runtime shader variant dimension correlation: passed)
+- rustfmt --edition 2021 zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/runtime/diagnostics/render_stats_store/shader_variant.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs zircon_runtime/src/graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs (2026-06-27 runtime shader variant dimension correlation; current owner path updated by 2026-06-30 folder-backed follow-up)
   - cargo test -p zircon_runtime --lib gpu_skinning --no-default-features --features target-server --locked --jobs 1 --target-dir target/codex-plan08-runtime-dimension-correlation-check-0627 --message-format short --color never -- --nocapture (2026-06-27 runtime shader variant dimension correlation: passed, 4 tests)
   - target/codex-plan08-runtime-dimension-correlation-check-0627/debug/deps/zircon_runtime-09d65f3d4d31577f.exe shader_variant_miss_report_groups_runtime_outcomes_by_variant_dimensions --test-threads=1 --nocapture (2026-06-27 runtime shader variant dimension correlation: passed)
   - target/codex-plan08-runtime-dimension-correlation-check-0627/debug/deps/zircon_runtime-09d65f3d4d31577f.exe render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss --test-threads=1 --nocapture (2026-06-27 runtime shader variant dimension correlation: passed)
@@ -653,6 +1012,8 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 
 `RenderShaderStage` is the common stage vocabulary: vertex, fragment, and compute. The enum is serializable with `snake_case` names so `.zshader`, `.zmeta`, tests, and diagnostics can move stage values across asset and runtime boundaries.
 
+`ShaderAssetKind` is the v2 `.zshader` family discriminator. It has four values: `Surface`, `Include`, `Compute`, and `Fullscreen`. Only `Surface` participates in material variant space; include shaders only provide import modules, compute shaders provide compute entry points/resources, and fullscreen shaders provide pass-local fragment resources. `ShaderRenderStateDescriptor`, `ShaderQueueDescriptor`, and `ShaderResourceDescriptor` are backend-neutral authoring contracts for the v2 parser; they remain plain serializable DTOs and do not contain `wgpu` layout objects.
+
 `RenderShaderEntryPointDescriptor` records the public entry-point name plus its `RenderShaderStage`. Asset-side parsing accepts authoring aliases such as `vert`, `vs`, `frag`, `fs`, `comp`, and `cs`, but the framework contract only exposes canonical stage values.
 
 `RenderShaderDependency` records a `ResourceKind` and `AssetReference`. Dependencies are explicit serialized authoring data in the current milestone; they are not inferred from WGSL import syntax by the framework layer.
@@ -664,6 +1025,8 @@ Zircon copies the boundary, not the implementation: `render::shader` is the stab
 `GeometrySourceId` is the geometry-source dimension for the material shader variant space. Built-in ids are reserved as `0 = StaticMesh`, `1 = SkinnedMesh`, `2 = MorphedMesh`, and `3 = SkinnedMorphed`; plugin geometry sources start at `GEOMETRY_SOURCE_PLUGIN_ID_START`. This keeps VertexFactory-style geometry source selection in the framework contract without pulling WGPU vertex-buffer declarations into the neutral layer.
 
 The 2026-06-24 GeometrySource descriptor contract foundation extends that owner beyond ids. `GeometrySourceDescriptor` now records the stable token, WGSL include token, vertex attributes, backend-neutral required bindings, and typed shader defines for each geometry source. Built-in descriptor helpers cover static, skinned, morphed, and skinned+morphed meshes; all require the GPUScene instance binding, while skinned descriptors add skinning palette storage and morphed descriptors add morph weight/target storage. This contract intentionally stops at serializable framework data: no `wgpu` types, no pipeline descriptors, and no concrete bind group creation live in this module. The guard `runtime_15_render_shader_geometry_source_descriptor_contract_is_complete` locks the shape under status `render_plan08_geometry_source_descriptor_contract_static_passed_cargo_deferred_implementation_cadence`.
+
+The 2026-06-29 runtime custom geometry descriptor staged-cache slice moves that descriptor contract into the runtime mesh pipeline cache instead of leaving it as an offline prewarm-only artifact. `MeshPipelineCache` owns a geometry-source descriptor registry initialized with built-ins and extended by product/plugin registration. Runtime module assembly collects `RuntimeExtensionRegistry::geometry_sources()`, carries descriptors through `GraphicsModule`, the graphics module host, `WgpuRenderFramework`, and `SceneRenderer`, and registers them in `SceneRendererCore` before mesh variants resolve. Base, GBuffer, DepthPrepass, Shadow, Velocity, and TAA reactive shader-source assembly resolve a `GeometrySourceDescriptor` from the variant's `GeometrySourceId` before asking the disk cache or compiling a WGPU pipeline. Status: `render_plan08_runtime_custom_geometry_descriptor_staged_cache_hit_wgpu_pipeline_passed_product_deferred`. Fresh `zircon_runtime --lib` type checking passed for this wiring, and the focused WGPU lib-test now creates the Base mesh pipeline from the staged fallback root for `custom:virtual_geometry=4` with `request=1`, `disk_hit=1`, `compile_miss=0`, `disk_write=0`, and `disk_error=0`. This closes descriptor-backed runtime cache lookup through the first custom geometry WGPU pipeline hit, but it is not a product virtual-geometry draw-source/page-cluster fetch implementation.
 
 The 2026-06-24 Shader template assembly foundation is the first graphics-side consumer of that descriptor contract. `graphics::shader::template` is folder-backed by `assemble.rs`, `include_registry.rs`, and `pass_specialization.rs`: the assembler consumes a `GeometrySourceDescriptor`, `ShaderPassType`, `ShaderFeatureBits`, and a material surface function, then emits deterministic WGSL plus include tokens, include content hashes, and template revision `zr-material-template-v1`. The include registry maps the built-in descriptor include tokens to `graphics/shader/wgsl/zr_geometry_*.wgsl`, `zr_surface_types.wgsl`, and the pass templates; the pass specializer keeps Forward/GBuffer/DepthPrepass/Shadow/Velocity behavior explicit. This is still an assembly contract, not the runtime pipeline cutover: standard material, fallback shader, Naga/WGPU validation, and actual mesh pipeline consumption remain later Plan 08 slices. The guard `runtime_15_render_shader_template_assembly_is_folder_backed` locks the owner under status `render_plan08_shader_template_assembly_foundation_static_passed_cargo_timeout_no_result`.
 
@@ -773,6 +1136,8 @@ The 2026-06-24 Mesh pipeline standard material template source cutover moves the
 
 The Mesh pipeline shader source owner split keeps template assembly out of `ensure_pipeline.rs`. `shader_source.rs` owns raw WGSL wrapping, final source hashing, fallback/missing standard material template source generation, requested built-in geometry descriptor selection, and the shared `MeshPipelineShaderSource` DTO that dynamic prewarm consumes. `ensure_pipeline.rs` now calls `mesh_pipeline_shader_source(...)` with `shader_variant_key.geometry_source` and remains responsible for WGPU shader module creation, render pipeline creation, disk-cache lookup/write accounting, and source-hash-aware module keys. `runtime_15_render_shader_template_assembly_is_folder_backed` locks the split by requiring `shader_source.rs` to contain the assembly imports and explicit geometry-source builder, and requiring `ensure_pipeline.rs` not to contain `builtin_geometry_source_descriptor`, `assemble_material_shader_template`, or `standard_material_surface_source_for_features`. Status: `render_plan08_mesh_pipeline_shader_source_owner_split_static_passed_cargo_deferred_implementation_cadence`.
 
+The Runtime 15 M3 mesh pipeline shader source tests child-owner split keeps that production source owner below the R4.3 budget without changing source assembly behavior. `graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs` now only mounts `#[cfg(test)] #[path = "shader_source/tests.rs"] mod tests;`; `graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs` owns the module-local source assembly tests and mounts `graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs` for the custom shading-model WGPU module validation. Status: `runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred`; guard: `runtime_15_render_shader_template_assembly_support_children_are_folder_backed`.
+
 Builtin fallback prewarm template source alignment makes the staged built-in fallback cache use that same source DTO. `dynamic_api/shader_prewarm.rs::builtin_fallback_shader_prewarm_manifest()` now calls `mesh_pipeline_standard_material_template_source(...)` through the crate-visible scene facade and writes the returned template WGSL, include/source hashes, and `zr-material-template-v1` revision into `ShaderVariantPrewarmRequest`. It no longer imports or writes `FALLBACK_MESH_SHADER`; if the controlled template assembly fails, the built-in manifest is empty rather than producing a stale wrong cache entry. `bin/zircon_shader_prewarm/manifest.rs::builtin_fallback_manifest_for_quality_tiers_and_geometry_sources(...)` extends the pure `--builtin-fallback` path across requested built-in geometry sources by reusing `dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry(...)`, while the older quality-only wrapper remains static by default. The focused tests are `builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source`, `shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources`, and `runtime_15_builtin_fallback_prewarm_uses_template_source`; statuses: `render_plan08_builtin_fallback_prewarm_template_source_static_passed_cargo_deferred_implementation_cadence` and `render_plan08_builtin_fallback_multi_geometry_prewarm_static_passed_cargo_no_result`.
 
 Asset-root builtin standard material template prewarm extends that DTO path to material-authored builtin references and now emits five pass templates for each requested quality/geometry pair. `dynamic_api::builtin_standard_material_shader_prewarm_manifest(...)` keeps the static default, while `dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry(...)` takes the material-derived feature bits, shading model id, optional alpha cutoff, explicit `GeometrySourceId`, and quality tier list. Both route through `mesh_pipeline_standard_material_template_source_for_shader_pass(...)` so Forward, GBuffer, DepthPrepass, Shadow, and Velocity prewarm entries use the same mesh source owner and source-hash inputs as runtime template consumers. DepthPrepass prewarm is intentionally pure depth-only: opaque variants select `zr_template_depth.wgsl` without material fragment code, and alpha-test variants select `zr_template_depth_alpha.wgsl` with alpha clip but no normal-target encode. `bin/zircon_shader_prewarm/manifest.rs` uses the explicit builder for each requested geometry source when `.zmaterial` references `builtin://shader/pbr.wgsl`; raw asset-root `.zshader` and standalone `.wgsl` sources continue through the scanned-source path. The focused tests are `builtin_standard_material_shader_prewarm_manifest_projects_material_features`, `builtin_standard_material_shader_prewarm_manifest_projects_geometry_source`, `shader_prewarm_asset_root_manifest_templates_builtin_standard_material_source`, `mesh_pipeline_standard_material_shader_pass_source_keeps_depth_only_contract`, and `runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired`; statuses: `render_plan08_asset_root_builtin_standard_material_template_prewarm_static_passed_cargo_deferred_implementation_cadence`, `render_plan08_asset_root_builtin_standard_material_multi_geometry_prewarm_static_passed_cargo_deferred_implementation_cadence`, and `render_plan08_builtin_material_multi_pass_depth_only_prewarm_tests_passed_renderdoc_deferred`.
@@ -781,21 +1146,23 @@ The staged-cache acceptance slice now covers the next step for builtin standard 
 
 Runtime Base mesh staged prewarm cache hit closes the next consumer-level step. `runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss` writes the builtin fallback/standard material staged manifest into a temporary staged root, injects `ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root])` into `MeshPipelineCache`, and calls `ensure_pipeline_for_variant(...)` on a real offscreen WGPU device. It then requires `ShaderVariantMissReport.disk_hit_count == 1` and `compile_miss_count == 0` while the Base mesh render pipeline is created under WGPU validation scope. Status: `render_plan08_runtime_base_mesh_staged_prewarm_cache_hit_wgpu_pipeline_passed_renderdoc_deferred`.
 
-Product Base mesh second-launch staged prewarm closes the product-facing Base/Opaque slice. `graphics/tests/render_product_mesh_cache/staged_prewarm.rs::render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss` writes the staged manifest once, then creates two fresh `WgpuRenderFramework` instances with `ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root])` injected through the test-only `replace_shader_variant_disk_cache_for_tests(...)` seam. The product pipeline registers `mesh.opaque` with side effects, uses `DisplayMode::Shaded` to force BaseScenePass replay, and asserts both launches report shader-variant requests, staged disk hits, `compile_miss_count == 0`, no runtime cache writes/errors, mesh replay state changes, skinned draws, and executed `mesh.opaque` evidence. `runtime_15_product_base_mesh_staged_prewarm_is_wired` keeps the product child owner and status/docs anchors locked. Status: `render_plan08_product_base_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred`.
+Product Base mesh second-launch staged prewarm closes the product-facing Base/Opaque slice. `graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs::render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss` writes the staged manifest once, then creates two fresh `WgpuRenderFramework` instances with `ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root])` injected through the test-only `replace_shader_variant_disk_cache_for_tests(...)` seam. The product pipeline registers `mesh.opaque` with side effects, uses `DisplayMode::Shaded` to force BaseScenePass replay, and asserts both launches report shader-variant requests, staged disk hits, `compile_miss_count == 0`, no runtime cache writes/errors, mesh replay state changes, skinned draws, and executed `mesh.opaque` evidence. `runtime_15_product_base_mesh_staged_prewarm_is_wired` keeps the product child owner and status/docs anchors locked. Status: `render_plan08_product_base_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred`.
 
-Runtime mesh variant geometry-source key wiring extends the live Base mesh path beyond the static wrapper. `MeshDrawGeometrySource::shader_geometry_source_id()` is the only current bridge from draw-source classification to shader `GeometrySourceId`: prepared and dynamic CPU-side batches remain static mesh, while `DynamicGpuSkinningSource` resolves to skinned mesh. `MeshPassBuildContext` now derives that id from the batch queue profile before variant resolution, `MeshPipelineVariantRegistry` stores it in the registry-owned `ShaderVariantKey`, and `ensure_pipeline.rs` forwards it to the source owner. This is intentionally conservative: morphed and skinned+morphed variants still need finer draw metadata before they can be selected at runtime. Status: `render_plan08_runtime_mesh_variant_geometry_source_key_wiring_static_passed_cargo_deferred_implementation_cadence`.
+Runtime mesh variant geometry-source key wiring extends the live Base mesh path beyond the static wrapper. `MeshDrawGeometrySource::shader_geometry_source_id()` is the bridge from draw-source classification to shader `GeometrySourceId`: prepared and dynamic CPU-side batches remain static mesh, while `DynamicGpuSkinningSource` resolves to skinned mesh. Direct CPU-morphed draw-source metadata keeps CPU-baked morph draws explicit: active morph weights on direct mesh snapshots create `PendingMeshGeometry::CpuMorphed`, `pending_mesh_geometry_source(...)` and the command cache extract/plan map it to `DynamicCpuMorphedSource`, `uses_cpu_morphed_source()` exposes the shared CPU-morphed classification, and the shader id remains `GEOMETRY_SOURCE_ID_STATIC_MESH`. CPU-morphed GPU-skinning draw-source metadata keeps the skinned counterpart explicit too: `PendingSkinnedGpuSource::CpuMorphed` maps to `DynamicCpuMorphedGpuSkinningSource`, `uses_cpu_morphed_gpu_skinning_source()` exposes the GPU-skinning classification, prepared queue stats still count it as dynamic geometry, and `MeshPassBuildContext` resolves it to `GEOMETRY_SOURCE_ID_SKINNED_MESH` through the queue profile. Those conservative shader ids remain intentional for CPU-baked fallback draws, but payload-backed direct morph draws now select the real morphed shader ids: `DynamicGpuMorphedSource` resolves to `GEOMETRY_SOURCE_ID_MORPHED_MESH`, and `DynamicGpuSkinnedMorphedSource` resolves to `GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH`. The previous morph-weight velocity follow-up keeps that same geometry-source selection live even when current weights return to zero, because previous-only payloads still need the Morphed shader's `fetch_prev_position(...)` path. Status: `render_plan08_runtime_mesh_variant_geometry_source_key_wiring_static_passed_cargo_deferred_implementation_cadence`; CPU-morphed follow-up statuses: `render_plan08_direct_cpu_morphed_draw_source_metadata_check_passed_wgpu_deferred` and `render_plan08_cpu_morphed_gpu_skinning_draw_source_metadata_static_passed_cargo_deferred_active_lanes`; payload-backed/product observability statuses: `render_plan08_morph_geometry_source_selection_static_passed_wgpu_deferred`, `render_plan08_morph_gpu_source_product_guard_wgpu_passed_renderdoc_deferred`, `render_plan08_morph_gpu_cpu_product_parity_wgpu_passed_renderdoc_deferred`, and `render_plan08_morph_previous_weights_velocity_check_passed_product_deferred`.
+
+Morph storage buffers upload now closes the first GPUScene data-owner handoff for those reserved morphed-geometry bindings. `GpuMorphDelta` and `GpuMorphWeight` define the storage row ABI, GPUScene group3 reserves bindings 7 and 8 beside the existing palette and VirtualGeometry slots, `GpuScene::upload_morph_buffers(...)` owns fallback/live buffer recreation, CPU shadows, queue writes, and bind group rebuild, and `zr_gpu_scene.wgsl` exposes guarded `zr_gpu_scene_morph_delta(...)` / `zr_gpu_scene_morph_weight(...)` helpers consumed by the morphed geometry includes. Status: `render_plan08_morph_storage_buffers_upload_check_passed_wgpu_deferred`; `render_gpu_scene_uploads_morph_storage_buffers` and `runtime_15_morph_storage_buffers_upload_is_wired` lock the ABI, bindings, upload owner, WGSL helper route, docs/status, and session anchors. This deliberately does not switch CPU-baked morph draws to morphed shader ids, and it does not close asset-to-GPU morph payload projection, product WGPU capture, or product miss=0 acceptance.
 
 ## Current Limits
 
 This module is not a full Bevy `ShaderPlugin`, `ShaderCache`, or `PipelineCache`. It does not parse WGSL imports, resolve shader include graphs, apply shader definitions to Naga composition, validate Naga modules, track dependent pipelines, deduplicate bind group layouts, or support async pipeline creation states.
 
-Runtime Base mesh template source selection now distinguishes static and skinned geometry where the draw queue exposes a GPU skinning source. Asset-root builtin standard-material prewarm and pure built-in fallback prewarm now emit template requests for each requested built-in geometry source and for Forward, GBuffer, DepthPrepass, Shadow, and Velocity pass types that the source owner can assemble. Morphed/skinned-morphed runtime selection still needs richer draw-source metadata.
+Runtime Base mesh template source selection now distinguishes static, skinned, morphed, and skinned-morphed geometry where the draw queue exposes the matching source. Asset-root builtin standard-material prewarm and pure built-in fallback prewarm now emit template requests for each requested built-in geometry source and for Forward, GBuffer, DepthPrepass, Shadow, and Velocity pass types that the source owner can assemble. Direct CPU-morphed draw-source metadata is preserved by `PendingMeshGeometry::CpuMorphed`, `DynamicCpuMorphedSource`, and `uses_cpu_morphed_source()`, but it deliberately resolves to `GEOMETRY_SOURCE_ID_STATIC_MESH`; CPU-morphed GPU-skinning metadata is preserved by `DynamicCpuMorphedGpuSkinningSource` and `uses_cpu_morphed_gpu_skinning_source()`, but it deliberately resolves to `GEOMETRY_SOURCE_ID_SKINNED_MESH`. GPUScene now owns morph bindings 7/8 plus payload binding 11, payload-backed direct morph selection uses the morphed shader geometry ids, product stats/diagnostics can prove the selected source, and previous morph weights are code-wired for Velocity through a second weight block. Direct and skinned pixel GPU-vs-CPU morph parity now have product guards below; RenderDoc/product velocity capture remains pending.
 
 Asset-level shader readiness is intentionally narrower than renderer readiness. It can report missing runtime WGSL, invalid entry-point stage tokens, duplicate or empty shader definitions, source-only versus redirected import rows, and copied validation diagnostics, but it does not decide whether a concrete device can create a module or pipeline.
 
 The layout descriptor is serialized intent, not reflection. It does not yet derive bind groups from WGSL, validate binding type compatibility, model dynamic offsets, express texture sample types, or map push constants to backend feature gates. Future shader milestones should add those checks below the framework DTO layer so `.zshader` authoring and renderer preparation continue to share one stable contract.
 
-Asset-root prewarm scanning is still intentionally conservative, but it no longer hardcodes the geometry-source dimension or the built-in standard-material pass to Forward. It defaults to static-mesh requests for compatibility, and explicit `--geometry-source` / `--shader-geometry-source` values can expand built-in static, skinned, morphed, and skinned+morphed requests across the pass dimension from `.zshader` entry-point stages plus material-instance alpha-test, double-sided, built-in shading-model variants, explicit custom shading-model plugin ids, explicit custom geometry-source plugin ids, alpha-blend Forward-only filtering, selected quality tiers, source-hash-derived edit revisions, explicit resource-registry revision overlays, and project/plugin shader permutation registry overlays. Builtin standard-material `.zmaterial` references and pure `--builtin-fallback` requests now use the same requested geometry source list and emit Forward, GBuffer, DepthPrepass, Shadow, and Velocity template requests, while custom `.zshader` and standalone `.wgsl` requests still remain raw scanned source payloads. Runtime draw submission can carry a non-Medium `ShaderQualityTier` into `ShaderVariantKey.quality`, build staging can prewarm matching quality tiers, built-in geometry sources, explicit plugin geometry-source ids, pass-specific standard-material templates, explicit custom shading-model ids, project/plugin permutation registry ids, asset-root edit revisions, and exported live shader resource revisions, and the base mesh WGPU cache path now consumes that same quality-aware key. The template assembler can now produce deterministic WGSL/hash inputs for those built-in geometry sources, has a standard material surface source owner, has a Naga validation helper, carries uv1/tangent interpolation through pass templates, aligns `ZrVertexInput` with runtime mesh vertex attributes, applies runtime scene/GPUScene world-to-clip transform in `zr_build_vertex_output(...)`, exposes generic runtime `vs_main`/`fs_main` aliases over `zr_vs_main_impl`/`zr_fs_main_impl`, samples the standard normal map, and has template-level alpha clip behavior for Forward/GBuffer/DepthPrepass/Shadow/Velocity when alpha-test is enabled. The Base mesh fallback/missing-shader runtime source now consumes that standard material Forward template output and feeds include/source hashes into the runtime disk/module cache keys, Velocity consumes template source with previous-position input and source-hash module identity, TAA reactive mask consumes its auxiliary template source with source-hash module identity, Shadow consumes template source with source-hash module identity, current runtime DepthPrepass consumes normal-target template source, Deferred GBuffer consumes albedo/material template source, and the built-in fallback plus asset-root builtin standard material prewarm manifests write matching pass-specific source/hash/revision payloads. Builtin standard material staged prewarm now has focused write, restart cache-hit, and WGPU shader-module validation evidence under `render_plan08_builtin_material_staged_prewarm_cache_hit_wgpu_module_passed_renderdoc_deferred`; runtime Base mesh now has staged fallback root hit, WGPU pipeline creation, and `compile_miss_count == 0` evidence under `render_plan08_runtime_base_mesh_staged_prewarm_cache_hit_wgpu_pipeline_passed_renderdoc_deferred`; Product Base mesh second-launch staged prewarm has two fresh product submits with staged disk hits and zero compile misses under `render_plan08_product_base_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred`; asset-root shader edit revision export is locked under `render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred`; explicit custom geometry-source id prewarm is wired under `render_plan08_asset_root_custom_geometry_source_id_prewarm_typecheck_passed_test_timeout_no_result`; report-level prewarm dimension diagnostics are wired under `render_plan08_prewarm_dimension_diagnostics_typecheck_passed_test_timeout_no_result`; explicit resource registry overlay is wired under `render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result`; and Shader permutation registry overlay is wired under `render_plan08_shader_permutation_registry_overlay_focused_tests_passed_renderdoc_deferred`. Asset-root custom shader scanning still does not invoke the assembler or validator. RenderDoc/product capture remains pending. The asset-root prewarm tool can now consume project/plugin permutation registry JSON from explicit `--shader-permutation-registry` paths or asset-root `shader_permutation_registry.json`, but it does not yet automatically generate the full project/plugin shader, shading-model, and geometry-source registry export. Base shader-source requests also remain conservative when no material instance narrows the pass set. Staged-cache compile acceptance is still needed before long-lived edited projects can claim the same product-level acceptance breadth as the focused staged-cache test.
+Asset-root prewarm scanning is still intentionally conservative, but it no longer hardcodes the geometry-source dimension or the built-in standard-material pass to Forward. It defaults to static-mesh requests for compatibility, and explicit `--geometry-source` / `--shader-geometry-source` values can expand built-in static, skinned, morphed, and skinned+morphed requests across the pass dimension from `.zshader` entry-point stages plus material-instance alpha-test, double-sided, built-in shading-model variants, explicit custom shading-model plugin ids, explicit custom geometry-source plugin ids, alpha-blend Forward-only filtering, selected quality tiers, source-hash-derived edit revisions, explicit resource-registry revision overlays, and project/plugin shader permutation registry overlays. Builtin standard-material `.zmaterial` references and pure `--builtin-fallback` requests now use the same requested geometry source list and emit Forward, GBuffer, DepthPrepass, Shadow, and Velocity template requests, while custom `.zshader` and standalone `.wgsl` requests still remain raw scanned source payloads. Runtime draw submission can carry a non-Medium `ShaderQualityTier` into `ShaderVariantKey.quality`, build staging can prewarm matching quality tiers, built-in geometry sources, explicit plugin geometry-source ids, pass-specific standard-material templates, explicit custom shading-model ids, project/plugin permutation registry ids, asset-root edit revisions, explicit project shader asset roots, selected plugin asset roots, and exported live shader resource revisions, and the base mesh WGPU cache path now consumes that same quality-aware key. The template assembler can now produce deterministic WGSL/hash inputs for those built-in geometry sources, has a standard material surface source owner, has a Naga validation helper, carries uv1/tangent interpolation through pass templates, aligns `ZrVertexInput` with runtime mesh vertex attributes, applies runtime scene/GPUScene world-to-clip transform in `zr_build_vertex_output(...)`, exposes generic runtime `vs_main`/`fs_main` aliases over `zr_vs_main_impl`/`zr_fs_main_impl`, samples the standard normal map, and has template-level alpha clip behavior for Forward/GBuffer/DepthPrepass/Shadow/Velocity when alpha-test is enabled. The Base mesh fallback/missing-shader runtime source now consumes that standard material Forward template output and feeds include/source hashes into the runtime disk/module cache keys, Velocity consumes template source with previous-position input and source-hash module identity, TAA reactive mask consumes its auxiliary template source with source-hash module identity, Shadow consumes template source with source-hash module identity, current runtime DepthPrepass consumes normal-target template source, Deferred GBuffer consumes albedo/material template source, and the built-in fallback plus asset-root builtin standard material prewarm manifests write matching pass-specific source/hash/revision payloads. Builtin standard material staged prewarm now has focused write, restart cache-hit, and WGPU shader-module validation evidence under `render_plan08_builtin_material_staged_prewarm_cache_hit_wgpu_module_passed_renderdoc_deferred`; runtime Base mesh now has staged fallback root hit, WGPU pipeline creation, and `compile_miss_count == 0` evidence under `render_plan08_runtime_base_mesh_staged_prewarm_cache_hit_wgpu_pipeline_passed_renderdoc_deferred`; Product Base mesh second-launch staged prewarm has two fresh product submits with staged disk hits and zero compile misses under `render_plan08_product_base_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred`; asset-root shader edit revision export is locked under `render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred`; explicit custom geometry-source id prewarm is wired under `render_plan08_asset_root_custom_geometry_source_id_prewarm_typecheck_passed_test_timeout_no_result`; project shader asset roots auto-export is wired under `render_plan08_project_shader_asset_roots_auto_export_python_static_passed_cargo_deferred`; VirtualGeometry page/cluster shader bindings are wired under `render_plan08_virtual_geometry_page_cluster_shader_bindings_static_passed_cargo_deferred`; VirtualGeometry resident buffer upload is wired under `render_plan08_virtual_geometry_resident_buffers_upload_static_passed_cargo_deferred`; report-level prewarm dimension diagnostics are wired under `render_plan08_prewarm_dimension_diagnostics_typecheck_passed_test_timeout_no_result`; explicit resource registry overlay is wired under `render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result`; and Shader permutation registry overlay is wired under `render_plan08_shader_permutation_registry_overlay_focused_tests_passed_renderdoc_deferred`. Asset-root custom shader scanning still does not invoke the assembler or validator. RenderDoc/product capture remains pending. The asset-root prewarm tool can now consume project/plugin permutation registry JSON from explicit `--shader-permutation-registry` paths or asset-root `shader_permutation_registry.json`, and `tools/zircon_build.py --shader-asset-root <path>` can add project roots to the same staged `--asset-root` / automatic `shader_resource_records.json` export path locked by `test_zircon_build_resolves_project_shader_asset_roots_for_prewarm` and `runtime_15_shader_prewarm_project_asset_roots_auto_export_is_wired`; however, it does not yet automatically generate the full project/plugin shader, shading-model, and geometry-source registry export. Base shader-source requests also remain conservative when no material instance narrows the pass set. Asset/importer page payload decode and meshlet vertex ordinal now have separate static closeout anchors; staged-cache compile acceptance plus product VG draw evidence are still needed before long-lived edited projects can claim the same product-level acceptance breadth as the focused staged-cache test.
 
 Build-tool prewarm report consumption now reads `shader_variants_report.json` after the staged prewarm process returns, prints the `dimension_summary` groups as a compact log summary, and then propagates any non-zero exit code. Status: `render_plan08_build_tool_prewarm_dimension_summary_python_tests_passed_cargo_deferred`.
 
@@ -807,9 +1174,37 @@ Plugin shader permutation registry auto-export now lets selected plugin package 
 
 Plugin shader permutation registry export contract now validates that generated handoff before the staged prewarm subprocess runs. `validate_shader_permutation_registry_export_contract(...)` reads the generated `ZirconEngine/cache/shader_permutation_registry.json` and requires the current selected-plugin plus explicit CLI geometry-source and shading-model id specs to appear in its `geometry_source_ids` / `shading_model_ids` arrays. Status: `render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred`; `test_validate_generated_registry_requires_selected_plugin_ids`, `test_prewarm_shaders_validates_generated_registry_before_run`, and `runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired` lock the generated-registry acceptance gate. This closes the build-tool handoff contract only; real Naga/WGPU prewarm compile, RenderDoc/product capture, full project/plugin shader resource discovery, and miss=0 product acceptance remain open.
 
+2026-07-01 shader prewarm source-hash helper support: the plugin shading-model prewarm manifest path now has a local `shader_prewarm_source_hash(...)` helper in `dynamic_api/shader_prewarm.rs`, used when `PluginShadingModelTemplateSource::from_template(...)` adds the assembled WGSL source hash to the include/content hash list. The helper uses `blake3::hash(source.as_bytes()).to_hex().to_string()`, matching the existing shader include and variant-cache hash convention. Validation: `cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-tabs-0701 --message-format short --color never` passed with existing warnings, and the dependent `zircon_app --bin zircon_editor` build passed in the same external target directory. This is a compile-gate support fix, not product RenderDoc/prewarm acceptance.
+
 Plugin shading-model descriptor registration now gives custom shading models the real descriptor owner that the earlier F11 review required before reintroducing plugin registration. `PluginPackageManifest.shading_models` serializes `ShadingModelDescriptor` rows, `RuntimeExtensionRegistry` tracks them by plugin owner for register/merge/revoke flows, and `graphics/material/shading_models/registry.rs::register_plugin_descriptor(...)` keeps plugin ids out of the built-in shading-model range. The build tool also derives selected-plugin prewarm `shader_shading_model_ids` from those `[[shading_models]]` rows, so a plugin does not have to duplicate the same id in `shader_permutation.shading_model_ids`. Status: `render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`; `plugin_package_manifest_declares_custom_shading_model_descriptors`, `test_zircon_build_discovers_plugin_shading_model_descriptors_as_shader_ids`, and `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired` lock the schema, runtime extension registry, graphics registry guard, build discovery, and docs anchors. This descriptor-owner slice did not close real Naga/WGPU prewarm compile, RenderDoc/product capture, or runtime pure-depth DepthPrepass migration.
 
+Plugin shading-model descriptor registry export now carries those descriptor rows through the generated prewarm registry. `tools/zircon_build.py::PluginPackage.shader_shading_model_descriptors` preserves selected plugin descriptors, `tools/zircon_build_shader_prewarm.py::generated_shader_permutation_registry_document(...)` writes `shading_model_descriptors`, and `zircon_shader_prewarm/manifest/permutation_registry.rs` normalizes descriptor tokens/ids into the overlay while rejecting incompatible duplicate ids through `IncompatibleShadingModelDescriptor`. Status: `render_plan08_plugin_shading_model_descriptor_registry_export_static_passed_cargo_deferred`; `test_generated_shader_permutation_registry_document_exports_selected_plugin_shading_model_descriptors`, `shader_prewarm_permutation_registry_merges_custom_shading_model_descriptors`, and `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired` lock the build helper, generated registry, overlay, run/error owner, docs, and session anchors. This is registry/overlay contract evidence only; descriptor-driven shader template dispatch and real custom shading-model Naga/WGPU compile remain open.
+
+Descriptor-driven forward shading include dispatch closes the next static template handoff after that registry export. `MaterialShaderTemplateRequest::with_shading_model_descriptor(...)` lets Forward template assembly receive a `ShadingModelDescriptor`, `graphics/shader/template/include_registry.rs::shading_model_forward_include_for(...)` resolves `forward_include` to the built-in `zr_shading_standard_pbr.wgsl` include, and `ShaderTemplateAssemblyError::UnknownShadingInclude` rejects unknown plugin include tokens before assembly can silently fall back. Status: `render_plan08_descriptor_driven_forward_shading_include_dispatch_static_passed_cargo_deferred`; `render_shader_template_uses_shading_model_descriptor_forward_include`, `render_shader_template_rejects_unknown_shading_model_forward_include`, and `runtime_15_render_shader_template_assembly_is_folder_backed` lock the request field, include resolver, error contract, and docs anchors. This is Forward include selection only; plugin WGSL source export, GBuffer/deferred descriptor include dispatch, and real custom shading-model Naga/WGPU compile remain open.
+
 Plugin geometry-source descriptor registration now gives custom geometry sources the same manifest/runtime owner path. `PluginPackageManifest.geometry_sources` serializes `GeometrySourceDescriptor` rows, `RuntimeExtensionRegistry` tracks them by plugin owner for register/merge/revoke flows, and selected plugin `[[geometry_sources]]` rows feed `tools/zircon_build.py::discover_plugins(...)` so staged prewarm derives `shader_geometry_source_ids` without requiring a duplicate `shader_permutation.geometry_source_ids` row. `virtual_geometry` declares `custom:virtual_geometry = 4` through both its runtime descriptor and static `plugin.toml`, while the legacy id row remains accepted as a compatibility input for staged registries. Status: `render_plan08_plugin_geometry_source_descriptor_registration_typecheck_python_cargo_check_passed_renderdoc_deferred`; `plugin_package_manifest_declares_custom_geometry_source_descriptors`, `test_zircon_build_discovers_plugin_geometry_source_descriptors_as_shader_ids`, and `runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired` lock the schema, runtime extension registry, build discovery, and docs anchors. This descriptor-owner slice did not close real Naga/WGPU prewarm compile, RenderDoc/product capture, complete project shader resource discovery, or runtime pure-depth DepthPrepass migration.
+
+Plugin geometry-source descriptor runtime WGPU prewarm closes the next handoff after descriptor registration. `tools/zircon_build.py::resolve_config(...)` now treats explicit `--plugins` as selected shader/geometry contribution input even when the build target is only `runtime`; only the `plugins` target triggers plugin binary packaging. The generated permutation registry now writes `geometry_source_descriptors` beside `geometry_source_ids`, `bin/zircon_shader_prewarm/manifest/permutation_registry.rs` merges those descriptors into the runtime overlay, and `dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor(...)` routes built-in standard-material fallback requests through `mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor(...)`. `zr_geometry_virtual_geometry.wgsl` is registered through `graphics/shader/template/include_registry.rs` so the selected plugin descriptor can assemble all six material pass templates under WGPU module validation. Status: `render_plan08_plugin_geometry_descriptor_runtime_wgpu_prewarm_passed_product_deferred`; the live staged command wrote 12/12 cache variants and validated 12/12 WGPU modules for geometry source ids `0` and `4`. This proves descriptor-to-WGPU prewarm connectivity, not the full VirtualGeometry page/cluster runtime fetch path, RenderDoc/product capture, full live registry export, or second-launch miss=0 acceptance.
+
+VirtualGeometry page/cluster shader bindings close the shader-side part of that remaining fetch gap. `GeometrySourceBindingKind` now includes `VirtualGeometryClusters`; the virtual_geometry runtime descriptor and static `plugin.toml` require both `virtual_geometry.pages` and `virtual_geometry.clusters`; and GPUScene group3 reserves storage bindings 9 and 10 for those buffers without colliding with the morph storage slots at 7 and 8. `zr_gpu_scene.wgsl` exposes `zr_virtual_geometry_pages` and `zr_virtual_geometry_clusters`; `zr_geometry_virtual_geometry.wgsl` reads primitive `payload_slot`, page table cluster base and vertex count, then fetches position, normal, and tangent words with bounds checks and vertex-input fallback. Status: `render_plan08_virtual_geometry_page_cluster_shader_bindings_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`; direct-binary status `render_plan08_virtual_geometry_page_cluster_shader_bindings_direct_binary_wgpu_layout_passed_renderdoc_deferred` and original static status `render_plan08_virtual_geometry_page_cluster_shader_bindings_static_passed_cargo_deferred` remain as historical guard anchors. `mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings`, `render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings`, and `runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired` lock the descriptor, manifest, GPUScene slot, WGSL fetch, prewarm fixture, docs/status, and session anchors. The 2026-07-02 direct-binary backfill passed the shader-source and WGPU-layout focused tests 1/1 each; the 2026-07-03 no-default Cargo-wrapper backfill passed the same full-path tests 1/1 with 5984 and 5992 filtered; the default-feature Cargo-wrapper backfill passed shader-source, GPUScene layout, and structure-guard tests 1/1 under `render_plan08_virtual_geometry_page_cluster_shader_bindings_default_features_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`. A follow-up structure-guard closeout repaired current-source compile drift in material defaults, disabled-pass test seeds, command-cache disabled-pass keys, and the shader-template `module_registry.rs` hard-cut owner; `runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired` then passed 1/1 with 6028 filtered under status `render_plan08_virtual_geometry_page_cluster_shader_bindings_structure_guard_compile_drift_cargo_passed_renderdoc_deferred`. Product VG draw, RenderDoc/product capture, full live registry export, and product miss=0 remain open.
+
+VirtualGeometry cluster payload upload now closes the first explicit resident payload projection into those shader bindings. `RenderVirtualGeometryPagePayload` and `RenderVirtualGeometryPagePayloadVertex` are exported through the debug snapshot surface as `resident_page_payloads`; the production snapshot builder receives the decoded payload sidecar from `FrameSubmissionContext::virtual_geometry_resident_page_payloads()` and keeps mesh-build as the only owner that encodes payload vertices into cluster words. The mesh-build resident upload owner converts each payload vertex into four `GpuVirtualGeometryClusterWord` rows (position, normal, tangent, pad) using `GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX`, shares cluster word storage across repeated resident submissions for the same page, and leaves pages without payload at `vertex_count == 0` so WGSL keeps falling back safely. Status: `render_plan08_virtual_geometry_cluster_payload_upload_static_passed_cargo_deferred`; `virtual_geometry_cluster_words_follow_resident_page_payloads` and `runtime_15_virtual_geometry_cluster_payload_upload_is_wired` lock the DTO, re-export, GPU ABI constant, upload projection, docs/status, and session anchors. Asset payload decode and meshlet vertex ordinal now have follow-up anchors; product VG draw, RenderDoc/product capture, full live registry export, and product miss=0 remain open.
+
+A 2026-07-02 direct-binary WGPU backfill upgrades the focused evidence for that projection to status `render_plan08_virtual_geometry_cluster_payload_upload_direct_binary_wgpu_passed_renderdoc_deferred`. The existing `virtual_geometry_cluster_words_follow_resident_page_payloads` test passed 1/1 from the no-default generated `zircon_runtime` lib-test binary, proving the resident payload rows, shared cluster-word storage, and per-vertex position/normal/tangent/pad encoding without changing production renderer code. The later no-default Cargo-wrapper rerun passed under `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`, and the default-feature Cargo-wrapper rerun passed under `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`. RenderDoc/product capture, workspace/full CI, full live registry export, and broader product miss=0 remain open.
+
+VirtualGeometry asset payload decode now feeds that resident payload sidecar from the first-party `virtual_geometry` runtime plugin. `nanite/page_payload.rs` parses cooked `ZVG0` page payload items, maps each `triangle_start` / `triangle_count` range through `ModelPrimitiveAsset` source indices and vertices, and emits `RenderVirtualGeometryPagePayloadVertex { position, normal, tangent }` after local page ids are remapped to global resident page ids. `VirtualGeometryAutomaticExtractInstance::from_model_primitive(...)` preserves primitive vertices and indices, `VirtualGeometryRuntimeExtractOutput` carries `resident_page_payloads`, `FrameSubmissionContext` gates them behind the existing VirtualGeometry enable flag, and `build_virtual_geometry_debug_snapshot(...)` passes them into `RenderVirtualGeometryDebugSnapshot.resident_page_payloads`. Status: `render_plan08_virtual_geometry_asset_payload_decode_static_passed_cargo_deferred`; `render_page_payloads_decode_cooked_triangle_vertices_with_global_page_ids`, the imported cooked model extract assertions, and `runtime_15_virtual_geometry_asset_payload_decode_is_wired` lock the decode module, sidecar chain, snapshot consumer, docs/status, and session anchors. Scoped rustfmt and static anchors passed; `zircon_plugin_virtual_geometry_runtime --lib` check timed out after about 304 seconds and is not counted as passed. This closes cooked asset page payload decode to the render debug snapshot sidecar; product VG draw, RenderDoc/product capture, full live registry export, and product miss=0 remain separate gates.
+
+VirtualGeometry meshlet vertex ordinal now closes the asset-to-shader ordinal handoff that the page/cluster fetch path depends on. `ModelPrimitiveAsset::assign_virtual_geometry_vertex_ordinals()` packs each VG source vertex index into `MeshVertex.joint_indices[0]` and `[1]` as a 16+16 bit value, while non-VG primitives keep their authored joint channels untouched. OBJ/GLTF primitive import, `.model.toml` VG backfill, `MeshAsset::from_model_primitive(...)`, and `MeshAsset::to_model_primitive(...)` all use that standardization path so root model primitives and labeled mesh subassets feed the same ordinal into the vertex buffer. `zr_geometry_virtual_geometry.wgsl` unpacks `v.joints.x | (v.joints.y << 16)` before reading `zr_virtual_geometry_clusters`, and `mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings` checks the unpack expression. Status: `render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred`; the original static status remains recorded as `render_plan08_virtual_geometry_meshlet_vertex_ordinal_static_passed_cargo_deferred` for older generated guard binaries. Direct generated-binary runs now pass the model ordinal filter 2/2 plus the focused MeshAsset conversion, OBJ import, `.model.toml` backfill, two glTF import paths, and shader-source unpack tests 1/1 each. The broader ProjectAssetManager `.model.toml` test exposed a stale all-zero-joint expected fixture in the old generated binary; the current source fixture now normalizes expected VG primitives through `assign_virtual_geometry_vertex_ordinals()`, but the Cargo-wrapper rerun is deferred while other Cargo lanes are active. This closes focused direct-binary asset/importer/shader evidence, not the ProjectAssetManager Cargo rerun, RenderDoc/product capture, default features, workspace/full CI, full live registry export, or product miss=0.
+
+VirtualGeometry product draw-source now has focused no-default and default-feature Cargo/WGPU evidence for the product-test automatic draw-source seam after the resident buffer, payload decode, and meshlet ordinal contracts. The frame submission context only calls `build_automatic_virtual_geometry_extract(...)` when VirtualGeometry is enabled and no authored `RenderVirtualGeometryExtract` was submitted, then uses the runtime provider `build_extract_from_meshes(...)` and `ProjectAssetManager::load_model_asset(...)` to build the effective VG extract from normal `RenderMeshSnapshot` model handles. The test provider is split into `plugin_render_feature_fixtures/virtual_geometry_provider.rs`, and `render_product_virtual_geometry_model_asset_uses_automatic_draw_source` registers a cooked VG `ModelAsset`, submits `GeometryExtract::from_meshes(...)`, and verifies `RenderVirtualGeometryPayloadSource::AutomaticFallback` with indirect execution stats. Status: `render_plan08_virtual_geometry_product_draw_source_cargo_wrapper_wgpu_passed_renderdoc_deferred`; default-feature follow-up status: `render_plan08_virtual_geometry_product_draw_source_default_features_wgpu_passed_renderdoc_deferred`. `runtime_15_virtual_geometry_product_draw_source_is_wired` locks submit-context/provider/product-test/docs/status/session anchors and file budgets. The short-name exact direct-binary attempt ran 0 tests and is not counted; the full-path no-default direct-binary run passed 1/1, the fresh no-default Cargo wrapper passed 1/1 with 5881 filtered, and the warmed default-feature Cargo wrapper passed 1/1 with 5933 filtered after the generated default-feature binary passed the same exact filter 1/1. This closes the focused Cargo/WGPU product draw-source proof for no-default and default features, not RenderDoc/product capture, workspace/full CI, full live registry export, or product miss=0.
+
+VirtualGeometry page/cluster product execution now closes the next focused WGPU product layer under status `render_plan08_virtual_geometry_page_cluster_product_execution_wgpu_passed_renderdoc_deferred`. `render_product_virtual_geometry_page_cluster_bindings_drive_visible_frame` is anchored by `PAGE_CLUSTER_PRODUCT_STATUS`, reuses the automatic cooked `ModelAsset` path, and proves a visible product frame while checking public page/cluster execution stats instead of plugin-private provider table counters. The product fixture registers `custom:virtual_geometry` through `GeometrySourceDescriptor`, carries `GeometrySourceBindingKind::VirtualGeometryPages` and `GeometrySourceBindingKind::VirtualGeometryClusters`, emits `ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY`, and feeds the descriptor into the pluginized WGPU framework constructors. The same slice fixes fallback shader source selection so a `builtin://shader/pbr.wgsl` fallback key still uses the standard material template even when the streamer records that URI as a Surface shader. The focused page/cluster product test passed 1/1 with 6133 filtered, the automatic draw-source regression passed 1/1, and `builtin_fallback_shader_loaded_as_surface_still_uses_standard_material_template` passed 1/1; `runtime_15_virtual_geometry_product_draw_source_is_wired` locks the product fixture, tests, docs/status, and session anchors. The default-feature rerun for this exact page/cluster product test is now closed by `render_plan08_virtual_geometry_page_cluster_product_default_features_wgpu_passed_renderdoc_deferred`; RenderDoc/product capture, workspace/full CI, full live registry export, and broader product miss=0 remain open.
+
+VirtualGeometry page/cluster product default-feature WGPU backfill now records that same page/cluster product path under default features. `render_product_virtual_geometry_page_cluster_bindings_drive_visible_frame` passed through the default-feature Cargo wrapper with 1/1 and 6152 filtered after a cold 25m36s build on `E:\cargo-targets\zircon-plan08-vg-product-default-0703`, with repository-existing warnings only. No production renderer, provider, descriptor, WGSL ABI, or fixture behavior changed for this backfill; it reuses the same automatic cooked `ModelAsset`, `custom:virtual_geometry` descriptor, page/cluster binding requirements, visible Unlit capture, and public WGPU execution stats. Status: `render_plan08_virtual_geometry_page_cluster_product_default_features_wgpu_passed_renderdoc_deferred`; guard: `runtime_15_virtual_geometry_product_draw_source_is_wired`, which passed its default-feature Cargo-wrapper guard 1/1 with 6166 filtered after a 9m34s build on the same target dir.
+
+VirtualGeometry page/cluster product execution now also has focused product readback PNG evidence under `render_plan08_virtual_geometry_page_cluster_product_readback_png_passed_renderdoc_deferred`. The ignored export `export_virtual_geometry_page_cluster_product_png` reuses `render_product_virtual_geometry_page_cluster_bindings_drive_visible_frame`, automatic cooked `ModelAsset` VG, visible Unlit capture, `custom:virtual_geometry` page/cluster binding requirements, and the same public execution stats, then writes `docs/tests/runtime/render/runtime_render_plan08_virtual_geometry_page_cluster_product_20260703.png`. Direct generated-binary execution passed 1/1 with 6204 filtered and 7.97s, producing a 320x240 PNG, 2965 bytes, SHA256 `0322783567544681379085E0C944EF40DD2E6453EE4AE0CB5897F12EBBEBDDE6`; the same binary passed `runtime_15_virtual_geometry_product_draw_source_is_wired` 1/1 with 6204 filtered and 0.26s. RenderDoc/product capture, workspace/full CI, full live registry export, and broader product miss=0 remain open.
+
+VirtualGeometry resident buffers upload now has direct-binary, no-default Cargo-wrapper, and default-feature Cargo-wrapper WGPU evidence for the first runtime data-owner handoff for those bindings. `GpuVirtualGeometryPage` and `GpuVirtualGeometryClusterWord` define 16-byte GPUScene page/cluster rows, `GpuScene::upload_virtual_geometry_resident_buffers(...)` owns CPU shadows, storage buffer recreation, queue writes, and bind group rebuild, and mesh draw building uploads resident page rows from `RenderVirtualGeometryDebugSnapshot.execution_segments` before GPUScene draw sync. The draw sync path writes the VirtualGeometry indirect `submission_slot` into primitive and instance `payload_slot`, and execution projection uses `VirtualGeometrySubmissionDetail::payload_slot()` for the same semantic slot. Status: `render_plan08_virtual_geometry_resident_buffers_upload_direct_binary_wgpu_passed_renderdoc_deferred`; no-default Cargo-wrapper status: `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`; default-feature Cargo-wrapper status: `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`. `render_gpu_scene_uploads_virtual_geometry_resident_buffers`, `virtual_geometry_page_rows_follow_submission_slots`, and `runtime_15_virtual_geometry_resident_buffers_upload_is_wired` lock the ABI, upload owner, mesh-build handoff, payload slot, docs/status, and session anchors. RenderDoc/product capture, workspace/full CI, full live registry export, and product miss=0 remain open.
 
 Plugin shader asset roots auto-export now makes selected plugin package assets part of the staged prewarm input set. `tools/zircon_build.py::discover_plugins(...)` resolves existing plugin `asset_roots`, the default `assets` root, and legacy `[distribution] assets = ["assets/**"]` roots into `PluginPackage.asset_roots`; `tools/zircon_build_shader_prewarm.py::shader_asset_root_paths_for_prewarm(...)` appends those roots after staged `ZirconEngine/assets`. Because `zircon_shader_prewarm::run` already exports shader resource records for every `--asset-root`, selected plugin WGSL payloads participate in the same `--export-resource-registry` pass as engine assets. Status: `render_plan08_plugin_shader_asset_roots_auto_export_focused_tests_passed_cargo_deferred_renderdoc_deferred`; `test_build_command_includes_selected_plugin_asset_roots` and `runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired` lock the build command, discovery inputs, docs anchors, and owner budget. This closes selected-plugin asset-root participation, but not full live project/plugin shader resource registry export, real Naga/WGPU prewarm compile, or RenderDoc/product capture.
 
@@ -830,19 +1225,15 @@ Shader prewarm source provenance summary closes the report-level provenance gap 
 Build-tool source provenance report contract makes that provenance field a staged build success condition. `tools/zircon_build.py::prewarm_shaders(...)` now passes `require_source_provenance=True` after a zero prewarm exit, and `validate_shader_prewarm_report_contract(...)` requires a non-empty `source_provenance.sources` map, matching source count, variant count coverage for the report requested count, and per-source `source_label`, `source_hash`, `template_revision`, and closed requested/written/failed counts. Status: `render_plan08_build_tool_source_provenance_report_contract_python_passed_cargo_deferred`; `test_validate_report_contract_requires_source_provenance_when_requested`, `test_validate_report_contract_accepts_source_provenance_counts`, the expanded `test_prewarm_shaders_validates_wgpu_report_after_success`, and `runtime_15_shader_prewarm_source_provenance_report_contract_is_wired` lock the build-tool gate. This still does not close Cargo guard, real staged WGPU execution, RenderDoc/product capture, full registry export, or miss=0 product acceptance.
 
 Build-tool shader resource registry export contract makes the automatic staged
-`shader_resource_records.json` export an explicit build-tool success condition.
-After a zero prewarm exit, `tools/zircon_build.py::prewarm_shaders(...)` calls
-`validate_shader_resource_registry_export_contract(...)` when
-`--shader-resource-registry` was not supplied. The helper accepts the same
-registry container shapes consumed by `zircon_shader_prewarm`: a raw
-`ResourceRecord` array, `{ resources: [...] }`, or `{ records: [...] }`. Empty
-arrays are valid, while missing files, invalid JSON, non-array containers, and
-non-object records fail before the staged build can claim a successful
+`shader_resource_records.json` export a parseable build-tool product. The helper
+accepts the same registry container shapes consumed by `zircon_shader_prewarm`:
+a raw `ResourceRecord` array, `{ resources: [...] }`, or `{ records: [...] }`.
+Empty arrays are valid, while missing files, invalid JSON, non-array containers,
+and non-object records fail before the staged build can claim a successful
 auto-export. Status:
 `render_plan08_build_tool_resource_registry_export_contract_python_passed_cargo_deferred`;
 `test_validate_registry_export_contract_requires_resource_records`,
-`test_prewarm_shaders_skips_export_contract_for_explicit_registry`, the expanded
-`test_prewarm_shaders_validates_wgpu_report_after_success`, and
+the expanded `test_prewarm_shaders_validates_wgpu_report_after_success`, and
 `runtime_15_shader_prewarm_resource_registry_export_contract_is_wired` lock this
 build-tool gate. This still does not close Cargo guard, real staged WGPU
 execution, RenderDoc/product capture, full live registry export, or miss=0
@@ -907,6 +1298,23 @@ the Python helper, Rust overlay owner, docs/status anchors, and child test
 ownership. This remains Python/static evidence only; real staged WGPU
 execution, full live project/plugin registry export, RenderDoc/product capture,
 fallback-root hit, and miss=0 acceptance remain open gates.
+
+Build-tool explicit registry exact revision acceptance applies the same
+report/registry correlation to caller-provided live or project registry inputs.
+`validate_staged_shader_prewarm_acceptance_contract(...)` now validates
+`config.shader_resource_registry` when supplied, otherwise the automatic staged
+`shader_prewarm_resource_registry_path`, always passing the successful prewarm
+report path into the registry validator. Explicit registries are still not
+treated as auto-export artifacts, but they can no longer bypass the
+`usable shader ResourceRecord revisions` requirement for report-visible source
+labels. Status:
+`render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred`;
+`test_acceptance_contract_validates_explicit_registry_against_report`,
+`test_acceptance_contract_rejects_explicit_registry_without_ready_revision`, and
+`runtime_15_shader_prewarm_acceptance_contract_is_wired` lock this gate. This
+narrows the full live project/plugin registry export gap, but does not close the
+actual production export, RenderDoc/product capture, real VG page/cluster
+fetch/bindings, or product miss=0 gates.
 
 The registry contract regressions now have a dedicated Python owner,
 `tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py`.
@@ -1113,6 +1521,49 @@ locks the acceptance entry point. This prevents malformed written identity from
 leaving the early success bundle, but it still does not claim a new real
 WGPU/product run.
 
+Build-tool source-label nonblank contract keeps source provenance and written
+variant source identity from being satisfied by whitespace-only strings. The
+report contract now checks `source_label`, `source_hash`, and
+`template_revision` with `_is_nonblank_string(...)`; the written-variant helper
+and staged acceptance precheck also reject blank `written_variants[].source_label`.
+Status:
+`render_plan08_build_tool_source_label_nonblank_contract_python_passed_cargo_deferred`;
+`test_validate_report_contract_rejects_blank_source_provenance_strings` and
+`test_acceptance_contract_rejects_blank_written_variant_source_label` lock the
+report and acceptance entry points. Final build-helper aggregate validation
+passed 99/99, with py_compile, rustfmt, anchor/conflict/trailing-whitespace and
+line-budget scans, and scoped diff-check passing with only LF/CRLF warnings.
+This prevents malformed provenance from
+skipping registry-backed locator correlation, but it still does not claim a new
+real WGPU/product run.
+
+Build-tool source-label trim contract tightens the same source evidence one step
+further: source provenance `source_label`, `source_hash`, and
+`template_revision` must already be trim-clean, and written variant
+`source_label` must not carry leading or trailing whitespace. Status:
+`render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred`;
+`test_validate_report_contract_rejects_untrimmed_source_provenance_strings`,
+`test_acceptance_contract_rejects_untrimmed_written_variant_source_label`, and
+`test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label`
+lock the report, acceptance, and cache-parser entry points. The source,
+acceptance, and cache helper suite passed 46/46, and the build-helper aggregate
+passed 102/102. This is still Python/static build-helper evidence, not a live
+WGPU/product run.
+
+Build-tool explicit registry exact revision acceptance closes the staged
+acceptance bypass for caller-provided shader registries. The acceptance helper
+now validates `config.shader_resource_registry` when present, otherwise the
+automatic staged `shader_prewarm_resource_registry_path`, and always supplies
+`report_path=config.shader_prewarm_report_path` so explicit live/project records
+must match report-visible shader sources with usable shader ResourceRecord
+revisions. Status:
+`render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred`;
+`test_acceptance_contract_validates_explicit_registry_against_report` and
+`test_acceptance_contract_rejects_explicit_registry_without_ready_revision` lock
+the positive handoff and zero-revision failure. This is still build-helper
+acceptance evidence, not a completed full live project/plugin registry export or
+RenderDoc/product run.
+
 Build-tool shader permutation id report dimension contract extends that same
 gate to selected plugin and explicit CLI custom ids. `prewarm_shaders(...)`
 passes `expected_geometry_source_ids=shader_geometry_source_id_specs(config)`
@@ -1237,9 +1688,36 @@ lookup owner and docs anchors. This is still static Rust coverage; live WGPU
 validation, RenderDoc/product capture, full live registry export, and miss=0
 product acceptance remain separate gates.
 
-Material custom shading-model runtime registry now connects those selected plugin descriptors to material runtime consumption. `RuntimeModuleExtensionInputs` collects `RuntimeExtensionRegistry::shading_models()`, `GraphicsModule` and the WGPU framework pass the descriptor list through `SceneRenderer::new_with_plugin_render_extensions_and_shading_models(...)`, and `ResourceStreamer::new_with_plugin_shading_models(...)` builds one `ShadingModelRegistry` for both material preparation and material capture seeds. Status: `render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred`; `render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key` and `runtime_15_material_custom_shading_model_runtime_registry_is_wired` lock that a `.zmaterial` custom lighting model such as `custom:subsurface` reaches `PipelineKey.shading_model_id` through the plugin descriptor registry rather than falling back to StandardPBR. This closes runtime custom lighting-model resolution, but it still does not close real Naga/WGPU prewarm compile, RenderDoc/product capture, complete project shader resource discovery, or automatic project/plugin shader/shading/geometry registry export.
+Material custom shading-model runtime registry now connects those selected plugin descriptors to material runtime consumption. `RuntimeModuleExtensionInputs` collects `RuntimeExtensionRegistry::shading_models()`, `GraphicsModule` and the WGPU framework pass the descriptor list through `SceneRenderer::new_with_plugin_render_extensions_and_shading_models(...)`, and `ResourceStreamer::new_with_plugin_shading_models(...)` builds one `ShadingModelRegistry` for both material preparation and material capture seeds. Status: `render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred`; `render_plan08_selected_plugin_shading_model_registration_inputs_static_guard_cargo_deferred` adds `plugin_registration_inputs_collect_shading_model_descriptors`, proving a selected plugin registration report carries its `RuntimeExtensionRegistry::register_shading_model(...)` descriptor into `RuntimeModuleRegistrationInputs::shading_models()` before graphics module assembly. The direct lib-test binary backfill status `render_plan08_selected_plugin_shading_model_registration_inputs_direct_binary_passed_cargo_wrapper_deferred` records that focused filter passing 1/1, and Selected plugin/source-registry guard Cargo-wrapper backfill status `render_plan08_selected_plugin_source_registry_guards_cargo_wrapper_passed_renderdoc_deferred` records the same guard passing 1/1 with 5839 filtered. `render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key` and `runtime_15_material_custom_shading_model_runtime_registry_is_wired` lock that a `.zmaterial` custom lighting model such as `custom:subsurface` reaches `PipelineKey.shading_model_id` through the plugin descriptor registry rather than falling back to StandardPBR. This closes source-level selected-plugin descriptor handoff and runtime custom lighting-model resolution at focused Cargo-wrapper level, but real Naga/WGPU prewarm compile, RenderDoc/product capture, complete project shader resource discovery, and automatic project/plugin shader/shading/geometry registry export remain open.
 
-Live ResourceManager shader registry export is now wired at the resource/prewarm seam. `ResourceManager::ready_records_for_kind(ResourceKind::Shader)` exports deterministic ready shader `ResourceRecord` rows with non-zero live revisions, and `shader_resource_records_from_manager(&manager)` feeds those rows into `ShaderPrewarmResourceRegistryOverlay` so asset-root `.zmeta` shader scans can use the live `material_revision` instead of a fallback source hash. Status: `render_plan08_live_resource_manager_shader_registry_export_focused_tests_passed_renderdoc_deferred`. `shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions` and `runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired` lock the handoff. This does not yet automatically enumerate full project/plugin shader, shading-model, or geometry-source registries, and it does not close real Naga/WGPU prewarm compile, RenderDoc/product capture, or runtime pure-depth DepthPrepass migration.
+Custom forward shading include source dispatch now covers the template-side source injection needed after descriptor registry export. `MaterialShaderTemplateRequest::with_shading_model_forward_include_source(...)` stores request-local `ShaderTemplateInclude` rows with dynamic token/source strings, and `include_registry.rs::shading_model_forward_include_for(..., source_includes)` resolves the descriptor `forward_include` through built-in includes first, then those supplied sources. `render_shader_template_uses_custom_shading_model_forward_include_source` proves a `custom:toon` descriptor can inject `zr_shading_toon.wgsl` through `CUSTOM_TOON_FORWARD_INCLUDE` without also injecting `zr_shading_standard_pbr.wgsl`; the no-source path still fails with `UnknownShadingInclude`. Status: `render_plan08_custom_forward_shading_include_source_static_passed_cargo_deferred`. This closes request-level Forward custom source dispatch; project/plugin source export now flows through `ShadingModelIncludeSourceSet`, while runtime handoff, real custom shading-model Naga/WGPU compile, RenderDoc/product capture, and broader miss=0 remain open.
+
+Deferred GBuffer shading include source dispatch covers the matching template-side source injection for `ShadingModelDescriptor.gbuffer_encode_include`. `DeferredGBufferShaderTemplateRequest::with_shading_model_descriptor(...)` and `with_shading_model_gbuffer_include_source(...)` feed the dedicated GBuffer assembler, while `include_registry.rs::shading_model_gbuffer_include_for(..., source_includes)` resolves the built-in `zr_gbuffer_encode_standard_pbr.wgsl` first and then request-local plugin sources. `zr_template_deferred_gbuffer.wgsl` now delegates packing to `encode_gbuffer(surface, zr_build_shading_context(input))`, and `render_deferred_gbuffer_template_uses_custom_shading_model_gbuffer_include_source` proves a `custom:toon` descriptor can inject `zr_gbuffer_encode_toon.wgsl` without also injecting the standard encode include. Status: `render_plan08_deferred_gbuffer_shading_include_source_static_passed_cargo_deferred`. This closes request-level deferred GBuffer encode source dispatch; project/plugin source export now flows through `ShadingModelIncludeSourceSet`, while runtime handoff, real custom shading-model Naga/WGPU compile, RenderDoc/product capture, and broader miss=0 remain open.
+
+Deferred lighting include source dispatch covers the matching source injection for `ShadingModelDescriptor.deferred_include`. `DeferredLightingShaderSourceRequest::with_shading_model_descriptor(...)` and `with_shading_model_deferred_include_source(...)` feed `assemble_deferred_lighting_shader_source(...)`, which keeps built-in GPUScene/light-grid/shadow chunks and built-in deferred leaf includes, then inserts descriptor-backed custom dispatch at `zr-deferred-lighting-custom-shading-model-dispatch`. `deferred_lighting_shader_uses_custom_shading_model_deferred_include_source` proves a `custom:toon` descriptor can inject `zr_shade_deferred_toon.wgsl`, while the no-source path returns `UnknownDeferredInclude`. Status: `render_plan08_deferred_lighting_include_source_dispatch_static_passed_cargo_deferred`. This closes request-level deferred lighting source dispatch; project/plugin source export now flows through `ShadingModelIncludeSourceSet`, while runtime pipeline descriptor/source connection, real custom shading-model Naga/WGPU compile, RenderDoc/product capture, and broader miss=0 remain open.
+
+Project/plugin shading-model include source set now bridges the live project asset shader registry into those request-level include lanes. `ShadingModelIncludeSourceSet::from_project_asset_manager(...)` reads Ready `ResourceKind::Shader` records from `ProjectAssetManager`, matches plugin descriptor include tokens against shader locators, extracts `ShaderAsset::runtime_wgsl_source()`, and reports `MissingInclude`, `DuplicateIncludeToken`, `MissingRuntimeSource`, or `LoadShader` instead of silently falling back. `MaterialShaderTemplateRequest::with_shading_model_forward_include_sources(...)`, `DeferredGBufferShaderTemplateRequest::with_shading_model_gbuffer_include_sources(...)`, and `DeferredLightingShaderSourceRequest::with_shading_model_deferred_include_sources(...)` consume the same source set. Status: `render_plan08_shading_model_include_source_set_static_passed_cargo_deferred`; direct-binary validation status `render_plan08_shading_model_include_source_set_direct_binary_passed_cargo_wrapper_deferred` records `exported_include_source_set_feeds_forward_and_gbuffer_template_requests` passing 1/1, and grouped Cargo-wrapper status `render_plan08_selected_plugin_source_registry_guards_cargo_wrapper_passed_renderdoc_deferred` records the same guard passing 1/1 with 5839 filtered. This closes project/plugin WGSL source export to template/deferred source assembly at focused Cargo-wrapper level; runtime SceneRenderer pipeline handoff, real custom shading-model Naga/WGPU compile, RenderDoc/product capture, and broader miss=0 remain open.
+After docs sync, `runtime_15_material_custom_shading_model_runtime_registry_is_wired` passed 1/1 with 5842 filtered for the grouped status anchors.
+
+Runtime shading-model include source handoff now carries those request lanes into SceneRenderer pipeline source assembly under status `render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred`. `ResourceStreamer` owns the live descriptor/source lookup for a `PipelineKey`; Forward/Base mesh template creation applies `with_runtime_shading_model_sources(...)`; deferred GBuffer creation accepts `ResourceStreamer` through graph execution and calls the GBuffer source-set builder; deferred lighting pipeline creation assembles dynamic WGSL with plugin descriptors and `DeferredLightingShaderSourceRequest::with_shading_model_deferred_include_sources(...)` before WGPU pipeline creation. This closes the static/runtime descriptor-plus-source handoff for plugin shading models; WGPU module proof for Forward/GBuffer and the deferred lighting custom include WGPU pipeline validation are tracked by the following statuses.
+
+Custom shading-model runtime WGPU module validation now closes the Forward/GBuffer authored-plugin module proof under status `render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred`. `runtime_custom_shading_model_sources_compile_as_wgpu_modules` uses Ready shader records plus `ResourceStreamer::new_for_test_with_plugin_shading_models(...)` to assemble plugin `custom:toon` Forward and deferred GBuffer sources, verifies the custom include constants are present, and creates WGPU shader modules for both outputs under validation error scope. Deferred lighting custom include WGPU pipeline validation now closes under status `render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred`: `custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source` uses Ready plugin include sources, product lighting/GPUScene layouts, and `create_lighting_pipeline(...)` to create the deferred lighting render pipeline under a WGPU validation scope. Product scene/readback evidence, RenderDoc/product capture, broader miss=0/product sweeps, and full CI remain open.
+
+Plan 08 three shading-model forward/deferred product parity is now closed at the focused WGPU product layer under status `render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred`. `graphics/tests/render_product_mesh_cache/shading_model_parity.rs::render_product_three_shading_models_forward_deferred_parity` renders PBR/Blinn-Phong/Unlit material swatches through the default Forward + Deferred product pipelines, disables optional post/lighting features that would hide material-path differences, requires `mesh.opaque` on Forward and `deferred.gbuffer` plus `lighting.deferred` on Deferred, then compares RGBA output with `assert_rgba_frames_nearly_equal(...)`. The first WGPU pass exposed that disabling clustered lighting left mesh/deferred light-grid reads without external buffers, so `bind_execution_owned_graph_resources.rs::bind_light_grid_external_buffers` now binds `LightGridParams::disabled()`, empty z-bin/tile-mask buffers, and `:light-grid-execution-fallback` aliases before graph validation/execution. `runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired` locks the product child, parent mount, light-grid fallback, docs anchors, and file budgets. The existing `deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path` follow-up is now closed under status `render_plan08_deferred_project_shader_gbuffer_probe_wgpu_passed_renderdoc_deferred`: its fixture uses pure green `write_flat_color_wgsl(..., [0.0, 1.0, 0.0])` and `average_channel_in_region(...)` center sampling so Forward proves authored project WGSL while Deferred proves GBuffer material/base-color decode. RenderDoc/product capture remains open.
+
+Plan 08 three shading-model forward/deferred product parity default-feature WGPU backfill is now recorded under status `render_plan08_three_shading_models_forward_deferred_parity_default_features_wgpu_passed_renderdoc_deferred`. The existing product test passed through default features with 1/1, 5876 filtered, and 11.81s; the only code unblock was a test-scope `graphics/scene/scene_renderer/ui/text.rs` import that fixes the `SdfAtlasRect` path when default-feature lib tests compile. The refreshed `runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired` status/docs guard passed by direct generated-binary rerun with 1/1, 5873 filtered, and 0.41s after its Cargo wrapper timed out during compile/link. This closes the focused PBR/Blinn-Phong/Unlit Forward + Deferred default-feature rerun gap, while RenderDoc/product capture, workspace/full CI, and broader product coverage remain open.
+
+Live ResourceManager shader registry export is now wired at the resource/prewarm seam. `ResourceManager::ready_records_for_kind(ResourceKind::Shader)` exports deterministic ready shader `ResourceRecord` rows with non-zero live revisions, and `shader_resource_records_from_manager(&manager)` feeds those rows into `ShaderPrewarmResourceRegistryOverlay` so asset-root `.zmeta` shader scans can use the live `material_revision` instead of a fallback source hash. Status: `render_plan08_live_resource_manager_shader_registry_export_focused_tests_passed_renderdoc_deferred`. `shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions` and `runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired` lock the handoff. `shader_reimport_exports_updated_revision_for_prewarm_registry` now covers the edited project shader path by reimporting `res://shaders/pbr.wgsl` through `ProjectAssetManager` and requiring the exported Ready Shader record to carry the updated revision; status is `render_plan08_edited_shader_revision_export_static_guard_cargo_deferred`, with direct-binary validation status `render_plan08_edited_shader_revision_export_direct_binary_passed_cargo_wrapper_deferred` after the focused filter passed 1/1. Grouped Cargo-wrapper status `render_plan08_selected_plugin_source_registry_guards_cargo_wrapper_passed_renderdoc_deferred` records the same edited-revision guard passing 1/1 with 5839 filtered. This does not yet automatically enumerate full project/plugin shader, shading-model, or geometry-source registries, and it does not close real Naga/WGPU prewarm compile, RenderDoc/product capture, or runtime pure-depth DepthPrepass migration.
+
+## 2026-07-03 SH02-SH04 shader/material contract status
+
+The SH02 contract is now represented in `core/framework/render/shader/material_property_layout.rs`. `MaterialPropertyLayout` is the single source for property slots, texture bindings, packed size, and `layout_hash`; `MaterialOptionTable` owns bool/enum option bit packing and converts selected material values into `RenderShaderDefinitionValue` entries such as `ZR_OPT_*`. The asset-side generator in `asset/assets/shader/property_layout.rs` writes the generated material WGSL that the graphics template registers as `self::material`.
+
+The SH03 import contract is represented in `core/framework/render/shader/module_import.rs`. It scans line-leading `#include <...>` directives, strips authored include directives before final template assembly, and classifies `self::` generated modules versus built-in `zr_*` modules. `graphics/shader/template/module_registry.rs` is the implementation owner for built-in and request-local module resolution; it topologically orders transitive module dependencies, injects each token once, reports cycles/unknown modules, and contributes content hashes to template output.
+
+The SH04 material contract has the material renderer path closed through L2, the asset-root sparse prewarm path wired, and the first compute/fullscreen neutral contracts represented in code. `.zmaterial` is hard-switched to v2 with `parent`, `options`, and `queue`; material loading folds parent chains, validates property/texture/option/queue values against the shader artifact, and computes material option bits for `ShaderVariantKey`. `ShaderVariantKey` and `PipelineKey` now include `material_layout_hash`, and renderer-side material pass source assembly receives generated material WGSL, module include sources, and option defines from `ResourceStreamer`. The renderer material ABI now matches generated material WGSL: group 2 binding 0 is the material uniform and bindings 1..10 are the standard texture/sampler pairs. `MaterialPropertyOverrideBlock` now flows from `MeshRenderer` through `GeometryExtract.material_property_overrides` into per-draw binding0 uniform payloads, while static batches and static command-cache extraction skip override draws. `zircon_shader_prewarm` now derives the same material layout hash and option table from `.zshader` documents and writes only `.zmaterial` actual option selections into `ShaderVariantKey.material_option_bits`; duplicate material option selections dedupe by canonical key. `ComputeDispatchBuilder` emits the SH04 compute ABI group0 binding0 params plus binding1.. named resources, validates shader kind/kernel/resource binding mismatches, produces a neutral compute pipeline cache key, and can feed `RenderGraphComputeWorkload`. `FullscreenPassBuilder` emits the fullscreen ABI group0 frame, group1 pass inputs, group2 params, validates fragment entry/resource mismatches, and feeds `RenderFeaturePassDescriptor`. Clustered lighting now consumes a compute dispatch plan, motion-vector tile max consumes a fullscreen pass plan, and streamed builtin fallback shaders stay on the standard material template instead of entering the generated surface-material path. Broader L2 render_product parity, HZB/particles/more postprocess executor migration, real compute pipeline disk cache, product miss=0, and perf counters remain open.
+
+Validation status: `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` passed on 2026-07-03 after the module registry hard cutover, renderer pass source wiring, material ABI migration, and SH04-M3 contract wiring. `cargo check -p zircon_runtime --bin zircon_shader_prewarm --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` passed after sparse prewarm wiring. The generated bin-test binary passed `manifest::tests::shader_prewarm_asset_root_manifest_uses_sparse_material_option_keys`, two adjacent V2 fixture tests, and the full `manifest::tests` group 21/21. The generated lib-test binary passed the broad `compute` filter 36/36, the `fullscreen` filter 3/3, `runtime_base_mesh_pipeline_keeps_builtin_fallback_on_standard_template_after_shader_stream` 1/1, and `runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_without_compile_miss` 1/1. The Cargo-wrapper bridge regression `graphics::tests::render_framework_bridge::pipeline_profiles::headless_wgpu_server_falls_back_async_compute_passes_to_graphics` passed 1/1 with graph-derived compute workload expectations. `cargo test -p zircon_runtime --lib graphics::tests::project_render::project_scenes::export_example_vampire_scene_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never -- --ignored --exact --nocapture --test-threads=1` passed 1/1 and the accepted image is `docs/tests/runtime/shader/runtime_shader_material_vampire_offscreen_20260703.png` (1280x720, 54403 bytes, SHA256 `1526BE245965025596FA6098C495D85DCCBDA90E295C1B80489F4649740B5CE0`), with same-name target/cargo-targets scans returning no matches. The short-name Cargo exact prewarm run filtered 0 tests and is not counted. Older focused template/layout unit tests timed out during the Windows lib-test harness compile and are not counted as passed.
 
 ## Test Coverage
 
@@ -1249,7 +1727,7 @@ Live ResourceManager shader registry export is now wired at the resource/prewarm
 
 `render_shader_template_assembles_standard_material_surface_source` checks that the standard material template source projects alpha-test, receive-shadows, and double-sided features, then assembles into renamed `zr_material_surface` WGSL with the expected material binding contract. `runtime_15_render_shader_template_assembly_is_folder_backed` locks `graphics/shader/template/material_surface.rs`, `standard_material_surface_source`, and the Plan 08 status anchors alongside the original template assembly guard.
 
-`render_shader_template_validates_standard_material_wgsl_with_naga` records the intended Naga validation path for assembled standard material WGSL. The test is part of the template contract, but the current slice only completed static validation; Cargo/Naga execution is deferred to the milestone testing lane.
+`render_shader_template_validates_standard_material_wgsl_with_naga` records the intended Naga validation path for assembled standard material WGSL. The focused SH02/SH05 rerun now covers this template lane: `cargo test -p zircon_runtime --lib render_shader_template` first exposed a status-support mirror gap, then passed 18/18 after the render shader template assembly support anchors were restored.
 
 The standard material template test also checks uv1/tangent interpolation strings and runtime mesh vertex input locations so template pass edits cannot silently drop `fetch_tangent(v, instance_index)`, `fetch_uv1(v)`, or the `input.uv1` material-source path.
 
@@ -1265,7 +1743,9 @@ It also checks `standard_material_sampled_normal`, `standard_material_normal_tex
 
 `builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source`, `shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources`, `runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss`, and `runtime_15_builtin_fallback_prewarm_uses_template_source` check that the dynamic API's built-in fallback prewarm manifest no longer writes `FALLBACK_MESH_SHADER`, but instead emits the same template source, content hashes, and template revision that Base mesh runtime cache consumes; that the CLI manifest path expands pure fallback requests across requested built-in geometry sources and the standard-material pass list; and that a staged fallback root hit can create the runtime Base mesh WGPU pipeline with `disk_hit_count == 1` and `compile_miss_count == 0`.
 
-`render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss` and `runtime_15_product_base_mesh_staged_prewarm_is_wired` extend that evidence to the product path. The test lives in `graphics/tests/render_product_mesh_cache/staged_prewarm.rs`, writes the staged manifest once, runs first and second product launches through fresh `WgpuRenderFramework` instances, and asserts staged disk hits plus `compile_miss_count == 0` without runtime cache writes/errors while `mesh.opaque` and skinned Base replay evidence are visible.
+`render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss` and `runtime_15_product_base_mesh_staged_prewarm_is_wired` extend that evidence to the product path. The test lives in `graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs`, writes the staged manifest once, runs first and second product launches through fresh `WgpuRenderFramework` instances, and asserts staged disk hits plus `compile_miss_count == 0` without runtime cache writes/errors while `mesh.opaque` and skinned Base replay evidence are visible.
+
+`render_product_three_shading_models_forward_deferred_parity`, `light_grid_external_fallback_buffers_satisfy_materialization_report`, `deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path`, and `runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired` lock the Plan 08 three shading-model forward/deferred product parity seam plus the related project-shader/GBuffer split probe. The product test uses PBR/Blinn-Phong/Unlit materials, runs Forward + Deferred default pipelines in separate `WgpuRenderFramework` captures, requires visible red/green/blue material swatches, and compares RGBA output. The light-grid fallback test proves disabled clustered-lighting graphs can bind required external `LIGHT_GRID_PARAMS`, `LIGHT_ZBINS`, and `LIGHT_TILE_MASKS` buffers with `:light-grid-execution-fallback` aliases. The project-shader probe uses `average_channel_in_region(...)` to sample the covered center region and separates the pure-green project shader from the red GBuffer material path. Focused no-default Cargo/WGPU passed for the product/fallback tests and the project-shader probe; the focused product parity test also passed under default features with status `render_plan08_three_shading_models_forward_deferred_parity_default_features_wgpu_passed_renderdoc_deferred` (1/1, 5876 filtered, 11.81s). RenderDoc/product capture, broader product coverage, and full CI remain open.
 
 `builtin_standard_material_shader_prewarm_manifest_projects_material_features`, `builtin_standard_material_shader_prewarm_manifest_projects_geometry_source`, `builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules`, `shader_prewarm_asset_root_manifest_templates_builtin_standard_material_source`, and `runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired` check that an asset-root `.zmaterial` using `builtin://shader/pbr.wgsl` emits the same standard-material template source via `dynamic_api::builtin_standard_material_shader_prewarm_manifest(...)` / `dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry(...)`, preserves alpha cutoff and `ShaderFeatureBits::RECEIVE_SHADOWS`, writes requested `ShaderVariantKey.geometry_source`, emits static and skinned geometry includes, expands Forward/GBuffer/DepthPrepass/Shadow/Velocity/TAA reactive mask pass requests, keeps DepthPrepass prewarm on the pure depth/depth-alpha source contract, keeps TAA reactive prewarm on `zr_template_taa_reactive_mask.wgsl`, writes staged cache entries that hit after a simulated restart, and creates WGPU shader modules from the read-back WGSL without validation errors. The tests also ensure custom scanned WGSL sources are not wrapped by the builtin standard-material template path.
 
@@ -1308,13 +1788,11 @@ at 101 lines.
 `test_validate_registry_export_contract_requires_resource_records`,
 `test_validate_registry_export_contract_accepts_wrapped_resources`,
 `test_validate_registry_export_contract_accepts_raw_array`,
-`test_prewarm_shaders_skips_export_contract_for_explicit_registry`, the expanded
-`test_prewarm_shaders_validates_wgpu_report_after_success`, and
+the expanded `test_prewarm_shaders_validates_wgpu_report_after_success`, and
 `runtime_15_shader_prewarm_resource_registry_export_contract_is_wired` cover the
 Build-tool shader resource registry export contract. They lock that successful
-automatic export must leave a parseable `ResourceRecord` container, that
-explicit registry inputs do not validate an export they did not produce, and
-that this contract composes with the report and source-provenance contracts.
+automatic export must leave a parseable `ResourceRecord` container and that
+this contract composes with the report and source-provenance contracts.
 The focused Cargo guard is not counted as passed because it was blocked before
 compile by `Cargo.lock` needing update under `--locked`; WGPU execution remains
 deferred to the staged runtime acceptance lane.
@@ -1402,15 +1880,16 @@ contract. They lock that a success report cannot duplicate a `cache_hash` or
 requested product variant is missing.
 
 `test_acceptance_contract_validates_report_cache_and_exported_registry`,
-`test_acceptance_contract_skips_export_validation_for_explicit_registry`,
+`test_acceptance_contract_validates_explicit_registry_against_report`,
+`test_acceptance_contract_rejects_explicit_registry_without_ready_revision`,
 `test_prewarm_shaders_runs_acceptance_bundle_after_success`, the updated
 `test_prewarm_shaders_validates_staged_acceptance_after_success`, and
 `runtime_15_shader_prewarm_acceptance_contract_is_wired` cover the Build-tool
 staged prewarm acceptance contract. They lock that the zero-exit build path
 calls one acceptance helper that composes WGPU/report/source-provenance
 dimension checks, staged cache artifact checks, and automatic
-resource-registry/report correlation while skipping export validation for
-explicit registry inputs. `test_acceptance_contract_rejects_runtime_fallback_layout_drift`
+resource-registry/report correlation, including caller-supplied explicit
+registries when present. `test_acceptance_contract_rejects_runtime_fallback_layout_drift`
 and `test_acceptance_contract_accepts_runtime_fallback_layout` also lock the
 runtime fallback root layout: staged prewarm must write cache artifacts under
 `ZirconEngine/cache/shader_variants`, keep the report at
@@ -1460,8 +1939,671 @@ the assembled template source hash. Status:
 
 `tools.tests.test_zircon_build_plugin_carriers` checks selected plugin carrier discovery for legacy permutation id rows plus descriptor-owned shading-model and geometry-source ids. The geometry-source regression `test_zircon_build_discovers_plugin_geometry_source_descriptors_as_shader_ids` proves a selected plugin `[[geometry_sources]]` row is enough to feed staged `shader_geometry_source_ids`. The selected-plugin asset-root regressions `test_zircon_build_discovers_plugin_asset_roots_for_shader_prewarm`, `test_zircon_build_discovers_distribution_assets_as_plugin_asset_roots`, and `test_zircon_build_uses_existing_default_plugin_assets_root` prove top-level, legacy distribution, and default package asset roots can feed staged prewarm. `test_build_command_includes_selected_plugin_asset_roots` proves those roots are forwarded as additional `--asset-root` values.
 
+`test_zircon_build_selects_plugin_contributions_for_runtime_prewarm` covers the runtime-only selected-plugin contribution path. It locks that `--targets runtime --plugins virtual_geometry --prewarm-shaders` carries `PluginPackage.shader_geometry_source_ids` and descriptors into the prewarm config without requiring the `plugins` build target. The live staged WGPU closeout command `python -u tools\zircon_build.py --targets runtime --plugins virtual_geometry --out target\codex-plan08-live-wgpu-prewarm-0629 --mode debug --prewarm-shaders --validate-wgpu-shaders` wrote 12 cache variants, validated 12 WGPU shader modules, and reported geometry source ids `0` and `4` across the six material pass types.
+
+`runtime_custom_geometry_descriptor_pipeline_uses_staged_prewarm_without_compile_miss` covers the intended runtime side of that descriptor handoff. It prewarms a `custom:virtual_geometry` descriptor with `GeometrySourceId::new(4)`, configures a fresh runtime cache with the staged fallback root, registers the same descriptor in `MeshPipelineCache`, and creates the Base mesh WGPU pipeline through `ensure_pipeline_for_variant(...)`. The focused default-feature lib-test now passes and asserts the runtime shader variant miss report stays on the staged hit path: one request, one disk hit, zero compile misses, zero disk writes, zero disk errors, and the geometry id `4` dimension mirrors the same hit/no-miss counts. Product VG draw-source/page-cluster fetch, RenderDoc/product capture, and product second-launch miss=0 remain later Plan 08 gates.
+
+`runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_without_compile_miss` covers the non-Base side of the same descriptor handoff. It uses the staged fallback root to create GBuffer, DepthPrepass, Shadow, Velocity, and TAA reactive WGPU pipelines for `custom:virtual_geometry=4`, then asserts five requests are five disk hits with zero compile misses, zero disk writes, and zero disk errors. The first focused run failed at four hits out of five because GBuffer prewarm used the generic material-pass source while runtime used the deferred-gbuffer template; `mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor(...)` now dispatches GBuffer and TAA reactive to their pass-specific template owners so prewarm and runtime source hashes stay aligned. Status: `render_plan08_runtime_custom_geometry_descriptor_non_base_staged_cache_hit_wgpu_pipelines_passed_product_deferred`. Product VG draw-source/page-cluster fetch, full live registry export, RenderDoc/product capture, and product second-launch miss=0 remain later Plan 08 gates.
+
+`render_product_material_mesh_passes_second_launch_use_staged_prewarm_without_compile_miss` covers the product material-mesh side of staged cache handoff from `staged_prewarm/material_passes.rs`. It builds a product pipeline with DepthPrepass, Shadow, Deferred GBuffer, Lighting, PostProcess, and terminal AA fallback, then launches two fresh `WgpuRenderFramework` instances against the same staged fallback root. The first frame must request the staged depth and GBuffer variants as disk hits, the repeated frame must stay on memory-hit/no-compile-miss behavior, and the product stats must show shadow, light-grid, deferred-lighting, post-process, and material mesh work without runtime cache writes or errors. Status: `render_plan08_product_material_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred`.
+
+Product material mesh staged prewarm owner split + Velocity runtime contract is documented by status `render_plan08_product_material_mesh_staged_prewarm_owner_split_velocity_static_passed_cargo_deferred_active_lanes`. The previous single `staged_prewarm.rs` owner is now split into `staged_prewarm/mod.rs` for Base mesh coverage and `staged_prewarm/material_passes.rs` for the material mesh multi-pass product chain. The material-pass velocity frame now requires a previous velocity transform, zero missing velocity transforms, `temporal.velocity-object`, and a runtime `velocity pass` dimension with compile miss=0. Scoped static verification passed for the two new owners and `runtime_15_product_base_mesh_staged_prewarm_is_wired`; source/docs anchors, line budgets, old-file absence, conflict/trailing-whitespace scans, and scoped diff-check passed, with only LF/CRLF warnings from Git. Cargo/WGPU remains deferred behind active external lanes.
+
+The same slice locks the runtime resource contract for deferred geometry. `DepthPrepass` is now pure depth and writes only `SCENE_DEPTH`; `deferred.gbuffer` owns `GBUFFER_ALBEDO`, `GBUFFER_NORMAL`, and `GBUFFER_MATERIAL`; `zr_template_deferred_gbuffer.wgsl`, `record_gbuffer_geometry(...)`, and `create_gbuffer_mesh_pipeline(...)` all declare the same three color-target layout. This closes the focused product graph contract, but broader RenderDoc/product capture, full live registry export, and real VirtualGeometry page/cluster fetch remain outside this slice.
+
+`mesh_pipeline_virtual_geometry_template_source_declares_page_cluster_fetch_bindings` covers the shader assembly side of the VirtualGeometry fetch contract. It assembles a descriptor requiring `VirtualGeometryPages` and `VirtualGeometryClusters`, then checks the generated source includes group3 binding 9/10 declarations, `zr_virtual_geometry_vertex_word_index(...)`, and primitive `payload_slot` usage. `render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings` covers the WGPU-facing GPUScene layout side of the same contract. The structure guard `runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired` covers the wider static seam: descriptor enum, plugin runtime/static manifest, GPUScene fallback storage slots, WGSL guarded fetch helpers, prewarm registry fixtures, docs/status anchors, and line budgets. The focused direct-binary backfill passed both tests 1/1 under status `render_plan08_virtual_geometry_page_cluster_shader_bindings_direct_binary_wgpu_layout_passed_renderdoc_deferred`, the fresh no-default Cargo-wrapper backfill passed the same two full-path tests 1/1 under status `render_plan08_virtual_geometry_page_cluster_shader_bindings_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`, and the default-feature Cargo-wrapper backfill passed the shader-source, GPUScene layout, and structure-guard tests 1/1 under status `render_plan08_virtual_geometry_page_cluster_shader_bindings_default_features_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred`. The 2026-07-03 current-source structure-guard rerun also passed 1/1 after the material/default disabled-pass and shader-template `module_registry.rs` hard-cut compile drift was repaired.
+
+`virtual_geometry_cluster_words_follow_resident_page_payloads` covers the resident payload projection from `RenderVirtualGeometryDebugSnapshot.resident_page_payloads` into `GpuVirtualGeometryClusterWord` rows: page rows get a nonzero vertex count, repeated resident submissions for the same page share cluster word storage, and each vertex contributes position, normal, tangent, and pad words matching the WGSL fetch contract. The structure guard `runtime_15_virtual_geometry_cluster_payload_upload_is_wired` covers the wider static seam: debug snapshot DTO/re-export, production snapshot sidecar handoff from `FrameSubmissionContext`, GPUScene words-per-vertex ABI constant, resident upload projection, docs/status anchors, and file budgets. The focused direct-binary WGPU backfill passed 1/1 under status `render_plan08_virtual_geometry_cluster_payload_upload_direct_binary_wgpu_passed_renderdoc_deferred`; the later no-default Cargo-wrapper backfill passed the same full-path cluster payload test 1/1 under status `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`; the default-feature Cargo-wrapper backfill passed the same full-path cluster payload test 1/1 under status `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`.
+
+`render_page_payloads_decode_cooked_triangle_vertices_with_global_page_ids` covers cooked `ZVG0` page payload decode from payload item triangle ranges into source mesh vertex payloads after local-to-global page remap. The imported cooked model extract assertions cover the end-to-end plugin sidecar from `ModelPrimitiveAsset` source vertices/indices to `VirtualGeometryAutomaticExtractOutput.resident_page_payloads`, while `runtime_15_virtual_geometry_asset_payload_decode_is_wired` locks the runtime output, frame submission context, production debug snapshot handoff, plugin decode owner, docs/status anchors, and file budgets. Status: `render_plan08_virtual_geometry_asset_payload_decode_static_passed_cargo_deferred`.
+
+`virtual_geometry_vertex_ordinals_pack_into_joint_index_slots` covers the asset contract for VG source vertex ordinals: VG primitives pack source vertex index into the first two `joint_indices` slots, non-VG primitives remain untouched, and the decode helper round-trips a value above 16 bits. Mesh conversion and importer assertions cover root model primitives and labeled `MeshAsset` subassets carrying the same ordinal stream, while `runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired` locks the primitive helper, OBJ/GLTF/model backfill, `MeshAsset` conversion, WGSL unpack expression, shader-source assembly check, docs/status anchors, and file budgets. Status: `render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred`; the older static status `render_plan08_virtual_geometry_meshlet_vertex_ordinal_static_passed_cargo_deferred` remains a historical guard anchor. Follow-up status `render_plan08_virtual_geometry_project_asset_manager_fixture_source_guarded_cargo_rerun_deferred` additionally locks `asset_manager_imports_model_toml_with_virtual_geometry_payload` and the source-side `expected_model.primitives[0].assign_virtual_geometry_vertex_ordinals()` call. A stale direct-binary audit against `zircon_runtime-770562bad16f99eb.exe` timestamped `2026-07-02 05:27:25 +08:00` failed with the old all-zero expected payload; current source then passed the latest generated binary and fresh no-default Cargo-wrapper under `render_plan08_virtual_geometry_project_asset_manager_fixture_cargo_wrapper_passed_renderdoc_deferred`.
+
+`render_product_virtual_geometry_model_asset_uses_automatic_draw_source` covers the product automatic draw-source path for VG: it registers a cooked `ModelAsset`, submits normal `GeometryExtract::from_meshes(...)` model snapshots instead of an authored `RenderVirtualGeometryExtract`, and asserts the frame uses `RenderVirtualGeometryPayloadSource::AutomaticFallback` with visible indirect execution stats. The structure guard `runtime_15_virtual_geometry_product_draw_source_is_wired` covers the wider seam: frame submission context authored-extract gating, runtime provider `build_extract_from_meshes(...)`, `ProjectAssetManager::load_model_asset(...)`, the folder-backed test provider, product fixture, docs/status anchors, file budgets, and the `render_plan08_virtual_geometry_product_draw_source_cargo_wrapper_wgpu_passed_renderdoc_deferred` status after direct-binary 1/1 plus no-default Cargo-wrapper 1/1 evidence.
+
+VirtualGeometry product draw-source readback fixture status `render_plan08_virtual_geometry_product_draw_source_readback_passed_targeted_cargo` extends that product child owner so the same test registers an explicit Unlit material, keeps the visible camera on Perspective/Core3d with black clear and Shaded display mode, calls `capture_frame(viewport)`, and checks `assert_virtual_geometry_capture_visible(...)` after the automatic draw-source stats. The focused no-default Cargo/WGPU rerun passed 1/1; RenderDoc/product capture, default features, workspace/full CI, live registry export, and broader miss=0 remain open.
+
+VirtualGeometry product draw-source default-feature WGPU backfill status `render_plan08_virtual_geometry_product_draw_source_default_features_wgpu_passed_renderdoc_deferred` reruns the same readback fixture through the default runtime feature set. The first Cargo wrapper exceeded the 1204s tool window while compiling/linking but produced the default-feature lib-test binary and left no target-dir residual processes; direct generated-binary execution passed 1/1 with 5928 filtered, then the warmed Cargo wrapper passed 1/1 with 5933 filtered and repository-existing warnings only. RenderDoc/product capture, workspace/full CI, live registry export, and broader miss=0 remain open.
+
+`render_gpu_scene_uploads_virtual_geometry_resident_buffers` covers the GPUScene resident upload owner: typed page/cluster shadows, storage buffer rebuild, write-buffer byte reporting, and same-size reupload without bind group rebuild. `virtual_geometry_page_rows_follow_submission_slots` covers the mesh-build projection from execution segments to resident page rows, including pending/missing and missing-slot rejection. Both focused owners passed by direct no-default lib-test binary evidence under status `render_plan08_virtual_geometry_resident_buffers_upload_direct_binary_wgpu_passed_renderdoc_deferred`; the later no-default Cargo-wrapper backfill passed the resident GPUScene upload and page-row full-path tests 1/1 under status `render_plan08_virtual_geometry_resident_cluster_upload_cargo_wrapper_passed_renderdoc_deferred`; the default-feature Cargo-wrapper backfill passed the same resident GPUScene upload and page-row full-path tests 1/1 under status `render_plan08_virtual_geometry_resident_cluster_upload_default_features_cargo_wrapper_passed_renderdoc_deferred`. The structure guard `runtime_15_virtual_geometry_resident_buffers_upload_is_wired` covers the wider seam: GPUScene typed ABI, upload owner, mesh-build handoff, payload-slot assignment, docs/status anchors, and file budgets.
+
+`render_gpu_scene_uploads_morph_storage_buffers` covers the GPUScene morph upload owner: typed delta/weight shadows, storage buffer rebuild, write-buffer byte reporting, and same-size reupload without bind group rebuild. The structure guard `runtime_15_morph_storage_buffers_upload_is_wired` covers the wider static seam: GPUScene typed ABI, group3 binding 7/8 layout entries, upload owner, WGSL helper declarations, morphed include helper consumption, docs/status anchors, and file budgets. Status: `render_plan08_morph_storage_buffers_upload_check_passed_wgpu_deferred`.
+
+Morph payload projection is covered by `morph_payload_projection_keeps_active_position_deltas_and_weights` and `morph_payload_collection_deduplicates_shared_draw_payloads`. The mesh-build child owner `morph_payload_upload.rs` reads direct mesh `MESH_ATTRIBUTE_POSITION` morph deltas, encodes row-aligned `GpuMorphDelta` / `GpuMorphWeight` payloads, deduplicates shared pending payloads, and calls `GpuScene::upload_morph_buffers(...)`; `PendingMeshDraw` only carries an optional shared payload, and build aggregation adds the uploaded bytes to the existing GPUScene report. The current-weight block starts at `GpuMorphPayload.weight_base`; the previous-weight block used by Velocity starts at `weight_base + target_count` and keeps previous-only targets alive when current weights are zero. The structure guard `runtime_15_morph_payload_projection_is_wired` covers the earlier position projection status `render_plan08_morph_payload_projection_check_passed_wgpu_deferred`, and the previous-weight follow-up is recorded as `render_plan08_morph_previous_weights_velocity_check_passed_product_deferred`.
+
+Morph payload slot indexing extends that handoff from storage rows to shader-addressable payloads. `morph_payload_projection_keeps_normal_tangent_and_color_delta_rows`, `morph_payload_collection_deduplicates_shared_draw_payloads`, and `render_shader_template_validates_morphed_geometry_sources_with_payload_slots` cover the new surface: `GpuMorphPayload` header rows live at GPUScene binding 11, `GpuInstanceData.morph_payload_slot` selects a payload per draw, mesh-build upload writes position/normal/tangent/color rows plus pending draw slots, and morphed/skinned-morphed WGSL uses `@builtin(vertex_index)` with payload metadata to fetch the correct delta rows. The structure guard `runtime_15_morph_payload_slot_indexing_is_wired` locks the wider ABI/WGSL/docs seam. Status: `render_plan08_morph_payload_slot_indexing_check_passed_wgpu_deferred`.
+
+Morph geometry-source selection is now the production draw-level consumer for those payload slots. `build_mesh_draws/build/geometry_source_selection.rs` owns the shared classification used by final draw assembly, prepared-queue stats, and pending command-cache profiles. Payload-backed direct non-skinned morphs use `PendingMeshGeometry::GpuMorphed` and `DynamicGpuMorphedSource`, which resolves to `GEOMETRY_SOURCE_ID_MORPHED_MESH`; payload-backed skinned morphs keep the original prepared source and use `DynamicGpuSkinnedMorphedSource`, which resolves to `GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH`. CPU-baked direct morph fallbacks and CPU-morphed GPU-skinning fallbacks remain `DynamicCpuMorphedSource` / `DynamicCpuMorphedGpuSkinningSource` so the shader does not apply morph twice. `runtime_15_morph_geometry_source_selection_is_wired` locks the source, queue, mesh-pass, docs, and status anchors. Status: `render_plan08_morph_geometry_source_selection_static_passed_wgpu_deferred`. GPU-vs-CPU product parity and RenderDoc/product capture remain separate gates.
+
+Morph GPU-source product observability extends that selection into `RenderStats` and DiagnosticStore. `PreparedMeshQueueStats` now separates `gpu_morphed_source_draw_count` and `gpu_skinned_morphed_source_draw_count`; submit stats expose `last_mesh_gpu_morphed_source_draw_count` and `last_mesh_gpu_skinned_morphed_source_draw_count`; diagnostics mirror `render.mesh.queue.gpu_morphed_source_draw_count` and `render.mesh.queue.gpu_skinned_morphed_source_draw_count`. The product guard `render_product_direct_mesh_active_morph_weights_use_gpu_morphed_source` submits a direct morph mesh through WGPU and requires the GPU Morphed source counter to increment. Status: `render_plan08_morph_gpu_source_product_guard_wgpu_passed_renderdoc_deferred`. This proves source selection, not pixel parity.
+
+Morph GPU-vs-CPU product parity now closes the direct non-skinned pixel/readback gate. `render_product_direct_mesh_gpu_morph_matches_cpu_baked_reference_pixels` uses the same direct mesh/morph fixture but renders one frame through active GPU morph weights and a second through CPU-baked positions with no active morph weights. Both frames use an unlit material, matching camera and quality profile, and the product test compares captured primary-surface RGBA while checking the GPU path reports one GPU Morphed source draw and the CPU reference reports none. Status: `render_plan08_morph_gpu_cpu_product_parity_wgpu_passed_renderdoc_deferred`. The skinned counterpart is closed by the following status; previous morph weights are code-wired for velocity under `render_plan08_morph_previous_weights_velocity_check_passed_product_deferred`, while RenderDoc/product velocity capture remains a separate gate.
+
+Skinned morph GPU-vs-CPU product parity now closes the skinned-morphed pixel/readback gate. `render_product_skinned_mesh_gpu_morph_matches_cpu_baked_reference_pixels` registers a skinned mesh, skeleton asset, and pose sideband, then compares a GPU SkinnedMorphed source frame against a CPU-baked morph reference that still exercises shader skinning. The GPU path must report one skinned-morphed source draw and one shader-skinning draw; the CPU reference must keep skinned-morphed source draws at zero while preserving shader skinning. Status: `render_plan08_skinned_morph_gpu_cpu_product_parity_wgpu_passed_renderdoc_deferred`. The previous morph-weight velocity code path is wired under `render_plan08_morph_previous_weights_velocity_check_passed_product_deferred`; RenderDoc/product velocity capture remains a separate gate.
+
 `shader_resource_records_from_asset_roots_deduplicates_duplicate_shader_records` covers duplicate shader `.zmeta` metadata across `engine_assets` and `plugin_assets`. `shader_resource_records_from_asset_roots_rejects_id_locator_conflicts` and `shader_resource_records_from_asset_roots_rejects_locator_id_conflicts` cover the two conflict paths where dedupe must fail instead of creating an ambiguous overlay. `runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired` locks the staged shader resource registry multi-root dedupe owner, docs/status anchors, and line budget.
 
 `test_prewarm_plan_lists_asset_roots_for_registry_export` covers dry-run plan output for the same engine/plugin asset roots consumed by staged registry export. `test_prewarm_plan_lists_runtime_fallback_handoff_paths` extends that dry-run coverage to `shader prewarm cache root`, `shader prewarm report`, and `shader runtime fallback root`, matching the runtime fallback root path audited by staged acceptance. `test_build_command_auto_export_registry_scans_all_asset_roots` covers the final command's `--asset-root` sequence and default `--export-resource-registry` path. `runtime_15_shader_prewarm_asset_root_plan_visibility_is_wired` locks the Build-tool shader asset-root plan visibility status, docs anchors, and file budgets.
 
+`test_acceptance_contract_requires_usable_records_for_project_plugin_auto_export`
+and `runtime_15_shader_prewarm_project_plugin_registry_auto_export_is_wired`
+cover the Project/plugin registry auto-export nonempty acceptance status
+`render_plan08_project_plugin_registry_auto_export_nonempty_python_passed_cargo_deferred`.
+When staged prewarm is using automatic `shader_resource_records.json` export and
+the build config carries project `shader_asset_roots` or selected plugin
+`asset_roots`, acceptance now passes `require_usable_shader_records=True` into
+the registry export contract. `test_validate_registry_export_contract_requires_usable_shader_records_when_requested`
+and `test_validate_registry_export_contract_accepts_usable_shader_records_when_requested`
+lock the lower helper: the exported registry must contain at least one usable
+Ready Shader `ResourceRecord` with a positive revision. This is build-helper
+Python/static evidence only; full live project/plugin registry export, product
+WGPU execution, RenderDoc/product capture, and broader second-launch miss=0 stay
+as separate Plan 08 gates.
+
+`test_acceptance_contract_requires_registry_source_for_project_plugin_auto_export`,
+`test_acceptance_contract_accepts_registry_source_for_project_plugin_auto_export`,
+and `runtime_15_shader_prewarm_project_plugin_registry_report_source_is_wired`
+cover the Project/plugin registry report-source acceptance status
+`render_plan08_project_plugin_registry_report_source_python_passed_cargo_deferred`.
+When automatic registry export is active for project/plugin roots, acceptance
+now also passes `require_report_registry_backed_sources=True`; the registry
+contract rejects builtin-only reports and requires `report_path` when that switch
+is enabled. Direct registry tests cover the required report path plus
+positive/negative registry-backed report sources. This remains Python/static
+evidence only; full live project/plugin registry export, product WGPU execution,
+RenderDoc/product capture, and broader second-launch miss=0 remain open gates.
+
+`shader_resource_records_from_project_and_plugin_asset_roots_export_distinct_shader_sources`,
+`shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions`,
+and `runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired`
+cover the Project/plugin registry live asset-root export status
+`render_plan08_project_plugin_registry_live_asset_roots_static_passed_cargo_deferred`.
+The registry fixture writes separate project and plugin `.zmeta` shader roots,
+then proves `shader_resource_records_from_asset_roots(...)` exports distinct
+Ready Shader records for `res://project/shaders/project` and
+`package://virtual_geometry/shaders/plugin`. The manifest fixture builds a
+`ShaderPrewarmResourceRegistryOverlay` from those records, merges the project and
+plugin manifests, and verifies each source label emits six requests whose
+`material_revision` matches the exported registry revision. This remains a
+static/focused live asset-root fixture; full staged WGPU/product execution,
+RenderDoc/product capture, and broader second-launch miss=0 remain open gates.
+
+`shader_prewarm_project_and_plugin_asset_roots_export_wrapped_resource_registry_file`
+and `runtime_15_shader_prewarm_project_plugin_registry_export_file_is_wired`
+cover the Project/plugin registry export file handoff status
+`render_plan08_project_plugin_registry_export_file_static_passed_cargo_deferred`.
+The run-path fixture calls `export_shader_resource_registry_for_asset_roots(...)`
+with project and plugin `.zmeta` roots plus a staged
+`ZirconEngine/cache/shader_resource_records.json` path, then verifies the written
+JSON keeps the wrapped `{ "resources": [...] }` shape expected by staged
+acceptance. The returned records are checked against the file records, and a
+`ShaderPrewarmResourceRegistryOverlay` built from the exported file records must
+resolve the exported revisions by locator. This closes only the run-path file
+handoff; full staged WGPU/product execution, RenderDoc/product capture, and
+broader second-launch miss=0 remain open gates.
+
+`runtime_15_shader_prewarm_project_plugin_registry_production_fixture_is_wired`
+covers the Project/plugin registry production fixture prewarm status
+`render_plan08_project_plugin_registry_production_fixture_static_passed_cargo_timeout_no_result`.
+The real `native_dynamic_fixture` package exposes `distribution.assets =
+["assets/**"]`, and its shader asset now has a `.zmeta` sidecar at
+`zircon_plugins/native_dynamic_fixture/assets/shader.wgsl.zmeta` for
+`package://native_dynamic_fixture/shaders/shader`. This locks the selected
+plugin asset-root path used by `collect_plugin_asset_roots(...)` and
+`shader_asset_root_paths_for_prewarm(...)` without adding another production
+facade. A staged project+plugin `zircon_shader_prewarm --validate-wgpu-modules
+--export-resource-registry` attempt produced no accepted report or registry
+before the Cargo lane ended without a usable result, so this slice remains
+static fixture evidence only; full staged WGPU/product execution,
+RenderDoc/product capture, and broader miss=0 remain open gates.
+
+`test_build_command_auto_export_registry_uses_native_dynamic_fixture_assets`
+and
+`runtime_15_shader_prewarm_project_plugin_registry_production_command_is_wired`
+cover the Project/plugin registry production command handoff status
+`render_plan08_project_plugin_registry_production_command_python_passed_cargo_deferred`.
+The Python regression discovers the real repository `native_dynamic_fixture`
+package through `zircon_build.discover_plugins(...)`, verifies that its selected
+plugin asset root contains `shader.wgsl.zmeta`, and then confirms
+`build_shader_prewarm_command(...)` emits that root as an `--asset-root` while
+keeping automatic `--export-resource-registry`. This proves the real plugin
+fixture reaches the staged prewarm command without relying on a fake plugin
+object. Cargo/WGPU/product execution and RenderDoc capture remain separate Plan
+08 gates.
+
+`test_cli_selects_native_dynamic_fixture_assets_for_prewarm_command` and
+`runtime_15_shader_prewarm_project_plugin_registry_production_cli_selection_is_wired`
+cover the Project/plugin registry production CLI selection handoff status
+`render_plan08_project_plugin_registry_production_cli_selection_python_passed_cargo_deferred`.
+This regression parses the public `zircon_build.py --targets runtime --plugins
+native_dynamic_fixture --prewarm-shaders` path, resolves the repository plugin
+catalog into a selected `native_dynamic_fixture` package, verifies the package's
+production `assets` root still contains `shader.wgsl.zmeta`, and then checks the
+prewarm command for the same root under `--asset-root`. It also verifies the
+command uses automatic `--export-resource-registry` rather than explicit
+`--resource-registry`, so the public CLI path keeps feeding the project/plugin
+registry auto-export lane. Cargo/WGPU/product execution and RenderDoc capture
+remain separate Plan 08 gates.
+
+`test_cli_dry_run_prints_native_dynamic_fixture_prewarm_command` and
+`runtime_15_shader_prewarm_project_plugin_registry_production_cli_dry_run_is_wired`
+cover the Project/plugin registry production CLI dry-run handoff status
+`render_plan08_project_plugin_registry_production_cli_dry_run_python_passed_cargo_deferred`.
+This regression calls `zircon_build.main(...)` with the public runtime target,
+selected `native_dynamic_fixture` plugin, shader prewarm enabled, and
+`--dry-run`. The captured output must include the generated
+`zircon_shader_prewarm` dry-run command, the real plugin `assets` root, and
+automatic `--export-resource-registry` while avoiding explicit
+`--resource-registry`. That gives Plan 08 a no-Cargo public CLI proof for the
+same selected-plugin asset root before the full staged WGPU/product run is
+attempted.
+
+`runtime_project_plugin_registry_shader_keys_use_staged_prewarm_without_compile_miss`
+and
+`runtime_15_shader_prewarm_project_plugin_registry_runtime_staged_cache_hit_is_wired`
+document the Project/plugin registry runtime staged-cache hit status
+`render_plan08_project_plugin_registry_runtime_staged_cache_hit_static_passed_cargo_deferred`.
+The focused runtime test constructs staged prewarm requests for
+`res://project/shaders/project_shader` and
+`package://native_dynamic_fixture/shaders/shader`, rewrites
+`ShaderVariantKey.material_shader` and `material_revision` to the registry
+`ResourceId`/revision rather than relying on source labels, then creates
+matching `PipelineKey` values and injects
+`ShaderVariantCacheDisk::with_fallback_roots(...)` into `MeshPipelineCache`.
+The test contract requires registry provenance, disk hits for both sources,
+and compile miss=0 with zero writes/errors when the Base pipeline is created.
+Cargo/WGPU execution deferred while other build lanes are active; this is
+static/source guard evidence until the milestone testing lane runs.
+
+`render_product_project_plugin_registry_materials_use_staged_prewarm_without_compile_miss`
+and
+`runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wired`
+document the Project/plugin registry product staged-cache miss=0 status
+`render_plan08_project_plugin_registry_product_staged_cache_static_passed_cargo_timeout_no_result`.
+The product child test registers project and selected-plugin shader assets for
+`res://project/shaders/project_shader` and
+`package://native_dynamic_fixture/shaders/shader`, then overwrites the
+exported Ready Shader revisions with `register_record(exported_record)` before
+submitting registry-backed materials through `WgpuRenderFramework`. The staged
+manifest rewrites `material_shader`, `material_revision`, and raw-WGSL
+`include_content_hashes` so `ShaderVariantCacheDisk::with_fallback_roots(...)`
+can match the runtime product lookup key. The product contract requires
+`mesh.opaque` executor visibility, disk hit accounting, compile miss=0, and
+zero runtime cache writes/errors. Cargo/WGPU execution timed out after about
+904 seconds with no test result, so this row is static/source evidence until a
+quiet no-proxy WGPU lane can rerun it.
+
+`render_product_project_plugin_registry_material_passes_use_staged_prewarm_without_compile_miss`
+and
+`runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired`
+document the Project/plugin registry material-pass staged-cache miss=0 status
+`render_plan08_project_plugin_registry_material_passes_staged_cache_static_passed_cargo_timeout_no_result`.
+The product child test rewrites project/plugin registry shader id/revision into
+standard-material staged prewarm requests while preserving each pass template's
+content hashes, includes built-in fallback variants, registers a TAA-reactive
+registry material, and submits through a product `WgpuRenderFramework` pipeline.
+It covers DepthPrepass/GBuffer/Shadow/TAA reactive mask plus lighting/post and
+requires runtime compile miss=0 with zero writes/errors. Cargo/WGPU execution
+timed out after about 904 seconds with no test result, so this is static/source
+guard evidence until the focused product lane can rerun.
+
+`render_plan08_project_plugin_registry_material_passes_velocity_runtime_contract_static_passed_cargo_deferred_active_lanes`
+documents the Project/plugin registry material-pass Velocity runtime contract.
+The velocity frame assertion now requires a previous velocity transform,
+rejects missing previous velocity transforms, requires
+`temporal.velocity-object`, and checks that the runtime miss report contains a
+`velocity pass` dimension with compile miss=0. This keeps the staged-cache proof
+aligned with the Velocity entry in `REGISTRY_MATERIAL_PASS_TYPES` instead of
+leaving Velocity as prewarm-only coverage while Cargo/WGPU remains deferred for
+active external lanes.
+
+`render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss`
+and
+`runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired`
+now also document the Project/plugin registry material-pass second-launch
+contract under status
+`render_plan08_project_plugin_registry_material_passes_second_launch_static_passed_wgpu_timeout_no_result`.
+The new `second_launch.rs` child writes the staged manifest once and then
+creates two independent `WgpuRenderFramework` launch cycles per registry-backed
+project/plugin shader. Both launches reuse
+`ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root])` and
+must satisfy the existing first-frame and velocity-frame miss-report assertions;
+the additional `assert_runtime_shader_cache_root_empty(...)` check proves the
+runtime cache root stays empty, so the second launch cannot pass by reading a
+first-launch runtime write. Scoped rustfmt, source anchors, and line budgets
+passed. The focused WGPU product cargo command timed out after about 1204
+seconds without a test result, and follow-up bounded reruns at 2026-07-01 04:56,
+05:03, and 05:15 +08:00 still stopped during dependency/runtime compile or link.
+The later direct-binary backfill reused
+`E:\cargo-targets\zircon-plan08-custom-shading-second-launch-guard-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe`
+and passed
+`render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss`
+1/1 with 5806 filtered in 14.95s under status
+`render_plan08_project_plugin_registry_material_passes_second_launch_direct_binary_wgpu_passed_renderdoc_deferred`.
+After the docs/status sync, the same binary also passed
+`runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired`
+1/1 with 5806 filtered in 0.44s.
+A later Project/plugin registry material-pass second-launch Cargo-wrapper WGPU
+backfill closed the wrapper rerun under status
+`render_plan08_project_plugin_registry_material_passes_second_launch_cargo_wrapper_wgpu_passed_renderdoc_deferred`:
+`cargo test -p zircon_runtime --lib render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1`
+passed 1/1 with 5842 filtered in 12.86s. After docs sync,
+`runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired`
+also passed 1/1 with 5848 filtered. RenderDoc/product capture and full CI remain
+separate gates; the default-feature gap is closed by the follow-up below.
+
+Project/plugin registry material-pass second-launch default-feature WGPU
+backfill is recorded under status
+`render_plan08_project_plugin_registry_material_passes_second_launch_default_features_wgpu_passed_renderdoc_deferred`.
+The first default-feature Cargo-wrapper run exposed a real product fixture
+blocker: the standard registry shader source was a fully assembled Forward pass
+template registered as a `Surface` shader, so Deferred/GBuffer tried to wrap a
+pass template as a material surface and failed before resolving the mesh
+pipeline. The fixture now uses
+`registry_material_pass_runtime_surface_source`, a standard PBR surface source
+with the runtime `fn zr_material_surface(` entry contract. The default-feature
+rerun passed 1/1 with 6177 filtered in 14.96s on
+`E:\cargo-targets\zircon-plan08-vg-product-default-0703`; the no-default
+regression passed 1/1 with 6171 filtered in 12.75s; and the helper contract
+test passed 1/1 with 6171 filtered. RenderDoc/product capture,
+workspace/full CI, and broader product cases outside this focused filter remain
+open. The custom shading-model product group 6/12 follow-up is closed by
+`render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred`.
+
+`render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss`
+documents the focused custom shading-model product material-pass staged-cache
+status
+`render_plan08_custom_shading_model_product_material_pass_staged_cache_wgpu_passed_renderdoc_deferred`.
+The new `custom_shading_model.rs` child registers a plugin-range `custom:toon`
+descriptor plus Ready Forward/GBuffer/deferred include WGSL, builds the six-pass
+standard-material manifest through
+`builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models(...)`,
+prewarms it with WGPU pipeline validation, and then submits a product material
+whose authored `lighting_model` is `custom:toon`. Runtime assertions now accept
+the expected plugin `ShadingModelId` and require first-frame plus Velocity-frame
+staged disk hits, compile miss=0, and zero runtime writes/errors. The same slice
+added `with_deferred_lighting_renderer(...)` so Lighting graph execution can
+provide deferred resources and mesh draw lists without pretending it has the
+GBuffer-only streamer path. Focused no-default-features Cargo passed 1/1 for the
+custom product test and 1/1 for the StandardPBR material-pass regression; only
+repository warnings were reported. RenderDoc/product capture, broader product
+sweep, default features, and full CI remain open after the follow-up
+second-launch rerun below.
+
+Custom shading-model second-launch staged-cache WGPU validation is covered by
+`render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss`
+and closes the focused custom second-launch product rerun under status
+`render_plan08_custom_shading_model_second_launch_staged_cache_wgpu_passed_renderdoc_deferred`.
+The `custom_second_launch.rs` child reuses the `custom:toon` descriptor/source
+fixture and WGPU pipeline validation prewarm, then constructs two fresh product
+frameworks against the same staged fallback root. Both launches must report the
+plugin shading-model dimension, staged disk hits, compile miss=0, no runtime
+writes/errors, Velocity previous-transform coverage, and an empty runtime cache
+root. RenderDoc/product capture, broader product sweep, default features, and
+full CI remain open.
+
+Custom shading-model deferred-lighting product readback is covered by
+`render_product_custom_shading_model_deferred_lighting_readback_uses_project_include`
+under status
+`render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred`.
+The existing `custom_shading_model.rs` product child now captures the first and
+Velocity frames through
+`submit_registry_material_passes_with_plugin_shading_model_capture(...)` and
+checks that the authored project/plugin deferred include's `max(0.65, ...)`
+green signature reaches the final product frame. The shared fixture uses
+`select_visible_registry_material_pass_camera(...)` plus a fixed product
+viewport so black-frame readbacks do not hide shader execution. Focused
+no-default-features Cargo passed 1/1 with 5831 filtered; RenderDoc/product
+capture, default features, workspace/full CI, and product cases outside the
+focused filter remain open.
+
+Custom shading-model product group direct-binary sweep is recorded under status
+`render_plan08_custom_shading_model_product_group_direct_binary_wgpu_passed_renderdoc_deferred`.
+The no-default lib-test binary was reused with the
+`render_product_custom_shading_model` filter after `--list` confirmed the group
+contains exactly the staged-cache, second-launch, and deferred-lighting readback
+product tests. The direct run passed 3/3 with 5830 filtered, and the
+`runtime_15_material_custom_shading_model_runtime_registry_is_wired` status guard
+passed 1/1 with 5838 filtered after docs sync. This is product WGPU
+group evidence only; RenderDoc/product capture, default features,
+workspace/full CI, and product cases outside the custom filter remain open.
+
+Custom shading-model product group Cargo-wrapper WGPU backfill is recorded under
+status
+`render_plan08_custom_shading_model_product_group_cargo_wrapper_wgpu_passed_renderdoc_deferred`.
+The fresh no-default Cargo wrapper ran the same
+`render_product_custom_shading_model` filter instead of reusing a generated test
+binary, passed the three custom product tests with 5850 filtered in 19.04s, and
+emitted only repository-existing warnings. After docs sync,
+`runtime_15_material_custom_shading_model_runtime_registry_is_wired` passed 1/1
+through the status/docs guard. This closes the Cargo-wrapper rerun gap and
+status/docs guard for the focused custom product group while RenderDoc/product capture,
+default features, workspace/full CI, and product cases outside the custom filter
+remain open.
+
+Custom shading-model product group default-feature WGPU backfill is recorded under
+status
+`render_plan08_custom_shading_model_product_group_default_features_wgpu_passed_renderdoc_deferred`.
+The default-feature rerun used the same `render_product_custom_shading_model`
+filter. The first Cargo-wrapper attempt timed out after 1204.4s while compiling
+and linking, produced `zircon_runtime-770562bad16f99eb.exe`, and left no
+target-dir cargo/rustc/link processes. The direct generated binary then passed
+3/3 with 5932 filtered in 20.20s, and the warmed Cargo-wrapper rerun passed 3/3
+with 5932 filtered; its test body finished in 21.45s after a 4m00s build. This
+closes the focused default-feature WGPU rerun gate for the custom product group
+while RenderDoc/product capture, workspace/full CI, and product cases outside
+the custom filter remain open.
+
+Custom shading-model product group default-feature WGPU refresh is recorded
+under status
+`render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred`.
+This refresh documents the current code path after the standard registry
+material-pass surface-source fix exposed a new 6/12 prewarm-validation failure.
+`prewarm_pipeline_validation.rs` now validates the material bind-group ABI as
+group2 binding0 uniform plus binding1..10 texture/sampler pairs, matching the
+runtime material layout. The product fixture keeps runtime `Surface` shader
+assets on `registry_material_pass_runtime_surface_source()` and records custom
+Surface shader metadata from the plugin descriptor token, so `custom:toon`
+stays on the custom shading model instead of requesting `standard_pbr`.
+Validation passed lower-layer WGPU prewarm pipeline validation 1/1 with 6186
+filtered, custom staged-cache 1/1 with 6187 filtered, custom deferred-lighting
+readback 1/1 with 6191 filtered, and custom second-launch 1/1 with 6195 filtered
+on `E:\cargo-targets\zircon-plan08-vg-product-default-0703`. This
+supersedes the transient current-source 6/12 note; RenderDoc/product capture,
+workspace/full CI, and product cases outside the custom filter remain open.
+
+Plan 08 staged-prewarm product sweep is now recorded under status
+`render_plan08_staged_prewarm_product_sweep_wgpu_passed_renderdoc_deferred`.
+The sweep runs the `staged_prewarm_without_compile_miss` filter across the
+  current staged-cache runtime and product tests, including Base mesh, custom
+  geometry, project/plugin registry handoff, material-pass second launch, custom
+  shading-model product and second launch, and material-mesh deferred second
+  launch. The direct binary run reported 11 passed / 0 failed. Guard
+  `runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired` keeps that
+  test set and this status synchronized; a fresh no-default Cargo wrapper run
+  passed it 1/1 with 5825 filtered. RenderDoc/product capture, default
+  features, workspace/full CI, and future tests outside the filter remain open.
+
+Plan 08 staged-prewarm product sweep default-feature direct-binary WGPU backfill
+is recorded under status
+`render_plan08_staged_prewarm_product_sweep_default_features_direct_binary_wgpu_passed_renderdoc_deferred`.
+The default-feature `staged_prewarm_without_compile_miss --list` run enumerated
+the same 11 runtime/product staged-cache tests, and the direct generated-binary
+run passed 11/11 with 5924 filtered in 56.74s. This closes only the focused
+default-feature direct-binary WGPU sweep for the existing staged-prewarm filter;
+Cargo-wrapper rerun, RenderDoc/product capture, workspace/full CI, and future
+tests outside the filter remain open.
+
+Plan 08 staged-prewarm product sweep default-feature Cargo-wrapper WGPU backfill
+is recorded under status
+`render_plan08_staged_prewarm_product_sweep_default_features_cargo_wrapper_wgpu_passed_renderdoc_deferred`.
+The default-feature Cargo wrapper ran the same `staged_prewarm_without_compile_miss`
+filter and passed 11/11 with 5925 filtered in 56.99s after a 10m 04s build,
+with repository-existing warnings only. This closes the focused default-feature
+Cargo-wrapper WGPU sweep for the existing staged-prewarm filter while
+RenderDoc/product capture, workspace/full CI, and future tests outside the
+filter remain open.
+
+Plan 08 staged-prewarm product sweep default-feature current WGPU refresh is
+recorded under status
+`render_plan08_staged_prewarm_product_sweep_default_features_current_wgpu_refresh_passed_renderdoc_deferred`.
+The current-source default-feature list still enumerated 11 tests for the
+`staged_prewarm_without_compile_miss` filter. The first current sweep failed
+10/11 at the raw project/plugin registry product because that fixture still
+registered assembled Forward-pass WGSL as a runtime Surface shader. The test
+support fix moves `registry_staged_cache_runtime_surface_source()` to the
+mesh-cache product parent, shares the runtime `fn zr_material_surface(` source
+with material-pass registry fixtures, and keeps the raw registry prewarm
+manifest on the standard material template hashes/revision. The focused raw
+registry product rerun passed 1/1 with 6197 filtered in 5.65s after a 10m 04s
+build, and the final Cargo-wrapper sweep passed 11/11 with 6187 filtered in
+48.90s after a 7m 36s build. `runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired`
+tracks this current refresh; RenderDoc/product capture, workspace/full CI, and
+future tests outside the filter remain open.
+
+`render_plan08_project_plugin_registry_material_passes_owner_split_static_passed_cargo_deferred_active_lanes`
+documents the Project/plugin registry material-pass owner split. The material
+pass product proof now lives in the folder-backed owner
+`project_plugin_registry_material_passes_staged_cache/`: `mod.rs` owns the test
+entry, `case.rs` owns registry locators and revisions, `manifest.rs` owns
+staged request rewriting, `fixture.rs` owns product framework/material setup,
+`pipeline.rs` owns the product render-pipeline descriptors, `assertions.rs`
+owns prewarm/runtime miss-report checks, `custom_shading_model.rs` owns the
+focused plugin shading-model product staged-cache proof, and `second_launch.rs`
+owns the broader second-launch acceptance contract. The old single-file owner removed
+constraint is guarded so future DepthPrepass/GBuffer/Shadow/TAA reactive mask
+coverage cannot return to one near-budget test file. Cargo/WGPU deferred due
+active editor validation lanes for this structure-only row.
+
+`runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wired`
+documents the Project/plugin registry production direct WGPU export status
+`render_plan08_project_plugin_registry_production_direct_wgpu_export_passed_product_renderdoc_deferred`.
+The live run reused an already-built `zircon_shader_prewarm.exe` instead of
+starting Cargo while other build lanes were active, paired a temporary project
+shader `.zmeta` root with the real `native_dynamic_fixture/assets` selected
+plugin root, exported `shader_resource_records.json`, and immediately consumed
+those Ready Shader records in the same prewarm run. The report closed
+18/18 requested/written variants with 0 failures, WGPU module validation closed
+18/18 validated modules, the runtime cache wrote 18 `.wgsl.zst` artifacts plus
+18 `.meta` files, and the registry contained Ready Shader records for
+`res://project/shaders/project_shader` and
+`package://native_dynamic_fixture/shaders/shader`. The same staged root passed
+`validate_staged_shader_prewarm_acceptance_contract(...)`, including WGPU,
+cache artifact, usable Ready Shader record, and report-visible registry-backed
+source checks. Public Cargo wrapper execution, RenderDoc/product capture, and
+broader product miss=0 remain separate Plan 08 gates.
+
+`test_public_runtime_wrapper_exports_project_plugin_registry_with_live_wgpu` and
+`runtime_15_shader_prewarm_project_plugin_registry_wrapper_orchestration_is_wired`
+document the Project/plugin registry production wrapper orchestration status
+`render_plan08_project_plugin_registry_production_wrapper_orchestration_passed_cargo_proxy_product_renderdoc_deferred`.
+The Python regression enters through `zircon_build.main(...)`, selects the real
+`native_dynamic_fixture` plugin, stages runtime artifacts through a test-local
+cargo proxy, and forwards the prewarm `cargo run ... --` payload to the existing
+`zircon_shader_prewarm.exe`. The real prewarm run still exports and consumes the
+project/plugin `shader_resource_records.json`, closes 18/18 requested/written
+variants with 0 failures, validates 18/18 WGPU modules, and records Ready Shader
+entries for `res://project/shaders/project_shader` and
+`package://native_dynamic_fixture/shaders/shader`. The same public-wrapper
+staged root passes `validate_staged_shader_prewarm_acceptance_contract(...)`.
+This closes wrapper orchestration through a cargo proxy; a real Cargo-wrapper
+build/run, RenderDoc/product capture, and broader product miss=0 remain separate
+Plan 08 gates.
+
+`test_runtime_server_wrapper_uses_client_features_for_preview_binary` and
+`runtime_15_shader_prewarm_project_plugin_registry_wrapper_no_proxy_is_wired`
+document the Project/plugin registry production wrapper no-proxy WGPU run status
+`render_plan08_project_plugin_registry_production_wrapper_no_proxy_wgpu_passed_product_renderdoc_deferred`.
+The no-proxy public wrapper path now separates target features by artifact:
+runtime lib and `zircon_shader_prewarm` use the requested `target-server`
+runtime feature set, while the preview executable is rebuilt with
+`target-client` through `BuildConfig.runtime_preview_feature_arg`. The focused
+target-server `zircon_runtime` lib-test guard passed for this source/docs/status
+contract. The real
+public command with `native_dynamic_fixture`, a temporary project shader asset
+root, `--prewarm-shaders`, and `--validate-wgpu-shaders` completed without a
+cargo proxy, staged runtime artifacts and engine assets, exported
+`shader_resource_records.json`, then consumed the project/plugin Ready Shader
+records in the same run. The resulting report closed 18/18 requested/written
+variants with 0 failures and 18/18 WGPU module validation for
+`res://project/shaders/project_shader` and
+`package://native_dynamic_fixture/shaders/shader`. This closes the public
+no-proxy staged build/prewarm/export wrapper gate; RenderDoc/product capture and
+broader product miss=0 remain separate Plan 08 gates. This run used WGPU module
+validation, not the stricter render-pipeline validation flag.
+
+SH05 import-path/material-sphere evidence is recorded under status
+`runtime_shader_sh05_import_path_self_material_material_sphere_wgpu_passed_followups_open`.
+`core/framework/render/shader/module_import.rs` now owns deterministic shader
+import-path derivation from project namespace plus `assets/shaders/...`, including
+same-name directory/file folding and reserved namespace checks. The compound
+shader importer consumes that derivation for missing surface/include
+`import_path`, emits a warning for redundant explicit values, and rejects
+`self::...`/`zr_*::...` overrides; project scan injects the project namespace
+into the shader import settings and reports duplicate import-path conflicts in
+the same scan batch. The template path uses `self::material` as the generated
+material module id, and the explicit IDE anchor is byte-identical to automatic
+injection.
+
+`ShaderIdeModuleSource` lives in the `core/framework/render/shader/ide_env.rs` child owner and is
+re-exported through the top-level render facade for runtime graphics code that needs the built-in
+shader IDE module source list. The facade export is a current shader contract surface, not a
+compatibility alias: `graphics/shader/mod.rs` can assemble built-in IDE module sources without
+reaching into `shader::ide_env` or a removed template include registry path.
+
+SH05-M2 adds the concrete IDE environment generator on top of that contract.
+`zircon_runtime/src/graphics/shader/ide_env_generation.rs` is the shared
+generator owner used by the CLI and editor import refresh path. It writes builtin module stubs, asset
+`import_path` stubs, per-surface `self::material` generated stubs, and a
+`module_map.json` under `.zircon-cache/shader_ide/v1` by default. The module map
+entries include schema version, source URI, optional `self::material` scope URI,
+stub path, kind, source files, content hash, and generated/source distinction.
+`zircon_runtime/src/bin/zircon_shader_ide_env/run.rs` stays a thin shell for
+argument parsing, project scanning, and report serialization; editor sync calls
+the same generator after import when a project has Ready shader records, so the
+IDE artifact remains a single source of truth.
+`--variants` still writes the default preview artifact set: one
+`preview/<shader>.default.wgsl` plus `preview/<shader>.default.segments.json`
+per surface shader. The default variant is intentionally narrow: static mesh,
+Forward pass, and all material option bits disabled. Explicit
+`--variant <pass[:options=bits]>` requests now flow through
+`ShaderIdePreviewVariant`, so the same generator can write non-default artifacts
+such as `preview/<shader>.gbuffer_options_0x00000001.wgsl` with a matching
+segment map. `graphics/shader/ide_preview.rs` assembles every requested preview
+through the same template owner used by runtime material passes, recursively
+collects imported include shader sources from asset import redirects, injects
+the requested material option defines, and serializes
+defines/include/generated-material/user-surface/pass-template segments into
+`ShaderIdePreviewSegment` rows. Duplicate preview variant names are rejected
+before file generation so report counts cannot drift from managed paths.
+Validation passed the focused bin check and 5/5 bin tests in
+`E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview`; the one-byte module
+diff gate now proves only the changed module stub and `module_map.json` are
+rewritten while unchanged stubs preserve content and mtime. The follow-up Naga
+gate adds `graphics/shader/ide_validation.rs` and makes the generator parse every
+generated stub with Naga before writing, fully validate each default preview
+WGSL module, and report `naga_parsed_stub_count` plus
+`naga_validated_preview_count`. Standalone stub semantic validation remains
+scoped out because stubs may intentionally refer to other generated/imported
+modules; semantic gates live on composed preview variants. Editor refresh hook
+typecheck now passes, and the editor path still requests only the default
+Forward/0bits preview during import refresh. Product-level non-default preview
+matrix enumeration remains a later SH05 follow-up.
+
+SH05-M3 closes the diagnostic line-remap main path for material template
+assembly. `graphics/shader/template/assemble.rs` now returns
+`ShaderAssemblySegment` data for defines, includes, generated material,
+user-surface, and pass-template chunks; `validation.rs` consumes Naga source
+locations and appends the remapped `module_id:local_line:column` coordinate to
+parse/validation diagnostics. Runtime material pass assembly now carries the
+surface shader `import_path` from `ResourceStreamer` into Forward, GBuffer, and
+TAA template requests, with `self::surface` as the fallback module id. The
+focused SH05-M3 gate passed `cargo check -p zircon_runtime --lib` and
+`cargo test -p zircon_runtime --lib shader_template_` 20/20 under
+`E:\cargo-targets\zircon-runtime-shader-sh05-m3`.
+
+The offscreen product screenshot test now builds a real compound surface shader
+package, imports it as `ShaderAssetKind::Surface`, renders a material sphere
+through `SceneRenderer`, and writes the accepted image to
+`docs/tests/runtime/shader/runtime_shader_material_sphere_offscreen_20260703.png`.
+The PNG is 1024x1024, SHA256
+`927A652BFB6486145C9F6CDBD2E5EE49ED132DAA5290013422FD0C2E9769B794`, sampled
+137956 visible pixels, 1710 unique colors, and 48.66 luma range; same-name
+searches under repo `target` and `E:\cargo-targets\zircon-runtime-shader-sh05-m1`
+returned no matches. Validation passed
+`cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m1 --message-format short --color never`
+and
+`cargo test -p zircon_runtime --lib export_runtime_shader_material_sphere_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m1 -- --ignored --nocapture`.
+Default preview variant files, segment JSON, and the content-aware one-byte
+module diff gate are now owned by the library generator tests, while the bin
+keeps only CLI argument coverage after the structure split. The stub
+parse/default-preview validation gate now composes a validation-only context for
+Naga parse: builtin WGSL dependencies, default feature defines,
+`self::material` generated stubs, and the current stub are checked together,
+without changing the emitted stub files. `zr_surface_types.wgsl` is the shared
+surface/GBuffer contract owner for `ZrSurfaceInput`, `zr_surface_default(...)`,
+`ZrDeferredGBufferOutput`, and deferred material flag encoding; the Deferred
+GBuffer template consumes that contract instead of redeclaring the output ABI.
+The post-split `shader_ide_env` library test now passes 6/6, the editor refresh
+hook typecheck passes under
+`E:\cargo-targets\zircon-runtime-shader-sh05-editor-refresh`, the
+`shader_template_` regression passes 20/20 under
+`E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview`, and the focused
+`shader_module` gate passes 6/6 under
+`E:\cargo-targets\zircon-runtime-shader-sh05-shader-module`. The explicit
+non-default preview slice passes the focused runtime bin check, editor lib
+check, `shader_ide_env_writes_non_default_preview_variants_with_option_bits`,
+`shader_ide_env_rejects_duplicate_preview_variant_names`, and both
+`zircon_shader_ide_env` parser tests under
+`E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview`. The accepted
+visual evidence remains outside target in
+`docs/tests/runtime/shader/runtime_shader_material_sphere_offscreen_20260703.png`
+and `docs/tests/runtime/shader/runtime_shader_material_vampire_offscreen_20260703.png`.
+Product-level preview matrix coverage, broader product/RenderDoc gates, and
+product miss=0 remain open.
+The 2026-07-04 preview-matrix backfill adds
+`shader_ide_env_batches_preview_matrix_for_all_surface_shaders`, covering two
+surface shaders across default, GBuffer option bits, DepthPrepass, Shadow,
+Velocity, and TAA reactive-mask preview variants, plus stale preview cleanup
+when the request shrinks back to default-only. The test code compiles under
+`cargo check -p zircon_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-preview-matrix-check --message-format short --color never`;
+the exact lib-test execution timed out after 904s during compile/link and is
+not counted as passed yet.
+The same follow-up lane also closed the SH02 focused property/template checks:
+`cargo test -p zircon_runtime --lib property_layout` passed 4/4 and
+`cargo test -p zircon_runtime --lib render_shader_template` passed 18/18 on
+`E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview` after fixing
+the status mirror anchor gap. Broader `shader`/`material` filters are still
+separate product gates.
+
+## 2026-07-04 SH05 Preview Matrix and TAA Material-Mask ABI
+
+Related code: `zircon_runtime/src/graphics/shader/ide_env_generation.rs`, `zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs`, `zircon_runtime/src/graphics/shader/wgsl/zr_template_taa_reactive_mask.wgsl`, `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs`, `zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs`, and `zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/wgsl_contracts.rs`.
+
+The IDE preview generator validates generated material dependencies by shader scope. Generated material stubs still publish the local `self::material` import path, but validation dependency selection now also requires the generated stub `scope_uri` to match the current shader source URI. This prevents multi-surface projects from appending another shader's generated `ZrMaterialProperties` block into the current stub validation source while leaving written module paths and preview output unchanged.
+
+The TAA reactive material-mask template keeps the existing `fs_taa_reactive_material_mask` entry point for the mesh pipeline cache, but the body now calls `zr_material_surface(input)` and reads `surface.custom0.x`. Custom surface previews no longer require the old `standard_material_properties` binding just to parse and validate a TAA preview. Standard material still projects its authored TAA strength into `surface.custom0` through the standard material surface owner.
+
+Evidence: `cargo test -p zircon_runtime --lib shader_ide_env_batches_preview_matrix_for_all_surface_shaders --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1, covering two surface shaders across default, GBuffer option bits, DepthPrepass, Shadow, Velocity, TAA preview variants, and stale cleanup. `cargo test -p zircon_runtime --lib taa_reactive_mask --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 13/13. Both runs emitted only existing warnings. RenderDoc/product capture and product miss=0 remain separate acceptance gates.
+
 The broader `render_product_assets` filter and `cargo check -p zircon_runtime --lib --tests --locked` remain the milestone-level compile/test gates for this surface.
+
+## 2026-07-04 SH03 Asset-Root Include Module Revision Propagation
+
+Related code: `zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs`, and `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs`.
+
+Asset-root prewarm scanning now keeps shader kind, `import_path`, and declared imports on each scanned `.zshader` source. Before variants are emitted, the manifest owner builds a same-root include-module map and resolves imported include modules transitively. Referencing surface shaders receive the include modules' content hashes in `include_content_hashes`, and `manifest/revision.rs` mixes those dependency hashes into the surface shader `material_revision`. Sources without include dependencies keep their previous revision behavior, so unrelated shaders do not churn when a module they never import changes.
+
+Evidence: `cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest_tracks_imported_include_module_revisions --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1. The broader asset-root prewarm filter `cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 10/10 with existing warnings only. Plugin manifest module registration, live editor hot-reload propagation, RenderDoc/product capture, and product miss=0 remain open gates.
+
+## 2026-07-03 Deferred Project-Shader GBuffer Default-Feature WGPU Refresh
+
+Plan 08 three shading-model forward/deferred product parity now includes a default-feature refresh for the non-custom Deferred/GBuffer project-shader probe: `render_plan08_deferred_project_shader_gbuffer_probe_default_features_wgpu_refresh_passed_renderdoc_deferred`. This is mirrored beside `STATUS`, `DEFAULT_FEATURES_STATUS`, `DEFERRED_PROBE_STATUS`, and `DEFERRED_PROBE_DEFAULT_STATUS`; the product chain remains `render_product_three_shading_models_forward_deferred_parity`, `runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired`, PBR/Blinn-Phong/Unlit, Forward + Deferred, `light_grid_external_fallback_buffers_satisfy_materialization_report`, `deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path`, and `average_channel_in_region`.
+
+The runtime shader contract now distinguishes Surface metadata from runtime material-surface source. A project `.wgsl` with `vs_main` / `fs_main` may still be a Surface asset for material/pass participation, but the mesh template path only wraps it when `shader_uses_material_surface_source` finds `fn zr_material_surface`. `runtime_surface_shader_with_full_pass_entry_points_uses_raw_wgsl_source` guards the raw full-pass branch so the Base pass resolves cache-backed pipeline variants instead of treating full-pass WGSL as a material function. Evidence: the default-feature parity backfill remains 5876 filtered and 11.81s; this probe passed 1/1 with 6202 filtered and 3.56s. Remaining gates: RenderDoc/product capture, workspace/full CI, and broader product coverage outside focused filters.
+
+## 2026-07-04 Project/Plugin Registry Material-Pass Product Readback PNG
+
+Plan 08 project/plugin registry material-pass staged-prewarm now includes focused product readback PNG evidence under `render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred`. The ignored export `export_project_plugin_registry_material_passes_product_png` reuses the existing registry material-pass manifest, staged-cache first-frame/Velocity-frame hit assertions, and read-only runtime cache root checks, then writes `docs/tests/runtime/render/runtime_render_plan08_project_plugin_registry_material_passes_20260703.png` through `project_plugin_registry_material_passes_staged_cache/product_png.rs`.
+
+The code path remains test-only and folder-backed: `fixture.rs::submit_registry_material_passes_with_staged_cache_capture(...)` only forwards the existing capture flag, while `product_png.rs` owns visible-frame checks, side-by-side RGBA copy, separator pixels, and PNG writing. Evidence: the first Cargo-wrapper command exceeded the 904.5s tool window and is not counted; direct generated-binary execution passed 1/1 with 6290 filtered and 6.58s, producing a 641x240 PNG, 3871 bytes, SHA256 `2FF919F50FDFFBAEB1544CAD9C14B7748FA8234C784175195AF3E550FB6151BB`, with 4794 non-black pixels. RenderDoc/product capture, workspace/full CI, full live project/plugin registry export beyond the focused fixture, and broader product miss=0 remain open.
+
+## 2026-07-03 Three Shading-Model Product Readback PNG
+
+Plan 08 three shading-model forward/deferred product parity now includes focused product readback PNG evidence under `render_plan08_three_shading_models_forward_deferred_product_readback_png_passed_renderdoc_deferred`. The ignored export `export_three_shading_models_forward_deferred_product_png` reuses `render_product_three_shading_models_forward_deferred_parity`, PBR/Blinn-Phong/Unlit, Forward + Deferred, `light_grid_external_fallback_buffers_satisfy_materialization_report`, `deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path`, and `average_channel_in_region`, then writes `docs/tests/runtime/render/runtime_render_plan08_three_shading_models_forward_deferred_product_20260703.png`.
+
+Evidence: the first Cargo-wrapper attempt failed at MSVC `link.exe` exit `0xc0000142` and is not counted. The warmed generated test binary `zircon_runtime-33095b46939b64fc.exe` passed `export_three_shading_models_forward_deferred_product_png` 1/1 with 6212 filtered and 14.04s, producing a 641x240 PNG, 3998 bytes, SHA256 `D493C941CBCF418A2C66F84F663881E9DA6B0984B023BAACEC254F094AB483B6`. The same binary passed `runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired` 1/1 with 6212 filtered and 0.86s, confirming the module-doc anchors. RenderDoc/product capture, workspace/full CI, and broader product coverage remain open.
+
+## 2026-07-03 Morph Velocity Scene-Velocity Readback PNG
+
+Plan 08 morph velocity now includes focused scene-velocity PNG evidence under `render_plan08_morph_weight_velocity_product_png_passed_renderdoc_deferred`. The ignored exports `export_direct_morph_weight_velocity_product_png` and `export_skinned_morph_weight_velocity_product_png` reuse the existing direct/skinned 0.0 -> 1.0 morph velocity product paths, then encode test-only `scene-velocity` RG16Float readback bytes through `graphics/tests/render_product_mesh_cache/morph/velocity_png.rs` as sign-masked half-float payload visualization.
+
+The readback bytes remain a test-only diagnostic route: `RenderGraphExecutionRecord` keeps them behind `#[cfg(test)]`, and `WgpuRenderFramework::last_scene_velocity_readback_rg16_float_bytes_for_tests` exposes them only to crate tests. The shared `RenderSceneVelocityReadbackReport` now ignores signed-zero RG16Float pixels, covered by `scene_velocity_readback_ignores_signed_zero_half_float_pixels`, so stats and debug output agree on real nonzero payloads. Evidence: the first Cargo-wrapper attempt exceeded the 1213.4s tool window and is not counted; generated binary `zircon_runtime-0a7825d39d44b0c4.exe` passed the regular direct/skinned product tests 1/1 each with 6207 filtered (3.84s direct, 3.60s skinned), the signed-zero regression 1/1 with 6207 filtered, direct/skinned exports 1/1 each with 6207 filtered (3.36s direct, 3.42s skinned), and the fully qualified `runtime_15_render_product_mesh_cache_morph_tests_are_child_owners` 1/1 with 6207 filtered and 0.25s. Both output PNGs are 128x128, 723 bytes, SHA256 `7B40FA8BA6EA60F7F24F3C5465F3C802B4119E26A8965DACECA08187FF665DE7`, with 508 non-black pixels. RenderDoc/product capture, workspace/full CI, and broader product miss=0/second-launch acceptance remain open.
+
+## Runtime 15 / Plan 08 Anchor Mirrors
+
+This section is an explicit cross-document anchor mirror for structure guards. Shadow WGPU device pipeline validation is tracked by `render_plan08_shadow_wgpu_device_pipeline_validation_implemented_validation_not_closed` and `shadow_mesh_pipeline_creates_on_wgpu_device_with_template_shader`. The current skinned geometry template source retains `zr_skinned_joint_matrix(v.joints.x)` while storage palette migration remains MS-M2 work.
+
+Plan 08 shader prewarm mirrors current structure guard anchors: `Plugin shader permutation registry auto-export`, `render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred`, `Plugin shader permutation registry export contract`, `render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred`, `test_zircon_build_discovers_plugin_shader_permutation_records`, `test_validate_generated_registry_requires_selected_plugin_ids`, `runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired`, `Build-tool staged WGPU handoff command contract`, `render_plan08_build_tool_staged_wgpu_handoff_command_contract_python_passed_cargo_deferred`, `test_full_staged_wgpu_handoff_keeps_generated_registries_and_roots`, `runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired`, `Plugin shading-model descriptor registration`, `render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`, `test_zircon_build_discovers_plugin_shading_model_descriptors_as_shader_ids`, `Plugin shading-model descriptor registry export`, `render_plan08_plugin_shading_model_descriptor_registry_export_static_passed_cargo_deferred`, `shading_model_descriptors`, `test_generated_shader_permutation_registry_document_exports_selected_plugin_shading_model_descriptors`, `shader_prewarm_permutation_registry_merges_custom_shading_model_descriptors`, `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired`, and `Project shader asset roots auto-export`.
+
+2026-07-02 shader prewarm structure guard mirror: `Shader prewarm geometry-source enumeration`, `render_plan08_shader_prewarm_geometry_source_enumeration_static_passed_cargo_deferred_implementation_cadence`, `Asset-root custom geometry-source id prewarm`, `render_plan08_asset_root_custom_geometry_source_id_prewarm_typecheck_passed_test_timeout_no_result`, `Asset-root custom shading-model id prewarm`, `render_plan08_asset_root_custom_shading_model_id_prewarm_static_passed_cargo_deferred_implementation_cadence`, `bin/zircon_shader_prewarm/args.rs`, `bin/zircon_shader_prewarm/manifest.rs`, `tools/zircon_build.py`, `tools/zircon_build_shader_prewarm.py`, `shader_prewarm_asset_root_manifest_expands_requested_geometry_sources`, `shader_prewarm_asset_root_manifest_expands_custom_geometry_source_plugin_ids`, `shader_prewarm_asset_root_manifest_maps_custom_shading_model_plugin_ids`, `runtime_15_shader_prewarm_geometry_source_enumeration_is_wired`, `runtime_15_shader_prewarm_custom_geometry_source_id_is_wired`, `runtime_15_shader_prewarm_custom_shading_model_id_is_wired`, `Build-tool staged prewarm acceptance contract`, `render_plan08_build_tool_staged_prewarm_acceptance_contract_python_passed_cargo_deferred`, `Build-tool staged prewarm nonempty success report acceptance`, `render_plan08_build_tool_staged_prewarm_nonempty_success_report_python_passed_cargo_deferred`, `Build-tool staged prewarm written variant identity acceptance`, `render_plan08_build_tool_staged_prewarm_written_variant_identity_python_passed_cargo_deferred`, `Build-tool staged prewarm written source-label identity acceptance`, `render_plan08_build_tool_staged_prewarm_written_source_label_identity_python_passed_cargo_deferred`, `Build-tool staged prewarm complete written count acceptance`, `render_plan08_build_tool_staged_prewarm_complete_written_count_python_passed_cargo_deferred`, `Build-tool product Base pass acceptance contract`, `render_plan08_build_tool_product_base_pass_acceptance_contract_python_passed_cargo_deferred`, `Build-tool product material mesh pass acceptance contract`, `render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred`, `Build-tool written variant uniqueness contract`, `render_plan08_build_tool_written_variant_uniqueness_contract_python_passed_cargo_deferred`, `Build-tool staged prewarm written cache-hash shape acceptance`, `render_plan08_build_tool_staged_prewarm_written_cache_hash_shape_python_passed_cargo_deferred`, `Build-tool source-label nonblank contract`, `render_plan08_build_tool_source_label_nonblank_contract_python_passed_cargo_deferred`, `Build-tool source-label trim contract`, `render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred`, `Build-tool explicit registry exact revision acceptance`, `render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred`, `expected_pass_types`, `taa_reactive_mask`, `test_acceptance_contract_validates_report_cache_and_exported_registry`, `test_acceptance_contract_validates_explicit_registry_against_report`, `test_acceptance_contract_rejects_explicit_registry_without_ready_revision`, `test_acceptance_contract_rejects_forward_only_staged_pass_report`, `test_acceptance_contract_rejects_duplicate_written_variant_identity`, `test_validate_cache_artifact_contract_requires_requested_pass_types`, `test_validate_cache_artifact_contract_accepts_requested_pass_types`, `test_validate_cache_artifact_contract_requires_requested_quality_tiers`, `test_validate_cache_artifact_contract_requires_requested_geometry_sources`, `test_validate_cache_artifact_contract_accepts_requested_quality_and_geometry`, `tools/zircon_build_shader_prewarm_written_variants.py`, `duplicate written cache variant identity`, `runtime fallback root`, `usable shader ResourceRecord revisions`, `Build-tool shader prewarm cache artifact contract`, `Prewarm report cache identity contract`, `Prewarm cache runtime layout contract`, `Prewarm cache hash shape contract`, `Prewarm cache custom id correlation contract`, `Runtime prewarm custom id cache lookup contract`, `Runtime custom id staged fallback lookup contract`, `render_plan08_runtime_custom_id_staged_fallback_lookup_static_passed_cargo_deferred`, `Build-tool cache quality/geometry identity contract`, `render_plan08_build_tool_cache_quality_geometry_identity_contract_python_passed_cargo_deferred`, `Build-tool cache dimension combination contract`, `render_plan08_build_tool_cache_dimension_combination_contract_python_passed_cargo_deferred`, `Build-tool cache custom id combination contract`, `render_plan08_build_tool_cache_custom_id_combination_contract_python_passed_cargo_deferred`, `Build-tool cache source-label provenance correlation contract`, `render_plan08_build_tool_cache_source_label_provenance_contract_python_passed_cargo_deferred`, `Build-tool cache metadata field type contract`, `render_plan08_build_tool_cache_metadata_field_type_contract_python_passed_cargo_deferred`, `test_validate_report_contract_rejects_untrimmed_source_provenance_strings`, `runtime_15_shader_prewarm_acceptance_contract_is_wired`, `runtime_15_shader_prewarm_cache_artifact_contract_is_wired`, `Asset-root resource registry revision overlay`, `render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result`, `render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred`, `bin/zircon_shader_prewarm/manifest/resource_registry.rs`, `shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay`, `shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only`, `runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired`, `Prewarm WGPU validation report summary`, `render_plan08_prewarm_wgpu_validation_report_summary_python_passed_cargo_deferred`, `Build-tool WGPU validation report contract`, `render_plan08_build_tool_wgpu_report_contract_python_passed_cargo_deferred`, `Build-tool WGPU validation totals match contract`, `render_plan08_build_tool_wgpu_validation_totals_match_python_passed_cargo_deferred`, `test_zircon_build_shader_prewarm_wgpu_report_contract.py`, `test_dimension_summary_lines_format_wgpu_module_validation_counts`, `test_validate_report_contract_requires_wgpu_validation_when_requested`, `test_validate_report_contract_rejects_wgpu_validation_total_mismatch`, `runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired`, and `runtime_15_shader_prewarm_wgpu_report_contract_is_wired`.

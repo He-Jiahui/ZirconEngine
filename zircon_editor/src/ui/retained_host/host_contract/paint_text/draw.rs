@@ -4,10 +4,10 @@ use super::super::data::FrameRect;
 use super::super::paint_frame::HostRgbaFrame;
 
 mod clip_rect;
-mod ellipsis;
 mod entry;
 mod glyphs;
 mod layout;
+mod placement;
 mod recording;
 
 use self::clip_rect::resolve_text_pixel_clip;
@@ -16,7 +16,7 @@ use self::layout::layout_text_run;
 use self::recording::{clamped_text_metrics, record_text_run};
 
 pub(in crate::ui::retained_host::host_contract) use entry::{
-    draw_text, draw_text_with_size, draw_text_with_size_and_style,
+    draw_text, draw_text_with_size_and_style,
 };
 #[cfg(test)]
 pub(super) use entry::{DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT};
@@ -39,12 +39,13 @@ fn draw_text_with_size_and_style_impl(
     };
 
     let (font_size, line_height) = clamped_text_metrics(rect.height, font_size, line_height);
+    let layout = layout_text_run(&rect, text, font_size, line_height, style);
     if frame.is_recording() {
         record_text_run(
             frame,
             &clip,
             effective_clip,
-            text,
+            layout.display_text.as_str(),
             color,
             font_size,
             line_height,
@@ -54,6 +55,5 @@ fn draw_text_with_size_and_style_impl(
             return;
         }
     }
-    let layout = layout_text_run(&rect, text, font_size, line_height);
-    draw_layout_glyphs(frame, &clip, layout.glyphs(), color, style);
+    draw_layout_glyphs(frame, &clip, layout.font_face, &layout.glyphs, color, style);
 }

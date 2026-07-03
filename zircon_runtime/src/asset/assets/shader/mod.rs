@@ -1,6 +1,7 @@
 mod dependency;
 mod entry_point;
 mod language;
+mod property_layout;
 mod readiness;
 mod shader_asset;
 mod zshader;
@@ -8,6 +9,7 @@ mod zshader;
 pub use dependency::ShaderDependencyAsset;
 pub use entry_point::ShaderEntryPointAsset;
 pub use language::ShaderSourceLanguage;
+pub use property_layout::{generate_material_artifact, ShaderGeneratedMaterialArtifact};
 pub use readiness::{
     ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
     ShaderAssetManagementRecordSetSummary, ShaderAssetReadinessSummary,
@@ -17,8 +19,9 @@ pub use readiness::{
 };
 pub use shader_asset::ShaderAsset;
 pub use zshader::{
-    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceFileAsset,
-    ShaderTextureSlotAsset, ZShaderDefinitionError, ZShaderDefinitionResult,
-    ZShaderDefinitionValueDocument, ZShaderDocument, ZShaderEntryPointDocument,
-    ZShaderImportDocument, ZShaderTextureSlotDocument,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderOptionAsset,
+    ShaderSourceFileAsset, ShaderTextureSlotAsset, ZShaderComputeDocumentV2, ZShaderDocumentV2,
+    ZShaderEntryPointDocument, ZShaderFullscreenDocumentV2, ZShaderImportDocument,
+    ZShaderIncludeDocumentV2, ZShaderOptionDocument, ZShaderSurfaceDocumentV2,
+    ZShaderTextureSlotDocument, ZShaderV2Error, ZShaderV2Result,
 };

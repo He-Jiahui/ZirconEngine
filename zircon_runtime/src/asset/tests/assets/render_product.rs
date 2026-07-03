@@ -9,7 +9,7 @@ use crate::core::framework::render::{
     RenderImageUsage, RenderMaterialFallbackReason, RenderMaterialValidationError, RenderMeshKind,
     RenderMeshTopology, RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderDefinitionValue,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, ShaderAssetKind,
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::core::resource::ResourceKind;
@@ -149,6 +149,7 @@ fn render_product_assets_model_metadata_exposes_mesh_bounds_and_vg_presence() {
 fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
     let shader = ShaderAsset {
         uri: locator("res://shaders/runtime.shader"),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Glsl,
         source: "void main() {}".to_string(),
         wgsl_source: "@fragment fn fs_main() {}".to_string(),
@@ -168,7 +169,16 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
             RenderShaderDefinitionValue::uint("ALPHA_CLIP", 1),
         ],
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: RenderShaderPipelineLayoutDescriptor {
             bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
@@ -195,6 +205,7 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
     };
     let fallback_wgsl = ShaderAsset {
         uri: locator("res://shaders/source.wgsl"),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@vertex fn vs_main() -> @builtin(position) vec4f { return vec4f(); }".to_string(),
         wgsl_source: "".to_string(),
@@ -205,13 +216,23 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     };
     let non_wgsl_without_runtime = ShaderAsset {
         uri: locator("res://shaders/source.glsl"),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Glsl,
         source: "void main() {}".to_string(),
         wgsl_source: "".to_string(),
@@ -222,7 +243,16 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
@@ -325,6 +355,9 @@ fn render_product_assets_material_dependencies_validation_and_readiness_are_stru
     let material = MaterialAsset {
         name: Some("Mask".to_string()),
         shader: asset_reference("res://shaders/pbr.wgsl"),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 0.5, 0.25, 1.0],
         base_color_texture: Some(asset_reference("res://textures/base.png")),
         normal_texture: Some(asset_reference("res://textures/normal.png")),
@@ -375,6 +408,9 @@ fn render_product_assets_material_readiness_reports_unresolved_dependencies_and_
     let material = MaterialAsset {
         name: Some("MissingRefs".to_string()),
         shader: asset_reference("res://shaders/missing.wgsl"),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: Some(asset_reference("res://textures/missing-base.png")),
         normal_texture: Some(asset_reference("res://textures/normal.png")),
@@ -428,6 +464,9 @@ fn render_product_assets_material_rejects_invalid_alpha_mask_cutoff() {
         let material = MaterialAsset {
             name: Some("InvalidMask".to_string()),
             shader: asset_reference("res://shaders/pbr.wgsl"),
+            parent: None,
+            options: Default::default(),
+            queue: None,
             base_color: [1.0, 1.0, 1.0, 1.0],
             base_color_texture: None,
             normal_texture: None,

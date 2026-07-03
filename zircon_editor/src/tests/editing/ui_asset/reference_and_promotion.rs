@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::template::{UiNodeDefinitionKind, UiRootClassPo
 #[test]
 fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_entries() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -50,7 +50,7 @@ fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_
 #[test]
 fn ui_asset_editor_session_resolves_selected_reference_asset_id() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/layouts/reference_selection.ui.toml",
+        "res://ui/layouts/reference_selection.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -69,7 +69,7 @@ fn ui_asset_editor_session_resolves_selected_reference_asset_id() {
 
     assert_eq!(
         session.selected_reference_asset_id().as_deref(),
-        Some("res://ui/widgets/button.ui.toml")
+        Some("res://ui/widgets/button.zui")
     );
     assert!(session.pane_presentation().can_open_reference);
 }
@@ -77,7 +77,7 @@ fn ui_asset_editor_session_resolves_selected_reference_asset_id() {
 #[test]
 fn ui_asset_editor_session_wraps_and_unwraps_selected_node() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -134,7 +134,7 @@ fn ui_asset_editor_session_wraps_and_unwraps_selected_node() {
 #[test]
 fn ui_asset_editor_session_projects_canvas_insert_and_wrap_availability() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -184,7 +184,7 @@ fn ui_asset_editor_session_projects_canvas_insert_and_wrap_availability() {
 #[test]
 fn ui_asset_editor_session_reparents_nodes_into_sibling_containers_and_outdents() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/tree-reparent.ui.toml",
+        "asset://ui/tests/tree-reparent.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -273,7 +273,7 @@ fn ui_asset_editor_session_reparents_nodes_into_sibling_containers_and_outdents(
 #[test]
 fn ui_asset_editor_session_projects_canvas_move_and_reparent_availability() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/tree-reparent.ui.toml",
+        "asset://ui/tests/tree-reparent.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -306,7 +306,7 @@ fn ui_asset_editor_session_projects_canvas_move_and_reparent_availability() {
 #[test]
 fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_selection() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -386,7 +386,7 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
 #[test]
 fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -489,7 +489,7 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
 #[test]
 fn ui_asset_editor_session_projects_and_updates_root_class_policy() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -553,7 +553,7 @@ fn ui_asset_editor_session_projects_and_updates_root_class_policy() {
 #[test]
 fn ui_asset_editor_session_projects_and_updates_promote_widget_draft_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -574,7 +574,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_widget_draft_fields() {
     let initial = session.pane_presentation();
     assert_eq!(
         initial.inspector_promote_asset_id,
-        "res://ui/widgets/save_button.ui.toml"
+        "res://ui/widgets/save_button.zui"
     );
     assert_eq!(initial.inspector_promote_component_name, "SaveButton");
     assert_eq!(
@@ -584,7 +584,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_widget_draft_fields() {
     assert!(initial.inspector_can_edit_promote_draft);
 
     assert!(session
-        .set_selected_promote_widget_asset_id("res://ui/widgets/custom/editor_save.ui.toml")
+        .set_selected_promote_widget_asset_id("res://ui/widgets/custom/editor_save.zui")
         .expect("set promote widget asset id"));
     assert!(session
         .set_selected_promote_widget_component_name("EditorSaveButton")
@@ -596,7 +596,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_widget_draft_fields() {
     let updated = session.pane_presentation();
     assert_eq!(
         updated.inspector_promote_asset_id,
-        "res://ui/widgets/custom/editor_save.ui.toml"
+        "res://ui/widgets/custom/editor_save.zui"
     );
     assert_eq!(updated.inspector_promote_component_name, "EditorSaveButton");
     assert_eq!(
@@ -608,7 +608,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_widget_draft_fields() {
 #[test]
 fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_asset() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -629,7 +629,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
 
     let promoted_widget = session
         .promote_selected_component_to_external_widget(
-            "res://ui/widgets/save_button.ui.toml",
+            "res://ui/widgets/save_button.zui",
             "SaveButton",
             "ui.widgets.save_button",
         )
@@ -643,7 +643,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         session.next_undo_tree_edit(),
         Some(UiAssetEditorTreeEdit::PromoteToExternalWidget {
             source_component_name: "SaveButton".to_string(),
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             component_name: "SaveButton".to_string(),
             document_id: "ui.widgets.save_button".to_string(),
         })
@@ -651,7 +651,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
     assert_eq!(
         session.next_undo_external_effect(),
         Some(UiAssetEditorExternalEffect::RemoveAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
         })
     );
 
@@ -681,12 +681,12 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         .imports
         .widgets
         .iter()
-        .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
+        .any(|reference| { reference == "res://ui/widgets/save_button.zui#SaveButton" }));
     let button = promoted.node("button").expect("button node");
     assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
-        Some("res://ui/widgets/save_button.ui.toml#SaveButton")
+        Some("res://ui/widgets/save_button.zui#SaveButton")
     );
     assert_eq!(button.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(button.classes, vec!["primary".to_string()]);
@@ -709,7 +709,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         session.next_redo_tree_edit(),
         Some(UiAssetEditorTreeEdit::PromoteToExternalWidget {
             source_component_name: "SaveButton".to_string(),
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             component_name: "SaveButton".to_string(),
             document_id: "ui.widgets.save_button".to_string(),
         })
@@ -717,7 +717,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
     assert_eq!(
         session.next_redo_external_effect(),
         Some(UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             source: toml::to_string_pretty(&promoted_widget)
                 .expect("serialize promoted widget document"),
         })
@@ -736,7 +736,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
 #[test]
 fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_links_import() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -749,7 +749,7 @@ fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_link
 
     let promoted_theme = session
         .promote_local_theme_to_external_style_asset(
-            "res://ui/themes/editor_base.ui.toml",
+            "res://ui/themes/editor_base.zui",
             "ui.theme.editor_base",
             "Editor Base",
         )
@@ -777,12 +777,12 @@ fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_link
     assert!(promoted.stylesheets.is_empty());
     assert_eq!(
         promoted.imports.styles,
-        vec!["res://ui/themes/editor_base.ui.toml".to_string()]
+        vec!["res://ui/themes/editor_base.zui".to_string()]
     );
     assert_eq!(
         session.next_undo_external_effect(),
         Some(UiAssetEditorExternalEffect::RemoveAssetSource {
-            asset_id: "res://ui/themes/editor_base.ui.toml".to_string(),
+            asset_id: "res://ui/themes/editor_base.zui".to_string(),
         })
     );
 
@@ -798,7 +798,7 @@ fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_link
     assert_eq!(
         session.next_redo_external_effect(),
         Some(UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/themes/editor_base.ui.toml".to_string(),
+            asset_id: "res://ui/themes/editor_base.zui".to_string(),
             source: toml::to_string_pretty(&promoted_theme)
                 .expect("serialize promoted style asset document"),
         })

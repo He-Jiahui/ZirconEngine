@@ -22,8 +22,8 @@ version = 1
 display_name = "UI Asset Editor"
 
 [imports]
-widgets = ["res://ui/common/button.ui.toml#ToolbarButton"]
-styles = ["res://ui/theme/editor.ui.toml"]
+widgets = ["res://ui/common/button.zui#ToolbarButton"]
+styles = ["res://ui/theme/editor.zui"]
 
 [root]
 node_id = "root"
@@ -122,8 +122,8 @@ version = 3
 display_name = "Resource Reference Graph"
 
 [imports]
-widgets = ["res://ui/common/button.ui.toml#ToolbarButton"]
-styles = ["res://ui/theme/editor.ui.toml"]
+widgets = ["res://ui/common/button.zui#ToolbarButton"]
+styles = ["res://ui/theme/editor.zui"]
 resources = [
   { kind = "font", uri = "res://fonts/inter.font.toml", fallback = { mode = "placeholder", uri = "res://fonts/system.ttf" } },
   { kind = "image", uri = "res://textures/logo.png", fallback = { mode = "optional" } },
@@ -154,7 +154,7 @@ version = 2
 display_name = "Runtime Panel"
 
 [imports]
-widgets = ["res://ui/common/button.v2.ui.toml#ToolbarButton"]
+widgets = ["res://ui/common/button.zui#ToolbarButton"]
 styles = ["res://ui/theme/editor_material.zui"]
 resources = [
   { kind = "font", uri = "res://fonts/inter.font.toml", fallback = { mode = "placeholder", uri = "res://fonts/system.ttf" } },

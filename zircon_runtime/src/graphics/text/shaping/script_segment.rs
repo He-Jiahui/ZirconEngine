@@ -57,7 +57,7 @@ pub(crate) fn script_segments(text: &str) -> Vec<ScriptSegment> {
             pending_common_end = None;
             current_script = script;
         } else {
-            let split_at = pending_common_start.unwrap_or(start);
+            let split_at = pending_common_end.unwrap_or(start);
             push_segment(&mut segments, current_start, split_at, current_script);
             current_start = split_at;
             current_script = script;

@@ -22,7 +22,7 @@ fn editor_manager_prunes_duplicate_local_theme_overrides() {
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
 
     let before = manager
@@ -51,7 +51,7 @@ fn editor_manager_prunes_duplicate_local_theme_overrides() {
     assert!(document.stylesheets.is_empty());
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+        vec!["res://ui/theme/shared_theme.zui".to_string()]
     );
 
     cleanup_theme_project(&config_path, &project_root);
@@ -73,7 +73,7 @@ fn editor_manager_applies_theme_refactor_items_individually() {
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
 
     assert!(manager

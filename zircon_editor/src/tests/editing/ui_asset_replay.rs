@@ -170,7 +170,7 @@ version = 1
 display_name = "Replay Theme Rule Vector"
 
 [imports]
-styles = ["res://ui/theme/shared_theme.ui.toml"]
+styles = ["res://ui/theme/shared_theme.zui"]
 
 [root]
 node = "root"
@@ -229,7 +229,7 @@ bindings = [{ id = "SaveButton/onClick", event = "Click", route = "menu_action.w
 #[test]
 fn ui_asset_editor_session_undo_and_redo_replay_return_applied_external_effects() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_theme.ui.toml",
+        "res://ui/tests/replay_theme.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -242,7 +242,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_applied_external_effects(
 
     let promoted_style = session
         .promote_local_theme_to_external_style_asset(
-            "res://ui/themes/replay_theme.ui.toml",
+            "res://ui/themes/replay_theme.zui",
             "ui.theme.replay_theme",
             "Replay Theme",
         )
@@ -257,7 +257,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_applied_external_effects(
     assert_eq!(
         undone.external_effects,
         vec![UiAssetEditorExternalEffect::RemoveAssetSource {
-            asset_id: "res://ui/themes/replay_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/replay_theme.zui".to_string(),
         }]
     );
 
@@ -267,7 +267,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_applied_external_effects(
     assert_eq!(
         redone.external_effects,
         vec![UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/themes/replay_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/replay_theme.zui".to_string(),
             source: promoted_style_source,
         }]
     );
@@ -276,7 +276,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_applied_external_effects(
 #[test]
 fn ui_asset_editor_session_undo_and_redo_replay_style_rule_reorders() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_style_rules.ui.toml",
+        "res://ui/tests/replay_style_rules.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -351,7 +351,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_style_rule_reorders() {
 fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_insert_delete_and_reorder(
 ) {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_style_rule_insert.ui.toml",
+        "res://ui/tests/replay_style_rule_insert.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -393,7 +393,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
     );
 
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_style_rules.ui.toml",
+        "res://ui/tests/replay_style_rules.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -431,7 +431,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
 
     let mut reorder_session = UiAssetEditorSession::from_source(
         UiAssetEditorRoute::new(
-            "res://ui/tests/replay_style_rules.ui.toml",
+            "res://ui/tests/replay_style_rules.zui",
             UiAssetKind::Layout,
             UiAssetEditorMode::Design,
         ),
@@ -458,7 +458,7 @@ fn ui_asset_editor_session_tracks_executable_replay_commands_for_style_rule_inse
 #[test]
 fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_commands() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_theme.ui.toml",
+        "res://ui/tests/replay_theme.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -471,7 +471,7 @@ fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_command
 
     assert!(session
         .promote_local_theme_to_external_style_asset(
-            "res://ui/themes/replay_theme.ui.toml",
+            "res://ui/themes/replay_theme.zui",
             "ui.theme.replay_theme",
             "Replay Theme",
         )
@@ -483,7 +483,7 @@ fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_command
         vec![
             UiAssetEditorDocumentReplayCommand::RemoveStyleImport {
                 index: 0,
-                reference: "res://ui/themes/replay_theme.ui.toml".to_string(),
+                reference: "res://ui/themes/replay_theme.zui".to_string(),
             },
             UiAssetEditorDocumentReplayCommand::UpsertStyleToken {
                 token_name: "accent".to_string(),
@@ -518,7 +518,7 @@ fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_command
         vec![
             UiAssetEditorDocumentReplayCommand::InsertStyleImport {
                 index: 0,
-                reference: "res://ui/themes/replay_theme.ui.toml".to_string(),
+                reference: "res://ui/themes/replay_theme.zui".to_string(),
             },
             UiAssetEditorDocumentReplayCommand::RemoveStyleToken {
                 token_name: "accent".to_string(),
@@ -534,7 +534,7 @@ fn ui_asset_editor_session_theme_promotion_emits_executable_theme_replay_command
 #[test]
 fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_replay_commands() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_widget_promote.ui.toml",
+        "res://ui/tests/replay_widget_promote.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -553,7 +553,7 @@ fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_repla
         .expect("extract button into component"));
     assert!(session
         .promote_selected_component_to_external_widget(
-            "res://ui/widgets/save_button.ui.toml",
+            "res://ui/widgets/save_button.zui",
             "SaveButton",
             "ui.widgets.save_button",
         )
@@ -566,7 +566,7 @@ fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_repla
             command,
             UiAssetEditorDocumentReplayCommand::RemoveWidgetImport { index, reference }
                 if *index == 0
-                    && reference == "res://ui/widgets/save_button.ui.toml#SaveButton"
+                    && reference == "res://ui/widgets/save_button.zui#SaveButton"
         )
     }));
 
@@ -576,7 +576,7 @@ fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_repla
             command,
             UiAssetEditorDocumentReplayCommand::InsertWidgetImport { index, reference }
                 if *index == 0
-                    && reference == "res://ui/widgets/save_button.ui.toml#SaveButton"
+                    && reference == "res://ui/widgets/save_button.zui#SaveButton"
         )
     }));
 }
@@ -585,11 +585,11 @@ fn ui_asset_editor_session_widget_promotion_emits_executable_widget_import_repla
 fn ui_asset_editor_external_effects_apply_to_asset_source_maps_in_order() {
     let mut asset_sources: BTreeMap<String, String> = [
         (
-            "res://ui/theme/editor_base.ui.toml".to_string(),
+            "res://ui/theme/editor_base.zui".to_string(),
             "[asset]\nid = \"ui.theme.editor_base\"\n".to_string(),
         ),
         (
-            "res://ui/theme/editor_local.ui.toml".to_string(),
+            "res://ui/theme/editor_local.zui".to_string(),
             "[asset]\nid = \"ui.theme.editor_local\"\n".to_string(),
         ),
     ]
@@ -600,24 +600,24 @@ fn ui_asset_editor_external_effects_apply_to_asset_source_maps_in_order() {
         &mut asset_sources,
         &[
             UiAssetEditorExternalEffect::RemoveAssetSource {
-                asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                asset_id: "res://ui/theme/editor_base.zui".to_string(),
             },
             UiAssetEditorExternalEffect::UpsertAssetSource {
-                asset_id: "res://ui/theme/editor_theme_clone.ui.toml".to_string(),
+                asset_id: "res://ui/theme/editor_theme_clone.zui".to_string(),
                 source: "[asset]\nid = \"ui.theme.editor_theme_clone\"\n".to_string(),
             },
         ],
     ));
-    assert!(!asset_sources.contains_key("res://ui/theme/editor_base.ui.toml"));
+    assert!(!asset_sources.contains_key("res://ui/theme/editor_base.zui"));
     assert_eq!(
-        asset_sources.get("res://ui/theme/editor_theme_clone.ui.toml"),
+        asset_sources.get("res://ui/theme/editor_theme_clone.zui"),
         Some(&"[asset]\nid = \"ui.theme.editor_theme_clone\"\n".to_string())
     );
 
     assert!(!apply_external_effects_to_asset_sources(
         &mut asset_sources,
         &[UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/theme/editor_theme_clone.ui.toml".to_string(),
+            asset_id: "res://ui/theme/editor_theme_clone.zui".to_string(),
             source: "[asset]\nid = \"ui.theme.editor_theme_clone\"\n".to_string(),
         }],
     ));
@@ -625,7 +625,7 @@ fn ui_asset_editor_external_effects_apply_to_asset_source_maps_in_order() {
 
 #[test]
 fn ui_asset_editor_external_effects_restore_previous_asset_source_when_replaying_overwrite() {
-    let asset_id = "res://ui/theme/editor_base.ui.toml".to_string();
+    let asset_id = "res://ui/theme/editor_base.zui".to_string();
     let previous_source = "[asset]\nid = \"ui.theme.editor_base\"\n".to_string();
     let overwritten_source = "[asset]\nid = \"ui.theme.editor_base.updated\"\n".to_string();
     let mut asset_sources: BTreeMap<String, String> = [(asset_id.clone(), previous_source.clone())]
@@ -662,7 +662,7 @@ fn ui_asset_editor_external_effects_restore_previous_asset_source_when_replaying
 #[test]
 fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_theme.ui.toml",
+        "res://ui/tests/replay_theme.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -675,7 +675,7 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
 
     let promoted_style = session
         .promote_local_theme_to_external_style_asset(
-            "res://ui/themes/replay_theme.ui.toml",
+            "res://ui/themes/replay_theme.zui",
             "ui.theme.replay_theme",
             "Replay Theme",
         )
@@ -684,7 +684,7 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
     let promoted_style_source =
         toml::to_string_pretty(&promoted_style).expect("serialize promoted style document");
     let mut asset_sources: BTreeMap<String, String> = [(
-        "res://ui/themes/replay_theme.ui.toml".to_string(),
+        "res://ui/themes/replay_theme.zui".to_string(),
         promoted_style_source.clone(),
     )]
     .into_iter()
@@ -695,7 +695,7 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
         &mut asset_sources,
         &undone.external_effects,
     ));
-    assert!(!asset_sources.contains_key("res://ui/themes/replay_theme.ui.toml"));
+    assert!(!asset_sources.contains_key("res://ui/themes/replay_theme.zui"));
 
     let redone = session.redo_replay().expect("redo replay");
     assert!(apply_external_effects_to_asset_sources(
@@ -703,7 +703,7 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
         &redone.external_effects,
     ));
     assert_eq!(
-        asset_sources.get("res://ui/themes/replay_theme.ui.toml"),
+        asset_sources.get("res://ui/themes/replay_theme.zui"),
         Some(&promoted_style_source)
     );
 }
@@ -711,7 +711,7 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
 #[test]
 fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_theme.ui.toml",
+        "res://ui/tests/replay_theme.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -724,7 +724,7 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
 
     let promoted_style = session
         .promote_local_theme_to_external_style_asset(
-            "res://ui/themes/replay_theme.ui.toml",
+            "res://ui/themes/replay_theme.zui",
             "ui.theme.replay_theme",
             "Replay Theme",
         )
@@ -738,10 +738,7 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
         artifact.schema_version,
         UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION
     );
-    assert_eq!(
-        artifact.route.asset_id,
-        "res://ui/tests/replay_theme.ui.toml"
-    );
+    assert_eq!(artifact.route.asset_id, "res://ui/tests/replay_theme.zui");
     assert!(artifact.initial_source.redacted);
     assert!(artifact.current_source.redacted);
     assert!(artifact.initial_source.byte_len > 0);
@@ -758,7 +755,7 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
         .redo_external_effects
         .iter()
         .any(|effect| effect.effect_id == "upsert_asset_source"
-            && effect.asset_id == "res://ui/themes/replay_theme.ui.toml"
+            && effect.asset_id == "res://ui/themes/replay_theme.zui"
             && effect
                 .source
                 .as_ref()
@@ -767,7 +764,7 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
         .undo_external_effects
         .iter()
         .any(|effect| effect.effect_id == "remove_asset_source"
-            && effect.asset_id == "res://ui/themes/replay_theme.ui.toml"
+            && effect.asset_id == "res://ui/themes/replay_theme.zui"
             && effect.source.is_none()));
 
     let serialized = serde_json::to_string(&artifact).expect("serialize replay artifact");
@@ -788,7 +785,7 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
 #[test]
 fn ui_asset_editor_command_journal_replays_source_edits_through_session_commands() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_journal.ui.toml",
+        "res://ui/tests/replay_journal.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -825,7 +822,7 @@ fn ui_asset_editor_command_journal_replays_source_edits_through_session_commands
 #[test]
 fn ui_asset_editor_command_journal_serializes_tree_edits_and_external_effects() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_journal_tree.ui.toml",
+        "res://ui/tests/replay_journal_tree.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -848,10 +845,10 @@ fn ui_asset_editor_command_journal_serializes_tree_edits_and_external_effects() 
         )
         .with_external_effects(UiAssetEditorUndoExternalEffects {
             undo: vec![UiAssetEditorExternalEffect::RemoveAssetSource {
-                asset_id: "res://ui/themes/journal_theme.ui.toml".to_string(),
+                asset_id: "res://ui/themes/journal_theme.zui".to_string(),
             }],
             redo: vec![UiAssetEditorExternalEffect::UpsertAssetSource {
-                asset_id: "res://ui/themes/journal_theme.ui.toml".to_string(),
+                asset_id: "res://ui/themes/journal_theme.zui".to_string(),
                 source: EXISTING_EXTERNAL_STYLE_ASSET_TOML.to_string(),
             }],
         })]);
@@ -868,13 +865,13 @@ fn ui_asset_editor_command_journal_serializes_tree_edits_and_external_effects() 
     assert_eq!(
         session.next_undo_external_effects(),
         vec![UiAssetEditorExternalEffect::RemoveAssetSource {
-            asset_id: "res://ui/themes/journal_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/journal_theme.zui".to_string(),
         }]
     );
     assert_eq!(
         session.next_redo_external_effects(),
         vec![UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/themes/journal_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/journal_theme.zui".to_string(),
             source: EXISTING_EXTERNAL_STYLE_ASSET_TOML.to_string(),
         }]
     );
@@ -887,7 +884,7 @@ fn ui_asset_editor_command_journal_serializes_tree_edits_and_external_effects() 
 #[test]
 fn ui_asset_editor_command_journal_rejects_unsupported_schema_and_sequence_regressions() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_journal_errors.ui.toml",
+        "res://ui/tests/replay_journal_errors.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -940,7 +937,7 @@ fn ui_asset_editor_command_journal_rejects_unsupported_schema_and_sequence_regre
 #[test]
 fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_external_source() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_theme_restore.ui.toml",
+        "res://ui/tests/replay_theme_restore.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -957,12 +954,12 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
     let existing_source =
         toml::to_string_pretty(&existing_document).expect("serialize existing external style");
     session
-        .register_style_import("res://ui/themes/replay_theme.ui.toml", existing_document)
+        .register_style_import("res://ui/themes/replay_theme.zui", existing_document)
         .expect("register existing external style import");
 
     let promoted_style = session
         .promote_local_theme_to_external_style_asset(
-            "res://ui/themes/replay_theme.ui.toml",
+            "res://ui/themes/replay_theme.zui",
             "ui.theme.replay_theme",
             "Replay Theme",
         )
@@ -974,7 +971,7 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
     assert_eq!(
         session.next_undo_external_effects(),
         vec![UiAssetEditorExternalEffect::RestoreAssetSource {
-            asset_id: "res://ui/themes/replay_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/replay_theme.zui".to_string(),
             source: existing_source.clone(),
         }]
     );
@@ -983,13 +980,13 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
     assert_eq!(
         undone.external_effects,
         vec![UiAssetEditorExternalEffect::RestoreAssetSource {
-            asset_id: "res://ui/themes/replay_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/replay_theme.zui".to_string(),
             source: existing_source.clone(),
         }]
     );
 
     let mut asset_sources: BTreeMap<String, String> = [(
-        "res://ui/themes/replay_theme.ui.toml".to_string(),
+        "res://ui/themes/replay_theme.zui".to_string(),
         promoted_style_source.clone(),
     )]
     .into_iter()
@@ -999,7 +996,7 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
         &undone.external_effects,
     ));
     assert_eq!(
-        asset_sources.get("res://ui/themes/replay_theme.ui.toml"),
+        asset_sources.get("res://ui/themes/replay_theme.zui"),
         Some(&existing_source)
     );
 
@@ -1007,7 +1004,7 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
     assert_eq!(
         redone.external_effects,
         vec![UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/themes/replay_theme.ui.toml".to_string(),
+            asset_id: "res://ui/themes/replay_theme.zui".to_string(),
             source: promoted_style_source.clone(),
         }]
     );
@@ -1016,7 +1013,7 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
         &redone.external_effects,
     ));
     assert_eq!(
-        asset_sources.get("res://ui/themes/replay_theme.ui.toml"),
+        asset_sources.get("res://ui/themes/replay_theme.zui"),
         Some(&promoted_style_source)
     );
 }
@@ -1049,7 +1046,7 @@ fn ui_asset_editor_replay_workspace_applies_stylesheet_insert_and_cross_file_eff
         anchor_node_id: Some("root".to_string()),
         line_offset: 1,
     };
-    let generated_asset_id = "res://ui/theme/generated_insert.ui.toml".to_string();
+    let generated_asset_id = "res://ui/theme/generated_insert.zui".to_string();
     let generated_asset_source = "[asset]\nkind = \"style\"\nid = \"ui.theme.generated_insert\"\nversion = 1\ndisplay_name = \"Generated Insert\"\n".to_string();
 
     let mut stack = UiAssetEditorUndoStack::default();
@@ -1284,7 +1281,7 @@ version = 1
 display_name = "Replay Stylesheet Vector"
 
 [imports]
-styles = ["res://ui/theme/base.ui.toml", "res://ui/theme/local.ui.toml"]
+styles = ["res://ui/theme/base.zui", "res://ui/theme/local.zui"]
 
 [tokens]
 accent = "#4488ff"
@@ -1326,8 +1323,8 @@ set = { self = { text = "Footer" } }
         .expect("parse replay stylesheet vector");
     let mut after_document = before_document.clone();
     after_document.imports.styles = vec![
-        "res://ui/theme/local.ui.toml".to_string(),
-        "res://ui/theme/accent.ui.toml".to_string(),
+        "res://ui/theme/local.zui".to_string(),
+        "res://ui/theme/accent.zui".to_string(),
     ];
     after_document.tokens = BTreeMap::from([
         (
@@ -1382,11 +1379,11 @@ set = { self = { text = "Footer" } }
             undo: vec![
                 UiAssetEditorDocumentReplayCommand::RemoveStyleImport {
                     index: 1,
-                    reference: "res://ui/theme/accent.ui.toml".to_string(),
+                    reference: "res://ui/theme/accent.zui".to_string(),
                 },
                 UiAssetEditorDocumentReplayCommand::RemoveStyleImport {
                     index: 0,
-                    reference: "res://ui/theme/local.ui.toml".to_string(),
+                    reference: "res://ui/theme/local.zui".to_string(),
                 },
                 UiAssetEditorDocumentReplayCommand::RemoveStyleToken {
                     token_name: "panel".to_string(),
@@ -1413,11 +1410,11 @@ set = { self = { text = "Footer" } }
             redo: vec![
                 UiAssetEditorDocumentReplayCommand::InsertStyleImport {
                     index: 0,
-                    reference: "res://ui/theme/local.ui.toml".to_string(),
+                    reference: "res://ui/theme/local.zui".to_string(),
                 },
                 UiAssetEditorDocumentReplayCommand::InsertStyleImport {
                     index: 1,
-                    reference: "res://ui/theme/accent.ui.toml".to_string(),
+                    reference: "res://ui/theme/accent.zui".to_string(),
                 },
                 UiAssetEditorDocumentReplayCommand::UpsertStyleToken {
                     token_name: "accent".to_string(),
@@ -1505,7 +1502,7 @@ set = { self = { text = "Footer" } }
 #[test]
 fn ui_asset_editor_session_undo_and_redo_replay_return_widget_promotion_external_effects() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_widget_promote.ui.toml",
+        "res://ui/tests/replay_widget_promote.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1524,7 +1521,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_widget_promotion_external
         .expect("extract button into component"));
     let promoted_widget = session
         .promote_selected_component_to_external_widget(
-            "res://ui/widgets/save_button.ui.toml",
+            "res://ui/widgets/save_button.zui",
             "SaveButton",
             "ui.widgets.save_button",
         )
@@ -1538,7 +1535,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_widget_promotion_external
     assert_eq!(
         undone.external_effects,
         vec![UiAssetEditorExternalEffect::RemoveAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
         }]
     );
 
@@ -1547,7 +1544,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_widget_promotion_external
     assert_eq!(
         redone.external_effects,
         vec![UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             source: promoted_widget_source,
         }]
     );
@@ -1556,7 +1553,7 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_widget_promotion_external
 #[test]
 fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_external_source() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_widget_promote_restore.ui.toml",
+        "res://ui/tests/replay_widget_promote_restore.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1581,14 +1578,14 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         toml::to_string_pretty(&existing_document).expect("serialize existing external widget");
     session
         .register_widget_import(
-            "res://ui/widgets/save_button.ui.toml#SaveButton",
+            "res://ui/widgets/save_button.zui#SaveButton",
             existing_document,
         )
         .expect("register existing external widget import");
 
     let promoted_widget = session
         .promote_selected_component_to_external_widget(
-            "res://ui/widgets/save_button.ui.toml",
+            "res://ui/widgets/save_button.zui",
             "SaveButton",
             "ui.widgets.save_button",
         )
@@ -1600,7 +1597,7 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
     assert_eq!(
         session.next_undo_external_effects(),
         vec![UiAssetEditorExternalEffect::RestoreAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             source: existing_source.clone(),
         }]
     );
@@ -1609,13 +1606,13 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
     assert_eq!(
         undone.external_effects,
         vec![UiAssetEditorExternalEffect::RestoreAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             source: existing_source.clone(),
         }]
     );
 
     let mut asset_sources: BTreeMap<String, String> = [(
-        "res://ui/widgets/save_button.ui.toml".to_string(),
+        "res://ui/widgets/save_button.zui".to_string(),
         promoted_widget_source.clone(),
     )]
     .into_iter()
@@ -1625,7 +1622,7 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         &undone.external_effects,
     ));
     assert_eq!(
-        asset_sources.get("res://ui/widgets/save_button.ui.toml"),
+        asset_sources.get("res://ui/widgets/save_button.zui"),
         Some(&existing_source)
     );
 
@@ -1633,7 +1630,7 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
     assert_eq!(
         redone.external_effects,
         vec![UiAssetEditorExternalEffect::UpsertAssetSource {
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             source: promoted_widget_source.clone(),
         }]
     );
@@ -1642,7 +1639,7 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         &redone.external_effects,
     ));
     assert_eq!(
-        asset_sources.get("res://ui/widgets/save_button.ui.toml"),
+        asset_sources.get("res://ui/widgets/save_button.zui"),
         Some(&promoted_widget_source)
     );
 }
@@ -1650,7 +1647,7 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
 #[test]
 fn ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_theme_rule_vector.ui.toml",
+        "res://ui/tests/replay_theme_rule_vector.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1665,7 +1662,7 @@ fn ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands
     .expect("theme rule vector session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
 
     let refactor_index = session
@@ -1714,7 +1711,7 @@ fn ui_asset_editor_session_theme_refactor_uses_style_rule_vector_replay_commands
 #[test]
 fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_replay_commands() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_binding_payload.ui.toml",
+        "res://ui/tests/replay_binding_payload.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1774,7 +1771,7 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
 #[test]
 fn ui_asset_editor_session_tree_edits_use_executable_node_and_component_replay_commands() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/replay_tree.ui.toml",
+        "res://ui/tests/replay_tree.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

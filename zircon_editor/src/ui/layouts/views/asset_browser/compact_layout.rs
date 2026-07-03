@@ -15,6 +15,16 @@ const COMPACT_UTILITY_CONTENT_OFFSET_Y: f32 = 28.0;
 const COMPACT_UTILITY_HEIGHT: f32 = 104.0;
 const COMPACT_COLLAPSED_UTILITY_HEIGHT: f32 = 28.0;
 const COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD: f32 = 560.0;
+const COMPACT_UTILITY_TAB_HEIGHT: f32 = 22.0;
+const COMPACT_UTILITY_TAB_GAP: f32 = 6.0;
+const COMPACT_UTILITY_TAB_WIDTHS: [(&str, f32); 4] = [
+    ("AssetBrowserPreviewTabButton", 68.0),
+    ("AssetBrowserReferencesTabButton", 92.0),
+    ("AssetBrowserMetadataTabButton", 84.0),
+    ("AssetBrowserPluginsTabButton", 72.0),
+];
+const COMPACT_UTILITY_LOCATOR_GAP: f32 = 12.0;
+const COMPACT_UTILITY_LOCATOR_WIDTH: f32 = 156.0;
 const COMPACT_COLLAPSED_SOURCES_WIDTH_THRESHOLD: f32 = 900.0;
 const COMPACT_COLLAPSED_DETAILS_MAIN_HEIGHT_THRESHOLD: f32 = 300.0;
 const COMPACT_TABLE_HEADER_HEIGHT: f32 = 24.0;
@@ -604,7 +614,15 @@ fn apply_compact_utility_panel_layout(
 ) {
     let content_y = y + COMPACT_UTILITY_CONTENT_OFFSET_Y;
     let content_height = (height - COMPACT_UTILITY_CONTENT_OFFSET_Y).max(0.0);
-    set_node_frame(nodes, "AssetBrowserUtilityTabsRow", x, y, width, 22.0);
+    set_node_frame(
+        nodes,
+        "AssetBrowserUtilityTabsRow",
+        x,
+        y,
+        width,
+        COMPACT_UTILITY_TAB_HEIGHT,
+    );
+    let tabs_end = apply_compact_utility_tab_button_layout(nodes, x, y);
     set_node_frame(nodes, "AssetBrowserUtilityDivider", x, y + 26.0, width, 1.0);
     set_node_frame(
         nodes,
@@ -621,13 +639,52 @@ fn apply_compact_utility_panel_layout(
     if node_frame(nodes, "AssetBrowserPreviewPanel").is_some() {
         apply_compact_preview_utility_layout(nodes, x, content_y, width, content_height);
     }
+    apply_compact_utility_locator_layout(nodes, x, y, width, tabs_end);
+}
+
+fn apply_compact_utility_tab_button_layout(
+    nodes: &mut [ViewTemplateNodeData],
+    x: f32,
+    y: f32,
+) -> f32 {
+    let mut cursor_x = x;
+    for (index, (control_id, width)) in COMPACT_UTILITY_TAB_WIDTHS.iter().enumerate() {
+        if index > 0 {
+            cursor_x += COMPACT_UTILITY_TAB_GAP;
+        }
+        set_node_frame(
+            nodes,
+            control_id,
+            cursor_x,
+            y,
+            *width,
+            COMPACT_UTILITY_TAB_HEIGHT,
+        );
+        cursor_x += *width;
+    }
+    cursor_x
+}
+
+fn apply_compact_utility_locator_layout(
+    nodes: &mut [ViewTemplateNodeData],
+    x: f32,
+    y: f32,
+    width: f32,
+    tabs_end: f32,
+) {
+    let row_right = x + width;
+    let locator_x =
+        (row_right - COMPACT_UTILITY_LOCATOR_WIDTH).max(tabs_end + COMPACT_UTILITY_LOCATOR_GAP);
+    let locator_width = (row_right - locator_x)
+        .max(0.0)
+        .min(COMPACT_UTILITY_LOCATOR_WIDTH);
     set_node_frame(
         nodes,
         "AssetBrowserSelectionLocatorText",
-        (x + width - 220.0).max(x + 300.0),
+        locator_x,
         y,
-        212.0,
-        22.0,
+        locator_width,
+        COMPACT_UTILITY_TAB_HEIGHT,
     );
 }
 

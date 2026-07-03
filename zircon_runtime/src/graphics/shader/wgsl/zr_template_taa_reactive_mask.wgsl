@@ -8,7 +8,7 @@ fn zr_vs_main_impl(v: ZrVertexInput, instance_index: u32) -> ZrVertexOutput {
         fetch_tangent(v, instance_index),
         fetch_uv0(v),
         fetch_uv1(v),
-        fetch_color(v),
+        fetch_color(v, instance_index),
     );
 }
 
@@ -43,8 +43,9 @@ fn fs_taa_reactive_mask(input: ZrVertexOutput) -> @location(0) f32 {
 }
 
 @fragment
-fn fs_taa_reactive_material_mask(_input: ZrVertexOutput) -> @location(0) f32 {
-    let reactive_mask = clamp(standard_material_properties.data8.x, 0.0, 1.0);
+fn fs_taa_reactive_material_mask(input: ZrVertexOutput) -> @location(0) f32 {
+    let surface = zr_material_surface(input);
+    let reactive_mask = clamp(surface.custom0.x, 0.0, 1.0);
     zr_discard_empty_taa_reactive_mask(reactive_mask);
     return reactive_mask;
 }

@@ -907,6 +907,7 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
         UiTextAlign::Right => "right",
         UiTextAlign::Start => "start",
         UiTextAlign::End => "end",
+        UiTextAlign::Justify => "justify",
     }
 }
 

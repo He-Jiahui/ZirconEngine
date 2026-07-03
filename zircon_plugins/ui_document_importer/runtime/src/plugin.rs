@@ -11,8 +11,8 @@ use zircon_runtime::plugin::{
 };
 
 use crate::{
-    import_ui_zui_component_document, IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID,
-    RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
+    import_ui_zui_document, IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, RUNTIME_CAPABILITY,
+    RUNTIME_CRATE_NAME,
 };
 
 pub const UI_DOCUMENT_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_ui_document_importer_dist";
@@ -55,7 +55,7 @@ impl RuntimePlugin for UiDocumentImporterRuntimePlugin {
         for importer in asset_importer_descriptors() {
             registry.register_asset_importer(FunctionAssetImporter::new(
                 importer,
-                import_ui_zui_component_document,
+                import_ui_zui_document,
             ))?;
         }
         Ok(())
@@ -95,7 +95,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
 }
 
 pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
-    vec![ui_zui_descriptor("ui_document_importer.zui_component", 120).with_full_suffixes([".zui"])]
+    vec![ui_zui_descriptor("ui_document_importer.zui_document", 120)
+        .with_full_suffixes([".zui"])
+        .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle])]
 }
 
 pub fn runtime_module_manifest() -> PluginModuleManifest {

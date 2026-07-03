@@ -50,7 +50,7 @@ pub use render::{
     UiTextComposition, UiTextDirection, UiTextEditAction, UiTextOverflow, UiTextPaint,
     UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun, UiTextRange,
     UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextSelection, UiTextWrap,
-    UiVectorBrushPayload, UiVisualAssetRef,
+    UiTextWritingMode, UiVectorBrushPayload, UiVisualAssetRef,
 };
 pub use timeline::{
     UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,

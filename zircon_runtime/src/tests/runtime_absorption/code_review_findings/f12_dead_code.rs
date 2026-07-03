@@ -50,7 +50,7 @@ fn review_f12_runtime_production_dead_code_suppression_is_globally_gated() {
         "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
     );
     let status_rows = include_str!(
-        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
+        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs"
     );
     let status_map = include_str!(
         "../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"

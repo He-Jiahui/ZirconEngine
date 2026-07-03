@@ -10,6 +10,8 @@ fn runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired() {
     let prewarm_registry =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let manifest_registry_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
     let resource_doc = read_repo("docs/zircon_runtime/core/resource.md");
@@ -45,7 +47,7 @@ fn runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired() {
     );
     assert_contains_all(
         "focused test proves live ResourceManager revisions feed material revisions",
-        &tests,
+        &manifest_registry_tests,
         &[
             "shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions",
             "ResourceManager::new",
@@ -66,6 +68,10 @@ fn runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired() {
         (
             "bin/zircon_shader_prewarm/manifest/tests.rs",
             tests.as_str(),
+        ),
+        (
+            "bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
+            manifest_registry_tests.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

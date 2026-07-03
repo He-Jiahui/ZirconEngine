@@ -12,6 +12,7 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;
 use compact_layout::apply_asset_browser_compact_layout;
+use labels::{asset_state_label, resource_kind_label};
 use stack_layout::apply_asset_browser_standard_stack_layout;
 use summary_nodes::sync_asset_browser_summary_nodes;
 use table_nodes::{
@@ -19,8 +20,10 @@ use table_nodes::{
 };
 use thumbnail_nodes::{append_asset_browser_thumbnail_nodes, asset_thumbnail_icon_name};
 use toolbar_layout::apply_asset_browser_toolbar_layout;
+use utility_tabs::apply_asset_browser_utility_tab_typography;
 
 mod compact_layout;
+mod labels;
 mod stack_layout;
 mod summary_layout;
 mod summary_nodes;
@@ -30,6 +33,7 @@ mod tests;
 mod thumbnail_layout;
 mod thumbnail_nodes;
 mod toolbar_layout;
+mod utility_tabs;
 
 const ASSET_BROWSER_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/asset_browser.zui";
 const ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
@@ -434,6 +438,7 @@ fn apply_asset_browser_visual_state(
         "AssetBrowserPluginsTabButton",
         snapshot.utility_tab == AssetUtilityTab::Plugins,
     );
+    apply_asset_browser_utility_tab_typography(nodes);
 
     mark_toggle_state(
         nodes,
@@ -702,29 +707,6 @@ fn selection_diagnostics_text(
     }
 }
 
-fn compact_resource_kind_label(kind: ResourceKind) -> &'static str {
-    match kind {
-        ResourceKind::Texture => "Tex",
-        ResourceKind::Material | ResourceKind::MaterialGraph => "Mat",
-        ResourceKind::Scene => "Scene",
-        ResourceKind::Model | ResourceKind::Mesh => "Mesh",
-        ResourceKind::Shader => "Shader",
-        ResourceKind::Prefab => "Prefab",
-        ResourceKind::UiLayout => "UI",
-        ResourceKind::UiWidget => "Widget",
-        ResourceKind::UiStyle => "Style",
-        _ => "Asset",
-    }
-}
-
-fn asset_state_label(asset: &crate::ui::workbench::snapshot::AssetItemSnapshot) -> &'static str {
-    if asset.diagnostics.is_empty() {
-        "Ready"
-    } else {
-        "Diagnostics"
-    }
-}
-
 fn mark_toggle_state(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.selected = active;
@@ -899,35 +881,4 @@ fn selection_metadata_body(selection: &AssetSelectionSnapshot, diagnostics: &str
         }));
     }
     lines.join("\n")
-}
-
-fn resource_kind_label(kind: ResourceKind) -> &'static str {
-    match kind {
-        ResourceKind::Texture => "Texture",
-        ResourceKind::Material => "Material",
-        ResourceKind::Scene => "Scene",
-        ResourceKind::Model => "Model",
-        ResourceKind::Mesh => "Mesh",
-        ResourceKind::Shader => "Shader",
-        ResourceKind::Sound => "Sound",
-        ResourceKind::Font => "Font",
-        ResourceKind::PhysicsMaterial => "PhysicsMaterial",
-        ResourceKind::NavMesh => "NavMesh",
-        ResourceKind::NavigationSettings => "NavigationSettings",
-        ResourceKind::Terrain => "Terrain",
-        ResourceKind::TerrainLayerStack => "TerrainLayerStack",
-        ResourceKind::TileSet => "TileSet",
-        ResourceKind::TileMap => "TileMap",
-        ResourceKind::Prefab => "Prefab",
-        ResourceKind::AnimationSkeleton => "AnimationSkeleton",
-        ResourceKind::AnimationClip => "AnimationClip",
-        ResourceKind::AnimationSequence => "AnimationSequence",
-        ResourceKind::AnimationGraph => "AnimationGraph",
-        ResourceKind::AnimationStateMachine => "AnimationStateMachine",
-        ResourceKind::UiLayout => "UiLayout",
-        ResourceKind::UiWidget => "UiWidget",
-        ResourceKind::UiStyle => "UiStyle",
-        ResourceKind::Data => "Data",
-        ResourceKind::MaterialGraph => "MaterialGraph",
-    }
 }

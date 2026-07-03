@@ -1,18 +1,21 @@
-use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
 use crate::graphics::text::font::FontDatabase;
-use zircon_runtime_interface::ui::layout::UiFrame;
-use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection};
 
 use super::render::ScreenSpaceUiTextBatch;
-use super::sdf_atlas::{SdfAtlasCacheReport, SdfAtlasPlan, SdfAtlasRect};
-use super::sdf_font_bake::{
-    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
+use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
+use super::sdf_atlas::{
+    sdf_atlas_layer_count, SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasPlan,
 };
-use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadReport};
+use super::sdf_char_run::sdf_scalar_is_invisible_format;
+use super::sdf_font_bake::{SdfAtlasBakeReport, SdfFontBakeCache};
+use super::sdf_upload::{sdf_atlas_upload_commands, sdf_atlas_upload_report, SdfAtlasUploadReport};
+
+mod vertices;
+
+use self::vertices::{build_sdf_vertices, ScreenSpaceUiSdfVertex};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/sdf_text.wgsl");
 const SDF_ATLAS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
@@ -26,51 +29,27 @@ pub(super) struct ScreenSpaceUiSdfRenderer {
     atlas_view: wgpu::TextureView,
     bind_group: wgpu::BindGroup,
     atlas_size: UVec2,
+    atlas_page_count: u32,
     vertex_buffer: Option<wgpu::Buffer>,
     vertex_count: u32,
     last_report: ScreenSpaceUiSdfPrepareReport,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct ScreenSpaceUiSdfPrepareReport {
     pub(super) text_batch_count: usize,
     pub(super) atlas_slot_count: usize,
     pub(super) atlas_size: UVec2,
+    pub(super) atlas_page_count: u32,
+    pub(super) atlas_allocation_failure_count: usize,
+    pub(super) atlas_page_limit_failure_count: usize,
+    pub(super) atlas_oversized_failure_count: usize,
     pub(super) atlas_resized: bool,
     pub(super) bake: SdfAtlasBakeReport,
     pub(super) atlas_upload_byte_len: usize,
     pub(super) atlas_upload_full_texture: bool,
     pub(super) atlas_upload: SdfAtlasUploadReport,
     pub(super) vertex_count: u32,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable, PartialEq)]
-struct ScreenSpaceUiSdfVertex {
-    position: [f32; 2],
-    uv: [f32; 2],
-    color: [f32; 4],
-}
-
-#[derive(Clone, Copy)]
-struct SdfUvRect {
-    x0: f32,
-    y0: f32,
-    x1: f32,
-    y1: f32,
-}
-
-impl ScreenSpaceUiSdfVertex {
-    fn layout() -> wgpu::VertexBufferLayout<'static> {
-        const ATTRIBUTES: [wgpu::VertexAttribute; 3] =
-            wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x2, 2 => Float32x4];
-
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &ATTRIBUTES,
-        }
-    }
 }
 
 impl ScreenSpaceUiSdfRenderer {
@@ -83,7 +62,7 @@ impl ScreenSpaceUiSdfRenderer {
                     visibility: wgpu::ShaderStages::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
                         multisampled: false,
                     },
                     count: None,
@@ -146,8 +125,14 @@ impl ScreenSpaceUiSdfRenderer {
             cache: None,
         });
         let atlas_size = UVec2::new(1, 1);
-        let (atlas_texture, atlas_view, bind_group) =
-            create_atlas_resources(device, &bind_group_layout, &sampler, atlas_size);
+        let atlas_page_count = 1;
+        let (atlas_texture, atlas_view, bind_group) = create_atlas_resources(
+            device,
+            &bind_group_layout,
+            &sampler,
+            atlas_size,
+            atlas_page_count,
+        );
 
         Self {
             font_bake: SdfFontBakeCache::new(),
@@ -158,6 +143,7 @@ impl ScreenSpaceUiSdfRenderer {
             atlas_view,
             bind_group,
             atlas_size,
+            atlas_page_count,
             vertex_buffer: None,
             vertex_count: 0,
             last_report: ScreenSpaceUiSdfPrepareReport::default(),
@@ -175,36 +161,40 @@ impl ScreenSpaceUiSdfRenderer {
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
     ) {
-        let atlas_resized = atlas_plan.atlas_size != self.atlas_size;
+        let atlas_page_count = sdf_atlas_layer_count(atlas_plan);
+        let atlas_resized =
+            atlas_plan.atlas_size != self.atlas_size || atlas_page_count != self.atlas_page_count;
         if atlas_resized {
             let (atlas_texture, atlas_view, bind_group) = create_atlas_resources(
                 device,
                 &self.bind_group_layout,
                 &self.sampler,
                 atlas_plan.atlas_size,
+                atlas_page_count,
             );
             self.atlas_texture = atlas_texture;
             self.atlas_view = atlas_view;
             self.bind_group = bind_group;
             self.atlas_size = atlas_plan.atlas_size;
+            self.atlas_page_count = atlas_page_count;
         }
 
         let atlas_bake = self
             .font_bake
             .build_atlas(atlas_plan, font_database, asset_manager);
-        queue.write_texture(
-            self.atlas_texture.as_image_copy(),
+        let atlas_upload = sdf_atlas_upload_report(
+            atlas_plan,
+            atlas_cache,
+            atlas_resized,
+            atlas_bake.pixels.len(),
+            atlas_resized,
+        );
+        write_sdf_atlas_texture(
+            queue,
+            &self.atlas_texture,
+            atlas_plan,
             &atlas_bake.pixels,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(atlas_plan.atlas_size.x.max(1)),
-                rows_per_image: Some(atlas_plan.atlas_size.y.max(1)),
-            },
-            wgpu::Extent3d {
-                width: atlas_plan.atlas_size.x.max(1),
-                height: atlas_plan.atlas_size.y.max(1),
-                depth_or_array_layers: 1,
-            },
+            &atlas_upload,
         );
 
         let vertices = build_sdf_vertices(
@@ -227,17 +217,55 @@ impl ScreenSpaceUiSdfRenderer {
         self.last_report = sdf_prepare_report(
             texts.len(),
             atlas_plan,
-            atlas_cache,
             atlas_resized,
+            atlas_page_count,
             atlas_bake.report,
-            atlas_bake.pixels.len(),
-            true,
+            atlas_upload,
             self.vertex_count,
         );
     }
 
     pub(super) fn prepare_report(&self) -> ScreenSpaceUiSdfPrepareReport {
-        self.last_report
+        self.last_report.clone()
+    }
+
+    pub(super) fn measure_text_glyph_advances_for_fallbacks(
+        &mut self,
+        texts: &[ScreenSpaceUiTextBatch],
+        font_database: &mut FontDatabase,
+        asset_manager: &ProjectAssetManager,
+    ) -> Vec<Vec<f32>> {
+        texts
+            .iter()
+            .map(|text| {
+                if let Some(advances) = resolved_layout_advances_for_sdf_glyphs(
+                    text.text.as_str(),
+                    text.glyph_advances.as_slice(),
+                    text.text.chars().count(),
+                ) {
+                    return advances;
+                }
+                text.text
+                    .chars()
+                    .map(|glyph| {
+                        if sdf_scalar_is_invisible_format(glyph) {
+                            return 0.0;
+                        }
+                        self.font_bake
+                            .measure_glyph(
+                                glyph,
+                                text.font.as_deref(),
+                                text.font_family.as_deref(),
+                                text.font_weight,
+                                text.font_size,
+                                font_database,
+                                asset_manager,
+                            )
+                            .advance
+                    })
+                    .collect()
+            })
+            .collect()
     }
 
     pub(super) fn render<'pass>(&'pass self, pass: &mut wgpu::RenderPass<'pass>) {
@@ -258,29 +286,71 @@ impl ScreenSpaceUiSdfRenderer {
 fn sdf_prepare_report(
     text_batch_count: usize,
     atlas_plan: &SdfAtlasPlan,
-    atlas_cache: SdfAtlasCacheReport,
     atlas_resized: bool,
+    atlas_page_count: u32,
     bake: SdfAtlasBakeReport,
-    atlas_upload_byte_len: usize,
-    atlas_upload_full_texture: bool,
+    atlas_upload: SdfAtlasUploadReport,
     vertex_count: u32,
 ) -> ScreenSpaceUiSdfPrepareReport {
     ScreenSpaceUiSdfPrepareReport {
         text_batch_count,
         atlas_slot_count: atlas_plan.slots.len(),
         atlas_size: atlas_plan.atlas_size,
+        atlas_page_count,
+        atlas_allocation_failure_count: atlas_plan.allocation_failures.len(),
+        atlas_page_limit_failure_count: atlas_plan
+            .allocation_failures
+            .iter()
+            .filter(|failure| failure.reason == SdfAtlasAllocationFailureReason::PageLimit)
+            .count(),
+        atlas_oversized_failure_count: atlas_plan
+            .allocation_failures
+            .iter()
+            .filter(|failure| failure.reason == SdfAtlasAllocationFailureReason::OversizedSlot)
+            .count(),
         atlas_resized,
         bake,
-        atlas_upload_byte_len,
-        atlas_upload_full_texture,
-        atlas_upload: sdf_atlas_upload_report(
-            atlas_plan,
-            atlas_cache,
-            atlas_resized,
-            atlas_upload_byte_len,
-            atlas_upload_full_texture,
-        ),
+        atlas_upload_byte_len: atlas_upload.byte_len,
+        atlas_upload_full_texture: atlas_upload.full_texture,
+        atlas_upload,
         vertex_count,
+    }
+}
+
+fn write_sdf_atlas_texture(
+    queue: &wgpu::Queue,
+    texture: &wgpu::Texture,
+    atlas_plan: &SdfAtlasPlan,
+    pixels: &[u8],
+    upload: &SdfAtlasUploadReport,
+) {
+    if pixels.is_empty() {
+        return;
+    }
+    for command in sdf_atlas_upload_commands(atlas_plan, upload.clone(), pixels.len()) {
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d {
+                    x: command.rect.x,
+                    y: command.rect.y,
+                    z: command.page_key.page_index,
+                },
+                aspect: wgpu::TextureAspect::All,
+            },
+            pixels,
+            wgpu::TexelCopyBufferLayout {
+                offset: command.source_offset,
+                bytes_per_row: Some(command.bytes_per_row),
+                rows_per_image: Some(command.rows_per_image),
+            },
+            wgpu::Extent3d {
+                width: command.rect.width,
+                height: command.rect.height,
+                depth_or_array_layers: 1,
+            },
+        );
     }
 }
 
@@ -289,13 +359,14 @@ fn create_atlas_resources(
     bind_group_layout: &wgpu::BindGroupLayout,
     sampler: &wgpu::Sampler,
     atlas_size: UVec2,
+    atlas_page_count: u32,
 ) -> (wgpu::Texture, wgpu::TextureView, wgpu::BindGroup) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("zircon-screen-space-ui-sdf-atlas"),
         size: wgpu::Extent3d {
             width: atlas_size.x.max(1),
             height: atlas_size.y.max(1),
-            depth_or_array_layers: 1,
+            depth_or_array_layers: atlas_page_count.max(1),
         },
         mip_level_count: 1,
         sample_count: 1,
@@ -304,7 +375,11 @@ fn create_atlas_resources(
         usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
         view_formats: &[],
     });
-    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let view = texture.create_view(&wgpu::TextureViewDescriptor {
+        label: Some("zircon-screen-space-ui-sdf-atlas-view"),
+        dimension: Some(wgpu::TextureViewDimension::D2Array),
+        ..Default::default()
+    });
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-screen-space-ui-sdf-bind-group"),
         layout: bind_group_layout,
@@ -320,244 +395,6 @@ fn create_atlas_resources(
         ],
     });
     (texture, view, bind_group)
-}
-
-fn build_sdf_vertices(
-    texts: &[ScreenSpaceUiTextBatch],
-    plan: &SdfAtlasPlan,
-    atlas_bake: &SdfAtlasBake,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
-    viewport_size: UVec2,
-) -> Vec<ScreenSpaceUiSdfVertex> {
-    let viewport = UiFrame::new(
-        0.0,
-        0.0,
-        viewport_size.x.max(1) as f32,
-        viewport_size.y.max(1) as f32,
-    );
-    let mut vertices = Vec::new();
-    for (text, run) in texts.iter().zip(plan.runs.iter()) {
-        let Some(mut clip) = text.frame.intersection(viewport) else {
-            continue;
-        };
-        if let Some(clip_frame) = text.clip_frame {
-            let Some(clipped) = clip.intersection(clip_frame) else {
-                continue;
-            };
-            clip = clipped;
-        }
-
-        let glyphs = resolve_run_glyphs(
-            text,
-            run,
-            atlas_bake,
-            font_bake,
-            font_database,
-            asset_manager,
-        );
-        let text_width = glyphs.iter().map(|glyph| glyph.metrics.advance).sum();
-        let line_ascent = glyphs
-            .iter()
-            .map(|glyph| glyph.metrics.ascent)
-            .fold(text.font_size.max(1.0), f32::max);
-        let baseline = text.frame.y
-            + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
-            + line_ascent;
-        let mut cursor_x = aligned_text_start_x(text, text_width);
-
-        for glyph in glyphs {
-            let advance = glyph.metrics.advance;
-            let Some(slot_index) = glyph.slot_index else {
-                cursor_x += advance;
-                continue;
-            };
-            let Some(slot) = plan.slots.get(slot_index) else {
-                cursor_x += advance;
-                continue;
-            };
-            if !glyph.visible || glyph.metrics.bitmap_width == 0 || glyph.metrics.bitmap_height == 0
-            {
-                cursor_x += advance;
-                continue;
-            }
-            let frame = UiFrame::new(
-                cursor_x + glyph.metrics.bitmap_left,
-                baseline - (glyph.metrics.bitmap_bottom + glyph.metrics.bitmap_height as f32),
-                glyph.metrics.bitmap_width as f32,
-                glyph.metrics.bitmap_height as f32,
-            );
-            push_clipped_glyph_quad(
-                &mut vertices,
-                frame,
-                clip,
-                viewport,
-                atlas_uv_rect(slot.rect, plan.atlas_size, glyph.metrics),
-                text.color,
-            );
-            cursor_x += advance;
-        }
-    }
-    vertices
-}
-
-#[derive(Clone, Copy)]
-struct RunGlyph {
-    slot_index: Option<usize>,
-    metrics: SdfGlyphMetrics,
-    visible: bool,
-}
-
-fn resolve_run_glyphs(
-    text: &ScreenSpaceUiTextBatch,
-    run: &super::sdf_atlas::SdfAtlasRun,
-    atlas_bake: &SdfAtlasBake,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
-) -> Vec<RunGlyph> {
-    text.text
-        .chars()
-        .zip(run.glyph_slot_indices.iter().copied())
-        .map(|(glyph, slot_index)| match slot_index {
-            Some(slot_index) => atlas_bake
-                .glyphs
-                .get(slot_index)
-                .map(|baked| run_glyph_from_bake(slot_index, baked))
-                .unwrap_or_else(|| {
-                    measured_run_glyph(glyph, text, font_bake, font_database, asset_manager)
-                }),
-            None => measured_run_glyph(glyph, text, font_bake, font_database, asset_manager),
-        })
-        .collect()
-}
-
-fn run_glyph_from_bake(slot_index: usize, baked: &SdfBakedGlyph) -> RunGlyph {
-    RunGlyph {
-        slot_index: Some(slot_index),
-        metrics: baked.metrics,
-        visible: baked.visible,
-    }
-}
-
-fn measured_run_glyph(
-    glyph: char,
-    text: &ScreenSpaceUiTextBatch,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
-) -> RunGlyph {
-    RunGlyph {
-        slot_index: None,
-        metrics: font_bake.measure_glyph(
-            glyph,
-            text.font.as_deref(),
-            text.font_family.as_deref(),
-            text.font_size,
-            font_database,
-            asset_manager,
-        ),
-        visible: false,
-    }
-}
-
-fn aligned_text_start_x(text: &ScreenSpaceUiTextBatch, text_width: f32) -> f32 {
-    let free_width = (text.frame.width - text_width).max(0.0);
-    let offset = match text.text_align {
-        UiTextAlign::Left => 0.0,
-        UiTextAlign::Center => free_width * 0.5,
-        UiTextAlign::Right => free_width,
-        UiTextAlign::Start if matches!(text.text_direction, UiTextDirection::RightToLeft) => {
-            free_width
-        }
-        UiTextAlign::Start => 0.0,
-        UiTextAlign::End if matches!(text.text_direction, UiTextDirection::RightToLeft) => 0.0,
-        UiTextAlign::End => free_width,
-    };
-    text.frame.x + offset
-}
-
-fn atlas_uv_rect(rect: SdfAtlasRect, atlas_size: UVec2, metrics: SdfGlyphMetrics) -> SdfUvRect {
-    let width = atlas_size.x.max(1) as f32;
-    let height = atlas_size.y.max(1) as f32;
-    let glyph_width = metrics.bitmap_width.min(rect.width);
-    let glyph_height = metrics.bitmap_height.min(rect.height);
-    SdfUvRect {
-        x0: rect.x as f32 / width,
-        y0: rect.y as f32 / height,
-        x1: rect.x.saturating_add(glyph_width) as f32 / width,
-        y1: rect.y.saturating_add(glyph_height) as f32 / height,
-    }
-}
-
-fn push_clipped_glyph_quad(
-    vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
-    frame: UiFrame,
-    clip: UiFrame,
-    viewport: UiFrame,
-    uv: SdfUvRect,
-    color: [f32; 4],
-) {
-    let Some(clipped) = frame
-        .intersection(clip)
-        .and_then(|frame| frame.intersection(viewport))
-    else {
-        return;
-    };
-    let left = (clipped.x - frame.x) / frame.width.max(1.0);
-    let right = (clipped.right() - frame.x) / frame.width.max(1.0);
-    let top = (clipped.y - frame.y) / frame.height.max(1.0);
-    let bottom = (clipped.bottom() - frame.y) / frame.height.max(1.0);
-    let uv_width = uv.x1 - uv.x0;
-    let uv_height = uv.y1 - uv.y0;
-    let uv0 = [uv.x0 + uv_width * left, uv.y0 + uv_height * top];
-    let uv1 = [uv.x0 + uv_width * right, uv.y0 + uv_height * bottom];
-    let x0 = pixel_to_ndc_x(clipped.x, viewport.width);
-    let x1 = pixel_to_ndc_x(clipped.right(), viewport.width);
-    let y0 = pixel_to_ndc_y(clipped.y, viewport.height);
-    let y1 = pixel_to_ndc_y(clipped.bottom(), viewport.height);
-
-    vertices.extend_from_slice(&[
-        ScreenSpaceUiSdfVertex {
-            position: [x0, y0],
-            uv: [uv0[0], uv0[1]],
-            color,
-        },
-        ScreenSpaceUiSdfVertex {
-            position: [x1, y0],
-            uv: [uv1[0], uv0[1]],
-            color,
-        },
-        ScreenSpaceUiSdfVertex {
-            position: [x1, y1],
-            uv: [uv1[0], uv1[1]],
-            color,
-        },
-        ScreenSpaceUiSdfVertex {
-            position: [x0, y0],
-            uv: [uv0[0], uv0[1]],
-            color,
-        },
-        ScreenSpaceUiSdfVertex {
-            position: [x1, y1],
-            uv: [uv1[0], uv1[1]],
-            color,
-        },
-        ScreenSpaceUiSdfVertex {
-            position: [x0, y1],
-            uv: [uv0[0], uv1[1]],
-            color,
-        },
-    ]);
-}
-
-fn pixel_to_ndc_x(x: f32, width: f32) -> f32 {
-    (x / width.max(1.0)) * 2.0 - 1.0
-}
-
-fn pixel_to_ndc_y(y: f32, height: f32) -> f32 {
-    1.0 - (y / height.max(1.0)) * 2.0
 }
 
 #[cfg(test)]

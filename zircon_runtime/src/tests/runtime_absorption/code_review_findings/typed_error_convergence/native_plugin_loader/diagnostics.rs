@@ -1,0 +1,122 @@
+#[test]
+fn review_f5_native_live_host_behavior_diagnostics_use_typed_error() {
+    let diagnostics = include_str!(
+        "../../../../../plugin/native_plugin_loader/native_plugin_live_host/diagnostics.rs"
+    );
+    let loading = include_str!(
+        "../../../../../plugin/native_plugin_loader/native_plugin_live_host/loading.rs"
+    );
+    let lifecycle = include_str!(
+        "../../../../../plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs"
+    );
+    let live_host_root =
+        include_str!("../../../../../plugin/native_plugin_loader/native_plugin_live_host.rs");
+    let live_host_tests =
+        include_str!("../../../../../plugin/native_plugin_loader/native_plugin_live_host/tests.rs");
+    let native_boundary =
+        include_str!("../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
+    let review_findings =
+        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    let runtime_15_plan = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    );
+    let runtime_index =
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let convention =
+        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
+    let module_convention =
+        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let status_rows = include_str!(
+        "../../../plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs"
+    );
+    let status_map = include_str!(
+        "../../../plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs"
+    );
+    let date_map = include_str!(
+        "../../../plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs"
+    );
+
+    for required in [
+        "type NativePluginBehaviorDiagnosticResult<T>",
+        "std::result::Result<T, NativePluginBehaviorDiagnosticError>",
+        "enum NativePluginBehaviorDiagnosticError",
+        "FailedStatus",
+        "label: String",
+        "status_code: u32",
+        "diagnostics: Vec<String>",
+        "impl std::fmt::Display for NativePluginBehaviorDiagnosticError",
+        "impl std::error::Error for NativePluginBehaviorDiagnosticError",
+        ") -> NativePluginBehaviorDiagnosticResult<Vec<String>>",
+        "NativePluginBehaviorDiagnosticError::FailedStatus",
+    ] {
+        assert!(
+            diagnostics.contains(required),
+            "native live-host behavior diagnostics typed-error owner should contain `{required}`"
+        );
+    }
+
+    let production = diagnostics
+        .split("#[cfg(test)]")
+        .next()
+        .expect("native live-host diagnostics production source");
+    for forbidden in [
+        ") -> Result<Vec<String>, String>",
+        "Err(diagnostics.join(\"; \"))",
+    ] {
+        assert!(
+            !production.contains(forbidden),
+            "native live-host behavior diagnostics owner should not keep lossy String error branch `{forbidden}`"
+        );
+    }
+
+    for required_source in [
+        "use super::diagnostics::{",
+        "NativePluginBehaviorDiagnosticError",
+        "source: NativePluginBehaviorDiagnosticError",
+        "Self::UnloadBeforeReload { source, .. } => Some(source)",
+        "Self::UnloadBehavior { source, .. }",
+        "Self::HotReloadUnloadBeforeReload { source, .. }",
+        "unload_error.to_string()",
+    ] {
+        assert!(
+            loading.contains(required_source) || lifecycle.contains(required_source),
+            "native live-host loading/lifecycle errors should preserve behavior diagnostic source via `{required_source}`"
+        );
+    }
+    assert!(
+        live_host_root.contains("NativePluginBehaviorDiagnosticError"),
+        "native live-host test root should expose the typed behavior diagnostic error to module-local tests"
+    );
+
+    for required_test in [
+        "native_live_host_behavior_diagnostics_report_typed_status_error",
+        "NativePluginBehaviorDiagnosticError::FailedStatus",
+    ] {
+        assert!(
+            live_host_tests.contains(required_test),
+            "native live-host behavior diagnostics tests should contain `{required_test}`"
+        );
+    }
+
+    for doc_anchor in [
+        "Runtime 15 F5 native live-host behavior diagnostics typed errors",
+        "runtime_15_native_live_host_behavior_diagnostics_typed_errors_static_passed_cargo_deferred",
+        "review_f5_native_live_host_behavior_diagnostics_use_typed_error",
+        "plugin/native_plugin_loader/native_plugin_live_host/diagnostics.rs",
+        "NativePluginBehaviorDiagnosticError::FailedStatus",
+        "native live-host behavior diagnostics keep string diagnostics at public live-host boundaries",
+    ] {
+        assert!(
+            native_boundary.contains(doc_anchor)
+                || review_findings.contains(doc_anchor)
+                || runtime_15_plan.contains(doc_anchor)
+                || runtime_index.contains(doc_anchor)
+                || convention.contains(doc_anchor)
+                || module_convention.contains(doc_anchor)
+                || status_rows.contains(doc_anchor)
+                || status_map.contains(doc_anchor)
+                || date_map.contains(doc_anchor),
+            "native live-host behavior diagnostics docs/status should record `{doc_anchor}`"
+        );
+    }
+}

@@ -1,0 +1,11 @@
+runtime_text_editor_sdf_glyph_origin_snap_validation_20260703
+date=2026-07-03
+reported_crop=C:/Users/HeJiahui/AppData/Local/Temp/codex-clipboard-5531e6a0-39e3-47d8-b385-33b01b4a2b4b.png
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_sdf_glyph_origin_snap_preview_20260703.png
+issue=editor small text labels looked uneven because glyph bitmap origins kept fractional x/y after text frame origin snapping
+root_cause_candidate=sdf_render horizontal_sdf_glyph_frame and vertical_sdf_glyph_frame returned fractional bitmap frame origins
+fix=text_glyph_device_frame rounds glyph bitmap frame x/y while preserving width/height and layout advances
+implementation_files=zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs;zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+tests=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs::sdf_draw_plan_snaps_text_and_glyph_origin_before_horizontal_quad_placement;zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs::sdf_glyph_frames_snap_fractional_bitmap_origins_without_changing_size
+visual_output_location=docs/tests/runtime/text
+target_output=none

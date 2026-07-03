@@ -9,8 +9,10 @@ from unittest import mock
 from tools.zircon_export.tests.export_test_support import (
     _platform_bundle_args,
     _run_platform_bundle_quiet,
-    _write_native_dynamic_stage_plugins,
     json_loads,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
+    _write_native_dynamic_stage_plugins,
 )
 
 
@@ -148,7 +150,7 @@ class PlatformBundleNativePluginsCopyErrorsTests(unittest.TestCase):
                 original_copy2(source, destination)
 
             with mock.patch(
-                "tools.zircon_export.platform_bundle.shutil.copy2",
+                "tools.zircon_export.platform_bundle_native_plugins_materialize.shutil.copy2",
                 side_effect=copy_or_fail,
             ):
                 exit_code = _run_platform_bundle_quiet(args)

@@ -12,7 +12,7 @@ fn runtime_15_core_runtime_task_lock_poison_recovery_guard_covers_job_handles() 
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let tasks_doc = read_repo("docs/zircon_runtime/core/tasks.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -91,7 +91,7 @@ fn runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_re
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(

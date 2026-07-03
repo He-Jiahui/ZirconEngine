@@ -155,6 +155,47 @@ fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
 }
 
 #[test]
+fn native_hot_reload_snapshot_save_reports_typed_status_error() {
+    let existing = native_live_host_test_plugin_with_behavior(
+        "physics",
+        NativePluginBehavior {
+            is_stateless: false,
+            state_schema_version: 7,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            registration_manifest_schema: None,
+            command_manifest: None,
+            event_manifest: None,
+            registration_manifest: None,
+            invoke_command: None,
+            save_state: Some(hot_reload_save_state_failure),
+            restore_state: Some(hot_reload_restore_state),
+            unload: None,
+        },
+    );
+    let mut reload_state = NativePluginHotReloadState::new(
+        PluginModuleKind::Runtime,
+        "runtime:physics".to_string(),
+        Some(existing),
+    );
+
+    let error = reload_state
+        .save_existing_runtime_snapshot("physics")
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        NativePluginHotReloadError::SaveRuntimeState {
+            ref plugin_id,
+            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR
+        } if plugin_id == "physics"
+    ));
+    assert!(error
+        .to_string()
+        .contains("plugin physics hot reload failed while saving runtime state"));
+}
+
+#[test]
 fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
     let existing = native_live_host_test_plugin_with_behavior(
         "physics",
@@ -203,9 +244,17 @@ fn native_hot_reload_snapshot_restore_rejects_schema_mismatch() {
 
     let error = restore_runtime_snapshot(&snapshot, &replacement).unwrap_err();
 
-    assert!(
-        error.contains("snapshot state schema Some(7) does not match loaded state schema Some(8)")
-    );
+    assert!(matches!(
+        error,
+        NativePluginHotReloadError::StateSchemaMismatch {
+            ref plugin_id,
+            snapshot_schema: Some(7),
+            loaded_schema: Some(8)
+        } if plugin_id == "physics"
+    ));
+    assert!(error
+        .to_string()
+        .contains("snapshot state schema Some(7) does not match loaded state schema Some(8)"));
 }
 
 #[test]
@@ -264,6 +313,7 @@ fn hot_reload_failure_rolls_back_to_snapshot() {
         restore_runtime_snapshot(&snapshot, &existing).expect("old snapshot should restore");
 
     assert!(replacement_error
+        .to_string()
         .contains("snapshot state schema Some(7) does not match loaded state schema Some(8)"));
     assert!(rollback_diagnostics.is_empty());
     assert_eq!(

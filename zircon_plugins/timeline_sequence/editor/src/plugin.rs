@@ -134,11 +134,11 @@ pub fn timeline_sequence_dist_module_manifest() -> PluginModuleManifest {
 }
 
 fn timeline_authoring_batch() -> EditorAuthoringContributionBatch {
-    let open = operation("TimelineSequence.Authoring.Open");
-    let create_track = operation("TimelineSequence.Track.Create");
-    let delete_track = operation("TimelineSequence.Track.Delete");
-    let move_key = operation("TimelineSequence.Keyframe.Move");
-    let validate = operation("TimelineSequence.Authoring.Validate");
+    let open = operation("timeline_sequence.authoring.open");
+    let create_track = operation("timeline_sequence.track.create");
+    let delete_track = operation("timeline_sequence.track.delete");
+    let move_key = operation("timeline_sequence.keyframe.move");
+    let validate = operation("timeline_sequence.authoring.validate");
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(open.clone(), "Open Timeline Sequence")

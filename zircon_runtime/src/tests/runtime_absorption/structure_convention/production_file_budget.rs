@@ -14,6 +14,12 @@ mod core_runtime_service_lists;
 mod dynamic_api_session_profile;
 #[path = "production_file_budget/dynamic_api_session_registry.rs"]
 mod dynamic_api_session_registry;
+#[path = "production_file_budget/dynamic_api_shader_prewarm_tests.rs"]
+mod dynamic_api_shader_prewarm_tests;
+#[path = "production_file_budget/font_database_descriptors.rs"]
+mod font_database_descriptors;
+#[path = "production_file_budget/global_budget.rs"]
+mod global_budget;
 #[path = "production_file_budget/hzb_occlusion_culler.rs"]
 mod hzb_occlusion_culler;
 #[path = "production_file_budget/m4_behavior_postprocess_tests.rs"]
@@ -28,6 +34,8 @@ mod mesh_asset;
 mod module_layout;
 #[path = "production_file_budget/native_host_api_adapter.rs"]
 mod native_host_api_adapter;
+#[path = "production_file_budget/plugin_bridge_table_reports.rs"]
+mod plugin_bridge_table_reports;
 #[path = "production_file_budget/render_backend_types.rs"]
 mod render_backend_types;
 #[path = "production_file_budget/render_build_virtual_geometry_debug_snapshot.rs"]
@@ -114,6 +122,10 @@ mod render_ui_screen_space_render;
 mod render_ui_sdf_atlas_tests;
 #[path = "production_file_budget/render_ui_sdf_render.rs"]
 mod render_ui_sdf_render;
+#[path = "production_file_budget/render_ui_text_font_id_report.rs"]
+mod render_ui_text_font_id_report;
+#[path = "production_file_budget/render_ui_text_tests.rs"]
+mod render_ui_text_tests;
 #[path = "production_file_budget/render_update_base_stats.rs"]
 mod render_update_base_stats;
 #[path = "production_file_budget/render_update_base_stats_post_process_diagnostics.rs"]
@@ -128,6 +140,8 @@ mod render_visibility_virtual_geometry_tests;
 mod rhi_device_handles;
 #[path = "production_file_budget/rhi_wgpu_command_validation.rs"]
 mod rhi_wgpu_command_validation;
+#[path = "production_file_budget/rhi_wgpu_device_command_list.rs"]
+mod rhi_wgpu_device_command_list;
 #[path = "production_file_budget/rhi_wgpu_ui_surface_geometry.rs"]
 mod rhi_wgpu_ui_surface_geometry;
 #[path = "production_file_budget/rhi_wgpu_ui_surface_render_setup.rs"]
@@ -176,11 +190,19 @@ mod ui_text_layout;
 mod ui_v2_style;
 
 fn read_runtime_src(relative: &str) -> String {
-    std::fs::read_to_string(runtime_src_path(relative))
-        .unwrap_or_else(|error| panic!("failed to read runtime source `{relative}`: {error}"))
+    normalize_line_endings(
+        std::fs::read_to_string(runtime_src_path(relative))
+            .unwrap_or_else(|error| panic!("failed to read runtime source `{relative}`: {error}")),
+    )
 }
 
 fn read_repo(relative: &str) -> String {
-    std::fs::read_to_string(repo_path(relative))
-        .unwrap_or_else(|error| panic!("failed to read repository file `{relative}`: {error}"))
+    normalize_line_endings(
+        std::fs::read_to_string(repo_path(relative))
+            .unwrap_or_else(|error| panic!("failed to read repository file `{relative}`: {error}")),
+    )
+}
+
+fn normalize_line_endings(source: String) -> String {
+    source.replace("\r\n", "\n").replace('\r', "\n")
 }

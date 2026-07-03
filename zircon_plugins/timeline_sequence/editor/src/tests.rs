@@ -18,7 +18,7 @@ fn timeline_authoring_registration_exposes_menu_items_and_payload_schemas() {
         .register_editor_extensions(&mut registry)
         .expect("timeline authoring registration");
     let operation =
-        EditorOperationPath::parse("TimelineSequence.Keyframe.Move").expect("timeline operation");
+        EditorOperationPath::parse("timeline_sequence.keyframe.move").expect("timeline operation");
     let descriptor = registry
         .operations()
         .descriptor(&operation)

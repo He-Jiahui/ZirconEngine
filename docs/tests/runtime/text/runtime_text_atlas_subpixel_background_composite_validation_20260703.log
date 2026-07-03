@@ -1,0 +1,39 @@
+Runtime text atlas subpixel background composite guard validation - 2026-07-03
+
+Scope:
+- Code: zircon_runtime/src/graphics/text/atlas/render_plan.rs
+- Proof image: docs/tests/runtime/text/runtime_text_atlas_subpixel_background_composite_preview_20260703.png
+- Slice: AT-M2/AT-M3 SubpixelMask draw-plan background composite input normalization.
+
+Implementation summary:
+- SubpixelBackgroundComposite draw vertices now normalize background RGB before shader/blend consumption.
+- Non-finite background RGB falls back to 0.0.
+- Finite background RGB clamps to 0.0..1.0.
+- Background alpha is forced to 1.0 for subpixel background composite input.
+- Non-background-composite formats keep their existing background_color pass-through behavior.
+- Added focused owner regression: render_text_atlas_draw_plan_normalizes_subpixel_background_composite_input.
+
+Validation executed:
+- rustfmt --edition 2021 --check zircon_runtime\src\graphics\text\atlas\render_plan.rs : passed
+- git diff --check -- zircon_runtime\src\graphics\text\atlas\render_plan.rs : passed
+- PowerShell trailing-whitespace scan for render_plan.rs : passed
+- Visual proof opened and inspected in Codex desktop: passed; no blank image, no overlapping labels, right-side preview shows stable gray-white tab text.
+
+Cargo status:
+- Focused Cargo test was deferred because external cargo/rustc lanes were active during this slice.
+- Active process sample before deferral included cargo/rustc processes started around 2026-07-03 11:30-11:37 Asia/Shanghai, so no Cargo pass is claimed for this slice.
+
+Proof artifact:
+- PNG: docs/tests/runtime/text/runtime_text_atlas_subpixel_background_composite_preview_20260703.png
+- PNG SHA256: 0C96BD0273ADBE75FC52DFBEADA54788339753E959AC47303AE0B476B981743E
+- PNG size: 56873 bytes
+
+Target placement scan:
+- target same-name matches: 0
+- E:\cargo-targets same-name matches: 0
+- D:\cargo-targets same-name matches: 0
+
+Open follow-up:
+- Production bitmap atlas renderer still needs real framebuffer/background acquisition.
+- Live editor Workbench typography capture remains open.
+- Full glyphon TextAtlas cutover remains open.

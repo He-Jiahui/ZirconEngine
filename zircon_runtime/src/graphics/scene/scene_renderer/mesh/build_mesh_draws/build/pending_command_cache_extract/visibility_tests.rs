@@ -48,6 +48,7 @@ fn item(source_draw_index: usize) -> PendingMeshCommandCacheExtractItem {
         ),
         static_state: RenderMeshStaticState::new(true, 11, 17),
         casts_shadow: true,
+        disabled_passes: Default::default(),
         taa_reactive_mask_strength: 0.0,
         skinned: false,
     }

@@ -12,8 +12,8 @@ pub use delta::{
     ZRPACK_DELTA_MAGIC,
 };
 pub use install::{
-    ZrPackDeltaInstallError, ZrPackDeltaInstallReport, ZrPackDeltaInstaller, ZrPackPromotionMethod,
-    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
+    ZrPackDeltaInstallError, ZrPackDeltaInstallReport, ZrPackDeltaInstaller, ZrPackInstallReceipt,
+    ZrPackPromotionMethod, ZrPackPromotionReport, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
 };
 pub use manifest::{
     ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,

@@ -1,0 +1,27 @@
+Runtime text editor retained cumulative phase guard validation
+Date: 2026-07-04 +08:00
+Slice: runtime_text_editor_retained_cumulative_phase_guard_rustfmt_static_visual_cargo_deferred
+
+Problem addressed:
+- User screenshot showed DengXian editor labels where individual characters appeared shifted left/right.
+- Previous guard covered shaped glyph positions, but runtime advance projection could still accept many individually small <= 0.0625px differences.
+- Those small differences can accumulate across labels like editor base.zui and folder-open.svg and cross the retained host 1/8px raster placement bin.
+
+Implementation:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs adds runtime_advances_preserve_retained_raster_bins.
+- Runtime advance projection now falls back to host natural glyph placement when projected glyph origins do not share the same RetainedGlyphPlacement bin as host glyph origins.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs adds runtime_positioned_glyphs_rejects_cumulative_subpixel_phase_drift.
+
+Validation performed in this slice:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs: passed.
+- git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs: passed with CRLF working-tree warning only.
+- Visual proof: docs/tests/runtime/text/runtime_text_editor_retained_cumulative_phase_guard_validation_20260704.png
+- Visual proof SHA256: 0FC3DD29C1571B784002D44569A2B4226ED4D6BC5F46AAB657F7B8650CC2228E
+
+Deferred:
+- Focused Cargo was not started because external cargo/rustc lanes were already active in the workspace.
+- Active processes observed after this slice included cargo PIDs 8616, 14040, 24136, 39252 and rustc PIDs 2864, 28380.
+
+Target placement:
+- Proof files are intentionally under docs/tests/runtime/text, not target.
+- Same-name scan across repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets: 0 matches.

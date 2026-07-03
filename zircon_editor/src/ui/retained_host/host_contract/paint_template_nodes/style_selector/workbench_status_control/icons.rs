@@ -1,10 +1,7 @@
 use super::super::resolved_state_for_node;
 use super::model::WorkbenchStatusIconButtonStyle;
-use super::palette::{
-    WORKBENCH_STATUS_FLAT_TRANSPARENT, WORKBENCH_STATUS_ICON_COLOR, WORKBENCH_STATUS_ICON_MUTED,
-};
+use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_status_icon_button_style(
@@ -12,37 +9,44 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 ) -> WorkbenchStatusIconButtonStyle {
     let state =
         resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::IconButton);
+    let palette = workbench_status_control_palette();
 
     WorkbenchStatusIconButtonStyle {
-        background: status_icon_button_background(state),
-        border: status_icon_button_border(state),
-        glyph: status_icon_glyph_color(state),
+        background: status_icon_button_background(state, &palette),
+        border: status_icon_button_border(state, &palette),
+        glyph: status_icon_glyph_color(state, &palette),
         state,
     }
 }
 
-fn status_icon_button_background(state: UiPainterResolvedState) -> [u8; 4] {
+fn status_icon_button_background(
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            PALETTE.surface_disabled
+            palette.surface_disabled
         }
         UiPainterResolvedState::Selected | UiPainterResolvedState::Checked => {
-            PALETTE.surface_selected
+            palette.surface_selected
         }
-        UiPainterResolvedState::Pressed => PALETTE.surface_pressed,
+        UiPainterResolvedState::Pressed => palette.surface_pressed,
         UiPainterResolvedState::Focused
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
-        | UiPainterResolvedState::Hovered => PALETTE.surface_hover,
-        UiPainterResolvedState::Normal => WORKBENCH_STATUS_FLAT_TRANSPARENT,
+        | UiPainterResolvedState::Hovered => palette.surface_hover,
+        UiPainterResolvedState::Normal => palette.flat_transparent,
     }
 }
 
-fn status_icon_button_border(state: UiPainterResolvedState) -> [u8; 4] {
+fn status_icon_button_border(
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            PALETTE.border_disabled
+            palette.border_disabled
         }
         UiPainterResolvedState::Selected
         | UiPainterResolvedState::Checked
@@ -50,24 +54,27 @@ fn status_icon_button_border(state: UiPainterResolvedState) -> [u8; 4] {
         | UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => PALETTE.focus_ring,
+        | UiPainterResolvedState::DropHovered => palette.focus_ring,
         UiPainterResolvedState::Hovered | UiPainterResolvedState::Normal => {
-            WORKBENCH_STATUS_FLAT_TRANSPARENT
+            palette.flat_transparent
         }
     }
 }
 
-fn status_icon_glyph_color(state: UiPainterResolvedState) -> [u8; 4] {
+fn status_icon_glyph_color(
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
     match state {
-        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => PALETTE.text_disabled,
+        UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => palette.text_disabled,
         UiPainterResolvedState::Selected
         | UiPainterResolvedState::Checked
         | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => PALETTE.focus_ring,
-        UiPainterResolvedState::Hovered => WORKBENCH_STATUS_ICON_COLOR,
-        UiPainterResolvedState::Normal => WORKBENCH_STATUS_ICON_MUTED,
+        | UiPainterResolvedState::DropHovered => palette.focus_ring,
+        UiPainterResolvedState::Hovered => palette.icon_color,
+        UiPainterResolvedState::Normal => palette.icon_muted,
     }
 }

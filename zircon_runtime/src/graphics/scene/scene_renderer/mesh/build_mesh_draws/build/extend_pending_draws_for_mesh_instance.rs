@@ -4,36 +4,48 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    DisplayMode, RenderImageUsage, RenderMeshLodSelection, RenderMeshSnapshot,
-    RenderMeshStaticState,
+    render_mesh_stable_instance_key, DisplayMode, RenderMaterialPropertyUniformPayload,
+    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId};
+use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteUniform;
 
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    default_pipeline_key, GpuMeshResource, MaterialRuntime, ResourceStreamer,
+    default_pipeline_key, GpuMeshResource, ResourceStreamer,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
-use super::super::super::mesh_draw::{MaterialTextureBinding, MaterialTextureSet};
 use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
+use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
     prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
     SkinnedMeshPreparedPrimitive,
 };
 
+mod material_inputs;
+
+use self::material_inputs::{
+    material_cast_shadows, material_disabled_passes, material_receive_shadows,
+    material_taa_reactive_mask_strength, material_texture_set, material_tinted,
+};
+
 struct DynamicMeshPrimitive {
     primitive: ModelPrimitiveAsset,
+    cpu_morphed: bool,
+    morph_payload: Option<Arc<super::pending_mesh_draw::PendingMorphPayload>>,
+    source_morph_weights: Option<Vec<f32>>,
     skinned: bool,
     skinned_palette_signature: Option<u64>,
     skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
     skinned_gpu_source: Option<PendingSkinnedGpuSource>,
+    gpu_morphed_source: Option<Arc<GpuMeshResource>>,
 }
 
 pub(super) fn extend_pending_draws_for_mesh_instance(
@@ -41,6 +53,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     build_context: &MeshDrawBuildContext,
+    gpu_scene: &GpuScene,
     mesh_instance: &RenderMeshSnapshot,
     command_sort_input: MeshCommandSortInput,
 ) {
@@ -60,6 +73,15 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     let model_matrix =
         render_mat4_or(mesh_instance.transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d();
     let material_revision = streamer.material_revision(&mesh_instance.material.id());
+    let material_uniform_override_payload = frame
+        .extract
+        .geometry
+        .material_property_overrides
+        .get(&mesh_instance.node_id)
+        .and_then(|overrides| {
+            streamer
+                .material_uniform_payload_with_overrides(&mesh_instance.material.id(), overrides)
+        });
     let mut draw_ordinal = 0_u32;
     // Direct mesh snapshots bypass the model-primitive loop, so mirror the same CPU skinning path here.
     if let Some(mesh_handle) = mesh_instance.mesh.as_ref() {
@@ -74,6 +96,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             if let Some(dynamic_primitive) = dynamic_direct_mesh_primitive(
                 streamer,
                 frame,
+                gpu_scene,
                 mesh_instance,
                 &mesh_id,
                 mesh.clone(),
@@ -87,17 +110,22 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     mesh_instance.transform_revision,
                     static_state,
                     mesh_instance.material,
+                    material_uniform_override_payload.clone(),
                     mesh_instance.mobility,
                     command_sort_input,
                     mesh.index_count,
                     &dynamic_primitive.primitive,
                     instance_tint,
                     model_matrix,
+                    dynamic_primitive.cpu_morphed,
+                    dynamic_primitive.morph_payload,
+                    dynamic_primitive.source_morph_weights.clone(),
                     dynamic_primitive.skinned,
                     dynamic_primitive.skinned_palette_signature,
                     dynamic_primitive.skinned_joint_palette,
                     previous_skinned_joint_palette,
                     dynamic_primitive.skinned_gpu_source,
+                    dynamic_primitive.gpu_morphed_source,
                     mesh_instance.mesh_lod,
                 );
             } else {
@@ -109,11 +137,13 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     mesh_instance.transform_revision,
                     static_state,
                     mesh_instance.material,
+                    material_uniform_override_payload.clone(),
                     mesh_instance.mobility,
                     command_sort_input,
                     mesh,
                     instance_tint,
                     model_matrix,
+                    direct_mesh_source_morph_weights(streamer, &mesh_id, mesh_instance),
                     mesh_instance.mesh_lod,
                 );
             }
@@ -169,12 +199,16 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 mesh_instance.transform_revision,
                 static_state,
                 mesh_instance.material,
+                material_uniform_override_payload.clone(),
                 mesh_instance.mobility,
                 command_sort_input,
                 mesh.index_count,
                 &skinned_primitive.primitive,
                 instance_tint,
                 model_matrix,
+                false,
+                None,
+                None,
                 true,
                 skinned_palette_signature,
                 skinned_primitive.joint_palette_uniform,
@@ -183,6 +217,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                     skinned_primitive.joint_palette_uniform.as_ref(),
                 )
                 .then_some(PendingSkinnedGpuSource::Prepared(mesh.clone())),
+                None,
                 mesh_instance.mesh_lod,
             );
             continue;
@@ -208,15 +243,20 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
                 static_state,
                 material_textures: material_texture_set(streamer, material),
                 material_uniform: streamer.material_uniform(&mesh_instance.material.id()),
+                material_uniform_override_payload: material_uniform_override_payload.clone(),
                 standard_material_uniform: streamer
                     .standard_material_uniform(&mesh_instance.material.id()),
                 pipeline_key: streamer
                     .material(&mesh_instance.material.id())
                     .map(|material| material.pipeline_key.clone())
                     .unwrap_or_else(default_pipeline_key),
+                morph_payload: None,
+                source_morph_weights: None,
+                morph_payload_slot: None,
                 mesh_lod: mesh_instance.mesh_lod,
                 cast_shadows: material_cast_shadows(streamer, mesh_instance.material),
                 receive_shadows: material_receive_shadows(streamer, mesh_instance.material),
+                disabled_passes: material_disabled_passes(material),
                 taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
                 model_matrix,
                 draw_tint,
@@ -302,136 +342,74 @@ fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {
     current
 }
 
-fn material_tinted(
-    streamer: &ResourceStreamer,
-    material: ResourceHandle<MaterialMarker>,
-    instance_tint: Vec4,
-) -> Vec4 {
-    let material_tint = streamer
-        .material(&material.id())
-        .map(|material| material.base_color)
-        .unwrap_or(Vec4::ONE);
-    instance_tint * material_tint
-}
-
-fn material_receive_shadows(
-    streamer: &ResourceStreamer,
-    material: ResourceHandle<MaterialMarker>,
-) -> bool {
-    streamer
-        .material(&material.id())
-        .map(|material| material.receive_shadows)
-        .unwrap_or(true)
-}
-
-fn material_cast_shadows(
-    streamer: &ResourceStreamer,
-    material: ResourceHandle<MaterialMarker>,
-) -> bool {
-    streamer
-        .material(&material.id())
-        .map(|material| material.cast_shadows)
-        .unwrap_or(true)
-}
-
-fn material_taa_reactive_mask_strength(material: Option<&MaterialRuntime>) -> f32 {
-    material
-        .map(|material| material.taa_reactive_mask_strength)
-        .filter(|strength| strength.is_finite())
-        .unwrap_or_default()
-        .clamp(0.0, 1.0)
-}
-
-fn material_texture_set(
-    streamer: &ResourceStreamer,
-    material: Option<&MaterialRuntime>,
-) -> MaterialTextureSet {
-    MaterialTextureSet::new(
-        material_texture_binding(
-            streamer,
-            material.and_then(|material| material.base_color_texture),
-        ),
-        material_normal_texture_binding(
-            streamer,
-            material.and_then(|material| material.normal_texture),
-        ),
-        material_texture_binding(
-            streamer,
-            material.and_then(|material| material.metallic_roughness_texture),
-        ),
-        material_texture_binding(
-            streamer,
-            material.and_then(|material| material.occlusion_texture),
-        ),
-        material_texture_binding(
-            streamer,
-            material.and_then(|material| material.emissive_texture),
-        ),
-    )
-}
-
-fn material_texture_binding(
-    streamer: &ResourceStreamer,
-    texture_id: Option<ResourceId>,
-) -> MaterialTextureBinding {
-    material_output_target_texture_binding(streamer, texture_id)
-        .unwrap_or_else(|| MaterialTextureBinding::texture(streamer.texture(texture_id)))
-}
-
-fn material_normal_texture_binding(
-    streamer: &ResourceStreamer,
-    texture_id: Option<ResourceId>,
-) -> MaterialTextureBinding {
-    material_output_target_texture_binding(streamer, texture_id)
-        .unwrap_or_else(|| MaterialTextureBinding::texture(streamer.normal_texture(texture_id)))
-}
-
-fn material_output_target_texture_binding(
-    streamer: &ResourceStreamer,
-    texture_id: Option<ResourceId>,
-) -> Option<MaterialTextureBinding> {
-    let output_target = streamer.output_target_texture_resource(&texture_id?)?;
-    output_target
-        .descriptor()
-        .usage
-        .contains(&RenderImageUsage::Sampled)
-        .then(|| MaterialTextureBinding::output_target(output_target))
-}
-
 fn dynamic_direct_mesh_primitive(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
+    gpu_scene: &GpuScene,
     mesh_instance: &RenderMeshSnapshot,
     mesh_id: &ResourceId,
     prepared_mesh: Arc<GpuMeshResource>,
 ) -> Option<DynamicMeshPrimitive> {
-    skinned_direct_mesh_primitive(streamer, frame, mesh_instance, mesh_id)
-        .map(
-            |(prepared, skinned_palette_signature)| DynamicMeshPrimitive {
-                primitive: prepared.primitive,
-                skinned: true,
-                skinned_palette_signature: Some(skinned_palette_signature),
-                skinned_joint_palette: prepared.joint_palette_uniform,
-                skinned_gpu_source: direct_skinned_gpu_source(
-                    prepared.joint_palette_uniform.as_ref(),
-                    *mesh_id,
-                    prepared_mesh,
-                    prepared.shader_skinning_source_primitive,
-                    &mesh_instance.morph_weights,
-                ),
-            },
-        )
-        .or_else(|| {
-            morphed_direct_mesh_primitive(streamer, mesh_instance, mesh_id).map(|primitive| {
-                DynamicMeshPrimitive {
-                    primitive,
-                    skinned: false,
-                    skinned_palette_signature: None,
-                    skinned_joint_palette: None,
-                    skinned_gpu_source: None,
-                }
-            })
+    let previous_morph_weights =
+        gpu_scene.previous_morph_weights(render_mesh_stable_instance_key(mesh_instance.node_id, 0));
+    let source_morph_weights = direct_mesh_source_morph_weights(streamer, mesh_id, mesh_instance);
+    if let Some((prepared, skinned_palette_signature)) =
+        skinned_direct_mesh_primitive(streamer, frame, mesh_instance, mesh_id)
+    {
+        let morph_payload =
+            direct_mesh_morph_payload(streamer, mesh_id, mesh_instance, previous_morph_weights);
+        let morph_payload_available = morph_payload.is_some();
+        return Some(DynamicMeshPrimitive {
+            primitive: prepared.primitive,
+            cpu_morphed: has_active_morph_weights(&mesh_instance.morph_weights),
+            morph_payload,
+            source_morph_weights,
+            skinned: true,
+            skinned_palette_signature: Some(skinned_palette_signature),
+            skinned_joint_palette: prepared.joint_palette_uniform,
+            skinned_gpu_source: direct_skinned_gpu_source(
+                prepared.joint_palette_uniform.as_ref(),
+                *mesh_id,
+                prepared_mesh.clone(),
+                prepared.shader_skinning_source_primitive,
+                morph_payload_available,
+                &mesh_instance.morph_weights,
+            ),
+            gpu_morphed_source: None,
+        });
+    }
+
+    let morph_payload =
+        direct_mesh_morph_payload(streamer, mesh_id, mesh_instance, previous_morph_weights);
+    if let Some(primitive) = morphed_direct_mesh_primitive(streamer, mesh_instance, mesh_id) {
+        let gpu_morphed_source = morph_payload.as_ref().map(|_| prepared_mesh.clone());
+        return Some(DynamicMeshPrimitive {
+            primitive,
+            cpu_morphed: true,
+            morph_payload,
+            source_morph_weights,
+            skinned: false,
+            skinned_palette_signature: None,
+            skinned_joint_palette: None,
+            skinned_gpu_source: None,
+            gpu_morphed_source,
+        });
+    }
+
+    morph_payload.and_then(|payload| {
+        let primitive = streamer.mesh_asset(mesh_id)?.to_model_primitive().ok()?;
+        Some(DynamicMeshPrimitive {
+            primitive,
+            cpu_morphed: false,
+            morph_payload: Some(payload),
+            source_morph_weights,
+            skinned: false,
+            skinned_palette_signature: None,
+            skinned_joint_palette: None,
+            skinned_gpu_source: None,
+            gpu_morphed_source: Some(prepared_mesh),
         })
+    })
 }
 
 fn skinned_direct_mesh_primitive(
@@ -477,6 +455,36 @@ fn morphed_mesh_asset_primitive(
     mesh_asset.to_morphed_model_primitive(morph_weights).ok()
 }
 
+fn direct_mesh_morph_payload(
+    streamer: &ResourceStreamer,
+    mesh_id: &ResourceId,
+    mesh_instance: &RenderMeshSnapshot,
+    previous_morph_weights: Option<&[f32]>,
+) -> Option<Arc<super::pending_mesh_draw::PendingMorphPayload>> {
+    let mesh_asset = streamer.mesh_asset(mesh_id)?;
+    morph_payload_from_mesh_asset(
+        mesh_asset.as_ref(),
+        &mesh_instance.morph_weights,
+        previous_morph_weights,
+    )
+}
+
+fn direct_mesh_source_morph_weights(
+    streamer: &ResourceStreamer,
+    mesh_id: &ResourceId,
+    mesh_instance: &RenderMeshSnapshot,
+) -> Option<Vec<f32>> {
+    let mesh_asset = streamer.mesh_asset(mesh_id)?;
+    if mesh_asset.morph_targets.is_empty() {
+        return None;
+    }
+    source_morph_weights(&mesh_instance.morph_weights)
+}
+
+fn source_morph_weights(weights: &[f32]) -> Option<Vec<f32>> {
+    (!weights.is_empty()).then(|| weights.to_vec())
+}
+
 fn has_active_morph_weights(morph_weights: &[f32]) -> bool {
     morph_weights
         .iter()
@@ -510,10 +518,11 @@ fn direct_skinned_gpu_source(
     mesh_id: ResourceId,
     prepared_mesh: Arc<GpuMeshResource>,
     shader_skinning_source_primitive: ModelPrimitiveAsset,
+    morph_payload_available: bool,
     morph_weights: &[f32],
 ) -> Option<PendingSkinnedGpuSource> {
     skinned_gpu_source_candidate_available(joint_palette_uniform).then(|| {
-        if has_active_morph_weights(morph_weights) {
+        if has_active_morph_weights(morph_weights) && !morph_payload_available {
             PendingSkinnedGpuSource::CpuMorphed {
                 primitive: shader_skinning_source_primitive,
                 morph_shape_signature: morph_shape_signature(mesh_id, morph_weights),
@@ -532,17 +541,22 @@ fn push_dynamic_mesh_draws(
     transform_revision: u64,
     static_state: RenderMeshStaticState,
     material_id: ResourceHandle<MaterialMarker>,
+    material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     mobility: Mobility,
     command_sort_input: MeshCommandSortInput,
     index_count: u32,
     dynamic_primitive: &ModelPrimitiveAsset,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
+    cpu_morphed: bool,
+    morph_payload: Option<Arc<super::pending_mesh_draw::PendingMorphPayload>>,
+    source_morph_weights: Option<Vec<f32>>,
     skinned: bool,
     skinned_palette_signature: Option<u64>,
     skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
     previous_skinned_joint_palette: Option<SkinnedMeshJointPaletteUniform>,
     skinned_gpu_source: Option<PendingSkinnedGpuSource>,
+    gpu_morphed_source: Option<Arc<GpuMeshResource>>,
     mesh_lod: Option<RenderMeshLodSelection>,
 ) {
     let material = streamer.material(&material_id.id());
@@ -557,8 +571,15 @@ fn push_dynamic_mesh_draws(
         material_tinted(streamer, material_id, instance_tint),
     ) {
         let source_draw_ordinal = next_draw_ordinal(draw_ordinal);
+        let mesh = if let Some(gpu_morphed_source) = gpu_morphed_source.clone() {
+            PendingMeshGeometry::GpuMorphed(gpu_morphed_source)
+        } else if cpu_morphed {
+            PendingMeshGeometry::CpuMorphed(dynamic_primitive.clone())
+        } else {
+            PendingMeshGeometry::Dynamic(dynamic_primitive.clone())
+        };
         pending_draws.push(PendingMeshDraw {
-            mesh: PendingMeshGeometry::Dynamic(dynamic_primitive.clone()),
+            mesh,
             source_entity,
             source_draw_ordinal,
             transform_revision,
@@ -566,8 +587,12 @@ fn push_dynamic_mesh_draws(
             static_state,
             material_textures: material_textures.clone(),
             material_uniform: material_uniform.clone(),
+            material_uniform_override_payload: material_uniform_override_payload.clone(),
             standard_material_uniform: standard_material_uniform.clone(),
             pipeline_key: pipeline_key.clone(),
+            morph_payload: morph_payload.clone(),
+            source_morph_weights: source_morph_weights.clone(),
+            morph_payload_slot: None,
             mesh_lod,
             cast_shadows: material
                 .map(|material| material.cast_shadows)
@@ -575,6 +600,7 @@ fn push_dynamic_mesh_draws(
             receive_shadows: material
                 .map(|material| material.receive_shadows)
                 .unwrap_or(true),
+            disabled_passes: material_disabled_passes(material),
             taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
             model_matrix,
             draw_tint,
@@ -606,11 +632,13 @@ fn push_prepared_mesh_draws(
     transform_revision: u64,
     static_state: RenderMeshStaticState,
     material_id: ResourceHandle<MaterialMarker>,
+    material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     mobility: Mobility,
     command_sort_input: MeshCommandSortInput,
     mesh: &Arc<GpuMeshResource>,
     instance_tint: Vec4,
     model_matrix: [[f32; 4]; 4],
+    source_morph_weights: Option<Vec<f32>>,
     mesh_lod: Option<RenderMeshLodSelection>,
 ) {
     let material = streamer.material(&material_id.id());
@@ -634,8 +662,12 @@ fn push_prepared_mesh_draws(
             static_state,
             material_textures: material_textures.clone(),
             material_uniform: material_uniform.clone(),
+            material_uniform_override_payload: material_uniform_override_payload.clone(),
             standard_material_uniform: standard_material_uniform.clone(),
             pipeline_key: pipeline_key.clone(),
+            morph_payload: None,
+            source_morph_weights: source_morph_weights.clone(),
+            morph_payload_slot: None,
             mesh_lod,
             cast_shadows: material
                 .map(|material| material.cast_shadows)
@@ -643,6 +675,7 @@ fn push_prepared_mesh_draws(
             receive_shadows: material
                 .map(|material| material.receive_shadows)
                 .unwrap_or(true),
+            disabled_passes: material_disabled_passes(material),
             taa_reactive_mask_strength: material_taa_reactive_mask_strength(material),
             model_matrix,
             draw_tint,

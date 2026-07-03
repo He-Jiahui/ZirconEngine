@@ -1,0 +1,44 @@
+runtime_text_atlas_render_batch_tests_owner_split_validation_20260703
+date: 2026-07-03
+scope: structure-only split of atlas render_batch private tests into folder-backed owner
+
+files:
+  zircon_runtime/src/graphics/text/atlas/render_batch.rs
+  zircon_runtime/src/graphics/text/atlas/render_batch/tests.rs
+
+rustfmt:
+  command: rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/render_batch.rs zircon_runtime/src/graphics/text/atlas/render_batch/tests.rs
+  exit_code: 0
+  output: <empty>
+
+structure_count:
+
+File                                                         Lines Tests TestHooks
+----                                                         ----- ----- ---------
+zircon_runtime\src\graphics\text\atlas\render_batch.rs          65     0         1
+zircon_runtime\src\graphics\text\atlas\render_batch\tests.rs   182     4         0
+
+manual_trailing_whitespace_scan:
+PASS no trailing whitespace in untracked owner paths
+
+cargo_status:
+  focused Cargo deferred because external cargo/rustc lanes were active; no Cargo green is claimed for this slice.
+
+ProcessName    Id    CPU StartTime
+-----------    --    --- ---------
+cargo       15628   0.09 2026/7/3 周五 22:21:29
+cargo       18928  11.78 2026/7/3 周五 22:26:43
+cargo       20036  10.70 2026/7/3 周五 22:21:29
+cargo       28064   0.05 2026/7/3 周五 22:26:43
+cargo       38500  13.42 2026/7/3 周五 22:26:30
+cargo       40640   0.05 2026/7/3 周五 22:26:30
+rustc       38420 140.05 2026/7/3 周五 22:40:17
+rustc       38704   0.72 2026/7/3 周五 22:42:47
+rustc       40060 470.28 2026/7/3 周五 22:34:17
+
+proof_artifact_target_scan:
+PASS same-name proof artifacts not found under target roots
+
+preview_image:
+  path: docs/tests/runtime/text/runtime_text_atlas_render_batch_tests_owner_split_preview_20260703.png
+  sha256: BDA2265E3DCCB930EF5DB492E247E777DE29D0A1CA51D5869C8894561CBFA1AE

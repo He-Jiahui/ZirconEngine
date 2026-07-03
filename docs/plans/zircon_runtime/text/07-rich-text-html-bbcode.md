@@ -25,7 +25,7 @@ status: planned
 
 ## 1. 目标
 
-1. **BBCode**(对齐 godot `RichTextLabel`):`[b][i][u][s][color][bgcolor][size][font][url][img][center][right][code][table]...`;可扩展自定义标签。
+1. **BBCode**(对齐 godot `RichTextLabel`):`[b][i][u][s][color][bgcolor][size][font][url][img][center][right][code][table]...`;可扩展自定义标签。(2026-07-02 评审收口)`[table]`(含 `[cell]`)明确**降级 V2**:表格布局需要块级嵌套布局能力,超出 V1 内联 run 模型;V1 解析器遇到 `[table]` 按未知标签处理(标签丢弃、内文保留)。
 2. **HTML 受控子集**:`<b><i><u><s><span style><font><br><a href><img>`;**白名单标签 + 属性**(安全,不引入完整 HTML/CSS 解析器)。
 3. **装饰器架构**(对齐 UE `ITextDecorator`/`FRichTextLayoutMarshaller`):标签 → 装饰器 → run 样式覆盖 / 内联 widget;可注册自定义装饰器。
 4. **样式 run 合并**:嵌套标签解析为扁平 `StyledRun` 序列(每 run 一组样式),交 `02` 按 run 整形;run 边界尊重 cluster。
@@ -115,23 +115,51 @@ pub struct StyledRun {
     pub link: Option<LinkRef>,        // href + 命中
 }
 pub struct StyleOverride {            // None 字段表"继承"
-    pub bold: Option<bool>, pub italic: Option<bool>, pub underline: Option<bool>,
+    // (2026-07-02 评审收口)bold: Option<bool> 改 weight: Option<u16>——对齐已落地的 font_weight 1..1000 契约;
+    // [b]/<b> 标签映射 weight=Some(700)
+    pub weight: Option<u16>, pub italic: Option<bool>, pub underline: Option<bool>,
     pub strike: Option<bool>, pub color: Option<Vec4>, pub bg_color: Option<Vec4>,
     pub font_size: Option<f32>, pub family: Option<FontFamilyName>,
+    // (2026-07-02 评审收口)新增可选字段:
+    pub letter_spacing: Option<f32>,          // 字距(逻辑像素)
+    pub features: Option<Vec<FontFeature>>,   // OpenType feature 覆盖(进 02 整形键)
+}
+// (2026-07-02 评审收口)块级(段落级)标签落地模型:[center]/[right] 等不是 run 样式,
+// 是段落属性覆盖,单独出通道交 03 的 LayoutConstraints:
+pub struct ParagraphOverride {
+    pub align: Option<TextAlign>,     // [center]→Center,[right]→Right
+    pub indent: Option<f32>,          // 首行缩进覆盖
+    // 后续块级属性(line_height 覆盖等)在此扩展
 }
 pub enum InlineObjectRef {
     Image { texture: ResourceId, size: Vec2, baseline: InlineBaseline },
     Icon  { glyph: char, font: FontFamilyName },
     Widget { id: u64, size: Vec2 },   // 内联 widget 占位(UE SlateWidgetRun)
 }
+// (2026-07-02 评审收口)内联对象基线对齐模式:
+pub enum InlineBaseline {
+    Baseline, // 对象底边坐 alphabetic baseline(默认,图标/表情)
+    Center,   // 对象垂直中心对齐行 x-height 中心
+    Top,      // 对象顶边对齐行 ascent
+    Bottom,   // 对象底边对齐行 descent
+}
 pub trait TextDecorator {
     fn tag(&self) -> &str;
     fn apply(&self, attrs: &TagAttrs, ctx: &mut DecorateCtx); // 改 StyleOverride 或产 InlineObject
 }
-pub struct RichParseResult { pub text: String, pub runs: Vec<StyledRun> } // text=剥标记纯文本
+pub struct RichParseResult {
+    pub text: String,                 // 剥标记纯文本
+    pub runs: Vec<StyledRun>,
+    // (2026-07-02 评审收口)段落级覆盖:byte_range 为剥标记文本内的段落区间
+    pub paragraphs: Vec<((u32, u32), ParagraphOverride)>,
+}
 ```
 
 解析 → run 合并:嵌套标签维护样式栈,每遇文本片段产一个 `StyledRun`(当前栈样式合并);相邻同样式 run 合并;run 边界后续由 `02` 对齐 cluster(标记不可切簇)。
+
+(2026-07-02 评审收口)**簇内样式边界裁决**:标记边界落在组合簇(grapheme cluster)内部时,样式边界**向簇起点对齐**——整簇取**簇首字符所在 run 的样式**,后续字符的样式覆盖被吸收丢弃(不拆簇、不产生半簇 run);`text_rich_run_boundaries_respect_clusters` 的期望按此标定(如 `a[b]\u{0301}[/b]` → `á` 整簇非 bold)。
+
+(2026-07-02 评审收口)**内联对象行度量规则**:`InlineObject` 按其 `InlineBaseline` 模式换算出等效 ascent/descent(如 `Baseline` 模式下 ascent=对象高、descent=0),该 ascent **参与 03 行 ascent 的 max 计算**(与混 face 行度量同一 max 规则,见 03 §6"混 face 行度量"/D7);对应布局槽位为 03 `LayoutItem::Inline`(03 已预留,本计划 RT-M3 落地时回填其解析来源)。
 
 ### 安全(HTML 子集)
 
@@ -152,7 +180,7 @@ pub struct RichParseResult { pub text: String, pub runs: Vec<StyledRun> } // tex
 |------|------|
 | `text_rich_bbcode_nested_styles_flatten_to_runs` | `[b]a[i]b[/i][/b]` → run a(bold)+ run b(bold+italic) |
 | `text_rich_color_size_font_overrides` | `[color=#f00][size=24]` 覆盖正确,pop 恢复 |
-| `text_rich_run_boundaries_respect_clusters` | 标记不切组合簇;run 边界落 cluster 边界 |
+| `text_rich_run_boundaries_respect_clusters` | 标记不切组合簇;run 边界落 cluster 边界。(2026-07-02 评审收口)簇内边界向簇起点对齐,整簇取簇首字符 run 样式,期望据此标定 |
 | `text_rich_html_whitelist_drops_unknown_tags` | `<script>`/`<div onclick>` 丢弃,内文保留 |
 | `text_rich_html_entities_decode` | `&amp;`/`&#x4E2D;` 解码正确 |
 | `text_rich_html_br_forces_break` | `<br>` 产 mandatory break |

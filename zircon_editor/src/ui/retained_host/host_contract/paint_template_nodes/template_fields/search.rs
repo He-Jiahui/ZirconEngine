@@ -1,17 +1,17 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_icon_assets::push_icon_asset_pixels;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
+#[cfg(test)]
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SEARCH_ICON_SIZE: f32 =
-    METRICS.font_large;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SEARCH_TEXT_GAP: f32 =
-    METRICS.gap_s;
+    16.0;
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SEARCH_FIELD_MAX_HEIGHT: f32 =
     METRICS.row_height + (METRICS.border_width * 4.0);
 
-const SEARCH_ICON_RING_SIZE: f32 = METRICS.gap_m;
-const SEARCH_ICON_STROKE: f32 = METRICS.border_width;
-const SEARCH_HANDLE_SEGMENT_SIZE: f32 = METRICS.border_width * 2.0;
+const SEARCH_FIELD_ICON: &str = "search";
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_search_field(
     node: &TemplatePaneNodeData,
@@ -28,10 +28,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_sear
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_text_left(
     node: &TemplatePaneNodeData,
 ) -> f32 {
+    let metrics = current_host_metrics();
     if is_search_field(node) {
-        METRICS.input_pad[0] + SEARCH_ICON_SIZE + SEARCH_TEXT_GAP
+        metrics.input_pad[0] + SEARCH_ICON_SIZE + metrics.gap_s
     } else {
-        METRICS.input_pad[0]
+        metrics.input_pad[0]
     }
 }
 
@@ -39,11 +40,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
     node: &TemplatePaneNodeData,
     rect: FrameRect,
 ) -> FrameRect {
-    if !is_search_field(node) || rect.height <= SEARCH_FIELD_MAX_HEIGHT {
+    let metrics = current_host_metrics();
+    let max_height = metrics.row_height + (metrics.border_width * 4.0);
+    if !is_search_field(node) || rect.height <= max_height {
         return rect;
     }
 
-    let height = SEARCH_FIELD_MAX_HEIGHT.round().max(1.0);
+    let height = max_height.round().max(1.0);
     FrameRect {
         y: (rect.y + ((rect.height - height) * 0.5)).round(),
         height,
@@ -71,19 +74,33 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         return;
     }
 
-    let ring = search_icon_ring_rect(rect);
+    let icon = search_icon_rect(rect);
+    if push_icon_asset_pixels(
+        commands,
+        SEARCH_FIELD_ICON,
+        &icon,
+        clip,
+        order,
+        Some(color),
+        opacity,
+    ) {
+        return;
+    }
+
+    let metrics = current_host_metrics();
+    let ring = search_icon_ring_rect(&icon, metrics.gap_m);
     commands.push(HostPaintCommand::quad(
         ring.clone(),
         Some(clip.clone()),
         order,
         None,
         Some(color),
-        SEARCH_ICON_STROKE,
-        SEARCH_ICON_RING_SIZE * 0.5,
+        metrics.border_width,
+        metrics.gap_m * 0.5,
         opacity,
     ));
 
-    for segment in search_handle_segments(&ring) {
+    for segment in search_handle_segments(&ring, metrics.border_width) {
         commands.push(HostPaintCommand::quad(
             segment,
             Some(clip.clone()),
@@ -101,30 +118,46 @@ fn search_identity_text(value: &str) -> bool {
     value.to_ascii_lowercase().contains("search")
 }
 
-fn search_icon_ring_rect(rect: &FrameRect) -> FrameRect {
-    let icon_left = (rect.x + METRICS.input_pad[0]).round();
+fn search_icon_rect(rect: &FrameRect) -> FrameRect {
+    let metrics = current_host_metrics();
+    let icon_left = (rect.x + metrics.input_pad[0]).round();
     let icon_top = (rect.y + (rect.height - SEARCH_ICON_SIZE).max(0.0) * 0.5).round();
     FrameRect {
-        x: icon_left + METRICS.border_width,
-        y: icon_top + METRICS.border_width,
-        width: SEARCH_ICON_RING_SIZE,
-        height: SEARCH_ICON_RING_SIZE,
+        x: icon_left,
+        y: icon_top,
+        width: SEARCH_ICON_SIZE,
+        height: SEARCH_ICON_SIZE,
     }
 }
 
-fn search_handle_segments(ring: &FrameRect) -> [FrameRect; 3] {
+fn search_icon_ring_rect(icon: &FrameRect, ring_size: f32) -> FrameRect {
+    FrameRect {
+        x: icon.x + ((SEARCH_ICON_SIZE - ring_size) * 0.5).round(),
+        y: icon.y + ((SEARCH_ICON_SIZE - ring_size) * 0.5).round(),
+        width: ring_size,
+        height: ring_size,
+    }
+}
+
+fn search_handle_segments(ring: &FrameRect, border_width: f32) -> [FrameRect; 3] {
+    let segment_size = border_width * 2.0;
     [
-        search_handle_segment(ring, 0.0),
-        search_handle_segment(ring, SEARCH_HANDLE_SEGMENT_SIZE),
-        search_handle_segment(ring, SEARCH_HANDLE_SEGMENT_SIZE * 2.0),
+        search_handle_segment(ring, border_width, segment_size, 0.0),
+        search_handle_segment(ring, border_width, segment_size, segment_size),
+        search_handle_segment(ring, border_width, segment_size, segment_size * 2.0),
     ]
 }
 
-fn search_handle_segment(ring: &FrameRect, offset: f32) -> FrameRect {
+fn search_handle_segment(
+    ring: &FrameRect,
+    border_width: f32,
+    segment_size: f32,
+    offset: f32,
+) -> FrameRect {
     FrameRect {
-        x: ring.x + ring.width - METRICS.border_width + offset,
-        y: ring.y + ring.height - METRICS.border_width + offset,
-        width: SEARCH_HANDLE_SEGMENT_SIZE,
-        height: SEARCH_HANDLE_SEGMENT_SIZE,
+        x: ring.x + ring.width - border_width + offset,
+        y: ring.y + ring.height - border_width + offset,
+        width: segment_size,
+        height: segment_size,
     }
 }

@@ -24,6 +24,10 @@ path = "src/bin/zircon_export_pack/main.rs"
 name = "zircon_shader_prewarm"
 path = "src/bin/zircon_shader_prewarm/main.rs"
 
+[[bin]]
+name = "zircon_shader_ide_env"
+path = "src/bin/zircon_shader_ide_env/main.rs"
+
 [features]
 default = ["target-client"]
 runtime-ui-integration-tests = []
@@ -98,6 +102,7 @@ rayon = "1.11.0"
 ron = "0.12.1"
 serde.workspace = true
 serde_json = "1.0.149"
+swash = "0.2.7"
 taffy = { version = "0.10", default-features = false, features = ["std", "block_layout", "flexbox", "grid", "content_size", "taffy_tree"] }
 tobj.workspace = true
 thiserror.workspace = true

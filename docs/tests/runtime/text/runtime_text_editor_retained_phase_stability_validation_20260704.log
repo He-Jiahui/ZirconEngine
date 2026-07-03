@@ -1,0 +1,26 @@
+runtime_text_editor_retained_phase_stability_rustfmt_static_visual_cargo_deferred
+Date: 2026-07-04 Asia/Shanghai
+Scope: editor retained-host small label horizontal spacing from user crop (`editor base.zui`, `folder-open.svg`).
+
+Problem addressed:
+- DengXian selection and 8-bin fallback raster precision were in place, but a runtime shaped origin could still differ by less than the advance tolerance while crossing the final retained 1/8px raster placement bin.
+- That made compact editor labels look like individual glyphs shifted left or right even though total run width still matched.
+
+Implementation evidence:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs centralizes retained glyph phase binning at 8 bins.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs consumes RetainedGlyphPlacement from the shared placement owner.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs now accepts runtime/shaped positions only when host and shaped origins resolve to the same retained raster bin.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs adds runtime_positioned_glyphs_rejects_shaped_positions_that_shift_raster_phase.
+
+Checks run:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs: passed.
+
+Deferred checks:
+- Focused Cargo was not started because external cargo/rustc lanes were active in the workspace.
+
+Visual artifact:
+- docs/tests/runtime/text/runtime_text_editor_retained_phase_stability_validation_20260704.png
+- PNG SHA256: 3B2B0DCCC1570D8DA577493911C544641684412AD59ED21733D4E80D76FD9729
+- This is a deterministic validation diagram using Windows DengXian; it is not a live editor window capture.
+- Output location is docs/tests/runtime/text, not target.
+- repo target, E:/cargo-targets, and D:/cargo-targets same-name scan count: 0

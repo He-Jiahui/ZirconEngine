@@ -1,4 +1,5 @@
 use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginModuleKind, PluginModuleManifest, RuntimeExtensionRegistry, RuntimePlugin,
@@ -213,6 +214,7 @@ fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
     ])
     .with_capability("runtime.plugin.weather")
     .with_capability("runtime.capability.weather.forecast")
+    .with_provided_interface_id("weather.query.v1")
     .with_system_sets(["weather.main", "weather.simulation"])
     .with_system_anchors(["weather.tick"])
     .with_optional_feature(sound_timeline_feature_manifest())
@@ -236,11 +238,14 @@ fn runtime_plugin_descriptor_projects_public_metadata_to_package_manifest() {
         ]
     );
     assert_eq!(manifest.optional_features.len(), 1);
+    assert_eq!(manifest.provides_interfaces.len(), 1);
+    assert_eq!(manifest.provides_interfaces[0].id, "weather.query.v1");
     let runtime_module = manifest
         .modules
         .iter()
         .find(|module| module.kind == PluginModuleKind::Runtime)
         .expect("runtime module");
+    assert_eq!(runtime_module.name, descriptor.module_descriptor().name);
     assert_eq!(
         runtime_module.capabilities,
         vec![
@@ -320,6 +325,52 @@ fn runtime_plugin_descriptor_builder_matches_fluent_descriptor_projection() {
         ]
     );
     assert_eq!(manifest.optional_features.len(), 1);
+}
+
+#[test]
+fn runtime_plugin_descriptor_projects_embedded_module_descriptor_to_manifest() {
+    let descriptor = RuntimePluginDescriptor::builder(
+        "weather",
+        "Weather",
+        RuntimePluginId::Particles,
+        "zircon_plugin_weather_runtime",
+    )
+    .with_module_descriptor(
+        ModuleDescriptor::new("weather.simulation.runtime", "Weather simulation runtime")
+            .with_init_level(InitLevel::Scene)
+            .with_module_dependency(ModuleDependencySpec::named("SceneModule")),
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_capability("runtime.plugin.weather")
+    .build();
+
+    assert_eq!(
+        descriptor.module_descriptor().name,
+        "weather.simulation.runtime"
+    );
+    assert_eq!(descriptor.module_descriptor().init_level, InitLevel::Scene);
+    assert_eq!(
+        descriptor.module_descriptor().module_dependencies,
+        vec![ModuleDependencySpec::named("SceneModule")]
+    );
+
+    let manifest = descriptor.package_manifest();
+    let runtime_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.kind == PluginModuleKind::Runtime)
+        .expect("runtime module");
+
+    assert_eq!(runtime_module.name, "weather.simulation.runtime");
+    assert_eq!(runtime_module.crate_name, "zircon_plugin_weather_runtime");
+    assert_eq!(
+        runtime_module.target_modes,
+        vec![RuntimeTargetMode::ClientRuntime]
+    );
+    assert_eq!(
+        runtime_module.capabilities,
+        vec!["runtime.plugin.weather".to_string()]
+    );
 }
 
 #[test]

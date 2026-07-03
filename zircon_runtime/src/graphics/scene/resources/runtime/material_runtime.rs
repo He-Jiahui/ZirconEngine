@@ -12,6 +12,57 @@ use crate::core::resource::ResourceId;
 
 use super::super::PipelineKey;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub(crate) struct MaterialDisabledPasses(u8);
+
+impl MaterialDisabledPasses {
+    const BASE: u8 = 1 << 0;
+    const DEPTH_PREPASS: u8 = 1 << 1;
+    const SHADOW: u8 = 1 << 2;
+    const VELOCITY: u8 = 1 << 3;
+    const TAA_REACTIVE_MASK: u8 = 1 << 4;
+
+    pub(crate) fn from_shader_pass_names(names: &[String]) -> Self {
+        let bits = names
+            .iter()
+            .fold(0_u8, |bits, name| bits | disabled_pass_bit(name.as_str()));
+        Self(bits)
+    }
+
+    pub(crate) const fn disables_base(self) -> bool {
+        (self.0 & Self::BASE) == Self::BASE
+    }
+
+    pub(crate) const fn disables_depth_prepass(self) -> bool {
+        (self.0 & Self::DEPTH_PREPASS) == Self::DEPTH_PREPASS
+    }
+
+    pub(crate) const fn disables_shadow(self) -> bool {
+        (self.0 & Self::SHADOW) == Self::SHADOW
+    }
+
+    pub(crate) const fn disables_velocity(self) -> bool {
+        (self.0 & Self::VELOCITY) == Self::VELOCITY
+    }
+
+    pub(crate) const fn disables_taa_reactive_mask(self) -> bool {
+        (self.0 & Self::TAA_REACTIVE_MASK) == Self::TAA_REACTIVE_MASK
+    }
+}
+
+fn disabled_pass_bit(name: &str) -> u8 {
+    match name.trim().to_ascii_lowercase().as_str() {
+        "base" | "forward" | "gbuffer" | "deferred_gbuffer" => MaterialDisabledPasses::BASE,
+        "depth" | "depth_prepass" | "prepass" => MaterialDisabledPasses::DEPTH_PREPASS,
+        "shadow" | "shadow_depth" | "shadow_depth_alpha_mask" => MaterialDisabledPasses::SHADOW,
+        "velocity" | "motion_vector" | "motion_vectors" => MaterialDisabledPasses::VELOCITY,
+        "taa_reactive_mask" | "taa_reactive_material_mask" => {
+            MaterialDisabledPasses::TAA_REACTIVE_MASK
+        }
+        _ => 0,
+    }
+}
+
 #[cfg(test)]
 #[derive(Clone, Debug)]
 pub(crate) struct MaterialCaptureSeed {
@@ -30,6 +81,7 @@ pub(crate) struct MaterialCaptureSeed {
     pub(crate) unlit: bool,
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
+    pub(crate) disabled_passes: MaterialDisabledPasses,
     pub(crate) taa_reactive_mask_strength: f32,
     pub(crate) base_color_texture: Option<ResourceId>,
     pub(crate) base_color_texture_transform: RenderMaterialTextureTransform,
@@ -65,6 +117,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) unlit: bool,
     pub(crate) cast_shadows: bool,
     pub(crate) receive_shadows: bool,
+    pub(crate) disabled_passes: MaterialDisabledPasses,
     pub(crate) render_queue: i32,
     pub(crate) render_queue_value: Option<RenderQueueValue>,
     pub(crate) material_queue: i32,
@@ -108,6 +161,7 @@ impl MaterialRuntime {
             unlit: self.unlit,
             cast_shadows: self.cast_shadows,
             receive_shadows: self.receive_shadows,
+            disabled_passes: self.disabled_passes,
             taa_reactive_mask_strength: self.taa_reactive_mask_strength,
             base_color_texture: self.base_color_texture,
             base_color_texture_transform: self.base_color_texture_transform,

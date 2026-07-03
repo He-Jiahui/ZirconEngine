@@ -5,6 +5,8 @@ fn runtime_15_export_build_plan_platform_tests_are_folder_backed() {
     let parent = read_runtime_src("tests/plugin_extensions/export_build_plan_platform.rs");
     let browser_hosts =
         read_runtime_src("tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs");
+    let release_adapters =
+        read_runtime_src("tests/plugin_extensions/export_build_plan_platform/release_adapters.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -22,30 +24,58 @@ fn runtime_15_export_build_plan_platform_tests_are_folder_backed() {
         &[
             "#[path = \"export_build_plan_platform/browser_hosts.rs\"]",
             "mod browser_hosts;",
+            "#[path = \"export_build_plan_platform/release_adapters.rs\"]",
+            "mod release_adapters;",
         ],
     );
 
-    let moved_test = "fn generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins";
-    assert!(
-        !parent.contains(moved_test),
-        "export build plan platform parent should mount the browser host child owner instead of defining {moved_test}"
-    );
+    for moved_test in [
+        "fn generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins",
+        "fn source_template_emits_signing_and_cdn_release_contracts",
+        "fn generated_release_adapters_gate_real_store_and_cdn_upload_inputs",
+    ] {
+        assert!(
+            !parent.contains(moved_test),
+            "export build plan platform parent should mount child owners instead of defining {moved_test}"
+        );
+    }
 
     assert_contains_all(
         "browser host child owns WASM export and asset-origin contracts",
         &browser_hosts,
         &[
             "use super::*;",
-            moved_test,
+            "fn generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins",
             "WebAssembly.instantiateStreaming(fetch(manifest.wasmModule), zirconExportImports)",
-            "\"allowedAssetRoot\": \"./assets/\"",
+            "\\\"allowedAssetRoot\\\": \\\"./assets/\\\"",
         ],
     );
 
     assert_eq!(
-        parent.matches("#[test]").count() + browser_hosts.matches("#[test]").count(),
+        release_adapters.matches("#[test]").count(),
+        2,
+        "release adapters child should own signing/CDN release contracts"
+    );
+
+    assert_contains_all(
+        "release adapters child owns signing, store, and CDN upload contracts",
+        &release_adapters,
+        &[
+            "use super::*;",
+            "fn source_template_emits_signing_and_cdn_release_contracts",
+            "fn generated_release_adapters_gate_real_store_and_cdn_upload_inputs",
+            "ZR_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON",
+            "ZR_APP_STORE_CONNECT_PRIVATE_KEY_PATH",
+            "ZR_CDN_UPLOAD_COMMAND",
+        ],
+    );
+
+    assert_eq!(
+        parent.matches("#[test]").count()
+            + browser_hosts.matches("#[test]").count()
+            + release_adapters.matches("#[test]").count(),
         10,
-        "export build plan platform parent plus split child should preserve the original 10 tests"
+        "export build plan platform parent plus split children should preserve the original 10 tests"
     );
 
     for (path, source) in [
@@ -56,6 +86,10 @@ fn runtime_15_export_build_plan_platform_tests_are_folder_backed() {
         (
             "tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs",
             browser_hosts.as_str(),
+        ),
+        (
+            "tests/plugin_extensions/export_build_plan_platform/release_adapters.rs",
+            release_adapters.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -80,8 +114,11 @@ fn runtime_15_export_build_plan_platform_tests_are_folder_backed() {
             &[
                 "Runtime 15 M3 export build plan platform test folder split",
                 "runtime_15_export_build_plan_platform_tests_folder_split_static_passed_cargo_deferred",
+                "Runtime 15 M3 export build plan platform release-adapter test child-owner split",
+                "runtime_15_export_build_plan_platform_release_adapter_tests_child_owner_split_static_passed_cargo_deferred",
                 "tests/plugin_extensions/export_build_plan_platform.rs",
                 "tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs",
+                "tests/plugin_extensions/export_build_plan_platform/release_adapters.rs",
                 "runtime_15_export_build_plan_platform_tests_are_folder_backed",
             ],
         );

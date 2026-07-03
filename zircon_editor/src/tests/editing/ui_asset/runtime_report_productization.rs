@@ -41,7 +41,7 @@ bindings = [
 #[test]
 fn ui_asset_editor_projects_runtime_report_policy_locale_and_resource_rows() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/runtime-report.ui.toml",
+        "asset://ui/tests/runtime-report.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

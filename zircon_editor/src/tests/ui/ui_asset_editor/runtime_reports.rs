@@ -39,7 +39,7 @@ props = { text = "Ready" }
 #[test]
 fn ui_asset_editor_projects_runtime_action_policy_and_localization_reports() {
     let session = open_design_session(
-        "asset://ui/tests/runtime_reports.ui.toml",
+        "asset://ui/tests/runtime_reports.zui",
         ACTION_POLICY_AND_LOCALIZATION_LAYOUT,
     );
     let pane = session.pane_presentation();

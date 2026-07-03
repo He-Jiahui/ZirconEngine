@@ -1,0 +1,9 @@
+runtime text atlas gpu vertex layout contract validation
+date: 2026-07-03
+source: E:\Git\ZirconEngine\zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs
+expected vertex stride: 52 bytes
+expected offsets: loc0 position_ndc @0, loc1 uv @8, loc2 foreground_color @16, loc3 background_color @32, loc4 page_index @48
+source contract tokens missing: 0
+preview: E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_atlas_gpu_vertex_layout_contract_preview_20260703.png
+preview sha256: AC1262411219A99A80E7C5221A6DD395373BAC051DF644BD21A7B03A4957437D
+focused cargo status: deferred because active cargo/rustc processes were present: cargo#20180, cargo#32036, cargo#32292, cargo#34432, cargo#39108, cargo#40284, cargo#43304, cargo#47940, rustc#34524, rustc#34688, rustc#38352, rustc#44964

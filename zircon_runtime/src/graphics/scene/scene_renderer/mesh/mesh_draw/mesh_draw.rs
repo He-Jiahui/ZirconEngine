@@ -4,7 +4,9 @@ use crate::core::framework::render::{
     PrimitiveRelevance, RenderMeshLodSelection, RenderMeshStaticState,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
-use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResource, PipelineKey};
+use crate::graphics::scene::resources::{
+    GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, PipelineKey,
+};
 
 use super::geometry_source::MeshDrawGeometrySource;
 use super::material_texture_set::MaterialTextureSet;
@@ -31,6 +33,7 @@ pub(crate) struct MeshDraw {
     pub(super) standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: PipelineKey,
     pub(super) cast_shadows: bool,
+    pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
     pub(super) gpu_scene_bind_group: Option<wgpu::BindGroup>,
     pub(super) gpu_scene_instance_span: Option<(u32, u32)>,
@@ -72,6 +75,7 @@ impl MeshDraw {
         standard_material_uniform: Arc<GpuMaterialUniformResource>,
         pipeline_key: PipelineKey,
         cast_shadows: bool,
+        disabled_passes: MaterialDisabledPasses,
         taa_reactive_mask_strength: f32,
         gpu_scene_bind_group: Option<wgpu::BindGroup>,
         has_previous_velocity_transform: bool,
@@ -105,6 +109,7 @@ impl MeshDraw {
             standard_material_uniform,
             pipeline_key,
             cast_shadows,
+            disabled_passes,
             taa_reactive_mask_strength,
             gpu_scene_bind_group,
             gpu_scene_instance_span: None,

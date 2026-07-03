@@ -24,7 +24,8 @@ use super::style_selector::{
 #[cfg(test)]
 use super::template_selection_control_geometry::{
     centered_square, label_rect_after_mark, leading_mark_rect, radio_dot_size, selection_label_gap,
-    toggle_thumb_rect, toggle_track_rect, RADIO_DOT_SIZE, TOGGLE_TRACK_WIDTH,
+    toggle_thumb_rect, toggle_track_rect, workbench_selection_control_metrics_from_host,
+    RADIO_DOT_SIZE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH,
 };
 #[cfg(test)]
 use style::{

@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/asset/assets/mesh/indices.rs
   - zircon_runtime/src/asset/assets/mesh/metadata.rs
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
+  - zircon_runtime/src/asset/assets/model/primitive.rs
   - zircon_runtime/src/asset/assets/mesh/normals.rs
   - zircon_runtime/src/asset/assets/mesh/tangents.rs
   - zircon_runtime/src/asset/assets/mesh/usage.rs
@@ -31,6 +32,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/import_model.rs
+  - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
@@ -41,6 +43,8 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_meshlet_vertex_ordinal.rs
 implementation_files:
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_runtime_interface/src/resource/mod.rs
@@ -50,6 +54,7 @@ implementation_files:
   - zircon_runtime/src/asset/assets/mesh/indices.rs
   - zircon_runtime/src/asset/assets/mesh/metadata.rs
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
+  - zircon_runtime/src/asset/assets/model/primitive.rs
   - zircon_runtime/src/asset/assets/mesh/normals.rs
   - zircon_runtime/src/asset/assets/mesh/tangents.rs
   - zircon_runtime/src/asset/assets/mesh/usage.rs
@@ -71,6 +76,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_plugins/animation/runtime/src/sequence.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
+  - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
@@ -85,6 +91,8 @@ plan_sources:
   - dev/bevy/crates/bevy_mesh/src/mesh.rs
   - dev/bevy/crates/bevy_gltf/src/label.rs
 tests:
+  - rustfmt --edition 2021 --check on model primitive VG ordinal encoding, mesh conversion, importer tests, VG WGSL include, shader-source guard, and runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired (2026-06-29 VirtualGeometry meshlet vertex ordinal: static pass; Cargo deferred)
+  - zircon_runtime/src/asset/tests/assets/mesh/conversion_import.rs::model_primitive_converts_to_mesh_asset_with_builtin_attributes
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/mesh/normal_generation.rs
   - zircon_runtime/src/asset/tests/assets/mesh/tangent_generation.rs
@@ -165,7 +173,7 @@ This is intentionally still a compatibility phase, but renderer preparation now 
 
 The mesh module is folder-backed because mesh data already has separate concerns: attribute values, index format, validation, authoring document conversion, render descriptor projection, and legacy model primitive conversion. `mod.rs` only re-exports the public surface.
 
-`MeshAsset::from_model_primitive()` is the shared support layer for current model importers. OBJ, glTF, STL, PLY, DXF, and `.model.toml` imports all preserve the legacy primitive and derive a matching `MeshAsset` from the same data, avoiding importer-specific render descriptor construction. The conversion preserves the existing joint index/weight vertex channels, but leaves `morph_targets` empty and `skin` unset because the legacy `ModelPrimitiveAsset` does not own morph target or inverse-bindpose metadata. The built-in and plugin glTF importers layer primitive morph target maps and node-level skin data onto the derived mesh subasset after this shared conversion, keeping the common path simple while preserving glTF metadata where it exists.
+`MeshAsset::from_model_primitive()` is the shared support layer for current model importers. OBJ, glTF, STL, PLY, DXF, and `.model.toml` imports all preserve the legacy primitive and derive a matching `MeshAsset` from the same data, avoiding importer-specific render descriptor construction. For primitives with a Virtual Geometry payload, the conversion first applies `ModelPrimitiveAsset::assign_virtual_geometry_vertex_ordinals()` so the labeled mesh subasset carries the same 16+16 packed source-vertex ordinal in `joint_index.x/y` that the root primitive and `zr_geometry_virtual_geometry.wgsl` use for resident cluster-word fetch. Non-VG conversions preserve the existing joint index/weight vertex channels. The conversion still leaves `morph_targets` empty and `skin` unset because the legacy `ModelPrimitiveAsset` does not own morph target or inverse-bindpose metadata. The built-in and plugin glTF importers layer primitive morph target maps and node-level skin data onto the derived mesh subasset after this shared conversion, keeping the common path simple while preserving glTF metadata where it exists.
 
 `MeshAsset::try_generate_missing_normals()` is the Bevy-style default authoring/import support step for the M5 missing-normal gap. It validates the mesh, returns `Ok(false)` when a valid root `normal` attribute already exists, and otherwise writes a root `float32x3` `normal` attribute. Unindexed `TriangleList` meshes use flat normals through `try_generate_missing_flat_normals()`, duplicating each triangle normal across its three vertices. Indexed `TriangleList` meshes use `try_generate_missing_smooth_normals()`, accumulating angle-weighted triangle normals per shared vertex and normalizing the final sums. Degenerate triangles follow Bevy's `normalize_or_zero` behavior and contribute zero normals or zero corner weights, which keeps importer repair deterministic without inventing arbitrary fallback directions. Non-triangle-list topologies, indexed flat-normal requests, and unindexed smooth-normal requests return structured `MeshValidationError` variants so callers can choose whether to unindex, preserve source data, or report an authoring diagnostic.
 

@@ -88,10 +88,12 @@ pub enum UiMotionChannel {
 pub struct UiMotionTrack { pub channel: UiMotionChannel, pub keyframes: Vec<UiMotionKeyframe> }
 pub struct UiMotionKeyframe {
     pub time: f32,
-    pub value: UiMotionValue,                     // Scalar(f32) | Color(UiRgbaColor)
+    pub value: UiMotionValue,                     // Scalar(f32) | Color(UiRgbaColor) | ToNatural
     pub easing: UiEasing,
     pub handle: Option<UiBezierHandle>,           // theatre 式手柄
 }
+// （2026-07-02 评审收口）UiMotionValue 补 `ToNatural` variant：动画到自然尺寸/布局求解目标值，
+// 目标值由运行时布局求解得出，不在资产里写死像素；Collapse/drawer 展开类动画的终值应声明为 ToNatural。
 pub enum UiEasing { Standard, Emphasized, Decelerate, Accelerate, CubicBezier(f32, f32, f32, f32) }
                                                   // Spring 后置，不进第一版枚举语义承诺
 
@@ -102,9 +104,17 @@ impl UiMotionEngine {
     pub fn pause(&mut self, handle: UiMotionHandle);
     pub fn seek(&mut self, handle: UiMotionHandle, time: f32);
 }
-pub struct UiMotionTickReport { pub evaluated: u32, pub damaged_nodes: u32, pub finished: u32 }
+pub struct UiMotionTickReport {
+    pub evaluated: u32,
+    pub damaged_nodes: u32,
+    pub finished: u32,
+    pub needs_next_frame: bool,   // （2026-07-02 评审收口）帧调度契约：仍有 active 动画时为 true，
+                                  // 经 tick→host redraw 请求链持续请求下一帧；最后一帧后必须为 false
+}
 
 // transitions.rs：状态过渡声明（style/theme 层语法，04 衔接）
+// （2026-07-02 评审收口，U7）transition 声明字段的 schema 归 editor_layout/20（style 规范权威）；
+// 04 M3 解析链承接实现，本计划只消费解析结果驱动 UiMotionEngine，不自定义字段。
 pub struct UiTransitionSpec { pub channel: UiMotionChannel, pub duration: f32, pub easing: UiEasing }
 pub fn transitions_for_state_change(
     /* style 解析结果, */ old: UiPainterState, new: UiPainterState,  // 04 现有类型
@@ -114,8 +124,9 @@ pub fn transitions_for_state_change(
 // [sheet]                    id = "drawer-open"
 // [[object]]                 binding = "shell.drawer.left"        # 组件树稳定 id
 // [[object.track]]           channel = "layout_width"
-// [[object.track.keyframe]]  time = 0.0   value = 0.0    easing = "emphasized"
-// [[object.track.keyframe]]  time = 0.18  value = 320.0  easing = "decelerate"
+// [[object.track.keyframe]]  time = 0.0   value = 0.0            easing = "emphasized"
+// [[object.track.keyframe]]  time = 0.18  value = "to_natural"   easing = "decelerate"
+// （2026-07-02 评审收口：终值不资产写死像素——改 token 引用或 ToNatural 形态；原 320.0 硬编码示例作废）
 pub struct UiMotionDocument { pub sheet_id: String, pub objects: Vec<UiMotionObject> }
 pub fn validate_motion_bindings(doc: &UiMotionDocument, /* prototype store */) -> Vec<UiMotionBindingDiagnostic>;
 ```
@@ -148,13 +159,19 @@ input pump → dispatch → state reduce
 空闲（active 为空）：tick 直接返回，零求值零 damage。
 ```
 
+（2026-07-02 评审收口）帧调度契约补充：
+
+- `UiMotionTickReport.needs_next_frame: bool`——tick 后仍有 active 动画即为 true；宿主经 **tick→host redraw 请求链**在 active 动画期间持续请求下一帧；最后一帧（全部 instance Finished）后 `needs_next_frame = false`，不再请求重绘（M1.S3 断言）。
+- **动画期文本 measure 策略**：布局通道动画期间，受影响节点内文本按 **clip 处理，不逐帧 rewrap**（或按宽度桶粒度设 rewrap 上限——动画中间帧命中同一宽度桶则复用缓存布局）；与 03 measure 缓存 / text/09 两级缓存协调，动画结束帧做一次最终 rewrap。
+- **transform 覆盖层 damage**：damage 区域 = 旧位置 ∪ 新位置的并集（两帧包围盒合并），防止残影；transform 的 pivot 默认节点中心，可在声明中显式指定。
+
 ## 7. 里程碑切片化
 
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
 | M1.S1 | 缓动库 + 插值核心（Material 四曲线 + cubic-bezier；参考 animation/sequence/interpolation 设施但 UI 侧独立实现） | motion/easing.rs、track.rs | `cargo test -p zircon_runtime --lib motion_easing --locked` | 无删除 |
 | M1.S2 | UiMotionEngine + tick + opacity/transform 通道（渲染期覆盖层） | motion/engine.rs、surface.rs | `cargo test -p zircon_runtime --lib motion --locked` | 无删除 |
-| M1.S3 | 帧报告 damage 范围测试 + 空闲零开销断言 | 测试 | 同上 | 无删除 |
+| M1.S3 | 帧报告 damage 范围测试 + 空闲零开销断言 + （2026-07-02 评审收口）「最后一帧后不再请求重绘」断言（`needs_next_frame` 在全部 instance Finished 后为 false） | 测试 | 同上 | 无删除 |
 | M2.S1 | transition 声明解析（style/theme 层字段，04 M3 解析链） | transitions.rs、04 解析链 | `cargo test -p zircon_runtime --lib transition --locked` | 无删除 |
 | M2.S2 | 状态过渡接通：hover 进出 / open-close 自动生成 transition instance | transitions.rs、state reduce 接缝 | 同上 | 无删除 |
 | M2.S3 | Collapse/Fade/Grow/Slide/Zoom 真实动起来（布局通道走增量布局） | layout_transitions.rs | `cargo test -p zircon_runtime --lib layout_transitions --locked` + 实机 drawer/menu 过渡 | 占位登记收编 |

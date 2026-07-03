@@ -15,7 +15,7 @@ fn runtime_15_asset_gltf_primitive_fixtures_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
 
     assert_contains_all(
@@ -56,7 +56,7 @@ fn runtime_15_asset_gltf_primitive_fixtures_are_folder_backed() {
     assert_eq!(
         child_sources
             .iter()
-            .map(|source| source.matches("pub(super) fn ").count())
+            .map(|source| source.matches("fn write_").count())
             .sum::<usize>(),
         8,
         "asset glTF primitive fixture children should preserve the original 8 fixture writers"
@@ -66,31 +66,31 @@ fn runtime_15_asset_gltf_primitive_fixtures_are_folder_backed() {
         "asset glTF primitive basic fixture child owns triangle/topology writers",
         &basic,
         &[
-            "pub(super) fn write_triangle_gltf",
-            "pub(super) fn write_line_gltf",
+            "pub(in super::super) fn write_triangle_gltf",
+            "pub(in super::super) fn write_line_gltf",
         ],
     );
     assert_contains_all(
         "asset glTF primitive vertex child owns vertex-channel writers",
         &vertex_channels,
         &[
-            "pub(super) fn write_tangent_color_triangle_gltf",
-            "pub(super) fn write_uv_channel_triangle_gltf",
-            "pub(super) fn write_skinned_triangle_gltf",
+            "pub(in super::super) fn write_tangent_color_triangle_gltf",
+            "pub(in super::super) fn write_uv_channel_triangle_gltf",
+            "pub(in super::super) fn write_skinned_triangle_gltf",
         ],
     );
     assert_contains_all(
         "asset glTF primitive material child owns material fixture writers",
         &materials,
         &[
-            "pub(super) fn write_texture_transform_triangle_gltf",
-            "pub(super) fn write_two_primitive_gltf",
+            "pub(in super::super) fn write_texture_transform_triangle_gltf",
+            "pub(in super::super) fn write_two_primitive_gltf",
         ],
     );
     assert_contains_all(
         "asset glTF primitive animation child owns animation fixture writer",
         &animation,
-        &["pub(super) fn write_node_animation_gltf"],
+        &["pub(in super::super) fn write_node_animation_gltf"],
     );
 
     for source in [parent.as_str()].into_iter().chain(child_sources) {

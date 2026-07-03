@@ -7,34 +7,29 @@ import json
 from pathlib import Path
 from typing import Any, Sequence
 
-from .native_build import native_dynamic_cdylib_crate_index
-from .plugin_build import (
-    PLUGIN_BUILD_DIST_FORM,
+from .native_build_workspace import (
+    native_dynamic_cdylib_crate_index_from_workspace,
+    native_dynamic_workspace_crate_index,
+)
+from .plugin_package_source import (
     default_repo_root,
-    plugin_distribution_abi_version,
-    plugin_distribution_dist_crate,
-    resolve_plugin_build_path,
-    resolve_plugin_build_source,
+    resolve_plugin_package_path,
 )
 from .plugin_validate_common import (
-    PLUGIN_VALIDATE_FEATURE_SOURCE,
-    PLUGIN_VALIDATE_ROOT_SOURCE,
+    PLUGIN_VALIDATE_DIST_FORM,
 )
-from .plugin_validate_distribution_contract import validate_plugin_distribution
-from .plugin_validate_distribution_modules import (
-    validate_plugin_distribution_modules,
+from .plugin_validate_asset_importer_global_ids import (
+    validate_plugin_asset_importer_global_ids,
 )
-from .plugin_validate_dist_crate import validate_plugin_dist_crate_workspace_member
 from .plugin_validate_engine_version import plugin_validate_engine_version
-from .plugin_validate_feature_provider import (
-    validate_plugin_feature_provider_package_projection,
-)
+from .plugin_validate_option_global_keys import validate_plugin_option_global_keys
+from .plugin_validate_retired_ui_assets import validate_plugin_retired_ui_asset_files
 from .plugin_validate_report import (
     plugin_validate_all_report,
-    plugin_validate_report,
     render_plugin_validate_all_report,
     render_plugin_validate_report,
 )
+from .plugin_validate_single_target import plugin_validate_single_report
 from .plugin_validate_target_discovery import plugin_validate_discover_target_ids
 
 
@@ -55,8 +50,8 @@ def parse_plugin_validate_args(argv: Sequence[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--form",
-        choices=(PLUGIN_BUILD_DIST_FORM,),
-        default=PLUGIN_BUILD_DIST_FORM,
+        choices=(PLUGIN_VALIDATE_DIST_FORM,),
+        default=PLUGIN_VALIDATE_DIST_FORM,
         help="Standalone package form. Default: dist.",
     )
     parser.add_argument(
@@ -78,17 +73,18 @@ def parse_plugin_validate_args(argv: Sequence[str]) -> argparse.Namespace:
 def run_plugin_validate(args: argparse.Namespace) -> int:
     diagnostics: list[str] = []
     repo_root = (
-        resolve_plugin_build_path("repo_root", Path(args.repo_root), diagnostics)
+        resolve_plugin_package_path("repo_root", Path(args.repo_root), diagnostics)
         if args.repo_root
         else default_repo_root()
     )
     plugin_root = repo_root / "zircon_plugins" if repo_root else None
     workspace_manifest = plugin_root / "Cargo.toml" if plugin_root else None
-    crate_index = (
-        native_dynamic_cdylib_crate_index(workspace_manifest, diagnostics)
+    workspace_crate_index = (
+        native_dynamic_workspace_crate_index(workspace_manifest, diagnostics)
         if workspace_manifest is not None
         else {}
     )
+    crate_index = native_dynamic_cdylib_crate_index_from_workspace(workspace_crate_index)
     engine_version = plugin_validate_engine_version(repo_root, diagnostics)
     if args.all:
         report = plugin_validate_all_targets(
@@ -97,6 +93,7 @@ def run_plugin_validate(args: argparse.Namespace) -> int:
             plugin_root=plugin_root,
             workspace_manifest=workspace_manifest,
             crate_index=crate_index,
+            workspace_crate_index=workspace_crate_index,
             engine_version=engine_version,
             diagnostics=diagnostics,
         )
@@ -112,6 +109,7 @@ def run_plugin_validate(args: argparse.Namespace) -> int:
         plugin_root=plugin_root,
         workspace_manifest=workspace_manifest,
         crate_index=crate_index,
+        workspace_crate_index=workspace_crate_index,
         engine_version=engine_version,
         requested_plugin_id=requested_plugin_id,
         diagnostics=diagnostics,
@@ -123,85 +121,6 @@ def run_plugin_validate(args: argparse.Namespace) -> int:
     return 2 if report["fatal"] else 0
 
 
-def plugin_validate_single_report(
-    *,
-    args: argparse.Namespace,
-    repo_root: Path | None,
-    plugin_root: Path | None,
-    workspace_manifest: Path | None,
-    crate_index: dict[str, dict[str, Any]],
-    engine_version: str | None,
-    requested_plugin_id: str,
-    diagnostics: list[str] | None = None,
-) -> dict[str, Any]:
-    diagnostics = list(diagnostics or [])
-    build_source = (
-        resolve_plugin_build_source(plugin_root, requested_plugin_id, diagnostics)
-        if plugin_root is not None
-        else None
-    )
-    plugin_manifest_path = (
-        build_source.plugin_manifest_path if build_source is not None else None
-    )
-    package_id = (
-        build_source.package_id if build_source is not None else requested_plugin_id
-    )
-    source_kind = (
-        PLUGIN_VALIDATE_FEATURE_SOURCE
-        if build_source is not None and build_source.package_manifest_text is not None
-        else PLUGIN_VALIDATE_ROOT_SOURCE
-    )
-    distribution = build_source.distribution if build_source is not None else None
-    runtime_entry, editor_entry = validate_plugin_distribution(
-        distribution,
-        package_id,
-        diagnostics,
-        engine_version=engine_version,
-    )
-    validate_plugin_feature_provider_package_projection(
-        plugin_manifest_path=plugin_manifest_path,
-        package_manifest_text=(
-            build_source.package_manifest_text if build_source is not None else None
-        ),
-        requested_plugin_id=requested_plugin_id,
-        package_id=package_id,
-        diagnostics=diagnostics,
-    )
-    dist_crate = plugin_distribution_dist_crate(distribution, package_id, diagnostics)
-    abi_version = plugin_distribution_abi_version(distribution, package_id, diagnostics)
-    validate_plugin_distribution_modules(
-        plugin_manifest_path=plugin_manifest_path,
-        requested_plugin_id=requested_plugin_id,
-        package_id=package_id,
-        source_kind=source_kind,
-        dist_crate=dist_crate,
-        runtime_entry=runtime_entry,
-        editor_entry=editor_entry,
-        diagnostics=diagnostics,
-    )
-    dist_crate_manifest = validate_plugin_dist_crate_workspace_member(
-        crate_index,
-        package_id,
-        dist_crate,
-        diagnostics,
-    )
-
-    return plugin_validate_report(
-        args=args,
-        requested_plugin_id=requested_plugin_id,
-        repo_root=repo_root,
-        workspace_manifest=workspace_manifest,
-        plugin_manifest_path=plugin_manifest_path,
-        engine_version=engine_version,
-        package_id=package_id,
-        source_kind=source_kind,
-        dist_crate=dist_crate,
-        dist_crate_manifest=dist_crate_manifest,
-        abi_version=abi_version,
-        diagnostics=diagnostics,
-    )
-
-
 def plugin_validate_all_targets(
     *,
     args: argparse.Namespace,
@@ -209,6 +128,7 @@ def plugin_validate_all_targets(
     plugin_root: Path | None,
     workspace_manifest: Path | None,
     crate_index: dict[str, dict[str, Any]],
+    workspace_crate_index: dict[str, dict[str, Any]],
     engine_version: str | None,
     diagnostics: list[str],
 ) -> dict[str, Any]:
@@ -217,6 +137,11 @@ def plugin_validate_all_targets(
         if plugin_root is not None
         else []
     )
+    if plugin_root is not None:
+        validate_plugin_option_global_keys(plugin_root, diagnostics)
+        validate_plugin_asset_importer_global_ids(plugin_root, diagnostics)
+    if repo_root is not None:
+        validate_plugin_retired_ui_asset_files(repo_root, diagnostics)
     items = [
         plugin_validate_single_report(
             args=args,
@@ -224,8 +149,10 @@ def plugin_validate_all_targets(
             plugin_root=plugin_root,
             workspace_manifest=workspace_manifest,
             crate_index=crate_index,
+            workspace_crate_index=workspace_crate_index,
             engine_version=engine_version,
             requested_plugin_id=target_id,
+            scan_retired_ui_assets=False,
         )
         for target_id in target_ids
     ]

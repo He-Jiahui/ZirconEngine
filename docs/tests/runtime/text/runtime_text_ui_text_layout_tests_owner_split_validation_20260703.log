@@ -1,0 +1,17 @@
+runtime_text_ui_text_layout_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+scope=zircon_runtime/src/ui/tests/text_layout.rs structure-only owner split
+deleted=zircon_runtime/src/ui/tests/text_layout.rs (788 lines, 16 direct tests)
+added=zircon_runtime/src/ui/tests/text_layout/mod.rs (47 lines, shared wiring/helpers)
+added=zircon_runtime/src/ui/tests/text_layout/alignment.rs (89 lines, 2 tests)
+added=zircon_runtime/src/ui/tests/text_layout/wrapping.rs (130 lines, 3 tests)
+added=zircon_runtime/src/ui/tests/text_layout/overflow.rs (264 lines, 6 tests)
+added=zircon_runtime/src/ui/tests/text_layout/direction.rs (266 lines, 5 tests)
+existing_child=zircon_runtime/src/ui/tests/text_layout/edit_state.rs (250 lines, 6 tests)
+production_code_changed=false
+rustfmt=passed: rustfmt --edition 2021 --check zircon_runtime/src/ui/tests/text_layout/mod.rs zircon_runtime/src/ui/tests/text_layout/alignment.rs zircon_runtime/src/ui/tests/text_layout/wrapping.rs zircon_runtime/src/ui/tests/text_layout/overflow.rs zircon_runtime/src/ui/tests/text_layout/direction.rs zircon_runtime/src/ui/tests/text_layout/edit_state.rs
+static_owner_scan=passed: direct tests preserved 16; directory tests total 22; line counts mod/alignment/wrapping/overflow/direction/edit_state=47/89/130/264/266/250
+preview_png=docs/tests/runtime/text/runtime_text_ui_text_layout_tests_owner_split_preview_20260703.png
+preview_png_sha256=6F14FA7CC616EC33C333FEC63C99152D05BB426BDD93454450F3DD4206F5D771
+target_same_name_scan=passed: repo target, E:\cargo-targets, and D:\cargo-targets same-name match count 0
+cargo=deferred: external cargo/rustc lanes were active during this implementation slice

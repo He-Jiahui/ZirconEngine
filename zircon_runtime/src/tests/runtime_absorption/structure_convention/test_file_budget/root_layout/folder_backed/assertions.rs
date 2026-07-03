@@ -183,7 +183,11 @@ pub(super) fn assert_test_file_budget_root_is_folder_backed(
     assert_contains_all(
         "code review findings test-budget child owns findings guard",
         &sources.code_review_findings,
-        &["use super::*;", guards.code_review_findings_guard.as_str()],
+        &[
+            "#[path = \"code_review_findings/folder_backed_summary.rs\"]",
+            "mod folder_backed_summary;",
+            guards.code_review_findings_guard.as_str(),
+        ],
     );
     assert_contains_all(
         "core framework test-budget child owns historical core-framework guard",
@@ -313,7 +317,22 @@ pub(super) fn assert_test_file_budget_root_is_folder_backed(
         &sources.shader_prewarm_manifest,
         &[
             "use super::*;",
-            guards.shader_prewarm_manifest_guard.as_str(),
+            "#[path = \"shader_prewarm_manifest/manifest_contract.rs\"]",
+            "mod manifest_contract;",
+            "fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed",
+        ],
+    );
+    assert_contains_all(
+        "status output expected-slices test-budget parent mounts child guard owners",
+        &sources.status_output_expected_slices,
+        &[
+            "use super::*;",
+            "#[path = \"status_output_expected_slices/legacy_group_maps.rs\"]",
+            "mod legacy_group_maps;",
+            "#[path = \"status_output_expected_slices/maps.rs\"]",
+            "mod maps;",
+            "#[path = \"status_output_expected_slices/module_layout.rs\"]",
+            "mod module_layout;",
         ],
     );
     assert_contains_all(
@@ -336,11 +355,19 @@ pub(super) fn assert_test_file_budget_root_is_folder_backed(
         ],
     );
     assert_contains_all(
-        "UI shared core test-budget child owns historical shared-core guard",
+        "UI shared core test-budget parent mounts shared-core child owners",
         &sources.ui_shared_core,
         &[
             "use super::*;",
-            "fn runtime_15_ui_shared_core_tests_are_folder_backed",
+            "#[path = \"ui_shared_core/input_visibility.rs\"]",
+            "mod input_visibility;",
+            "#[path = \"ui_shared_core/layout_surface.rs\"]",
+            "mod layout_surface;",
+            "#[path = \"ui_shared_core/root.rs\"]",
+            "mod root;",
+            "#[path = \"ui_shared_core/scroll_mutation.rs\"]",
+            "mod scroll_mutation;",
+            "runtime_15_ui_shared_core_guard_child_owners_are_folder_backed",
         ],
     );
     assert_contains_all(

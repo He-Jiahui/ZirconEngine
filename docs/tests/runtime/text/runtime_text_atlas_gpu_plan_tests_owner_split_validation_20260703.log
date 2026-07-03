@@ -1,0 +1,36 @@
+Runtime Text Atlas GPU Plan Tests Owner Split Validation
+Date: 2026-07-03
+Slice: runtime_text_at_m2_at_m3_atlas_gpu_plan_tests_owner_split_rustfmt_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs
+- zircon_runtime/src/graphics/text/atlas/render_gpu_plan/tests.rs
+
+Line ownership after split:
+- render_gpu_plan.rs: 110 lines
+- render_gpu_plan/tests.rs: 365 lines
+- child owners: bind_group.rs=51, draw_command.rs=57, pipeline.rs=29, vertex.rs=91, viewport.rs=50
+
+Verification performed:
+- rustfmt --edition 2021 --check render_gpu_plan.rs render_gpu_plan/tests.rs and child owner files: passed
+- visual proof rendered and inspected from docs/tests/runtime/text/runtime_text_atlas_gpu_plan_tests_owner_split_preview_20260703.png
+
+Cargo status:
+Focused Cargo was not started for this slice because existing cargo/rustc processes were active:
+
+ProcessName    Id    CPU StartTime
+-----------    --    --- ---------
+cargo       21556   3.42 2026/7/3 周五 13:56:16
+cargo       30996   0.03 2026/7/3 周五 13:56:52
+cargo       32112   5.95 2026/7/3 周五 13:58:33
+cargo       32308   0.03 2026/7/3 周五 13:58:33
+cargo       38516   3.61 2026/7/3 周五 13:56:52
+cargo       47512   0.03 2026/7/3 周五 13:56:16
+rustc        9040  17.19 2026/7/3 周五 14:00:47
+rustc       14032 209.59 2026/7/3 周五 13:57:01
+rustc       46060 251.80 2026/7/3 周五 13:56:20
+
+
+
+Target placement rule:
+The proof image and log are under docs/tests/runtime/text and must not be copied into target directories.

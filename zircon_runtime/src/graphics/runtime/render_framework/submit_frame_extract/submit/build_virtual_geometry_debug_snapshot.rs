@@ -119,6 +119,7 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     Some(RenderVirtualGeometryDebugSnapshot {
         instances: extract.instances.clone(),
         page_dependencies: extract.page_dependencies.clone(),
+        resident_page_payloads: context.virtual_geometry_resident_page_payloads().to_vec(),
         debug: extract.debug,
         cull_input,
         cluster_selection_input_source:

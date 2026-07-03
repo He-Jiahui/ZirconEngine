@@ -82,6 +82,8 @@ pub enum UiSurfaceCommandKind {
     Text {
         text: String,
         color: [u8; 4],
+        font_family: Option<String>,
+        font_weight: u16,
         font_size: f32,
         line_height: f32,
         style: UiSurfaceTextStyle,

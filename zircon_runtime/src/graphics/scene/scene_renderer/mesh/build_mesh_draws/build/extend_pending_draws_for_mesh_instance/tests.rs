@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
+use super::super::pending_mesh_draw::PendingSkinnedGpuSource;
 use super::{
-    morph_shape_signature, morphed_mesh_asset_primitive, skinned_gpu_source_candidate_available,
+    direct_skinned_gpu_source, morph_shape_signature, morphed_mesh_asset_primitive,
+    skinned_gpu_source_candidate_available,
 };
 use crate::asset::{
     AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
@@ -52,6 +54,55 @@ fn skinned_gpu_source_candidate_requires_palette() {
     );
 }
 
+#[test]
+fn direct_skinned_gpu_source_uses_prepared_mesh_when_morph_payload_is_available() {
+    let Some(source_mesh) = test_gpu_mesh() else {
+        return;
+    };
+    let uniform = SkinnedMeshJointPaletteUniform::from_matrices(&[])
+        .expect("empty palette should fit the fixed skinned ABI");
+
+    let source = direct_skinned_gpu_source(
+        Some(&uniform),
+        crate::core::resource::ResourceId::from_stable_label("mesh-gpu-morph"),
+        source_mesh.clone(),
+        test_primitive(),
+        true,
+        &[0.5],
+    )
+    .expect("shader-visible skinned source");
+
+    match source {
+        PendingSkinnedGpuSource::Prepared(selected) => {
+            assert!(std::sync::Arc::ptr_eq(&selected, &source_mesh));
+        }
+        PendingSkinnedGpuSource::CpuMorphed { .. } => {
+            panic!("morph payload availability should keep the original prepared source")
+        }
+    }
+}
+
+#[test]
+fn direct_skinned_gpu_source_keeps_cpu_morphed_fallback_without_morph_payload() {
+    let Some(source_mesh) = test_gpu_mesh() else {
+        return;
+    };
+    let uniform = SkinnedMeshJointPaletteUniform::from_matrices(&[])
+        .expect("empty palette should fit the fixed skinned ABI");
+
+    let source = direct_skinned_gpu_source(
+        Some(&uniform),
+        crate::core::resource::ResourceId::from_stable_label("mesh-cpu-morph"),
+        source_mesh,
+        test_primitive(),
+        false,
+        &[0.5],
+    )
+    .expect("shader-visible skinned source");
+
+    assert!(matches!(source, PendingSkinnedGpuSource::CpuMorphed { .. }));
+}
+
 fn morph_test_mesh() -> MeshAsset {
     let mut mesh = MeshAsset::new(
         AssetUri::parse("res://meshes/direct-morph.zmesh").unwrap(),
@@ -71,4 +122,38 @@ fn morph_test_mesh() -> MeshAsset {
         )]),
     }];
     mesh
+}
+
+fn test_primitive() -> crate::asset::ModelPrimitiveAsset {
+    crate::asset::ModelPrimitiveAsset {
+        vertices: Vec::new(),
+        indices: Vec::new(),
+        mesh: None,
+        virtual_geometry: None,
+    }
+}
+
+fn test_gpu_mesh() -> Option<std::sync::Arc<crate::graphics::scene::resources::GpuMeshResource>> {
+    let backend = crate::graphics::backend::RenderBackend::new_offscreen()
+        .inspect_err(|error| eprintln!("skipping direct skinned GPU source test: {error:?}"))
+        .ok()?;
+    Some(std::sync::Arc::new(
+        crate::graphics::scene::resources::GpuMeshResource::from_asset(
+            &backend.device,
+            crate::asset::ModelPrimitiveAsset {
+                vertices: vec![
+                    crate::asset::MeshVertex::new(
+                        Vec3::ZERO,
+                        Vec3::Z,
+                        crate::core::math::Vec2::ZERO,
+                    ),
+                    crate::asset::MeshVertex::new(Vec3::X, Vec3::Z, crate::core::math::Vec2::ZERO),
+                    crate::asset::MeshVertex::new(Vec3::Y, Vec3::Z, crate::core::math::Vec2::ZERO),
+                ],
+                indices: vec![0, 1, 2],
+                mesh: None,
+                virtual_geometry: None,
+            },
+        ),
+    ))
 }

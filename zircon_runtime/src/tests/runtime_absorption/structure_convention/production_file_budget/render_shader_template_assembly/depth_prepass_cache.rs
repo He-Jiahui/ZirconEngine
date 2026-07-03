@@ -15,6 +15,9 @@ fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
     );
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
+    let shader_source_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+    );
     let ensure_depth = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs",
     );
@@ -61,11 +64,11 @@ fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
         ],
     );
     assert_contains_all(
-        "depth prepass runtime variant maps to the normal-writing GBuffer template",
+        "depth prepass runtime variant maps to the DepthPrepass shader pass",
         &variant_registry,
         &[
-            "MeshPassPipelineKind::DepthPrepass => ShaderPassType::GBuffer",
-            "mesh_pipeline_variant_registry_maps_depth_prepass_to_normal_gbuffer_template",
+            "MeshPassPipelineKind::DepthPrepass => ShaderPassType::DepthPrepass",
+            "mesh_pipeline_variant_registry_maps_depth_prepass_to_depth_prepass_pass_type",
         ],
     );
     assert_contains_all(
@@ -73,8 +76,15 @@ fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
         &shader_source,
         &[
             "mesh_pipeline_depth_prepass_template_source_for_geometry",
-            "ShaderPassType::GBuffer",
-            "mesh_pipeline_depth_prepass_template_source_writes_normal_target",
+            "ShaderPassType::DepthPrepass",
+        ],
+    );
+    assert_contains_all(
+        "depth prepass shader source tests keep depth-only template coverage",
+        &shader_source_tests,
+        &[
+            "mesh_pipeline_depth_prepass_template_source_uses_depth_only_template",
+            "mesh_pipeline_standard_material_shader_pass_source_keeps_depth_only_contract",
         ],
     );
     assert_contains_all(
@@ -90,15 +100,15 @@ fn runtime_15_depth_prepass_pipeline_template_cache_is_mesh_cache_owned() {
         ],
     );
     assert_contains_all(
-        "depth prepass WGPU pipeline writes normal target and depth",
+        "depth prepass WGPU pipeline declares depth-only template entries and static layout",
         &depth_pipeline,
         &[
-            "NORMAL_FORMAT",
             "entry_point: Some(\"vs_main\")",
-            "entry_point: Some(\"fs_main\")",
+            "key.is_alpha_mask()",
+            "targets: &[]",
             "depth_write_enabled: Some(true)",
             "GpuMeshVertex::layout()",
-            "depth_prepass_mesh_pipeline_declares_normal_target_template_entries_and_static_layout",
+            "depth_prepass_mesh_pipeline_declares_depth_only_template_entries_and_static_layout",
             "depth_prepass_mesh_pipeline_creates_on_wgpu_device_with_template_shader",
             "push_error_scope(wgpu::ErrorFilter::Validation)",
             "GpuScene::new",

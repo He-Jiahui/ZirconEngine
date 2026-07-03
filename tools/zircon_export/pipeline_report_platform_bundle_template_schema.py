@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-from pathlib import Path
 from typing import Any
 
 from .export_template import (
@@ -13,27 +11,22 @@ from .export_template import (
     EXPORT_TEMPLATE_ALLOWED_PLUGIN_STRATEGIES,
     EXPORT_TEMPLATE_ALLOWED_RESOURCE_STRATEGIES,
     EXPORT_TEMPLATE_FORMAT_VERSION,
-    compute_template_content_hash,
-    is_safe_relative_path,
-    is_sha256_hex,
-    normalize_relative_path,
-    normalize_target_platform,
 )
 from .pipeline_report_platform_bundle_template_manifest_schema import (
     template_report_manifest_path_diagnostics,
 )
+from .pipeline_report_platform_bundle_template_bundle_files_schema import (
+    platform_bundle_template_bundle_files_schema_diagnostics,
+)
+from .pipeline_report_platform_bundle_template_report_semantics import (
+    template_report_identity_match_diagnostics,
+    template_report_profile_membership_diagnostics,
+)
+from .pipeline_report_platform_bundle_template_path_schema_helpers import (
+    table_sha256_hex_string_diagnostics,
+)
 from .pipeline_report_platform_bundle_template_schema_helpers import (
-    sequence_required_non_empty_string_diagnostics,
-    sequence_unique_relative_path_field_diagnostics,
-    sequence_present_non_blank_string_diagnostics,
-    sequence_present_trimmed_non_empty_string_diagnostics,
-    sequence_safe_relative_path_string_diagnostics,
-    sequence_sha256_hex_string_diagnostics,
-    sequence_string_schema_diagnostics,
-    sequence_unique_path_diagnostics,
-    sequence_unknown_field_diagnostics,
     table_bool_schema_diagnostics,
-    table_bundle_path_string_diagnostics,
     table_enum_string_diagnostics,
     table_integer_equals_diagnostics,
     table_integer_schema_diagnostics,
@@ -41,13 +34,11 @@ from .pipeline_report_platform_bundle_template_schema_helpers import (
     table_object_schema_diagnostics,
     table_present_trimmed_non_empty_string_diagnostics,
     table_required_non_empty_string_diagnostics,
-    table_sha256_hex_string_diagnostics,
     table_string_array_schema_diagnostics,
     table_string_array_entries_trimmed_non_empty_diagnostics,
     table_string_schema_diagnostics,
     table_unknown_field_diagnostics,
     table_unique_string_array_entries_schema_diagnostics,
-    table_whitespace_only_string_diagnostics,
 )
 
 PLATFORM_BUNDLE_TEMPLATE_REPORT_FIELDS = (
@@ -139,88 +130,6 @@ PLATFORM_BUNDLE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_OBJECT_FIELDS = (
 PLATFORM_BUNDLE_TEMPLATE_REPORT_REQUIRED_NON_FATAL_OBJECT_ARRAY_FIELDS = (
     PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_ARRAY_FIELDS
 )
-
-PLATFORM_BUNDLE_TEMPLATE_BUNDLE_FIELDS = (
-    "delta_pack_path",
-    "host_path",
-    "manifest_path",
-    "pack_path",
-    "root",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS = PLATFORM_BUNDLE_TEMPLATE_BUNDLE_FIELDS
-
-PLATFORM_BUNDLE_TEMPLATE_FILE_FIELDS = (
-    "bundle_path",
-    "path",
-    "purpose",
-    "sha256",
-)
-
-PLATFORM_BUNDLE_TEMPLATE_FILE_STRING_FIELDS = PLATFORM_BUNDLE_TEMPLATE_FILE_FIELDS
-
-PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS = ("destination", "source")
-
-PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS = (
-    PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS
-)
-
-def platform_bundle_template_copied_files_schema_diagnostics(
-    template_files: list[object],
-    label: str = "PlatformBundle report template_files",
-) -> list[str]:
-    diagnostics: list[str] = []
-    seen_entries: dict[tuple[str, str], int] = {}
-    for index, entry in enumerate(template_files):
-        if not isinstance(entry, dict):
-            diagnostics.append(f"{label}[{index}] must be an object")
-            continue
-        diagnostics.extend(
-            table_unknown_field_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_string_schema_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_required_non_empty_string_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_present_trimmed_non_empty_string_diagnostics(
-                f"{label}[{index}]",
-                entry,
-                PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
-            )
-        )
-        source = entry.get("source")
-        destination = entry.get("destination")
-        if (
-            isinstance(source, str)
-            and source.strip()
-            and isinstance(destination, str)
-            and destination.strip()
-        ):
-            key = (source, destination)
-            previous_index = seen_entries.get(key)
-            if previous_index is not None:
-                diagnostics.append(
-                    f"{label}[{index}] duplicates {label}[{previous_index}]"
-                )
-            else:
-                seen_entries[key] = index
-    return diagnostics
-
 
 def platform_bundle_template_report_schema_diagnostics(
     template: dict[str, Any],
@@ -331,111 +240,9 @@ def platform_bundle_template_report_schema_diagnostics(
             PLATFORM_BUNDLE_TEMPLATE_REPORT_OBJECT_ARRAY_FIELDS,
         )
     )
-    bundle = template.get("bundle")
-    if isinstance(bundle, dict):
-        diagnostics.extend(
-            table_unknown_field_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_string_schema_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_whitespace_only_string_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_present_trimmed_non_empty_string_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            table_bundle_path_string_diagnostics(
-                f"{label}.bundle",
-                bundle,
-                PLATFORM_BUNDLE_TEMPLATE_BUNDLE_STRING_FIELDS,
-            )
-        )
-    files = template.get("files")
-    if isinstance(files, list):
-        diagnostics.extend(
-            sequence_unknown_field_diagnostics(
-                f"{label}.files",
-                files,
-                PLATFORM_BUNDLE_TEMPLATE_FILE_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            sequence_string_schema_diagnostics(
-                f"{label}.files",
-                files,
-                PLATFORM_BUNDLE_TEMPLATE_FILE_STRING_FIELDS,
-            )
-        )
-        diagnostics.extend(
-            sequence_required_non_empty_string_diagnostics(
-                f"{label}.files",
-                files,
-                ("bundle_path", "path", "sha256"),
-            )
-        )
-        diagnostics.extend(
-            sequence_present_non_blank_string_diagnostics(
-                f"{label}.files",
-                files,
-                ("purpose",),
-            )
-        )
-        diagnostics.extend(
-            sequence_present_trimmed_non_empty_string_diagnostics(
-                f"{label}.files",
-                files,
-                ("bundle_path", "path", "purpose", "sha256"),
-            )
-        )
-        diagnostics.extend(
-            sequence_sha256_hex_string_diagnostics(
-                f"{label}.files",
-                files,
-                ("sha256",),
-            )
-        )
-        diagnostics.extend(
-            sequence_safe_relative_path_string_diagnostics(
-                f"{label}.files",
-                files,
-                ("bundle_path", "path"),
-            )
-        )
-        diagnostics.extend(sequence_unique_path_diagnostics(f"{label}.files", files))
-        diagnostics.extend(
-            sequence_unique_relative_path_field_diagnostics(
-                f"{label}.files",
-                files,
-                "bundle_path",
-            )
-        )
-        diagnostics.extend(
-            template_report_host_executable_membership_diagnostics(
-                label,
-                template,
-                files,
-            )
-        )
-        diagnostics.extend(template_report_file_source_hash_diagnostics(label, template, files))
-        diagnostics.extend(template_report_content_hash_diagnostics(label, template, files))
+    diagnostics.extend(
+        platform_bundle_template_bundle_files_schema_diagnostics(label, template)
+    )
     return diagnostics
 
 
@@ -528,191 +335,6 @@ def template_report_compatible_profiles_schema_diagnostics(
     return diagnostics
 
 
-def template_report_file_entry_is_schema_clean(entry: dict[str, Any]) -> bool:
-    for field in ("bundle_path", "path"):
-        value = entry.get(field)
-        if not (
-            isinstance(value, str)
-            and value.strip()
-            and value.strip() == value
-            and is_safe_relative_path(normalize_relative_path(value))
-        ):
-            return False
-    sha256 = entry.get("sha256")
-    return (
-        isinstance(sha256, str)
-        and sha256.strip()
-        and sha256.strip() == sha256
-        and is_sha256_hex(sha256)
-    )
-
-
-def template_report_file_source_hash_diagnostics(
-    label: str,
-    template: dict[str, Any],
-    files: list[object],
-) -> list[str]:
-    template_dir = template.get("template_dir")
-    if not isinstance(template_dir, str) or not template_dir.strip():
-        return []
-    try:
-        template_root = Path(template_dir).expanduser().resolve()
-    except OSError as error:
-        return [f"{label}.template_dir could not be resolved: {error}"]
-    diagnostics: list[str] = []
-    for index, entry in enumerate(files):
-        if not isinstance(entry, dict):
-            continue
-        if not template_report_file_entry_is_schema_clean(entry):
-            continue
-        relative_path = entry.get("path")
-        sha256 = entry.get("sha256")
-        if not (
-            isinstance(relative_path, str)
-            and relative_path.strip()
-            and isinstance(sha256, str)
-            and is_sha256_hex(sha256)
-        ):
-            continue
-        normalized_path = normalize_relative_path(relative_path)
-        if not is_safe_relative_path(normalized_path):
-            continue
-        unresolved_path = template_root / normalized_path
-        try:
-            file_path = unresolved_path.resolve()
-        except OSError as error:
-            diagnostics.append(
-                f"{label}.files[{index}].path {unresolved_path} could not be resolved: {error}"
-            )
-            continue
-        try:
-            file_path.relative_to(template_root)
-        except ValueError:
-            diagnostics.append(f"{label}.files[{index}].path must be inside template_dir")
-            continue
-        if not file_path.exists():
-            diagnostics.append(f"{label}.files[{index}].path {file_path} does not exist")
-            continue
-        if not file_path.is_file():
-            diagnostics.append(f"{label}.files[{index}].path {file_path} is not a file")
-            continue
-        try:
-            actual_sha256 = hashlib.sha256(file_path.read_bytes()).hexdigest()
-        except OSError as error:
-            diagnostics.append(
-                f"{label}.files[{index}].path {file_path} could not be read: {error}"
-            )
-            continue
-        if sha256.lower() != actual_sha256:
-            diagnostics.append(
-                f"{label}.files[{index}].sha256 does not match actual {actual_sha256}"
-            )
-    return diagnostics
-
-
-def template_report_content_hash_diagnostics(
-    label: str,
-    template: dict[str, Any],
-    files: list[object],
-) -> list[str]:
-    normalized_files: list[dict[str, str]] = []
-    for entry in files:
-        if not isinstance(entry, dict):
-            return []
-        if not template_report_file_entry_is_schema_clean(entry):
-            return []
-        path = entry.get("path")
-        sha256 = entry.get("sha256")
-        if not (
-            isinstance(path, str)
-            and path.strip()
-            and isinstance(sha256, str)
-            and is_sha256_hex(sha256)
-        ):
-            return []
-        bundle_path = entry.get("bundle_path", "")
-        if not isinstance(bundle_path, str):
-            return []
-        normalized_files.append(
-            {
-                "path": path,
-                "bundle_path": bundle_path,
-                "sha256": sha256,
-            }
-        )
-    expected_hash = compute_template_content_hash(normalized_files)
-    diagnostics: list[str] = []
-    for field in PLATFORM_BUNDLE_TEMPLATE_REPORT_SHA256_FIELDS:
-        value = template.get(field)
-        if isinstance(value, str) and is_sha256_hex(value) and value.lower() != expected_hash:
-            diagnostics.append(
-                f"{label}.{field} does not match computed content hash {expected_hash}"
-            )
-    return diagnostics
-
-
-def template_report_identity_match_diagnostics(
-    label: str,
-    template: dict[str, Any],
-) -> list[str]:
-    diagnostics: list[str] = []
-    engine_version = template.get("engine_version")
-    expected_engine_version = template.get("expected_engine_version")
-    if (
-        isinstance(engine_version, str)
-        and engine_version.strip()
-        and isinstance(expected_engine_version, str)
-        and expected_engine_version.strip()
-        and engine_version != expected_engine_version
-    ):
-        diagnostics.append(
-            f"{label}.engine_version {engine_version} "
-            f"does not match expected_engine_version {expected_engine_version}"
-        )
-    target_platform = template.get("target_platform")
-    expected_target_platform = template.get("expected_target_platform")
-    if (
-        isinstance(target_platform, str)
-        and target_platform.strip()
-        and isinstance(expected_target_platform, str)
-        and expected_target_platform.strip()
-        and normalize_target_platform(target_platform)
-        != normalize_target_platform(expected_target_platform)
-    ):
-        diagnostics.append(
-            f"{label}.target_platform {target_platform} "
-            f"does not match expected_target_platform {expected_target_platform}"
-        )
-    return diagnostics
-
-
-def template_report_profile_membership_diagnostics(
-    label: str,
-    template: dict[str, Any],
-) -> list[str]:
-    profile = template.get("profile")
-    compatible_profiles = template.get("compatible_profiles")
-    if (
-        not isinstance(profile, str)
-        or not profile.strip()
-        or profile.strip() != profile
-        or not isinstance(compatible_profiles, list)
-        or not compatible_profiles
-        or any(
-            not isinstance(value, str)
-            or not value.strip()
-            or value.strip() != value
-            for value in compatible_profiles
-        )
-    ):
-        return []
-    if profile not in compatible_profiles:
-        return [
-            f"{label}.compatible_profiles does not include profile {profile}"
-        ]
-    return []
-
-
 def template_report_non_fatal_diagnostics_diagnostics(
     label: str,
     template: dict[str, Any],
@@ -740,47 +362,4 @@ def template_report_fatal_diagnostics_diagnostics(
         or not any(isinstance(entry, str) and entry.strip() for entry in diagnostics)
     ):
         return [f"{label} fatal report must include diagnostics"]
-    return []
-
-
-def template_report_host_executable_membership_diagnostics(
-    label: str,
-    template: dict[str, Any],
-    files: list[object],
-) -> list[str]:
-    template_dir = template.get("template_dir")
-    host_executable = template.get("host_executable")
-    if (
-        not isinstance(template_dir, str)
-        or not template_dir.strip()
-        or not isinstance(host_executable, str)
-        or not host_executable.strip()
-    ):
-        return []
-    declared_paths = {
-        entry["path"].replace("\\", "/")
-        for entry in files
-        if isinstance(entry, dict)
-        and template_report_file_entry_is_schema_clean(entry)
-    }
-    if not declared_paths:
-        return []
-    try:
-        template_root = Path(template_dir).expanduser().resolve()
-        host_path = Path(host_executable).expanduser().resolve()
-        relative_host = host_path.relative_to(template_root).as_posix()
-    except OSError as error:
-        return [f"{label}.host_executable could not be resolved: {error}"]
-    except ValueError:
-        return [
-            f"{label}.host_executable must be inside template_dir"
-        ]
-    if not host_path.exists():
-        return [f"{label}.host_executable {host_path} does not exist"]
-    if not host_path.is_file():
-        return [f"{label}.host_executable {host_path} is not a file"]
-    if relative_host not in declared_paths:
-        return [
-            f"{label}.host_executable must be listed in template.files[].path"
-        ]
     return []

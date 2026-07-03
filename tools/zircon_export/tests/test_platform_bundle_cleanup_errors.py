@@ -41,7 +41,7 @@ class PlatformBundleCleanupErrorsTests(unittest.TestCase):
                 original_rmtree(path)
 
             with mock.patch(
-                "tools.zircon_export.platform_bundle.shutil.rmtree",
+                "tools.zircon_export.platform_bundle_materialize.shutil.rmtree",
                 side_effect=rmtree_or_fail,
             ):
                 exit_code = _run_platform_bundle_quiet(args)
@@ -98,10 +98,10 @@ class PlatformBundleCleanupErrorsTests(unittest.TestCase):
                 original_rmtree(path)
 
             with mock.patch(
-                "tools.zircon_export.platform_bundle.shutil.copy2",
+                "tools.zircon_export.platform_bundle_materialize.shutil.copy2",
                 side_effect=copy_or_fail,
             ), mock.patch(
-                "tools.zircon_export.platform_bundle.shutil.rmtree",
+                "tools.zircon_export.platform_bundle_materialize.shutil.rmtree",
                 side_effect=rmtree_or_fail,
             ):
                 exit_code = _run_platform_bundle_quiet(args)

@@ -1,3 +1,7 @@
+use crate::core::framework::render::{
+    ComputeDispatchPlan, FullscreenPassPlan, ShaderNamedResourceBinding, ShaderResourceAccess,
+    ShaderResourceKind,
+};
 use crate::graphics::scene::RenderPassExecutorId;
 use crate::render_graph::{
     QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload,
@@ -37,6 +41,17 @@ impl RenderFeaturePassDescriptor {
 
     pub fn with_compute_workload(mut self, workload: RenderGraphComputeWorkload) -> Self {
         self.compute_workload = Some(workload);
+        self
+    }
+
+    pub fn with_compute_dispatch_plan(mut self, plan: &ComputeDispatchPlan) -> Self {
+        self.compute_workload = Some(RenderGraphComputeWorkload::from_shader_dispatch(plan));
+        self.push_shader_resource_bindings(&plan.resources);
+        self
+    }
+
+    pub fn with_fullscreen_pass_plan(mut self, plan: &FullscreenPassPlan) -> Self {
+        self.push_shader_resource_bindings(&plan.resources);
         self
     }
 
@@ -327,5 +342,117 @@ impl RenderFeaturePassDescriptor {
             external_binding,
         });
         self
+    }
+
+    fn push_shader_resource_bindings(&mut self, bindings: &[ShaderNamedResourceBinding]) {
+        self.resources.extend(
+            bindings
+                .iter()
+                .filter_map(render_feature_resource_for_shader_binding),
+        );
+    }
+}
+
+fn render_feature_resource_for_shader_binding(
+    binding: &ShaderNamedResourceBinding,
+) -> Option<RenderFeatureResourceDescriptor> {
+    let kind = match binding.kind {
+        ShaderResourceKind::UniformBuffer | ShaderResourceKind::StorageBuffer => {
+            RenderFeatureResourceKind::Buffer
+        }
+        ShaderResourceKind::Texture | ShaderResourceKind::StorageTexture => {
+            RenderFeatureResourceKind::Texture
+        }
+        ShaderResourceKind::Sampler => return None,
+    };
+    let access = match binding.access {
+        ShaderResourceAccess::Read => RenderFeatureResourceAccess::Read,
+        ShaderResourceAccess::ReadWrite | ShaderResourceAccess::Write => {
+            RenderFeatureResourceAccess::Write
+        }
+    };
+    let write_mode = if matches!(access, RenderFeatureResourceAccess::Write)
+        || matches!(
+            binding.kind,
+            ShaderResourceKind::StorageBuffer | ShaderResourceKind::StorageTexture
+        ) {
+        RenderFeatureResourceWriteMode::Storage
+    } else {
+        RenderFeatureResourceWriteMode::Attachment
+    };
+
+    Some(RenderFeatureResourceDescriptor {
+        name: binding.name.clone(),
+        kind,
+        access,
+        attachment_ops: None,
+        write_mode,
+        external_binding: RenderGraphExternalResourceBinding::report_only(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
+
+    use super::*;
+    use crate::core::framework::render::{
+        ComputeDispatchBuilder, ComputeKernelRef, RenderShaderEntryPointDescriptor,
+        RenderShaderStage, ShaderAssetKind, ShaderDispatchExtent, ShaderResourceDescriptor,
+    };
+
+    #[test]
+    fn feature_pass_descriptor_consumes_shader_compute_dispatch_plan_resources() {
+        let shader = AssetReference::from_locator(
+            ResourceLocator::parse("builtin://shaders/compute/clustered_lighting").unwrap(),
+        );
+        let mut dispatch = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader, "cs_main"));
+        dispatch
+            .with_pipeline_label("zircon-cluster-pipeline")
+            .with_workgroup_size([8, 8, 1])
+            .bind_storage_write("light-list")
+            .bind_sampler("linear_sampler")
+            .dispatch_extent(ShaderDispatchExtent::ClusterGrid);
+        let dispatch = dispatch
+            .build(
+                ShaderAssetKind::Compute,
+                &[RenderShaderEntryPointDescriptor {
+                    name: "cs_main".to_string(),
+                    stage: RenderShaderStage::Compute,
+                }],
+                &[
+                    ShaderResourceDescriptor {
+                        name: "light-list".to_string(),
+                        kind: ShaderResourceKind::StorageBuffer,
+                        access: Some(ShaderResourceAccess::Write),
+                    },
+                    ShaderResourceDescriptor {
+                        name: "linear_sampler".to_string(),
+                        kind: ShaderResourceKind::Sampler,
+                        access: Some(ShaderResourceAccess::Read),
+                    },
+                ],
+            )
+            .unwrap();
+
+        let pass = RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "light-grid-build",
+            QueueLane::AsyncCompute,
+        )
+        .with_compute_dispatch_plan(&dispatch);
+
+        assert_eq!(
+            pass.compute_workload.as_ref().unwrap().pipeline_label,
+            "zircon-cluster-pipeline"
+        );
+        assert_eq!(pass.resources.len(), 1);
+        assert_eq!(pass.resources[0].name, "light-list");
+        assert_eq!(pass.resources[0].kind, RenderFeatureResourceKind::Buffer);
+        assert_eq!(pass.resources[0].access, RenderFeatureResourceAccess::Write);
+        assert_eq!(
+            pass.resources[0].write_mode,
+            RenderFeatureResourceWriteMode::Storage
+        );
     }
 }

@@ -5,9 +5,13 @@ use crate::asset::AssetImporterRegistry;
 use crate::core::manager::ResourceManagerHandle;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
+use crate::foundation::FOUNDATION_MODULE_NAME;
+
+use crate::core::runtime::modules::TASKS_MODULE_NAME;
 
 pub const ASSET_MODULE_NAME: &str = "AssetModule";
 pub const ASSET_IO_DRIVER_NAME: &str = "AssetModule.Driver.AssetIoDriver";
@@ -38,6 +42,9 @@ fn module_descriptor_with_asset_importers(
         ASSET_MODULE_NAME,
         "Asynchronous asset I/O and CPU-side decoding",
     )
+    .with_init_level(InitLevel::Servers)
+    .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(ASSET_MODULE_NAME, ServiceKind::Driver, "AssetIoDriver"),
         StartupMode::Immediate,

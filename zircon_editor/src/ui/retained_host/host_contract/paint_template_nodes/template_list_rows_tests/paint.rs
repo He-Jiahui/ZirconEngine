@@ -4,26 +4,46 @@ use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::push_list_row_commands;
-use super::support::{changed_pixel_count, list_node, list_node_with_flags, pixel_at};
+use super::support::{
+    changed_pixel_count, list_node, list_node_with_flags, matching_pixel_count, pixel_at,
+};
 
 #[test]
-fn selected_list_row_paints_muted_surface_left_indicator_and_navigation_adornment() {
+fn selected_list_row_paints_muted_selected_fill_neutral_outline_and_navigation_adornment() {
     let bytes = paint_template_nodes_for_test(
         160,
         40,
         model_rc(vec![list_node_with_flags(true, false, false)]),
     );
 
-    assert_eq!(pixel_at(&bytes, 160, 4, 18), PALETTE.accent);
+    assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.border) > 300);
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.accent),
+        0
+    );
+    assert!(matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_pressed) > 1200);
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_selected),
+        0
+    );
     assert_eq!(pixel_at(&bytes, 160, 12, 30), PALETTE.surface_pressed);
     assert!(changed_pixel_count(&bytes, 160, 135, 12, 16, 16) > 0);
 }
 
 #[test]
-fn checked_list_row_paints_right_check_with_selection_color() {
+fn checked_list_row_paints_right_check_with_muted_selected_fill() {
     let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![list_node(true, false)]));
 
-    assert_eq!(pixel_at(&bytes, 160, 4, 18), PALETTE.accent);
+    assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.border) > 300);
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.accent),
+        0
+    );
+    assert!(matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_pressed) > 1200);
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_selected),
+        0
+    );
     assert_eq!(pixel_at(&bytes, 160, 12, 30), PALETTE.surface_pressed);
     assert!(changed_pixel_count(&bytes, 160, 135, 12, 16, 16) > 0);
 }

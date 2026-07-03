@@ -34,8 +34,8 @@ fn runtime_15_shader_prewarm_custom_shading_model_id_is_wired() {
         "shader prewarm run forwards custom shading model ids to asset-root manifests",
         &run,
         &[
-            "asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_ids",
-            "&args.shading_model_ids",
+            "asset_root_manifest_with_resource_registry_revisions",
+            "&shading_model_ids",
         ],
     );
     assert_contains_all(

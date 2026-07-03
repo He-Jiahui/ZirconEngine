@@ -3,8 +3,10 @@ use crate::core::LifecycleState;
 
 use super::CoreHandle;
 
+mod batch;
 mod blocked_dependencies;
 mod blocked_unload;
+mod module_lifecycle;
 mod startup;
 mod unload_mutation;
 
@@ -13,6 +15,14 @@ use self::unload_mutation::unload_services;
 
 impl CoreHandle {
     pub fn activate_module(&self, module_name: &str) -> Result<(), CoreError> {
+        self.activate_module_with_ready_timeout(module_name, Default::default())
+    }
+
+    pub fn activate_module_with_ready_timeout(
+        &self,
+        module_name: &str,
+        ready_timeout: std::time::Duration,
+    ) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "activate_module");
         let startup_services = {
             let mut modules = self.lock_modules();
@@ -31,16 +41,21 @@ impl CoreHandle {
         };
 
         let result = (|| {
+            self.build_module(module_name)?;
+
             if !startup_services.is_empty() {
                 self.resolve_startup_services(startup_services.as_ref())?;
             }
 
+            self.wait_until_module_ready(module_name, ready_timeout)?;
+            self.finish_module(module_name)?;
             self.finish_module_activation(module_name)?;
             self.activate_plugin_bridge_provider_for_runtime_module(module_name);
             Ok(())
         })();
 
         if result.is_err() {
+            self.reset_started_services(startup_services.as_ref());
             self.reset_initializing_module(module_name);
         }
 
@@ -74,6 +89,7 @@ impl CoreHandle {
                 return Err(CoreError::UnloadBlocked(service_name, dependents));
             }
 
+            self.cleanup_module(module_name)?;
             self.deactivate_plugin_bridge_provider_for_runtime_module(module_name)?;
 
             if !unload_order.is_empty() {

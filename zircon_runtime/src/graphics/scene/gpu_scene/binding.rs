@@ -7,6 +7,11 @@ pub(crate) const GPU_SCENE_SKINNED_JOINT_PALETTE_BINDING: u32 = 3;
 pub(crate) const GPU_SCENE_PREVIOUS_SKINNED_JOINT_PALETTE_BINDING: u32 = 4;
 pub(crate) const GPU_SCENE_VISIBLE_INSTANCE_REMAP_BINDING: u32 = 5;
 pub(crate) const GPU_SCENE_VISIBLE_INSTANCE_REMAP_PARAMS_BINDING: u32 = 6;
+pub(crate) const GPU_SCENE_MORPH_DELTAS_BINDING: u32 = 7;
+pub(crate) const GPU_SCENE_MORPH_WEIGHTS_BINDING: u32 = 8;
+pub(crate) const GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING: u32 = 9;
+pub(crate) const GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING: u32 = 10;
+pub(crate) const GPU_SCENE_MORPH_PAYLOADS_BINDING: u32 = 11;
 
 const GPU_SCENE_STORAGE_VISIBILITY: wgpu::ShaderStages =
     wgpu::ShaderStages::VERTEX_FRAGMENT.union(wgpu::ShaderStages::COMPUTE);
@@ -63,6 +68,11 @@ pub(crate) fn create_gpu_scene_bind_group(
     previous_skinned_joint_palette_buffer: &wgpu::Buffer,
     visible_instance_remap_buffer: &wgpu::Buffer,
     visible_instance_remap_params_buffer: &wgpu::Buffer,
+    morph_deltas_buffer: &wgpu::Buffer,
+    morph_weights_buffer: &wgpu::Buffer,
+    virtual_geometry_pages_buffer: &wgpu::Buffer,
+    virtual_geometry_clusters_buffer: &wgpu::Buffer,
+    morph_payloads_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
     device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-gpu-scene-storage-bind-group"),
@@ -87,13 +97,24 @@ pub(crate) fn create_gpu_scene_bind_group(
                 GPU_SCENE_VISIBLE_INSTANCE_REMAP_PARAMS_BINDING,
                 visible_instance_remap_params_buffer,
             ),
+            storage_binding(GPU_SCENE_MORPH_DELTAS_BINDING, morph_deltas_buffer),
+            storage_binding(GPU_SCENE_MORPH_WEIGHTS_BINDING, morph_weights_buffer),
+            storage_binding(
+                GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING,
+                virtual_geometry_pages_buffer,
+            ),
+            storage_binding(
+                GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING,
+                virtual_geometry_clusters_buffer,
+            ),
+            storage_binding(GPU_SCENE_MORPH_PAYLOADS_BINDING, morph_payloads_buffer),
         ],
     })
 }
 
 pub(crate) fn gpu_scene_bind_group_layout_entries(
     skinned_joint_palette_min_binding_size: wgpu::BufferSize,
-) -> [wgpu::BindGroupLayoutEntry; 7] {
+) -> [wgpu::BindGroupLayoutEntry; 12] {
     [
         storage_layout_entry(GPU_SCENE_PRIMITIVE_DATA_BINDING),
         storage_layout_entry(GPU_SCENE_INSTANCE_DATA_BINDING),
@@ -108,6 +129,11 @@ pub(crate) fn gpu_scene_bind_group_layout_entries(
         ),
         storage_layout_entry(GPU_SCENE_VISIBLE_INSTANCE_REMAP_BINDING),
         remap_params_layout_entry(GPU_SCENE_VISIBLE_INSTANCE_REMAP_PARAMS_BINDING),
+        storage_layout_entry(GPU_SCENE_MORPH_DELTAS_BINDING),
+        storage_layout_entry(GPU_SCENE_MORPH_WEIGHTS_BINDING),
+        storage_layout_entry(GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING),
+        storage_layout_entry(GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING),
+        storage_layout_entry(GPU_SCENE_MORPH_PAYLOADS_BINDING),
     ]
 }
 
@@ -180,6 +206,7 @@ fn uniform_binding(binding: u32, buffer: &wgpu::Buffer) -> wgpu::BindGroupEntry<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::graphics::resource_limits::GPU_SCENE_COMPUTE_STORAGE_BUFFERS_PER_SHADER_STAGE;
 
     fn test_joint_palette_min_binding_size() -> wgpu::BufferSize {
         wgpu::BufferSize::new(16).expect("test joint palette binding size is non-zero")
@@ -188,7 +215,7 @@ mod tests {
     #[test]
     fn render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings() {
         let entries = gpu_scene_bind_group_layout_entries(test_joint_palette_min_binding_size());
-        assert_eq!(entries.len(), 7);
+        assert_eq!(entries.len(), 12);
         assert_eq!(entries[0].binding, GPU_SCENE_PRIMITIVE_DATA_BINDING);
         assert_eq!(entries[1].binding, GPU_SCENE_INSTANCE_DATA_BINDING);
         assert_eq!(entries[2].binding, GPU_SCENE_LIGHT_DATA_BINDING);
@@ -202,10 +229,30 @@ mod tests {
             entries[6].binding,
             GPU_SCENE_VISIBLE_INSTANCE_REMAP_PARAMS_BINDING
         );
+        assert_eq!(entries[7].binding, GPU_SCENE_MORPH_DELTAS_BINDING);
+        assert_eq!(entries[8].binding, GPU_SCENE_MORPH_WEIGHTS_BINDING);
+        assert_eq!(entries[9].binding, GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING);
+        assert_eq!(
+            entries[10].binding,
+            GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING
+        );
+        assert_eq!(entries[11].binding, GPU_SCENE_MORPH_PAYLOADS_BINDING);
 
-        for entry in entries.iter().take(3) {
+        for entry in entries.iter().filter(|entry| {
+            matches!(
+                entry.binding,
+                GPU_SCENE_PRIMITIVE_DATA_BINDING
+                    | GPU_SCENE_INSTANCE_DATA_BINDING
+                    | GPU_SCENE_LIGHT_DATA_BINDING
+                    | GPU_SCENE_VISIBLE_INSTANCE_REMAP_BINDING
+                    | GPU_SCENE_MORPH_DELTAS_BINDING
+                    | GPU_SCENE_MORPH_WEIGHTS_BINDING
+                    | GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING
+                    | GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING
+                    | GPU_SCENE_MORPH_PAYLOADS_BINDING
+            )
+        }) {
             assert!(entry.visibility.contains(wgpu::ShaderStages::VERTEX));
-            assert!(entry.visibility.contains(wgpu::ShaderStages::FRAGMENT));
             assert!(entry.visibility.contains(wgpu::ShaderStages::COMPUTE));
             match &entry.ty {
                 wgpu::BindingType::Buffer {
@@ -220,15 +267,24 @@ mod tests {
             }
         }
 
-        for entry in entries.iter().skip(3) {
-            if entry.binding == GPU_SCENE_VISIBLE_INSTANCE_REMAP_BINDING {
+        for entry in entries
+            .iter()
+            .filter(|entry| entry.binding != GPU_SCENE_VISIBLE_INSTANCE_REMAP_BINDING)
+            .skip(3)
+        {
+            if entry.binding == GPU_SCENE_VISIBLE_INSTANCE_REMAP_PARAMS_BINDING {
                 assert!(entry.visibility.contains(wgpu::ShaderStages::VERTEX));
                 assert!(entry.visibility.contains(wgpu::ShaderStages::COMPUTE));
                 continue;
             }
-            if entry.binding == GPU_SCENE_VISIBLE_INSTANCE_REMAP_PARAMS_BINDING {
-                assert!(entry.visibility.contains(wgpu::ShaderStages::VERTEX));
-                assert!(entry.visibility.contains(wgpu::ShaderStages::COMPUTE));
+            if matches!(
+                entry.binding,
+                GPU_SCENE_MORPH_DELTAS_BINDING
+                    | GPU_SCENE_MORPH_WEIGHTS_BINDING
+                    | GPU_SCENE_VIRTUAL_GEOMETRY_PAGES_BINDING
+                    | GPU_SCENE_VIRTUAL_GEOMETRY_CLUSTERS_BINDING
+                    | GPU_SCENE_MORPH_PAYLOADS_BINDING
+            ) {
                 continue;
             }
             assert_eq!(entry.visibility, wgpu::ShaderStages::VERTEX);
@@ -251,5 +307,23 @@ mod tests {
                 other => panic!("expected skinned palette uniform binding, got {other:?}"),
             }
         }
+
+        let compute_storage_binding_count = entries
+            .iter()
+            .filter(|entry| {
+                entry.visibility.contains(wgpu::ShaderStages::COMPUTE)
+                    && matches!(
+                        entry.ty,
+                        wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { .. },
+                            ..
+                        }
+                    )
+            })
+            .count();
+        assert_eq!(
+            compute_storage_binding_count as u32,
+            GPU_SCENE_COMPUTE_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
     }
 }

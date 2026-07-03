@@ -36,8 +36,8 @@ fn native_window_hosting_plugin_contributes_window_views_and_capability() {
         .iter()
         .any(|template| template.id() == NATIVE_WINDOW_TEMPLATE_ID));
     for operation_path in [
-        "View.editor.workbench_window.Open",
-        "View.editor.prefab.Open",
+        "view.editor.workbench_window.open",
+        "view.editor.prefab.open",
     ] {
         assert!(registration
             .extensions

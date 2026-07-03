@@ -58,10 +58,10 @@ fn navigation_editor_plugin_contributes_authoring_extensions() {
             .any(|drawer| drawer.component_type() == component_type));
     }
     for operation in [
-        "View.navigation.surfaces.Open",
-        "View.navigation.agents_areas.Open",
-        "View.navigation.bake.Open",
-        "View.navigation.debug_gizmos.Open",
+        "view.navigation.surfaces.open",
+        "view.navigation.agents_areas.open",
+        "view.navigation.bake.open",
+        "view.navigation.debug_gizmos.open",
         NAVIGATION_BAKE_SCENE_OPERATION,
         NAVIGATION_BAKE_SURFACE_OPERATION,
         NAVIGATION_CLEAR_SURFACE_OPERATION,

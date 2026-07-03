@@ -2,7 +2,7 @@ use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
     RenderPassExecutorRegistration, RenderPassStage,
 };
-use zircon_runtime::render_graph::QueueLane;
+use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
 mod capability;
 mod plugin;
@@ -18,6 +18,9 @@ pub const FEATURE_NAME: &str = "vfx_graph";
 pub const SIMULATION_EXECUTOR_ID: &str = "vfx-graph.simulate";
 pub const TRANSPARENT_EXECUTOR_ID: &str = "vfx-graph.transparent";
 pub const VFX_EMITTER_COMPONENT_TYPE: &str = "rendering.Component.VfxEmitter";
+const VFX_GRAPH_SIMULATION_PIPELINE_LABEL: &str = "zircon-vfx-graph-simulate";
+const VFX_GRAPH_SIMULATION_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
+const VFX_GRAPH_SIMULATION_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct VfxGraphAsset {
@@ -97,6 +100,11 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::AsyncCompute,
             )
             .with_executor_id(SIMULATION_EXECUTOR_ID)
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                VFX_GRAPH_SIMULATION_PIPELINE_LABEL,
+                VFX_GRAPH_SIMULATION_WORKGROUP_SIZE,
+                VFX_GRAPH_SIMULATION_DISPATCH_GROUPS,
+            ))
             .write_buffer("vfx-particle-state"),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent,
@@ -126,6 +134,7 @@ fn noop_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime::render_graph::RenderGraphComputeDispatchExtent;
 
     #[test]
     fn vfx_graph_compile_report_requires_spawn_and_material() {
@@ -156,5 +165,17 @@ mod tests {
             .iter()
             .any(|dependency| dependency.plugin_id == "particles"));
         assert_eq!(report.extensions.render_features()[0].stage_passes.len(), 2);
+        let pass = &report.extensions.render_features()[0].stage_passes[0];
+        let workload = pass
+            .compute_workload
+            .as_ref()
+            .expect("vfx graph simulation pass should declare workload");
+        assert_eq!(pass.queue, QueueLane::AsyncCompute);
+        assert_eq!(workload.pipeline_label, VFX_GRAPH_SIMULATION_PIPELINE_LABEL);
+        assert_eq!(workload.workgroup_size, VFX_GRAPH_SIMULATION_WORKGROUP_SIZE);
+        assert_eq!(
+            workload.dispatch_extent,
+            RenderGraphComputeDispatchExtent::Fixed(VFX_GRAPH_SIMULATION_DISPATCH_GROUPS)
+        );
     }
 }

@@ -43,6 +43,61 @@ fn model_asset_toml_roundtrip_preserves_virtual_geometry_payload() {
 }
 
 #[test]
+fn virtual_geometry_vertex_ordinals_pack_into_joint_index_slots() {
+    assert_eq!(
+        ModelPrimitiveAsset::encode_virtual_geometry_vertex_ordinal(65_537),
+        [1, 1]
+    );
+    assert_eq!(
+        ModelPrimitiveAsset::decode_virtual_geometry_vertex_ordinal([1, 1, 99, 88]),
+        65_537
+    );
+
+    let mut primitive = ModelPrimitiveAsset {
+        vertices: vec![
+            MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
+                .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
+            MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X)
+                .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
+            MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y)
+                .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
+        ],
+        indices: vec![0, 1, 2],
+        mesh: None,
+        virtual_geometry: Some(sample_virtual_geometry_asset()),
+    };
+
+    primitive.assign_virtual_geometry_vertex_ordinals();
+
+    let ordinals = primitive
+        .vertices
+        .iter()
+        .map(|vertex| {
+            ModelPrimitiveAsset::decode_virtual_geometry_vertex_ordinal(vertex.joint_indices)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(ordinals, vec![0, 1, 2]);
+    assert_eq!(primitive.vertices[1].joint_indices[2], 7);
+    assert_eq!(primitive.vertices[1].joint_indices[3], 6);
+}
+
+#[test]
+fn virtual_geometry_vertex_ordinals_do_not_rewrite_non_vg_primitives() {
+    let vertices = vec![MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
+        .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0])];
+    let mut primitive = ModelPrimitiveAsset {
+        vertices: vertices.clone(),
+        indices: vec![0],
+        mesh: None,
+        virtual_geometry: None,
+    };
+
+    primitive.assign_virtual_geometry_vertex_ordinals();
+
+    assert_eq!(primitive.vertices, vertices);
+}
+
+#[test]
 fn model_asset_overview_reports_root_and_primitive_mesh_summary() {
     let asset = ModelAsset {
         uri: AssetUri::parse("res://models/overview.model.toml").unwrap(),

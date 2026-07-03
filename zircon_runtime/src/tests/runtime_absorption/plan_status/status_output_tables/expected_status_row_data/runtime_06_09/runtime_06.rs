@@ -29,6 +29,18 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 06 native hot-update/replay public-surface audit sync",
+        &[
+            "runtime_06_native_hot_update_replay_public_surface_audit_sync_static_passed_cargo_deferred",
+            "NativePluginRuntimeDeltaHotUpdateReport",
+            "NativePluginRuntimeRegistrationReplayReport",
+            "native_namespace_reexport_count = 64",
+            "native loader test files 4/4",
+            "native test namespace import files 3/3",
+            "standalone plugin_surface_lifecycle 3/3",
+        ],
+    ),
+    (
         "Runtime 06 F8 RuntimePluginDescriptor builder scaffold",
         &[
             "runtime_plugin_descriptor_builder_scaffold_coremin_check_passed",
@@ -78,7 +90,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "plugin::native",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 60",
+            "native_namespace_reexport_count = 64",
             "M4 gate `classified-and-clear`",
         ],
     ),
@@ -131,8 +143,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 06 native loader test namespace migration",
         &[
             "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace",
-            "native loader test files 3/3",
-            "native test namespace import files 2/2",
+            "native loader test files 4/4",
+            "native test namespace import files 3/3",
             "native test root import leaks 0/0",
         ],
     ),

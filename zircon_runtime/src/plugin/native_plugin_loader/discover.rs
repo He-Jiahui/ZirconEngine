@@ -18,7 +18,7 @@ impl NativePluginLoader {
 
         let mut manifest_paths = Vec::new();
         if let Err(error) = collect_plugin_manifests(root, &mut manifest_paths) {
-            report.diagnostics.push(error);
+            report.diagnostics.push(error.to_string());
             return report;
         }
 

@@ -64,18 +64,18 @@ fn register_particles_component_drawers(
 }
 
 fn particles_authoring_batch() -> EditorAuthoringContributionBatch {
-    let create_asset = operation("Particles.Authoring.CreateCpuSpriteAsset");
-    let add_component = operation("Particles.Authoring.AddComponent");
-    let open_asset = operation("Particles.Authoring.OpenAsset");
-    let add_emitter = operation("Particles.Authoring.AddEmitter");
-    let add_module = operation("Particles.Authoring.AddModule");
-    let edit_curve = operation("Particles.Authoring.EditCurve");
-    let validate = operation("Particles.Authoring.ValidateAsset");
-    let preview_play = operation("Particles.Preview.Play");
-    let preview_pause = operation("Particles.Preview.Pause");
-    let preview_stop = operation("Particles.Preview.Stop");
-    let preview_rewind = operation("Particles.Preview.Rewind");
-    let preview_warmup = operation("Particles.Preview.Warmup");
+    let create_asset = operation("particles.authoring.create_cpu_sprite_asset");
+    let add_component = operation("particles.authoring.add_component");
+    let open_asset = operation("particles.authoring.open_asset");
+    let add_emitter = operation("particles.authoring.add_emitter");
+    let add_module = operation("particles.authoring.add_module");
+    let edit_curve = operation("particles.authoring.edit_curve");
+    let validate = operation("particles.authoring.validate_asset");
+    let preview_play = operation("particles.preview.play");
+    let preview_pause = operation("particles.preview.pause");
+    let preview_stop = operation("particles.preview.stop");
+    let preview_rewind = operation("particles.preview.rewind");
+    let preview_warmup = operation("particles.preview.warmup");
 
     EditorAuthoringContributionBatch {
         operations: vec![

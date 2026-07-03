@@ -10,7 +10,6 @@ use crate::graphics::scene::gpu_scene::{
 use crate::graphics::scene::resources::GpuMeshResource;
 
 use super::super::super::super::primitives::render_vec4_or;
-use super::super::super::mesh_draw::MeshDrawGeometrySource;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingSkinnedGpuSource};
 use super::previous_skinned_palette::{
     previous_skinned_gpu_state_for_gpu_scene_entry, skinned_gpu_source_state_for_pending_draw,
@@ -55,6 +54,13 @@ pub(super) fn sync_gpu_scene_pending_draws(
             stable_instance_key,
             skinned_gpu_source_state_for_pending_draw(pending_draw),
         );
+        gpu_scene.stage_current_morph_weights(
+            stable_instance_key,
+            pending_draw
+                .source_morph_weights
+                .as_ref()
+                .map(Vec::as_slice),
+        );
         let (previous_model_matrix, has_previous_velocity_transform) =
             previous_model_matrix_for_gpu_scene_entry(gpu_scene, pending_draw, entry);
         gpu_scene.write_primitive(
@@ -94,6 +100,7 @@ fn primitive_data_for_pending_draw(
     if has_previous_velocity_transform {
         flags |= GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM;
     }
+    let payload_slot = virtual_geometry_payload_slot_for_pending_draw(pending_draw);
 
     GpuPrimitiveData {
         bounds_center: [
@@ -111,7 +118,7 @@ fn primitive_data_for_pending_draw(
         flags,
         first_instance_index: entry.first_instance_index,
         instance_count: entry.instance_count,
-        payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+        payload_slot,
     }
 }
 
@@ -120,14 +127,24 @@ fn instance_data_for_pending_draw(
     entry: GpuSceneEntry,
     previous_model_matrix: [[f32; 4]; 4],
 ) -> GpuInstanceData {
+    let payload_slot = virtual_geometry_payload_slot_for_pending_draw(pending_draw);
     GpuInstanceData {
         world_from_local: pending_draw.model_matrix,
         prev_world_from_local: previous_model_matrix,
         primitive_index: entry.primitive_index,
         flags: 0,
-        payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
-        _pad0: 0,
+        payload_slot,
+        morph_payload_slot: pending_draw
+            .morph_payload_slot
+            .unwrap_or(GPU_SCENE_INVALID_PAYLOAD_SLOT),
     }
+}
+
+fn virtual_geometry_payload_slot_for_pending_draw(pending_draw: &PendingMeshDraw) -> u32 {
+    pending_draw
+        .indirect_draw_ref
+        .and_then(|draw_ref| draw_ref.segment_key.submission_slot)
+        .unwrap_or(GPU_SCENE_INVALID_PAYLOAD_SLOT)
 }
 
 fn previous_model_matrix_for_gpu_scene_entry(
@@ -226,17 +243,6 @@ fn resolve_skinned_gpu_source_mesh(
         PendingSkinnedGpuSource::Prepared(mesh) => mesh.clone(),
         PendingSkinnedGpuSource::CpuMorphed { primitive, .. } => {
             std::sync::Arc::new(GpuMeshResource::from_asset(device, primitive.clone()))
-        }
-    }
-}
-
-pub(super) fn skinned_gpu_source_geometry_source(
-    source: &PendingSkinnedGpuSource,
-) -> MeshDrawGeometrySource {
-    match source {
-        PendingSkinnedGpuSource::Prepared(_) => MeshDrawGeometrySource::Prepared,
-        PendingSkinnedGpuSource::CpuMorphed { .. } => {
-            MeshDrawGeometrySource::DynamicGpuSkinningSource
         }
     }
 }

@@ -124,3 +124,70 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
 
     let _ = fs::remove_dir_all(root);
 }
+
+#[test]
+fn shader_reimport_exports_updated_revision_for_prewarm_registry() {
+    let root = unique_temp_project_root("asset_manager_shader_revision_export");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let shader_path = paths.assets_root().join("shaders").join("pbr.wgsl");
+    write_valid_wgsl(shader_path.clone());
+    write_checker_png(paths.assets_root().join("textures").join("checker.png"));
+    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
+    write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
+
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
+    manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let baseline_revision = manager
+        .resource_revision("res://shaders/pbr.wgsl")
+        .expect("baseline shader revision");
+
+    fs::write(
+        &shader_path,
+        r#"
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
+    let x = f32(i32(vertex_index) - 1);
+    return vec4f(x, 0.2, 0.0, 1.0);
+}
+
+@fragment
+fn fs_main() -> @location(0) vec4f {
+    return vec4f(0.2, 0.8, 1.0, 1.0);
+}
+"#,
+    )
+    .unwrap();
+
+    manager.import_asset("res://shaders/pbr.wgsl").unwrap();
+
+    let shader_status = manager
+        .resource_status("res://shaders/pbr.wgsl")
+        .expect("updated shader resource status");
+    assert_eq!(shader_status.kind, ResourceKind::Shader);
+    assert_eq!(shader_status.state, ResourceState::Ready);
+    assert!(shader_status.revision > baseline_revision);
+
+    let exported_record = manager
+        .resource_manager()
+        .ready_records_for_kind(ResourceKind::Shader)
+        .into_iter()
+        .find(|record| record.primary_locator.to_string() == "res://shaders/pbr.wgsl")
+        .expect("edited shader ready record should be exported");
+    assert_eq!(exported_record.id, shader_status.id);
+    assert_eq!(exported_record.revision, shader_status.revision);
+    assert_eq!(exported_record.state, ResourceState::Ready);
+
+    let _ = fs::remove_dir_all(root);
+}

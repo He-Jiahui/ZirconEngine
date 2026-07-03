@@ -16,6 +16,9 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
     let extract_rebuild_owner = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs",
     );
+    let extract_rebuild_batch_owner = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
+    );
     let extract_residual_owner = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
     );
@@ -76,7 +79,7 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "pub(crate) struct PendingMeshCommandCachePlanStats",
             "fn summarize_pending_mesh_command_cache_plan(",
             "fn summarize_pending_mesh_command_cache_plan_items(",
-            "fn pending_mesh_draw_queue_profile(",
+            "pending_mesh_draw_queue_profile(",
             "fn pending_command_cache_plan_counts_static_opaque_phase_candidates",
             "fn pending_command_cache_plan_keeps_identity_candidate_when_visibility_prunes_phases",
         ],
@@ -92,17 +95,28 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "fn commands_for_extract_item(",
             "fn commands_for_extract_item_with_stats(",
             "residual_fallback::rebuild_non_material_command_or_record_residual",
-            "fn pending_mesh_command_cache_rebuild_batch(",
-            "fn pending_mesh_command_cache_rebuild_batch_for_phase(",
+            "rebuild_batch::pending_mesh_command_cache_rebuild_batch_for_phase(",
             "mod extract_item;",
             "mod fallback_tests;",
             "mod lazy_rebuild_tests;",
             "mod non_material_rebuild;",
+            "mod rebuild_batch;",
             "mod residual_fallback;",
             "mod second_frame_tests;",
             "mod visibility_tests;",
             "visibility_pruned_mesh_draw_count",
             "residual_material_phase_draw_count",
+        ],
+    );
+    assert_contains_all(
+        "pending command cache rebuild batch owner keeps lazy MeshBatchRef construction",
+        &extract_rebuild_batch_owner,
+        &[
+            "pub(super) fn pending_mesh_command_cache_rebuild_batch_for_phase(",
+            "fn pending_mesh_command_cache_rebuild_batch(",
+            "PendingMeshGeometry::Prepared(mesh)",
+            "non_material_rebuild::can_rebuild_non_material_command_phase(phase)",
+            "with_gpu_scene_instance_span(first_instance_index, instance_count)",
         ],
     );
     assert_contains_all(
@@ -120,7 +134,7 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
         "pending command cache non-material rebuild owner only rebuilds opaque shadow",
         &(extract_rebuild_owner.clone() + &extract_tests_owner),
         &[
-            "fn rebuild_non_material_command(",
+            "fn rebuild_non_material_command<R>(",
             "phase == RenderPhase::Shadow",
             "MeshDrawQueuePhase::Opaque => MeshPassPipelineKind::ShadowDepth",
             "MeshDrawQueuePhase::AlphaMask | MeshDrawQueuePhase::Transparent => return None",
@@ -136,8 +150,8 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
         &extract_residual_owner,
         &[
             "enum PendingMeshCommandCacheResidualReason",
-            "fn rebuild_non_material_command_or_record_residual(",
-            "fn rebuild_non_material_command(",
+            "fn rebuild_non_material_command_or_record_residual<R>(",
+            "fn rebuild_non_material_command<R>(",
             "fn record_residual_reason(",
             "PendingMeshCommandCacheResidualReason::MaterialPhase",
             "residual_material_phase_draw_count",
@@ -206,7 +220,7 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "PendingMeshCommandCachePlanStats",
             "PendingMeshCommandCacheExtractionStats",
             "pending_command_cache_plan_stats(&self)",
-            "pending_command_cache_extraction_stats(&self)",
+            "pending_command_cache_extraction_stats(",
             "prebuilt_mesh_pass_command_buffers",
             "with_pending_command_cache_extraction_stats",
             "with_pending_command_cache_plan_stats",
@@ -249,6 +263,11 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs",
             extract_rebuild_owner.as_str(),
             180,
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
+            extract_rebuild_batch_owner.as_str(),
+            120,
         ),
         (
             "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
@@ -336,6 +355,7 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs",
+                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs",

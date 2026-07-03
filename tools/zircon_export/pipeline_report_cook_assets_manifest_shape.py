@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .export_template import is_safe_relative_path, normalize_relative_path
+from .export_template_manifest import is_safe_relative_path, normalize_relative_path
 
 ASSET_MANIFEST_FIELDS = ("asset_filter", "assets", "roots")
 ASSET_MANIFEST_ASSET_FIELDS = ("dependencies", "labels", "path", "source")

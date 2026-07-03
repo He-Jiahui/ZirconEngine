@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use crate::core::framework::render::{RenderPhase, ShaderQualityTier};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshBatchRef, MeshDrawArgs,
-    MeshDrawCommand, MeshDrawCommandCacheStats, MeshDrawCommandList, MeshGeometryHandle,
-    MeshPassBuildContext, MeshPassCommandBuffers,
+    CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshBatchRef, MeshDrawCommand,
+    MeshDrawCommandCacheStats, MeshDrawCommandList, MeshPassBuildContext, MeshPassCommandBuffers,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::{
     MeshPipelineVariantRegistry, MeshPipelineVariantResolver,
@@ -20,6 +17,7 @@ mod fallback_tests;
 #[cfg(test)]
 mod lazy_rebuild_tests;
 mod non_material_rebuild;
+mod rebuild_batch;
 mod residual_fallback;
 #[cfg(test)]
 mod second_frame_tests;
@@ -102,7 +100,7 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
             item,
             visibility,
             |phase| {
-                pending_mesh_command_cache_rebuild_batch_for_phase(
+                rebuild_batch::pending_mesh_command_cache_rebuild_batch_for_phase(
                     draw,
                     item,
                     visibility,
@@ -216,6 +214,7 @@ where
             entity: item.entity,
             draw_ordinal: item.draw_ordinal,
             phase,
+            disabled_passes: item.disabled_passes,
         };
         match command_cache.lookup_status(&key, &item.static_state, generation) {
             CachedMeshDrawLookup::Hit(command) => {
@@ -270,69 +269,4 @@ where
         cache_stats,
         visibility_pruned: false,
     })
-}
-
-fn pending_mesh_command_cache_rebuild_batch(
-    pending_draw: &PendingMeshDraw,
-    item: PendingMeshCommandCacheExtractItem,
-    visibility: Option<PendingMeshCommandCacheVisibility>,
-    first_instance_index: u32,
-    instance_count: u32,
-) -> Option<MeshBatchRef> {
-    let PendingMeshGeometry::Prepared(mesh) = &pending_draw.mesh else {
-        return None;
-    };
-    let (primitive_relevance, main_view_visible, shadow_view_visible) = visibility
-        .map(|visibility| {
-            (
-                Some(visibility.relevance),
-                visibility.main_view_visible,
-                visibility.shadow_view_visible,
-            )
-        })
-        .unwrap_or((None, true, true));
-
-    Some(
-        MeshBatchRef::new(
-            item.queue_profile,
-            pending_draw.pipeline_key.clone(),
-            pending_draw.command_sort_input.components(),
-            MeshGeometryHandle::new(arc_id(mesh), mesh.clone()),
-            MeshDrawArgs::direct_indexed(pending_draw.first_index, pending_draw.draw_index_count),
-        )
-        .with_source_draw_index(item.source_draw_index)
-        .with_cache_identity(item.entity, item.draw_ordinal)
-        .with_static_state(item.static_state)
-        .with_casts_shadow(item.casts_shadow)
-        .with_taa_reactive_mask_strength(item.taa_reactive_mask_strength)
-        .with_visibility(primitive_relevance, main_view_visible, shadow_view_visible)
-        .with_gpu_scene_instance_span(first_instance_index, instance_count),
-    )
-}
-
-fn pending_mesh_command_cache_rebuild_batch_for_phase(
-    pending_draw: &PendingMeshDraw,
-    item: PendingMeshCommandCacheExtractItem,
-    visibility: Option<PendingMeshCommandCacheVisibility>,
-    phase: RenderPhase,
-    gpu_scene_instance_span_for_draw: &impl Fn(EntityId, u32) -> Option<(u32, u32)>,
-) -> Option<MeshBatchRef> {
-    if !non_material_rebuild::can_rebuild_non_material_command_phase(phase) {
-        return None;
-    }
-    gpu_scene_instance_span_for_draw(item.entity, item.draw_ordinal).and_then(
-        |(first_instance_index, instance_count)| {
-            pending_mesh_command_cache_rebuild_batch(
-                pending_draw,
-                item,
-                visibility,
-                first_instance_index,
-                instance_count,
-            )
-        },
-    )
-}
-
-fn arc_id<T>(value: &Arc<T>) -> u64 {
-    Arc::as_ptr(value) as usize as u64
 }

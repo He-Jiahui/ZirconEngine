@@ -558,28 +558,28 @@ kind = "native"
 type = "Button"
 control_id = "AssetBrowserPreviewTabButton"
 props = { text = "Preview" }
-layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.utility_references_button]
 kind = "native"
 type = "Button"
 control_id = "AssetBrowserReferencesTabButton"
 props = { text = "References" }
-layout = { width = { min = 106.0, preferred = 106.0, max = 106.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.utility_metadata_button]
 kind = "native"
 type = "Button"
 control_id = "AssetBrowserMetadataTabButton"
 props = { text = "Metadata" }
-layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.utility_plugins_button]
 kind = "native"
 type = "Button"
 control_id = "AssetBrowserPluginsTabButton"
 props = { text = "Plugins" }
-layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.utility_tabs_spacer]
 kind = "native"
@@ -591,20 +591,20 @@ kind = "native"
 type = "Label"
 control_id = "AssetBrowserSelectionLocatorText"
 props = { text = "Select an asset to inspect", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
-layout = { width = { min = 228.0, preferred = 228.0, max = 228.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.utility_tabs_row]
 kind = "native"
 type = "HorizontalBox"
 control_id = "AssetBrowserUtilityTabsRow"
-layout = { container = { kind = "HorizontalBox", gap = 8.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 children = [{ child = "utility_preview_button" }, { child = "utility_references_button" }, { child = "utility_metadata_button" }, { child = "utility_plugins_button" }, { child = "utility_tabs_spacer" }, { child = "utility_selection_locator_text" }]
 
 [nodes.utility_divider]
 kind = "native"
 type = "Space"
 control_id = "AssetBrowserUtilityDivider"
-layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 30.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 26.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
 
 [nodes.preview_visual_panel]
 kind = "native"

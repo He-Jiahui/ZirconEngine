@@ -8,7 +8,7 @@ from pathlib import Path
 from tools.zircon_export.native_dynamic_contract import (
     NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS,
 )
-from tools.zircon_export.native_dynamic_payload import (
+from tools.zircon_export.native_dynamic_payload_file_manifest import (
     native_dynamic_content_hash,
     native_dynamic_package_payload_file_manifest,
 )

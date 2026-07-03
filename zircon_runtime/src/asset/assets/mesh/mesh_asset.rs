@@ -81,6 +81,8 @@ impl MeshAsset {
     }
 
     pub fn from_model_primitive(uri: AssetUri, primitive: &ModelPrimitiveAsset) -> Self {
+        let mut primitive = primitive.clone();
+        primitive.assign_virtual_geometry_vertex_ordinals();
         let mut attributes = BTreeMap::new();
         attributes.insert(
             MESH_ATTRIBUTE_POSITION.to_string(),
@@ -198,7 +200,7 @@ impl MeshAsset {
             })
             .collect();
 
-        Ok(ModelPrimitiveAsset {
+        let mut primitive = ModelPrimitiveAsset {
             vertices,
             indices: self
                 .indices
@@ -206,7 +208,9 @@ impl MeshAsset {
                 .map_or_else(Vec::new, MeshIndices::to_u32_vec),
             mesh: None,
             virtual_geometry: self.virtual_geometry.clone(),
-        })
+        };
+        primitive.assign_virtual_geometry_vertex_ordinals();
+        Ok(primitive)
     }
 
     pub fn to_morphed_model_primitive(

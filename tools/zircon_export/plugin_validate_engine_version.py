@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .native_build import read_toml
-from .plugin_validate_distribution_contract import plugin_validate_parse_engine_version
+from .native_build_workspace import read_toml
+from .plugin_validate_distribution_engine_compat import (
+    plugin_validate_parse_engine_version,
+)
 
 
 PLUGIN_VALIDATE_ENGINE_VERSION_FIELD = "workspace.package.version"

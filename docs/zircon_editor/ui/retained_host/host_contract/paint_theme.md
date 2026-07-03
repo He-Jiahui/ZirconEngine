@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/src/ui/retained_host/asset_control_ids.rs
@@ -7,12 +9,18 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
 implementation_files:
+  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/src/ui/retained_host/asset_control_ids.rs
@@ -20,8 +28,13 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/command.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tab_like.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
@@ -71,6 +84,24 @@ tests:
   - paint-theme model/token ownership scan
   - scoped trailing whitespace scan
   - scoped git diff --check
+  - cargo fmt -p zircon_editor --check (2026-07-02 passed after retained appearance palette preference slice)
+  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never (2026-07-02 latest rerun passed with existing warnings)
+  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-0702-rerun --message-format short --color never (2026-07-02 latest rerun passed with existing warnings)
+  - cargo test -p zircon_editor host_control_metrics_project_from_editor_design_tokens --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 passed 1/1)
+  - cargo test -p zircon_editor asset_browser_toolbar_search_field_ignores_legacy_declared_chrome --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 passed 1/1)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)
+  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never (2026-07-02 passed with existing warnings)
+  - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-toolbar-0702 --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-07-02 passed 1/1, refreshed docs/tests/editor/editor-window-m3-asset-browser-900x620.png)
+  - rustfmt --check zircon_editor/src/ui/preferences.rs (2026-07-03 passed)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-03 passed with existing warnings)
+  - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 8/8)
+  - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs)
+  - preferences.rs concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
+  - rustfmt --check zircon_editor/src/ui/preferences.rs zircon_editor/src/ui/retained_host/app.rs (2026-07-03 passed after startup appearance load path)
+  - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 11/11 after startup appearance load path)
+  - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs at 08:17)
+  - preferences/app concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
 doc_type: module-detail
 ---
 
@@ -85,6 +116,16 @@ doc_type: module-detail
 The 2026-06-25 S15.1 hard cutover moved chrome atomic consumers onto `METRICS` directly: button content/glyph/text, text fields, dropdown labels/chevrons, icon-button radius and border width, axis value fields, and inspector row primitives no longer own local font, radius, inset, or chevron constants. The same slice added `retained_host/asset_control_ids.rs` so asset dispatch source and asset surface action/control-id normalization are shared by retained-host activation, text-input dispatch, and asset control callbacks instead of being duplicated in multiple leaves.
 
 The 2026-06-25 S15.6 palette cutover extended `EditorPaletteTokens` with retained-host semantic surface, state, separator, popup, track, focus, shadow, and semantic-container roles, mirrored those names in `editor_tokens.zui`, and made `PALETTE` come from `DEFAULT_HOST_PALETTE` in `palette_projection.rs`. Workbench style selector palettes now consume `PALETTE` roles instead of local handwritten RGBA values; the previous retained-host drift in border, primary text, muted text, disabled text, and error colors intentionally converges to the central workbench token values.
+
+The 2026-07-02 retained appearance preference follow-up makes that palette projection runtime-installable. `EditorAppearancePreferences` now exposes replacement hooks for typography, palette, control, density, and state-role tokens; retained-host startup installs both host text preferences and the current host palette from the same design-token source. `palette_projection.rs` owns the `HostMaterialPalette` projection plus the current host palette lock, and TextField/Search is the first style-selector family to consume `current_host_palette()` instead of production `PALETTE` constants. This keeps font family, color theme, and style density switchable through a single preference entry while leaving the actual preference UI and persisted settings for a later slice.
+
+The later 2026-07-02 toolbar preference-route pass extends the same appearance entry to retained-host control metrics and button chrome. `metrics.rs` keeps the Slate baseline as the default but adds `project_host_metrics(...)`, `apply_host_metrics_from_tokens(...)`, and `current_host_metrics()` so radius, border width, body/caption/title font sizes, line height, gaps, row height, and input/button geometry come from `EditorDesignTokens`. Retained-host startup now installs metrics, palette, and text preferences together. Button and Search/TextField consumers read the current metric/palette owners instead of writing concrete font families, component-local color themes, or toolbar-specific RGB values.
+
+The 2026-07-03 Asset Browser utility-tab follow-up keeps that same global route for selected tab-like buttons. Preview/References/Metadata/Plugins no longer get a filled selected pill from the local button selector; they keep transparent surface plus shared primary text and let the underline use `current_host_palette().accent`. `template_buttons/surface.rs` reads underline height and tab inset from `current_host_metrics()`, while selected toolbar chips still keep a low-emphasis framed surface. This changes selection style without adding a concrete font family, local RGB table, or component-owned theme override.
+
+The 2026-07-03 preference persistence foundation keeps that route global instead of binding fonts in controls. `EditorAppearancePreferencesDocument` is the versioned TOML shape for the active appearance profile plus the full `EditorDesignTokens` payload, and `EditorAppearancePreferenceStore` owns string/path load and save. The default document still uses only logical font families from `EditorTypographyTokens` (`system-ui` and `monospace`); a user-selected concrete font can be stored later as a global token value without touching button, table, tab, or label owners. Unsupported document versions parse and then fall back to the current default tokens rather than partially applying an unknown style payload.
+
+The follow-up startup path consumes that persisted shape without introducing a component-local font policy. `editor_startup_appearance_preferences()` reads the optional `ZIRCON_EDITOR_APPEARANCE_PREFERENCES` path and `run_editor_with_startup_request(...)` installs the loaded tokens before constructing the retained host window. Missing, empty, invalid, or unreadable preference files fall back to the default logical-family token set and emit a warning, so a bad user preference cannot strand editor startup. This mirrors the UE `FAppStyle` application-wide style entry: the startup path chooses the active style document, while controls keep reading the current host text, palette, and metric projections.
 
 The 2026-06-26 S15.6d/S15.6e command-button passes keep prominent Workbench command styling in `style_selector/workbench_button/command.rs`. Compile and asset import controls retain accent text and glyph color, but their surface and border come from the muted Workbench palette ladder instead of authored accent fill. This keeps command emphasis available without reintroducing a second color table or large cyan blocks in the module toolbar and Asset Browser command row.
 

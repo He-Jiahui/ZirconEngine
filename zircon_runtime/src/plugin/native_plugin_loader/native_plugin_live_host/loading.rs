@@ -7,13 +7,65 @@ use super::super::{LoadedNativePlugin, NativePluginLoadReport};
 use super::bridge_methods::{
     discovered_runtime_bridge_method_binding_diagnostics,
     discovered_runtime_bridge_method_binding_error_diagnostic,
-    discovered_runtime_bridge_method_bindings,
+    discovered_runtime_bridge_method_bindings_result, NativePluginBridgeMethodError,
 };
-use super::diagnostics::{diagnostics_from_behavior_report, load_report_diagnostics};
+use super::diagnostics::{
+    diagnostics_from_behavior_report, load_report_diagnostics, NativePluginBehaviorDiagnosticError,
+};
 use super::keys::{live_key, live_key_prefix, module_kind_label};
 use super::reports::NativePluginLiveHostLoadReport;
 use super::runtime_behavior::unload_behavior;
 use super::NativePluginLiveHost;
+
+pub(super) type NativePluginLiveHostLoadingResult<T> =
+    std::result::Result<T, NativePluginLiveHostLoadingError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginLiveHostLoadingError {
+    LiveHostLockPoisoned,
+    UnloadBeforeReload {
+        plugin_id: String,
+        module_kind: PluginModuleKind,
+        source: NativePluginBehaviorDiagnosticError,
+    },
+    RuntimeBridgeMethodBindings {
+        plugin_id: String,
+        source: Box<NativePluginBridgeMethodError>,
+    },
+}
+
+impl std::fmt::Display for NativePluginLiveHostLoadingError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LiveHostLockPoisoned => {
+                formatter.write_str("native plugin live host lock is poisoned")
+            }
+            Self::UnloadBeforeReload {
+                plugin_id,
+                module_kind,
+                source,
+            } => write!(
+                formatter,
+                "{} plugin {plugin_id} unload before reload failed: {source}",
+                module_kind_label(*module_kind)
+            ),
+            Self::RuntimeBridgeMethodBindings { plugin_id, source } => write!(
+                formatter,
+                "runtime plugin {plugin_id} bridge method binding install failed while loading: {source}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginLiveHostLoadingError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::UnloadBeforeReload { source, .. } => Some(source),
+            Self::RuntimeBridgeMethodBindings { source, .. } => Some(source.as_ref()),
+            Self::LiveHostLockPoisoned => None,
+        }
+    }
+}
 
 impl NativePluginLiveHost {
     pub fn load_runtime_plugins_from_export_root(
@@ -21,7 +73,8 @@ impl NativePluginLiveHost {
         export_root: impl AsRef<std::path::Path>,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
         let report = self.loader.load_runtime_from_load_manifest(export_root);
-        self.load_reported_plugins(report, PluginModuleKind::Runtime)
+        self.load_reported_plugins_result(report, PluginModuleKind::Runtime)
+            .map_err(|error| error.to_string())
     }
 
     pub fn load_editor_plugins_from_export_root(
@@ -29,7 +82,8 @@ impl NativePluginLiveHost {
         export_root: impl AsRef<std::path::Path>,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
         let report = self.loader.load_editor_from_load_manifest(export_root);
-        self.load_reported_plugins(report, PluginModuleKind::Editor)
+        self.load_reported_plugins_result(report, PluginModuleKind::Editor)
+            .map_err(|error| error.to_string())
     }
 
     pub fn load_runtime_plugins_from_project_root(
@@ -37,7 +91,8 @@ impl NativePluginLiveHost {
         root: impl AsRef<std::path::Path>,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
         let report = self.loader.load_discovered_runtime(root);
-        self.load_reported_plugins(report, PluginModuleKind::Runtime)
+        self.load_reported_plugins_result(report, PluginModuleKind::Runtime)
+            .map_err(|error| error.to_string())
     }
 
     pub fn load_editor_plugins_from_project_root(
@@ -45,11 +100,12 @@ impl NativePluginLiveHost {
         root: impl AsRef<std::path::Path>,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
         let report = self.loader.load_discovered_editor(root);
-        self.load_reported_plugins(report, PluginModuleKind::Editor)
+        self.load_reported_plugins_result(report, PluginModuleKind::Editor)
+            .map_err(|error| error.to_string())
     }
 
     pub fn loaded_plugin_ids(&self, module_kind: PluginModuleKind) -> Result<Vec<String>, String> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded).map_err(|error| error.to_string())?;
         let prefix = live_key_prefix(module_kind);
         Ok(loaded
             .keys()
@@ -60,9 +116,18 @@ impl NativePluginLiveHost {
 
     pub(super) fn load_reported_plugins(
         &self,
-        mut report: NativePluginLoadReport,
+        report: NativePluginLoadReport,
         module_kind: PluginModuleKind,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
+        self.load_reported_plugins_result(report, module_kind)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn load_reported_plugins_result(
+        &self,
+        mut report: NativePluginLoadReport,
+        module_kind: PluginModuleKind,
+    ) -> NativePluginLiveHostLoadingResult<NativePluginLiveHostLoadReport> {
         let runtime_plugin_registration_reports = match module_kind {
             PluginModuleKind::Runtime => report.runtime_plugin_registration_reports(),
             PluginModuleKind::Editor | PluginModuleKind::Native | PluginModuleKind::Vm => {
@@ -84,7 +149,7 @@ impl NativePluginLiveHost {
             let plugin_id = plugin.plugin_id.clone();
             let key = live_key(module_kind, &plugin_id);
             let bridge_binding_update = if module_kind == PluginModuleKind::Runtime {
-                match discovered_runtime_bridge_method_bindings(&plugin) {
+                match discovered_runtime_bridge_method_bindings_result(&plugin) {
                     Ok(Some(bindings)) => {
                         diagnostics.push(discovered_runtime_bridge_method_binding_diagnostics(
                             &plugin_id, &bindings,
@@ -112,7 +177,11 @@ impl NativePluginLiveHost {
                     Ok(unload_diagnostics) => diagnostics.extend(unload_diagnostics),
                     Err(error) => {
                         loaded.insert(key, existing);
-                        return Err(error);
+                        return Err(NativePluginLiveHostLoadingError::UnloadBeforeReload {
+                            plugin_id,
+                            module_kind,
+                            source: error,
+                        });
                     }
                 }
             }
@@ -125,7 +194,13 @@ impl NativePluginLiveHost {
         drop(loaded);
 
         for (plugin_id, bindings) in bridge_binding_updates {
-            self.replace_runtime_bridge_method_bindings(&plugin_id, bindings)?;
+            self.replace_runtime_bridge_method_bindings_result(&plugin_id, bindings)
+                .map_err(|source| {
+                    NativePluginLiveHostLoadingError::RuntimeBridgeMethodBindings {
+                        plugin_id,
+                        source: Box::new(source),
+                    }
+                })?;
         }
 
         loaded_plugin_ids.sort();
@@ -145,8 +220,8 @@ impl NativePluginLiveHost {
 
 pub(super) fn lock_loaded_native_plugins(
     loaded: &Mutex<BTreeMap<String, LoadedNativePlugin>>,
-) -> Result<MutexGuard<'_, BTreeMap<String, LoadedNativePlugin>>, String> {
+) -> NativePluginLiveHostLoadingResult<MutexGuard<'_, BTreeMap<String, LoadedNativePlugin>>> {
     loaded
         .lock()
-        .map_err(|_| "native plugin live host lock is poisoned".to_string())
+        .map_err(|_| NativePluginLiveHostLoadingError::LiveHostLockPoisoned)
 }

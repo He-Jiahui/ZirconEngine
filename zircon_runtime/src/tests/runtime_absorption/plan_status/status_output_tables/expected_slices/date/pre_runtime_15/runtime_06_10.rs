@@ -51,6 +51,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
             | "Runtime 07 owner-budget 37-hotspot 再同步"
     ) {
         Some("2026-06-15")
+    } else if slice == "Runtime 07 owner-budget 0-hotspot current audit sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 07 owner-budget 30-hotspot current audit sync"
         || slice == "Runtime 07 profile counter hotspot export"
         || slice == "Runtime 11 panic-safe handle completion"
@@ -97,6 +99,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-20")
     } else if slice == "Runtime 10 Dynamic API current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 10 Dynamic API 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 10 Dynamic API test boundary Markdown renderer split" {
         Some("2026-06-21")
     } else if slice == "Runtime 10 dynamic_api_session Cargo 验证窗口探测" {
@@ -113,6 +117,10 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-20")
     } else if slice == "Runtime 10 session lifecycle inventory split" {
         Some("2026-06-20")
+    } else if slice == "Runtime 10 session profile owner audit sync" {
+        Some("2026-07-01")
+    } else if slice == "Runtime 10 host-request payload test owner split" {
+        Some("2026-07-01")
     } else if slice == "Runtime 10 failure boundary inventory split" {
         Some("2026-06-20")
     } else if slice == "Runtime 10 ABI source inventory split" {
@@ -127,10 +135,14 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-21")
     } else if slice == "Runtime 09 UI architecture Markdown renderer split" {
         Some("2026-06-21")
+    } else if slice == "Runtime 09 UI entry map audit sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 06 plugin surface/lifecycle Markdown renderer split" {
         Some("2026-06-21")
     } else if slice == "Runtime 06 native plugin public-surface Markdown renderer split" {
         Some("2026-06-21")
+    } else if slice == "Runtime 06 native hot-update/replay public-surface audit sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 06 F8 RuntimePluginDescriptor builder scaffold" {
         Some("2026-06-22")
     } else if slice == "Runtime 06 F8 first-party RuntimePluginDescriptor builder migration" {
@@ -193,6 +205,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-21")
     } else if slice == "Runtime 08 ECS 数据面 current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 08 ECS 数据面 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 08 ECS source/test inventory split" {
         Some("2026-06-21")
     } else if slice == "Runtime 08 ECS anchor inventory split" {
@@ -201,6 +215,10 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-21")
     } else if slice == "Runtime 08 QueryState Markdown renderer split" {
         Some("2026-06-21")
+    } else if slice == "Runtime 08 QueryState many_item_array audit sync" {
+        Some("2026-07-01")
+    } else if slice == "Runtime 08 ECS hard-cutover owner inventory sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 08 ECS event owner folder split" {
         Some("2026-06-20")
     } else if slice == "Runtime 08 ECS message owner folder split" {

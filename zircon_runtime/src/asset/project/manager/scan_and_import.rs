@@ -1,11 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::core::framework::render::{
+    shader_project_namespace_from_name, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
+};
 use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceState};
 
 use crate::asset::project::{AssetMetaEntry, PreviewState};
 use crate::asset::{
     AssetId, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    ImportedAssetEntry,
+    ImportedAsset, ImportedAssetEntry,
 };
 
 use super::{
@@ -25,6 +28,7 @@ impl ProjectManager {
         let mut asset_ids_by_uuid = HashMap::new();
         let mut asset_uuids_by_id = HashMap::new();
         let mut dependencies_by_id = HashMap::new();
+        let mut shader_import_paths = HashMap::new();
         let mut imported = Vec::with_capacity(sources.len());
         self.asset_urls_by_uuid.clear();
 
@@ -45,7 +49,8 @@ impl ProjectManager {
             let previous_meta = meta.clone();
             meta.unit = source.unit;
             meta.included_files = source.included_files.clone();
-            let import_settings = meta.import_settings.clone();
+            let import_settings =
+                self.import_settings_for_source(&meta.import_settings, descriptor.as_ref());
             let config_hash = config_hash_for_settings(&import_settings);
             let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
 
@@ -84,17 +89,24 @@ impl ProjectManager {
                     .import_bytes(&file, &uri, source_bytes, import_settings);
             let metadata = match import_result {
                 Ok(outcome) => match validate_import_entries(&uri, &outcome) {
-                    Ok(()) => self.finish_successful_import(
-                        &source,
-                        &mut meta,
-                        meta_exists,
-                        &previous_meta,
-                        source_hash.clone(),
-                        source_mtime_unix_ms,
-                        config_hash,
-                        descriptor.as_ref(),
-                        outcome,
-                    )?,
+                    Ok(()) => {
+                        let mut outcome = outcome;
+                        append_shader_import_path_conflict_diagnostics(
+                            &mut outcome,
+                            &mut shader_import_paths,
+                        );
+                        self.finish_successful_import(
+                            &source,
+                            &mut meta,
+                            meta_exists,
+                            &previous_meta,
+                            source_hash.clone(),
+                            source_mtime_unix_ms,
+                            config_hash,
+                            descriptor.as_ref(),
+                            outcome,
+                        )?
+                    }
                     Err(error) => self.finish_failed_import(
                         &source,
                         &mut meta,
@@ -147,6 +159,21 @@ impl ProjectManager {
         self.asset_ids_by_uuid = asset_ids_by_uuid;
         self.asset_uuids_by_id = asset_uuids_by_id;
         Ok(imported)
+    }
+
+    fn import_settings_for_source(
+        &self,
+        settings: &toml::Table,
+        descriptor: Option<&AssetImporterDescriptor>,
+    ) -> toml::Table {
+        let mut settings = settings.clone();
+        if descriptor.is_some_and(|descriptor| descriptor.allows_output_kind(AssetKind::Shader)) {
+            settings.insert(
+                SHADER_IMPORT_PROJECT_NAMESPACE_SETTING.to_string(),
+                toml::Value::String(shader_project_namespace_from_name(&self.manifest.name)),
+            );
+        }
+        settings
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -349,6 +376,39 @@ impl ProjectManager {
             .with_diagnostics(vec![ResourceDiagnostic::error(
                 error.to_string(),
             )])])
+    }
+}
+
+fn append_shader_import_path_conflict_diagnostics(
+    outcome: &mut AssetImportOutcome,
+    seen_import_paths: &mut HashMap<String, crate::asset::AssetUri>,
+) {
+    let Some(root_entry) = outcome
+        .entries
+        .iter_mut()
+        .find(|entry| entry.locator.label().is_none())
+    else {
+        return;
+    };
+    let ImportedAsset::Shader(shader) = &root_entry.asset else {
+        return;
+    };
+    let Some(import_path) = shader
+        .import_path
+        .as_ref()
+        .filter(|path| !path.is_empty())
+        .cloned()
+    else {
+        return;
+    };
+    if let Some(first_uri) = seen_import_paths.get(&import_path) {
+        root_entry
+            .diagnostics
+            .push(ResourceDiagnostic::error(format!(
+            "shader import_path `{import_path}` conflicts with already imported shader {first_uri}"
+        )));
+    } else {
+        seen_import_paths.insert(import_path, root_entry.locator.clone());
     }
 }
 

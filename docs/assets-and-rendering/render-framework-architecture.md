@@ -46,6 +46,15 @@ related_code:
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/types.rs
+  - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs
+  - tools/tests/test_contact_shadow_render_layer_set_test_fixture.py
+  - zircon_plugins/virtual_geometry/runtime/src/provider.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_nanite_cpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
+  - tools/tests/test_virtual_geometry_render_layer_schema_v1_mask_callers.py
+  - tools/tests/test_plugin_docs_current_status_virtual_geometry_render_layer_schema_v1_mask_callers.py
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
   - zircon_runtime/src/core/framework/render/post_process/mod.rs
@@ -71,12 +80,14 @@ related_code:
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
+  - zircon_runtime/src/core/framework/render/material/property_override_block.rs
   - zircon_runtime/src/core/framework/render/material/texture_transform.rs
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
   - zircon_runtime/src/core/framework/render/sprite/image_mode.rs
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs
@@ -809,10 +820,12 @@ implementation_files:
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/property_override_block.rs
   - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
   - zircon_runtime/src/core/framework/render/sprite/image_mode.rs
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs
@@ -1460,6 +1473,8 @@ plan_sources:
   - docs/superpowers/plans/2026-05-18-srp-rendererdata-zmaterial-workflow.md
   - user: 2026-06-05 split SSR history resolve from final postprocess composition
 tests:
+  - cargo test -p zircon_runtime material_property_override_block_keeps_transparent_value_map_shape --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 support-first gate for atlas draw-plan validation: passed 1/1; `MaterialPropertyOverrideBlock` manual serde preserves transparent map JSON shape)
+  - cargo test -p zircon_runtime geometry_extract_excludes_material_override_entities_from_static_batches --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 support-first gate for atlas draw-plan validation: passed 1/1; frame_extract geometry test imports the current stable-instance-key helper)
   - "M0 docs acceptance only: no runtime tests required by plan"
   - cargo test -p zircon_runtime render_profile --locked
   - cargo check -p zircon_app --locked --all-targets
@@ -3349,3 +3364,27 @@ The backend capability vocabulary now includes the binding-array requirements ne
 `zircon_runtime::graphics::SolariRuntimeProviderRegistration` is collected through the same plugin extension and graphics-module path used by the advanced providers. `WgpuRenderFramework` selects one Solari provider by priority and submit builds `RenderStats.last_solari_runtime_report` from the resolved profile bundle, backend caps, provider availability, and `SolariSettings`. DefaultRender and AdvancedRender still report Solari as not requested; `RenderQualityProfile::with_solari(true)` is the runtime quality-profile opt-in for `SolariExperimental`.
 
 `zircon_plugins/solari/runtime` registers the provider contract and package capabilities `runtime.plugin.solari` and `runtime.render.experimental.solari`, but its provider deliberately reports `Unavailable` with a concrete message. This keeps app/profile/plugin wiring honest until a later milestone adds a real Solari pass executor.
+
+## 2026-07-03 Contact Shadow RenderLayerSet Fixture
+
+`plugins_13_m5_t1_contact_shadow_render_layer_set_test_fixture` keeps the contact-shadow WGPU product fixture aligned with the runtime render-layer collection contract. `zircon_plugin_rendering_contact_shadow_runtime` no longer writes the numeric `DEFAULT_RENDER_LAYER_MASK` directly into `RenderDirectionalLightSnapshot.layer_mask` or `RenderMeshSnapshot.render_layer_mask`; `wgpu_product_tests.rs` now uses `default_render_layer_set() -> RenderLayerSet` and `RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK)` at those fixture boundaries.
+
+The fix stays in the plugin test owner because the production runtime contract is already typed as `RenderLayerSet`. No compatibility shim, old `u32` field fallback, or root render facade widening was introduced. Guards are `tools/tests/test_contact_shadow_render_layer_set_test_fixture.py` and `tools/tests/test_plugin_docs_current_status_contact_shadow_render_layer_set_test_fixture.py`; validation passed `rustfmt --edition 2021 --check zircon_plugins\rendering\features\contact_shadow\runtime\src\wgpu_product_tests.rs` and `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_rendering_contact_shadow_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-contact-shadow-runtime-check-0703-codex --message-format short --color never` with existing `zircon_runtime` warnings.
+
+## 2026-07-03 Virtual Geometry RenderLayerSet Fixture
+
+`plugins_13_m5_t1_virtual_geometry_render_layer_schema_v1_mask_callers` keeps the Virtual Geometry runtime fixture/provider surface aligned with the runtime render-layer schema-v1 contract. `zircon_plugin_virtual_geometry_runtime` no longer calls retired `RenderLayerSet::from_legacy_mask`; `provider.rs`, `virtual_geometry_imported_extract.rs`, `virtual_geometry_nanite_cpu.rs`, and `virtual_geometry_render_framework_stats.rs` now call `RenderLayerSet::from_scene_schema_v1_mask(...)` at the same mask projection boundaries.
+
+The fix stays in the plugin runtime/test-source owners because the shared runtime `RenderLayerSet` API already exposes the schema-v1 constructor. No compatibility shim, old mask helper, or render root facade widening was introduced. Guards are `tools/tests/test_virtual_geometry_render_layer_schema_v1_mask_callers.py` and `tools/tests/test_plugin_docs_current_status_virtual_geometry_render_layer_schema_v1_mask_callers.py`; validation passed `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-workspace-check-0703-codex --message-format short --color never` with existing warnings.
+
+## 2026-07-03 Plugin AsyncCompute Workload Contract
+
+`plugins_13_m5_t1_async_compute_workload_and_workspace_followups_focused_passed` records the current render-graph contract for plugin feature descriptors: any plugin pass declaring `QueueLane::AsyncCompute` must also declare neutral `RenderGraphComputeWorkload` metadata. This keeps concrete WGPU pipelines and bind-group dispatch recording inside renderer executors, while letting `RenderPipelineAsset` compilation reject underspecified async compute passes before execution.
+
+The current first-party plugin descriptors now follow that contract for Hybrid GI (`zircon-hybrid-gi-trace-schedule`, `[8, 8, 1]`, fixed `[1, 1, 1]`), Virtual Geometry (`zircon-virtual-geometry-node-cluster-cull`, `[64, 1, 1]`, fixed `[1, 1, 1]`), Particles, SSAO, and VFX Graph. Focused package tests and root `graphics::tests::plugin_feature_compile::gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph` 1/1 passed; full plugin workspace test execution remains open.
+
+## 2026-07-04 Plugin Workspace Shader IDE Preview Re-export
+
+`plugins_13_m5_t1_plugin_workspace_locked_all_targets_test_execution_passed` also records the render-framework compile drift exposed by the plugin workspace test lane. `zircon_runtime/src/core/framework/render/mod.rs` now re-exports `ShaderIdePreviewVariant` alongside the existing shader IDE preview contracts, matching the type owner in `core/framework/render/shader` and avoiding a plugin-side compatibility alias. This keeps shader importer/editor users on the current render framework public surface while the shader module owner still owns the actual preview data model.
+
+Validation is included in the final plugin workspace command `CARGO_PROFILE_DEV_DEBUG=0 cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-net-runtime-worker-rerun-0703 --message-format short --color never -- --nocapture --test-threads=1`, whose status file `E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun13-final.status.json` records `ExitCode=0`, `ElapsedSeconds=1911.09`, and `FinishedAt=2026-07-04T00:47:52.6590709+08:00`.

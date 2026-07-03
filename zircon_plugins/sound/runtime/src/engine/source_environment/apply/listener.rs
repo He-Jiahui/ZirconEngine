@@ -42,7 +42,7 @@ pub(super) fn apply_listener_environment(
         active_volume.as_ref().map(|volume| volume.descriptor.id),
         ray_traced_impulse_responses,
     );
-    if !hrtf::apply_loaded_hrtf_profile_for_source(
+    let hrtf_applied = if hrtf::apply_loaded_hrtf_profile_for_source(
         buffer,
         channels,
         source_id,
@@ -50,6 +50,8 @@ pub(super) fn apply_listener_environment(
         hrtf_profiles,
         hrtf_states,
     ) {
+        true
+    } else {
         hrtf::apply_hrtf_preview(
             buffer,
             channels,
@@ -58,12 +60,12 @@ pub(super) fn apply_listener_environment(
             sample_rate_hz,
             source.spatial.spatial_blend.clamp(0.0, 1.0),
             spatial_scale,
-        );
-    }
+        )
+    };
 
     ListenerEnvironmentProjection {
         gain: spatial.gain,
-        pan: spatial.pan,
+        pan: if hrtf_applied { 0.0 } else { spatial.pan },
     }
 }
 

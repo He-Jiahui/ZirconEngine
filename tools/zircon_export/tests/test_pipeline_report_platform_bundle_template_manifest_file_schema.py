@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.zircon_export.export_template import compute_template_content_hash
+from tools.zircon_export.export_template_manifest import compute_template_content_hash
 from tools.zircon_export.pipeline_report import build_pipeline_report
 from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _read_stage_report,

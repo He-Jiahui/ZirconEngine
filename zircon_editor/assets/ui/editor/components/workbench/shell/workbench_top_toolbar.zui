@@ -191,7 +191,7 @@ events = [{ id = "WorkbenchModule/More", event = "Click", route = "workbench.mod
 component = "HorizontalGroup"
 control_id = "WorkbenchModuleCommands"
 classes = ["workbench-toolbar-group", "workbench-module-commands"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 330.0, preferred = 330.0, max = 330.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 350.0, preferred = 350.0, max = 350.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "module_save" }, { node = "module_browse" }, { node = "module_compile" }, { node = "module_diff" }, { node = "module_simulate" }]
 
 [nodes.module_save]
@@ -199,7 +199,7 @@ component = "WorkbenchButton"
 control_id = "WorkbenchModuleSave"
 classes = ["workbench-control-button", "workbench-module-command"]
 props = { text = "Save", icon = "zircon_editor_shell/toolbar/save.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", border_color = "#303840", layout_spacing = 4.0 }
-layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Save", event = "Click", route = "workbench.module.save" }]
 
 [nodes.module_browse]
@@ -207,7 +207,7 @@ component = "WorkbenchButton"
 control_id = "WorkbenchModuleBrowse"
 classes = ["workbench-control-button", "workbench-module-command"]
 props = { text = "Browse", icon = "zircon_editor_shell/toolbar/folder-open.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", border_color = "#303840", layout_spacing = 4.0 }
-layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Browse", event = "Click", route = "workbench.module.browse" }]
 
 [nodes.module_compile]
@@ -215,7 +215,7 @@ component = "WorkbenchButton"
 control_id = "WorkbenchModuleCompile"
 classes = ["workbench-control-button", "workbench-module-command"]
 props = { text = "Compile", icon = "zircon_editor_shell/toolbar/compile.svg", button_variant = "filled", button_color = "accent", button_size = "small", background_color = "#12383d", border_color = "#209fa8", selected = true, checked = true, layout_spacing = 4.0 }
-layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Compile", event = "Click", route = "workbench.module.compile" }]
 
 [nodes.module_diff]

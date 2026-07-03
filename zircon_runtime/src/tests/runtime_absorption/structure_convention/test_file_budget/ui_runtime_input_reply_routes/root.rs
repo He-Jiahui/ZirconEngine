@@ -24,7 +24,7 @@ fn runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed() {
         ],
     );
     assert_eq!(
-        parent.matches("#[test]").count(),
+        parent.matches(TEST_ATTRIBUTE).count(),
         0,
         "ui/tests/runtime_input_reply_routes.rs should only mount child test owners and shared helpers"
     );
@@ -76,7 +76,7 @@ fn runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed() {
         route_trace.as_str(),
     ]
     .into_iter()
-    .map(|source| source.matches("#[test]").count())
+    .map(|source| source.matches(TEST_ATTRIBUTE).count())
     .sum::<usize>();
     assert_eq!(
         child_test_total, 13,
@@ -113,7 +113,7 @@ fn runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

@@ -1,17 +1,8 @@
-version = 1
+kind = "surface"
+version = 2
 name = "Default PBR"
-import_path = "zircon::pbr"
+shading_model = "standard_pbr"
 wgsl_files = ["pbr.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-file = "pbr.wgsl"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
-file = "pbr.wgsl"
 
 [[properties]]
 name = "base_color"

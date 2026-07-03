@@ -14,7 +14,7 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let rhi_ui_doc = read_repo("docs/zircon_runtime/rhi/ui_surface.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
 
     assert_contains_all(

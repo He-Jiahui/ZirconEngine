@@ -44,3 +44,20 @@ fn segmented_and_tab_loading_state_uses_unavailable_visuals() {
     assert_eq!(tab.selected_text, PALETTE.text_disabled);
     assert_eq!(tab.idle_text, PALETTE.text_disabled);
 }
+
+#[test]
+fn selected_segment_uses_pressed_surface_and_accent_underline() {
+    let mut node = TemplatePaneNodeData::default();
+    node.selected = true;
+    node.checked = true;
+
+    let segmented = select_workbench_segmented_control_style(
+        &node,
+        WorkbenchSegmentedControlKind::SegmentedControl,
+    );
+
+    assert_eq!(segmented.selected_surface, PALETTE.surface_pressed);
+    assert_ne!(segmented.selected_surface, PALETTE.surface_selected);
+    assert_eq!(segmented.selected_underline, PALETTE.accent);
+    assert_eq!(segmented.selected_border_width, 0.0);
+}

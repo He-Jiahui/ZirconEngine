@@ -22,6 +22,7 @@ use super::node_and_cluster_cull::{
     RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
 };
+use super::page_payload::RenderVirtualGeometryPagePayload;
 use super::sources::{
     RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
@@ -33,6 +34,7 @@ use super::sources::{
 pub struct RenderVirtualGeometryDebugSnapshot {
     pub instances: Vec<RenderVirtualGeometryInstance>,
     pub page_dependencies: Vec<RenderVirtualGeometryPageDependency>,
+    pub resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
     pub debug: RenderVirtualGeometryDebugState,
     pub cull_input: RenderVirtualGeometryCullInputSnapshot,
     pub cluster_selection_input_source: RenderVirtualGeometryClusterSelectionInputSource,

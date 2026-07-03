@@ -67,6 +67,28 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
             "hybrid-gi-history",
         ]
     );
+    let trace_schedule_pass = feature
+        .stage_passes
+        .iter()
+        .find(|pass| pass.pass_name == "hybrid-gi-trace-schedule")
+        .expect("hybrid GI trace schedule pass");
+    assert_eq!(
+        trace_schedule_pass.queue,
+        zircon_runtime::render_graph::QueueLane::AsyncCompute
+    );
+    let trace_workload = trace_schedule_pass
+        .compute_workload
+        .as_ref()
+        .expect("hybrid GI trace schedule pass should declare compute workload metadata");
+    assert_eq!(
+        trace_workload.pipeline_label,
+        "zircon-hybrid-gi-trace-schedule"
+    );
+    assert_eq!(trace_workload.workgroup_size, [8, 8, 1]);
+    assert_eq!(
+        trace_workload.dispatch_extent,
+        zircon_runtime::render_graph::RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
+    );
     assert_eq!(report.extensions.render_pass_executors().len(), 4);
     assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
     assert_eq!(

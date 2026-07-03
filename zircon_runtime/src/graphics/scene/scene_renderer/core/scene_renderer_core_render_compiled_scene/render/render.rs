@@ -323,6 +323,8 @@ impl SceneRendererCore {
             self.gpu_scene.roll_prev_skinned_palettes_after_success();
         let _prev_skinned_source_roll_report =
             self.gpu_scene.roll_prev_skinned_gpu_sources_after_success();
+        let _prev_morph_weights_roll_report =
+            self.gpu_scene.roll_prev_morph_weights_after_success();
         Ok(match final_target_output.graph_import_report {
             Some(report) => outputs.with_output_target_graph_import_report(report),
             None => outputs,

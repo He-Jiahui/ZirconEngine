@@ -411,6 +411,13 @@ impl SceneRenderer {
             .scene_velocity_readback_report()
     }
 
+    #[cfg(test)]
+    pub(crate) fn last_scene_velocity_readback_rg16_float_bytes(&self) -> Option<Vec<u8>> {
+        self.last_render_graph_execution
+            .scene_velocity_readback_rg16_float_bytes()
+            .map(<[u8]>::to_vec)
+    }
+
     pub(crate) fn last_color_lut_readback_report(
         &self,
     ) -> crate::core::framework::render::RenderColorLutReadbackReport {

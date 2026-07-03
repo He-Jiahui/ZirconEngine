@@ -10,9 +10,9 @@ included_files = [
 ]
 artifact_locator = "lib://shaders/e1b52f39-5e12-878b-a2e4-ebe036ce91c2.zasset"
 importer_id = "zircon.builtin.shader.zshader_package"
-config_hash = "bd60acb658c79e45"
-source_mtime_unix_ms = 1782057574275
-source_hash = "a14acee5b296ccf9"
+config_hash = "8b08af2c8fb73523"
+source_mtime_unix_ms = 1783114857629
+source_hash = "c81ba616ba891ee0"
 preview_state = "ready"
 importer_version = 1
 migration_summary = ""

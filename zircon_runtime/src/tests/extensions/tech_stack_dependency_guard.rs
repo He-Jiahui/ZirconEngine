@@ -362,21 +362,21 @@ fn complex_text_backends_can_only_enter_through_ui_text_shaper() {
     );
     assert!(
         shaper.contains("active_layout_backend_for_intent")
-            && shaper.contains("UiTextBackendIntent::NativeGlyphon | UiTextBackendIntent::SdfAtlas")
-            && shaper.contains("UiTextBackendIntent::Heuristic"),
-        "NativeGlyphon and SdfAtlas layout intents should remain explicit while current layout still falls back to heuristic"
+            && shaper.contains("UiTextBackendIntent::NativeGlyphon")
+            && shaper.contains("UiTextBackendIntent::SdfAtlas")
+            && shaper.contains("UiTextBackendIntent::SharedTextService"),
+        "NativeGlyphon and SdfAtlas layout intents should remain explicit while current layout uses the shared text service"
     );
     assert!(
-        shaper.contains("glyphon native text backend is not connected to layout yet")
-            && shaper.contains("SDF atlas text backend is not connected to layout yet"),
-        "current text-stack fallback reasons should stay visible until a real backend is connected"
+        shaper.contains("fallback_reason_for_backend") && shaper.contains("None"),
+        "current text-stack selection should keep fallback reasons absent while SharedTextService is the active layout backend"
     );
     assert!(
-        shaper_tests.contains("heuristic_text_shaper_matches_public_layout_entrypoint")
+        shaper_tests.contains("shared_text_shaper_matches_public_layout_entrypoint")
             && shaper_tests.contains(
-                "text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land"
+                "text_shaper_stack_uses_shared_text_service_for_font_backends"
             ),
-        "runtime text tests should lock public layout parity and current heuristic fallback behavior"
+        "runtime text tests should lock public layout parity and current SharedTextService backend behavior"
     );
     assert!(
         tech_stack.contains("cosmic-text")
@@ -412,15 +412,13 @@ fn runtime_text_doc_records_three_layer_stack_and_cross_reference() {
         "runtime UI text doc should cross-reference the runtime tech-stack text boundary"
     );
     assert!(
-        text_doc.contains("渲染侧已用") && text_doc.contains("layout 后端未接"),
-        "glyphon row should preserve both status labels required by Runtime 01 M2.1"
+        text_doc.contains("SharedTextService") && text_doc.contains("Native and SDF render modes"),
+        "glyphon row should preserve the current SharedTextService layout-metrics status required by Runtime 01 M2.1"
     );
     assert!(
-        text_doc.contains("heuristic_text_shaper_matches_public_layout_entrypoint")
-            && text_doc.contains(
-                "text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land"
-            ),
-        "runtime UI text doc should cite the tests that lock the current heuristic fallback"
+        text_doc.contains("shared_text_shaper_matches_public_layout_entrypoint")
+            && text_doc.contains("text_shaper_stack_uses_shared_text_service_for_font_backends"),
+        "runtime UI text doc should cite the tests that lock the current SharedTextService backend"
     );
     assert!(
         tech_stack.contains("## Text Stack Boundary")

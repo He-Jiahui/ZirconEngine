@@ -1,5 +1,6 @@
 use super::super::template_row_metrics::{
     row_text_line_height, ROW_SURFACE_RADIUS, ROW_TEXT_FONT_SIZE,
+    TREE_ACTION_BUTTON_SIZE as SHARED_TREE_ACTION_BUTTON_SIZE,
     TREE_ACTION_GAP as SHARED_TREE_ACTION_GAP, TREE_ACTION_SIZE as SHARED_TREE_ACTION_SIZE,
     TREE_BASE_INSET_X as SHARED_TREE_BASE_INSET_X,
     TREE_DISCLOSURE_SIZE as SHARED_TREE_DISCLOSURE_SIZE,
@@ -27,6 +28,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const TREE
     SHARED_TREE_RIGHT_INSET;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const TREE_ACTION_SIZE: f32 =
     SHARED_TREE_ACTION_SIZE;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const TREE_ACTION_BUTTON_SIZE:
+    f32 = SHARED_TREE_ACTION_BUTTON_SIZE;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const TREE_ACTION_GAP: f32 =
     SHARED_TREE_ACTION_GAP;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const TREE_GUIDE_STEP: f32 =

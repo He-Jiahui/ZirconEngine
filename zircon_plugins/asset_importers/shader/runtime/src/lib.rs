@@ -3,6 +3,7 @@ use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, ShaderAsset,
     ShaderEntryPointAsset, ShaderSourceLanguage,
 };
+use zircon_runtime::core::framework::render::ShaderAssetKind;
 
 mod capability;
 mod plugin;
@@ -126,6 +127,7 @@ fn shader_outcome(
         context.uri.clone(),
         ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
+            kind: ShaderAssetKind::Surface,
             source_language,
             source,
             wgsl_source,
@@ -136,7 +138,16 @@ fn shader_outcome(
             imports: Vec::new(),
             shader_defs: Vec::new(),
             property_schema: Vec::new(),
+            options: Vec::new(),
             texture_slots: Vec::new(),
+            shading_model: None,
+            render_state: Default::default(),
+            queue: None,
+            disabled_passes: Vec::new(),
+            resources: Vec::new(),
+            material_property_layout: Default::default(),
+            material_option_table: Default::default(),
+            generated_material_wgsl: String::new(),
             editor: Default::default(),
             pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),

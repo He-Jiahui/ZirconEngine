@@ -38,6 +38,7 @@ impl VirtualGeometryRuntimeProvider for PluginVirtualGeometryRuntimeProvider {
             output.extract().clone(),
             output.cpu_reference_instances().to_vec(),
             output.bvh_visualization_instances().to_vec(),
+            output.resident_page_payloads().to_vec(),
         ))
     }
 }
@@ -205,7 +206,9 @@ mod tests {
             tint: Vec4::ONE,
             mobility: Mobility::Dynamic,
             static_state: RenderMeshStaticState::from_transform_static(false),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
+                default_render_layer_mask(),
+            ),
         };
         let mut load_model = |requested_id| (requested_id == model_id).then(|| model.clone());
 
@@ -228,6 +231,7 @@ mod tests {
         assert_eq!(output.extract().page_dependencies.len(), 1);
         assert!(!output.cpu_reference_instances().is_empty());
         assert!(!output.bvh_visualization_instances().is_empty());
+        assert!(output.resident_page_payloads().is_empty());
     }
 
     fn cooked_model_asset() -> ModelAsset {

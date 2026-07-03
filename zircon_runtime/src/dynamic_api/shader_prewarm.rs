@@ -1,18 +1,28 @@
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
+use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
-    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier,
-    ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
+    builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
+    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
+    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShadingModelDescriptor,
     ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
+use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::{
-    default_pipeline_key, mesh_pipeline_standard_material_template_source_for_shader_pass,
-    MeshPipelineShaderSource, PipelineKey,
+    create_mesh_prewarm_validation_pipeline_layout, default_pipeline_key,
+    mesh_pipeline_standard_material_template_source_for_shader_pass,
+    mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
+    validate_mesh_prewarm_request_render_pipeline, MeshPipelineShaderSource, PipelineKey,
 };
 use crate::graphics::shader::{
-    prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_module_validation,
-    ShaderVariantCacheDisk,
+    assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
+    assemble_taa_reactive_mask_shader_template, prewarm_shader_variants_to_disk,
+    prewarm_shader_variants_to_disk_with_module_validation,
+    prewarm_shader_variants_to_disk_with_pipeline_validation,
+    standard_material_surface_source_for_features, DeferredGBufferShaderTemplateRequest,
+    MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
+    ShaderVariantCacheDisk, TaaReactiveMaskShaderTemplateRequest,
 };
 
 const MESH_SHADER_NAGA_VERSION: &str = "naga-29.0.1";
@@ -62,6 +72,26 @@ pub fn prewarm_shader_variants_with_wgpu_module_validation(
     })
 }
 
+pub fn prewarm_shader_variants_with_wgpu_pipeline_validation(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_dir: impl AsRef<Path>,
+) -> ShaderVariantPrewarmReport {
+    let backend = match crate::graphics::backend::RenderBackend::new_offscreen() {
+        Ok(backend) => backend,
+        Err(error) => {
+            return wgpu_pipeline_validation_setup_failure_report(
+                manifest,
+                format!("failed to create offscreen WGPU backend: {error:?}"),
+            );
+        }
+    };
+    let device = &backend.device;
+    let pipeline_layout = create_mesh_prewarm_validation_pipeline_layout(device);
+    prewarm_shader_variants_to_disk_with_pipeline_validation(manifest, cache_dir, |request| {
+        validate_mesh_prewarm_request_render_pipeline(device, &pipeline_layout, request)
+    })
+}
+
 fn wgpu_module_validation_setup_failure_report(
     manifest: &ShaderVariantPrewarmManifest,
     error: impl Into<String>,
@@ -80,11 +110,30 @@ fn wgpu_module_validation_setup_failure_report(
     report
 }
 
+fn wgpu_pipeline_validation_setup_failure_report(
+    manifest: &ShaderVariantPrewarmManifest,
+    error: impl Into<String>,
+) -> ShaderVariantPrewarmReport {
+    let error = error.into();
+    let mut report = ShaderVariantPrewarmReport::default();
+    report.enable_wgpu_pipeline_validation(manifest.variants.len());
+    for (variant_index, request) in manifest.variants.iter().enumerate() {
+        report.record_failure_request(
+            variant_index,
+            request,
+            format!("WGPU render pipeline validation setup failed: {error}"),
+        );
+        report.record_wgpu_pipeline_validation_failed();
+    }
+    report
+}
+
 pub fn builtin_fallback_shader_prewarm_manifest() -> ShaderVariantPrewarmManifest {
     let pipeline_key = default_pipeline_key();
     builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
         pipeline_key,
         GEOMETRY_SOURCE_ID_STATIC_MESH,
+        None,
         &[ShaderQualityTier::Medium],
     )
 }
@@ -107,6 +156,7 @@ pub fn builtin_standard_material_shader_prewarm_manifest(
     builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
         pipeline_key,
         GEOMETRY_SOURCE_ID_STATIC_MESH,
+        None,
         quality_tiers,
     )
 }
@@ -130,13 +180,121 @@ pub fn builtin_standard_material_shader_prewarm_manifest_for_geometry(
     builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
         pipeline_key,
         geometry_source,
+        None,
         quality_tiers,
     )
+}
+
+pub fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor(
+    features: ShaderFeatureBits,
+    shading_model: ShadingModelId,
+    alpha_cutoff: Option<f32>,
+    geometry_source: &GeometrySourceDescriptor,
+    quality_tiers: &[ShaderQualityTier],
+) -> ShaderVariantPrewarmManifest {
+    let mut pipeline_key = default_pipeline_key();
+    pipeline_key.alpha_mask = features.contains(ShaderFeatureBits::ALPHA_TEST);
+    pipeline_key.alpha_cutoff_bits = pipeline_key
+        .alpha_mask
+        .then(|| alpha_cutoff.unwrap_or(0.0).to_bits());
+    pipeline_key.double_sided = features.contains(ShaderFeatureBits::DOUBLE_SIDED);
+    pipeline_key.receive_shadows = features.contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.shading_model_id = shading_model;
+
+    builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
+        pipeline_key,
+        geometry_source.id,
+        Some(geometry_source),
+        quality_tiers,
+    )
+}
+
+pub(crate) fn builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models(
+    asset_manager: &ProjectAssetManager,
+    features: ShaderFeatureBits,
+    shading_model: ShadingModelId,
+    alpha_cutoff: Option<f32>,
+    geometry_source: GeometrySourceId,
+    quality_tiers: &[ShaderQualityTier],
+    plugin_shading_models: &[ShadingModelDescriptor],
+) -> Result<ShaderVariantPrewarmManifest, ShaderTemplateAssemblyError> {
+    let geometry_source = builtin_geometry_source_descriptor(geometry_source).ok_or_else(|| {
+        ShaderTemplateAssemblyError::UnknownGeometryInclude {
+            token: format!("geometry_source_{}", geometry_source.value()),
+        }
+    })?;
+    builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_with_plugin_shading_models(
+        asset_manager,
+        features,
+        shading_model,
+        alpha_cutoff,
+        &geometry_source,
+        quality_tiers,
+        plugin_shading_models,
+    )
+}
+
+fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_with_plugin_shading_models(
+    asset_manager: &ProjectAssetManager,
+    features: ShaderFeatureBits,
+    shading_model: ShadingModelId,
+    alpha_cutoff: Option<f32>,
+    geometry_source: &GeometrySourceDescriptor,
+    quality_tiers: &[ShaderQualityTier],
+    plugin_shading_models: &[ShadingModelDescriptor],
+) -> Result<ShaderVariantPrewarmManifest, ShaderTemplateAssemblyError> {
+    let mut pipeline_key = default_pipeline_key();
+    pipeline_key.alpha_mask = features.contains(ShaderFeatureBits::ALPHA_TEST);
+    pipeline_key.alpha_cutoff_bits = pipeline_key
+        .alpha_mask
+        .then(|| alpha_cutoff.unwrap_or(0.0).to_bits());
+    pipeline_key.double_sided = features.contains(ShaderFeatureBits::DOUBLE_SIDED);
+    pipeline_key.receive_shadows = features.contains(ShaderFeatureBits::RECEIVE_SHADOWS);
+    pipeline_key.shading_model_id = shading_model;
+    let source_set = ShadingModelIncludeSourceSet::from_project_asset_manager(
+        asset_manager,
+        plugin_shading_models,
+    )
+    .map_err(|error| ShaderTemplateAssemblyError::UnknownShadingInclude {
+        token: error.to_string(),
+    })?;
+
+    let quality_tiers = normalized_quality_tiers(quality_tiers);
+    let mut requests = Vec::new();
+    for pass_type in BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES {
+        let source = builtin_standard_material_template_source_for_plugin_shading_model_and_pass(
+            &pipeline_key,
+            geometry_source,
+            pass_type,
+            plugin_shading_models,
+            &source_set,
+        )?;
+        requests.extend(quality_tiers.iter().copied().map(|quality| {
+            let mut key = pipeline_key.shader_variant_key_for_geometry(
+                pass_type,
+                geometry_source.id,
+                MESH_SHADER_PLATFORM_TOKEN,
+            );
+            key.quality = quality;
+            ShaderVariantPrewarmRequest {
+                key,
+                source_label: BUILTIN_STANDARD_MATERIAL_SOURCE_LABEL.to_string(),
+                wgsl_source: source.wgsl_source.clone(),
+                include_content_hashes: source.cache_content_hashes.clone(),
+                template_revision: source.template_revision.clone(),
+                naga_version: MESH_SHADER_NAGA_VERSION.to_string(),
+                wgpu_version: MESH_SHADER_WGPU_VERSION.to_string(),
+            }
+        }));
+    }
+
+    Ok(ShaderVariantPrewarmManifest::new(requests))
 }
 
 fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
     pipeline_key: PipelineKey,
     geometry_source: GeometrySourceId,
+    geometry_source_descriptor: Option<&GeometrySourceDescriptor>,
     quality_tiers: &[ShaderQualityTier],
 ) -> ShaderVariantPrewarmManifest {
     let quality_tiers = normalized_quality_tiers(quality_tiers);
@@ -147,9 +305,10 @@ fn builtin_standard_material_shader_prewarm_manifest_for_pipeline_key(
             cache_content_hashes,
             template_revision,
             ..
-        } = match builtin_standard_material_template_source_for_geometry_and_pass(
+        } = match builtin_standard_material_template_source_for_geometry_descriptor_and_pass(
             &pipeline_key,
             geometry_source,
+            geometry_source_descriptor,
             pass_type,
         ) {
             Ok(source) => source,
@@ -190,6 +349,170 @@ fn builtin_standard_material_template_source_for_geometry_and_pass(
     )
 }
 
+fn builtin_standard_material_template_source_for_geometry_descriptor_and_pass(
+    pipeline_key: &PipelineKey,
+    geometry_source: GeometrySourceId,
+    geometry_source_descriptor: Option<&GeometrySourceDescriptor>,
+    pass_type: ShaderPassType,
+) -> Result<MeshPipelineShaderSource, crate::graphics::shader::ShaderTemplateAssemblyError> {
+    if let Some(descriptor) = geometry_source_descriptor {
+        return mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor(
+            pipeline_key,
+            descriptor,
+            pass_type,
+        );
+    }
+    builtin_standard_material_template_source_for_geometry_and_pass(
+        pipeline_key,
+        geometry_source,
+        pass_type,
+    )
+}
+
+struct PluginShadingModelTemplateSource {
+    wgsl_source: String,
+    cache_content_hashes: Vec<String>,
+    template_revision: String,
+}
+
+impl PluginShadingModelTemplateSource {
+    fn from_template(assembly: MaterialShaderTemplateAssembly) -> Self {
+        let mut cache_content_hashes = assembly.include_content_hashes;
+        cache_content_hashes.push(shader_prewarm_source_hash(&assembly.wgsl_source));
+        Self {
+            wgsl_source: assembly.wgsl_source,
+            cache_content_hashes,
+            template_revision: assembly.template_revision,
+        }
+    }
+}
+
+fn shader_prewarm_source_hash(source: &str) -> String {
+    blake3::hash(source.as_bytes()).to_hex().to_string()
+}
+
+fn builtin_standard_material_template_source_for_plugin_shading_model_and_pass(
+    pipeline_key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+    pass_type: ShaderPassType,
+    plugin_shading_models: &[ShadingModelDescriptor],
+    source_set: &ShadingModelIncludeSourceSet,
+) -> Result<PluginShadingModelTemplateSource, ShaderTemplateAssemblyError> {
+    let descriptor =
+        plugin_shading_model_descriptor_for_pipeline_key(pipeline_key, plugin_shading_models)?;
+    match pass_type {
+        ShaderPassType::GBuffer => plugin_shading_model_gbuffer_template_source(
+            pipeline_key,
+            geometry_source,
+            descriptor,
+            source_set,
+        ),
+        ShaderPassType::TaaReactiveMask => {
+            plugin_shading_model_taa_reactive_mask_template_source(pipeline_key, geometry_source)
+        }
+        _ => plugin_shading_model_material_template_source(
+            pipeline_key,
+            geometry_source,
+            pass_type,
+            descriptor,
+            source_set,
+        ),
+    }
+}
+
+fn plugin_shading_model_material_template_source(
+    pipeline_key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+    pass_type: ShaderPassType,
+    descriptor: Option<&ShadingModelDescriptor>,
+    source_set: &ShadingModelIncludeSourceSet,
+) -> Result<PluginShadingModelTemplateSource, ShaderTemplateAssemblyError> {
+    let material_surface = standard_material_surface_source_for_features(
+        pipeline_key.shader_feature_bits(),
+        prewarm_alpha_cutoff(pipeline_key),
+    );
+    let mut request = MaterialShaderTemplateRequest::new(
+        geometry_source.clone(),
+        pass_type,
+        material_surface.source,
+        material_surface.entry_point,
+    )
+    .with_features(material_surface.features);
+    if let Some(descriptor) = descriptor.cloned() {
+        request = request
+            .with_shading_model_descriptor(descriptor)
+            .with_shading_model_forward_include_sources(source_set);
+    }
+    assemble_material_shader_template(request).map(PluginShadingModelTemplateSource::from_template)
+}
+
+fn plugin_shading_model_gbuffer_template_source(
+    pipeline_key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+    descriptor: Option<&ShadingModelDescriptor>,
+    source_set: &ShadingModelIncludeSourceSet,
+) -> Result<PluginShadingModelTemplateSource, ShaderTemplateAssemblyError> {
+    let material_surface = standard_material_surface_source_for_features(
+        pipeline_key.shader_feature_bits(),
+        prewarm_alpha_cutoff(pipeline_key),
+    );
+    let mut request = DeferredGBufferShaderTemplateRequest::new(
+        geometry_source.clone(),
+        material_surface.source,
+        material_surface.entry_point,
+    )
+    .with_features(material_surface.features);
+    if let Some(descriptor) = descriptor.cloned() {
+        request = request
+            .with_shading_model_descriptor(descriptor)
+            .with_shading_model_gbuffer_include_sources(source_set);
+    }
+    assemble_deferred_gbuffer_shader_template(request)
+        .map(PluginShadingModelTemplateSource::from_template)
+}
+
+fn plugin_shading_model_taa_reactive_mask_template_source(
+    pipeline_key: &PipelineKey,
+    geometry_source: &GeometrySourceDescriptor,
+) -> Result<PluginShadingModelTemplateSource, ShaderTemplateAssemblyError> {
+    let material_surface = standard_material_surface_source_for_features(
+        pipeline_key.shader_feature_bits(),
+        prewarm_alpha_cutoff(pipeline_key),
+    );
+    let request = TaaReactiveMaskShaderTemplateRequest::new(
+        geometry_source.clone(),
+        material_surface.source,
+        material_surface.entry_point,
+    )
+    .with_features(material_surface.features);
+    assemble_taa_reactive_mask_shader_template(request)
+        .map(PluginShadingModelTemplateSource::from_template)
+}
+
+fn plugin_shading_model_descriptor_for_pipeline_key<'a>(
+    pipeline_key: &PipelineKey,
+    plugin_shading_models: &'a [ShadingModelDescriptor],
+) -> Result<Option<&'a ShadingModelDescriptor>, ShaderTemplateAssemblyError> {
+    if !pipeline_key.shading_model_id.is_plugin_range() {
+        return Ok(None);
+    }
+    plugin_shading_models
+        .iter()
+        .find(|descriptor| descriptor.id == pipeline_key.shading_model_id)
+        .map(Some)
+        .ok_or_else(|| ShaderTemplateAssemblyError::UnknownShadingInclude {
+            token: format!("shading_model_id_{}", pipeline_key.shading_model_id.value()),
+        })
+}
+
+fn prewarm_alpha_cutoff(key: &PipelineKey) -> f32 {
+    if key.is_alpha_mask() {
+        key.alpha_cutoff_bits.map(f32::from_bits).unwrap_or(0.0)
+    } else {
+        0.0
+    }
+}
+
 fn normalized_quality_tiers(quality_tiers: &[ShaderQualityTier]) -> Vec<ShaderQualityTier> {
     if quality_tiers.is_empty() {
         return vec![ShaderQualityTier::Medium];
@@ -214,343 +537,5 @@ pub fn default_staged_shader_variant_cache_root_for_project(
 }
 
 #[cfg(test)]
-mod tests {
-    use std::borrow::Cow;
-    use std::fs;
-
-    use crate::core::framework::render::{
-        ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
-        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        SHADING_MODEL_ID_BLINN_PHONG,
-    };
-    use crate::graphics::shader::{
-        ShaderVariantCacheDisk, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup,
-    };
-
-    use super::{
-        builtin_fallback_shader_prewarm_manifest,
-        builtin_standard_material_shader_prewarm_manifest,
-        builtin_standard_material_shader_prewarm_manifest_for_geometry, prewarm_shader_variants,
-    };
-
-    #[test]
-    fn builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source() {
-        let manifest = builtin_fallback_shader_prewarm_manifest();
-
-        assert_eq!(manifest.variants.len(), 6);
-        assert_eq!(
-            manifest
-                .variants
-                .iter()
-                .map(|request| request.key.pass_type.token())
-                .collect::<Vec<_>>(),
-            vec![
-                "forward",
-                "gbuffer",
-                "depth_prepass",
-                "shadow",
-                "velocity",
-                "taa_reactive_mask"
-            ]
-        );
-        assert!(manifest.variants.iter().all(|request| {
-            request.template_revision == "zr-material-template-v1"
-                && request.source_label == "builtin://shader/pbr.wgsl"
-                && request.include_content_hashes.len() > 1
-        }));
-
-        let forward_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::Forward)
-            .expect("forward builtin fallback prewarm request");
-        assert!(forward_request
-            .wgsl_source
-            .contains("fn zr_material_surface("));
-        assert!(forward_request.wgsl_source.contains("fn vs_main("));
-        assert!(forward_request.wgsl_source.contains("fn fs_main("));
-        assert!(forward_request
-            .wgsl_source
-            .contains("// include: zr_light_grid.wgsl"));
-        assert!(forward_request
-            .wgsl_source
-            .contains("// include: zr_shadow.wgsl"));
-
-        let depth_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::DepthPrepass)
-            .expect("depth-only builtin fallback prewarm request");
-        assert!(depth_request
-            .wgsl_source
-            .contains("// include: zr_template_depth.wgsl"));
-        assert!(!depth_request.wgsl_source.contains("fn fs_main("));
-        assert!(!depth_request.wgsl_source.contains("zr_material_surface"));
-        assert!(!depth_request
-            .wgsl_source
-            .contains("surface.normal_ws * 0.5"));
-        assert!(!depth_request
-            .wgsl_source
-            .contains("// include: zr_template_gbuffer.wgsl"));
-
-        let velocity_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::Velocity)
-            .expect("velocity builtin fallback prewarm request");
-        assert!(velocity_request.wgsl_source.contains("fetch_prev_position"));
-        assert!(!velocity_request
-            .wgsl_source
-            .contains("fn vs_velocity_object"));
-
-        let taa_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::TaaReactiveMask)
-            .expect("TAA reactive mask builtin fallback prewarm request");
-        assert!(taa_request
-            .wgsl_source
-            .contains("// include: zr_template_taa_reactive_mask.wgsl"));
-        assert!(taa_request.wgsl_source.contains("fn fs_taa_reactive_mask("));
-        assert!(taa_request
-            .wgsl_source
-            .contains("fn fs_taa_reactive_material_mask("));
-        assert!(!taa_request
-            .wgsl_source
-            .contains("// include: zr_light_grid.wgsl"));
-    }
-
-    #[test]
-    fn builtin_standard_material_shader_prewarm_manifest_projects_material_features() {
-        let manifest = builtin_standard_material_shader_prewarm_manifest(
-            ShaderFeatureBits::new(
-                ShaderFeatureBits::ALPHA_TEST
-                    | ShaderFeatureBits::DOUBLE_SIDED
-                    | ShaderFeatureBits::RECEIVE_SHADOWS,
-            ),
-            SHADING_MODEL_ID_BLINN_PHONG,
-            Some(0.5),
-            &[ShaderQualityTier::High, ShaderQualityTier::High],
-        );
-
-        assert_eq!(manifest.variants.len(), 6);
-        assert!(manifest.variants.iter().all(|request| {
-            request.key.quality == ShaderQualityTier::High
-                && request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG
-                && request.key.features.contains(ShaderFeatureBits::ALPHA_TEST)
-                && request
-                    .key
-                    .features
-                    .contains(ShaderFeatureBits::DOUBLE_SIDED)
-                && request
-                    .key
-                    .features
-                    .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-                && request.template_revision == "zr-material-template-v1"
-                && request.include_content_hashes.len() > 1
-        }));
-        assert_eq!(
-            manifest
-                .variants
-                .iter()
-                .map(|request| request.key.pass_type.token())
-                .collect::<Vec<_>>(),
-            vec![
-                "forward",
-                "gbuffer",
-                "depth_prepass",
-                "shadow",
-                "velocity",
-                "taa_reactive_mask"
-            ]
-        );
-
-        let forward_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::Forward)
-            .expect("forward standard material prewarm request");
-        assert!(forward_request
-            .wgsl_source
-            .contains("fn zr_material_surface("));
-        assert!(forward_request
-            .wgsl_source
-            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
-
-        let depth_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::DepthPrepass)
-            .expect("alpha depth-only standard material prewarm request");
-        assert!(depth_request
-            .wgsl_source
-            .contains("// include: zr_template_depth_alpha.wgsl"));
-        assert!(depth_request
-            .wgsl_source
-            .contains("fn zr_material_surface("));
-        assert!(depth_request
-            .wgsl_source
-            .contains("zr_apply_alpha_clip(surface);"));
-        assert!(depth_request
-            .wgsl_source
-            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
-        assert!(!depth_request
-            .wgsl_source
-            .contains("surface.normal_ws * 0.5"));
-        assert!(!depth_request
-            .wgsl_source
-            .contains("// include: zr_template_gbuffer.wgsl"));
-        assert_ne!(
-            forward_request.include_content_hashes,
-            depth_request.include_content_hashes
-        );
-
-        let taa_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::TaaReactiveMask)
-            .expect("alpha TAA reactive mask standard material prewarm request");
-        assert!(taa_request
-            .wgsl_source
-            .contains("// include: zr_template_taa_reactive_mask.wgsl"));
-        assert!(taa_request
-            .wgsl_source
-            .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
-    }
-
-    #[test]
-    fn builtin_standard_material_shader_prewarm_manifest_projects_geometry_source() {
-        let manifest = builtin_standard_material_shader_prewarm_manifest_for_geometry(
-            ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
-            SHADING_MODEL_ID_BLINN_PHONG,
-            None,
-            GEOMETRY_SOURCE_ID_SKINNED_MESH,
-            &[ShaderQualityTier::Medium],
-        );
-
-        assert_eq!(manifest.variants.len(), 6);
-        assert!(manifest.variants.iter().all(|request| {
-            request.key.geometry_source == GEOMETRY_SOURCE_ID_SKINNED_MESH
-                && request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG
-                && request
-                    .key
-                    .features
-                    .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
-                && request
-                    .wgsl_source
-                    .contains("// include: zr_geometry_skinned.wgsl")
-                && request
-                    .wgsl_source
-                    .contains("const ZR_GEOMETRY_SOURCE_SKINNED_MESH: bool = true;")
-                && request
-                    .wgsl_source
-                    .contains("zr_skinned_joint_matrix(v.joints.x)")
-                && request.template_revision == "zr-material-template-v1"
-        }));
-        assert_eq!(
-            manifest
-                .variants
-                .iter()
-                .map(|request| request.key.pass_type.token())
-                .collect::<Vec<_>>(),
-            vec![
-                "forward",
-                "gbuffer",
-                "depth_prepass",
-                "shadow",
-                "velocity",
-                "taa_reactive_mask"
-            ]
-        );
-
-        let depth_request = manifest
-            .variants
-            .iter()
-            .find(|request| request.key.pass_type == ShaderPassType::DepthPrepass)
-            .expect("skinned depth-only standard material prewarm request");
-        assert!(depth_request
-            .wgsl_source
-            .contains("// include: zr_template_depth.wgsl"));
-        assert!(!depth_request.wgsl_source.contains("fn fs_main("));
-        assert!(!depth_request.wgsl_source.contains("zr_material_surface"));
-        assert!(!depth_request
-            .wgsl_source
-            .contains("surface.normal_ws * 0.5"));
-    }
-
-    #[test]
-    fn builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules() {
-        let manifest = builtin_standard_material_cache_validation_manifest();
-        let root = std::env::temp_dir().join(format!(
-            "zircon_builtin_standard_material_prewarm_cache_test_{}",
-            std::process::id()
-        ));
-        let _ = fs::remove_dir_all(&root);
-
-        let report = prewarm_shader_variants(&manifest, &root);
-
-        assert_eq!(report.requested_count, manifest.variants.len());
-        assert_eq!(report.written_count, manifest.variants.len());
-        assert_eq!(report.failed_count, 0);
-        assert!(report.failures.is_empty());
-
-        let restarted_cache = ShaderVariantCacheDisk::new(&root);
-        let Ok(backend) = crate::graphics::backend::RenderBackend::new_offscreen() else {
-            let _ = fs::remove_dir_all(root);
-            return;
-        };
-        let device = &backend.device;
-        let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-
-        for request in &manifest.variants {
-            let disk_key = ShaderVariantCacheDiskKey::from_variant_key(
-                &request.key,
-                request.include_content_hashes.iter().map(String::as_str),
-            );
-            let entry = match restarted_cache.lookup(&disk_key) {
-                ShaderVariantCacheDiskLookup::Hit(entry) => entry,
-                other => panic!(
-                    "expected staged prewarm cache hit after restart for {}; got {other:?}",
-                    request.key.canonical_string()
-                ),
-            };
-            assert_eq!(entry.wgsl_source, request.wgsl_source);
-            assert_eq!(entry.meta.template_revision, request.template_revision);
-            let _shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("zircon-test-staged-builtin-standard-material-prewarm-shader"),
-                source: wgpu::ShaderSource::Wgsl(Cow::Owned(entry.wgsl_source)),
-            });
-        }
-
-        let error = pollster::block_on(error_scope.pop());
-        assert!(
-            error.is_none(),
-            "staged builtin standard material prewarm WGSL should create WGPU shader modules: {error:?}"
-        );
-        let _ = fs::remove_dir_all(root);
-    }
-
-    fn builtin_standard_material_cache_validation_manifest() -> ShaderVariantPrewarmManifest {
-        let mut variants = builtin_standard_material_shader_prewarm_manifest_for_geometry(
-            ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
-            SHADING_MODEL_ID_BLINN_PHONG,
-            None,
-            GEOMETRY_SOURCE_ID_STATIC_MESH,
-            &[ShaderQualityTier::Medium],
-        )
-        .variants;
-        variants.extend(
-            builtin_standard_material_shader_prewarm_manifest_for_geometry(
-                ShaderFeatureBits::new(
-                    ShaderFeatureBits::ALPHA_TEST | ShaderFeatureBits::RECEIVE_SHADOWS,
-                ),
-                SHADING_MODEL_ID_BLINN_PHONG,
-                Some(0.42),
-                GEOMETRY_SOURCE_ID_SKINNED_MESH,
-                &[ShaderQualityTier::Medium],
-            )
-            .variants,
-        );
-        ShaderVariantPrewarmManifest::new(variants)
-    }
-}
+#[path = "shader_prewarm/tests.rs"]
+mod tests;

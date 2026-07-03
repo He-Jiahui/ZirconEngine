@@ -5,18 +5,24 @@ from pathlib import Path
 from typing import Any
 
 from .native_dynamic_payload import (
-    native_dynamic_operation_audit_is_consistent,
     normalized_file_manifest,
     normalized_materialized_packages,
+)
+from .native_dynamic_payload_operation_audit import (
+    native_dynamic_operation_audit_is_consistent,
     normalized_native_dynamic_operation_audit,
 )
 from .pipeline_report_native_dynamic_operation_audit_schema import (
     NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS,
     native_dynamic_operation_audit_stage_schema_diagnostics,
+)
+from .pipeline_report_native_dynamic_operation_audit_summary_schema import (
     platform_bundle_native_plugins_operation_audit_schema_diagnostics,
 )
-from .pipeline_report_native_dynamic_payload_schema import (
+from .pipeline_report_native_dynamic_payload_file_manifest_schema import (
     native_dynamic_file_manifest_schema_diagnostics,
+)
+from .pipeline_report_native_dynamic_payload_materialized_packages_schema import (
     native_dynamic_materialized_packages_schema_diagnostics,
 )
 from .pipeline_report_native_dynamic_report_hash_schema import (

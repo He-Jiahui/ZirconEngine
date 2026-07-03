@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::scene::gpu_scene::GpuScene;
-use crate::graphics::{RenderFeatureDescriptor, RuntimePrepareCollectorRegistration};
+use crate::graphics::{
+    GraphicsError, RenderFeatureDescriptor, RuntimePrepareCollectorRegistration,
+};
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
@@ -39,8 +42,11 @@ impl SceneRendererCore {
         backend_name: &str,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: &[RenderFeatureDescriptor],
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
-    ) -> Self {
+    ) -> Result<Self, GraphicsError> {
+        let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device);
         let skinned_joint_palette_fallback_buffer =
             create_empty_skinned_joint_palette_buffer(device);
@@ -52,13 +58,16 @@ impl SceneRendererCore {
             skinned_joint_palette_uniform_min_binding_size(),
         );
 
-        let mesh_pipelines = MeshPipelineCache::new(
+        let mut mesh_pipelines = MeshPipelineCache::new(
             device,
             target_format,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
         );
+        for descriptor in plugin_geometry_sources {
+            mesh_pipelines.register_geometry_source_descriptor(descriptor);
+        }
         let scene_clear = SceneRegionClearResources::new(device, target_format, DEPTH_FORMAT);
         let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
         let shadow_atlas_resources =
@@ -73,11 +82,13 @@ impl SceneRendererCore {
         });
         let deferred = DeferredSceneResources::new(
             device,
+            asset_manager.as_ref(),
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
             target_format,
-        );
+            &plugin_shading_models,
+        )?;
         let particle_renderer =
             ParticleRenderer::new(device, &scene_bind_group_bundle.layout, target_format);
         let sprite_renderer = SpriteRenderer::new(
@@ -110,7 +121,7 @@ impl SceneRendererCore {
             runtime_prepare_collectors,
         );
 
-        Self {
+        Ok(Self {
             texture_bind_group_layout,
             scene_bind_group_layout: scene_bind_group_bundle.layout,
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
@@ -135,6 +146,6 @@ impl SceneRendererCore {
             screen_space_ui_renderer,
             transient_resource_pool: Default::default(),
             advanced_plugin_resources,
-        }
+        })
     }
 }

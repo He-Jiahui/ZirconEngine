@@ -11,11 +11,13 @@ from tools.zircon_export.tests.export_test_support import (
     _run_report_quiet,
     _write_compile_host_report,
     _write_pack_report,
-    _write_platform_bundle_report_with_native_plugins_payload,
     _write_stage_report,
     _write_validate_report_with_strategies,
     _write_validate_report_with_strategies_value,
     json_loads,
+)
+from tools.zircon_export.tests.platform_bundle_export_test_support import (
+    _write_platform_bundle_report_with_native_plugins_payload,
 )
 
 

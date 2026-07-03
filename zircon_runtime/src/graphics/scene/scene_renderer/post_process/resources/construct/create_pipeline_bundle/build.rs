@@ -49,7 +49,7 @@ pub(crate) fn create_pipeline_bundle(
 ) -> PipelineBundle {
     let smaa_pipeline_bundle = smaa_pipeline_bundle(device, target_format, smaa_bind_group_layout);
     PipelineBundle {
-        bloom_pipeline: bloom_pipeline(device, target_format, bloom_bind_group_layout),
+        bloom_pipeline: bloom_pipeline(device, bloom_target_format(), bloom_bind_group_layout),
         cluster_pipeline: cluster_pipeline(device, cluster_bind_group_layout),
         hzb_pipeline: hzb_pipeline(device, hzb_bind_group_layout),
         exposure_histogram_pipeline: exposure_histogram_pipeline(
@@ -149,5 +149,20 @@ pub(crate) fn create_pipeline_bundle(
         smaa_edge_pipeline: smaa_pipeline_bundle.edge,
         smaa_blend_pipeline: smaa_pipeline_bundle.blend,
         smaa_resolve_pipeline: smaa_pipeline_bundle.resolve,
+    }
+}
+
+const fn bloom_target_format() -> wgpu::TextureFormat {
+    POST_PROCESS_INTERMEDIATE_HDR_FORMAT
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{bloom_target_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT};
+
+    #[test]
+    fn bloom_pipeline_targets_intermediate_hdr_resource_format() {
+        assert_eq!(bloom_target_format(), POST_PROCESS_INTERMEDIATE_HDR_FORMAT);
+        assert_ne!(bloom_target_format(), wgpu::TextureFormat::Rgba8UnormSrgb);
     }
 }

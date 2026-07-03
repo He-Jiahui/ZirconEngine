@@ -7,15 +7,16 @@ use crate::asset::{
 };
 use crate::core::framework::render::{
     AdvancedProviderStatus, AdvancedRenderFeature, CorePipelineKind, DisplayMode,
-    FallbackSkyboxKind, GeometryExtract, PreviewEnvironmentExtract, ProjectionMode,
-    RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    FallbackSkyboxKind, GeometryExtract, MaterialPropertyKind, PreviewEnvironmentExtract,
+    ProjectionMode, RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
     RenderOverlayExtract, RenderPhase, RenderPipelineHandle, RenderPointLightSnapshot,
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
     RenderRectLightSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
     RenderSpotLightSnapshot, RenderSpriteAnchor, RenderSpriteImageMode, RenderSpriteSnapshot,
     RenderViewportDescriptor, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
-    SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
+    ShaderAssetKind, SolariRuntimeStatus, SpriteExtract, ViewportCameraSnapshot,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
@@ -446,6 +447,9 @@ pub(super) fn material_with_import_note() -> MaterialAsset {
     MaterialAsset {
         name: Some("ImportNote".to_string()),
         shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,
@@ -468,6 +472,7 @@ pub(super) fn material_with_import_note() -> MaterialAsset {
 fn shader_with_string_property() -> ShaderAsset {
     ShaderAsset {
         uri: AssetUri::parse("res://shaders/uniform-string.zshader").unwrap(),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(1.0); }".to_string(),
         wgsl_source: String::new(),
@@ -479,12 +484,21 @@ fn shader_with_string_property() -> ShaderAsset {
         shader_defs: Vec::new(),
         property_schema: vec![ShaderMaterialPropertyAsset {
             name: "debug_label".to_string(),
-            kind: "string".to_string(),
+            kind: MaterialPropertyKind::Bool,
             required: false,
             default: None,
             editor: Default::default(),
         }],
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),

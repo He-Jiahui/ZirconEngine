@@ -37,6 +37,37 @@ class ZirconBuildShaderPrewarmResourceRegistryContractTests(unittest.TestCase):
 
             validate_shader_resource_registry_export_contract(registry_path)
 
+    def test_validate_registry_export_contract_requires_usable_shader_records_when_requested(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            registry_path = Path(temp_dir) / "shader_resource_records.json"
+            registry_path.write_text(json.dumps({"resources": []}), encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "usable Shader ResourceRecord",
+            ):
+                validate_shader_resource_registry_export_contract(
+                    registry_path,
+                    require_usable_shader_records=True,
+                )
+
+    def test_validate_registry_export_contract_accepts_usable_shader_records_when_requested(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            registry_path = Path(temp_dir) / "shader_resource_records.json"
+            registry_path.write_text(
+                json.dumps({"resources": [_resource_record()]}),
+                encoding="utf-8",
+            )
+
+            validate_shader_resource_registry_export_contract(
+                registry_path,
+                require_usable_shader_records=True,
+            )
+
     def test_validate_registry_export_contract_rejects_incomplete_resource_record(
         self,
     ):
@@ -426,6 +457,69 @@ class ZirconBuildShaderPrewarmResourceRegistryContractTests(unittest.TestCase):
             validate_shader_resource_registry_export_contract(
                 registry_path,
                 report_path=report_path,
+            )
+
+    def test_validate_registry_export_contract_requires_report_path_for_required_report_sources(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            registry_path = Path(temp_dir) / "shader_resource_records.json"
+            registry_path.write_text(
+                json.dumps({"resources": [_resource_record()]}),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "requires report_path",
+            ):
+                validate_shader_resource_registry_export_contract(
+                    registry_path,
+                    require_report_registry_backed_sources=True,
+                )
+
+    def test_validate_registry_export_contract_requires_report_registry_backed_sources(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            registry_path = Path(temp_dir) / "shader_resource_records.json"
+            registry_path.write_text(
+                json.dumps({"resources": [_resource_record()]}),
+                encoding="utf-8",
+            )
+            report_path = _write_report_source(
+                temp_dir,
+                "builtin://shader/pbr.wgsl",
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "registry-backed report source",
+            ):
+                validate_shader_resource_registry_export_contract(
+                    registry_path,
+                    report_path=report_path,
+                    require_report_registry_backed_sources=True,
+                )
+
+    def test_validate_registry_export_contract_accepts_required_report_registry_backed_sources(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            registry_path = Path(temp_dir) / "shader_resource_records.json"
+            registry_path.write_text(
+                json.dumps({"resources": [_resource_record()]}),
+                encoding="utf-8",
+            )
+            report_path = _write_report_source(
+                temp_dir,
+                "res://shaders/example",
+            )
+
+            validate_shader_resource_registry_export_contract(
+                registry_path,
+                report_path=report_path,
+                require_report_registry_backed_sources=True,
             )
 
 

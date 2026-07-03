@@ -153,6 +153,8 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
 
     let behavior_test_sources = [
         include_str!("../../input/tests/input_manager.rs"),
+        include_str!("../../input/tests/input_manager/frame_state.rs"),
+        include_str!("../../input/tests/input_manager/host_requests.rs"),
         include_str!("../../input/tests/action_mapping.rs"),
         include_str!("../../input/tests/action_axis_transitions.rs"),
         include_str!("../../input/tests/gamepad_bridge.rs"),
@@ -266,7 +268,11 @@ fn runtime_12_input_stack_contracts_stay_documented_and_exported() {
     let input_mod = include_str!("../../input/mod.rs");
     let framework_input_mod = include_str!("../../core/framework/input/mod.rs");
     let prelude = include_str!("../../prelude.rs");
-    let input_tests = include_str!("../../input/tests/input_manager.rs");
+    let input_tests = [
+        include_str!("../../input/tests/input_manager.rs"),
+        include_str!("../../input/tests/input_manager/frame_state.rs"),
+    ]
+    .join("\n");
 
     for required_anchor in [
         "Frame Input Contract",

@@ -13,6 +13,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("navigation_runtime_owner_split_static_passed_cargo_pending")
     } else if slice == "Runtime 14 module family current audit recheck" {
         Some("module_family_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 14 module family 2026-07-01 current audit recheck" {
+        Some("module_family_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 14 module family markdown renderer split" {
         Some("module_family_markdown_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 13 Gameplay Host Owner Split" {
@@ -21,6 +23,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("script_binding_current_audit_static_passed_cargo_pending")
     } else if slice == "Runtime 13 script binding Markdown renderer split" {
         Some("script_binding_markdown_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 13 Script binding 2026-07-01 current audit recheck" {
+        Some("script_binding_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 11 graphics frustum rayon cutover" {
         Some("runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending")
     } else if slice == "Runtime 11 scheduler wait_all 同步点" {
@@ -33,6 +37,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("core_min_cargo_recheck_timeout_static_guards_passed")
     } else if slice == "Runtime 11 JobSystem current audit recheck" {
         Some("job_system_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 11 JobSystem 2026-07-01 current audit recheck" {
+        Some("job_system_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 11 JobSystem inventory split" {
         Some("job_system_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 11 JobSystem Markdown renderer split" {
@@ -99,12 +105,16 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("cargo_recheck_timeout_static_guards_passed")
     } else if slice == "Runtime 12 Input stack current audit recheck" {
         Some("input_stack_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 12 Input stack 2026-07-01 current audit recheck" {
+        Some("input_stack_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 12 Input stack inventory split" {
         Some("input_stack_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 12 Input stack Markdown renderer split" {
         Some("input_stack_markdown_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 12 input boundary grouped manager import guard repair" {
         Some("input_boundary_grouped_manager_import_guard_passed_broader_input_failures_pending")
+    } else if slice == "Runtime 12 input_manager child test owner audit sync" {
+        Some("runtime_12_input_manager_child_test_owner_audit_sync_static_passed_cargo_deferred")
     } else {
         None
     }

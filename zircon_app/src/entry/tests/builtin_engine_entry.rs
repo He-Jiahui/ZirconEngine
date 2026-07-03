@@ -330,13 +330,14 @@ fn entry_runner_feature_aware_module_selection_diagnostics_accept_linked_plugin_
 
 fn linked_virtual_geometry_registration() -> RuntimePluginRegistrationReport {
     RuntimePluginRegistrationReport::from_plugin(&LinkedVirtualGeometryPlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "virtual_geometry",
             "Virtual Geometry",
             RuntimePluginId::VirtualGeometry,
             "zircon_plugin_virtual_geometry_runtime",
         )
-        .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .build(),
     })
 }
 

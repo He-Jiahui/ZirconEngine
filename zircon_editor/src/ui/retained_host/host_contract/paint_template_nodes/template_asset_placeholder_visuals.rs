@@ -1,30 +1,88 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::paint_theme::PALETTE;
+use super::super::paint_theme::{
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
+};
 use super::render_commands::HostPaintCommand;
 use super::visual_assets::load_existing_icon_asset_pixels_for_size;
 
 const VISUAL_SURFACE_INSET_RATIO: f32 = 0.12;
-const VISUAL_SURFACE_MIN_INSET: f32 = 5.0;
-const VISUAL_SURFACE_MAX_INSET: f32 = 8.0;
-const VISUAL_SURFACE_RADIUS: f32 = 4.0;
+const TYPED_THUMBNAIL_SURFACE_INSET_RATIO: f32 = 0.055;
 const ASSET_THUMBNAIL_VISUAL_ROLE: &str = "asset-thumbnail-visual";
 const DEFAULT_THUMBNAIL_ICON_NAME: &str = "image";
-const THUMBNAIL_ICON_EDGE: u32 = 20;
-const TYPED_THUMBNAIL_ICON_EDGE: u32 = 14;
-const TYPED_THUMBNAIL_PLATE_PADDING: f32 = 4.0;
-const TYPED_THUMBNAIL_PLATE_RADIUS: f32 = 4.0;
-const TYPED_THUMBNAIL_BADGE_MARGIN: f32 = 3.0;
-const TYPED_THUMBNAIL_PREVIEW_INSET: f32 = 4.0;
-const TYPED_THUMBNAIL_PREVIEW_RADIUS: f32 = 3.0;
-const TYPED_THUMBNAIL_MARK_RADIUS: f32 = 1.5;
-const THUMBNAIL_TYPE_TEXTURE_TINT: [u8; 4] = [101, 174, 213, 255];
-const THUMBNAIL_TYPE_MATERIAL_TINT: [u8; 4] = [211, 166, 83, 255];
-const THUMBNAIL_TYPE_SCENE_TINT: [u8; 4] = [97, 190, 162, 255];
-const THUMBNAIL_TYPE_MESH_TINT: [u8; 4] = [165, 177, 190, 255];
-const THUMBNAIL_TYPE_SHADER_TINT: [u8; 4] = [125, 196, 132, 255];
-const THUMBNAIL_TYPE_AUDIO_TINT: [u8; 4] = [110, 163, 220, 255];
-const THUMBNAIL_TYPE_UI_TINT: [u8; 4] = [82, 186, 202, 255];
-const THUMBNAIL_TYPE_DEFAULT_TINT: [u8; 4] = [174, 184, 194, 255];
+const THUMBNAIL_ICON_RATIO: f32 = 0.64;
+const TYPED_THUMBNAIL_PREVIEW_ICON_RATIO: f32 = 0.5;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct WorkbenchAssetVisualMetrics {
+    visual_surface_min_inset: f32,
+    visual_surface_max_inset: f32,
+    typed_surface_min_inset: f32,
+    typed_surface_max_inset: f32,
+    surface_radius: f32,
+    border_width: f32,
+    icon_min_edge: u32,
+    icon_max_edge: u32,
+    typed_preview_icon_min_edge: u32,
+    typed_preview_icon_max_edge: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct WorkbenchAssetVisualPalette {
+    placeholder_well: [u8; 4],
+    preview_well: [u8; 4],
+    typed_well: [u8; 4],
+    typed_border: [u8; 4],
+    focused_border: [u8; 4],
+    placeholder_icon_tint: [u8; 4],
+}
+
+fn asset_visual_metrics() -> WorkbenchAssetVisualMetrics {
+    asset_visual_metrics_from_host(current_host_metrics())
+}
+
+fn asset_visual_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchAssetVisualMetrics {
+    let visual_surface_min_inset = (metrics.gap_s + metrics.border_width).max(metrics.border_width);
+    let visual_surface_max_inset = metrics.gap_m.max(visual_surface_min_inset);
+    let typed_surface_min_inset = (metrics.gap_s - metrics.border_width).max(metrics.border_width);
+    let typed_surface_max_inset = metrics.gap_s.max(typed_surface_min_inset);
+    let icon_min_edge = metric_edge(metrics.row_height);
+    let icon_max_edge = metric_edge(metrics.row_height + metrics.gap_m).max(icon_min_edge);
+
+    WorkbenchAssetVisualMetrics {
+        visual_surface_min_inset,
+        visual_surface_max_inset,
+        typed_surface_min_inset,
+        typed_surface_max_inset,
+        surface_radius: metrics.radius_control,
+        border_width: metrics.border_width,
+        icon_min_edge,
+        icon_max_edge,
+        typed_preview_icon_min_edge: icon_min_edge,
+        typed_preview_icon_max_edge: icon_max_edge,
+    }
+}
+
+fn asset_visual_palette() -> WorkbenchAssetVisualPalette {
+    asset_visual_palette_from_host(current_host_palette())
+}
+
+fn asset_visual_palette_from_host(palette: HostMaterialPalette) -> WorkbenchAssetVisualPalette {
+    WorkbenchAssetVisualPalette {
+        placeholder_well: palette.surface,
+        preview_well: palette.surface_inset,
+        typed_well: palette.surface_inset,
+        typed_border: palette.separator_soft,
+        focused_border: palette.focus_ring,
+        placeholder_icon_tint: palette.text_muted,
+    }
+}
+
+fn metric_edge(value: f32) -> u32 {
+    if !value.is_finite() || value <= 0.0 {
+        return 1;
+    }
+    value.round().max(1.0) as u32
+}
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_asset_placeholder_visual_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -38,7 +96,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
         return;
     }
 
-    let Some(inner_rect) = thumbnail_surface_rect(rect) else {
+    let metrics = asset_visual_metrics();
+    let palette = asset_visual_palette();
+    let Some(inner_rect) = thumbnail_surface_rect(node, rect, metrics) else {
         return;
     };
 
@@ -46,10 +106,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
         inner_rect.clone(),
         Some(clip.clone()),
         order,
-        Some(thumbnail_well_color(node)),
-        thumbnail_well_border_paint(node),
-        thumbnail_well_border_width(node),
-        VISUAL_SURFACE_RADIUS,
+        Some(thumbnail_well_color(node, palette)),
+        thumbnail_well_border_paint(node, palette),
+        thumbnail_well_border_width(node, metrics),
+        metrics.surface_radius,
         opacity,
     ));
 
@@ -61,11 +121,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
             clip,
             order + 1,
             opacity,
+            metrics,
+            palette,
         );
-        push_thumbnail_icon_plate_command(commands, node, &inner_rect, clip, order + 5, opacity);
-        push_thumbnail_icon_command(commands, node, &inner_rect, clip, order + 6, opacity);
     } else {
-        push_thumbnail_icon_command(commands, node, &inner_rect, clip, order + 1, opacity);
+        push_thumbnail_icon_command(
+            commands,
+            node,
+            &inner_rect,
+            clip,
+            order + 1,
+            opacity,
+            metrics,
+            palette,
+        );
     }
 }
 
@@ -76,46 +145,66 @@ fn is_asset_thumbnail_visual(node: &TemplatePaneNodeData) -> bool {
     )
 }
 
-fn thumbnail_well_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+fn thumbnail_well_color(
+    node: &TemplatePaneNodeData,
+    palette: WorkbenchAssetVisualPalette,
+) -> [u8; 4] {
     if is_typed_thumbnail_visual(node) {
-        return PALETTE.surface_disabled;
+        return palette.typed_well;
     }
     match node.surface_variant.as_str() {
-        "asset-preview-visual" => PALETTE.surface_inset,
-        _ => PALETTE.surface,
+        "asset-preview-visual" => palette.preview_well,
+        _ => palette.placeholder_well,
     }
 }
 
-fn thumbnail_well_border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+fn thumbnail_well_border_color(
+    node: &TemplatePaneNodeData,
+    palette: WorkbenchAssetVisualPalette,
+) -> [u8; 4] {
     if !is_typed_thumbnail_visual(node) {
         return [0, 0, 0, 0];
     }
     if node.focused {
-        PALETTE.focus_ring
+        palette.focused_border
     } else {
-        PALETTE.separator_soft
+        palette.typed_border
     }
 }
 
-fn thumbnail_well_border_paint(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    is_typed_thumbnail_visual(node).then_some(thumbnail_well_border_color(node))
+fn thumbnail_well_border_paint(
+    node: &TemplatePaneNodeData,
+    palette: WorkbenchAssetVisualPalette,
+) -> Option<[u8; 4]> {
+    is_typed_thumbnail_visual(node).then_some(thumbnail_well_border_color(node, palette))
 }
 
-fn thumbnail_well_border_width(node: &TemplatePaneNodeData) -> f32 {
+fn thumbnail_well_border_width(
+    node: &TemplatePaneNodeData,
+    metrics: WorkbenchAssetVisualMetrics,
+) -> f32 {
     if is_typed_thumbnail_visual(node) {
-        1.0
+        metrics.border_width
     } else {
         0.0
     }
 }
 
-fn thumbnail_surface_rect(rect: &FrameRect) -> Option<FrameRect> {
+fn thumbnail_surface_rect(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    metrics: WorkbenchAssetVisualMetrics,
+) -> Option<FrameRect> {
     let shortest_edge = rect.width.min(rect.height);
-    if shortest_edge <= VISUAL_SURFACE_MIN_INSET * 2.0 {
+    let min_inset = if is_typed_thumbnail_visual(node) {
+        metrics.typed_surface_min_inset
+    } else {
+        metrics.visual_surface_min_inset
+    };
+    if shortest_edge <= min_inset * 2.0 {
         return None;
     }
-    let inset = (shortest_edge * VISUAL_SURFACE_INSET_RATIO)
-        .clamp(VISUAL_SURFACE_MIN_INSET, VISUAL_SURFACE_MAX_INSET);
+    let inset = thumbnail_surface_inset(node, shortest_edge, metrics);
     let width = (rect.width - inset * 2.0).max(0.0);
     let height = (rect.height - inset * 2.0).max(0.0);
     if width <= 0.0 || height <= 0.0 {
@@ -129,6 +218,23 @@ fn thumbnail_surface_rect(rect: &FrameRect) -> Option<FrameRect> {
     })
 }
 
+fn thumbnail_surface_inset(
+    node: &TemplatePaneNodeData,
+    shortest_edge: f32,
+    metrics: WorkbenchAssetVisualMetrics,
+) -> f32 {
+    if is_typed_thumbnail_visual(node) {
+        return (shortest_edge * TYPED_THUMBNAIL_SURFACE_INSET_RATIO).clamp(
+            metrics.typed_surface_min_inset,
+            metrics.typed_surface_max_inset,
+        );
+    }
+    (shortest_edge * VISUAL_SURFACE_INSET_RATIO).clamp(
+        metrics.visual_surface_min_inset,
+        metrics.visual_surface_max_inset,
+    )
+}
+
 fn push_thumbnail_icon_command(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -136,15 +242,17 @@ fn push_thumbnail_icon_command(
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    metrics: WorkbenchAssetVisualMetrics,
+    palette: WorkbenchAssetVisualPalette,
 ) {
-    let Some(edge) = thumbnail_icon_edge(node, rect) else {
+    let Some(edge) = thumbnail_icon_edge(node, rect, metrics) else {
         return;
     };
     let Some(image) = load_existing_icon_asset_pixels_for_size(
         thumbnail_icon_name(node),
         edge,
         edge,
-        thumbnail_icon_tint(node),
+        thumbnail_icon_tint(node, palette),
     ) else {
         return;
     };
@@ -162,33 +270,6 @@ fn push_thumbnail_icon_command(
     ));
 }
 
-fn push_thumbnail_icon_plate_command(
-    commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
-    rect: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    if !is_typed_thumbnail_visual(node) {
-        return;
-    }
-    let Some(edge) = thumbnail_icon_edge(node, rect) else {
-        return;
-    };
-    let plate_rect = thumbnail_icon_plate_rect(rect, edge);
-    commands.push(HostPaintCommand::quad(
-        plate_rect,
-        Some(clip.clone()),
-        order,
-        Some(PALETTE.surface_inset),
-        Some(PALETTE.separator_soft),
-        1.0,
-        TYPED_THUMBNAIL_PLATE_RADIUS,
-        opacity,
-    ));
-}
-
 fn push_typed_thumbnail_preview_commands(
     commands: &mut Vec<HostPaintCommand>,
     node: &TemplatePaneNodeData,
@@ -196,280 +277,30 @@ fn push_typed_thumbnail_preview_commands(
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    metrics: WorkbenchAssetVisualMetrics,
+    palette: WorkbenchAssetVisualPalette,
 ) {
-    let Some(canvas) = typed_thumbnail_preview_rect(rect) else {
+    let Some(edge) = typed_thumbnail_preview_icon_edge(rect, metrics) else {
         return;
     };
-    commands.push(HostPaintCommand::quad(
-        canvas.clone(),
-        Some(clip.clone()),
-        order,
-        Some(PALETTE.surface_inset),
-        Some(PALETTE.separator_soft),
-        1.0,
-        TYPED_THUMBNAIL_PREVIEW_RADIUS,
-        opacity,
-    ));
-    push_typed_thumbnail_content_marks(commands, node, &canvas, clip, order + 1, opacity);
-}
-
-fn push_typed_thumbnail_content_marks(
-    commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
-    canvas: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    match node.component_variant.as_str() {
-        "asset-ui-layout" | "asset-ui-widget" | "asset-ui-style" => {
-            push_ui_thumbnail_marks(commands, canvas, clip, order, opacity)
-        }
-        "asset-texture" => {
-            push_texture_thumbnail_marks(commands, node, canvas, clip, order, opacity)
-        }
-        "asset-material" => {
-            push_material_thumbnail_marks(commands, node, canvas, clip, order, opacity)
-        }
-        "asset-scene" | "asset-mesh" | "asset-prefab" => {
-            push_scene_thumbnail_marks(commands, node, canvas, clip, order, opacity)
-        }
-        _ => push_generic_thumbnail_marks(commands, node, canvas, clip, order, opacity),
-    }
-}
-
-fn push_ui_thumbnail_marks(
-    commands: &mut Vec<HostPaintCommand>,
-    canvas: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    let inset = 5.0_f32.min(canvas.width * 0.16).min(canvas.height * 0.2);
-    let content_x = canvas.x + inset;
-    let content_y = canvas.y + inset;
-    let content_w = (canvas.width - inset * 2.0).max(0.0);
-    let accent_h = 3.0_f32.min(canvas.height * 0.14);
-    push_thumbnail_mark(
-        commands,
-        FrameRect {
-            x: content_x,
-            y: content_y,
-            width: content_w,
-            height: accent_h,
-        },
-        thumbnail_type_tint_for_ui(),
-        clip,
-        order,
-        opacity,
-    );
-    push_thumbnail_mark(
-        commands,
-        FrameRect {
-            x: content_x,
-            y: content_y + accent_h + 4.0,
-            width: (content_w * 0.34).max(0.0),
-            height: (canvas.height - inset * 2.0 - accent_h - 4.0).max(0.0),
-        },
-        PALETTE.surface,
-        clip,
-        order + 1,
-        opacity,
-    );
-    let line_x = content_x + content_w * 0.42;
-    let line_w = (content_w * 0.42).max(0.0);
-    for row in 0..2 {
-        push_thumbnail_mark(
-            commands,
-            FrameRect {
-                x: line_x,
-                y: content_y + accent_h + 5.0 + row as f32 * 6.0,
-                width: line_w,
-                height: 2.0,
-            },
-            PALETTE.separator_soft,
-            clip,
-            order + 2 + row,
-            opacity,
-        );
-    }
-}
-
-fn push_texture_thumbnail_marks(
-    commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
-    canvas: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    let cell_w = (canvas.width - 8.0).max(0.0) * 0.5;
-    let cell_h = (canvas.height - 8.0).max(0.0) * 0.5;
-    for row in 0..2 {
-        for col in 0..2 {
-            let is_tinted = (row + col) % 2 == 0;
-            push_thumbnail_mark(
-                commands,
-                FrameRect {
-                    x: canvas.x + 4.0 + col as f32 * cell_w,
-                    y: canvas.y + 4.0 + row as f32 * cell_h,
-                    width: cell_w,
-                    height: cell_h,
-                },
-                if is_tinted {
-                    thumbnail_type_tint(node)
-                } else {
-                    PALETTE.surface
-                },
-                clip,
-                order + row * 2 + col,
-                opacity,
-            );
-        }
-    }
-}
-
-fn push_material_thumbnail_marks(
-    commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
-    canvas: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    let swatch_w = (canvas.width - 14.0).max(0.0) * 0.55;
-    let swatch_h = (canvas.height - 12.0).max(0.0);
-    push_thumbnail_mark(
-        commands,
-        FrameRect {
-            x: canvas.x + 5.0,
-            y: canvas.y + 6.0,
-            width: swatch_w,
-            height: swatch_h,
-        },
-        thumbnail_type_tint(node),
-        clip,
-        order,
-        opacity,
-    );
-    for row in 0..3 {
-        push_thumbnail_mark(
-            commands,
-            FrameRect {
-                x: canvas.x + swatch_w + 9.0,
-                y: canvas.y + 7.0 + row as f32 * 6.0,
-                width: (canvas.width - swatch_w - 15.0).max(0.0),
-                height: 2.0,
-            },
-            PALETTE.separator_soft,
-            clip,
-            order + 1 + row,
-            opacity,
-        );
-    }
-}
-
-fn push_scene_thumbnail_marks(
-    commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
-    canvas: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    for index in 0..3 {
-        let x = canvas.x + 5.0 + index as f32 * ((canvas.width - 12.0) / 3.0).max(0.0);
-        let y = canvas.y + 7.0 + (index % 2) as f32 * 7.0;
-        push_thumbnail_mark(
-            commands,
-            FrameRect {
-                x,
-                y,
-                width: 8.0_f32.min(canvas.width * 0.18),
-                height: 8.0_f32.min(canvas.height * 0.34),
-            },
-            if index == 1 {
-                thumbnail_type_tint(node)
-            } else {
-                PALETTE.surface
-            },
-            clip,
-            order + index,
-            opacity,
-        );
-    }
-    push_thumbnail_mark(
-        commands,
-        FrameRect {
-            x: canvas.x + 5.0,
-            y: canvas.y + canvas.height - 7.0,
-            width: (canvas.width - 10.0).max(0.0),
-            height: 1.5,
-        },
-        PALETTE.separator_soft,
-        clip,
-        order + 3,
-        opacity,
-    );
-}
-
-fn push_generic_thumbnail_marks(
-    commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
-    canvas: &FrameRect,
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    push_thumbnail_mark(
-        commands,
-        FrameRect {
-            x: canvas.x + 5.0,
-            y: canvas.y + 6.0,
-            width: (canvas.width - 10.0).max(0.0),
-            height: 3.0,
-        },
-        thumbnail_type_tint(node),
-        clip,
-        order,
-        opacity,
-    );
-    for row in 0..2 {
-        push_thumbnail_mark(
-            commands,
-            FrameRect {
-                x: canvas.x + 6.0,
-                y: canvas.y + 14.0 + row as f32 * 6.0,
-                width: (canvas.width * 0.58).max(0.0),
-                height: 2.0,
-            },
-            PALETTE.separator_soft,
-            clip,
-            order + 1 + row,
-            opacity,
-        );
-    }
-}
-
-fn push_thumbnail_mark(
-    commands: &mut Vec<HostPaintCommand>,
-    frame: FrameRect,
-    color: [u8; 4],
-    clip: &FrameRect,
-    order: i32,
-    opacity: f32,
-) {
-    if frame.width <= 0.0 || frame.height <= 0.0 {
+    let Some(image) = load_existing_icon_asset_pixels_for_size(
+        thumbnail_icon_name(node),
+        edge,
+        edge,
+        thumbnail_icon_tint(node, palette),
+    ) else {
         return;
-    }
-    commands.push(HostPaintCommand::quad(
-        frame,
+    };
+
+    commands.push(HostPaintCommand::image_pixels(
+        typed_thumbnail_preview_icon_rect(rect, edge),
         Some(clip.clone()),
         order,
-        Some(color),
-        None,
-        0.0,
-        TYPED_THUMBNAIL_MARK_RADIUS,
+        image.resource_key,
+        image.width,
+        image.height,
+        image.rgba,
+        image.atlas,
         opacity,
     ));
 }
@@ -492,63 +323,49 @@ fn is_typed_thumbnail_visual(node: &TemplatePaneNodeData) -> bool {
         && !node.component_variant.trim().is_empty()
 }
 
-fn thumbnail_icon_tint(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
-    (!is_typed_thumbnail_visual(node)).then_some(PALETTE.text_disabled)
+fn thumbnail_icon_tint(
+    node: &TemplatePaneNodeData,
+    palette: WorkbenchAssetVisualPalette,
+) -> Option<[u8; 4]> {
+    (!is_typed_thumbnail_visual(node)).then_some(palette.placeholder_icon_tint)
 }
 
-fn thumbnail_type_tint(node: &TemplatePaneNodeData) -> [u8; 4] {
-    match node.component_variant.as_str() {
-        "asset-texture" => THUMBNAIL_TYPE_TEXTURE_TINT,
-        "asset-material" => THUMBNAIL_TYPE_MATERIAL_TINT,
-        "asset-scene" => THUMBNAIL_TYPE_SCENE_TINT,
-        "asset-mesh" | "asset-prefab" => THUMBNAIL_TYPE_MESH_TINT,
-        "asset-shader" => THUMBNAIL_TYPE_SHADER_TINT,
-        "asset-audio" => THUMBNAIL_TYPE_AUDIO_TINT,
-        "asset-ui-layout" | "asset-ui-widget" | "asset-ui-style" => THUMBNAIL_TYPE_UI_TINT,
-        _ => THUMBNAIL_TYPE_DEFAULT_TINT,
-    }
-}
-
-fn thumbnail_type_tint_for_ui() -> [u8; 4] {
-    THUMBNAIL_TYPE_UI_TINT
-}
-
-fn thumbnail_icon_edge(node: &TemplatePaneNodeData, rect: &FrameRect) -> Option<u32> {
+fn thumbnail_icon_edge(
+    _node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    metrics: WorkbenchAssetVisualMetrics,
+) -> Option<u32> {
     let max_edge = rect.width.min(rect.height).floor() as u32;
-    let desired_edge = if is_typed_thumbnail_visual(node) {
-        TYPED_THUMBNAIL_ICON_EDGE
-    } else {
-        THUMBNAIL_ICON_EDGE
-    };
-    let edge = desired_edge.min(max_edge);
+    if max_edge == 0 {
+        return None;
+    }
+    let desired_edge = ((max_edge as f32) * THUMBNAIL_ICON_RATIO).round() as u32;
+    let edge = desired_edge
+        .clamp(metrics.icon_min_edge, metrics.icon_max_edge)
+        .min(max_edge);
     (edge > 0).then_some(edge)
 }
 
-fn typed_thumbnail_preview_rect(rect: &FrameRect) -> Option<FrameRect> {
-    let width = (rect.width - TYPED_THUMBNAIL_PREVIEW_INSET * 2.0).max(0.0);
-    let height = (rect.height - TYPED_THUMBNAIL_PREVIEW_INSET * 2.0).max(0.0);
-    if width <= 0.0 || height <= 0.0 {
+fn typed_thumbnail_preview_icon_edge(
+    rect: &FrameRect,
+    metrics: WorkbenchAssetVisualMetrics,
+) -> Option<u32> {
+    let max_edge = rect.width.min(rect.height).floor() as u32;
+    if max_edge == 0 {
         return None;
     }
-    Some(FrameRect {
-        x: rect.x + TYPED_THUMBNAIL_PREVIEW_INSET,
-        y: rect.y + TYPED_THUMBNAIL_PREVIEW_INSET,
-        width,
-        height,
-    })
+    let desired_edge = ((max_edge as f32) * TYPED_THUMBNAIL_PREVIEW_ICON_RATIO).round() as u32;
+    let edge = desired_edge
+        .clamp(
+            metrics.typed_preview_icon_min_edge,
+            metrics.typed_preview_icon_max_edge,
+        )
+        .min(max_edge);
+    (edge > 0).then_some(edge)
 }
 
-fn thumbnail_icon_rect(node: &TemplatePaneNodeData, rect: &FrameRect, edge: u32) -> FrameRect {
+fn thumbnail_icon_rect(_node: &TemplatePaneNodeData, rect: &FrameRect, edge: u32) -> FrameRect {
     let edge = edge as f32;
-    if is_typed_thumbnail_visual(node) {
-        let plate = thumbnail_icon_plate_rect(rect, edge as u32);
-        return FrameRect {
-            x: plate.x + (plate.width - edge) * 0.5,
-            y: plate.y + (plate.height - edge) * 0.5,
-            width: edge,
-            height: edge,
-        };
-    }
     FrameRect {
         x: rect.x + (rect.width - edge) * 0.5,
         y: rect.y + (rect.height - edge) * 0.5,
@@ -557,18 +374,8 @@ fn thumbnail_icon_rect(node: &TemplatePaneNodeData, rect: &FrameRect, edge: u32)
     }
 }
 
-fn thumbnail_icon_plate_rect(rect: &FrameRect, icon_edge: u32) -> FrameRect {
-    let edge = (icon_edge as f32 + TYPED_THUMBNAIL_PLATE_PADDING * 2.0)
-        .min(rect.width)
-        .min(rect.height);
-    if edge < rect.width && edge < rect.height {
-        return FrameRect {
-            x: rect.x + rect.width - edge - TYPED_THUMBNAIL_BADGE_MARGIN,
-            y: rect.y + TYPED_THUMBNAIL_BADGE_MARGIN,
-            width: edge,
-            height: edge,
-        };
-    }
+fn typed_thumbnail_preview_icon_rect(rect: &FrameRect, edge: u32) -> FrameRect {
+    let edge = edge as f32;
     FrameRect {
         x: rect.x + (rect.width - edge) * 0.5,
         y: rect.y + (rect.height - edge) * 0.5,
@@ -583,9 +390,52 @@ mod tests {
     use super::*;
     use crate::ui::layouts::common::model_rc;
     use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
+    use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
     #[test]
-    fn asset_placeholder_visual_uses_single_recessed_well_and_svg_icon() {
+    fn asset_thumbnail_visual_metrics_project_from_host_control_metrics() {
+        let mut host = METRICS;
+        host.radius_control = 3.0;
+        host.border_width = 1.5;
+        host.gap_s = 5.0;
+        host.gap_m = 11.0;
+        host.row_height = 27.0;
+
+        let metrics = asset_visual_metrics_from_host(host);
+
+        assert_eq!(metrics.surface_radius, 3.0);
+        assert_eq!(metrics.border_width, 1.5);
+        assert_eq!(metrics.visual_surface_min_inset, 6.5);
+        assert_eq!(metrics.visual_surface_max_inset, 11.0);
+        assert_eq!(metrics.typed_surface_min_inset, 3.5);
+        assert_eq!(metrics.typed_surface_max_inset, 5.0);
+        assert_eq!(metrics.icon_min_edge, 27);
+        assert_eq!(metrics.icon_max_edge, 38);
+        assert_eq!(metrics.typed_preview_icon_min_edge, 27);
+        assert_eq!(metrics.typed_preview_icon_max_edge, 38);
+    }
+
+    #[test]
+    fn asset_thumbnail_visual_palette_projects_from_host_material_palette() {
+        let mut host = PALETTE;
+        host.surface = [1, 2, 3, 4];
+        host.surface_inset = [5, 6, 7, 8];
+        host.separator_soft = [9, 10, 11, 12];
+        host.focus_ring = [13, 14, 15, 16];
+        host.text_muted = [17, 18, 19, 20];
+
+        let palette = asset_visual_palette_from_host(host);
+
+        assert_eq!(palette.placeholder_well, [1, 2, 3, 4]);
+        assert_eq!(palette.preview_well, [5, 6, 7, 8]);
+        assert_eq!(palette.typed_well, [5, 6, 7, 8]);
+        assert_eq!(palette.typed_border, [9, 10, 11, 12]);
+        assert_eq!(palette.focused_border, [13, 14, 15, 16]);
+        assert_eq!(palette.placeholder_icon_tint, [17, 18, 19, 20]);
+    }
+
+    #[test]
+    fn asset_placeholder_visual_uses_single_recessed_well_and_relative_svg_icon() {
         let rect = placeholder_rect();
         let mut commands = Vec::new();
 
@@ -603,7 +453,10 @@ mod tests {
             .filter(|command| command.image_pixels.is_none())
             .collect::<Vec<_>>();
         assert_eq!(well_commands.len(), 1);
-        assert_eq!(well_commands[0].background_color, Some(PALETTE.surface));
+        assert_eq!(
+            well_commands[0].background_color,
+            Some(asset_visual_palette_from_host(PALETTE).placeholder_well)
+        );
         assert_eq!(well_commands[0].border_color, None);
         assert_eq!(well_commands[0].border_width, 0.0);
 
@@ -616,13 +469,21 @@ mod tests {
             assert!(false, "placeholder icon should use real SVG pixels");
             return;
         };
-        assert_eq!((icon.width, icon.height), (20, 20));
+        let metrics = asset_visual_metrics_from_host(METRICS);
+        assert_eq!(
+            (icon.width, icon.height),
+            (metrics.icon_min_edge, metrics.icon_min_edge)
+        );
         assert!(
             !icon.resource_key.starts_with("missing-icon:"),
             "placeholder icon should resolve through the real shell image icon"
         );
-        assert_eq!(icon_commands[0].frame.width, 20.0);
-        assert_eq!(icon_commands[0].frame.height, 20.0);
+        assert!(
+            icon_commands[0].frame.width > 20.0,
+            "generic image preview should scale from the well instead of staying at the old fixed 20px size"
+        );
+        assert_eq!(icon_commands[0].frame.width, metrics.icon_min_edge as f32);
+        assert_eq!(icon_commands[0].frame.height, metrics.icon_min_edge as f32);
     }
 
     #[test]
@@ -635,24 +496,38 @@ mod tests {
 
         push_asset_placeholder_visual_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
 
-        let icon = commands
+        let icon_commands = commands
             .iter()
-            .find_map(|command| command.image_pixels.as_ref())
-            .expect("asset thumbnail visual should paint a type-specific icon");
-        assert_eq!((icon.width, icon.height), (14, 14));
+            .filter(|command| command.image_pixels.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            icon_commands.len(),
+            1,
+            "typed thumbnail visual should paint one primary preview icon; type identity is already carried by the tile metadata"
+        );
+
+        let preview_icon = icon_commands[0]
+            .image_pixels
+            .as_ref()
+            .expect("preview icon should carry real SVG pixels");
+        let metrics = asset_visual_metrics_from_host(METRICS);
         assert!(
-            !icon.resource_key.starts_with("missing-icon:"),
-            "asset thumbnail icon should resolve through a real texture asset SVG, got {}",
-            icon.resource_key
+            preview_icon.width >= metrics.typed_preview_icon_min_edge,
+            "preview icon should be large enough to carry asset identity in dense tiles"
         );
         assert!(
-            visible_color_count(&icon.rgba) > 3,
+            !preview_icon.resource_key.starts_with("missing-icon:"),
+            "asset thumbnail preview icon should resolve through a real texture asset SVG, got {}",
+            preview_icon.resource_key
+        );
+        assert!(
+            visible_color_count(&preview_icon.rgba) > 3,
             "typed thumbnail icons should preserve the source SVG colors instead of flattening to one tint"
         );
     }
 
     #[test]
-    fn asset_thumbnail_visual_uses_muted_corner_icon_plate_without_type_border() {
+    fn asset_thumbnail_visual_uses_single_well_without_corner_icon_plate() {
         let rect = placeholder_rect();
         let mut commands = Vec::new();
         let mut node = placeholder_node("asset-placeholder-visual");
@@ -665,38 +540,35 @@ mod tests {
             .iter()
             .filter(|command| command.image_pixels.is_none())
             .collect::<Vec<_>>();
-        assert!(paint_commands.len() >= 6);
+        assert_eq!(
+            paint_commands.len(),
+            1,
+            "typed thumbnail visual should avoid both abstract content mark quads and duplicate corner badge plates"
+        );
         assert_eq!(
             paint_commands[0].background_color,
-            Some(PALETTE.surface_disabled)
+            Some(asset_visual_palette_from_host(PALETTE).typed_well)
         );
-        assert_eq!(paint_commands[0].border_color, Some(PALETTE.separator_soft));
-        assert_eq!(paint_commands[0].border_width, 1.0);
-
-        let Some(badge_plate) = paint_commands.last() else {
-            assert!(
-                false,
-                "typed thumbnail visual should paint a muted corner icon plate"
-            );
-            return;
-        };
-        assert_eq!(badge_plate.background_color, Some(PALETTE.surface_inset));
-        assert_eq!(badge_plate.border_color, Some(PALETTE.separator_soft));
-        assert_eq!(badge_plate.corner_radius, TYPED_THUMBNAIL_PLATE_RADIUS);
-        assert!(
-            badge_plate.frame.x > rect.x + rect.width * 0.5,
-            "semantic icon plate should sit in the corner instead of the thumbnail center"
+        assert_eq!(
+            paint_commands[0].border_color,
+            Some(asset_visual_palette_from_host(PALETTE).typed_border)
+        );
+        assert_eq!(
+            paint_commands[0].border_width,
+            asset_visual_metrics_from_host(METRICS).border_width
         );
         assert!(
-            paint_commands[2..paint_commands.len() - 1]
+            commands
                 .iter()
-                .any(|command| command.background_color == Some(THUMBNAIL_TYPE_UI_TINT)),
-            "asset type tint should stay in thumbnail content marks, not the corner icon plate border"
+                .filter(|command| command.image_pixels.is_some())
+                .count()
+                == 1,
+            "semantic identity should be carried by the primary preview icon and type badge text, not by a duplicate corner badge"
         );
     }
 
     #[test]
-    fn asset_thumbnail_visual_uses_muted_preview_canvas_border_and_corner_type_icon() {
+    fn asset_thumbnail_visual_uses_centered_semantic_preview_icon_without_corner_badge() {
         let rect = placeholder_rect();
         let mut commands = Vec::new();
         let mut node = placeholder_node("asset-placeholder-visual");
@@ -709,36 +581,76 @@ mod tests {
             .iter()
             .filter(|command| command.image_pixels.is_none())
             .collect::<Vec<_>>();
-        assert!(
-            paint_commands.len() >= 5,
-            "typed asset thumbnail should paint a preview canvas and content marks before the icon"
+        assert_eq!(
+            paint_commands.len(),
+            1,
+            "typed asset thumbnail should paint one large preview well and no duplicate corner badge plate"
         );
         assert_eq!(
             paint_commands[0].background_color,
-            Some(PALETTE.surface_disabled)
+            Some(asset_visual_palette_from_host(PALETTE).typed_well)
         );
         assert_eq!(
-            paint_commands[1].background_color,
-            Some(PALETTE.surface_inset)
+            paint_commands[0].border_color,
+            Some(asset_visual_palette_from_host(PALETTE).typed_border)
         );
-        assert_eq!(paint_commands[1].border_color, Some(PALETTE.separator_soft));
-        assert!(
-            paint_commands[2..]
-                .iter()
-                .any(|command| command.background_color == Some(THUMBNAIL_TYPE_UI_TINT)),
-            "typed preview should include an asset-color content mark"
+        assert!(paint_commands[0].frame.width >= rect.width - 8.0);
+        assert!(paint_commands[0].frame.height >= rect.height - 8.0);
+        let icon_commands = commands
+            .iter()
+            .filter(|command| command.image_pixels.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            icon_commands.len(),
+            1,
+            "typed thumbnail should paint only the primary preview icon"
         );
 
-        let icon_command = commands
+        let preview_icon = icon_commands[0];
+        let metrics = asset_visual_metrics_from_host(METRICS);
+        assert!(preview_icon.frame.width >= metrics.typed_preview_icon_min_edge as f32);
+        assert!(preview_icon.frame.height >= metrics.typed_preview_icon_min_edge as f32);
+        assert!(preview_icon.frame.width <= metrics.typed_preview_icon_max_edge as f32);
+        assert!(preview_icon.frame.height <= metrics.typed_preview_icon_max_edge as f32);
+        assert!(
+            (preview_icon.frame.x + preview_icon.frame.width * 0.5
+                - (paint_commands[0].frame.x + paint_commands[0].frame.width * 0.5))
+                .abs()
+                <= 1.0,
+            "preview icon should be centered in the thumbnail well after removing the corner badge"
+        );
+        assert!(
+            (preview_icon.frame.y + preview_icon.frame.height * 0.5
+                - (paint_commands[0].frame.y + paint_commands[0].frame.height * 0.5))
+                .abs()
+                <= 1.0,
+            "preview icon should be vertically centered in the thumbnail well"
+        );
+    }
+
+    #[test]
+    fn asset_thumbnail_visual_scales_semantic_icon_to_slate_tile_max() {
+        let rect = large_thumbnail_rect();
+        let mut commands = Vec::new();
+        let mut node = placeholder_node("asset-placeholder-visual");
+        node.component_role = "asset-thumbnail-visual".into();
+        node.component_variant = "asset-scene".into();
+
+        push_asset_placeholder_visual_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        let preview_icon = commands
             .iter()
             .find(|command| command.image_pixels.is_some())
-            .expect("typed thumbnail should still paint the semantic icon");
-        assert!(
-            icon_command.frame.x > rect.x + rect.width * 0.5,
-            "semantic icon should move to a corner badge instead of dominating the preview"
+            .expect("large typed thumbnail should paint a semantic preview icon");
+
+        assert_eq!(
+            preview_icon.frame.width,
+            asset_visual_metrics_from_host(METRICS).typed_preview_icon_max_edge as f32
         );
-        assert!(icon_command.frame.width <= 16.0);
-        assert!(icon_command.frame.height <= 16.0);
+        assert_eq!(
+            preview_icon.frame.height,
+            asset_visual_metrics_from_host(METRICS).typed_preview_icon_max_edge as f32
+        );
     }
 
     #[test]
@@ -792,7 +704,10 @@ mod tests {
             .iter()
             .find(|command| command.image_pixels.is_none())
             .expect("typed thumbnail visual should paint a well");
-        assert_eq!(well.border_color, Some(PALETTE.separator_soft));
+        assert_eq!(
+            well.border_color,
+            Some(asset_visual_palette_from_host(PALETTE).typed_border)
+        );
 
         commands.clear();
         node.focused = true;
@@ -802,7 +717,10 @@ mod tests {
             .iter()
             .find(|command| command.image_pixels.is_none())
             .expect("focused typed thumbnail visual should paint a well");
-        assert_eq!(focused_well.border_color, Some(PALETTE.focus_ring));
+        assert_eq!(
+            focused_well.border_color,
+            Some(asset_visual_palette_from_host(PALETTE).focused_border)
+        );
     }
 
     fn placeholder_node(surface_variant: &str) -> TemplatePaneNodeData {
@@ -827,6 +745,15 @@ mod tests {
             y: 8.0,
             width: 74.0,
             height: 42.0,
+        }
+    }
+
+    fn large_thumbnail_rect() -> FrameRect {
+        FrameRect {
+            x: 8.0,
+            y: 8.0,
+            width: 108.0,
+            height: 76.0,
         }
     }
 

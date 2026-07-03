@@ -1,0 +1,38 @@
+Runtime Text Atlas GPU Pipeline Binding Contract Validation
+Date: 2026-07-03
+Status key: runtime_text_at_m2_at_m3_atlas_gpu_pipeline_binding_contract_rustfmt_visual_cargo_deferred
+
+Changed owner:
+- zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs
+
+Implemented contract:
+- GlyphAtlasGpuBindGroupLayout fixes atlas texture binding group=0 binding=0.
+- GlyphAtlasGpuBindGroupLayout fixes atlas sampler binding group=0 binding=1.
+- Atlas texture binding is FloatFilterable, D2Array, multisampled=false.
+- GlyphAtlasGpuPipelineKey is render_contract + TriangleList topology.
+- GlyphAtlasGpuPipelineContract carries the fixed vertex layout and bind group layout.
+- GlyphAtlasGpuDrawPlan now carries bind_group_layout and unique pipeline_contracts.
+- GlyphAtlasGpuDrawCommand now carries pipeline_key so renderer code does not infer pipeline state from batch order.
+
+Added / updated owner tests:
+- render_text_atlas_gpu_bind_group_layout_uses_texture_array_sampler_contract
+- render_text_atlas_gpu_pipeline_contracts_follow_unique_render_contracts
+- render_text_atlas_gpu_draw_commands_follow_batch_quad_ranges
+- render_text_atlas_gpu_plan_flattens_batches_into_ndc_vertices
+
+Local verification:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs
+  Result: passed.
+- Static token scan confirmed GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuPipelineContract, pipeline_contracts, render_text_atlas_gpu_bind_group_layout_uses_texture_array_sampler_contract, and render_text_atlas_gpu_pipeline_contracts_follow_unique_render_contracts are present.
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_atlas_gpu_pipeline_binding_contract_preview_20260703.png
+- SHA256: 340038AEFD60DD670EAE53B63B68175E63864C6C62552DA20C59610A93131843
+- Visual inspection: readable, no cropped contract rows, no overlapping text.
+
+Target placement check:
+- repo target, E:\cargo-targets, and D:\cargo-targets same-name match count: 0
+
+Deferred:
+- Focused Cargo was not started because external cargo/rustc lanes were active in the shared checkout.
+- This slice does not claim production wgpu renderer hookup, live editor capture, glyphon TextAtlas cutover, or workspace green.

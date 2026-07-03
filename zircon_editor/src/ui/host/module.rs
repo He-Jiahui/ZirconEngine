@@ -6,10 +6,14 @@ use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::{ASSET_MODULE_NAME, PROJECT_ASSET_MANAGER_NAME};
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
+    ServiceKind, StartupMode,
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
+use zircon_runtime::graphics::GRAPHICS_MODULE_NAME;
+use zircon_runtime::scene::SCENE_MODULE_NAME;
+use zircon_runtime::ui::UI_MODULE_NAME;
 
 use crate::ui::host::commands::{EditorCommandRegistry, EditorKeymap};
 use crate::ui::host::editor_asset_manager::{
@@ -35,6 +39,12 @@ pub fn module_descriptor() -> ModuleDescriptor {
         EDITOR_MODULE_NAME,
         "Retained-based editor host and tooling shell",
     )
+    .with_init_level(InitLevel::Editor)
+    .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(ASSET_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(SCENE_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(GRAPHICS_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(UI_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(EDITOR_MODULE_NAME, ServiceKind::Driver, "EditorHostDriver"),
         StartupMode::Immediate,

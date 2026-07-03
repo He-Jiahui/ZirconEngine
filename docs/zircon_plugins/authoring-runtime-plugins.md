@@ -8,6 +8,9 @@ related_code:
   - zircon_plugins/tilemap_2d/README.md
   - zircon_plugins/tilemap_2d/runtime/src/lib.rs
   - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
+  - tools/tests/test_tilemap_editor_authoring_typed_error_diagnostics.py
+  - tools/tests/test_plugin_docs_current_status_tilemap_editor_authoring_typed_error_diagnostics.py
   - zircon_plugins/prefab_tools/plugin.toml
   - zircon_plugins/prefab_tools/README.md
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
@@ -21,6 +24,7 @@ implementation_files:
   - zircon_plugins/tilemap_2d/plugin.toml
   - zircon_plugins/tilemap_2d/runtime/src/lib.rs
   - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
   - zircon_plugins/prefab_tools/plugin.toml
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
   - zircon_plugins/prefab_tools/editor/src/lib.rs
@@ -103,6 +107,18 @@ three linked runtime tests passed. The runtime manifest/catalog regression also
 passed and now asserts static TOML and built-in catalog category, maturity, and
 partial status for all three packages. These are scoped metadata/package tests;
 they do not claim terrain, tilemap, or prefab authoring product completion.
+
+2026-07-03 `plugins_13_m5_t1_tilemap_editor_authoring_typed_error_diagnostics`
+keeps Tilemap 2D editor diagnostics aligned with Runtime 15 typed authoring
+errors. Runtime `TileMapAsset::validate_layers()` still returns
+`AssetAuthoringError`; `zircon_plugin_tilemap_2d_editor` converts it with
+`diagnostics.push(error.to_string())` only while building editor-facing
+`Vec<String>` diagnostics. Guard coverage is
+`tools/tests/test_tilemap_editor_authoring_typed_error_diagnostics.py` and
+`tools/tests/test_plugin_docs_current_status_tilemap_editor_authoring_typed_error_diagnostics.py`.
+Focused validation passed
+`cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_tilemap_2d_editor --locked --all-targets`
+with existing warnings; `zircon_plugin_tilemap_2d_editor` Rust 单测超时未采信.
 
 ## Open Issues
 

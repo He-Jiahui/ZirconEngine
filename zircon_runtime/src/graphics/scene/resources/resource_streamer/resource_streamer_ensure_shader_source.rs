@@ -46,6 +46,11 @@ impl ResourceStreamer {
         {
             return Ok((shader_id, revision, fallback_report));
         }
+        let import_dependencies = shader
+            .imports
+            .iter()
+            .filter_map(|import| import.redirect.clone())
+            .collect::<Vec<_>>();
         self.shaders.insert(
             shader_id,
             PreparedShader {
@@ -60,9 +65,17 @@ impl ResourceStreamer {
                             ))
                         })?
                         .to_string(),
+                    kind: shader.kind,
+                    import_path: shader.import_path.clone(),
+                    imports: shader.imports.clone(),
+                    material_option_table: shader.material_option_table,
+                    generated_material_wgsl: shader.generated_material_wgsl,
                 },
             },
         );
+        for dependency in import_dependencies {
+            let _ = self.ensure_shader_source(&dependency)?;
+        }
         Ok((shader_id, revision, fallback_report))
     }
 

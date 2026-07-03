@@ -33,8 +33,8 @@ fn runtime_15_shader_prewarm_geometry_source_enumeration_is_wired() {
         "shader prewarm run forwards geometry sources to asset-root manifests",
         &run,
         &[
-            "asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_ids",
-            "&args.geometry_sources",
+            "asset_root_manifest_with_resource_registry_revisions",
+            "&geometry_sources",
         ],
     );
     assert_contains_all(
@@ -134,7 +134,7 @@ fn runtime_15_shader_prewarm_custom_geometry_source_id_is_wired() {
         &run,
         &[
             "asset_root_manifest_with_resource_registry_revisions",
-            "&args.geometry_sources",
+            "&geometry_sources",
         ],
     );
     assert_contains_all(

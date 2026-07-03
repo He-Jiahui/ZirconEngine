@@ -497,7 +497,7 @@ fn mesh_snapshot(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(default_render_layer_mask()),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask()),
     }
 }
 

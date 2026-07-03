@@ -14,7 +14,7 @@ fn runtime_15_render_stats_graph_execution_resources_are_child_owner() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
 
     assert_contains_all(

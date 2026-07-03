@@ -3,6 +3,8 @@
 use crate::core::ServiceKind;
 use thiserror::Error;
 
+use std::time::Duration;
+
 #[derive(Debug, Error)]
 pub enum ZirconError {
     #[error("channel send failed: {0}")]
@@ -50,6 +52,21 @@ pub enum CoreError {
     },
     #[error("cyclic dependency detected while resolving {0}")]
     DependencyCycle(String),
+    #[error("module dependency missing for {module}: {dependency}")]
+    MissingModuleDependency { module: String, dependency: String },
+    #[error(
+        "module init-level violation for {module} ({module_level}): dependency {dependency} is later at {dependency_level}"
+    )]
+    ModuleInitLevelViolation {
+        module: String,
+        module_level: String,
+        dependency: String,
+        dependency_level: String,
+    },
+    #[error("module dependency cycle detected: {path:?}")]
+    ModuleDependencyCycle { path: Vec<String> },
+    #[error("module ready timeout for {module} after {budget:?}")]
+    ModuleReadyTimeout { module: String, budget: Duration },
     #[error("service initialization failed for {0}: {1}")]
     Initialization(String, String),
     #[error("service unload blocked for {0}; still referenced by {1:?}")]

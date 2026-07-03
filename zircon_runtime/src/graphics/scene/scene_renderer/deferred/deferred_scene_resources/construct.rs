@@ -1,25 +1,32 @@
 use super::super::lighting_bind_group_layout::create_lighting_bind_group_layout;
 use super::super::lighting_pipeline::create_lighting_pipeline;
 use super::DeferredSceneResources;
+use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
+use crate::graphics::types::GraphicsError;
 use wgpu::util::DeviceExt;
 
 impl DeferredSceneResources {
     pub(crate) fn new(
         device: &wgpu::Device,
+        asset_manager: &ProjectAssetManager,
         scene_layout: &wgpu::BindGroupLayout,
         _material_layout: &wgpu::BindGroupLayout,
         gpu_scene_layout: &wgpu::BindGroupLayout,
         target_format: wgpu::TextureFormat,
-    ) -> Self {
+        plugin_shading_models: &[ShadingModelDescriptor],
+    ) -> Result<Self, GraphicsError> {
         let lighting_bind_group_layout = create_lighting_bind_group_layout(device);
         let lighting_pipeline = create_lighting_pipeline(
             device,
+            asset_manager,
             scene_layout,
             &lighting_bind_group_layout,
             gpu_scene_layout,
             target_format,
-        );
+            plugin_shading_models,
+        )?;
         let shadow_compare_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-deferred-shadow-compare-sampler"),
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -45,14 +52,14 @@ impl DeferredSceneResources {
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             });
 
-        Self {
+        Ok(Self {
             lighting_bind_group_layout,
             lighting_pipeline,
             shadow_compare_sampler,
             shadow_atlas_fallback_view,
             shadow_atlas_fallback_slot_buffer,
             shadow_atlas_fallback_globals_buffer,
-        }
+        })
     }
 }
 

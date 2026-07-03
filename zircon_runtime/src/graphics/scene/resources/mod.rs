@@ -22,4 +22,4 @@ pub(in crate::graphics::scene::resources) use post_process_lut_texture::PostProc
 pub(crate) use resource_streamer::ResourceStreamer;
 #[cfg(test)]
 pub(crate) use runtime::MaterialCaptureSeed;
-pub(crate) use runtime::MaterialRuntime;
+pub(crate) use runtime::{MaterialDisabledPasses, MaterialRuntime};

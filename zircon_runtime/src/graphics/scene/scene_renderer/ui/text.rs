@@ -13,13 +13,20 @@ use crate::graphics::text::font::FontDatabase;
 use glyphon::cosmic_text::Align;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiTextAlign, UiTextDirection, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
+    UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRenderMode, UiTextRunPaintStyle,
+    UiTextWrap,
 };
 
+mod font_id_report;
+mod sdf_fallback;
+
+use self::font_id_report::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
+use self::sdf_fallback::{apply_sdf_atlas_fallbacks, ScreenSpaceUiTextSdfFallbackReport};
 use super::sdf_atlas::{ScreenSpaceUiSdfAtlas, SdfAtlasCacheReport};
 use super::sdf_render::{ScreenSpaceUiSdfPrepareReport, ScreenSpaceUiSdfRenderer};
 #[cfg(test)]
 use super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadReport};
+use super::text_pixel_snap::text_origin_device_px;
 use crate::ui::text::shaper::resolve_text_render_mode;
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
@@ -36,13 +43,15 @@ pub(super) struct ScreenSpaceUiTextSystem {
     last_prepare_report: ScreenSpaceUiTextPrepareReport,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) struct ScreenSpaceUiTextPrepareReport {
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ScreenSpaceUiTextPrepareReport {
     pub(super) input_auto_text_batch_count: usize,
     pub(super) input_native_text_batch_count: usize,
     pub(super) input_sdf_text_batch_count: usize,
     pub(super) resolved_native_text_batch_count: usize,
     pub(super) resolved_sdf_text_batch_count: usize,
+    pub(super) sdf_fallback: ScreenSpaceUiTextSdfFallbackReport,
+    pub(super) native_font_ids: ScreenSpaceUiTextFontIdReport,
     pub(super) sdf_atlas: SdfAtlasCacheReport,
     pub(super) sdf_renderer: ScreenSpaceUiSdfPrepareReport,
 }
@@ -152,7 +161,7 @@ impl ScreenSpaceUiTextSystem {
         native_texts: &[ScreenSpaceUiTextBatch],
         sdf_texts: &[ScreenSpaceUiTextBatch],
     ) {
-        let resolved_texts = resolve_text_batches(
+        let mut resolved_texts = resolve_text_batches(
             &mut self.font_system,
             &mut self.font_database,
             &mut self.font_assets,
@@ -162,6 +171,23 @@ impl ScreenSpaceUiTextSystem {
             sdf_texts,
         );
         self.sdf_atlas.prepare(resolved_texts.sdf_atlas_texts());
+        let sdf_fallback_glyph_advances =
+            self.sdf_renderer.measure_text_glyph_advances_for_fallbacks(
+                resolved_texts.sdf_atlas_texts(),
+                &mut self.font_database,
+                self.asset_manager.as_ref(),
+            );
+        let sdf_fallback_report = apply_sdf_atlas_fallbacks(
+            &mut resolved_texts.native_texts,
+            &mut resolved_texts.sdf_texts,
+            &self.sdf_atlas.plan().runs,
+            &sdf_fallback_glyph_advances,
+        );
+        if sdf_fallback_report.has_whole_batch_fallbacks() {
+            self.sdf_atlas
+                .discard_cached_slots_not_in_texts(resolved_texts.sdf_atlas_texts());
+            self.sdf_atlas.prepare(resolved_texts.sdf_atlas_texts());
+        }
         let sdf_atlas_report = self.sdf_atlas.cache_report();
         self.sdf_renderer.prepare(
             device,
@@ -169,12 +195,12 @@ impl ScreenSpaceUiTextSystem {
             viewport_size,
             resolved_texts.sdf_texts(),
             self.sdf_atlas.plan(),
-            sdf_atlas_report,
+            sdf_atlas_report.clone(),
             &mut self.font_database,
             self.asset_manager.as_ref(),
         );
         let sdf_renderer_report = self.sdf_renderer.prepare_report();
-        self.native.prepare(
+        let native_font_id_report = self.native.prepare(
             device,
             queue,
             viewport_size,
@@ -190,6 +216,8 @@ impl ScreenSpaceUiTextSystem {
             native_texts,
             sdf_texts,
             &resolved_texts,
+            sdf_fallback_report,
+            native_font_id_report,
             sdf_atlas_report,
             sdf_renderer_report,
         );
@@ -204,7 +232,7 @@ impl ScreenSpaceUiTextSystem {
     }
 
     pub(super) fn prepare_report(&self) -> ScreenSpaceUiTextPrepareReport {
-        self.last_prepare_report
+        self.last_prepare_report.clone()
     }
 }
 
@@ -236,7 +264,7 @@ impl ScreenSpaceUiTextBackend {
         swash_cache: &mut SwashCache,
         font_assets: &mut HashMap<String, LoadedUiFontAsset>,
         asset_manager: &ProjectAssetManager,
-    ) {
+    ) -> ScreenSpaceUiTextFontIdReport {
         self.viewport.update(
             queue,
             Resolution {
@@ -247,10 +275,11 @@ impl ScreenSpaceUiTextBackend {
 
         if texts.is_empty() {
             self.atlas.trim();
-            return;
+            return ScreenSpaceUiTextFontIdReport::default();
         }
 
         let mut buffers = Vec::with_capacity(texts.len());
+        let mut font_id_report = ScreenSpaceUiTextFontIdReport::default();
         for text in texts {
             let family_name = resolve_family_name(
                 font_system,
@@ -260,7 +289,13 @@ impl ScreenSpaceUiTextBackend {
                 text.font.as_deref(),
                 text.font_family.as_deref(),
             );
-            let attrs = text_attrs(family_name.as_deref(), text.style);
+            accumulate_text_font_id_report(
+                &mut font_id_report,
+                text,
+                family_name.as_deref(),
+                font_database,
+            );
+            let attrs = text_attrs(family_name.as_deref(), text.font_weight, text.style);
             let mut buffer =
                 Buffer::new(font_system, Metrics::new(text.font_size, text.line_height));
             buffer.set_size(
@@ -272,7 +307,7 @@ impl ScreenSpaceUiTextBackend {
                 font_system,
                 match text.wrap {
                     UiTextWrap::None => Wrap::None,
-                    UiTextWrap::Word => Wrap::Word,
+                    UiTextWrap::Word | UiTextWrap::WordSmart => Wrap::Word,
                     UiTextWrap::Glyph => Wrap::Glyph,
                 },
             );
@@ -290,14 +325,17 @@ impl ScreenSpaceUiTextBackend {
         let text_areas = texts
             .iter()
             .zip(buffers.iter())
-            .map(|(text, buffer)| TextArea {
-                buffer,
-                left: text.frame.x,
-                top: text.frame.y,
-                scale: 1.0,
-                bounds: text_bounds(viewport_size, text),
-                default_color: pack_color(text.color),
-                custom_glyphs: &[],
+            .map(|(text, buffer)| {
+                let placement = native_text_area_placement(viewport_size, text);
+                TextArea {
+                    buffer,
+                    left: placement.left,
+                    top: placement.top,
+                    scale: 1.0,
+                    bounds: placement.bounds,
+                    default_color: pack_color(text.color),
+                    custom_glyphs: &[],
+                }
             })
             .collect::<Vec<_>>();
 
@@ -310,10 +348,16 @@ impl ScreenSpaceUiTextBackend {
             text_areas,
             swash_cache,
         );
+
+        font_id_report
     }
 }
 
-fn text_attrs<'a>(family_name: Option<&'a str>, style: UiTextRunPaintStyle) -> Attrs<'a> {
+fn text_attrs<'a>(
+    family_name: Option<&'a str>,
+    font_weight: u16,
+    style: UiTextRunPaintStyle,
+) -> Attrs<'a> {
     let mut attrs = if style.code {
         Attrs::new().family(Family::Monospace)
     } else {
@@ -321,8 +365,15 @@ fn text_attrs<'a>(family_name: Option<&'a str>, style: UiTextRunPaintStyle) -> A
             .map(|family| Attrs::new().family(Family::Name(family)))
             .unwrap_or_else(Attrs::new)
     };
+    let resolved_weight = UiResolvedStyle::normalized_font_weight(font_weight);
+    let resolved_weight = if style.strong {
+        resolved_weight.max(Weight::BOLD.0)
+    } else {
+        resolved_weight
+    };
+    attrs = attrs.weight(Weight(resolved_weight));
     if style.strong {
-        attrs = attrs.weight(Weight::BOLD);
+        debug_assert!(attrs.weight.0 >= Weight::BOLD.0);
     }
     if style.emphasis {
         attrs = attrs.style(Style::Italic);
@@ -399,6 +450,8 @@ fn text_prepare_report(
     native_texts: &[ScreenSpaceUiTextBatch],
     sdf_texts: &[ScreenSpaceUiTextBatch],
     resolved_texts: &ResolvedScreenSpaceUiTextBatches,
+    sdf_fallback: ScreenSpaceUiTextSdfFallbackReport,
+    native_font_ids: ScreenSpaceUiTextFontIdReport,
     sdf_atlas: SdfAtlasCacheReport,
     sdf_renderer: ScreenSpaceUiSdfPrepareReport,
 ) -> ScreenSpaceUiTextPrepareReport {
@@ -408,6 +461,8 @@ fn text_prepare_report(
         input_sdf_text_batch_count: sdf_texts.len(),
         resolved_native_text_batch_count: resolved_texts.native_texts().len(),
         resolved_sdf_text_batch_count: resolved_texts.sdf_texts().len(),
+        sdf_fallback,
+        native_font_ids,
         sdf_atlas,
         sdf_renderer,
     }
@@ -513,6 +568,23 @@ fn text_bounds(
     }
 }
 
+struct NativeTextAreaPlacement {
+    left: f32,
+    top: f32,
+    bounds: TextBounds,
+}
+
+fn native_text_area_placement(
+    viewport_size: crate::core::math::UVec2,
+    text: &ScreenSpaceUiTextBatch,
+) -> NativeTextAreaPlacement {
+    NativeTextAreaPlacement {
+        left: text_origin_device_px(text.frame.x),
+        top: text_origin_device_px(text.frame.y),
+        bounds: text_bounds(viewport_size, text),
+    }
+}
+
 fn pack_color(color: [f32; 4]) -> Color {
     Color::rgba(
         (color[0].clamp(0.0, 1.0) * 255.0) as u8,
@@ -531,193 +603,9 @@ fn native_text_align(align: UiTextAlign, direction: UiTextDirection) -> Align {
         UiTextAlign::Start => Align::Left,
         UiTextAlign::End if matches!(direction, UiTextDirection::RightToLeft) => Align::Left,
         UiTextAlign::End => Align::Right,
+        UiTextAlign::Justify => Align::Justified,
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches() {
-        let native = text_batch("Normal", UiTextRenderMode::Native);
-        let sdf = text_batch("Signed", UiTextRenderMode::Sdf);
-
-        let routed = ResolvedScreenSpaceUiTextBatches::from_explicit_batches(&[native], &[sdf]);
-
-        assert_eq!(routed.native_texts().len(), 1);
-        assert_eq!(routed.native_texts()[0].text, "Normal");
-        assert_eq!(routed.sdf_texts().len(), 1);
-        assert_eq!(routed.sdf_texts()[0].text, "Signed");
-        assert_eq!(routed.sdf_atlas_texts().len(), 1);
-        assert_eq!(routed.sdf_atlas_texts()[0].text, "Signed");
-    }
-
-    #[test]
-    fn text_backend_routing_respects_auto_font_mode_without_crossing_backends() {
-        let mut routed = ResolvedScreenSpaceUiTextBatches::default();
-
-        routed.push_resolved_auto_text(
-            text_batch("NormalAuto", UiTextRenderMode::Auto),
-            UiTextRenderMode::Native,
-        );
-        routed.push_resolved_auto_text(
-            text_batch("SdfAuto", UiTextRenderMode::Auto),
-            UiTextRenderMode::Sdf,
-        );
-
-        assert_eq!(routed.native_texts().len(), 1);
-        assert_eq!(routed.native_texts()[0].text, "NormalAuto");
-        assert_eq!(routed.sdf_texts().len(), 1);
-        assert_eq!(routed.sdf_texts()[0].text, "SdfAuto");
-        assert_eq!(routed.sdf_atlas_texts()[0].text, "SdfAuto");
-    }
-
-    #[test]
-    fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
-        let auto = [text_batch("Auto", UiTextRenderMode::Auto)];
-        let native = [text_batch("Native", UiTextRenderMode::Native)];
-        let sdf = [text_batch("Sdf", UiTextRenderMode::Sdf)];
-        let mut resolved = ResolvedScreenSpaceUiTextBatches::from_explicit_batches(&native, &sdf);
-        resolved.push_resolved_auto_text(auto[0].clone(), UiTextRenderMode::Sdf);
-        let atlas_report = SdfAtlasCacheReport {
-            previous_slot_count: 1,
-            current_slot_count: 2,
-            retained_slot_count: 1,
-            stable_slot_count: 1,
-            relocated_slot_count: 0,
-            added_slot_count: 1,
-            evicted_slot_count: 0,
-            atlas_resized: false,
-        };
-        let sdf_report = ScreenSpaceUiSdfPrepareReport {
-            text_batch_count: 2,
-            atlas_slot_count: 2,
-            atlas_size: crate::core::math::UVec2::splat(512),
-            atlas_resized: false,
-            bake: Default::default(),
-            atlas_upload_byte_len: 512 * 512,
-            atlas_upload_full_texture: true,
-            atlas_upload: SdfAtlasUploadReport {
-                mode: SdfAtlasUploadMode::FullTexture,
-                byte_len: 512 * 512,
-                full_texture: true,
-                dirty_slot_count: 1,
-                dirty_byte_len: 4096,
-            },
-            vertex_count: 12,
-        };
-
-        let report = text_prepare_report(&auto, &native, &sdf, &resolved, atlas_report, sdf_report);
-
-        assert_eq!(
-            report,
-            ScreenSpaceUiTextPrepareReport {
-                input_auto_text_batch_count: 1,
-                input_native_text_batch_count: 1,
-                input_sdf_text_batch_count: 1,
-                resolved_native_text_batch_count: 1,
-                resolved_sdf_text_batch_count: 2,
-                sdf_atlas: atlas_report,
-                sdf_renderer: sdf_report,
-            }
-        );
-    }
-
-    #[test]
-    fn auto_text_mode_uses_font_asset_default_when_present() {
-        let resolved = effective_text_render_mode(
-            UiTextRenderMode::Auto,
-            Some(&LoadedUiFontAsset {
-                family: Some("Fira Mono".to_string()),
-                render_mode: Some(UiTextRenderMode::Sdf),
-            }),
-        );
-
-        assert_eq!(resolved, UiTextRenderMode::Sdf);
-    }
-
-    #[test]
-    fn explicit_text_mode_overrides_font_asset_default() {
-        let resolved = effective_text_render_mode(
-            UiTextRenderMode::Native,
-            Some(&LoadedUiFontAsset {
-                family: Some("Fira Mono".to_string()),
-                render_mode: Some(UiTextRenderMode::Sdf),
-            }),
-        );
-
-        assert_eq!(resolved, UiTextRenderMode::Native);
-    }
-
-    #[test]
-    fn auto_text_mode_falls_back_to_native_without_font_asset_default() {
-        let resolved = effective_text_render_mode(UiTextRenderMode::Auto, None);
-
-        assert_eq!(resolved, UiTextRenderMode::Native);
-    }
-
-    #[test]
-    fn text_attrs_maps_shared_rich_run_style_to_glyphon_attrs() {
-        let attrs = text_attrs(
-            Some("Zircon Sans"),
-            UiTextRunPaintStyle {
-                strong: true,
-                emphasis: true,
-                code: false,
-            },
-        );
-
-        assert_eq!(attrs.family, Family::Name("Zircon Sans"));
-        assert_eq!(attrs.weight, Weight::BOLD);
-        assert_eq!(attrs.style, Style::Italic);
-
-        let code_attrs = text_attrs(
-            Some("Zircon Sans"),
-            UiTextRunPaintStyle {
-                strong: false,
-                emphasis: false,
-                code: true,
-            },
-        );
-
-        assert_eq!(code_attrs.family, Family::Monospace);
-    }
-
-    #[test]
-    fn native_text_align_maps_start_end_through_text_direction() {
-        assert_eq!(
-            native_text_align(UiTextAlign::Start, UiTextDirection::LeftToRight),
-            Align::Left
-        );
-        assert_eq!(
-            native_text_align(UiTextAlign::End, UiTextDirection::LeftToRight),
-            Align::Right
-        );
-        assert_eq!(
-            native_text_align(UiTextAlign::Start, UiTextDirection::RightToLeft),
-            Align::Right
-        );
-        assert_eq!(
-            native_text_align(UiTextAlign::End, UiTextDirection::RightToLeft),
-            Align::Left
-        );
-    }
-
-    fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
-        ScreenSpaceUiTextBatch {
-            text: text.to_string(),
-            frame: UiFrame::new(0.0, 0.0, 128.0, 24.0),
-            clip_frame: None,
-            color: [1.0, 1.0, 1.0, 1.0],
-            font: Some("res://fonts/default.font.toml".to_string()),
-            font_family: Some("Zircon Sans".to_string()),
-            font_size: 16.0,
-            line_height: 20.0,
-            text_align: UiTextAlign::Left,
-            text_direction: UiTextDirection::LeftToRight,
-            wrap: UiTextWrap::None,
-            style: Default::default(),
-        }
-    }
-}
+mod tests;

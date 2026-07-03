@@ -13,7 +13,14 @@ mod reflection_snapshot;
 mod render;
 mod slots;
 mod surface;
+mod text_geometry;
+mod text_shape;
 mod timeline;
+
+use zircon_runtime_interface::ui::{
+    layout::UiSize,
+    surface::{UiResolvedStyle, UiTextRange},
+};
 
 pub use crate::ui::text::layout_text;
 pub(crate) use arranged::{
@@ -40,4 +47,19 @@ pub use reflection_snapshot::reflector_snapshot;
 pub(crate) use render::measure_text;
 pub use render::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
 pub use surface::{UiSurface, UiSurfaceRebuildReport};
+pub use text_geometry::{text_caret_frame_for_layout, text_range_frames_for_layout};
+pub use text_shape::shape_text_line;
 pub use timeline::UiDebugTimelineStore;
+
+pub fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
+    crate::ui::text::measure_text_size(text, style)
+}
+
+/// Measures a source byte range after text shaping with kerning included.
+pub fn measure_text_source_range_width(
+    text: &str,
+    style: &UiResolvedStyle,
+    range: UiTextRange,
+) -> f32 {
+    crate::ui::text::measure_text_source_range_width(text, style, range)
+}

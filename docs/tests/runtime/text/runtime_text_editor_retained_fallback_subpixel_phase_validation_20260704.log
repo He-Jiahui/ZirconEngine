@@ -1,0 +1,37 @@
+Runtime text retained-host fallback subpixel phase validation
+Date: 2026-07-04
+Scope: editor retained-host small text labels, including `editor base.zui` and `folder-open.svg` tab labels.
+
+Observed problem:
+- The user crop shows DengXian/等线 is selected, but Latin file labels still look horizontally uneven.
+- The targeted path is retained-host software text painting, not the ZUI control font selection layer.
+
+Implementation evidence:
+- `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs`
+  - `TEXT_RASTER_SUPERSAMPLE` is 4.0.
+  - `RETAINED_TEXT_SUBPIXEL_BINS` is 4, producing 0 / .25 / .5 / .75 pen-origin phases.
+  - `RetainedGlyphPlacement::from_screen_x(...)` consumes `RuntimeTextGlyph.origin_x` when finite.
+- `zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs`
+  - `CachedGlyphRaster.sample_offset_x` carries the normalized fallback phase.
+  - `FontdueFallback` records `sample_offset_x`; `Swash` keeps `sample_offset_x = 0.0` because swash renders the phase into the bitmap itself.
+- `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs`
+  - alpha-mask supersample downsampling subtracts `sample_offset_x` before coverage sampling.
+  - subpixel swash masks ignore the extra value intentionally because their phase is already baked.
+
+Regression tests added/updated:
+- `logical_raster_extent_keeps_fractional_fallback_tail_pixel`
+- `retained_glyph_placement_uses_stable_subpixel_bins_instead_of_rounding_each_glyph`
+- `retained_glyph_placement_uses_nearest_subpixel_bin_without_left_bias`
+- `sampled_coverage_applies_fallback_subpixel_phase`
+
+Checks run:
+- `rustfmt --edition 2021 --check` on the touched retained-host text files passed.
+
+Deferred checks:
+- New Cargo/check/test execution was not started because cargo/rustc processes were already active in the workspace at validation time. This is recorded as cargo_deferred for the status rows.
+
+Visual artifact:
+- docs/tests/runtime/text/runtime_text_editor_retained_fallback_subpixel_phase_preview_20260704.png
+
+Visual QA:
+- Preview image regenerated after inspection to avoid clipped validation labels.

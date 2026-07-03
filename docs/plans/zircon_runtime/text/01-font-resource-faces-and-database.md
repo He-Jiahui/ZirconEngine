@@ -87,7 +87,7 @@ FontAsset(磁盘 TOML + 字体文件)
 ### FR-M2 字体文件解析与变量字体
 
 实施切片:
-1. 导入器解析字体头:face 数(TTC)、`fvar` 轴 + 命名实例、`cmap` 覆盖码点位集(喂 `06` 回退命中预筛)、`OS/2` weight/width/style。
+1. 导入器解析字体头:face 数(TTC)、`fvar` 轴 + 命名实例、`cmap` 覆盖码点位集(喂 `06` 回退命中预筛)、`OS/2` weight/width/style;另补(2026-07-02 评审收口)`post.underlinePosition`/`post.underlineThickness` 与 `OS/2 yStrikeoutPosition`/`yStrikeoutSize`(装饰线度量,供 05 SM-M4 下划线/删除线消费)。
 2. `FontAsset` schema 升级:family 成员声明、变量实例、回退链、render 策略;WOFF2 解压接入(`woff2` decode → TTF)。
 3. 变量轴坐标进 `InstancedFaceId` 与 shaping/atlas 缓存键(`variations_hash`)。
 
@@ -121,7 +121,7 @@ FontAsset(磁盘 TOML + 字体文件)
 |------|------|
 | `mod.rs` | `FontDatabase` 装配(薄) |
 | `fontdb_index.rs` | **`fontdb`/`ttf-parser` 隔离层** —— 系统/项目字体索引、best-match、回退候选枚举;出口只给 `FontFaceId`/`FontMatch` |
-| `face_store.rs` | `FontFaceId → Arc<FaceBytes> + face_index + 解析元数据(轴/cmap 位集/metrics)` |
+| `face_store.rs` | `FontFaceId → Arc<FaceBytes> + face_index + 解析元数据(轴/cmap 位集/metrics)`。度量优先级规则(2026-07-02 评审收口):OS/2 `fsSelection.USE_TYPO_METRICS` 置位取 `sTypoAscender/sTypoDescender/sTypoLineGap`,否则取 `hhea` 度量,`usWinAscent/usWinDescent` 仅作裁剪参考;baseline 统一 alphabetic(D7) |
 | `instance.rs` | `InstancedFaceId` 缓存(face + variation coords 量化);`variations_hash` |
 | `composite_resolve.rs` | `CompositeFont` → 有序回退 `FontFaceId` 列表的解析(供 `06` 消费) |
 
@@ -147,6 +147,8 @@ pub struct VariationCoords(pub Vec<(/*tag*/ u32, /*value*/ f32)>); // 'wght'/'wd
 pub struct FontQuery<'a> { pub families: &'a [FontFamilyName], pub weight: FontWeight,
     pub style: FontStyle, pub stretch: FontStretch }
 pub struct FontMatch { pub face: FontFaceId, pub synthetic_bold: bool, pub synthetic_oblique: bool }
+// synthetic_bold/oblique 注(2026-07-02 评审收口):消费方为 04 `GlyphRasterKey.synthetic: SyntheticFlags`
+// (bold=swash embolden,oblique=quad shear);合成标志经栅格键显式携带,不进缓存键即污染,见 04。
 
 // composite.rs(对齐 UE FCompositeFont)
 pub struct CompositeFontDescriptor {
@@ -154,7 +156,9 @@ pub struct CompositeFontDescriptor {
     pub sub_fonts: Vec<SubFontRange>, // 按优先序;命中则用其 family
 }
 pub struct SubFontRange { pub family: FontFamilyName,
-    pub scripts: Vec<Script>, pub ranges: Vec<(u32, u32)> } // Unicode block range,对齐 UE UnicodeBlockRange
+    pub scripts: Vec<Script>, pub ranges: Vec<(u32, u32)>, // Unicode block range,对齐 UE UnicodeBlockRange
+    pub cultures: Vec<LocaleTag> } // 可选(2026-07-02 评审收口):与 02 `TextShapeRequest.language` 字段联动,
+                                   // 用于 Han 消歧(zh-Hans/zh-Hant/ja/ko 分派不同 CJK sub-font),对齐 UE FCompositeSubFont::Cultures
 ```
 
 ### `FontDatabase` 接口(实现层)
@@ -167,10 +171,23 @@ impl FontDatabase {
     pub fn fallback_candidates(&self, cp: char, base: &FontQuery) -> Vec<FontFaceId>; // cmap 命中 + script 过滤(喂 06)
     pub fn instance(&self, face: FontFaceId, vars: &VariationCoords) -> InstancedFaceId;
     pub fn face_bytes(&self, face: FontFaceId) -> Arc<FaceBytes>; // 零拷贝;glyphon/SDF/MSDF 共享
+    pub fn unregister_asset(&mut self, asset: &FontAssetSourceKey) -> Vec<FontFaceId>; // 资产卸载/替换;返回被失效的 face(2026-07-02 评审收口)
+    pub fn invalidate_face(&mut self, face: FontFaceId);          // 单 face 失效,触发下述失效级联(2026-07-02 评审收口)
 }
 ```
 
 best-match 权重距离用 CSS Fonts L4 算法(weight 优先就近、style Italic>Oblique>Normal、stretch 就近),对照 fontdb `Database::query`。
+
+### 失效级联(2026-07-02 评审收口)
+
+face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体包卸载、变量实例回收)必须按以下固定顺序级联,任何一级不得跳过:
+
+1. `ShapedRunCache` 按 `font_id`(`FontFaceId`/`InstancedFaceId`)剔除全部命中条目;
+2. `LayoutCache` 连带剔除(其键含 shaped key,见 D6/09);
+3. `GlyphRasterKey` 索引按 face 剔除,对应 atlas slot 标脏回收;
+4. SDF bake cache(含离线 `.zsdf` 预填页的内存驻留项)按 face 剔除。
+
+09 缓存契约表为每级缓存持"失效来源"列,本级联是其中"字体失效"来源的权威定义(与 09 修订呼应)。
 
 ### 与既有路径的硬切换
 
@@ -199,6 +216,7 @@ best-match 权重距离用 CSS Fonts L4 算法(weight 优先就近、style Itali
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证 | 后续 |
 |------|-------------|------|------|------|------|
+| 2026-07-03 | FR-M1/FR-M2 FontDatabase tests owner split | runtime_text_fr_m1_fr_m2_font_database_tests_owner_split_rustfmt_visual_cargo_deferred | `graphics/text/font/database.rs` 继续只做 FontDatabase production owner、family/source/asset indexes、系统字体注册编排、match/fallback handoff 与 face bytes；既有 10 个私有回归测试机械迁移到 `graphics/text/font/database/tests.rs`，父文件仅保留 `#[cfg(test)] mod tests;`；未改 font matching、registration、fallback resolver、descriptor parsing、glyphon/SDF/render path 行为，也未新增 root facade、compat shim 或旧路径 re-export | scoped `rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/font/database.rs zircon_runtime/src/graphics/text/font/database/tests.rs` 通过；验证图 `docs/tests/runtime/text/runtime_text_font_database_tests_owner_split_preview_20260703.png` 已检查，SHA256 `41A1884B987C0E8E1D37E0E61C5F7B66C861273A94CDBC239FCCCDF9D7429E9D`；验证日志 `docs/tests/runtime/text/runtime_text_font_database_tests_owner_split_validation_20260703.log` SHA256 `6E2CDFDFF5F28D00A0AAC664B1D15AED0B8F544281C64D484B0507DF07A0E770`；repo `target`、`E:\cargo-targets` 与 `D:\cargo-targets` 同名扫描为 0；外部 cargo/rustc lanes 活跃，本切片不启动 focused Cargo，不声明 Cargo green | FR-M1/FR-M2 结构债继续收敛；WOFF2 decode、变量字体 fixture、TTC 绿跑、SDF 非 0 face 真 raster、CompositeFont 资产接线与 plan 06 fallback resolver 仍继续 |
 | 2026-06-28 | FR-M2 续段:FontAsset UI registry schema convergence | runtime_text_fr_m2_font_asset_ui_registry_convergence_core_check_passed_focused_test_timeout | `FontAssetRenderStrategy::effective_render_mode(...)` 和 `FontAsset::effective_render_mode()` 集中旧 `render_mode` 优先、`render_strategy.default_mode` 补默认值、`allow_native`/`allow_sdf` clamp 的资产语义;`graphics/scene/scene_renderer/ui/font_asset.rs` 改调用资产 helper,不再复制策略分支;`ui/text/font_registry.rs` 注册资产时使用 effective render mode,并把注册 family 与 `fallback_families` 合并进 UI fallback chain,过滤空白并按大小写归一去重;`ui/tests/text_pipeline.rs` 的旧 `FontAsset` literal 补齐完整 schema,新增 strategy default-mode 与 fallback-chain dedupe 覆盖 | scoped `rustfmt --check` 通过;`cargo metadata --locked --format-version 1 --no-default-features` 通过;`cargo check -q -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0628-check` 通过(仅既有 warning);截图证据仍在 `docs/tests/runtime/text/runtime_text_shared_metrics_preview_20260628.png`,确认 `target/runtime_text_shared_metrics_preview_20260628.png` 不存在;focused `text_font_registry_uses_asset_render_strategy_default_mode` 首次 warm target-dir 失败于 Cargo fingerprint path 写入,独立 target-dir 重跑 604s 编译超时无 Rust diagnostics,已停止匹配验证进程,不计 Cargo/test 通过 | UI registry 资产 schema 消费首段关闭;WOFF2 decode、变量字体 fixture、TTC 测试绿跑、SDF 非 0 face 真 raster、CompositeFont 资产接线与 plan 06 fallback resolver 仍继续 |
 | 2026-06-28 | FR-M2 续段:FontAsset family/fallback 数据面注册 | runtime_text_fr_m2_font_asset_registration_rustfmt_metadata_passed_focused_test_timeout | `FontDatabase::register_font_asset` 按完整 `FontAsset` 注册项目字体:一次读取 source bytes,用 `family_members` 覆盖 family/face_index/weight/style/width_class/variation coords,并把 `fallback_families` 合并进 database fallback chain;`graphics/text/font/asset_registration.rs` 承接 family-member → logical face descriptor 投影与 asset source key,重复注册按 path/face/family/style/weight/stretch/variation 去重而不是只按 path+face 压扁;native glyphon 与 SDF bake 的 `LoadedUiFontManifest` 现在携带完整 `FontAsset`,`.font.toml` 路径优先走资产注册入口,直接字体文件路径仍走 `register_font_file`;测试用 patched weight/TTC fixture helper 拆入 `graphics/text/font/test_font_fixtures.rs`,保持 database owner 低于结构预算 | scoped `rustfmt --check` 通过;scoped `git diff --check` 仅 CRLF 提示;`cargo metadata --locked --format-version 1 --no-default-features` 通过;截图证据仍在 `docs/tests/runtime/text/runtime_text_shared_metrics_preview_20260628.png`,确认 `target/runtime_text_shared_metrics_preview_20260628.png` 不存在;focused `text_font_database_registers_font_asset_family_members_and_fallbacks` logical-face lib-test 编译超时且无 Rust diagnostics,本次独立 target-dir 验证进程已停止,不计 Cargo/test 通过 | family/fallback 数据面首段关闭;WOFF2 decode、变量字体 fixture、TTC 测试绿跑、SDF 非 0 face 真 raster、CompositeFont 资产接线与 plan 06 cmap/script/tofu 精筛仍继续 |
 | 2026-06-28 | FR-M2 续段:render strategy 默认模式消费 + SDF 测试清理 | runtime_text_fr_m2_render_strategy_default_mode_rustfmt_metadata_passed_focused_test_timeout | `graphics/scene/scene_renderer/ui/font_asset.rs` 在 `.font.toml` manifest 加载边界把 `render_strategy.default_mode` 解析为 UI font 默认渲染模式,并保持旧 `render_mode` 优先;`allow_native`/`allow_sdf` 只在默认模式解析中做最小约束,避免把 asset schema 细节扩散到 renderer routing;新增 focused 单测覆盖 strategy 默认、旧字段优先和 disallowed Auto clamp;`sdf_font_bake.rs` 的 face-index fallback 测试改用 Drop 清理 manifest/source 双路径,修复临时字体源文件可能遗留的问题 | scoped `rustfmt --check` 通过;scoped `git diff --check` 仅 CRLF 提示;`cargo metadata --locked --format-version 1 --no-default-features` 通过;截图证据仍在 `docs/tests/runtime/text/runtime_text_shared_metrics_preview_20260628.png`,未写 target;focused `render_strategy_default_mode_feeds_ui_font_default` lib-test 编译超时且无 Rust diagnostics,本次独立验证进程已停止,不计 Cargo/test 通过 | `render_strategy.default_mode` 消费首段关闭;`family_members`/`fallback_families` 尚未进入完整 `FontDatabase::register_asset` 数据面;WOFF2 decode、变量字体 fixture、TTC 测试绿跑、SDF 非 0 face 真 raster 与 plan 06 cmap/script 精筛仍继续 |

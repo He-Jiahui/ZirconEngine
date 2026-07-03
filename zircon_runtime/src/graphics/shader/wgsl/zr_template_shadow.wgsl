@@ -6,7 +6,7 @@ fn zr_vs_main_impl(v: ZrVertexInput, instance_index: u32) -> ZrVertexOutput {
         fetch_tangent(v, instance_index),
         fetch_uv0(v),
         fetch_uv1(v),
-        fetch_color(v),
+        fetch_color(v, instance_index),
     );
 }
 

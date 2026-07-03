@@ -1,7 +1,7 @@
 use super::*;
 use crate::core::framework::render::{
-    RenderCameraTarget, RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
-    RenderViewportRect,
+    AntiAliasMode, AntiAliasSettings, RenderCameraTarget, RenderLayerSet, RenderMeshSnapshot,
+    RenderMeshStaticState, RenderViewportRect,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec4};
@@ -40,6 +40,19 @@ fn render_view_apply_target_size_preserves_descriptor_target_and_layers() {
     );
     assert_eq!(selected.volume_mask.to_scene_schema_v1_mask_lossy(), 1 << 4);
     assert!((view.camera.aspect_ratio - 2.0).abs() < 1.0e-4);
+}
+
+#[test]
+fn render_view_select_camera_descriptor_preserves_explicit_anti_alias() {
+    let mut view = RenderViewExtract::from_camera(ViewportCameraSnapshot::default());
+    view.anti_alias = AntiAliasSettings::taa();
+    let mut descriptor =
+        CameraRenderDescriptor::from_camera_payload(Some(9), ViewportCameraSnapshot::default());
+    descriptor.camera.msaa_samples = 1;
+
+    view.select_camera_descriptor(descriptor);
+
+    assert_eq!(view.anti_alias.mode, AntiAliasMode::Taa);
 }
 
 #[test]

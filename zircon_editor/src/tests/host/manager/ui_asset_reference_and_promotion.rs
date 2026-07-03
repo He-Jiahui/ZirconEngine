@@ -28,12 +28,12 @@ fn editor_manager_opens_selected_ui_asset_reference_in_new_editor_instance() {
         .join("assets")
         .join("ui")
         .join("widgets")
-        .join("button.ui.toml");
+        .join("button.zui");
     let layout_path = project_root
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(widget_path.parent().unwrap()).unwrap();
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(
@@ -68,7 +68,7 @@ version = 1
 display_name = "Editor Layout"
 
 [imports]
-widgets = ["res://ui/widgets/button.ui.toml#ToolbarButton"]
+widgets = ["res://ui/widgets/button.zui#ToolbarButton"]
 
 [root]
 node = "root"
@@ -81,7 +81,7 @@ children = [{ child = "toolbar" }]
 
 [nodes.toolbar]
 kind = "reference"
-component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
+component_ref = "res://ui/widgets/button.zui#ToolbarButton"
 control_id = "ToolbarHost"
 "#,
     );
@@ -89,7 +89,7 @@ control_id = "ToolbarHost"
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
@@ -103,7 +103,7 @@ control_id = "ToolbarHost"
     let reflection = manager
         .ui_asset_editor_reflection(&opened)
         .expect("reference reflection");
-    assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
+    assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.zui");
     assert_eq!(reflection.display_name, "Toolbar Button");
     assert_eq!(reflection.route.asset_kind, UiAssetKind::Widget);
 
@@ -130,12 +130,12 @@ fn editor_manager_activates_selected_ui_asset_reference_from_hierarchy() {
         .join("assets")
         .join("ui")
         .join("widgets")
-        .join("button.ui.toml");
+        .join("button.zui");
     let layout_path = project_root
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(widget_path.parent().unwrap()).unwrap();
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(
@@ -170,7 +170,7 @@ version = 1
 display_name = "Editor Layout"
 
 [imports]
-widgets = ["res://ui/widgets/button.ui.toml#ToolbarButton"]
+widgets = ["res://ui/widgets/button.zui#ToolbarButton"]
 
 [root]
 node = "root"
@@ -183,7 +183,7 @@ children = [{ child = "toolbar" }]
 
 [nodes.toolbar]
 kind = "reference"
-component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
+component_ref = "res://ui/widgets/button.zui#ToolbarButton"
 control_id = "ToolbarHost"
 "#,
     );
@@ -191,7 +191,7 @@ control_id = "ToolbarHost"
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
 
     let opened = manager
@@ -202,7 +202,7 @@ control_id = "ToolbarHost"
     let reflection = manager
         .ui_asset_editor_reflection(&opened)
         .expect("reference reflection");
-    assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
+    assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.zui");
     assert_eq!(reflection.display_name, "Toolbar Button");
     assert_eq!(reflection.route.asset_kind, UiAssetKind::Widget);
 
@@ -229,12 +229,12 @@ fn editor_manager_activates_selected_ui_asset_reference_from_preview() {
         .join("assets")
         .join("ui")
         .join("widgets")
-        .join("button.ui.toml");
+        .join("button.zui");
     let layout_path = project_root
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(widget_path.parent().unwrap()).unwrap();
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(
@@ -269,7 +269,7 @@ version = 1
 display_name = "Editor Layout"
 
 [imports]
-widgets = ["res://ui/widgets/button.ui.toml#ToolbarButton"]
+widgets = ["res://ui/widgets/button.zui#ToolbarButton"]
 
 [root]
 node = "root"
@@ -282,7 +282,7 @@ children = [{ child = "toolbar" }]
 
 [nodes.toolbar]
 kind = "reference"
-component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
+component_ref = "res://ui/widgets/button.zui#ToolbarButton"
 control_id = "ToolbarHost"
 "#,
     );
@@ -290,7 +290,7 @@ control_id = "ToolbarHost"
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     let preview_index = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -308,7 +308,7 @@ control_id = "ToolbarHost"
     let reflection = manager
         .ui_asset_editor_reflection(&opened)
         .expect("reference reflection");
-    assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
+    assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.zui");
     assert_eq!(reflection.display_name, "Toolbar Button");
     assert_eq!(reflection.route.asset_kind, UiAssetKind::Widget);
 
@@ -321,8 +321,7 @@ control_id = "ToolbarHost"
 fn editor_manager_runs_ui_asset_reparent_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_tree_reparent");
-    let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_tree_reparent_file").join("tree.ui.toml");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_tree_reparent_file").join("tree.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, TREE_REPARENT_UI_LAYOUT_ASSET);
 
@@ -396,12 +395,12 @@ fn editor_manager_converts_selected_ui_asset_node_to_reference_from_palette_sele
         .join("assets")
         .join("ui")
         .join("widgets")
-        .join("toolbar_button.ui.toml");
+        .join("toolbar_button.zui");
     let layout_path = project_root
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(widget_path.parent().unwrap()).unwrap();
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(
@@ -440,7 +439,7 @@ version = 1
 display_name = "Editor Layout"
 
 [imports]
-widgets = ["res://ui/widgets/toolbar_button.ui.toml#ToolbarButton"]
+widgets = ["res://ui/widgets/toolbar_button.zui#ToolbarButton"]
 
 [root]
 node = "root"
@@ -464,7 +463,7 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     let palette_index = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -506,7 +505,7 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
     assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
-        Some("res://ui/widgets/toolbar_button.ui.toml#ToolbarButton")
+        Some("res://ui/widgets/toolbar_button.zui#ToolbarButton")
     );
     assert_eq!(
         button.params.get("text").and_then(toml::Value::as_str),
@@ -522,7 +521,7 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
         .expect("reference reflection");
     assert_eq!(
         reflection.route.asset_id,
-        "res://ui/widgets/toolbar_button.ui.toml"
+        "res://ui/widgets/toolbar_button.zui"
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -535,7 +534,7 @@ fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_extract_component");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_extract_component_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_extract_component_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -617,14 +616,14 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, STYLE_UI_LAYOUT_ASSET);
 
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
@@ -657,7 +656,7 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         .join("assets")
         .join("ui")
         .join("widgets")
-        .join("save_button.ui.toml");
+        .join("save_button.zui");
     let widget_source = fs::read_to_string(&widget_path).expect("promoted widget file");
     let widget_asset = UiWidgetAsset::from_toml_str(&widget_source).expect("widget asset");
     assert_eq!(widget_asset.document.asset.id, "ui.widgets.save_button");
@@ -680,13 +679,13 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
     assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
-        Some("res://ui/widgets/save_button.ui.toml#SaveButton")
+        Some("res://ui/widgets/save_button.zui#SaveButton")
     );
     assert!(document
         .imports
         .widgets
         .iter()
-        .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
+        .any(|reference| { reference == "res://ui/widgets/save_button.zui#SaveButton" }));
     assert!(!document.components.contains_key("SaveButton"));
 
     assert!(manager
@@ -726,7 +725,7 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         .expect("promoted widget reflection");
     assert_eq!(
         reflection.route.asset_id,
-        "res://ui/widgets/save_button.ui.toml"
+        "res://ui/widgets/save_button.zui"
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -752,14 +751,14 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, STYLE_UI_LAYOUT_ASSET);
 
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     let before = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -775,7 +774,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
         .join("assets")
         .join("ui")
         .join("themes")
-        .join("editor_theme.ui.toml");
+        .join("editor_theme.zui");
     let theme_source = fs::read_to_string(&theme_path).expect("promoted theme file");
     let theme_asset = UiStyleAsset::from_toml_str(&theme_source).expect("style asset");
     assert_eq!(theme_asset.document.asset.id, "ui.theme.editor_theme");
@@ -798,7 +797,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     assert_eq!(promoted.theme_selected_source_kind, "Imported");
     assert_eq!(
         promoted.theme_selected_source_reference,
-        "res://ui/themes/editor_theme.ui.toml"
+        "res://ui/themes/editor_theme.zui"
     );
     assert!(promoted.theme_selected_source_available);
     assert!(!promoted.theme_can_promote_local);
@@ -812,7 +811,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     assert!(document.stylesheets.is_empty());
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/themes/editor_theme.ui.toml".to_string()]
+        vec!["res://ui/themes/editor_theme.zui".to_string()]
     );
 
     let opened = manager
@@ -824,7 +823,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
         .expect("theme source reflection");
     assert_eq!(
         reflection.route.asset_id,
-        "res://ui/themes/editor_theme.ui.toml"
+        "res://ui/themes/editor_theme.zui"
     );
     assert_eq!(reflection.route.asset_kind, UiAssetKind::Style);
 
@@ -848,7 +847,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     assert_eq!(redone.theme_selected_source_kind, "Imported");
     assert_eq!(
         redone.theme_selected_source_reference,
-        "res://ui/themes/editor_theme.ui.toml"
+        "res://ui/themes/editor_theme.zui"
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -874,19 +873,19 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, STYLE_UI_LAYOUT_ASSET);
 
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     manager
         .set_ui_asset_editor_promote_theme_asset_id(
             &instance_id,
-            "res://ui/themes/custom/editor_shell.ui.toml",
+            "res://ui/themes/custom/editor_shell.zui",
         )
         .expect("set promote theme asset id");
     manager
@@ -905,7 +904,7 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
         .join("ui")
         .join("themes")
         .join("custom")
-        .join("editor_shell.ui.toml");
+        .join("editor_shell.zui");
     let theme_source = fs::read_to_string(&theme_path).expect("custom promoted theme file");
     let theme_asset = UiStyleAsset::from_toml_str(&theme_source).expect("custom style asset");
     assert_eq!(
@@ -924,7 +923,7 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/themes/custom/editor_shell.ui.toml".to_string()]
+        vec!["res://ui/themes/custom/editor_shell.zui".to_string()]
     );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
@@ -950,12 +949,12 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     let imported_theme_path = project_root
         .join("assets")
         .join("ui")
         .join("theme")
-        .join("shared_theme.ui.toml");
+        .join("shared_theme.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     fs::create_dir_all(imported_theme_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, DETACH_THEME_UI_LAYOUT_ASSET);
@@ -964,7 +963,7 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     manager
         .select_ui_asset_editor_theme_source(&instance_id, 1)
@@ -976,7 +975,7 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
     assert_eq!(before.theme_selected_source_kind, "Imported");
     assert_eq!(
         before.theme_selected_source_reference,
-        "res://ui/theme/shared_theme.ui.toml"
+        "res://ui/theme/shared_theme.zui"
     );
 
     assert!(manager
@@ -1043,7 +1042,7 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
     assert_eq!(undone.theme_selected_source_kind, "Imported");
     assert_eq!(
         undone.theme_selected_source_reference,
-        "res://ui/theme/shared_theme.ui.toml"
+        "res://ui/theme/shared_theme.zui"
     );
 
     assert!(manager
@@ -1090,12 +1089,12 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     let imported_theme_path = project_root
         .join("assets")
         .join("ui")
         .join("theme")
-        .join("shared_theme.ui.toml");
+        .join("shared_theme.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     fs::create_dir_all(imported_theme_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, DETACH_THEME_UI_LAYOUT_ASSET);
@@ -1104,7 +1103,7 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     manager
         .select_ui_asset_editor_theme_source(&instance_id, 1)
@@ -1123,7 +1122,7 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         cloned.theme_source_items,
         vec![
             "Local Theme • 3 tokens • 2 rules".to_string(),
-            "res://ui/theme/shared_theme.ui.toml • 2 tokens • 1 rules".to_string(),
+            "res://ui/theme/shared_theme.zui • 2 tokens • 1 rules".to_string(),
         ]
     );
     assert_eq!(
@@ -1142,7 +1141,7 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         crate::tests::support::load_test_ui_asset(&saved).expect("saved cloned ui asset");
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+        vec!["res://ui/theme/shared_theme.zui".to_string()]
     );
     assert_eq!(
         document
@@ -1169,7 +1168,7 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
     assert_eq!(undone.theme_selected_source_kind, "Imported");
     assert_eq!(
         undone.theme_selected_source_reference,
-        "res://ui/theme/shared_theme.ui.toml"
+        "res://ui/theme/shared_theme.zui"
     );
 
     assert!(manager
@@ -1183,7 +1182,7 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         redone.theme_source_items,
         vec![
             "Local Theme • 3 tokens • 2 rules".to_string(),
-            "res://ui/theme/shared_theme.ui.toml • 2 tokens • 1 rules".to_string(),
+            "res://ui/theme/shared_theme.zui • 2 tokens • 1 rules".to_string(),
         ]
     );
 
@@ -1216,14 +1215,14 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, STYLE_UI_LAYOUT_ASSET);
 
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
@@ -1234,7 +1233,7 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
     manager
         .set_ui_asset_editor_selected_promote_widget_asset_id(
             &instance_id,
-            "res://ui/widgets/custom/editor_save.ui.toml",
+            "res://ui/widgets/custom/editor_save.zui",
         )
         .expect("set promote asset id");
     manager
@@ -1259,7 +1258,7 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
         .join("ui")
         .join("widgets")
         .join("custom")
-        .join("editor_save.ui.toml");
+        .join("editor_save.zui");
     let widget_source = fs::read_to_string(&widget_path).expect("custom promoted widget file");
     let widget_asset = UiWidgetAsset::from_toml_str(&widget_source).expect("widget asset");
     assert_eq!(
@@ -1279,10 +1278,10 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
     let button = document.node("button").expect("button node");
     assert_eq!(
         button.component_ref.as_deref(),
-        Some("res://ui/widgets/custom/editor_save.ui.toml#EditorSaveButton")
+        Some("res://ui/widgets/custom/editor_save.zui#EditorSaveButton")
     );
     assert!(document.imports.widgets.iter().any(|reference| {
-        reference == "res://ui/widgets/custom/editor_save.ui.toml#EditorSaveButton"
+        reference == "res://ui/widgets/custom/editor_save.zui#EditorSaveButton"
     }));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");

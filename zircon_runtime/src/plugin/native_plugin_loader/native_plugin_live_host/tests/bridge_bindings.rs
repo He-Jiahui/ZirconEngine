@@ -284,6 +284,40 @@ fn native_live_host_rejects_installed_bridge_bindings_without_loaded_manifest() 
 }
 
 #[test]
+fn native_live_host_bridge_methods_report_typed_missing_manifest_error() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+
+    let error = host
+        .install_runtime_bridge_method_bindings_result(
+            "physics",
+            [NativeBridgeMethodBinding::new(
+                <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+                "sample_count",
+                NativeBridgeMethodFn::from_rust(native_live_host_bridge_method),
+            )],
+        )
+        .expect_err("missing package manifest should produce typed bridge method error");
+
+    assert!(matches!(
+        &error,
+        NativePluginBridgeMethodError::MissingPackageManifest { plugin_id }
+            if plugin_id == "physics"
+    ));
+    assert_eq!(
+        error.to_string(),
+        "runtime plugin physics has no package manifest"
+    );
+}
+
+#[test]
 fn native_live_host_rejects_loaded_manifest_bridge_method_without_binding() {
     let host = NativePluginLiveHost::default();
     {
@@ -303,4 +337,40 @@ fn native_live_host_rejects_loaded_manifest_bridge_method_without_binding() {
 
     assert!(error.contains("native bridge method `native.live_host.bridge.v1.sample_count`"));
     assert!(error.contains("is declared but has no binding"));
+}
+
+#[test]
+fn native_live_host_bridge_methods_report_typed_missing_method_slot_error() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin_with_bridge_manifest("physics"),
+        );
+    }
+
+    let error = host
+        .runtime_bridge_method_slot_result(
+            "physics",
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "resample_count",
+        )
+        .expect_err("undeclared bridge method slot should produce typed bridge method error");
+
+    assert!(matches!(
+        &error,
+        NativePluginBridgeMethodError::MissingDeclaredBridgeMethod {
+            plugin_id,
+            interface_id,
+            method_name,
+        } if plugin_id == "physics"
+            && interface_id == <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID
+            && method_name == "resample_count"
+    ));
+    assert_eq!(
+        error.to_string(),
+        "runtime plugin physics package manifest does not declare bridge method `native.live_host.bridge.v1.resample_count`"
+    );
 }

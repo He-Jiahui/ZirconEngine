@@ -42,7 +42,7 @@ pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
     validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialAssetManagementRecord,
     MaterialAssetManagementRecordSet, MaterialAssetManagementRecordSetSummary,
-    MaterialAssetOverview, MaterialTextureSlotValue, ZMaterialDocument,
+    MaterialAssetOverview, MaterialTextureSlotValue, ZMaterialDocument, ZMaterialQueueOverride,
 };
 pub use mesh::{
     MeshAsset, MeshAssetManagementRecord, MeshAssetManagementRecordFailure,
@@ -87,15 +87,18 @@ pub use scene::{
     SceneViewportRectAsset, SceneVignetteSettingsAsset, TransformAsset,
 };
 pub use shader::{
-    ShaderAsset, ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
-    ShaderAssetManagementRecordSetSummary, ShaderAssetReadinessSummary,
-    ShaderBindGroupLayoutReadiness, ShaderBindingLayoutReadiness, ShaderDefinitionReadiness,
-    ShaderDependencyAsset, ShaderEntryPointAsset, ShaderEntryPointReadiness, ShaderImportReadiness,
-    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderPipelineLayoutReadiness,
-    ShaderReadinessReport, ShaderRuntimeSourceKind, ShaderRuntimeSourceReadiness,
-    ShaderSourceFileAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, ZShaderDefinitionError,
-    ZShaderDefinitionResult, ZShaderDefinitionValueDocument, ZShaderDocument,
-    ZShaderEntryPointDocument, ZShaderImportDocument, ZShaderTextureSlotDocument,
+    generate_material_artifact, ShaderAsset, ShaderAssetManagementRecord,
+    ShaderAssetManagementRecordSet, ShaderAssetManagementRecordSetSummary,
+    ShaderAssetReadinessSummary, ShaderBindGroupLayoutReadiness, ShaderBindingLayoutReadiness,
+    ShaderDefinitionReadiness, ShaderDependencyAsset, ShaderEntryPointAsset,
+    ShaderEntryPointReadiness, ShaderGeneratedMaterialArtifact, ShaderImportReadiness,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderOptionAsset,
+    ShaderPipelineLayoutReadiness, ShaderReadinessReport, ShaderRuntimeSourceKind,
+    ShaderRuntimeSourceReadiness, ShaderSourceFileAsset, ShaderSourceLanguage,
+    ShaderTextureSlotAsset, ZShaderComputeDocumentV2, ZShaderDocumentV2, ZShaderEntryPointDocument,
+    ZShaderFullscreenDocumentV2, ZShaderImportDocument, ZShaderIncludeDocumentV2,
+    ZShaderOptionDocument, ZShaderSurfaceDocumentV2, ZShaderTextureSlotDocument, ZShaderV2Error,
+    ZShaderV2Result,
 };
 pub use sound::{SoundAsset, SoundAssetError, SoundAssetResult};
 pub use sprite_atlas::{

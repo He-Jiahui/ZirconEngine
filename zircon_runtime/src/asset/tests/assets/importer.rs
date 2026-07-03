@@ -85,4 +85,19 @@ fn assert_cooked_virtual_geometry(primitive: &ModelPrimitiveAsset, source_hint: 
         virtual_geometry.debug.source_hint.as_deref(),
         Some(source_hint)
     );
+    assert_virtual_geometry_vertex_ordinals(primitive);
+}
+
+fn assert_virtual_geometry_vertex_ordinals(primitive: &ModelPrimitiveAsset) {
+    let ordinals = primitive
+        .vertices
+        .iter()
+        .map(|vertex| {
+            ModelPrimitiveAsset::decode_virtual_geometry_vertex_ordinal(vertex.joint_indices)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        ordinals,
+        (0..primitive.vertices.len() as u32).collect::<Vec<_>>()
+    );
 }

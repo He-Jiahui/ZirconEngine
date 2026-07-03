@@ -1,0 +1,30 @@
+pub(super) const STRUCTURE_GUARD_CHILD_OWNER_SPLIT: &[&str] = &[
+    "runtime_15_code_review_findings_structure_guard_child_owner_split_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs",
+    "runtime_15_code_review_findings_tests_are_folder_backed",
+    "runtime_15_f8_api_convergence_review_guards_are_child_owners",
+    "runtime_15_late_api_cleanup_review_guards_are_child_owners",
+    "runtime_15_p0_robustness_review_guards_are_child_owners",
+    "runtime_15_code_review_findings_structure_guard_children_are_mounted",
+    "Cargo gate deferred",
+];
+
+pub(super) const STRUCTURE_GUARD_CHILDREN_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "runtime_15_code_review_findings_structure_guard_children_folder_backed_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/delegation.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/review_guard_groups.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/status_docs.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/budgets.rs",
+    "runtime_15_code_review_findings_structure_guard_children_are_mounted",
+    "runtime_15_code_review_findings_structure_guard_review_groups_are_child_owned",
+    "runtime_15_code_review_findings_structure_guard_plugin_importer_is_child_owned",
+    "runtime_15_code_review_findings_structure_guard_status_docs_are_child_owned",
+    "runtime_15_code_review_findings_structure_guard_children_folder_backed_status_is_current",
+    "Cargo gate deferred",
+];

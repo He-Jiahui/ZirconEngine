@@ -4,8 +4,10 @@ use super::super::super::style_selector::{
     WORKBENCH_DROPDOWN_SURFACE as DROPDOWN_SURFACE,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
+use super::super::push_dropdown_commands;
 use super::support::{changed_pixel_count, dropdown_node, option, pixel_at, scaled_test_color};
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::data::FrameRect;
 
 #[test]
 fn closed_workbench_dropdown_paints_surface_border_text_and_chevron() {
@@ -15,6 +17,45 @@ fn closed_workbench_dropdown_paints_surface_border_text_and_chevron() {
     assert_eq!(pixel_at(&bytes, 140, 54, 8), DROPDOWN_BORDER);
     assert!(changed_pixel_count(&bytes, 140, 22, 16, 50, 18) > 0);
     assert!(changed_pixel_count(&bytes, 140, 96, 15, 18, 18) > 0);
+}
+
+#[test]
+fn closed_workbench_dropdown_chevron_prefers_shell_asset_pixels() {
+    let node = dropdown_node(false);
+    let rect = FrameRect {
+        x: 12.0,
+        y: 8.0,
+        width: 104.0,
+        height: 32.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_dropdown_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+
+    let icon_commands = commands
+        .iter()
+        .filter(|command| command.image_pixels.is_some())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        icon_commands.len(),
+        1,
+        "dropdown should render its chevron through the shared shell SVG asset"
+    );
+    let icon = icon_commands[0];
+    assert_eq!(icon.frame.width, 16.0);
+    assert_eq!(icon.frame.height, 16.0);
+    assert!(icon
+        .image_pixels
+        .as_ref()
+        .map(|image| !image.resource_key.starts_with("missing-icon:"))
+        .unwrap_or(false));
 }
 
 #[test]

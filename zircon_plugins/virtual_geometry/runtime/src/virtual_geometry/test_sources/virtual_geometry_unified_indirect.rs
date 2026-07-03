@@ -1636,6 +1636,9 @@ fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
     let material = MaterialAsset {
         name: Some("VirtualGeometryUnifiedIndirect".to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: Some(asset_reference(texture_uri)),
         normal_texture: None,

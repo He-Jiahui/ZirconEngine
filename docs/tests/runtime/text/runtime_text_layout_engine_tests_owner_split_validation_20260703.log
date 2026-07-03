@@ -1,0 +1,12 @@
+runtime_text_layout_engine_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+slice=LB-M1/LB-M2/LB-M3/LB-M4 layout_engine private tests owner split
+changed_files=zircon_runtime/src/ui/text/layout_engine/tests.rs; zircon_runtime/src/ui/text/layout_engine/tests/*.rs
+behavior=structure-only; production layout_text/measure_text_size and layout child modules unchanged
+line_counts=tests.rs: 33 lines, 0 tests; child owners: alignment 64/4, bidi 71/4, glue 81/4, grapheme 38/2, justify 102/3, kinsoku 314/18, measure 33/2, overflow 189/9, sizing 66/2, soft_hyphen 28/1, tab 23/1, vertical 24/1, word_smart 185/10, wrap_space 34/2, wrapping 29/2
+test_counts=65 tests preserved in child owners; parent tests.rs now owns only module wiring and shared helper functions
+rustfmt=passed: rustfmt --edition 2021 --check layout_engine/tests.rs plus all child owners
+trailing_whitespace_scan=passed
+panic_dead_code_scan=passed
+cargo=deferred: external cargo/rustc lanes active at validation time
+target_artifacts=deferred scan follows in shell output; proof files intentionally under docs/tests/runtime/text

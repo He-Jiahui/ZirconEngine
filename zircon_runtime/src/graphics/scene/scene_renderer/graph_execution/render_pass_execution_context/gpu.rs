@@ -70,7 +70,7 @@ pub struct RenderPassGpuExecutionContext<'a> {
     particle_renderer: Option<&'a ParticleRenderer>,
     sprite_renderer: Option<&'a SpriteRenderer>,
     deferred: Option<&'a DeferredSceneResources>,
-    streamer: Option<&'a ResourceStreamer>,
+    pub(in crate::graphics::scene::scene_renderer) streamer: Option<&'a ResourceStreamer>,
     pub(in crate::graphics::scene::scene_renderer) mesh_pipelines:
         Option<&'a mut MeshPipelineCache>,
     pub(in crate::graphics::scene::scene_renderer) mesh_draw_lists:
@@ -330,6 +330,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn with_deferred_renderer(
         mut self,
         deferred: &'a DeferredSceneResources,
+        streamer: &'a ResourceStreamer,
+        mesh_draw_lists: RenderPassMeshCommandLists<'a>,
+    ) -> Self {
+        self.deferred = Some(deferred);
+        self.streamer = Some(streamer);
+        self.mesh_draw_lists = Some(mesh_draw_lists);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_deferred_lighting_renderer(
+        mut self,
+        deferred: &'a DeferredSceneResources,
         mesh_draw_lists: RenderPassMeshCommandLists<'a>,
     ) -> Self {
         self.deferred = Some(deferred);
@@ -349,6 +361,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn resource_streamer(
+        &self,
+    ) -> Option<&'a ResourceStreamer> {
+        self.streamer
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn with_hzb_occlusion_culler(
         mut self,
         hzb_occlusion_culler: &'a HzbOcclusionCuller,
@@ -360,19 +378,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn record_depth_prepass_to_resources(
         &mut self,
         pass_name: &str,
-        normal_resource_name: &str,
         depth_resource_name: &str,
-        normal_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
-        let normal_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            normal_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
         let depth_view = Self::require_texture_view_by_name(
             resources,
             resource_resolver,
@@ -387,6 +397,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if mesh_draw_lists.depth_prepass_commands.is_empty() {
             return Ok(());
         }
+        let streamer = self.streamer.ok_or_else(|| {
+            format!(
+                "depth prepass graph executor for pass `{pass_name}` requires resource streamer context"
+            )
+        })?;
         let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
             format!(
                 "depth prepass graph executor for pass `{pass_name}` requires mesh pipeline context"
@@ -402,12 +417,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             );
         let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("DepthPrepass"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: normal_view,
-                resolve_target: None,
-                depth_slice: None,
-                ops: color_attachment_operations(normal_attachment_ops, wgpu::Color::BLACK),
-            })],
+            color_attachments: &[],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: depth_view,
                 depth_ops: Some(depth_attachment_operations(depth_attachment_ops, 1.0)),
@@ -436,6 +446,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     let pipeline = mesh_pipelines
                         .ensure_depth_prepass_pipeline_for_variant(
                             self.device,
+                            streamer,
                             command.pipeline_variant_id,
                         )
                         .expect(
@@ -488,6 +499,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                         "shadow atlas graph executor for pass `{pass_name}` requires mesh pipeline context"
                     )
                 })?;
+                let streamer = self.streamer.ok_or_else(|| {
+                    format!(
+                        "shadow atlas graph executor for pass `{pass_name}` requires resource streamer context"
+                    )
+                })?;
                 let replay_stats = shadow_map_renderer.record_atlas_commands_with_attachment_ops(
                     self.device,
                     self.queue,
@@ -495,6 +511,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     pass_name,
                     shadow_atlas_view,
                     mesh_pipelines,
+                    streamer,
                     shadow_frame_plan.atlas_passes(),
                     self.frame,
                     mesh_draw_lists.gpu_scene_bind_group,
@@ -650,6 +667,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "TAA reactive mask mesh graph executor for pass `{pass_name}` requires mesh pipeline context"
             )
         })?;
+        let streamer = self.streamer.ok_or_else(|| {
+            format!(
+                "TAA reactive mask mesh graph executor for pass `{pass_name}` requires resource streamer context"
+            )
+        })?;
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
         let taa_reactive_mask_view = Self::require_texture_view_by_name(
@@ -705,6 +727,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 let pipeline = mesh_pipelines
                     .ensure_taa_reactive_mask_pipeline_for_variant(
                         device,
+                        streamer,
                         command.pipeline_variant_id,
                     )
                     .expect(

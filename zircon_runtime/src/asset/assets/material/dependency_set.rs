@@ -12,5 +12,9 @@ pub fn material_dependency_set(material: &MaterialAsset) -> RenderMaterialDepend
 }
 
 pub fn direct_references(material: &MaterialAsset) -> Vec<AssetReference> {
-    material_dependency_set(material).all_references()
+    let mut references = material_dependency_set(material).all_references();
+    if let Some(parent) = material.parent.clone() {
+        references.push(parent);
+    }
+    references
 }

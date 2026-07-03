@@ -1,6 +1,9 @@
 use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, UiV2ComponentAsset,
+    UiV2StyleAsset, UiV2ViewAsset,
 };
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 mod capability;
 mod plugin;
@@ -16,20 +19,26 @@ pub use plugin::{
     UI_DOCUMENT_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
-pub fn import_ui_zui_component_document(
+pub fn import_ui_zui_document(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_text()?;
-    let asset = UiV2ComponentAsset::from_zui_str(&document).map_err(|error| {
-        AssetImportError::Parse(format!(
-            "parse .zui component asset {}: {error}",
-            context.source_path.display()
-        ))
+    let parsed = UiZuiAssetLoader::load_zui_str(&document).map_err(|source| {
+        AssetImportError::UiV2Document {
+            context: "parse .zui ui asset",
+            source: source.into(),
+        }
     })?;
-    Ok(AssetImportOutcome::new(
-        context.uri.clone(),
-        ImportedAsset::UiV2Component(asset),
-    ))
+    let imported = match parsed.asset.kind {
+        UiV2AssetKind::View => ImportedAsset::UiV2View(UiV2ViewAsset { document: parsed }),
+        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => {
+            ImportedAsset::UiV2Style(UiV2StyleAsset { document: parsed })
+        }
+        UiV2AssetKind::Component => {
+            ImportedAsset::UiV2Component(UiV2ComponentAsset { document: parsed })
+        }
+    };
+    Ok(AssetImportOutcome::new(context.uri.clone(), imported))
 }
 
 #[cfg(test)]
@@ -39,7 +48,7 @@ mod tests {
     use zircon_runtime::plugin::ExportPackagingStrategy;
 
     #[test]
-    fn package_declares_only_zui_component_importer() {
+    fn package_declares_zui_document_importer() {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
@@ -48,17 +57,20 @@ mod tests {
             .contains(&RUNTIME_CAPABILITY.to_string()));
         assert_eq!(manifest.asset_importers.len(), 1);
         assert!(manifest.asset_importers.iter().any(|importer| {
-            importer.full_suffixes.contains(&".zui".to_string())
+            importer.id == "ui_document_importer.zui_document"
+                && importer.full_suffixes.contains(&".zui".to_string())
                 && importer.importer_version == 2
                 && importer.allows_output_kind(AssetKind::UiWidget)
+                && importer.allows_output_kind(AssetKind::UiLayout)
+                && importer.allows_output_kind(AssetKind::UiStyle)
         }));
-        assert!(manifest.asset_importers.iter().all(|importer| !importer
-            .full_suffixes
-            .contains(&".ui.json".to_string())
-            && !importer.full_suffixes.contains(&".v2.ui.toml".to_string())
-            && !importer.allows_output_kind(AssetKind::UiLayout)
-            && !importer.allows_output_kind(AssetKind::UiStyle)
-            && !importer.source_extensions.contains(&"uidoc".to_string())));
+        assert!(manifest.asset_importers.iter().all(|importer| {
+            importer.full_suffixes.contains(&".zui".to_string())
+                && importer.importer_version == 2
+                && !importer.full_suffixes.contains(&".ui.json".to_string())
+                && !importer.full_suffixes.contains(&".v2.ui.toml".to_string())
+                && !importer.source_extensions.contains(&"uidoc".to_string())
+        }));
     }
 
     #[test]
@@ -103,16 +115,18 @@ mod tests {
     }
 
     #[test]
-    fn plugin_toml_declares_only_zui_component_importer() {
+    fn plugin_toml_declares_zui_document_importer() {
         let manifest = include_str!("../../plugin.toml");
 
         assert_eq!(manifest.matches("[[asset_importers]]").count(), 1);
-        assert!(manifest.contains("id = \"ui_document_importer.zui_component\""));
+        assert!(manifest.contains("id = \"ui_document_importer.zui_document\""));
         assert!(manifest.contains("full_suffixes = [\".zui\"]"));
         assert!(manifest.contains("output_kind = \"UiWidget\""));
+        assert!(manifest.contains("additional_output_kinds = [\"UiLayout\", \"UiStyle\"]"));
         assert!(manifest.contains("importer_version = 2"));
         assert!(!manifest.contains("ui_document_importer.serialized_json"));
         assert!(!manifest.contains("ui_document_importer.serialized_binary"));
+        assert!(!manifest.contains("ui_document_importer.zui_component"));
         assert!(!manifest.contains("full_suffixes = [\".v2.ui.toml\"]"));
         assert!(!manifest.contains("full_suffixes = [\".ui.toml\"]"));
         assert!(!manifest.contains(".ui.json"));
@@ -169,6 +183,42 @@ component = "Container"
     }
 
     #[test]
+    fn zui_importer_decodes_view_and_style_assets() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("panel.zui"))
+            .unwrap();
+
+        let view = importer
+            .import(&zircon_runtime::asset::AssetImportContext::new(
+                "panel.zui".into(),
+                zircon_runtime::asset::AssetUri::parse("res://ui/panel.zui").unwrap(),
+                minimal_view_zui().as_bytes().to_vec(),
+                Default::default(),
+            ))
+            .unwrap();
+        let style = importer
+            .import(&zircon_runtime::asset::AssetImportContext::new(
+                "theme.zui".into(),
+                zircon_runtime::asset::AssetUri::parse("res://ui/theme.zui").unwrap(),
+                minimal_style_zui().as_bytes().to_vec(),
+                Default::default(),
+            ))
+            .unwrap();
+
+        assert!(matches!(
+            view.root_entry().expect("root UI view entry").asset,
+            zircon_runtime::asset::ImportedAsset::UiV2View(_)
+        ));
+        assert!(matches!(
+            style.root_entry().expect("root UI style entry").asset,
+            zircon_runtime::asset::ImportedAsset::UiV2Style(_)
+        ));
+    }
+
+    #[test]
     fn registration_does_not_select_legacy_ui_document_formats() {
         let report = plugin_registration();
         let importers = report.extensions.asset_importers();
@@ -182,5 +232,37 @@ component = "Container"
         assert!(importers
             .select(std::path::Path::new("layout.uidoc"))
             .is_err());
+    }
+
+    fn minimal_view_zui() -> &'static str {
+        r#"
+[asset]
+kind = "view"
+id = "ui_document_importer.test.panel"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Text"
+props = { text = "Panel" }
+"#
+    }
+
+    fn minimal_style_zui() -> &'static str {
+        r##"
+[asset]
+kind = "style"
+id = "ui_document_importer.test.style"
+version = 2
+
+[[stylesheets]]
+id = "test_style"
+
+[[stylesheets.rules]]
+selector = "Text"
+set = { foreground = { color = "#ffffff" } }
+"##
     }
 }

@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn ui_asset_editor_session_projects_emergency_shell_for_invalid_source() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout.ui.toml",
+        "asset://ui/tests/layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -38,7 +38,7 @@ fn ui_asset_editor_session_projects_emergency_shell_for_invalid_source() {
 #[test]
 fn ui_asset_editor_session_reverts_emergency_source_to_last_valid_document() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout.ui.toml",
+        "asset://ui/tests/layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );

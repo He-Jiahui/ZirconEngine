@@ -62,6 +62,21 @@ fn execution_record_preserves_scene_velocity_readback_report() {
 }
 
 #[test]
+fn scene_velocity_readback_ignores_signed_zero_half_float_pixels() {
+    let report = RenderSceneVelocityReadbackReport::from_raw_rg16_float_bytes(
+        UVec2::new(2, 2),
+        &[
+            0, 0, 0, 0, // +0, +0
+            0, 0x80, 0, 0, // -0, +0
+            0, 0, 0, 0x80, // +0, -0
+            1, 0, 0, 0, // smallest positive subnormal, +0
+        ],
+    );
+
+    assert_eq!(report.nonzero_pixel_count, 1);
+}
+
+#[test]
 fn execution_record_preserves_color_lut_readback_report() {
     let mut record = RenderGraphExecutionRecord::default();
     let report = RenderColorLutReadbackReport::from_raw_rgba16_float_identity_bytes(

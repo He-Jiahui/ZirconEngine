@@ -54,7 +54,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             .unwrap_or_else(|error| panic!("`{relative_doc}` should be readable: {error}"));
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 33",
+            "expected_source_file_count = 35",
             "function_table_structs = 10/10",
             "field_count_mismatches = 0",
             "missing_repr_c_tables = 0",
@@ -93,8 +93,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
 fn assert_runtime_10_files_exist(repo_root: &Path, files: &[&str]) {
     assert_eq!(
         files.len(),
-        33,
-        "Runtime 10 dynamic API source inventory should stay at 33 files"
+        35,
+        "Runtime 10 dynamic API source inventory should stay at 35 files"
     );
     for relative_file in files {
         assert!(

@@ -26,6 +26,29 @@ pub(in crate::ui::retained_host::host_contract) fn blend_pixel(
     bytes[offset + 3] = 255;
 }
 
+pub(in crate::ui::retained_host::host_contract) fn blend_pixel_channel_coverage(
+    frame: &mut HostRgbaFrame,
+    x: u32,
+    y: u32,
+    color: [u8; 4],
+    coverage: [u8; 3],
+) {
+    if color[3] == 0 || coverage == [0, 0, 0] {
+        return;
+    }
+
+    let offset = ((y as usize * frame.width() as usize) + x as usize) * 4;
+    let bytes = frame.as_bytes_mut();
+    for channel in 0..3 {
+        let alpha = (coverage[channel] as u32 * color[3] as u32) / 255;
+        let inverse = 255 - alpha;
+        let source = color[channel] as u32;
+        let destination = bytes[offset + channel] as u32;
+        bytes[offset + channel] = ((source * alpha + destination * inverse) / 255) as u8;
+    }
+    bytes[offset + 3] = 255;
+}
+
 #[inline]
 fn write_pixel_channels(pixel: &mut [u8], color: [u8; 4]) {
     pixel[0] = color[0];
@@ -33,3 +56,6 @@ fn write_pixel_channels(pixel: &mut [u8], color: [u8; 4]) {
     pixel[2] = color[2];
     pixel[3] = color[3];
 }
+
+#[cfg(test)]
+mod tests;

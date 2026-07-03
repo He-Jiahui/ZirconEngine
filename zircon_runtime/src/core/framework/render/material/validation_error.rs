@@ -67,6 +67,28 @@ pub enum RenderMaterialValidationError {
         path: String,
         slot: String,
     },
+    UnknownMaterialOption {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        name: String,
+    },
+    MaterialOptionTypeMismatch {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        name: String,
+        expected: String,
+    },
+    InvalidMaterialQueueOffset {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        offset: i16,
+        expected: String,
+    },
+    InvalidMaterialParent {
+        source: RenderMaterialDiagnosticSource,
+        path: String,
+        diagnostic: String,
+    },
     MissingWgslCapture {
         source: RenderMaterialDiagnosticSource,
         path: String,

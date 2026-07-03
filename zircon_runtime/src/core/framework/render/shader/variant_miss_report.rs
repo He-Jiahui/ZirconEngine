@@ -186,6 +186,8 @@ mod tests {
         let key = ShaderVariantKey {
             material_shader: ResourceId::from_stable_label("res://materials/runtime-hit.zshader"),
             material_revision: 11,
+            material_layout_hash: 0,
+            material_option_bits: 0,
             geometry_source: GeometrySourceId::new(3),
             shading_model: SHADING_MODEL_ID_STANDARD_PBR,
             pass_type: ShaderPassType::Velocity,

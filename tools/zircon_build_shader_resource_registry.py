@@ -42,6 +42,11 @@ _RESOURCE_LOCATOR_SCHEMES = frozenset(("res", "lib", "package", "builtin", "mem"
 _RESOURCE_REGISTRY_BACKED_LOCATOR_SCHEMES = frozenset(("res", "lib", "package", "mem"))
 _U32_MAX = 2**32 - 1
 _U64_MAX = 2**64 - 1
+_INCOMPLETE_RESOURCE_RECORD_ENTRY = "incomplete ResourceRecord entry at index"
+_MISSING_RESOURCE_RECORD_LOCATORS = "missing ResourceRecord locators for report sources"
+_MISSING_USABLE_SHADER_RECORD_REVISIONS = (
+    "missing usable shader ResourceRecord revisions for report sources"
+)
 _RESOURCE_RECORD_REQUIRED_FIELDS = (
     "id",
     "kind",
@@ -62,6 +67,8 @@ def validate_shader_resource_registry_export_contract(
     registry_path: Path,
     *,
     report_path: Path | None = None,
+    require_usable_shader_records: bool = False,
+    require_report_registry_backed_sources: bool = False,
 ) -> None:
     registry_path = Path(registry_path)
     try:
@@ -90,9 +97,20 @@ def validate_shader_resource_registry_export_contract(
                 "non-object ResourceRecord entries"
             )
         _validate_resource_record_shape(record, index)
+    if require_usable_shader_records:
+        _validate_registry_export_has_usable_shader_records(records, registry_path)
+    if report_path is None and require_report_registry_backed_sources:
+        raise RuntimeError(
+            "shader prewarm resource registry export requires report_path when "
+            "requiring registry-backed report sources"
+        )
     if report_path is not None:
         report = _read_report_for_registry_export_contract(report_path)
-        _validate_registry_export_matches_report_sources(records, report)
+        _validate_registry_export_matches_report_sources(
+            records,
+            report,
+            require_report_registry_backed_sources=require_report_registry_backed_sources,
+        )
 
 
 def _resource_registry_record_array(registry: object) -> list[object] | None:
@@ -182,17 +200,25 @@ def _validate_resource_record_shape(
     problems = _unique_in_order([*missing, *invalid])
     if problems:
         raise RuntimeError(
-            "shader prewarm resource registry export contains incomplete "
-            f"ResourceRecord entry at index {index}: {', '.join(problems)}"
+            "shader prewarm resource registry export contains "
+            f"{_INCOMPLETE_RESOURCE_RECORD_ENTRY} {index}: "
+            f"{', '.join(problems)}"
         )
 
 
 def _validate_registry_export_matches_report_sources(
     records: list[object],
     report: Mapping[str, object],
+    *,
+    require_report_registry_backed_sources: bool = False,
 ) -> None:
     source_labels = _report_resource_source_labels(report)
     if not source_labels:
+        if require_report_registry_backed_sources:
+            raise RuntimeError(
+                "shader prewarm resource registry export requires at least one "
+                "registry-backed report source for project/plugin asset roots"
+            )
         return
     locators = _resource_record_locators(records)
     missing = [
@@ -202,8 +228,8 @@ def _validate_registry_export_matches_report_sources(
     ]
     if missing:
         raise RuntimeError(
-            "shader prewarm resource registry export is missing "
-            "ResourceRecord locators for report sources: "
+            "shader prewarm resource registry export is "
+            f"{_MISSING_RESOURCE_RECORD_LOCATORS}: "
             + ", ".join(missing)
         )
     usable_locators = _usable_shader_resource_record_locators(records)
@@ -214,9 +240,25 @@ def _validate_registry_export_matches_report_sources(
     ]
     if unusable:
         raise RuntimeError(
-            "shader prewarm resource registry export is missing usable shader "
-            "ResourceRecord revisions for report sources: "
+            "shader prewarm resource registry export is "
+            f"{_MISSING_USABLE_SHADER_RECORD_REVISIONS}: "
             + ", ".join(unusable)
+        )
+
+
+def _validate_registry_export_has_usable_shader_records(
+    records: list[object],
+    registry_path: Path,
+) -> None:
+    has_usable_shader_record = any(
+        isinstance(record, Mapping) and _is_usable_shader_record(record)
+        for record in records
+    )
+    if not has_usable_shader_record:
+        raise RuntimeError(
+            "shader prewarm resource registry export requires at least one "
+            "usable Shader ResourceRecord for project/plugin asset roots: "
+            f"{registry_path}"
         )
 
 

@@ -179,7 +179,7 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
 }
 
 #[test]
-fn authoring_registry_accepts_view_templates_but_keeps_drawers_component_only() {
+fn authoring_registry_accepts_zui_view_templates_but_rejects_non_zui_drawer_documents() {
     let mut registry = EditorExtensionRegistry::default();
 
     registry
@@ -198,7 +198,7 @@ fn authoring_registry_accepts_view_templates_but_keeps_drawers_component_only() 
     let error = registry
         .register_component_drawer(ComponentDrawerDescriptor::new(
             "material.Component.Graph",
-            "asset://material_editor/editor/graph_drawer.v2.ui.toml",
+            "asset://material_editor/editor/graph_drawer.toml",
             "material.GraphDrawerController",
         ))
         .unwrap_err();

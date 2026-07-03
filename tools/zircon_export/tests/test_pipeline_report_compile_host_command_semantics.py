@@ -122,6 +122,76 @@ class CompileHostCommandSemanticsTests(unittest.TestCase):
                         report["diagnostics"],
                     )
 
+    def test_report_stage_rejects_compile_host_command_forbidden_cargo_flags(
+        self,
+    ) -> None:
+        cases = (
+            (
+                ["--all-features"],
+                "compile_host report command must not include --all-features "
+                "because CompileHost plan app_features owns feature selection",
+            ),
+            (
+                ["--all-targets"],
+                "compile_host report command must not include --all-targets "
+                "because CompileHost plan binary owns the single host target",
+            ),
+            (
+                ["--target=x86_64-unknown-linux-gnu"],
+                "compile_host report command must not include --target "
+                "because export target descriptor owns platform target selection",
+            ),
+            (
+                ["--workspace"],
+                "compile_host report command must not include --workspace "
+                "because CompileHost plan package owns package selection",
+            ),
+            (
+                ["--profile=shipping"],
+                "compile_host report command must not include --profile "
+                "because CompileHost plan cargo_profile/release owns "
+                "profile selection",
+            ),
+            (
+                ["--offline"],
+                "compile_host report command must not include --offline "
+                "because CompileHost CLI owns Cargo lock/offline policy",
+            ),
+        )
+        for extra_args, expected_diagnostic in cases:
+            with self.subTest(expected_diagnostic=expected_diagnostic):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["library_embed"])
+                    _write_compile_host_report(
+                        out,
+                        out / "compile" / "zircon_runtime.exe",
+                    )
+                    _write_stage_report(out, "cook_assets", fatal=False)
+                    _write_pack_report(out, out / "pack-output" / "assets.zrpack")
+                    _write_stage_report(out, "platform_bundle", fatal=False)
+                    self._update_compile_host_report(
+                        out,
+                        {
+                            "command": [
+                                *list(_compile_host_plan()["command"]),
+                                *extra_args,
+                            ]
+                        },
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    self.assertEqual(report["missing_stages"], [])
+                    self.assertTrue(
+                        any(
+                            expected_diagnostic in diagnostic
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
     def test_report_stage_rejects_compile_host_command_target_dir_mismatch(
         self,
     ) -> None:

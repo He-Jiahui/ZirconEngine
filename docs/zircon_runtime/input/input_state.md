@@ -39,6 +39,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/host_requests.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
+  - zircon_runtime/src/input/tests/input_manager/frame_state.rs
+  - zircon_runtime/src/input/tests/input_manager/host_requests.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/hooks.rs
@@ -54,10 +56,18 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/geometry.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/enable.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/surrounding_text.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
@@ -114,8 +124,15 @@ implementation_files:
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/geometry.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/enable.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/surrounding_text.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/mod.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
 plan_sources:
@@ -141,6 +158,8 @@ plan_sources:
   - dev/bevy/crates/bevy_gilrs/src/converter.rs
 tests:
   - zircon_runtime/src/input/tests/input_manager.rs
+  - zircon_runtime/src/input/tests/input_manager/frame_state.rs
+  - zircon_runtime/src/input/tests/input_manager/host_requests.rs
   - zircon_runtime/src/input/tests/action_mapping.rs
   - zircon_runtime/src/input/tests/action_axis_transitions.rs
   - zircon_runtime/src/input/tests/gamepad_bridge.rs
@@ -287,7 +306,7 @@ M6 adds a hardware-free log harness in `zircon_runtime/src/input/tests/input_man
 
 The harness then builds its log from `InputFrameSnapshot`, not from the submitted fixture list. Window messages come from `window_status_events`; keyboard, mouse button, and gamepad button entries come from `ButtonInputState::just_pressed_inputs()`; mouse cursor, motion, and wheel entries come from the frame accumulators; touch entries come from `active_touches`; and gamepad connection/axis entries come from `connected_gamepads` and `gamepad_axes`. The same test drains `InputEventRecord` sequence numbers and checks they are contiguous from `1..=12`, so the example verifies both state reduction and append-only event recording on the normal runtime input manager path.
 
-Runtime 15 M3 keeps the input manager test root folder-backed under `Runtime 15 M3 input manager test folder split` / `runtime_15_input_manager_tests_folder_split_static_passed_cargo_deferred`: `input/tests/input_manager.rs` now only owns shared imports and mounts `input/tests/input_manager/frame_state.rs`, `input/tests/input_manager/touch_gamepad.rs`, and `input/tests/input_manager/host_requests.rs`. `frame_state.rs` owns basic state, frame-clear, focus, and IME behavior; `touch_gamepad.rs` owns touch/gamepad state, the event-log harness, and gamepad filtering tests; `host_requests.rs` owns frame-local gamepad rumble and cursor host requests. `runtime_15_input_manager_tests_are_folder_backed` keeps those owners and docs/status anchors synchronized while broader input Cargo gates remain pending.
+Runtime 15 M3 keeps the input manager test root folder-backed under `Runtime 15 M3 input manager test folder split` / `runtime_15_input_manager_tests_folder_split_static_passed_cargo_deferred`: `input/tests/input_manager.rs` now only owns shared imports and mounts `input/tests/input_manager/frame_state.rs`, `input/tests/input_manager/touch_gamepad.rs`, and `input/tests/input_manager/host_requests.rs`. `frame_state.rs` owns basic state, frame-clear, focus, and IME behavior; `touch_gamepad.rs` owns touch/gamepad state, the event-log harness, and gamepad filtering tests; `host_requests.rs` owns frame-local gamepad rumble and cursor host requests. `runtime_15_input_manager_tests_are_folder_backed` keeps those owners and docs/status anchors synchronized, and the 2026-07-01 follow-up repaired its status/date map reads to `expected_slices/{status,date}/runtime_15/m3_structure_support.rs`; broader input Cargo gates remain pending.
 
 This is intentionally a test harness rather than a native desktop example binary. It gives CI the M6 example coverage without depending on a physical window, keyboard, mouse, touch device, or controller. Real winit/gilrs smoke testing remains optional because hardware availability cannot be a workspace gate.
 
@@ -378,6 +397,8 @@ M13 adds the neutral outgoing host-request side for native IME control. Bevy kee
 The runtime ABI carries these requests on the IME event family with `ime_request_enable`, `ime_request_disable`, `ime_cursor_area`, and `ime_surrounding_text`. `zircon_runtime::dynamic_api::session` validates cursor areas as finite positive rectangles and validates surrounding-text cursor/anchor offsets as UTF-8 byte boundaries before submitting `InputEvent::ImeHostRequest`. The UI dispatch contract still owns higher-level widget intent as `UiInputMethodRequest`; this runtime input lane is the lower transport contract that the native host consumes through winit's IME request API.
 
 M15 closes the native desktop preview loop with optional `ZrRuntimeApiV1::drain_host_requests`. The runtime drains outgoing IME requests into `ZrRuntimeHostRequestBatchV1` JSON, owns the returned byte buffer with the same free-callback pattern as frame/profile outputs, and leaves normal input events untouched. `zircon_app::entry::runtime_library::RuntimeSession` treats the function as optional for older dynamic runtimes, decodes the batch when present, validates the ABI version, and frees the buffer. `RuntimeEntryApp::about_to_wait` applies the drained requests to the current winit window using `ImeRequest::Enable`, `ImeRequest::Update`, `ImeRequest::Disable`, `ImeCapabilities`, `ImeRequestData`, and `ImeSurroundingText`. This keeps Zircon aligned with Bevy's window-owned IME policy while using the richer local winit 0.31 API shape for cursor-area and surrounding-text updates.
+
+The 2026-06-30 IM-M1 app host-request pump guard adds `runtime_entry_source_guards/host_requests.rs`. It locks the source order `tick_frame` -> `apply_runtime_host_requests` -> redraw, the drain owner loop over every `RuntimeSession::drain_host_requests()` item, routing of `ZrRuntimeHostRequestV1::Ime` to `apply_runtime_ime_host_request`, and the IME leaf mapping from `SetCursorArea` / `SetSurroundingText` to winit `ImeRequest::Update`. Scoped rustfmt and diff-check pass with only LF/CRLF warnings; focused `zircon_app` package execution timed out after 904s with no Rust diagnostics, so it is not counted as passing.
 
 ## Gilrs Runtime Preview Host Backend
 

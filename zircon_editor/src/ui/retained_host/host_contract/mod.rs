@@ -36,6 +36,10 @@ mod workbench_context_menu;
 pub(crate) use data::*;
 pub(crate) use diagnostics::{HostInvalidationDiagnostics, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY};
 pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
+pub(crate) use paint_theme::{
+    apply_host_metrics_from_tokens, apply_host_palette_from_tokens, apply_host_text_preferences,
+    project_host_text_preferences,
+};
 #[cfg(test)]
 pub(crate) fn paint_host_frame_for_test(
     width: u32,

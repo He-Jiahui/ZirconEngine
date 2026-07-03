@@ -2,7 +2,7 @@ use zircon_runtime::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceImage
 
 use super::super::{ChromeCommand, ChromeCommandKind};
 use super::geometry::{ui_image_uv_rect, ui_rect};
-use super::text_style::ui_text_style;
+use super::text_style::{ui_text_font_family, ui_text_font_weight, ui_text_style};
 
 pub(super) fn ui_surface_command_from_chrome(command: &ChromeCommand) -> UiSurfaceCommand {
     UiSurfaceCommand {
@@ -35,6 +35,8 @@ pub(super) fn ui_surface_command_from_chrome(command: &ChromeCommand) -> UiSurfa
             } => UiSurfaceCommandKind::Text {
                 text: text.clone(),
                 color: *color,
+                font_family: Some(ui_text_font_family(*style)),
+                font_weight: ui_text_font_weight(*style),
                 font_size: *size,
                 line_height: *line_height,
                 style: ui_text_style(*style),

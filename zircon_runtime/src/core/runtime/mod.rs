@@ -17,13 +17,16 @@ mod weak;
 
 pub use contexts::{ModuleContext, PluginContext};
 pub use descriptors::{
-    DependencySpec, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, PluginDescriptor,
-    PluginFactory, RegistryName, ServiceFactory, ServiceObject,
+    sort_module_activation_order, DependencySpec, DriverDescriptor, ManagerDescriptor,
+    ModuleDependencySpec, ModuleDescriptor, PluginDescriptor, PluginFactory, RegistryName,
+    ServiceFactory, ServiceObject,
 };
 pub use events::EventBus;
 pub use frame_clock::FrameClock;
 pub use handle::CoreHandle;
-pub use lifecycle::{LifecycleState, ServiceKind, StartupMode};
+pub use lifecycle::{
+    InitLevel, LifecycleState, ModuleLifecycle, NoopModuleLifecycle, ServiceKind, StartupMode,
+};
 pub use modules::{
     DiagnosticsCoreModule, FrameCountModule, LogDiagnosticsModule, LogModule, TasksModule,
     TimeModule, DIAGNOSTICS_CORE_MODULE_NAME, FRAME_COUNT_MODULE_NAME, LOG_DIAGNOSTICS_MODULE_NAME,

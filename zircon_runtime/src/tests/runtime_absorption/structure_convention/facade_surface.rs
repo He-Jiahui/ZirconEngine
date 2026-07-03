@@ -142,6 +142,7 @@ fn runtime_15_mixed_visibility_has_facade_note() {
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
@@ -170,6 +171,7 @@ fn runtime_15_mixed_visibility_has_facade_note() {
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
     ] {
@@ -186,6 +188,69 @@ fn runtime_15_mixed_visibility_has_facade_note() {
 }
 
 #[test]
+fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded() {
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let session_note =
+        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
+    );
+    let expected_status_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
+    );
+    let expected_date_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
+    );
+
+    let slice = "Runtime 15 M1 graphics facade visibility review findings mirror";
+    let status =
+        "runtime_15_graphics_facade_visibility_review_findings_mirror_static_passed_cargo_deferred";
+    let original_status =
+        "runtime_15_graphics_facade_visibility_note_static_passed_cargo_blocked_graphics_drift";
+    let guard = "runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded";
+    let review_doc = "docs/plans/engine-code-review-findings-2026-06.md";
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("session note", session_note.as_str()),
+        ("status-output row data", status_rows.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                slice,
+                status,
+                original_status,
+                review_doc,
+                "runtime_15_mixed_visibility_has_facade_note",
+                guard,
+            ],
+        );
+    }
+
+    assert_contains_all(
+        "Runtime 15 expected status map",
+        &expected_status_map,
+        &[slice, status],
+    );
+    assert_contains_all(
+        "Runtime 15 expected date map",
+        &expected_date_map,
+        &[slice, "2026-07-01"],
+    );
+}
+
+#[test]
 fn runtime_15_facade_surface_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child = read_runtime_src("tests/runtime_absorption/structure_convention/facade_surface.rs");
@@ -196,7 +261,7 @@ fn runtime_15_facade_surface_guard_is_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
     );
 
     assert_contains_all(
@@ -211,6 +276,7 @@ fn runtime_15_facade_surface_guard_is_folder_backed() {
     for moved_guard in [
         "fn runtime_15_prelude_covers_required_types",
         "fn runtime_15_mixed_visibility_has_facade_note",
+        "fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded",
     ] {
         assert!(
             !parent.contains(moved_guard),

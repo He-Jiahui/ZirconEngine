@@ -1038,7 +1038,7 @@ fn mesh_snapshot(node_id: u64, model_id: ResourceId, material_uri: &str) -> Rend
         tint: Default::default(),
         mobility: Mobility::Dynamic,
         static_state: RenderMeshStaticState::from_transform_static(false),
-        render_layer_mask: RenderLayerSet::from_legacy_mask(1),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
     }
 }
 

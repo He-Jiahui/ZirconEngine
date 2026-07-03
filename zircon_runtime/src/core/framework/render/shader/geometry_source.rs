@@ -54,6 +54,7 @@ pub enum GeometrySourceBindingKind {
     MorphWeightsStorage,
     MorphTargetStorage,
     VirtualGeometryPages,
+    VirtualGeometryClusters,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

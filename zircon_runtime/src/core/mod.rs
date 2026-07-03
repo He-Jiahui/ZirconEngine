@@ -14,10 +14,11 @@ pub use framework::state::{
 };
 pub use runtime::diagnostics;
 pub use runtime::{
-    parallel_for, CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DiagnosticsCoreModule,
-    DriverDescriptor, EventBus, FrameClock, FrameCountModule, JobHandle, JobScheduler,
-    JobSchedulerReport, LifecycleState, LogDiagnosticsModule, LogModule, ManagerDescriptor,
-    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
+    parallel_for, sort_module_activation_order, CoreHandle, CoreRuntime, CoreWeak, DependencySpec,
+    DiagnosticsCoreModule, DriverDescriptor, EventBus, FrameClock, FrameCountModule, InitLevel,
+    JobHandle, JobScheduler, JobSchedulerReport, LifecycleState, LogDiagnosticsModule, LogModule,
+    ManagerDescriptor, ModuleContext, ModuleDependencySpec, ModuleDescriptor, ModuleLifecycle,
+    NoopModuleLifecycle, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
     RuntimeTimeAdvance, RuntimeTimeClocks, ServiceFactory, ServiceKind, StartupMode, TaskPool,
     TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport, TaskPoolReportEntry,
     TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools, TasksModule, TimeModule,

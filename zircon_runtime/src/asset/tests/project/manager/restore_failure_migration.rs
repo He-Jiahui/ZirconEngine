@@ -70,6 +70,57 @@ fn project_manager_restores_ready_artifacts_from_meta_after_restart() {
 }
 
 #[test]
+fn project_manager_reimports_material_when_ready_artifact_payload_is_stale() {
+    let root = unique_temp_project_root("project_manager_stale_material_cache");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://materials/grid.zmaterial").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
+
+    let uri = AssetUri::parse("res://materials/grid.zmaterial").unwrap();
+    let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
+    manager.scan_and_import().unwrap();
+    let record = manager.registry().get_by_locator(&uri).unwrap();
+    let artifact_locator = record.artifact_locator().cloned().unwrap();
+    let artifact_path = paths.library_root().join(artifact_locator.path());
+
+    let stale_enum_tag = 36_u32.to_le_bytes();
+    let stale_payload = zstd::stream::encode_all(&stale_enum_tag[..], 1).unwrap();
+    let mut payload = b"ZRARTZ01".to_vec();
+    payload.extend_from_slice(&stale_payload);
+    fs::write(&artifact_path, payload).unwrap();
+
+    let mut restarted = project_manager_with_first_wave_plugin_fixtures(&root);
+    restarted.scan_and_import().unwrap();
+
+    let recovered = restarted.registry().get_by_locator(&uri).unwrap();
+    assert_eq!(recovered.state, ResourceState::Ready);
+    assert_eq!(recovered.artifact_locator(), Some(&artifact_locator));
+    assert!(matches!(
+        restarted.load_artifact(&uri).unwrap(),
+        ImportedAsset::Material(_)
+    ));
+
+    let rewritten = fs::read(&artifact_path).unwrap();
+    let decompressed = zstd::stream::decode_all(&rewritten[b"ZRARTZ01".len()..]).unwrap();
+    assert_ne!(
+        decompressed.get(..stale_enum_tag.len()),
+        Some(&stale_enum_tag[..]),
+        "stale cache payload should be replaced by a freshly imported material artifact"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn project_manager_records_failed_imports_and_continues_scanning() {
     let root = unique_temp_project_root("project_manager_failed_import");
     let paths = ProjectPaths::from_root(&root).unwrap();

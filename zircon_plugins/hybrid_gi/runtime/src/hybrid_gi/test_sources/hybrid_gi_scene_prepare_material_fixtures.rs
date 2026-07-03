@@ -695,6 +695,9 @@ fn write_material_asset_with_capture_options(
     let material = MaterialAsset {
         name: Some("HybridGiScenePrepare".to_string()),
         shader: asset_reference("builtin://shader/pbr.wgsl"),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: base_color_texture.map(asset_reference),
         normal_texture: normal_texture.map(asset_reference),

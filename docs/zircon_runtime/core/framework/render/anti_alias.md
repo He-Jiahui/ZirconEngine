@@ -93,6 +93,7 @@ tests:
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_quality_survives_exact_and_fallback_resolution
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_resolution_reports_camera_msaa_sample_count_normalization
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::unsupported_terminal_aa_reports_slot_normalization
+  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_view_select_camera_descriptor_preserves_explicit_anti_alias
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::render_quality_profile_preserves_taa_quality_preset
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
   - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
@@ -135,7 +136,7 @@ The Bevy reference is deliberately broad. `dev/bevy/crates/bevy_anti_alias/src/l
 
 `AntiAliasMode` names the product vocabulary: `Off`, `Auto`, `Fxaa`, `Msaa`, `Taa`, `Smaa`, `Cas`, and `Dlss`. The modes are intentionally broader than the first concrete implementation so authoring code can request future modes without the renderer silently claiming support.
 
-`AntiAliasSettings` stores the requested mode plus a `TaaQualityPreset`. It defaults to `Auto` with Medium TAA quality. `RenderViewExtract` carries the settings beside the camera and core pipeline. Camera snapshots with `msaa_samples > 1` map to `AntiAliasMode::Msaa { samples }`; otherwise the view defaults to `Auto`.
+`AntiAliasSettings` stores the requested mode plus a `TaaQualityPreset`. It defaults to `Auto` with Medium TAA quality. `RenderViewExtract` carries the settings beside the camera and core pipeline. Camera snapshots with `msaa_samples > 1` map to `AntiAliasMode::Msaa { samples }`; otherwise the view defaults to `Auto`. Selecting a `CameraRenderDescriptor` updates descriptor-backed camera payload and target fields, but it does not rewrite an already-authored `anti_alias` setting; explicit TAA remains TAA even when the selected camera has `msaa_samples = 1`.
 
 `TaaQualityPreset::{Low, Medium, High}` is intentionally framework-owned rather than shader-owned. `RenderQualityProfile::with_taa_quality(...)` lets product profiles select the preset, and `build_frame_submission_context(...)` applies that profile value before resolving the effective AA mode. The renderer-side `TaaResolveParams` maps the preset to uniform values, so changing the preset does not rebuild the TAA pipeline.
 

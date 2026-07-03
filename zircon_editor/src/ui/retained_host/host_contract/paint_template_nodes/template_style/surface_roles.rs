@@ -17,3 +17,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_cont
         "asset-content" | "content-panel" | "asset-thumbnail-card"
     )
 }
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_asset_thumbnail_card_surface(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    node.surface_variant.as_str() == "asset-thumbnail-card"
+}

@@ -5,6 +5,7 @@ const MAX_TEST_MODULE_LINES: usize = 250;
 const EXPECTED_TEST_MODULES: &[&str] = &[
     "accessibility",
     "api_table",
+    "host_request_payloads",
     "host_requests",
     "input_events",
     "profile_control",

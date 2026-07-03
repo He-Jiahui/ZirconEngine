@@ -10,9 +10,7 @@ from .pipeline_report_schema_primitives import (
     validate_object_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
-from .pipeline_report_schema_table import (
-    string_array_trimmed_non_empty_entries_schema_diagnostics,
-)
+from .pipeline_report_schema_string_array import string_array_trimmed_non_empty_entries_schema_diagnostics
 from .pipeline_report_source_template_string_array_schema import (
     source_template_non_empty_string_array_schema_diagnostics,
 )

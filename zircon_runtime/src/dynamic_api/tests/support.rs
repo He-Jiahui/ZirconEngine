@@ -11,9 +11,10 @@ pub(super) use zircon_runtime_interface::{
     ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeEventV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeGamepadRumbleRequestKindV1,
     ZrRuntimeGamepadRumbleRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
-    ZrRuntimeImeHostRequestKindV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeNativeSurfaceTargetV1,
+    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
 };
 
 pub(super) use crate::core::framework::input::{

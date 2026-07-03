@@ -10,7 +10,9 @@ use super::binding::{
 };
 use super::id_allocator::GpuSceneIdAllocator;
 use super::layout::{
-    GpuInstanceData, GpuPrimitiveData, GPU_INSTANCE_DATA_STRIDE, GPU_PRIMITIVE_DATA_STRIDE,
+    GpuInstanceData, GpuMorphDelta, GpuMorphPayload, GpuMorphWeight, GpuPrimitiveData,
+    GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage, GPU_INSTANCE_DATA_STRIDE,
+    GPU_PRIMITIVE_DATA_STRIDE,
 };
 use super::prev_skinned_palette::GpuSceneSkinnedJointPaletteState;
 use super::prev_skinned_source::GpuSceneSkinnedGpuSourceState;
@@ -22,6 +24,8 @@ pub(crate) const GPU_SCENE_INITIAL_INSTANCE_CAPACITY: u32 = 64;
 pub(crate) const GPU_SCENE_INITIAL_LIGHT_CAPACITY: u32 = 1;
 
 const GPU_SCENE_VISIBLE_INSTANCE_REMAP_FALLBACK_BYTES: u64 = 4;
+const GPU_SCENE_MORPH_FALLBACK_BYTES: u64 = 16;
+const GPU_SCENE_VIRTUAL_GEOMETRY_FALLBACK_BYTES: u64 = 16;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GpuSceneEntry {
@@ -68,6 +72,13 @@ pub(crate) struct GpuSceneUploadReport {
     pub(crate) light_upload_range_count: usize,
 }
 
+impl GpuSceneUploadReport {
+    pub(crate) fn with_additional_uploaded_bytes(mut self, uploaded_bytes: u64) -> Self {
+        self.uploaded_bytes = self.uploaded_bytes.saturating_add(uploaded_bytes);
+        self
+    }
+}
+
 /// Owns the GPUScene storage buffers and CPU mirrors before frame-path wiring.
 ///
 /// Registration keeps stable primitive/instance indices until explicit
@@ -84,11 +95,21 @@ pub(crate) struct GpuScene {
     direct_visible_instance_remap_buffer: wgpu::Buffer,
     direct_visible_instance_remap_params_buffer: wgpu::Buffer,
     remapped_visible_instance_remap_params_buffer: wgpu::Buffer,
+    pub(super) morph_deltas_buffer: wgpu::Buffer,
+    pub(super) morph_weights_buffer: wgpu::Buffer,
+    pub(super) virtual_geometry_pages_buffer: wgpu::Buffer,
+    pub(super) virtual_geometry_clusters_buffer: wgpu::Buffer,
+    pub(super) morph_payloads_buffer: wgpu::Buffer,
     scene_bind_group_layout: wgpu::BindGroupLayout,
     scene_bind_group: wgpu::BindGroup,
     primitive_shadow: Vec<GpuPrimitiveData>,
     pub(super) instance_shadow: Vec<GpuInstanceData>,
     light_shadow: Vec<GpuLightData>,
+    pub(super) morph_deltas_shadow: Vec<GpuMorphDelta>,
+    pub(super) morph_weights_shadow: Vec<GpuMorphWeight>,
+    pub(super) virtual_geometry_pages_shadow: Vec<GpuVirtualGeometryPage>,
+    pub(super) virtual_geometry_clusters_shadow: Vec<GpuVirtualGeometryClusterWord>,
+    pub(super) morph_payloads_shadow: Vec<GpuMorphPayload>,
     primitive_ids: GpuSceneIdAllocator,
     instance_ids: GpuSceneIdAllocator,
     pub(super) entries: HashMap<u64, GpuSceneEntry>,
@@ -96,6 +117,8 @@ pub(crate) struct GpuScene {
     pub(super) previous_skinned_joint_palettes: HashMap<u64, GpuSceneSkinnedJointPaletteState>,
     pub(super) current_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
     pub(super) previous_skinned_gpu_sources: HashMap<u64, GpuSceneSkinnedGpuSourceState>,
+    pub(super) current_morph_weights: HashMap<u64, Vec<f32>>,
+    pub(super) previous_morph_weights: HashMap<u64, Vec<f32>>,
     pub(super) updates: GpuSceneUpdateQueue,
     stats: GpuSceneStats,
     primitive_capacity: u32,
@@ -143,6 +166,31 @@ impl GpuScene {
             "zircon-gpu-scene-visible-instance-remap-enabled-params",
             GpuSceneVisibleInstanceRemapParams::remapped(),
         );
+        let morph_deltas_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-morph-deltas-fallback",
+            GPU_SCENE_MORPH_FALLBACK_BYTES,
+        );
+        let morph_weights_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-morph-weights-fallback",
+            GPU_SCENE_MORPH_FALLBACK_BYTES,
+        );
+        let virtual_geometry_pages_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-virtual-geometry-pages-fallback",
+            GPU_SCENE_VIRTUAL_GEOMETRY_FALLBACK_BYTES,
+        );
+        let virtual_geometry_clusters_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-virtual-geometry-clusters-fallback",
+            GPU_SCENE_VIRTUAL_GEOMETRY_FALLBACK_BYTES,
+        );
+        let morph_payloads_buffer = create_storage_buffer(
+            device,
+            "zircon-gpu-scene-morph-payloads-fallback",
+            GPU_SCENE_MORPH_FALLBACK_BYTES,
+        );
         let scene_bind_group_layout =
             create_gpu_scene_bind_group_layout(device, skinned_joint_palette_min_binding_size);
         let scene_bind_group = create_gpu_scene_bind_group(
@@ -155,6 +203,11 @@ impl GpuScene {
             &fallback_skinned_joint_palette_buffer,
             &direct_visible_instance_remap_buffer,
             &direct_visible_instance_remap_params_buffer,
+            &morph_deltas_buffer,
+            &morph_weights_buffer,
+            &virtual_geometry_pages_buffer,
+            &virtual_geometry_clusters_buffer,
+            &morph_payloads_buffer,
         );
         Self {
             primitive_buffer,
@@ -164,11 +217,21 @@ impl GpuScene {
             direct_visible_instance_remap_buffer,
             direct_visible_instance_remap_params_buffer,
             remapped_visible_instance_remap_params_buffer,
+            morph_deltas_buffer,
+            morph_weights_buffer,
+            virtual_geometry_pages_buffer,
+            virtual_geometry_clusters_buffer,
+            morph_payloads_buffer,
             scene_bind_group_layout,
             scene_bind_group,
             primitive_shadow: Vec::new(),
             instance_shadow: Vec::new(),
             light_shadow: Vec::new(),
+            morph_deltas_shadow: Vec::new(),
+            morph_weights_shadow: Vec::new(),
+            virtual_geometry_pages_shadow: Vec::new(),
+            virtual_geometry_clusters_shadow: Vec::new(),
+            morph_payloads_shadow: Vec::new(),
             primitive_ids: GpuSceneIdAllocator::new(),
             instance_ids: GpuSceneIdAllocator::new(),
             entries: HashMap::new(),
@@ -176,6 +239,8 @@ impl GpuScene {
             previous_skinned_joint_palettes: HashMap::new(),
             current_skinned_gpu_sources: HashMap::new(),
             previous_skinned_gpu_sources: HashMap::new(),
+            current_morph_weights: HashMap::new(),
+            previous_morph_weights: HashMap::new(),
             updates: GpuSceneUpdateQueue::new(),
             stats: GpuSceneStats {
                 primitive_capacity: GPU_SCENE_INITIAL_PRIMITIVE_CAPACITY,
@@ -250,6 +315,8 @@ impl GpuScene {
             .remove(&stable_instance_key);
         self.previous_skinned_gpu_sources
             .remove(&stable_instance_key);
+        self.current_morph_weights.remove(&stable_instance_key);
+        self.previous_morph_weights.remove(&stable_instance_key);
         self.primitive_ids.free(entry.primitive_index);
         self.instance_ids
             .free_span(entry.first_instance_index, entry.instance_count);
@@ -274,6 +341,10 @@ impl GpuScene {
         self.current_skinned_gpu_sources
             .retain(|key, _| live_keys.contains(key));
         self.previous_skinned_gpu_sources
+            .retain(|key, _| live_keys.contains(key));
+        self.current_morph_weights
+            .retain(|key, _| live_keys.contains(key));
+        self.previous_morph_weights
             .retain(|key, _| live_keys.contains(key));
     }
 
@@ -453,6 +524,11 @@ impl GpuScene {
                 .unwrap_or(&self.fallback_skinned_joint_palette_buffer),
             &self.direct_visible_instance_remap_buffer,
             &self.direct_visible_instance_remap_params_buffer,
+            &self.morph_deltas_buffer,
+            &self.morph_weights_buffer,
+            &self.virtual_geometry_pages_buffer,
+            &self.virtual_geometry_clusters_buffer,
+            &self.morph_payloads_buffer,
         )
     }
 
@@ -471,6 +547,11 @@ impl GpuScene {
             &self.fallback_skinned_joint_palette_buffer,
             visible_instance_remap_buffer,
             &self.remapped_visible_instance_remap_params_buffer,
+            &self.morph_deltas_buffer,
+            &self.morph_weights_buffer,
+            &self.virtual_geometry_pages_buffer,
+            &self.virtual_geometry_clusters_buffer,
+            &self.morph_payloads_buffer,
         )
     }
 
@@ -536,7 +617,7 @@ impl GpuScene {
         self.rebuild_scene_bind_group(device);
     }
 
-    fn rebuild_scene_bind_group(&mut self, device: &wgpu::Device) {
+    pub(super) fn rebuild_scene_bind_group(&mut self, device: &wgpu::Device) {
         self.scene_bind_group = create_gpu_scene_bind_group(
             device,
             &self.scene_bind_group_layout,
@@ -547,6 +628,11 @@ impl GpuScene {
             &self.fallback_skinned_joint_palette_buffer,
             &self.direct_visible_instance_remap_buffer,
             &self.direct_visible_instance_remap_params_buffer,
+            &self.morph_deltas_buffer,
+            &self.morph_weights_buffer,
+            &self.virtual_geometry_pages_buffer,
+            &self.virtual_geometry_clusters_buffer,
+            &self.morph_payloads_buffer,
         );
     }
 
@@ -603,7 +689,11 @@ impl GpuScene {
     }
 }
 
-fn create_storage_buffer(device: &wgpu::Device, label: &'static str, size: u64) -> wgpu::Buffer {
+pub(super) fn create_storage_buffer(
+    device: &wgpu::Device,
+    label: &'static str,
+    size: u64,
+) -> wgpu::Buffer {
     device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(label),
         size: size.max(16),

@@ -1,9 +1,13 @@
 use super::*;
 use crate::ui::retained_host::host_contract::chrome_command_stream::{
-    ChromeCommandLayer, ChromeImagePayload, ChromeImageUvRect,
+    ChromeCommand, ChromeCommandKind, ChromeCommandLayer, ChromeImagePayload, ChromeImageUvRect,
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
-use zircon_runtime::rhi::{UiSurfaceCommandKind, UiSurfaceImageUvRect};
+use crate::ui::retained_host::host_contract::paint_text::{
+    font_request_for_face, HostTextFontFace,
+};
+use zircon_runtime::rhi::{UiSurfaceCommandKind, UiSurfaceImageUvRect, UiSurfaceTextStyle};
+use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRunPaintStyle};
 
 #[test]
 fn runtime_draw_list_preserves_chrome_corner_radius() {
@@ -93,4 +97,103 @@ fn runtime_draw_list_forwards_atlas_uv_to_runtime_surface_payload() {
             max: [0.75, 0.5],
         })
     );
+}
+
+#[test]
+fn runtime_draw_list_projects_editor_text_family_and_weight_to_runtime_surface() {
+    let mut stream = ChromeCommandStream::full_rebuild((128, 64));
+    stream.push_command_for_test(ChromeCommand {
+        layer: ChromeCommandLayer::Text,
+        z_index: 1,
+        frame: FrameRect {
+            x: 4.0,
+            y: 6.0,
+            width: 80.0,
+            height: 16.0,
+        },
+        clip: None,
+        kind: ChromeCommandKind::Text {
+            text: "Code".to_string(),
+            color: [220, 220, 220, 255],
+            size: 12.0,
+            line_height: 14.0,
+            style: UiTextRunPaintStyle {
+                code: true,
+                ..UiTextRunPaintStyle::default()
+            },
+        },
+    });
+    stream.push_command_for_test(ChromeCommand {
+        layer: ChromeCommandLayer::Text,
+        z_index: 2,
+        frame: FrameRect {
+            x: 4.0,
+            y: 24.0,
+            width: 80.0,
+            height: 16.0,
+        },
+        clip: None,
+        kind: ChromeCommandKind::Text {
+            text: "Strong".to_string(),
+            color: [240, 240, 240, 255],
+            size: 12.0,
+            line_height: 14.0,
+            style: UiTextRunPaintStyle {
+                strong: true,
+                ..UiTextRunPaintStyle::default()
+            },
+        },
+    });
+
+    let draw_list = ui_surface_draw_list_from_stream(&stream);
+
+    let UiSurfaceCommandKind::Text {
+        font_family,
+        font_weight,
+        style,
+        ..
+    } = &draw_list.commands[0].kind
+    else {
+        panic!("expected code text command");
+    };
+    assert_eq!(
+        font_family.as_deref(),
+        Some(
+            font_request_for_face(HostTextFontFace::Mono)
+                .family
+                .as_str()
+        )
+    );
+    assert_eq!(
+        *font_weight,
+        UiResolvedStyle::normalized_font_weight(
+            font_request_for_face(HostTextFontFace::Mono).weight
+        )
+    );
+    assert_eq!(*style, UiSurfaceTextStyle::Regular);
+
+    let UiSurfaceCommandKind::Text {
+        font_family,
+        font_weight,
+        style,
+        ..
+    } = &draw_list.commands[1].kind
+    else {
+        panic!("expected strong text command");
+    };
+    assert_eq!(
+        font_family.as_deref(),
+        Some(
+            font_request_for_face(HostTextFontFace::UiStrong)
+                .family
+                .as_str()
+        )
+    );
+    assert_eq!(
+        *font_weight,
+        UiResolvedStyle::normalized_font_weight(
+            font_request_for_face(HostTextFontFace::UiStrong).weight
+        )
+    );
+    assert_eq!(*style, UiSurfaceTextStyle::Strong);
 }

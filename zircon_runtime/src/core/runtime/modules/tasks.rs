@@ -1,4 +1,4 @@
-use crate::core::ModuleDescriptor;
+use crate::core::{InitLevel, ModuleDescriptor};
 use crate::engine_module::EngineModule;
 
 pub const TASKS_MODULE_NAME: &str = "TasksModule";
@@ -17,5 +17,6 @@ impl EngineModule for TasksModule {
 
     fn descriptor(&self) -> ModuleDescriptor {
         ModuleDescriptor::new(TASKS_MODULE_NAME, self.module_description())
+            .with_init_level(InitLevel::Kernel)
     }
 }

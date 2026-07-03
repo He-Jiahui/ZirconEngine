@@ -293,6 +293,10 @@ pub(super) fn update_base_stats(
         prepared_mesh_queue_stats.prepared_geometry_draw_count;
     state.stats.last_mesh_dynamic_geometry_draw_count =
         prepared_mesh_queue_stats.dynamic_geometry_draw_count;
+    state.stats.last_mesh_gpu_morphed_source_draw_count =
+        prepared_mesh_queue_stats.gpu_morphed_source_draw_count;
+    state.stats.last_mesh_gpu_skinned_morphed_source_draw_count =
+        prepared_mesh_queue_stats.gpu_skinned_morphed_source_draw_count;
     state.stats.last_mesh_skinned_draw_count = prepared_mesh_queue_stats.skinned_draw_count;
     state.stats.last_mesh_skinned_palette_upload_count =
         prepared_mesh_queue_stats.skinned_palette_upload_count;

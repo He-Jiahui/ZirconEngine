@@ -9,6 +9,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-28")
     } else if slice == "Runtime 15 F12 dead-code runtime/editor boundary status guard" {
         Some("2026-06-28")
+    } else if slice == "Runtime 15 F12 production dead-code current-state wording cleanup" {
+        Some("2026-06-30")
     } else if slice == "Runtime 15 F12 UI text edit-state dead-code suppression cleanup" {
         Some("2026-06-27")
     } else if slice == "Runtime 15 UI boundary runtime-host forbidden attribute literal cleanup" {
@@ -79,6 +81,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-24")
     } else if slice == "Runtime 15 graphics facade visibility note" {
         Some("2026-06-22")
+    } else if slice == "Runtime 15 M1 graphics facade visibility review findings mirror" {
+        Some("2026-07-01")
     } else if slice == "Runtime 15 F14 diagnostics normalization" {
         Some("2026-06-22")
     } else if slice == "Runtime 15 F5 scene property access typed errors" {
@@ -107,8 +111,60 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-27")
     } else if slice == "Runtime 15 F5 host reflection docs CLI typed errors" {
         Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 shader prewarm args typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm manifest merge typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm manifest read typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm report output typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm permutation registry typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm resource registry typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm asset-root scan typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 shader prewarm CLI typed-error sweep" {
+        Some("2026-06-29")
     } else if slice == "Runtime 15 F5 dynamic API session typed errors" {
         Some("2026-06-27")
+    } else if slice == "Runtime 15 F5 native plugin distribution compatibility typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin registration manifest typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin behavior ABI typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native bridge method ABI typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin manifest collection typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin manifest candidate typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin string helper typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin descriptor ABI typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native plugin entry ABI typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native host API adapter typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host loading typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host behavior diagnostics typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host lifecycle typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host hot reload typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host registration replay typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host bridge methods typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host runtime behavior typed errors" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 F5 native live-host bridge lifecycle typed errors" {
+        Some("2026-06-29")
     } else if slice == "Runtime 15 F5 typed API residual typed errors" {
         Some("2026-06-25")
     } else if slice == "Runtime 15 F5 fixed world mutation typed errors" {
@@ -121,7 +177,9 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-25")
     } else if slice == "Runtime 15 F5 sound asset typed errors" {
         Some("2026-06-25")
-    } else if slice == "Runtime 15 F5 zshader definition typed errors" {
+    } else if slice == "Runtime 15 F7 artifact cache JSON number typed errors" {
+        Some("2026-07-03")
+    } else if slice == "Runtime 15 F5 zshader v2 user definition migration" {
         Some("2026-06-25")
     } else if slice == "Runtime 15 F5 asset meta typed errors" {
         Some("2026-06-25")

@@ -1,6 +1,6 @@
 use super::state::is_unavailable_list_row_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -9,14 +9,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> [u8; 4] {
+    let palette = current_host_palette();
     if is_unavailable_list_row_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if let Some(color) = declared_color(node.value_color) {
         color
     } else if marked {
-        PALETTE.text
+        palette.text
     } else {
-        PALETTE.text_muted
+        palette.text_muted
     }
 }
 
@@ -25,14 +26,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> [u8; 4] {
+    let palette = current_host_palette();
     if is_unavailable_list_row_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if let Some(color) = declared_color(node.icon_color) {
         color
     } else if marked {
-        PALETTE.focus_ring
+        palette.focus_ring
     } else {
-        PALETTE.text_muted
+        palette.text_muted
     }
 }
 

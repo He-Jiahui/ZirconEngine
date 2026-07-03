@@ -110,8 +110,6 @@ impl RenderViewExtract {
                 .unwrap_or_else(|| UVec2::new(1, 1)),
         );
         self.core_pipeline = descriptor.camera.core_pipeline_kind();
-        self.anti_alias =
-            AntiAliasSettings::from_camera_msaa_samples(descriptor.camera.msaa_samples);
         self.camera = descriptor.camera.clone();
         self.scene_camera_entity = descriptor.entity;
         self.cameras = vec![descriptor];

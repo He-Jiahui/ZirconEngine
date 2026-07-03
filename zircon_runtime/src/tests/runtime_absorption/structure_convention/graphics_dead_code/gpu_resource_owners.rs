@@ -60,6 +60,9 @@ fn runtime_15_gpu_material_uniform_owner_cleanup() {
     let resource_streamer_accessors = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
     );
+    let resource_streamer_material_diagnostics = read_runtime_src(
+        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs",
+    );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -89,11 +92,16 @@ fn runtime_15_gpu_material_uniform_owner_cleanup() {
     );
     assert_contains_all(
         "resource streamer consumes material uniform diagnostics through owner accessors",
-        &resource_streamer_accessors,
+        &resource_streamer_material_diagnostics,
         &[
             "prepared.uniform.payload_byte_len()",
             "prepared.uniform.buffer_byte_len()",
         ],
+    );
+    assert_contains_all(
+        "resource streamer accessor root delegates material uniform diagnostics",
+        &resource_streamer_accessors,
+        &["#[cfg(test)]", "mod material_diagnostics;"],
     );
 
     for (label, source) in [

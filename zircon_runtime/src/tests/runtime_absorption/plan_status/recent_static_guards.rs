@@ -151,7 +151,9 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
         "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
         "native_plugin_public_surface",
         "root_reexport_count = 0",
-        "native_namespace_reexport_count = 60",
+        "native_namespace_reexport_count = 64",
+        "native loader test files 4/4",
+        "native test namespace import files 3/3",
         "plugin_surface_lifecycle_boundary",
         "fallback lifecycle failure tests 4/4",
         "runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed",
@@ -303,7 +305,7 @@ fn runtime_recent_static_guard_anchors_stay_recorded_across_plan_docs() {
         &[
             "Backend Responsibility Matrix",
             runtime_01_doc_anchors[1],
-            "text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land",
+            "text_shaper_stack_uses_shared_text_service_for_font_backends",
         ],
     );
     assert_contains_all(

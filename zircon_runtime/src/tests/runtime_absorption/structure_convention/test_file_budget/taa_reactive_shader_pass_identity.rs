@@ -14,6 +14,8 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
     );
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let prewarm_manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
+    let prewarm_manifest_pass_types =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/pass_types.rs");
     let prewarm_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -65,12 +67,11 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
         &[
             "BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES: [ShaderPassType; 6]",
             "ShaderPassType::TaaReactiveMask",
-            "zr_template_taa_reactive_mask.wgsl",
         ],
     );
     assert_contains_all(
         "asset-root shader prewarm enumerates the TAA reactive pass for full material sources",
-        &prewarm_manifest,
+        &prewarm_manifest_pass_types,
         &[
             "ASSET_SCAN_FULL_MATERIAL_PASSES: [ShaderPassType; 6]",
             "ShaderPassType::TaaReactiveMask",
@@ -106,6 +107,10 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
         (
             "zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs",
             prewarm_manifest.as_str(),
+        ),
+        (
+            "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/pass_types.rs",
+            prewarm_manifest_pass_types.as_str(),
         ),
         (
             "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/taa_reactive_shader_pass_identity.rs",

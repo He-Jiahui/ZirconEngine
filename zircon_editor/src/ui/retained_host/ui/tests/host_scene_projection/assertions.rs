@@ -13,7 +13,7 @@ pub(super) fn assert_host_contract_scene(
     assert_eq!(projected.left_dock.pane.title, "Left");
     assert_eq!(
         projected.left_dock.pane.ui_asset.header.asset_id,
-        "asset://ui/test.ui.toml"
+        "asset://ui/test.zui"
     );
     assert_eq!(projected.left_dock.pane.ui_asset.header.mode, "split");
     assert_eq!(projected.left_dock.pane.ui_asset.header.selection, "Root");

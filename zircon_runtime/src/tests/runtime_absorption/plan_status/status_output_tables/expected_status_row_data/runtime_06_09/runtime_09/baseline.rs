@@ -20,6 +20,18 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 09 UI entry map audit sync",
+        &[
+            "runtime_09_ui_entry_map_audit_sync_static_passed_cargo_deferred",
+            "expected_ui_entry_count = 19",
+            "expected_surface_entry_count = 21",
+            "platform_input",
+            "property_mutation",
+            "has_pointer_capture_or_unindexed_fallback_for_owner",
+            "risks = []",
+        ],
+    ),
+    (
         "Runtime 09 UI input route authority",
         &[
             "runtime_09_m1_1_ui_input_route_authority_static_passed_cargo_pending",

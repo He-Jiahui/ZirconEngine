@@ -79,7 +79,7 @@ fn runtime_15_shader_prewarm_permutation_registry_overlay_is_wired() {
         &build_prewarm,
         &[
             "shader permutation registries",
-            "for registry in config.shader_permutation_registries",
+            "for registry in shader_permutation_registry_paths_for_prewarm(config)",
             "\"--shader-permutation-registry\"",
         ],
     );

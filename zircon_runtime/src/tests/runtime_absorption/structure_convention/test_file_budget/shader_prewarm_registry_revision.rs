@@ -12,6 +12,8 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let registry = read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let manifest_registry_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs");
     let registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs");
     let build_tool = read_repo("tools/zircon_build.py");
@@ -67,7 +69,7 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
     );
     assert_contains_all(
         "resource registry overlay focused tests",
-        &tests,
+        &manifest_registry_tests,
         &[
             "shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay",
             "ResourceRecord::new",
@@ -114,6 +116,10 @@ fn runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired() {
         (
             "bin/zircon_shader_prewarm/manifest/tests.rs",
             tests.as_str(),
+        ),
+        (
+            "bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
+            manifest_registry_tests.as_str(),
         ),
         (
             "bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",

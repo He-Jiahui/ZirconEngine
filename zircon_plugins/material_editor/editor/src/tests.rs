@@ -18,7 +18,7 @@ fn material_authoring_registration_exposes_menu_items_and_payload_schemas() {
         .register_editor_extensions(&mut registry)
         .expect("material authoring registration");
     let operation =
-        EditorOperationPath::parse("MaterialEditor.Graph.Compile").expect("valid material path");
+        EditorOperationPath::parse("material_editor.graph.compile").expect("valid material path");
     let descriptor = registry
         .operations()
         .descriptor(&operation)
@@ -115,6 +115,9 @@ fn material_graph_compile_writes_minimal_material_asset_contract() {
 
     assert_eq!(material.name.as_deref(), Some("Test Material"));
     assert_eq!(material.base_color, [0.25, 0.5, 0.75, 1.0]);
+    assert!(material.parent.is_none());
+    assert!(material.options.is_empty());
+    assert!(material.queue.is_none());
     assert!(material.base_color_texture.is_none());
 }
 

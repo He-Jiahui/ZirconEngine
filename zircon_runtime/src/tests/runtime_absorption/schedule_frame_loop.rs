@@ -1,5 +1,6 @@
 const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
     "src/dynamic_api/session.rs",
+    "src/dynamic_api/session/profile.rs",
     "src/dynamic_api/session/extract.rs",
     "src/dynamic_api/runtime_loop.rs",
     "src/dynamic_api/session/hud.rs",
@@ -79,14 +80,19 @@ fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {
     }
 
     let session = include_str!("../../dynamic_api/session.rs");
+    let session_profile = include_str!("../../dynamic_api/session/profile.rs");
     assert_eq!(
         session.matches(".tick_time(").count(),
         1,
         "dynamic session should keep RuntimeTimeAdvance as the single tick_time handoff"
     );
     assert!(
-        session.contains("DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8"),
-        "dynamic session should keep the documented fixed-step cap"
+        session.contains("fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>"),
+        "dynamic session should keep the typed tick_frame result signature"
+    );
+    assert!(
+        session_profile.contains("DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8"),
+        "dynamic session profile should keep the documented fixed-step cap"
     );
 
     let world_driver = include_str!("../../scene/module/world_driver.rs");
@@ -116,6 +122,8 @@ fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {
         include_str!("../../scene/tests/ecs_schedule_parallel_executor_structure.rs"),
         include_str!("../../dynamic_api/tests/session_profiles.rs"),
         include_str!("../../tests/time.rs"),
+        include_str!("schedule_frame_loop.rs"),
+        include_str!("plan_status/cargo_gates/early.rs"),
     ];
     for behavior_anchor in EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS {
         assert!(
@@ -152,7 +160,7 @@ fn runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         for required_anchor in [
             "schedule_frame_loop_boundary",
-            "source files 18/18",
+            "source files 19/19",
             "guard/test files 8/8",
             "`SystemStage` count and variants 9/9",
             "fixed-loop stages 3/3",

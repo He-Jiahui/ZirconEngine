@@ -28,7 +28,7 @@ expression = "true"
 #[test]
 fn ui_asset_editor_projects_runtime_binding_diagnostic_and_schema_items() {
     let session = open_design_session(
-        "asset://ui/binding_invalid_kind.ui.toml",
+        "asset://ui/binding_invalid_kind.zui",
         INVALID_BINDING_VALUE_KIND_LAYOUT,
     );
 

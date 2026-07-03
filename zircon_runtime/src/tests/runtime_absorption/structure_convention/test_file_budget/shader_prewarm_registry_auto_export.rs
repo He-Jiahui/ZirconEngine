@@ -13,6 +13,8 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
     let registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let manifest_registry_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs");
     let build_tool = read_repo("tools/zircon_build.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
@@ -86,7 +88,7 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
     );
     assert_contains_all(
         "focused tests cover staged registry export handoff",
-        &tests,
+        &manifest_registry_tests,
         &[
             "shader_prewarm_asset_root_exports_shader_resource_records",
             "shader_resource_records_from_asset_root",
@@ -132,6 +134,10 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
         (
             "bin/zircon_shader_prewarm/manifest/tests.rs",
             tests.as_str(),
+        ),
+        (
+            "bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
+            manifest_registry_tests.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

@@ -38,6 +38,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 14 module family 2026-07-01 current audit recheck",
+        &[
+            "module_family_20260701_current_audit_static_passed_cargo_deferred",
+            "expected_family_count = 4",
+            "animation = 28",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
+        ],
+    ),
+    (
         "Runtime 14 module family markdown renderer split",
         &[
             "module_family_markdown_split_static_passed_cargo_deferred_tests_deferred",

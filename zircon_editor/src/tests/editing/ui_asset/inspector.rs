@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn ui_asset_editor_session_projects_structured_widget_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -45,7 +45,7 @@ fn ui_asset_editor_session_projects_structured_widget_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_updates_selected_widget_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -113,7 +113,7 @@ fn ui_asset_editor_session_updates_selected_widget_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_projects_structured_slot_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/slot-authoring.ui.toml",
+        "asset://ui/tests/slot-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -138,7 +138,7 @@ fn ui_asset_editor_session_projects_structured_slot_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_updates_selected_slot_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -200,7 +200,7 @@ fn ui_asset_editor_session_updates_selected_slot_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_projects_structured_layout_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/layout-authoring.ui.toml",
+        "asset://ui/tests/layout-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -223,7 +223,7 @@ fn ui_asset_editor_session_projects_structured_layout_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_updates_selected_layout_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -266,7 +266,7 @@ fn ui_asset_editor_session_updates_selected_layout_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() {
     let overlay_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/overlay-slot.ui.toml",
+        "asset://ui/tests/overlay-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -303,7 +303,7 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
     );
 
     let grid_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/grid-slot.ui.toml",
+        "asset://ui/tests/grid-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -334,7 +334,7 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
     );
 
     let flow_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/flow-slot.ui.toml",
+        "asset://ui/tests/flow-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -361,7 +361,7 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
     );
 
     let scroll_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/scrollable-layout.ui.toml",
+        "asset://ui/tests/scrollable-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -393,7 +393,7 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
     );
 
     let horizontal_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/horizontal-box-layout.ui.toml",
+        "asset://ui/tests/horizontal-box-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -413,7 +413,7 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
     );
 
     let vertical_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/vertical-box-layout.ui.toml",
+        "asset://ui/tests/vertical-box-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -436,7 +436,7 @@ fn ui_asset_editor_session_projects_parent_specific_slot_and_layout_semantics() 
 #[test]
 fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
     let overlay_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/overlay-slot.ui.toml",
+        "asset://ui/tests/overlay-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -469,7 +469,7 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
     );
 
     let grid_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/grid-slot.ui.toml",
+        "asset://ui/tests/grid-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -501,7 +501,7 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
     );
 
     let flow_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/flow-slot.ui.toml",
+        "asset://ui/tests/flow-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -533,7 +533,7 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
     );
 
     let scroll_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/scrollable-layout.ui.toml",
+        "asset://ui/tests/scrollable-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -560,7 +560,7 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
     );
 
     let horizontal_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/horizontal-box-layout.ui.toml",
+        "asset://ui/tests/horizontal-box-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -590,7 +590,7 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
     );
 
     let vertical_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/vertical-box-layout.ui.toml",
+        "asset://ui/tests/vertical-box-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -623,7 +623,7 @@ fn ui_asset_editor_session_updates_parent_specific_slot_and_layout_semantics() {
 #[test]
 fn ui_asset_editor_session_projects_linear_slot_typed_fields() {
     let horizontal_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/horizontal-linear-slot.ui.toml",
+        "asset://ui/tests/horizontal-linear-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -646,7 +646,7 @@ fn ui_asset_editor_session_projects_linear_slot_typed_fields() {
     assert_eq!(horizontal.inspector_slot_linear_cross_stretch, "Fixed");
 
     let vertical_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/vertical-linear-slot.ui.toml",
+        "asset://ui/tests/vertical-linear-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -672,7 +672,7 @@ fn ui_asset_editor_session_projects_linear_slot_typed_fields() {
 #[test]
 fn ui_asset_editor_session_updates_linear_slot_typed_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/horizontal-linear-slot.ui.toml",
+        "asset://ui/tests/horizontal-linear-slot.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -721,7 +721,7 @@ fn ui_asset_editor_session_updates_linear_slot_typed_fields() {
 #[test]
 fn ui_asset_editor_session_projects_structured_binding_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/binding-authoring.ui.toml",
+        "asset://ui/tests/binding-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -758,7 +758,7 @@ fn ui_asset_editor_session_projects_structured_binding_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -812,7 +812,7 @@ fn ui_asset_editor_session_updates_selected_binding_inspector_fields() {
 #[test]
 fn ui_asset_editor_session_projects_structured_binding_action_and_payload_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/structured-binding-authoring.ui.toml",
+        "asset://ui/tests/structured-binding-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -866,7 +866,7 @@ fn ui_asset_editor_session_projects_structured_binding_action_and_payload_fields
 #[test]
 fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/structured-binding-authoring.ui.toml",
+        "asset://ui/tests/structured-binding-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -943,7 +943,7 @@ fn ui_asset_editor_session_updates_structured_binding_action_and_payload_fields(
 #[test]
 fn ui_asset_editor_session_projects_binding_payload_schema_suggestions_and_applies_them() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/structured-binding-authoring.ui.toml",
+        "asset://ui/tests/structured-binding-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

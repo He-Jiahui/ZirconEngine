@@ -76,10 +76,8 @@ fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() 
         ],
     );
 
-    let runtime_01_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P10 |"))
-        .expect("Runtime index should keep the P10 tech-stack completeness problem row");
+    let runtime_01_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P10", "tech-stack completeness");
     assert_contains_all(
         "Runtime index P10 row",
         runtime_01_problem_row,
@@ -107,7 +105,7 @@ fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() 
         &[
             "Backend Responsibility Matrix",
             "runtime_text_doc_records_three_layer_stack_and_cross_reference",
-            "text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land",
+            "text_shaper_stack_uses_shared_text_service_for_font_backends",
         ],
     );
     assert_contains_all(

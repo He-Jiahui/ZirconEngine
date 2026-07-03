@@ -22,6 +22,7 @@ tests:
   - zircon_runtime/src/asset/tests/assets/sound.rs::sound_asset_rejects_wav_extensible_unsupported_speaker_mask_bits
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_sound_asset_uses_typed_error
   - "2026-06-25 static: scoped rustfmt/static scans/docs-status-session anchors passed; Cargo deferred due active cargo/rustc lanes"
+  - "2026-07-03 static: rustfmt --check passed for sound.rs/review guard; standalone review_f5_sound_asset_uses_typed_error passed 1/1; direct sound.rs unwrap/expect scan returned no matches; Cargo deferred due active cargo/rustc lanes"
 doc_type: module-detail
 ---
 
@@ -32,6 +33,8 @@ doc_type: module-detail
 ## WAV Error Contract
 
 Runtime 15 F5 sound asset typed errors (`runtime_15_sound_asset_typed_errors_static_passed_cargo_deferred`) converted `SoundAsset::from_wav_bytes(...)` and its private WAV parser helpers from `Result<_, String>` to `SoundAssetResult<T>`.
+
+Runtime 15 F5 sound asset panic-free read helpers (`runtime_15_sound_asset_panic_free_read_helpers_static_passed_cargo_deferred`) removed the remaining WAV parser `try_into().unwrap()` conversions. Chunk-size reads and PCM/IEEE sample conversions now go through `read_fixed_bytes<const N>()` plus the typed little-endian readers, so short or overflowing reads stay inside `SoundAssetError::HeaderReadOverflow` instead of relying on infallible conversion assumptions.
 
 `SoundAssetError` models the WAV failure families at the asset boundary:
 
@@ -50,4 +53,4 @@ The public `asset/assets/mod.rs` and `asset/mod.rs` facades export `SoundAssetEr
 
 `sound_asset_wav_parse_reports_typed_error_variants` covers malformed and unsupported WAV input with direct `SoundAssetError` matches. `sound_asset_rejects_wav_extensible_unsupported_speaker_mask_bits` locks the WAVE_FORMAT_EXTENSIBLE speaker-mask failure as `SoundAssetError::UnsupportedSpeakerMaskBits`.
 
-`review_f5_sound_asset_uses_typed_error` rejects reintroducing `Result<_, String>`, `Err(format!(...))`, or `.to_string()` inside `asset/assets/sound.rs`; it also locks facade exports, importer diagnostic formatting, this document, and the Runtime 15/status docs anchors.
+`review_f5_sound_asset_uses_typed_error` rejects reintroducing `Result<_, String>`, `Err(format!(...))`, `.to_string()`, `.unwrap()`, or `.expect(` inside `asset/assets/sound.rs`; it also locks facade exports, importer diagnostic formatting, this document, and the Runtime 15/status docs anchors.

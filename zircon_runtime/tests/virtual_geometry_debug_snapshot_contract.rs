@@ -49,7 +49,7 @@ use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
 use zircon_runtime::scene::world::World;
 
 fn default_render_layer_set() -> RenderLayerSet {
-    RenderLayerSet::from_legacy_mask(default_render_layer_mask())
+    RenderLayerSet::from_scene_schema_v1_mask(default_render_layer_mask())
 }
 
 #[test]

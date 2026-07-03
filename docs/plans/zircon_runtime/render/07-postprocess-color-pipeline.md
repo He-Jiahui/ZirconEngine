@@ -576,3 +576,7 @@ struct UberParams {                  // uniform,6 x vec4 = 96 B
 - Volume 求值进热路径:参数插值是 CPU 端小数据,按 descriptor 预编译插值函数表避免反射式逐字段分支。
 - 效果迁移到 volume schema 是硬切换:迁移期以"全局容器默认值 = 旧 stack 值"保证产物不变,迁完删除旧 stack 输入。
 - HDR 显示输出(HDR10/scRGB)只定接口(输出转换 pass 可插换),具体落地视 wgpu surface 能力另立切片。
+
+## 2026-07-01 Runtime 15 Structure Mirror
+
+Plan 07 post-process stack owner split is mirrored for the current structure guard: `render_plan07_post_process_stack_owner_split_static_passed`, `core/framework/render/post_process/graph_resource_names.rs`, `core/framework/render/post_process/stack/tests/effect_stack.rs`, and `runtime_15_post_process_stack_is_folder_backed`. The stack parent remains the descriptor construction owner, graph resource names stay in the dedicated resource-name owner, and stack behavior tests remain folder-backed under `core/framework/render/post_process/stack/tests/`.

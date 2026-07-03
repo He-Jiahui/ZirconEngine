@@ -1,0 +1,244 @@
+   Compiling new_debug_unreachable v1.0.6
+   Compiling itoa v1.0.18
+   Compiling tinyvec_macros v0.1.1
+   Compiling getrandom v0.4.2
+   Compiling weezl v0.1.12
+   Compiling noop_proc_macro v0.3.0
+   Compiling litrs v1.0.0
+   Compiling getrandom v0.3.4
+   Compiling document-features v0.2.12
+   Compiling zune-jpeg v0.5.15
+   Compiling loop9 v0.1.5
+   Compiling rav1e v0.8.1
+   Compiling tinyvec v1.11.0
+   Compiling serde_json v1.0.150
+   Compiling winapi-util v0.1.11
+   Compiling wgpu-core v29.0.3
+   Compiling wgpu-core-deps-windows-linux-android v29.0.3
+   Compiling skrifa v0.40.0
+   Compiling fdeflate v0.3.7
+   Compiling zune-inflate v0.2.54
+   Compiling ahash v0.8.12
+   Compiling wgpu v29.0.3
+   Compiling avif-serialize v0.8.9
+   Compiling zeno v0.3.3
+   Compiling bit_field v0.10.3
+   Compiling fax v0.2.7
+   Compiling winnow v1.0.3
+   Compiling yazi v0.2.1
+   Compiling pxfm v0.1.29
+   Compiling zstd-safe v7.2.4
+   Compiling rgb v0.8.53
+   Compiling memmap2 v0.9.10
+   Compiling unicode-segmentation v1.13.3
+   Compiling typeid v1.0.3
+   Compiling lebe v0.5.3
+   Compiling inflections v1.1.1
+   Compiling byteorder-lite v0.1.0
+   Compiling color_quant v1.1.0
+   Compiling gif v0.14.2
+   Compiling image-webp v0.2.4
+   Compiling gltf-derive v1.4.1
+   Compiling exr v1.74.0
+   Compiling fontdb v0.23.0
+   Compiling ravif v0.13.0
+   Compiling moxcms v0.8.1
+   Compiling swash v0.2.7
+   Compiling toml_parser v1.1.2+spec-1.1.0
+   Compiling tiff v0.11.3
+   Compiling png v0.18.1
+   Compiling same-file v1.0.6
+   Compiling zstd-sys v2.0.16+zstd.1.5.7
+   Compiling harfrust v0.5.2
+   Compiling blake3 v1.8.5
+   Compiling qoi v0.4.1
+   Compiling euclid v0.22.14
+   Compiling serde_spanned v1.1.1
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling unicode-script v0.5.8
+   Compiling smol_str v0.3.6
+   Compiling unicode-bidi v0.3.18
+   Compiling rustc-hash v2.1.2
+   Compiling self_cell v1.2.2
+   Compiling toml_writer v1.1.1+spec-1.1.0
+   Compiling sys-locale v0.3.2
+   Compiling unicode-linebreak v0.1.5
+   Compiling ttf-parser v0.21.1
+   Compiling linebender_resource_handle v0.1.1
+   Compiling rangemap v1.7.1
+   Compiling static_assertions v1.1.0
+   Compiling cosmic-text v0.18.2
+   Compiling fontdue v0.9.3
+   Compiling toml v1.1.2+spec-1.1.0
+   Compiling etagere v0.3.0
+   Compiling image v0.25.10
+   Compiling uuid v1.23.2
+   Compiling walkdir v2.5.0
+   Compiling gltf-json v1.4.1
+   Compiling tracing-core v0.1.36
+   Compiling notify-types v2.1.0
+   Compiling glam v0.32.1
+   Compiling tracing-attributes v0.1.31
+   Compiling arrayref v0.3.9
+   Compiling byteorder v1.5.0
+   Compiling urlencoding v2.1.3
+   Compiling typed-path v0.12.3
+   Compiling pin-project-lite v0.2.17
+   Compiling constant_time_eq v0.4.2
+   Compiling zircon_runtime v0.1.0 (E:\Git\ZirconEngine\zircon_runtime)
+   Compiling lru v0.16.4
+   Compiling xxhash-rust v0.8.15
+   Compiling glam v0.30.10
+   Compiling base64 v0.13.1
+   Compiling cpufeatures v0.3.0
+   Compiling grid v1.0.1
+   Compiling lazy_static v1.5.0
+   Compiling gltf v1.4.1
+   Compiling taffy v0.10.1
+   Compiling fontsdf v0.5.3
+   Compiling notify v9.0.0-rc.4
+   Compiling glyphon v0.11.0
+   Compiling tracing v0.1.44
+   Compiling zip v9.0.0-pre2
+   Compiling zircon_runtime_interface v0.1.0 (E:\Git\ZirconEngine\zircon_runtime_interface)
+   Compiling ron v0.12.1
+   Compiling tobj v4.0.3
+   Compiling zstd v0.13.3
+   Compiling bincode v1.3.3
+   Compiling crossbeam-channel v0.5.15
+   Compiling chrono v0.4.44
+   Compiling libloading v0.9.0
+   Compiling zircon_runtime_reflection_macros v0.1.0 (E:\Git\ZirconEngine\zircon_runtime\reflection_macros)
+   Compiling pollster v0.4.0
+zircon_runtime\src\core\framework\render\frame_extract.rs:20:35: warning: unused imports: `RenderPhaseQueueSummary` and `RenderPhaseQueue`
+zircon_runtime\src\core\framework\render\shader\mod.rs:40:5: warning: unused import: `ShaderVariantPrewarmWrittenVariant`
+zircon_runtime\src\dynamic_api\session\extract.rs:5:5: warning: unused import: `super::extract_cache::RuntimeFrameExtractCacheStatus`
+zircon_runtime\src\asset\formats\obj\mod.rs:10:40: warning: unused import: `ObjDecodeResult`
+zircon_runtime\src\scene\world\project_io.rs:7:56: warning: unused imports: `SceneBloomSettingsAsset`, `SceneCameraAsset`, `SceneCameraTargetAsset`, `SceneChromaticAberrationSettingsAsset`, `SceneColliderShapeAsset`, `SceneColorGradingSettingsAsset`, `SceneDitherSettingsAsset`, `SceneFilmGrainSettingsAsset`, `SceneFogSettingsAsset`, `ScenePostProcessEffectStackAsset`, `ScenePostProcessSettingsAsset`, `ScenePostProcessVolumeAsset`, `ScenePostProcessVolumeProfileAsset`, `SceneScriptBindingAsset`, `SceneTonemapOperatorAsset`, `SceneTonemapSettingsAsset`, `SceneViewportRectAsset`, and `SceneVignetteSettingsAsset`
+zircon_runtime\src\scene\world\project_io.rs:20:5: warning: unused import: `crate::asset::AssetReference`
+zircon_runtime\src\scene\world\project_io.rs:23:57: warning: unused imports: `ResourceHandle`, `ResourceMarker`, `ResourceScheme`, and `TextureMarker`
+zircon_runtime\src\scene\world\project_io.rs:39:5: warning: unused imports: `RenderBloomSettings`, `RenderCameraTarget`, `RenderChromaticAberrationSettings`, `RenderColorGradingSettings`, `RenderDitherSettings`, `RenderFilmGrainSettings`, `RenderFogSettings`, `RenderPostProcessEffectStackSettings`, `RenderPostProcessVolumeProfile`, `RenderTonemapOperator`, `RenderTonemapSettings`, `RenderViewportRect`, and `RenderVignetteSettings`
+zircon_runtime\src\scene\world\project_io.rs:47:79: warning: unused imports: `ColliderShape`, `PostProcessSettingsComponent`, and `PostProcessVolumeComponent`
+zircon_runtime\src\scene\tests\property_paths\write_validation.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\accessibility\action\range.rs:3:21: warning: unused import: `UiAccessibilityAction`
+zircon_runtime\src\ui\text\mod.rs:22:49: warning: unused import: `UiTextHitTest`
+zircon_runtime\src\ui\tests\boundary\binding_event_roots.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\tests\boundary\layout_tree_surface.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\tests\boundary\template_namespace.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\tests\surface_dirty_mui.rs:3:5: warning: unused import: `tree::UiRuntimeTreeLayoutExt`
+zircon_runtime\src\graphics\material\mod.rs:5:5: warning: unused import: `ShadingModelIncludeSource`
+zircon_runtime\src\graphics\scene\gpu_scene\prev_transform.rs:77:9: warning: unused import: `super::*`
+zircon_runtime\src\graphics\scene\gpu_scene\mod.rs:20:5: warning: unused imports: `GPU_MORPH_DELTA_STRIDE`, `GPU_MORPH_PAYLOAD_STRIDE`, `GPU_MORPH_WEIGHT_STRIDE`, and `GPU_PRIMITIVE_DATA_STRIDE`
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_graph_execution_resources.rs:450:9: warning: unused import: `PassFlags`
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_executor_registry\tests.rs:6:5: warning: unused import: `RenderFrameExtract`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract\lazy_rebuild_tests.rs:2:41: warning: unused import: `RenderPhaseSortComponents`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:4:41: warning: unused import: `RenderPhaseSortComponents`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:187:43: warning: unused import: `MeshBindHandle`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:16:5: warning: unused imports: `INDIRECT_COMPACTION_UNUSED_INSTANCE_INDEX` and `IndirectCompactionBatchMetadata`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:22:45: warning: unused import: `IndirectDrawBatcherStats`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:34:5: warning: unused import: `MeshDrawCommandListStats`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:37:5: warning: unused import: `MeshBatchCacheIdentity`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:45:30: warning: unused import: `GPU_SCENE_BIND_GROUP_SLOT`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mod.rs:30:5: warning: unused import: `prepare_mesh_queue`
+zircon_runtime\src\graphics\scene\scene_renderer\post_process\mod.rs:24:5: warning: unused import: `wgpu_post_process_texture_format`
+zircon_runtime\src\graphics\scene\scene_renderer\mod.rs:48:5: warning: unused imports: `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT`, `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT`, and `SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT`
+zircon_runtime\src\graphics\scene\mod.rs:25:5: warning: unused imports: `FALLBACK_MESH_SHADER`, `mesh_pipeline_standard_material_template_source_for_geometry`, and `mesh_pipeline_standard_material_template_source`
+zircon_runtime\src\graphics\shader\template\mod.rs:20:5: warning: unused imports: `StandardMaterialSurfaceSource` and `standard_material_surface_source`
+zircon_runtime\src\graphics\shader\template\mod.rs:27:5: warning: unused imports: `MaterialShaderTemplateValidation`, `ShaderTemplateValidationError`, and `validate_material_shader_template_wgsl`
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:12:81: warning: unused import: `RenderCameraClear`
+zircon_runtime\src\graphics\tests\m4_behavior_layers\queue_override.rs:3:5: warning: unused import: `crate::asset::pipeline::manager::AssetManager`
+zircon_runtime\src\graphics\tests\render_product_mesh_cache\shading_model_parity.rs:4:30: warning: unused import: `MaterialAsset`
+zircon_runtime\src\graphics\tests\render_product_mesh_cache\shading_model_parity.rs:15:62: warning: unused import: `ResourceKind`
+zircon_runtime\src\builtin\runtime_modules\assembly.rs:32:5: warning: unused import: `runtime_modules_for_target_with_registration_inputs_for_manifest`
+zircon_runtime\src\builtin\runtime_modules\manifest.rs:4:18: warning: unused import: `RuntimePluginId`
+zircon_runtime\src\tests\runtime_absorption\ui_architecture\mirror_docs.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\tests\runtime_diagnostics\graph_execution.rs:4:5: warning: unused import: `assert_render_bool_series`
+zircon_runtime\src\asset\importer\ingest\import_font_asset\parse_sfnt.rs:65:14: warning: use of deprecated method `ttf_parser::Face::<'a>::table_data`: use `self.raw_face().table()` instead
+zircon_runtime\src\rhi\tests\texture_copy.rs:2:30: warning: unused import: `CommandList`
+zircon_runtime\src\rhi\tests\device_contract.rs:4:44: warning: unused import: `CommandList`
+zircon_runtime\src\dynamic_api\runtime_loop.rs:40:9: warning: variable does not need to be mutable
+zircon_runtime\src\dynamic_api\runtime_loop.rs:89:9: warning: variable does not need to be mutable
+zircon_runtime\src\ui\accessibility\action.rs:36:9: warning: variable does not need to be mutable
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:234:9: warning: variable does not need to be mutable
+zircon_runtime\src\plugin\runtime_plugin\feature_registration_report\project_selection.rs:14:9: warning: variable does not need to be mutable
+zircon_runtime\src\asset\artifact\cache_payload.rs:57:10: warning: type `ArtifactCacheMeshAsset` is more private than the item `ArtifactCacheAsset::Mesh::0`: field `ArtifactCacheAsset::Mesh::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:63:14: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiLayout::0`: field `ArtifactCacheAsset::UiLayout::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:64:14: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiWidget::0`: field `ArtifactCacheAsset::UiWidget::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:65:13: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiStyle::0`: field `ArtifactCacheAsset::UiStyle::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:68:14: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2View::0`: field `ArtifactCacheAsset::UiV2View::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:69:19: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2Component::0`: field `ArtifactCacheAsset::UiV2Component::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:70:15: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2Style::0`: field `ArtifactCacheAsset::UiV2Style::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload\json_value.rs:18:12: warning: type `ArtifactCacheJsonNumber` is more private than the item `ArtifactCacheJsonValue::Number::0`: field `ArtifactCacheJsonValue::Number::0` is reachable at visibility `pub(in crate::asset::artifact::cache_payload)`
+zircon_runtime\src\scene\ecs\messages\cursor.rs:84:5: warning: type `MessageInstance<T>` is more private than the item `MessageReadIter::<'a, T>::new`: associated function `MessageReadIter::<'a, T>::new` is reachable at visibility `pub(crate)`
+zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:152:5: warning: type `graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextPrepareReport` is more private than the item `graphics::scene::scene_renderer::ui::render::<impl screen_space_ui_renderer::ScreenSpaceUiRenderer>::text_prepare_report`: method `graphics::scene::scene_renderer::ui::render::<impl screen_space_ui_renderer::ScreenSpaceUiRenderer>::text_prepare_report` is reachable at visibility `pub(in crate::graphics::scene::scene_renderer)`
+zircon_runtime\src\graphics\scene\scene_renderer\ui\text.rs:49:5: warning: type `font_id_report::ScreenSpaceUiTextFontIdReport` is more private than the item `graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextPrepareReport::native_font_ids`: field `graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextPrepareReport::native_font_ids` is reachable at visibility `pub(in crate::graphics::scene::scene_renderer::ui)`
+zircon_runtime\src\core\framework\scene\property_value.rs:27:19: warning: struct `ScenePropertyEntry` is never constructed
+zircon_runtime\src\core\framework\scene\property_value.rs:34:19: warning: associated function `new` is never used
+zircon_runtime\src\dynamic_api\runtime_loop.rs:38:19: warning: methods `submit_extract` and `present_extract` are never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:127:19: warning: methods `native_system_steps_for_stage` and `native_system_steps_by_stage` are never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:553:4: warning: function `native_step_counts_by_stage` is never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:568:4: warning: function `native_step_groups_with_capacity` is never used
+zircon_runtime\src\scene\ecs\schedule_stage_plan.rs:151:8: warning: method `stage` is never used
+zircon_runtime\src\scene\world\property_access\entries.rs:20:19: warning: methods `property_entries` and `property_entry_capacity_hint` are never used
+zircon_runtime\src\scene\world\property_access\entries.rs:583:4: warning: function `dynamic_scene_value_is_projectable` is never used
+zircon_runtime\src\scene\world\property_access\entries\physics.rs:254:19: warning: method `physics_property_entry_capacity_hint` is never used
+zircon_runtime\src\scene\tests\ecs_schedule\resources_events.rs:245:26: warning: field `0` is never read
+zircon_runtime\src\scene\tests\ecs_schedule\resources_events.rs:246:31: warning: field `0` is never read
+zircon_runtime\src\scene\tests\ecs_schedule\resources_events.rs:247:30: warning: field `0` is never read
+zircon_runtime\src\ui\text\font_registry.rs:24:5: warning: variant `Italic` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:30:5: warning: variant `System` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:124:19: warning: method `register_system_family` is never used
+zircon_runtime\src\ui\text\grapheme.rs:148:15: warning: function `grapheme_prefix` is never used
+zircon_runtime\src\ui\text\measure_cache.rs:62:19: warning: methods `clear` and `begin_frame` are never used
+zircon_runtime\src\ui\tests\component_catalog\material_foundation\mod.rs:37:4: warning: function `assert_button_style_schema` is never used
+zircon_runtime\src\graphics\backend\render_backend\offscreen_target.rs:8:16: warning: fields `global_illumination_view` and `bloom_view` are never read
+zircon_runtime\src\graphics\runtime\render_framework\submit_frame_extract\submit\build_runtime_frame.rs:523:8: warning: function `test_mesh` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\gpu_scene.rs:490:19: warning: methods `primitive_buffer`, `instance_buffer`, and `light_buffer` are never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors.rs:82:19: warning: multiple methods are never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors\material_capture.rs:13:19: warning: methods `material_capture_seed`, `sample_texture_rgba`, and `shading_model_id_for_lighting_model` are never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors\material_capture.rs:116:4: warning: function `sample_texture_asset_rgba` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors\material_capture.rs:135:4: warning: function `wrap01` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_resolve_texture_id.rs:27:50: warning: method `resolve_texture_reference` is never used
+zircon_runtime\src\graphics\scene\resources\runtime\material_runtime.rs:33:16: warning: field `taa_reactive_mask_strength` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_execution_context\resource_resolver.rs:153:55: warning: methods `buffer_by_name` and `buffer` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\is_skinned.rs:4:19: warning: methods `is_skinned`, `has_skinned_joint_palette_upload`, `has_previous_skinned_joint_palette_upload`, `has_skinned_gpu_source_candidate`, and `has_skinned_gpu_cpu_morphed_source_candidate` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\mesh_draw.rs:27:16: warning: multiple fields are never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\mesh_draw.rs:127:19: warning: method `has_previous_velocity_transform` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\queue_profile.rs:29:19: warning: struct `MeshDrawBatchKey` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\queue_profile.rs:281:19: warning: method `batch_key` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\virtual_geometry_submission_detail.rs:93:19: warning: method `submission_slot` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_compaction_resources.rs:125:25: warning: method `draw_count_buffer_allocation_byte_size` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_execution.rs:420:19: warning: methods `occlusion_cull_candidate_arg_count`, `occlusion_cull_candidate_instance_count`, `copy_args_to_readbacks`, and `executions` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:104:9: warning: field `buffer_id` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:154:25: warning: method `is_indirect` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:195:25: warning: method `uses_gpu_scene` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_pass_processor.rs:167:19: warning: method `with_base_color_texture` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:17:19: warning: struct `PreparedMeshQueue` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:207:15: warning: function `prepare_mesh_queue` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:227:19: warning: method `stats` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:93:5: warning: field `atlas_texture` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:125:19: warning: methods `atlas_texture` and `upload_disabled` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\plan.rs:60:19: warning: method `is_empty` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\font_asset.rs:16:15: warning: function `load_ui_font_manifest` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:152:19: warning: method `text_prepare_report` is never used
+zircon_runtime\src\graphics\types\viewport_render_frame.rs:101:19: warning: methods `directional_lights` and `point_lights` are never used
+zircon_runtime\src\graphics\visibility\occlusion\mod.rs:8:5: warning: variant `TwoPhaseRetest` is never constructed
+zircon_runtime\src\graphics\visibility\occlusion\mod.rs:87:18: warning: associated function `skipped` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:239:8: warning: method `insert_texture_sampling_material` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:414:4: warning: function `dominant_red_pixels` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:420:4: warning: function `dominant_green_pixels` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:426:4: warning: function `dominant_blue_pixels` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:533:4: warning: function `sample_texture_shader` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:553:4: warning: function `sample_texture_wgsl_source` is never used
+zircon_runtime\src\rhi_wgpu\device.rs:181:12: warning: associated function `new_with_surface_support` is never used
+zircon_runtime\src\rhi_wgpu\ui_surface.rs:79:12: warning: method `backend_name` is never used
+zircon_runtime\src\plugin\extension_registry\typed_extension_point.rs:99:12: warning: methods `get`, `key_for_slot`, and `finalize` are never used
+zircon_runtime\src\plugin\native_plugin_loader\bridge_method_abi.rs:16:9: warning: field `method_count` is never read
+zircon_runtime\src\plugin\native_plugin_loader\bridge_method_abi.rs:19:9: warning: field `field_name` is never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_abi.rs:63:9: warning: field `field_name` is never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_lifecycle.rs:25:5: warning: variant `Unload` is never constructed
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_methods.rs:377:15: warning: function `discovered_runtime_bridge_method_bindings` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\diagnostics.rs:37:15: warning: function `unloaded_plugin_error` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:33:9: warning: fields `plugin_id` and `module_kind` are never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:48:9: warning: fields `plugin_id` and `module_kind` are never read
+zircon_runtime\src\tests\plugin_extensions\runtime_plugin_package_manifest.rs:686:8: warning: method `sample_temperature` is never used

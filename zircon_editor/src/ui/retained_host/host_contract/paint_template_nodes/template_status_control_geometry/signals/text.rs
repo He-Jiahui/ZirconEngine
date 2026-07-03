@@ -1,5 +1,5 @@
 use super::super::metrics::status_line_height;
-use super::constants::STATUS_ITEM_TEXT_GAP;
+use super::constants::status_signal_metrics;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_signal_text_rect(
@@ -33,6 +33,6 @@ fn resolved_status_signal_text_gap(node: &TemplatePaneNodeData) -> f32 {
     if node.layout_content_offset_x > 0.0 {
         node.layout_content_offset_x
     } else {
-        STATUS_ITEM_TEXT_GAP
+        status_signal_metrics().signal_text_gap
     }
 }

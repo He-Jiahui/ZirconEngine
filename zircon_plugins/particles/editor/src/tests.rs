@@ -14,7 +14,7 @@ fn operation(path: &str) -> EditorOperationPath {
 #[test]
 fn particles_editor_plugin_contributes_authoring_extensions() {
     let registration = plugin_registration();
-    let create_asset = operation("Particles.Authoring.CreateCpuSpriteAsset");
+    let create_asset = operation("particles.authoring.create_cpu_sprite_asset");
 
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
     assert!(registration
@@ -75,22 +75,22 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.particles.authoring.Open"));
+        .any(|menu| menu.operation().as_str() == "view.particles.authoring.open"));
     assert!(registration
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.particles.preview.Open"));
+        .any(|menu| menu.operation().as_str() == "view.particles.preview.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.particles.authoring.Open"));
+        .any(|operation| operation.path().as_str() == "view.particles.authoring.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.particles.preview.Open"));
+        .any(|operation| operation.path().as_str() == "view.particles.preview.open"));
 
     let create_asset_descriptor = registration
         .extensions
@@ -151,17 +151,17 @@ fn particles_editor_plugin_contributes_authoring_extensions() {
     );
 
     for path in [
-        "Particles.Authoring.AddComponent",
-        "Particles.Authoring.OpenAsset",
-        "Particles.Authoring.AddEmitter",
-        "Particles.Authoring.AddModule",
-        "Particles.Authoring.EditCurve",
-        "Particles.Authoring.ValidateAsset",
-        "Particles.Preview.Play",
-        "Particles.Preview.Pause",
-        "Particles.Preview.Stop",
-        "Particles.Preview.Rewind",
-        "Particles.Preview.Warmup",
+        "particles.authoring.add_component",
+        "particles.authoring.open_asset",
+        "particles.authoring.add_emitter",
+        "particles.authoring.add_module",
+        "particles.authoring.edit_curve",
+        "particles.authoring.validate_asset",
+        "particles.preview.play",
+        "particles.preview.pause",
+        "particles.preview.stop",
+        "particles.preview.rewind",
+        "particles.preview.warmup",
     ] {
         let operation = operation(path);
         let descriptor = registration

@@ -1,0 +1,29 @@
+Runtime Text editor shaped-origin jitter guard validation
+Date: 2026-07-03
+Status: runtime_text_editor_shaped_origin_jitter_guard_rustfmt_visual_cargo_deferred
+
+Root cause:
+- The shaped-position branch accepted matching glyph ids and total width, but did not re-run the local host advance guard.
+- A small local shaped-origin borrow could bypass the per-grapheme jitter protection and make tab labels look left/right shifted.
+
+Implementation:
+- draw/layout.rs now validates shaped-origin-derived local advances against the selected host face before accepting shaped positions.
+- draw/layout/tests.rs keeps small shaped offsets accepted and rejects folder-open.svg style 0.25px local shaped-origin jitter.
+
+Static counts:
+- layout.rs lines: 588
+- layout/tests.rs lines: 390
+- layout/tests.rs #[test] count: 11
+
+Validation run in this slice:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs : PASS
+- git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs : PASS with LF-to-CRLF working-tree warning only
+- focused Cargo not started: external cargo/rustc lanes active
+- active lanes observed: cargo#6872 cpu=0.03125 start=07/03/2026 23:22:38; cargo#19700 cpu=0.03125 start=07/03/2026 23:09:38; cargo#35884 cpu=11.65625 start=07/03/2026 23:09:38; cargo#39632 cpu=4.8125 start=07/03/2026 23:22:38; cargo#42436 cpu=0.03125 start=07/03/2026 23:19:27; cargo#44636 cpu=5.59375 start=07/03/2026 23:19:27; rustc#33480 cpu=311.703125 start=07/03/2026 23:19:33; rustc#35440 cpu=11.796875 start=07/03/2026 23:24:52; rustc#41088 cpu=128.375 start=07/03/2026 23:22:47
+
+Artifact placement:
+- preview: docs\tests\runtime\text\runtime_text_editor_shaped_origin_jitter_guard_preview_20260703.png
+- log: docs\tests\runtime\text\runtime_text_editor_shaped_origin_jitter_guard_validation_20260703.log
+- preview SHA256: 1F7A41698236F15F9BEA6AA6D6B18707A398C9F50221BBFFC2FA59C532D835D8
+- log SHA256 before placement/hash append: B3F8DF7979E559710C46F4B25A2709D7A91CF1C77707521CE50D62766DB45283
+- target placement: repo target, E:\cargo-targets, and D:\cargo-targets same-name scan count 0

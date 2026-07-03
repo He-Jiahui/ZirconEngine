@@ -83,7 +83,7 @@ fn asset_thumbnail_card_and_name_area_use_content_browser_layers() {
 
     assert_eq!(surface_color(&card), [0, 0, 0, 0]);
     assert_eq!(template_border_width(&card), 1.0);
-    assert_eq!(border_color(&card), PALETTE.border);
+    assert_eq!(border_color(&card), PALETTE.accent);
     assert_ne!(border_color(&card), PALETTE.focus_ring);
 
     let mut name_area = panel_node("asset-thumbnail-name-area");

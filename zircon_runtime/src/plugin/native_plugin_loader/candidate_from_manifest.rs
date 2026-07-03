@@ -1,4 +1,5 @@
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
@@ -6,47 +7,102 @@ use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 use super::dynamic_library_name::dynamic_library_file_name;
 use super::{NativePluginCandidate, NativePluginLoadReport};
 
+pub(super) type NativePluginManifestCandidateResult<T> =
+    std::result::Result<T, NativePluginManifestCandidateError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginManifestCandidateError {
+    ReadManifest {
+        manifest_path: PathBuf,
+        source: io::Error,
+    },
+    ParseManifest {
+        manifest_path: PathBuf,
+        source: toml::de::Error,
+    },
+    MissingRuntimeOrEditorModule {
+        plugin_id: String,
+    },
+}
+
+impl std::fmt::Display for NativePluginManifestCandidateError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReadManifest {
+                manifest_path,
+                source,
+            } => write!(
+                formatter,
+                "failed to read native plugin manifest {}: {source}",
+                manifest_path.display()
+            ),
+            Self::ParseManifest {
+                manifest_path,
+                source,
+            } => write!(
+                formatter,
+                "failed to parse native plugin manifest {}: {source}",
+                manifest_path.display()
+            ),
+            Self::MissingRuntimeOrEditorModule { plugin_id } => write!(
+                formatter,
+                "native plugin {plugin_id} has no runtime or editor module crate declared"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginManifestCandidateError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ReadManifest { source, .. } => Some(source),
+            Self::ParseManifest { source, .. } => Some(source),
+            Self::MissingRuntimeOrEditorModule { .. } => None,
+        }
+    }
+}
+
 pub(super) fn push_candidate_from_manifest_path(
     report: &mut NativePluginLoadReport,
     manifest_path: PathBuf,
 ) {
-    let source = match fs::read_to_string(&manifest_path) {
-        Ok(source) => source,
-        Err(error) => {
-            report.diagnostics.push(format!(
-                "failed to read native plugin manifest {}: {error}",
-                manifest_path.display()
-            ));
-            return;
+    match candidate_from_manifest_path(manifest_path) {
+        Ok(candidate) => report.discovered.push(candidate),
+        Err(error) => report.diagnostics.push(error.to_string()),
+    }
+}
+
+fn candidate_from_manifest_path(
+    manifest_path: PathBuf,
+) -> NativePluginManifestCandidateResult<NativePluginCandidate> {
+    let source = fs::read_to_string(&manifest_path).map_err(|source| {
+        NativePluginManifestCandidateError::ReadManifest {
+            manifest_path: manifest_path.clone(),
+            source,
         }
-    };
-    let manifest = match toml::from_str::<PluginPackageManifest>(&source) {
-        Ok(manifest) => manifest,
-        Err(error) => {
-            report.diagnostics.push(format!(
-                "failed to parse native plugin manifest {}: {error}",
-                manifest_path.display()
-            ));
-            return;
+    })?;
+    let manifest = toml::from_str::<PluginPackageManifest>(&source).map_err(|source| {
+        NativePluginManifestCandidateError::ParseManifest {
+            manifest_path: manifest_path.clone(),
+            source,
         }
-    };
-    let Some(library_path) = native_library_path_for_manifest(
+    })?;
+    let library_path = native_library_path_for_manifest(
         &manifest_path,
         &manifest,
         &[PluginModuleKind::Runtime, PluginModuleKind::Editor],
-    ) else {
-        report.diagnostics.push(format!(
-            "native plugin {} has no runtime or editor module crate declared",
-            manifest.id
-        ));
-        return;
-    };
-    report.discovered.push(NativePluginCandidate {
+    )
+    .ok_or_else(
+        || NativePluginManifestCandidateError::MissingRuntimeOrEditorModule {
+            plugin_id: manifest.id.clone(),
+        },
+    )?;
+    Ok(NativePluginCandidate {
         plugin_id: manifest.id.clone(),
         package_manifest: manifest,
         manifest_path,
         library_path,
-    });
+    })
 }
 
 pub(super) fn native_library_paths_for_candidate(
@@ -181,6 +237,46 @@ mod tests {
             paths[0].0,
             PathBuf::from("plugins/solari/native")
                 .join(dynamic_library_file_name("zircon_plugin_solari_dist"))
+        );
+    }
+
+    #[test]
+    fn candidate_from_manifest_path_reports_read_error_with_typed_source() {
+        let missing_manifest = std::env::temp_dir().join(format!(
+            "zircon-missing-native-plugin-manifest-{}-{}.toml",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system time should be after unix epoch")
+                .as_nanos()
+        ));
+        let error = candidate_from_manifest_path(missing_manifest.clone())
+            .expect_err("missing manifest should report typed candidate error");
+
+        match error {
+            NativePluginManifestCandidateError::ReadManifest { manifest_path, .. } => {
+                assert_eq!(manifest_path, missing_manifest);
+            }
+            NativePluginManifestCandidateError::ParseManifest { .. }
+            | NativePluginManifestCandidateError::MissingRuntimeOrEditorModule { .. } => {
+                panic!("missing manifest should fail while reading manifest")
+            }
+        }
+    }
+
+    #[test]
+    fn manifest_candidate_typed_error_preserves_missing_module_message() {
+        let error = NativePluginManifestCandidateError::MissingRuntimeOrEditorModule {
+            plugin_id: "plugin.without.module".to_string(),
+        };
+
+        assert_eq!(
+            error.to_string(),
+            "native plugin plugin.without.module has no runtime or editor module crate declared"
+        );
+        assert!(
+            std::error::Error::source(&error).is_none(),
+            "missing-module error should not invent an IO or TOML source"
         );
     }
 }

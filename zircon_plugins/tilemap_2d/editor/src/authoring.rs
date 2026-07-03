@@ -21,7 +21,7 @@ pub fn validate_tilemap_for_editor(tilemap: &TileMapAsset) -> Vec<String> {
         diagnostics.push("tilemap dimensions must be greater than zero".to_string());
     }
     if let Err(error) = tilemap.validate_layers() {
-        diagnostics.push(error);
+        diagnostics.push(error.to_string());
     }
     if !supported_projection(tilemap.projection) {
         diagnostics.push("tilemap projection is not supported".to_string());

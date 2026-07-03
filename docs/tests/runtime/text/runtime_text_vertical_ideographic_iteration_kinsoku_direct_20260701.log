@@ -1,0 +1,7 @@
+binary=E:\cargo-targets\zircon-runtime-text-0701-vertical-iteration-kinsoku\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe
+
+running 1 test
+test graphics::text::layout::kinsoku::tests::merges_vertical_ideographic_iteration_mark_with_previous_chunk ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5818 filtered out; finished in 0.00s
+

@@ -3,6 +3,7 @@ use super::shared::slice_between;
 #[test]
 fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() {
     let session_source = include_str!("../../../dynamic_api/session.rs");
+    let session_profile_source = include_str!("../../../dynamic_api/session/profile.rs");
     let lifecycle_tests = include_str!("../../../dynamic_api/tests/session_lifecycle.rs");
     let session_profile_tests = include_str!("../../../dynamic_api/tests/session_profiles.rs");
     let session_entry_point_tests =
@@ -15,9 +16,6 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
 
     for required_source_anchor in [
         "render_bridge: Option<RuntimeRenderBridge>",
-        "RUNTIME_SESSION_PROFILE_MINIMAL",
-        "RUNTIME_SESSION_PROFILE_HEADLESS",
-        "fn uses_render_bridge(self) -> bool",
         "runtime_dynamic_session_render_bridge_skipped",
     ] {
         assert!(
@@ -25,9 +23,19 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
             "dynamic session source should keep Runtime 10 headless anchor `{required_source_anchor}`"
         );
     }
+    for required_profile_anchor in [
+        "RUNTIME_SESSION_PROFILE_MINIMAL",
+        "RUNTIME_SESSION_PROFILE_HEADLESS",
+        "fn uses_render_bridge(self) -> bool",
+    ] {
+        assert!(
+            session_profile_source.contains(required_profile_anchor),
+            "dynamic session profile source should keep Runtime 10 headless anchor `{required_profile_anchor}`"
+        );
+    }
 
     let uses_render_bridge = slice_between(
-        session_source,
+        session_profile_source,
         "fn uses_render_bridge(self) -> bool",
         "\n    }\n}",
     );
@@ -85,7 +93,7 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
             "    fn present_viewport(",
         ),
         (
-            "    fn present_viewport(&mut self",
+            "    fn present_viewport(",
             "    fn capture_accessibility_tree(",
         ),
     ] {

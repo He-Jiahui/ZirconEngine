@@ -7,6 +7,7 @@ use crate::core::framework::render::{
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
+use crate::core::{InitLevel, ModuleDependencySpec};
 use crate::plugin::{
     ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
     PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
@@ -161,6 +162,59 @@ fn plugin_module_manifest_declares_system_sets_and_anchors() {
 
     let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
     assert_eq!(decoded, manifest);
+}
+
+#[test]
+fn plugin_module_manifest_projects_module_descriptor_fields() {
+    let module = PluginModuleManifest::runtime("weather.runtime", "zircon_plugin_weather_runtime")
+        .with_description("Weather runtime module")
+        .with_init_level(InitLevel::Scene)
+        .with_module_dependency(ModuleDependencySpec::named("scene.runtime"))
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_capabilities(["runtime.plugin.weather"]);
+    let descriptor = module.module_descriptor();
+
+    assert_eq!(descriptor.name, "weather.runtime");
+    assert_eq!(descriptor.description, "Weather runtime module");
+    assert_eq!(descriptor.init_level, InitLevel::Scene);
+    assert_eq!(
+        descriptor.module_dependencies,
+        vec![ModuleDependencySpec::named("scene.runtime")]
+    );
+
+    let manifest = PluginPackageManifest::new("weather", "Weather").with_runtime_module(module);
+    let encoded = toml::to_string(&manifest).expect("manifest toml");
+    assert!(encoded.contains("description = \"Weather runtime module\""));
+    assert!(encoded.contains("init_level = \"scene\""));
+    assert!(encoded.contains("module_dependencies"));
+
+    let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
+    assert_eq!(
+        decoded.modules[0].module_descriptor().init_level,
+        InitLevel::Scene
+    );
+    assert_eq!(
+        decoded.modules[0].module_descriptor().module_dependencies,
+        vec![ModuleDependencySpec::named("scene.runtime")]
+    );
+}
+
+#[test]
+fn plugin_module_manifest_defaults_descriptor_description_for_manifest_rows() {
+    let module: PluginModuleManifest = toml::from_str(
+        r#"
+name = "weather.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_weather_runtime"
+"#,
+    )
+    .expect("manifest module row");
+
+    assert!(module.description.is_empty());
+    assert_eq!(
+        module.module_descriptor().description,
+        "Runtime plugin module weather.runtime"
+    );
 }
 
 #[test]
@@ -386,10 +440,16 @@ fn virtual_geometry_source_descriptor() -> GeometrySourceDescriptor {
             GeometrySourceVertexAttribute::Tangent,
             GeometrySourceVertexAttribute::Uv0,
         ],
-        required_bindings: vec![GeometrySourceBindingRequirement::new(
-            GeometrySourceBindingKind::VirtualGeometryPages,
-            "virtual_geometry.pages",
-        )],
+        required_bindings: vec![
+            GeometrySourceBindingRequirement::new(
+                GeometrySourceBindingKind::VirtualGeometryPages,
+                "virtual_geometry.pages",
+            ),
+            GeometrySourceBindingRequirement::new(
+                GeometrySourceBindingKind::VirtualGeometryClusters,
+                "virtual_geometry.clusters",
+            ),
+        ],
         shader_defines: vec![RenderShaderDefinitionValue::bool(
             "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY",
             true,

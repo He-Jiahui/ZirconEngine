@@ -7,7 +7,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.cli import run_compile_host, run_pack, run_validate
+from tools.zircon_export.cli import run_compile_host, run_validate
+from tools.zircon_export.pack_stage import run_pack
 from tools.zircon_export.source_template import run_source_template
 from tools.zircon_export.tests.export_test_support import (
     _compile_host_args,

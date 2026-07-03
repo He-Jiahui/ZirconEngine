@@ -265,6 +265,18 @@ pub(super) fn assert_post_process_material_mesh(snapshot: &RuntimeDiagnosticsSna
     );
     assert_render_count_series(
         &snapshot.store,
+        "render.mesh.queue.gpu_morphed_source_draw_count",
+        2.0,
+        &["mesh", "queue", "morph", "gpu_source"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.mesh.queue.gpu_skinned_morphed_source_draw_count",
+        1.0,
+        &["mesh", "queue", "morph", "gpu_source", "skinned"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
         "render.mesh.queue.skinned_draw_count",
         3.0,
         &["mesh", "queue", "skinned"],

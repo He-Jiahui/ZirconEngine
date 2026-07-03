@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::template::UiNodeDefinitionKind;
 #[test]
 fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_stack() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -89,7 +89,7 @@ fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_s
 #[test]
 fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/simple-layout.ui.toml",
+        "asset://ui/tests/simple-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -166,22 +166,22 @@ fn ui_asset_editor_session_targets_palette_drag_drop_to_hovered_preview_node() {
 fn ui_asset_editor_session_projects_slot_aware_palette_drag_target_labels() {
     let scenarios = [
         (
-            "asset://ui/tests/overlay-slot.ui.toml",
+            "asset://ui/tests/overlay-slot.zui",
             OVERLAY_SLOT_LAYOUT_ASSET_TOML,
             "Insert Overlay Child",
         ),
         (
-            "asset://ui/tests/grid-slot.ui.toml",
+            "asset://ui/tests/grid-slot.zui",
             GRID_SLOT_LAYOUT_ASSET_TOML,
             "Insert Grid Child",
         ),
         (
-            "asset://ui/tests/flow-slot.ui.toml",
+            "asset://ui/tests/flow-slot.zui",
             FLOW_SLOT_LAYOUT_ASSET_TOML,
             "Insert Flow Child",
         ),
         (
-            "asset://ui/tests/scrollable-layout.ui.toml",
+            "asset://ui/tests/scrollable-layout.zui",
             SCROLLABLE_LAYOUT_ASSET_TOML,
             "Insert Scroll Child",
         ),
@@ -452,7 +452,7 @@ fn ui_asset_editor_undo_stack_tracks_inverse_tree_edits_for_command_log_entries(
 #[test]
 fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_insert_and_unwrap() {
     let insert_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/simple-layout.ui.toml",
+        "asset://ui/tests/simple-layout.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -494,7 +494,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_insert_and_unw
     );
 
     let unwrap_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -530,7 +530,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_insert_and_unw
 fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_reference_conversion(
 ) {
     let reparent_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/tree-reparent.ui.toml",
+        "asset://ui/tests/tree-reparent.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -559,7 +559,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_r
     );
 
     let convert_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -606,7 +606,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_r
 #[test]
 fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_extract_and_promote() {
     let extract_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -632,7 +632,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_extract_and_pr
     );
 
     let promote_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -650,7 +650,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_extract_and_pr
         .expect("extract selected node to component"));
     assert!(promote_session
         .promote_selected_component_to_external_widget(
-            "res://ui/widgets/save_button.ui.toml",
+            "res://ui/widgets/save_button.zui",
             "SaveButton",
             "ui.widgets.save_button",
         )
@@ -660,7 +660,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_extract_and_pr
         promote_session.next_undo_inverse_tree_edit(),
         Some(UiAssetEditorInverseTreeEdit::RestorePromotedComponent {
             source_component_name: "SaveButton".to_string(),
-            asset_id: "res://ui/widgets/save_button.ui.toml".to_string(),
+            asset_id: "res://ui/widgets/save_button.zui".to_string(),
             component_name: "SaveButton".to_string(),
             document_id: "ui.widgets.save_button".to_string(),
         })
@@ -689,10 +689,10 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
         UiAssetEditorUndoExternalEffects {
             undo: vec![
                 UiAssetEditorExternalEffect::RemoveAssetSource {
-                    asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                    asset_id: "res://ui/theme/editor_base.zui".to_string(),
                 },
                 UiAssetEditorExternalEffect::UpsertAssetSource {
-                    asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                    asset_id: "res://ui/theme/editor_local.zui".to_string(),
                     source:
                         "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
                             .to_string(),
@@ -700,13 +700,13 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
             ],
             redo: vec![
                 UiAssetEditorExternalEffect::UpsertAssetSource {
-                    asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                    asset_id: "res://ui/theme/editor_base.zui".to_string(),
                     source:
                         "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
                             .to_string(),
                 },
                 UiAssetEditorExternalEffect::RemoveAssetSource {
-                    asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                    asset_id: "res://ui/theme/editor_local.zui".to_string(),
                 },
             ],
         },
@@ -716,10 +716,10 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
         undo_stack.next_undo_external_effects(),
         vec![
             UiAssetEditorExternalEffect::RemoveAssetSource {
-                asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                asset_id: "res://ui/theme/editor_base.zui".to_string(),
             },
             UiAssetEditorExternalEffect::UpsertAssetSource {
-                asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                asset_id: "res://ui/theme/editor_local.zui".to_string(),
                 source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_local\"\nversion = 1\n"
                     .to_string(),
             },
@@ -731,12 +731,12 @@ fn ui_asset_editor_undo_stack_tracks_composite_external_effect_vectors() {
         undo_stack.next_redo_external_effects(),
         vec![
             UiAssetEditorExternalEffect::UpsertAssetSource {
-                asset_id: "res://ui/theme/editor_base.ui.toml".to_string(),
+                asset_id: "res://ui/theme/editor_base.zui".to_string(),
                 source: "[asset]\nkind = \"style\"\nid = \"ui.theme.editor_base\"\nversion = 1\n"
                     .to_string(),
             },
             UiAssetEditorExternalEffect::RemoveAssetSource {
-                asset_id: "res://ui/theme/editor_local.ui.toml".to_string(),
+                asset_id: "res://ui/theme/editor_local.zui".to_string(),
             },
         ]
     );
@@ -782,7 +782,7 @@ fn ui_asset_editor_undo_stack_keeps_source_only_replays_for_source_edits() {
 #[test]
 fn ui_asset_editor_session_redo_restores_tree_edit_selection_and_source_summary() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );

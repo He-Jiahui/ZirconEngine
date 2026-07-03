@@ -46,6 +46,8 @@ Tab/Shift+Tab = `Next`/`Previous`,沿 Tab 链遍历(对标 UE `EUINavigation::Ne
 - 几何求解:沿方向投射,按几何打分取最近可聚焦节点,对标 UE `FHittestGrid::FindNextFocusableWidget`(`HittestGrid.h:72`)、Godot `_get_focus_neighbor` 距离搜索(`control.cpp:3171`)。
 - 显式邻居覆盖:节点可声明四向显式目标(对标 Godot `focus_neighbor[4]` `control.h:287`、UE `FNavigationMetaData::SetNavigationExplicit`),优先于几何求解。
 - 来源:键盘/手柄(对标 UE `ENavigationGenesis::Keyboard/Controller`),手柄模拟量映射方向(UE `GetNavigationDirectionFromAnalog`)。
+- 导航键判定次序(2026-07-02 评审收口):导航键先作为普通键事件递交**焦点节点 target**处理,返回 `Handled` 则**不进入** Tab/方向导航求解;文本输入类控件默认消费 `Left/Right/Home/End/Enter`(caret 移动/换行),`Esc` 不消费、交还 `Back` 语义;Tab 在单行文本框默认跳格(不消费),多行编辑器可声明捕获 Tab(插入制表符)。字形级 caret 移动语义本身归 runtime text(见 §3.7),本条只定判定次序。
+- scroll-into-view(2026-07-02 评审收口):导航目标集合**包含视口外可聚焦节点**(几何打分不因裁剪剔除候选);焦点落到视口外节点后,触发其**最近可滚动祖先**执行 scroll-into-view(滚动只触发 paint/提取,不触发 relayout,遵 18 滚动线裁决)。
 
 ### 3.3 导航边界规则(治"焦点跑出模态")
 
@@ -67,6 +69,8 @@ Tab/Shift+Tab = `Next`/`Previous`,沿 Tab 链遍历(对标 UE `EUINavigation::Ne
 
 `Accept`(Enter/Space/手柄 A)= 激活当前焦点(≈ 点击);`Back`(Esc/手柄 B)= 关闭作用域/取消,对标 UE `EUINavigationAction::Accept/Back`(`SlateEnums.h:126/129`)、Unity `NavigationSubmitEvent`/`NavigationCancelEvent`。键映射可配(对标 UE `FNavigationConfig`)。
 
+补(2026-07-02 评审收口):Accept/Back 同样遵 §3.2 判定次序——焦点节点 target 先处理,文本输入类控件消费 `Enter` 时不触发 `Accept` 语义;`Esc` 一律不被文本控件消费,进入 `Back`(IME 组合期例外,见 §3.7)。
+
 ### 3.6 焦点环(focus-visible,治"无焦点反馈")
 
 规范:焦点态产出 `:focus` 与 `:focus-visible` 两态——`:focus-visible` 仅在**键盘/方向**导致聚焦时为真(指针点击聚焦不显示焦点环),对标 CSS `:focus-visible`、UE `OnQueryShowFocus(EFocusCause)`(由 `EFocusCause::Navigation` vs `Mouse` 区分,`Events.h`)、Unity USS `:focus`。焦点环视觉走 20 样式(accent 1-2px outline,遵 STYLE-NOTES,不发光)。
@@ -74,6 +78,8 @@ Tab/Shift+Tab = `Next`/`Previous`,沿 Tab 链遍历(对标 UE `EUINavigation::Ne
 ### 3.7 与 18/20/11 衔接
 
 18 命中 → 指针聚焦(`EFocusCause::Mouse`);19 Tab/方向 → 键盘聚焦(`Navigation`);焦点态 + `focus-within` 喂 20 伪状态;焦点变更走事件→命令(单向受控,11),view 不直接 set 焦点视觉。可达性(a11y)名称/角色挂节点,对标 Bevy `bevy_a11y`、Unity a11y,留接口。
+
+IME 收尾交接条款(2026-07-02 评审收口):字形级 hit-test、caret/选区、IME 组合的实现契约权威归 `docs/plans/zircon_runtime/text/`(03/08),本文只持交接条款——(a)焦点**离开可编辑节点**时(Tab/指针/程序化任一 cause),必须先 commit 当前 preedit 再完成焦点转移(commit 语义归 runtime text/08);(b)popup 抢焦点期间若源可编辑节点仍有组合中文本,`Esc` 次序 = **先取消组合、再关 popup**(即组合中 `Esc` 被 IME 收尾消费,不进入 §3.5 `Back`)。
 
 ## 4. 接口与数据结构草案(Rust)
 
@@ -116,11 +122,14 @@ pub fn focus_chain(tree: &UiTree) -> Vec<UiNodeId>;
 - 模态作用域打开陷焦、关闭还原到原节点。
 - `:focus-visible` 仅键盘/方向聚焦为真,指针点击不显示焦点环。
 - 手柄方向/Accept/Back 等价键盘。
+- (2026-07-02 评审收口)文本输入类控件消费 Left/Right/Home/End/Enter 后不触发导航;单行 Tab 跳格、多行捕获 Tab;焦点落视口外节点触发最近可滚动祖先 scroll-into-view。
+- (2026-07-02 评审收口)抽屉折叠(15e tier 驱动)时焦点还原到对应 rail 图标(作用域还原路径,回挂 15e §2.3);还原逻辑标识解析失败回退作用域首个可聚焦。
 
 ## 8. 风险与对策
 
 - 风险:方向几何打分边界 case(重叠/不规则布局)。对策:S2 打分函数 + 大量几何用例测试,显式邻居兜底。
 - 风险:焦点还原栈与多浮层叠加。对策:S3 作用域栈 + 还原目标弱引用(节点销毁安全)。
+- 补(2026-07-02 评审收口):还原目标键改用**稳定逻辑标识**(节点名字/路径),不以 `UiNodeId` 为持久键——重建后 id 失效;还原时按逻辑标识重解析,解析失败(节点已销毁/改名)则回退到**作用域内首个可聚焦节点**,不静默丢焦。
 
 ## 9. 完成定义
 

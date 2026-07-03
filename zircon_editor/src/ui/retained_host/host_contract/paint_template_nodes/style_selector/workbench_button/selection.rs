@@ -6,10 +6,12 @@ use super::model::{WorkbenchButtonKind, WorkbenchButtonStyle};
 use super::palette::{ADD_COMPONENT_GLYPH, ADD_COMPONENT_TEXT};
 use super::states::{base_button_style, is_unavailable_button_interaction};
 use super::tab_like::{
-    is_asset_browser_tab_like_button, is_tab_like_workbench_button, is_workbench_module_tab_button,
+    is_asset_browser_tab_like_button, is_asset_browser_toolbar_chip_button,
+    is_asset_browser_utility_tab_button, is_tab_like_workbench_button,
+    is_workbench_module_tab_button,
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use crate::ui::retained_host::host_contract::template_component_family::uses_workbench_visual_language;
 use zircon_runtime_interface::ui::style::UiStyleColor;
 
@@ -29,7 +31,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
         return style;
     }
 
-    if should_apply_declared_button_style(node) {
+    if should_apply_declared_button_surface(node, kind) {
         if let Some(surface) =
             declared_button_style_color(node.button_style.element.background_color.as_ref())
         {
@@ -40,6 +42,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
         {
             style.border = border;
         }
+    }
+    if should_apply_declared_button_foreground(node, kind) {
         if let Some(text) =
             declared_button_style_color(node.button_style.element.foreground_color.as_ref())
         {
@@ -64,35 +68,130 @@ fn declared_button_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> 
     resolved_style_color(color).filter(|color| color[3] > 0)
 }
 
-fn should_apply_declared_button_style(node: &TemplatePaneNodeData) -> bool {
+fn should_apply_declared_button_surface(
+    node: &TemplatePaneNodeData,
+    kind: WorkbenchButtonKind,
+) -> bool {
     uses_workbench_visual_language(node)
+        && !matches!(
+            kind,
+            WorkbenchButtonKind::Primary | WorkbenchButtonKind::Danger
+        )
+}
+
+fn should_apply_declared_button_foreground(
+    node: &TemplatePaneNodeData,
+    kind: WorkbenchButtonKind,
+) -> bool {
+    uses_workbench_visual_language(node) && kind != WorkbenchButtonKind::Primary
 }
 
 fn tab_like_button_style(
     node: &TemplatePaneNodeData,
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
-    if is_workbench_module_tab_button(node) {
-        return quiet_inactive_tab_style(node, style);
+    if is_asset_browser_toolbar_chip_button(node) {
+        return asset_browser_toolbar_chip_style(node, style);
     }
     if is_asset_browser_tab_like_button(node) {
+        return asset_browser_tab_like_style(node, style);
+    }
+    if is_workbench_module_tab_button(node) {
         return quiet_inactive_tab_style(node, style);
     }
 
     let active = node.selected || node.checked || node.focused;
+    let palette = current_host_palette();
     style.surface = if active {
-        PALETTE.surface_hover
+        palette.surface_hover
     } else if node.hovered || node.popup_open {
-        PALETTE.surface_hover
+        palette.surface_hover
     } else {
-        PALETTE.surface_pressed
+        palette.surface_pressed
     };
-    style.border = PALETTE.border;
+    style.border = palette.border;
     style.border_width = 0.0;
     let text = if active {
-        PALETTE.text
+        palette.text
     } else {
-        PALETTE.text_muted
+        palette.text_muted
+    };
+    style.text = text;
+    style.glyph = text;
+    style
+}
+
+fn asset_browser_toolbar_chip_style(
+    node: &TemplatePaneNodeData,
+    mut style: WorkbenchButtonStyle,
+) -> WorkbenchButtonStyle {
+    let active = node.selected || node.checked || node.focused;
+    let palette = current_host_palette();
+    style.surface = if active {
+        palette.surface
+    } else if node.hovered || node.popup_open {
+        palette.surface_hover
+    } else {
+        TRANSPARENT_SURFACE
+    };
+    style.border = palette.border;
+    style.border_width = if active { 1.0 } else { 0.0 };
+    let text = if active || node.hovered || node.popup_open {
+        palette.text
+    } else {
+        palette.text_muted
+    };
+    style.text = text;
+    style.glyph = text;
+    style
+}
+
+fn asset_browser_tab_like_style(
+    node: &TemplatePaneNodeData,
+    mut style: WorkbenchButtonStyle,
+) -> WorkbenchButtonStyle {
+    if is_asset_browser_utility_tab_button(node) {
+        return asset_browser_utility_tab_style(node, style);
+    }
+
+    let active = node.selected || node.checked || node.focused;
+    let palette = current_host_palette();
+    style.surface = if active {
+        palette.surface_pressed
+    } else if node.hovered || node.popup_open {
+        palette.surface_hover
+    } else {
+        TRANSPARENT_SURFACE
+    };
+    style.border = palette.border;
+    style.border_width = 0.0;
+    let text = if active || node.hovered || node.popup_open {
+        palette.text
+    } else {
+        palette.text_muted
+    };
+    style.text = text;
+    style.glyph = text;
+    style
+}
+
+fn asset_browser_utility_tab_style(
+    node: &TemplatePaneNodeData,
+    mut style: WorkbenchButtonStyle,
+) -> WorkbenchButtonStyle {
+    let active = node.selected || node.checked || node.focused;
+    let palette = current_host_palette();
+    style.surface = if !active && (node.hovered || node.popup_open) {
+        palette.surface_hover
+    } else {
+        TRANSPARENT_SURFACE
+    };
+    style.border = palette.border;
+    style.border_width = 0.0;
+    let text = if active || node.hovered || node.popup_open {
+        palette.text
+    } else {
+        palette.text_muted
     };
     style.text = text;
     style.glyph = text;
@@ -104,17 +203,18 @@ fn quiet_inactive_tab_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.focused;
+    let palette = current_host_palette();
     style.surface = if active || node.hovered || node.popup_open {
-        PALETTE.surface_hover
+        palette.surface_hover
     } else {
         TRANSPARENT_SURFACE
     };
-    style.border = PALETTE.border;
+    style.border = palette.border;
     style.border_width = 0.0;
     let text = if active || node.hovered || node.popup_open {
-        PALETTE.text
+        palette.text
     } else {
-        PALETTE.text_muted
+        palette.text_muted
     };
     style.text = text;
     style.glyph = text;

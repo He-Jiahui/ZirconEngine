@@ -1,0 +1,11 @@
+runtime_text_editor_shaped_positions
+date=2026-07-03
+scope=zircon_editor retained host paint_text/draw/layout shaped glyph position bridge
+changed=layout.rs carries ShapedGlyphRun glyphs from runtime_single_line_text and uses shaped glyph x/offset as pen origin when glyph id/range matches host glyph
+tests=layout/tests.rs adds matching shaped-position acceptance and mismatched glyph-id fallback coverage
+rustfmt_check=passed
+git_diff_check=passed
+cargo=deferred due active cargo/rustc lanes; no Cargo green claimed
+active_lanes=cargo 21760 CPU=0.078125; cargo 23828 CPU=0.015625; cargo 26680 CPU=0.0625; cargo 32256 CPU=21.015625; cargo 34488 CPU=5.390625; cargo 42128 CPU=0.0625; cargo 43056 CPU=19.640625; cargo 45576 CPU=4.296875; rustc 17900 CPU=153.5; rustc 19808 CPU=3.734375; rustc 22064 CPU=0.140625; rustc 30356 CPU=6.8125
+preview_sha256=FDBE187162457C079DFEC4F8949DA2AC79F1D5045D2F9744524922D2DABE81E7
+target_scan=0 matches in E:\Git\ZirconEngine\target, E:\cargo-targets, D:\cargo-targets for preview/log names

@@ -5,7 +5,7 @@ use zircon_runtime::graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
     RenderPassStage, RuntimePrepareCollectorContext, RuntimePrepareCollectorRegistration,
 };
-use zircon_runtime::render_graph::QueueLane;
+use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
 mod capability;
 mod hybrid_gi;
@@ -36,6 +36,9 @@ use render_pass_executors::{
 pub const PLUGIN_ID: &str = "hybrid_gi";
 pub const HYBRID_GI_FEATURE_NAME: &str = "hybrid_gi";
 pub const HYBRID_GI_MODULE_NAME: &str = "HybridGiPluginModule";
+const HYBRID_GI_TRACE_SCHEDULE_PIPELINE_LABEL: &str = "zircon-hybrid-gi-trace-schedule";
+const HYBRID_GI_TRACE_SCHEDULE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
+const HYBRID_GI_TRACE_SCHEDULE_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 
 pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
     zircon_runtime::core::ModuleDescriptor::new(
@@ -70,6 +73,11 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::AsyncCompute,
             )
             .with_executor_id("hybrid-gi.trace-schedule")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                HYBRID_GI_TRACE_SCHEDULE_PIPELINE_LABEL,
+                HYBRID_GI_TRACE_SCHEDULE_WORKGROUP_SIZE,
+                HYBRID_GI_TRACE_SCHEDULE_DISPATCH_GROUPS,
+            ))
             .read_buffer("hybrid-gi-scene")
             .write_buffer("hybrid-gi-trace"),
             RenderFeaturePassDescriptor::new(

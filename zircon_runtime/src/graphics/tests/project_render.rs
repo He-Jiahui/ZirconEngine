@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -9,14 +10,16 @@ use crate::asset::assets::{
     SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
-use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use crate::asset::{AssetReference, AssetUri};
+use crate::asset::project::{
+    AssetMetaDocument, AssetSourceUnit, ProjectManager, ProjectManifest, ProjectPaths,
+};
+use crate::asset::{AssetKind, AssetReference, AssetUri, AssetUuid};
 use crate::core::framework::render::{
-    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
+    CapturedFrame, DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
     RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportHandle,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ShaderAssetKind,
+    ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::ResourceHandle;
@@ -96,9 +99,9 @@ struct MaterialPropertyUniform {
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -157,9 +160,9 @@ struct MaterialPropertyUniform {{
 }};
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
 
 struct VertexInput {{
     @location(0) position: vec3<f32>,
@@ -194,6 +197,98 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
         ),
     )
     .unwrap();
+}
+
+fn write_material_sphere_wgsl(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let shader_body = r#"
+const MATERIAL_SPHERE_RADIUS: f32 = 1.35;
+
+fn material_sphere_normal(input: ZrVertexOutput) -> vec3<f32> {
+    let projected = input.position_ws.xy / MATERIAL_SPHERE_RADIUS;
+    let radius_sq = clamp(dot(projected, projected), 0.0, 1.0);
+    return zr_normalize_or_zero(vec3<f32>(
+        projected.x,
+        projected.y,
+        sqrt(max(1.0 - radius_sq, 0.0)),
+    ));
+}
+
+fn material_sphere_color(input: ZrVertexOutput) -> vec3<f32> {
+    let normal = material_sphere_normal(input);
+    let light = zr_normalize_or_zero(vec3<f32>(0.35, 0.55, 0.75));
+    let diffuse = max(dot(normal, light), 0.0);
+    let facing = clamp(normal.z * 0.5 + 0.5, 0.0, 1.0);
+    let rim = pow(1.0 - facing, 2.0);
+    let tex = zr_sample_base_color(input.uv0);
+    let base = zr_mat_base_color().rgb * tex.rgb * input.tint.rgb * input.color.rgb;
+    return base * (0.18 + diffuse * 0.82) + vec3<f32>(0.12, 0.18, 0.32) * rim;
+}
+
+fn zr_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
+    let tex = zr_sample_base_color(input.uv0);
+    var surface = zr_surface_from_base_color(
+        vec4<f32>(material_sphere_color(input), tex.a * input.tint.a * input.color.a),
+    );
+    surface.normal_ws = material_sphere_normal(input);
+    surface.metallic = clamp(zr_mat_metallic(), 0.0, 1.0);
+    surface.roughness = clamp(zr_mat_roughness(), 0.04, 1.0);
+    surface.occlusion = 1.0;
+    surface.unlit = 1.0;
+    surface.shading_model_id = 2u;
+    return surface;
+}
+"#;
+    fs::write(path, shader_body).unwrap();
+}
+
+fn write_material_sphere_zshader(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(
+        path,
+        r#"kind = "surface"
+version = 2
+name = "Runtime Material Sphere"
+shading_model = "standard_pbr"
+wgsl_files = ["material_sphere.wgsl"]
+
+[[properties]]
+name = "base_color"
+kind = "vec4"
+default = [0.78, 0.30, 0.18, 1.0]
+
+[[properties]]
+name = "metallic"
+kind = "float"
+default = 0.1
+
+[[properties]]
+name = "roughness"
+kind = "float"
+default = 0.78
+
+[[texture_slots]]
+name = "base_color"
+kind = "texture_2d"
+default = "white"
+"#,
+    )
+    .unwrap();
+}
+
+fn write_compound_shader_meta(paths: &ProjectPaths, shader_uri: &str, shader_name: &str) {
+    let uri = AssetUri::parse(shader_uri).unwrap();
+    let meta_path = paths
+        .assets_root()
+        .join("shaders")
+        .join(format!("{shader_name}.zmeta"));
+    let mut meta = AssetMetaDocument::new(AssetUuid::new(), uri, AssetKind::Shader);
+    meta.unit = AssetSourceUnit::Compound;
+    meta.save(meta_path).unwrap();
 }
 
 fn write_checker_png(path: PathBuf) {
@@ -263,6 +358,45 @@ f 1/1/1 3/3/1 4/4/1
     .unwrap();
 }
 
+fn write_uv_sphere_obj(path: PathBuf, rings: usize, segments: usize) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let rings = rings.max(3);
+    let segments = segments.max(6);
+    let mut obj = String::new();
+    for ring in 0..=rings {
+        let theta = std::f32::consts::PI * ring as f32 / rings as f32;
+        let y = theta.cos();
+        let radius = theta.sin();
+        for segment in 0..=segments {
+            let phi = std::f32::consts::TAU * segment as f32 / segments as f32;
+            let x = radius * phi.cos();
+            let z = radius * phi.sin();
+            writeln!(&mut obj, "v {x:.6} {y:.6} {z:.6}").unwrap();
+            writeln!(
+                &mut obj,
+                "vt {:.6} {:.6}",
+                segment as f32 / segments as f32,
+                ring as f32 / rings as f32
+            )
+            .unwrap();
+            writeln!(&mut obj, "vn {x:.6} {y:.6} {z:.6}").unwrap();
+        }
+    }
+    for ring in 0..rings {
+        for segment in 0..segments {
+            let a = ring * (segments + 1) + segment + 1;
+            let b = a + 1;
+            let c = a + segments + 1;
+            let d = c + 1;
+            writeln!(&mut obj, "f {a}/{a}/{a} {c}/{c}/{c} {b}/{b}/{b}").unwrap();
+            writeln!(&mut obj, "f {b}/{b}/{b} {c}/{c}/{c} {d}/{d}/{d}").unwrap();
+        }
+    }
+    fs::write(path, obj).unwrap();
+}
+
 fn write_material(path: PathBuf, shader_uri: &str) {
     write_material_with_base_color_and_texture(
         path,
@@ -284,6 +418,9 @@ fn write_material_with_base_color_and_texture(
     let material = MaterialAsset {
         name: Some("Grid".to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: Some(asset_reference(base_color_texture)),
         normal_texture: None,
@@ -362,6 +499,100 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: asset_reference("res://models/triangle.obj"),
+                    mesh: None,
+                    material: asset_reference(material_uri),
+                    render_queue: 0,
+                    material_queue: 0,
+                    order_in_layer: 0,
+                    depth_bias: 0.0,
+                    morph_weights: Vec::new(),
+                    primitives: Vec::new(),
+                    lods: Vec::new(),
+                }),
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+        ],
+    };
+    fs::write(path, scene.to_toml_string().unwrap()).unwrap();
+}
+
+fn write_material_sphere_scene(path: PathBuf, material_uri: &str) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let scene = SceneAsset {
+        entities: vec![
+            SceneEntityAsset {
+                entity: 1,
+                name: "Camera".to_string(),
+                parent: None,
+                transform: TransformAsset {
+                    translation: [0.0, 0.0, 4.2],
+                    rotation: [0.0, 0.0, 0.0, 1.0],
+                    scale: [1.0, 1.0, 1.0],
+                },
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: Some(SceneCameraAsset {
+                    fov_y_radians: 0.7853982,
+                    z_near: 0.1,
+                    z_far: 100.0,
+                    post_process_settings: None,
+                    ..SceneCameraAsset::default()
+                }),
+                mesh: None,
+                ambient_light: None,
+                directional_light: None,
+                point_light: None,
+                rect_light: None,
+                spot_light: None,
+                post_process_volume: None,
+                rigid_body: None,
+                collider: None,
+                joint: None,
+                animation_skeleton: None,
+                animation_player: None,
+                animation_sequence_player: None,
+                animation_graph_player: None,
+                animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
+                script_bindings: Vec::new(),
+            },
+            SceneEntityAsset {
+                entity: 2,
+                name: "Material Sphere".to_string(),
+                parent: None,
+                transform: TransformAsset {
+                    translation: [0.0, 0.0, 0.0],
+                    rotation: [0.0, 0.0, 0.0, 1.0],
+                    scale: [1.35, 1.35, 1.35],
+                },
+                active: true,
+                render_layer_mask: 0x0000_0001,
+                mobility: SceneMobilityAsset::Dynamic,
+                camera: None,
+                mesh: Some(SceneMeshInstanceAsset {
+                    model: asset_reference("res://models/material_sphere.obj"),
                     mesh: None,
                     material: asset_reference(material_uri),
                     render_queue: 0,
@@ -504,4 +735,29 @@ fn average_channel(rgba: &[u8], channel: usize) -> f32 {
         .map(|pixel| pixel[channel] as f32)
         .sum::<f32>();
     total / (rgba.len() as f32 / 4.0)
+}
+
+fn average_channel_in_region(
+    frame: &CapturedFrame,
+    origin: UVec2,
+    size: UVec2,
+    channel: usize,
+) -> f32 {
+    let x_end = origin.x.saturating_add(size.x).min(frame.width) as usize;
+    let y_end = origin.y.saturating_add(size.y).min(frame.height) as usize;
+    let width = frame.width as usize;
+    let mut total = 0.0;
+    let mut count = 0.0;
+    for y in origin.y as usize..y_end {
+        for x in origin.x as usize..x_end {
+            let index = (y * width + x) * 4 + channel;
+            total += frame.rgba[index] as f32;
+            count += 1.0;
+        }
+    }
+    if count <= 0.0 {
+        0.0
+    } else {
+        total / count
+    }
 }

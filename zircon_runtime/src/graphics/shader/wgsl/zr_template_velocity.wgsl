@@ -10,6 +10,7 @@ struct ZrVelocityVertexInput {
     @location(6) color: vec4<f32>,
     @location(7) uv1: vec2<f32>,
     @location(8) previous_position: vec3<f32>,
+    @builtin(vertex_index) vertex_index: u32,
 };
 
 struct ZrVelocityVertexOutput {
@@ -38,6 +39,7 @@ fn zr_velocity_vertex_input(v: ZrVelocityVertexInput, position: vec3<f32>) -> Zr
     input.tangent = v.tangent;
     input.color = v.color;
     input.uv1 = v.uv1;
+    input.vertex_index = v.vertex_index;
     return input;
 }
 
@@ -80,7 +82,7 @@ fn zr_vs_main_impl(v: ZrVelocityVertexInput, instance_index: u32) -> ZrVelocityV
         fetch_tangent(current_input, instance_index),
         fetch_uv0(current_input),
         fetch_uv1(current_input),
-        fetch_color(current_input),
+        fetch_color(current_input, instance_index),
     );
     return zr_velocity_output(material_output, zr_gpu_scene_motion_params(instance_index), current_clip, previous_clip);
 }

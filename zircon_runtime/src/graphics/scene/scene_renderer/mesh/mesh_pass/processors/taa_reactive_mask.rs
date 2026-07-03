@@ -18,6 +18,9 @@ impl MeshPassProcessor for TaaReactiveMaskPassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
+        if batch.disabled_passes.disables_taa_reactive_mask() {
+            return;
+        }
         let Some(pipeline_kind) = reactive_mask_pipeline_kind(batch) else {
             return;
         };

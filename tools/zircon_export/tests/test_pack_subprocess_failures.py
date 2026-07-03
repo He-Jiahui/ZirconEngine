@@ -55,7 +55,7 @@ class PackSubprocessFailureTests(unittest.TestCase):
             args.asset_manifest = str(asset_manifest)
 
             with mock.patch(
-                "tools.zircon_export.cli.subprocess.call",
+                "tools.zircon_export.pack_stage.subprocess.call",
                 return_value=2,
             ):
                 exit_code = _run_pack_quiet(args)
@@ -109,7 +109,7 @@ class PackSubprocessFailureTests(unittest.TestCase):
             args.asset_manifest = str(asset_manifest)
 
             with mock.patch(
-                "tools.zircon_export.cli.subprocess.call",
+                "tools.zircon_export.pack_stage.subprocess.call",
                 return_value=0,
             ):
                 exit_code = _run_pack_quiet(args)

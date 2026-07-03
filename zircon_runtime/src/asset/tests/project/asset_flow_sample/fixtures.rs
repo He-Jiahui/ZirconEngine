@@ -268,6 +268,7 @@ pub(super) fn write_sample_material(paths: &ProjectPaths) {
     let material = MaterialAsset {
         name: Some("HeroSurface".to_string()),
         shader,
+        parent: None,
         base_color: [1.0, 0.85, 0.55, 1.0],
         base_color_texture: Some(texture),
         normal_texture: None,
@@ -281,6 +282,8 @@ pub(super) fn write_sample_material(paths: &ProjectPaths) {
         double_sided: false,
         property_values,
         texture_slots,
+        options: Default::default(),
+        queue: None,
         validation_diagnostics: Vec::new(),
     };
     write_text(

@@ -76,7 +76,7 @@ fn project_property_rows(
             let override_value = material.property_overrides().get(&property.name).cloned();
             rows.push(MaterialEditorPropertyRow {
                 name: property.name.clone(),
-                kind: Some(property.kind.clone()),
+                kind: Some(property.kind.to_string()),
                 group: property.editor.get("group").cloned(),
                 label: property.editor.get("label").cloned(),
                 default_value: property.default.clone(),
@@ -307,6 +307,42 @@ fn diagnostic_row_for_error(error: RenderMaterialValidationError) -> MaterialEdi
                 message: format!("texture slot `{slot}` is not declared by the shader"),
             }
         }
+        RenderMaterialValidationError::UnknownMaterialOption { source, path, name } => {
+            MaterialEditorDiagnosticRow {
+                source: Some(source),
+                path,
+                message: format!("material option `{name}` is not declared by the shader"),
+            }
+        }
+        RenderMaterialValidationError::MaterialOptionTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } => MaterialEditorDiagnosticRow {
+            source: Some(source),
+            path,
+            message: format!("material option `{name}` must match shader type `{expected}`"),
+        },
+        RenderMaterialValidationError::InvalidMaterialQueueOffset {
+            source,
+            path,
+            offset,
+            expected,
+        } => MaterialEditorDiagnosticRow {
+            source: Some(source),
+            path,
+            message: format!("material queue offset {offset} is invalid, expected {expected}"),
+        },
+        RenderMaterialValidationError::InvalidMaterialParent {
+            source,
+            path,
+            diagnostic,
+        } => MaterialEditorDiagnosticRow {
+            source: Some(source),
+            path,
+            message: format!("material parent is invalid: {diagnostic}"),
+        },
         RenderMaterialValidationError::MissingWgslCapture { source, path, name } => {
             MaterialEditorDiagnosticRow {
                 source: Some(source),

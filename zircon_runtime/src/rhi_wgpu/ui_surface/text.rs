@@ -1,7 +1,8 @@
 use glyphon::{
-    Attrs, Buffer, Cache, Color, FontSystem, Metrics, Resolution, Shaping, Style, SwashCache,
-    TextArea, TextAtlas, TextRenderer, Viewport, Weight, Wrap,
+    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, Style,
+    SwashCache, TextArea, TextAtlas, TextRenderer, Viewport, Weight, Wrap,
 };
+use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 use crate::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceTextStyle};
 
@@ -69,6 +70,8 @@ impl WgpuUiTextRenderer {
                 };
                 let UiSurfaceCommandKind::Text {
                     text,
+                    font_family,
+                    font_weight,
                     font_size,
                     line_height,
                     style,
@@ -84,7 +87,15 @@ impl WgpuUiTextRenderer {
                     &mut self.font_system,
                     Metrics::new(font_size.max(1.0), line_height.max(1.0)),
                 );
-                prepare_buffer(&mut self.font_system, &mut buffer, command, text, *style);
+                prepare_buffer(
+                    &mut self.font_system,
+                    &mut buffer,
+                    command,
+                    text,
+                    font_family.as_deref(),
+                    *font_weight,
+                    *style,
+                );
                 buffers.push(buffer);
                 text_commands.push(command);
                 text_clips.push(clip);
@@ -144,6 +155,8 @@ fn prepare_buffer(
     buffer: &mut Buffer,
     command: &UiSurfaceCommand,
     text: &str,
+    font_family: Option<&str>,
+    font_weight: u16,
     style: UiSurfaceTextStyle,
 ) {
     buffer.set_size(
@@ -155,7 +168,7 @@ fn prepare_buffer(
     buffer.set_text(
         font_system,
         text,
-        &text_attrs(style),
+        &text_attrs(font_family, font_weight, style),
         Shaping::Advanced,
         None,
     );
@@ -171,13 +184,30 @@ fn text_color(command: &UiSurfaceCommand) -> Color {
     }
 }
 
-fn text_attrs(style: UiSurfaceTextStyle) -> Attrs<'static> {
-    let mut attrs = Attrs::new();
+fn text_attrs<'a>(
+    font_family: Option<&'a str>,
+    font_weight: u16,
+    style: UiSurfaceTextStyle,
+) -> Attrs<'a> {
+    let mut attrs = font_family
+        .filter(|family| !family.trim().is_empty())
+        .map(|family| Attrs::new().family(Family::Name(family)))
+        .unwrap_or_else(Attrs::new);
+    let resolved_weight = UiResolvedStyle::normalized_font_weight(font_weight);
+    let resolved_weight = if matches!(
+        style,
+        UiSurfaceTextStyle::Strong | UiSurfaceTextStyle::StrongEmphasis
+    ) {
+        resolved_weight.max(Weight::BOLD.0)
+    } else {
+        resolved_weight
+    };
+    attrs = attrs.weight(Weight(resolved_weight));
     if matches!(
         style,
         UiSurfaceTextStyle::Strong | UiSurfaceTextStyle::StrongEmphasis
     ) {
-        attrs = attrs.weight(Weight::BOLD);
+        debug_assert!(attrs.weight.0 >= Weight::BOLD.0);
     }
     if matches!(
         style,
@@ -186,4 +216,25 @@ fn text_attrs(style: UiSurfaceTextStyle) -> Attrs<'static> {
         attrs = attrs.style(Style::Italic);
     }
     attrs
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ui_surface_text_attrs_preserve_requested_family_and_weight() {
+        let attrs = text_attrs(Some("Zircon Sans"), 500, UiSurfaceTextStyle::Regular);
+
+        assert_eq!(attrs.family, Family::Name("Zircon Sans"));
+        assert_eq!(attrs.weight, Weight(500));
+
+        let strong_attrs = text_attrs(Some("Zircon Sans"), 500, UiSurfaceTextStyle::Strong);
+        assert_eq!(strong_attrs.family, Family::Name("Zircon Sans"));
+        assert_eq!(strong_attrs.weight, Weight::BOLD);
+
+        let emphasis_attrs = text_attrs(None, 450, UiSurfaceTextStyle::Emphasis);
+        assert_eq!(emphasis_attrs.weight, Weight(450));
+        assert_eq!(emphasis_attrs.style, Style::Italic);
+    }
 }

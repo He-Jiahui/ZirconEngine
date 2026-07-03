@@ -339,11 +339,6 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
     import_test_texture(
         &mut resources,
         &backend.device,
-        PostProcessGraphResourceNames::GBUFFER_NORMAL,
-    );
-    import_test_texture(
-        &mut resources,
-        &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
     let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
@@ -371,20 +366,12 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
         RenderPassExecutorId::new("mesh.depth-prepass"),
         QueueLane::Graphics,
         PassFlags::default(),
-        vec![
-            RenderGraphPassResourceAccess {
-                name: PostProcessGraphResourceNames::GBUFFER_NORMAL.to_string(),
-                kind: RenderGraphResourceKind::External,
-                access: RenderGraphResourceAccessKind::Write,
-                attachment_ops: Some(RenderGraphAttachmentOps::clear_store()),
-            },
-            RenderGraphPassResourceAccess {
-                name: PostProcessGraphResourceNames::SCENE_DEPTH.to_string(),
-                kind: RenderGraphResourceKind::External,
-                access: RenderGraphResourceAccessKind::Write,
-                attachment_ops: Some(RenderGraphAttachmentOps::clear_store()),
-            },
-        ],
+        vec![RenderGraphPassResourceAccess {
+            name: PostProcessGraphResourceNames::SCENE_DEPTH.to_string(),
+            kind: RenderGraphResourceKind::External,
+            access: RenderGraphResourceAccessKind::Write,
+            attachment_ops: Some(RenderGraphAttachmentOps::clear_store()),
+        }],
     )
     .with_gpu(gpu);
 
@@ -394,7 +381,7 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
 
     assert_eq!(
         error,
-        "depth prepass graph executor for pass `depth-prepass` requires normal prepass context"
+        "depth prepass graph executor for pass `depth-prepass` requires mesh draw context"
     );
 }
 

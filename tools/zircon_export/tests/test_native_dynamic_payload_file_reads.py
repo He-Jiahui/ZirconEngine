@@ -6,16 +6,18 @@ from pathlib import Path
 from unittest import mock
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.native_dynamic_payload import (
+from tools.zircon_export.native_dynamic_payload_file_manifest import (
     native_dynamic_plugins_bundle_file_manifest,
 )
 from tools.zircon_export.tests.export_test_support import (
     _export_args,
     _run_stage_quiet,
-    _write_native_dynamic_package_fixture,
-    _write_native_dynamic_stage_plugins,
     _write_validate_report_with_native_dynamic_exports,
     json_loads,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
+    _write_native_dynamic_package_fixture,
+    _write_native_dynamic_stage_plugins,
 )
 from tools.zircon_export.tests.platform_bundle_report_test_support import (
     _write_platform_bundle_fixture,

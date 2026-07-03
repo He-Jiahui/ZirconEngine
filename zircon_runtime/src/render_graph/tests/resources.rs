@@ -1,3 +1,10 @@
+use zircon_runtime_interface::resource::{AssetReference, ResourceLocator};
+
+use crate::core::framework::render::{
+    ComputeDispatchBuilder, ComputeKernelRef, RenderShaderEntryPointDescriptor, RenderShaderStage,
+    ShaderAssetKind, ShaderDispatchExtent, ShaderResourceAccess, ShaderResourceDescriptor,
+    ShaderResourceKind,
+};
 use crate::render_graph::{
     PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
     RenderGraphAttachmentStoreOp, RenderGraphBuilder, RenderGraphComputeDispatchExtent,
@@ -325,6 +332,61 @@ fn graph_preserves_compute_workload_metadata() {
         )
         .unwrap();
     builder.write_buffer(clustered, light_list).unwrap();
+
+    let graph = builder.compile().unwrap();
+    let workload = graph.passes()[0].compute_workload.as_ref().unwrap();
+
+    assert_eq!(workload.pipeline_label, "zircon-cluster-pipeline");
+    assert_eq!(workload.workgroup_size, [8, 8, 1]);
+    assert_eq!(
+        workload.dispatch_extent,
+        RenderGraphComputeDispatchExtent::ClusterGrid
+    );
+}
+
+#[test]
+fn graph_accepts_shader_compute_dispatch_plan_as_workload() {
+    let shader = AssetReference::from_locator(
+        ResourceLocator::parse("builtin://shaders/compute/clustered_lighting").unwrap(),
+    );
+    let mut dispatch = ComputeDispatchBuilder::new(ComputeKernelRef::new(shader, "cs_main"));
+    dispatch
+        .with_pipeline_label("zircon-cluster-pipeline")
+        .with_workgroup_size([8, 8, 1])
+        .bind_storage_write("light-list")
+        .dispatch_extent(ShaderDispatchExtent::ClusterGrid);
+    let dispatch = dispatch
+        .build(
+            ShaderAssetKind::Compute,
+            &[RenderShaderEntryPointDescriptor {
+                name: "cs_main".to_string(),
+                stage: RenderShaderStage::Compute,
+            }],
+            &[ShaderResourceDescriptor {
+                name: "light-list".to_string(),
+                kind: ShaderResourceKind::StorageBuffer,
+                access: Some(ShaderResourceAccess::Write),
+            }],
+        )
+        .unwrap();
+
+    let mut builder = RenderGraphBuilder::new("shader-compute-workload");
+    let light_list = builder.create_buffer(BufferDesc::new(
+        "light-list",
+        256,
+        BufferUsage::STORAGE | BufferUsage::COPY_SRC,
+    ));
+    let pass = builder.add_pass("light-grid-build", QueueLane::AsyncCompute);
+    builder
+        .mark_readback(RenderGraphResource::TransientBuffer(light_list))
+        .unwrap();
+    builder
+        .set_compute_workload(
+            pass,
+            RenderGraphComputeWorkload::from_shader_dispatch(&dispatch),
+        )
+        .unwrap();
+    builder.write_buffer(pass, light_list).unwrap();
 
     let graph = builder.compile().unwrap();
     let workload = graph.passes()[0].compute_workload.as_ref().unwrap();

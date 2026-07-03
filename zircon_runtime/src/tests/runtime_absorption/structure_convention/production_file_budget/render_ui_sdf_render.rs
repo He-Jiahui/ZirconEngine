@@ -3,7 +3,25 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/tests.rs");
+    let vertices_owner =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/vertices.rs");
+    let tests_mod = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs");
+    let draw_plan =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs");
+    let shader_contract =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs");
+    let layout_placement =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs");
+    let prepare_report =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs");
+    let tests = [
+        tests_mod.as_str(),
+        draw_plan.as_str(),
+        shader_contract.as_str(),
+        layout_placement.as_str(),
+        prepare_report.as_str(),
+    ]
+    .join("\n");
 
     let plan_14 = read_repo("docs/plans/zircon_runtime/render/14-2d-stack.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -19,8 +37,22 @@ fn runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split() {
             "pub(super) struct ScreenSpaceUiSdfRenderer",
             "pub(super) fn prepare(",
             "pub(super) fn render<'pass>(",
-            "fn build_sdf_vertices(",
+            "mod vertices;",
+            "use self::vertices::{build_sdf_vertices, ScreenSpaceUiSdfVertex};",
             "#[cfg(test)]\nmod tests;",
+        ],
+    );
+
+    assert_contains_all(
+        "screen-space UI SDF render vertices child owns draw-plan geometry helpers",
+        &vertices_owner,
+        &[
+            "pub(super) struct ScreenSpaceUiSdfVertex",
+            "pub(super) fn build_sdf_vertices(",
+            "fn push_horizontal_sdf_text_vertices(",
+            "fn push_vertical_sdf_text_vertices(",
+            "fn push_clipped_glyph_quad(",
+            "pub(super) fn resolve_sdf_glyph_advances(",
         ],
     );
 
@@ -56,7 +88,30 @@ fn runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split() {
 
     for (path, source) in [
         ("scene_renderer/ui/sdf_render.rs", parent.as_str()),
-        ("scene_renderer/ui/sdf_render/tests.rs", tests.as_str()),
+        (
+            "scene_renderer/ui/sdf_render/vertices.rs",
+            vertices_owner.as_str(),
+        ),
+        (
+            "scene_renderer/ui/sdf_render/tests/mod.rs",
+            tests_mod.as_str(),
+        ),
+        (
+            "scene_renderer/ui/sdf_render/tests/draw_plan.rs",
+            draw_plan.as_str(),
+        ),
+        (
+            "scene_renderer/ui/sdf_render/tests/shader_contract.rs",
+            shader_contract.as_str(),
+        ),
+        (
+            "scene_renderer/ui/sdf_render/tests/layout_placement.rs",
+            layout_placement.as_str(),
+        ),
+        (
+            "scene_renderer/ui/sdf_render/tests/prepare_report.rs",
+            prepare_report.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -79,8 +134,14 @@ fn runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split() {
             &[
                 "Screen-space UI SDF render test owner split",
                 "render_plan14_sdf_render_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
+                "Runtime 15 M4 SDF atlas/render tests folder-backed guard sync",
+                "runtime_15_sdf_atlas_render_tests_folder_backed_guard_sync_static_passed_cargo_deferred",
                 "graphics/scene/scene_renderer/ui/sdf_render.rs",
-                "graphics/scene/scene_renderer/ui/sdf_render/tests.rs",
+                "graphics/scene/scene_renderer/ui/sdf_render/vertices.rs",
+                "graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs",
+                "graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs",
+                "graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs",
+                "graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs",
                 "runtime_15_screen_space_ui_sdf_render_tests_are_child_owner_split",
             ],
         );

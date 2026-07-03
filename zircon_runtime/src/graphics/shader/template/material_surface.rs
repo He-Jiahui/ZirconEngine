@@ -17,17 +17,17 @@ struct StandardMaterialPropertyUniform {
     data8: vec4<f32>,
 };
 
-@group(2) @binding(0) var standard_material_base_color_tex: texture_2d<f32>;
-@group(2) @binding(1) var standard_material_base_color_sampler: sampler;
-@group(2) @binding(2) var standard_material_normal_tex: texture_2d<f32>;
-@group(2) @binding(3) var standard_material_normal_sampler: sampler;
-@group(2) @binding(4) var standard_material_metallic_roughness_tex: texture_2d<f32>;
-@group(2) @binding(5) var standard_material_metallic_roughness_sampler: sampler;
-@group(2) @binding(6) var standard_material_occlusion_tex: texture_2d<f32>;
-@group(2) @binding(7) var standard_material_occlusion_sampler: sampler;
-@group(2) @binding(8) var standard_material_emissive_tex: texture_2d<f32>;
-@group(2) @binding(9) var standard_material_emissive_sampler: sampler;
-@group(2) @binding(10) var<uniform> standard_material_properties: StandardMaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> standard_material_properties: StandardMaterialPropertyUniform;
+@group(2) @binding(1) var standard_material_base_color_tex: texture_2d<f32>;
+@group(2) @binding(2) var standard_material_base_color_sampler: sampler;
+@group(2) @binding(3) var standard_material_normal_tex: texture_2d<f32>;
+@group(2) @binding(4) var standard_material_normal_sampler: sampler;
+@group(2) @binding(5) var standard_material_metallic_roughness_tex: texture_2d<f32>;
+@group(2) @binding(6) var standard_material_metallic_roughness_sampler: sampler;
+@group(2) @binding(7) var standard_material_occlusion_tex: texture_2d<f32>;
+@group(2) @binding(8) var standard_material_occlusion_sampler: sampler;
+@group(2) @binding(9) var standard_material_emissive_tex: texture_2d<f32>;
+@group(2) @binding(10) var standard_material_emissive_sampler: sampler;
 
 fn standard_material_select_uv(uv0: vec2<f32>, uv1: vec2<f32>, channel: f32) -> vec2<f32> {
     if (channel >= 0.5) {

@@ -23,12 +23,15 @@ const REGISTRY_BACKED_LOCATOR_STATUS: &str =
 
 #[test]
 fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
-    let build = read_repo("tools/zircon_build.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
     let resource_registry = read_repo("tools/zircon_build_shader_resource_registry.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
+    let acceptance_tests =
+        read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
     let registry_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py");
+    let registry_report_test_sources = format!("{acceptance_tests}\n{registry_tests}");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
@@ -101,17 +104,17 @@ fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
         ],
     );
     assert_contains_all(
-        "staged build passes the report to the auto-export registry validator",
-        &build,
+        "staged acceptance passes the report to the registry validator",
+        &acceptance_helper,
         &[
             "validate_shader_resource_registry_export_contract(",
             "report_path=config.shader_prewarm_report_path",
-            "if not getattr(config, \"shader_resource_registry\", None):",
+            "or config.shader_prewarm_resource_registry_path",
         ],
     );
     assert_contains_all(
         "python regressions cover registry/report correlation",
-        &registry_tests,
+        &registry_report_test_sources,
         &[
             "class ZirconBuildShaderPrewarmResourceRegistryContractTests",
             "test_validate_registry_export_contract_rejects_missing_report_source_locator",
@@ -174,8 +177,16 @@ fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
             build_prewarm.as_str(),
         ),
         (
+            "tools/zircon_build_shader_prewarm_acceptance.py",
+            acceptance_helper.as_str(),
+        ),
+        (
             "tools/tests/test_zircon_build_shader_prewarm.py",
             build_prewarm_tests.as_str(),
+        ),
+        (
+            "tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py",
+            acceptance_tests.as_str(),
         ),
         (
             "tools/zircon_build_shader_resource_registry.py",

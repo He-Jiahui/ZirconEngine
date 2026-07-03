@@ -42,8 +42,35 @@ fn popup_row_loading_state_uses_unavailable_visuals() {
 
     assert_eq!(loading_selected.state, UiPainterResolvedState::Loading);
     assert_eq!(loading_selected.background, None);
-    assert_eq!(loading_selected.selection_mark, None);
+    assert_eq!(loading_selected.outline, None);
     assert_eq!(loading_selected.text, PALETTE.text_disabled);
     assert_eq!(loading_selected.shortcut, PALETTE.text_disabled);
     assert_eq!(loading_selected.adornment, PALETTE.text_disabled);
+}
+
+#[test]
+fn popup_row_selected_or_checked_uses_muted_selected_fill_and_neutral_outline() {
+    let selected = select_workbench_popup_row_style(WorkbenchPopupRowState {
+        selected: true,
+        focused: true,
+        ..WorkbenchPopupRowState::default()
+    });
+
+    assert_eq!(selected.state, UiPainterResolvedState::Focused);
+    assert_eq!(selected.background, Some(PALETTE.surface_pressed));
+    assert_ne!(selected.background, Some(PALETTE.surface_selected));
+    assert_eq!(selected.outline, Some(PALETTE.border));
+    assert_ne!(selected.outline, Some(PALETTE.accent));
+    assert_ne!(selected.outline, Some(PALETTE.focus_ring));
+
+    let checked_pressed = select_workbench_popup_row_style(WorkbenchPopupRowState {
+        checked: true,
+        pressed: true,
+        ..WorkbenchPopupRowState::default()
+    });
+
+    assert_eq!(checked_pressed.state, UiPainterResolvedState::Pressed);
+    assert_eq!(checked_pressed.background, Some(PALETTE.surface_pressed));
+    assert_ne!(checked_pressed.background, Some(PALETTE.surface_selected));
+    assert_eq!(checked_pressed.outline, Some(PALETTE.border));
 }

@@ -152,7 +152,7 @@ bindings = [{ id = "SaveButton/onClick", event = "Click", route = "menu_action.w
 #[test]
 fn ui_asset_editor_session_projects_preview_mock_subjects_and_expression_results() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -204,7 +204,7 @@ fn ui_asset_editor_session_projects_preview_mock_subjects_and_expression_results
 #[test]
 fn ui_asset_editor_session_projects_binding_target_suggestions_and_applies_them() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -256,7 +256,7 @@ fn ui_asset_editor_session_projects_binding_target_suggestions_and_applies_them(
 #[test]
 fn ui_asset_editor_session_projects_expression_dependencies_into_preview_state_graph() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_state_graph.ui.toml",
+        "res://ui/tests/preview_state_graph.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -312,7 +312,7 @@ fn ui_asset_editor_session_projects_expression_dependencies_into_preview_state_g
 #[test]
 fn ui_asset_editor_session_projects_preview_mock_schema_items_for_object_and_collection_values() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_state_graph.ui.toml",
+        "res://ui/tests/preview_state_graph.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -368,7 +368,7 @@ fn ui_asset_editor_session_projects_preview_mock_schema_items_for_object_and_col
 #[test]
 fn ui_asset_editor_session_projects_binding_schema_items_for_route_and_action_targets() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -416,7 +416,7 @@ fn ui_asset_editor_session_projects_binding_schema_items_for_route_and_action_ta
 #[test]
 fn ui_asset_editor_session_evaluates_preview_mock_bracket_expression_paths() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_bracket_expression.ui.toml",
+        "res://ui/tests/preview_bracket_expression.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -473,7 +473,7 @@ fn ui_asset_editor_session_evaluates_preview_mock_bracket_expression_paths() {
 #[test]
 fn ui_asset_editor_session_projects_target_aware_structured_binding_payload_schemas() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -547,7 +547,7 @@ fn ui_asset_editor_session_projects_target_aware_structured_binding_payload_sche
 #[test]
 fn ui_asset_editor_session_projects_binding_expression_payload_previews_and_interaction_edges() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -611,7 +611,7 @@ fn ui_asset_editor_session_projects_binding_expression_payload_previews_and_inte
 #[test]
 fn ui_asset_editor_session_projects_nested_binding_payload_schema_previews() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -678,7 +678,7 @@ fn ui_asset_editor_session_projects_nested_binding_payload_schema_previews() {
 #[test]
 fn ui_asset_editor_session_projects_recursive_preview_mock_paths_and_nested_expression_results() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_deep_nested.ui.toml",
+        "res://ui/tests/preview_deep_nested.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -752,7 +752,7 @@ fn ui_asset_editor_session_projects_recursive_preview_mock_paths_and_nested_expr
 fn ui_asset_editor_session_projects_preview_mock_suggestions_relative_to_selected_nested_container_and_applies_them(
 ) {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_deep_nested.ui.toml",
+        "res://ui/tests/preview_deep_nested.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -846,7 +846,7 @@ fn ui_asset_editor_session_projects_preview_mock_suggestions_relative_to_selecte
 #[test]
 fn ui_asset_editor_session_selects_preview_mock_schema_items_as_nested_authoring_targets() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_deep_nested.ui.toml",
+        "res://ui/tests/preview_deep_nested.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -891,7 +891,7 @@ fn ui_asset_editor_session_selects_preview_mock_schema_items_as_nested_authoring
 #[test]
 fn ui_asset_editor_session_selects_binding_schema_items_as_payload_authoring_targets() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -952,7 +952,7 @@ fn ui_asset_editor_session_selects_binding_schema_items_as_payload_authoring_tar
 #[test]
 fn ui_asset_editor_session_supports_recursive_binding_payload_paths_and_previews() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1045,7 +1045,7 @@ fn ui_asset_editor_session_supports_recursive_binding_payload_paths_and_previews
 #[test]
 fn ui_asset_editor_session_evaluates_function_preview_expressions_and_binding_payload_previews() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_function_expression.ui.toml",
+        "res://ui/tests/preview_function_expression.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1163,7 +1163,7 @@ fn ui_asset_editor_session_evaluates_function_preview_expressions_and_binding_pa
 #[test]
 fn ui_asset_editor_session_evaluates_collection_and_branch_preview_expressions() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_function_expression.ui.toml",
+        "res://ui/tests/preview_function_expression.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1320,7 +1320,7 @@ fn ui_asset_editor_session_evaluates_collection_and_branch_preview_expressions()
 #[test]
 fn ui_asset_editor_session_evaluates_accessor_preview_expressions_and_binding_payload_previews() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_function_expression.ui.toml",
+        "res://ui/tests/preview_function_expression.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1469,7 +1469,7 @@ fn ui_asset_editor_session_evaluates_accessor_preview_expressions_and_binding_pa
 #[test]
 fn ui_asset_editor_session_upserts_binding_payload_entries_relative_to_selected_container() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1560,7 +1560,7 @@ fn ui_asset_editor_session_upserts_binding_payload_entries_relative_to_selected_
 #[test]
 fn ui_asset_editor_session_upserts_binding_payload_nested_relative_paths_from_selected_container() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_binding.ui.toml",
+        "res://ui/tests/preview_binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1659,7 +1659,7 @@ fn ui_asset_editor_session_upserts_binding_payload_nested_relative_paths_from_se
 #[test]
 fn ui_asset_editor_session_projects_binding_payload_suggestions_relative_to_selected_container() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_deep_nested.ui.toml",
+        "res://ui/tests/preview_deep_nested.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1755,7 +1755,7 @@ fn ui_asset_editor_session_projects_binding_payload_suggestions_relative_to_sele
 #[test]
 fn ui_asset_editor_session_projects_collection_template_schema_paths_for_nested_binding_payloads() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/preview_deep_nested.ui.toml",
+        "res://ui/tests/preview_deep_nested.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

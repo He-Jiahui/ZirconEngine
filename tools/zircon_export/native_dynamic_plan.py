@@ -21,10 +21,12 @@ from .pipeline_report_validate_profile_summary_schema import (
     validate_known_trimmed_string_schema_diagnostics,
 )
 from .stage_handoff import (
-    export_strategies_from_validate_report,
-    export_strategy_diagnostics,
     load_stage_report_with_diagnostics,
     stage_report_metadata_diagnostic,
+)
+from .stage_handoff_strategy import (
+    export_strategies_from_validate_report,
+    export_strategy_diagnostics,
 )
 
 

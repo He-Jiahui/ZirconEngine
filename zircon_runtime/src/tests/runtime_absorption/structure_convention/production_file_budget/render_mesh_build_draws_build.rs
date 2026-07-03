@@ -9,6 +9,9 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
     let gpu_scene_sync = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs",
     );
+    let geometry_source_selection = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/geometry_source_selection.rs",
+    );
 
     let plan_02 = read_repo("docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -22,6 +25,7 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
         &module,
         &[
             "mod build;",
+            "mod geometry_source_selection;",
             "mod gpu_scene_sync;",
             "mod previous_skinned_palette;",
         ],
@@ -66,6 +70,14 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
             "fn shadow_params_from_pending_draw(",
             "fn motion_params_from_pending_draw(",
             "fn resolved_skinned_gpu_source_for_pending_draw(",
+        ],
+    );
+    assert_contains_all(
+        "geometry source selection child owns pending draw source classification",
+        &geometry_source_selection,
+        &[
+            "pub(super) fn pending_mesh_source_selection(",
+            "pub(super) fn pending_mesh_draw_queue_profile(",
             "pub(super) fn skinned_gpu_source_geometry_source(",
         ],
     );
@@ -75,6 +87,10 @@ fn runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner() {
         (
             "build_mesh_draws/build/gpu_scene_sync.rs",
             gpu_scene_sync.as_str(),
+        ),
+        (
+            "build_mesh_draws/build/geometry_source_selection.rs",
+            geometry_source_selection.as_str(),
         ),
         ("build_mesh_draws/build/mod.rs", module.as_str()),
     ] {

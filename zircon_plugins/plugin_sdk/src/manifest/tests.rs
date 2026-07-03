@@ -1,4 +1,5 @@
 use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
 use zircon_runtime::{
     asset::{AssetImporterDescriptor, AssetKind},
     plugin::{ExportPackagingStrategy, PluginMaturity, PluginModuleKind},
@@ -20,6 +21,9 @@ fn manifest_builder_declares_required_sdk_defaults_and_runtime_module() {
         .with_capability("runtime.plugin.physics")
         .with_module(
             PluginModuleBuilder::runtime("physics", "zircon_plugin_physics_runtime")
+                .with_description("Physics runtime module")
+                .with_init_level(InitLevel::Scene)
+                .with_module_dependency(ModuleDependencySpec::named("scene.runtime"))
                 .with_target_modes([RuntimeTargetMode::ClientRuntime])
                 .with_capabilities(["runtime.plugin.physics"])
                 .with_system_anchors(["physics.simulation"])
@@ -38,7 +42,13 @@ fn manifest_builder_declares_required_sdk_defaults_and_runtime_module() {
     );
     assert_eq!(manifest.modules.len(), 1);
     assert_eq!(manifest.modules[0].name, "physics.runtime");
+    assert_eq!(manifest.modules[0].description, "Physics runtime module");
     assert_eq!(manifest.modules[0].kind, PluginModuleKind::Runtime);
+    assert_eq!(manifest.modules[0].init_level, InitLevel::Scene);
+    assert_eq!(
+        manifest.modules[0].module_dependencies,
+        [ModuleDependencySpec::named("scene.runtime")]
+    );
     assert_eq!(
         manifest.modules[0].system_anchors,
         ["physics.simulation".to_string()]

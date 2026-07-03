@@ -104,6 +104,7 @@ fn item(
         ),
         static_state,
         casts_shadow,
+        disabled_passes: Default::default(),
         taa_reactive_mask_strength: 0.0,
         skinned: false,
     }
@@ -121,6 +122,7 @@ fn store(
             entity: item.entity,
             draw_ordinal: item.draw_ordinal,
             phase,
+            disabled_passes: item.disabled_passes,
         },
         &state,
         command(phase, sort_key),

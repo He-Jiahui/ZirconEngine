@@ -55,6 +55,10 @@ status: planned
 
 规范:01 的 token 表达为**自定义属性**(`--editor-surface-1`、`--accent`、`--gap-m`),规则用 `var(--…)` 引用,对标 CSS custom properties、Unity USS `var(--unity-colors-*)`(`SlideToggle.uss:2`)。token 变更 → 所有 `var()` 引用随动重算(接 09/10 增量)。这统一了 13 的布局 token 与本计划的视觉 token:**同一套自定义属性,布局/视觉规则都能引用**。
 
+补注(2026-07-02 评审收口):`01` 需补一项交付——**"token → 自定义属性注册表"**(token 名到 `--custom-property` 名的单源映射表,含命名规范),此处先行登记,由 01 侧回填;本计划 S1 的 `var()` 解析以该注册表为输入。
+
+主题切换条款(2026-07-02 评审收口):多主题 = **多 token 集切换、规则不变**——stylesheet 规则只引用 `var(--token)`,切主题即整体替换自定义属性取值集,不改任何选择器/规则;运行时热切换(切换后全量 `var()` 引用随动重算、无需重建规则索引)登记为 **20.S2 验收项之一**。
+
 ### 3.4 computed style 与继承
 
 规范:节点最终样式 = **computed style**(级联后逐属性定值 + 继承解析),对标 CSS computed value、Unity `ICustomStyle`/resolvedStyle:
@@ -66,9 +70,15 @@ status: planned
 
 规范:属性可声明 `transition`(property + duration + easing),状态切换时插值,对标 CSS transition、Unity USS `transition-property`/`transition-duration`(`SlideToggle.uss:19-20,33-34`)。MVP 可只支持色/不透明/位移过渡,驱动接 `editor_ui/07`(theatre 动画)。非硬需求,可后置切片。
 
+补(2026-07-02 评审收口):transition 的**位移**=渲染层 transform 偏移(只改提取/绘制端偏移,**不进布局求解**);样式属性按 **paint-only**(色/不透明/transform 偏移/阴影等,过渡只触发 paint/提取)与 **layout-affecting**(宽高/margin/padding/gap 等,过渡逐帧触发 relayout)两类分类登记;布局属性动画**须显式声明**方可参与 transition,并遵 13 §3.8-4 的动画 relayout 预算条款(该条款已落 13)。
+
 ### 3.6 双路同源(治"retained/extract 不同源")
 
 规范:**级联引擎只有一处**;retained 软件绘制族与 render extract 都消费同一 computed style(治 `editor_ui/04` §2.2.2 双路不同源)。v2 resolver 升级为"调用统一级联引擎",**禁止再写第二份优先级表**(沿用 `editor_ui/04` §3.3 的硬规则)。
+
+收编路线(2026-07-02 评审收口):15c 的 `palette_projection`(OnceLock 静态调色板投影)与 15b 的 `METRICS` 常量表,在 **20.S2 落地后降级为级联引擎的"内置默认值来源"**(即内置默认 stylesheet 的取值后端,与 §3.2 的 `UiPainterStyleSelector` 收编同一模式);删除时点 = **级联 `var()` 通路(S1/S2)验收通过后**,由 15b/15c 各自的移交条款执行(见 15b §7、15c §5)。
+
+滚动条视觉归属(2026-07-02 评审收口,遵 R4 滚动线):滚动条 chrome 的伪状态样式(`:hover`/`:active`、空闲隐藏计时淡出)归**本计划**(伪状态选择器 + transition)+ 15(组件形态);滚动/滚轮/裁剪感知命中归 18,虚拟化契约归 `editor_ui/02` M3。
 
 ## 4. 接口与数据结构草案(Rust)
 
@@ -117,6 +127,7 @@ pub fn compute_style(node: &UiNode, sheet: &UiStyleSheet, inherited: &UiComputed
 
 - 风险:级联引擎替换固定优先级引发视觉回归。对策:S3 用现有 buttons/selection 等快照测试做等价基线,逐族切换。
 - 风险:选择器匹配性能(每节点遍历规则)。对标 CSS/USS 用 key 桶按右端 family/class 索引规则;脏节点才重算(接 09)。
+- 状态失效传播规范(2026-07-02 评审收口):含伪状态的**祖先选择器**(如 `.toolbar:hover Button`、`.panel:focus-within .row`)在规则索引期为祖先节点登记**"状态依赖边"**(伪状态 → 受影响后代规则集);运行时该伪状态翻转时,沿依赖边只标脏受影响后代并重算其 computed style——不整树重算(对标浏览器 invalidation sets)。`:focus-within` 特例:焦点变更沿祖先链**向上传播**翻转 `focus-within` 态(来源归 19),再按依赖边向下标脏。该机制为 S2 的一部分,与 09 增量脏传播共用通道。
 
 ## 9. 完成定义
 

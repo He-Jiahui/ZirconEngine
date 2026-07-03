@@ -9,6 +9,9 @@ fn artifact_store_roundtrips_material_assets_in_library() {
     let material = MaterialAsset {
         name: Some("Grid".to_string()),
         shader: asset_reference("res://shaders/pbr.wgsl"),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [0.8, 0.7, 0.6, 1.0],
         base_color_texture: Some(asset_reference("res://textures/grid.png")),
         normal_texture: None,
@@ -55,7 +58,7 @@ fn artifact_store_roundtrips_material_assets_with_dynamic_property_values() {
 
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Ghost Mist"
 
 [shader]

@@ -70,10 +70,8 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
         ],
     );
 
-    let runtime_03_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P3 |"))
-        .expect("Runtime index should keep the P3 schedule/frame-loop problem row");
+    let runtime_03_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P3", "schedule/frame-loop");
     assert_contains_all(
         "Runtime index P3 row",
         runtime_03_problem_row,

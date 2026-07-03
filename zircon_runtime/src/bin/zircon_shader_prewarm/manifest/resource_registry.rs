@@ -5,8 +5,10 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 use zircon_runtime::asset::project::AssetMetaDocument;
 use zircon_runtime::core::resource::{
-    ResourceId, ResourceKind, ResourceManager, ResourceRecord, ResourceState,
+    ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceState,
 };
+
+use crate::error::{ShaderPrewarmResourceRegistryError, ShaderPrewarmResourceRegistryResult};
 
 use super::revision::asset_scan_revision_from_source_hash;
 
@@ -17,18 +19,16 @@ pub(crate) struct ShaderPrewarmResourceRegistryOverlay {
 }
 
 impl ShaderPrewarmResourceRegistryOverlay {
-    pub(crate) fn read(path: &Path) -> Result<Self, String> {
-        let bytes = fs::read(path).map_err(|error| {
-            format!(
-                "failed to read shader prewarm resource registry {}: {error}",
-                path.display()
-            )
+    pub(crate) fn read(path: &Path) -> ShaderPrewarmResourceRegistryResult<Self> {
+        let bytes = fs::read(path).map_err(|source| ShaderPrewarmResourceRegistryError::Read {
+            path: path.to_path_buf(),
+            source,
         })?;
-        let value = serde_json::from_slice::<Value>(&bytes).map_err(|error| {
-            format!(
-                "failed to parse shader prewarm resource registry {}: {error}",
-                path.display()
-            )
+        let value = serde_json::from_slice::<Value>(&bytes).map_err(|source| {
+            ShaderPrewarmResourceRegistryError::Parse {
+                path: path.to_path_buf(),
+                source,
+            }
         })?;
         let records = resource_records_from_json_value(value, path)?;
         Ok(Self::from_records(records))
@@ -66,7 +66,7 @@ impl ShaderPrewarmResourceRegistryOverlay {
 
 pub(crate) fn shader_resource_records_from_asset_root(
     asset_root: &Path,
-) -> Result<Vec<ResourceRecord>, String> {
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
     let mut records = Vec::new();
     collect_shader_resource_records(asset_root, &mut records)?;
     records.sort_by(|left, right| left.primary_locator.cmp(&right.primary_locator));
@@ -75,7 +75,7 @@ pub(crate) fn shader_resource_records_from_asset_root(
 
 pub(crate) fn shader_resource_records_from_asset_roots(
     asset_roots: &[PathBuf],
-) -> Result<Vec<ResourceRecord>, String> {
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
     let mut records = Vec::new();
     for asset_root in asset_roots {
         records.extend(shader_resource_records_from_asset_root(asset_root)?);
@@ -91,24 +91,28 @@ pub(crate) fn shader_resource_records_from_manager(
 
 fn deduplicate_shader_resource_records(
     records: Vec<ResourceRecord>,
-) -> Result<Vec<ResourceRecord>, String> {
-    let mut records_by_id = BTreeMap::new();
-    let mut ids_by_locator = BTreeMap::new();
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
+    // Keep maps both by id and primary locator so duplicate records collapse
+    // while mismatched id/locator pairs fail before prewarm consumes them.
+    let mut records_by_id: BTreeMap<ResourceId, ResourceRecord> = BTreeMap::new();
+    let mut ids_by_locator: BTreeMap<ResourceLocator, ResourceId> = BTreeMap::new();
     for record in records {
         if let Some(existing) = records_by_id.get(&record.id) {
             if existing.primary_locator != record.primary_locator {
-                return Err(format!(
-                    "shader resource registry record id {:?} maps both {} and {}",
-                    record.id, existing.primary_locator, record.primary_locator
-                ));
+                return Err(ShaderPrewarmResourceRegistryError::DuplicateRecordId {
+                    id: record.id,
+                    existing_locator: existing.primary_locator.clone(),
+                    new_locator: record.primary_locator,
+                });
             }
             continue;
         }
         if let Some(existing_id) = ids_by_locator.get(&record.primary_locator) {
-            return Err(format!(
-                "shader resource registry locator {} maps both {:?} and {:?}",
-                record.primary_locator, existing_id, record.id
-            ));
+            return Err(ShaderPrewarmResourceRegistryError::DuplicateLocator {
+                locator: record.primary_locator,
+                existing_id: *existing_id,
+                new_id: record.id,
+            });
         }
         ids_by_locator.insert(record.primary_locator.clone(), record.id);
         records_by_id.insert(record.id, record);
@@ -125,7 +129,7 @@ fn deduplicate_shader_resource_records(
 fn resource_records_from_json_value(
     value: Value,
     path: &Path,
-) -> Result<Vec<ResourceRecord>, String> {
+) -> ShaderPrewarmResourceRegistryResult<Vec<ResourceRecord>> {
     let records = if value.is_array() {
         value
     } else if let Some(records) = value.get("resources") {
@@ -133,37 +137,34 @@ fn resource_records_from_json_value(
     } else if let Some(records) = value.get("records") {
         records.clone()
     } else {
-        return Err(format!(
-            "shader prewarm resource registry {} must be a ResourceRecord array or contain a resources/records array",
-            path.display()
-        ));
+        return Err(ShaderPrewarmResourceRegistryError::MissingRecordsArray {
+            path: path.to_path_buf(),
+        });
     };
-    serde_json::from_value::<Vec<ResourceRecord>>(records).map_err(|error| {
-        format!(
-            "failed to decode shader prewarm resource records {}: {error}",
-            path.display()
-        )
+    serde_json::from_value::<Vec<ResourceRecord>>(records).map_err(|source| {
+        ShaderPrewarmResourceRegistryError::DecodeRecords {
+            path: path.to_path_buf(),
+            source,
+        }
     })
 }
 
 fn collect_shader_resource_records(
     root: &Path,
     records: &mut Vec<ResourceRecord>,
-) -> Result<(), String> {
+) -> ShaderPrewarmResourceRegistryResult<()> {
     if !root.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(root).map_err(|error| {
-        format!(
-            "failed to read shader resource registry root {}: {error}",
-            root.display()
-        )
-    })? {
-        let entry = entry.map_err(|error| {
-            format!(
-                "failed to read shader resource registry root {} entry: {error}",
-                root.display()
-            )
+    for entry in
+        fs::read_dir(root).map_err(|source| ShaderPrewarmResourceRegistryError::ReadRoot {
+            path: root.to_path_buf(),
+            source,
+        })?
+    {
+        let entry = entry.map_err(|source| ShaderPrewarmResourceRegistryError::ReadRootEntry {
+            path: root.to_path_buf(),
+            source,
         })?;
         let path = entry.path();
         if path.is_dir() {
@@ -182,12 +183,12 @@ fn collect_shader_resource_records(
 fn append_shader_records_from_meta(
     meta_path: &Path,
     records: &mut Vec<ResourceRecord>,
-) -> Result<(), String> {
-    let meta = AssetMetaDocument::load(meta_path).map_err(|error| {
-        format!(
-            "failed to load shader resource registry metadata {}: {error}",
-            meta_path.display()
-        )
+) -> ShaderPrewarmResourceRegistryResult<()> {
+    let meta = AssetMetaDocument::load(meta_path).map_err(|source| {
+        ShaderPrewarmResourceRegistryError::LoadMetadata {
+            path: meta_path.to_path_buf(),
+            source,
+        }
     })?;
     let revision = asset_scan_revision_from_source_hash(&meta.source_hash);
 

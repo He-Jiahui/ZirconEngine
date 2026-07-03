@@ -13,7 +13,7 @@ fn asset_window_source() -> String {
 fn asset_window_uses_activity_drawer_window_with_asset_browser_content() {
     let source = asset_window_source();
     let document =
-        UiV2AssetLoader::load_toml_str(&source).expect("asset window v2 asset should parse");
+        UiV2AssetLoader::load_toml_str(&source).expect("asset window .zui asset should parse");
 
     assert_eq!(document.asset.id, "editor.window.asset");
     assert!(source.contains("editor.host.activity_drawer_window#ActivityDrawerWindow"));

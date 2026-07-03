@@ -84,11 +84,11 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
-    let import_heightfield = operation("Terrain.Authoring.ImportHeightfield");
-    let import_weightmap = operation("Terrain.Authoring.ImportWeightmap");
-    let create = operation("Terrain.Authoring.CreateHeightfield");
-    let open = operation("Terrain.Authoring.Open");
-    let sculpt = operation("Terrain.Authoring.Sculpt");
+    let import_heightfield = operation("terrain.authoring.import_heightfield");
+    let import_weightmap = operation("terrain.authoring.import_weightmap");
+    let create = operation("terrain.authoring.create_heightfield");
+    let open = operation("terrain.authoring.open");
+    let sculpt = operation("terrain.authoring.sculpt");
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(

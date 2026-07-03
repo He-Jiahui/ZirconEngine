@@ -18,7 +18,11 @@ where
     R: MeshPipelineVariantResolver + ?Sized,
 {
     match phase {
-        RenderPhase::Shadow if batch.casts_shadow && batch.relevant_to_shadow_view() => {
+        RenderPhase::Shadow
+            if !batch.disabled_passes.disables_shadow()
+                && batch.casts_shadow
+                && batch.relevant_to_shadow_view() =>
+        {
             let pipeline_kind = match batch.phase() {
                 MeshDrawQueuePhase::Opaque => MeshPassPipelineKind::ShadowDepth,
                 MeshDrawQueuePhase::AlphaMask | MeshDrawQueuePhase::Transparent => return None,

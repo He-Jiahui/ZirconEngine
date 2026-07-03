@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -215,6 +216,169 @@ class PipelineReportSourceTemplateCommandSchemaTests(unittest.TestCase):
             )
             self.assertIn(
                 "SourceTemplate report command --target-dir must include a value",
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_source_template_command_target_triple_override(self) -> None:
+        forbidden_suffixes = (
+            ["--target", "x86_64-unknown-linux-gnu"],
+            ["--target=x86_64-unknown-linux-gnu"],
+        )
+        for suffix in forbidden_suffixes:
+            with self.subTest(suffix=suffix):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    out = Path(temp_dir) / "out"
+                    _write_validate_report_with_strategies(out, ["source_template"])
+                    project_dir = _write_source_template_report(out)
+                    command = [
+                        "cargo",
+                        "build",
+                        "--manifest-path",
+                        str(project_dir / "Cargo.toml"),
+                        "--target-dir",
+                        str(out / "stages" / "source_template" / "target"),
+                        *suffix,
+                    ]
+                    _write_source_template_report(
+                        out,
+                        report_overrides={
+                            "command": command,
+                            "build_validation": {
+                                "requested": False,
+                                "executed": False,
+                                "status": "skipped",
+                                "exit_code": None,
+                                "working_dir": str(project_dir),
+                                "command": command,
+                                "stdout_lines": [],
+                                "stderr_lines": [],
+                            },
+                        },
+                    )
+
+                    report = build_pipeline_report(out, "windows-release")
+
+                    self.assertTrue(report["fatal"], report["diagnostics"])
+                    expected_reason = (
+                        "must not include --target because export target descriptor "
+                        "owns platform target selection"
+                    )
+                    self.assertTrue(
+                        any(
+                            diagnostic
+                            == f"SourceTemplate report command {expected_reason}"
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+                    self.assertTrue(
+                        any(
+                            diagnostic
+                            == f"SourceTemplate build_validation command {expected_reason}"
+                            for diagnostic in report["diagnostics"]
+                        ),
+                        report["diagnostics"],
+                    )
+
+    def test_report_rejects_source_template_command_release_profile_mismatch(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            validate_report_path = out / "stages" / "validate" / "report.json"
+            validate_report = json.loads(validate_report_path.read_text(encoding="utf-8"))
+            source_plan = validate_report["plan_summary"]["source_template_build"]
+            source_plan["cargo_profile"] = "release"
+            source_plan["release"] = True
+            source_plan["command"] = [*source_plan["command"], "--release"]
+            validate_report_path.write_text(
+                json.dumps(validate_report, indent=2),
+                encoding="utf-8",
+            )
+            project_dir = _write_source_template_report(out)
+            command = [
+                "cargo",
+                "build",
+                "--manifest-path",
+                str(project_dir / "Cargo.toml"),
+                "--target-dir",
+                str(out / "stages" / "source_template" / "target"),
+            ]
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "command": command,
+                    "build_validation": {
+                        "requested": False,
+                        "executed": False,
+                        "status": "skipped",
+                        "exit_code": None,
+                        "working_dir": str(project_dir),
+                        "command": command,
+                        "stdout_lines": [],
+                        "stderr_lines": [],
+                    },
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "SourceTemplate report command must include --release for release profile",
+                report["diagnostics"],
+            )
+            self.assertIn(
+                "SourceTemplate build_validation command must include --release "
+                "for release profile",
+                report["diagnostics"],
+            )
+
+    def test_report_rejects_source_template_command_debug_release_flag(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            out = Path(temp_dir) / "out"
+            _write_validate_report_with_strategies(out, ["source_template"])
+            project_dir = _write_source_template_report(out)
+            command = [
+                "cargo",
+                "build",
+                "--manifest-path",
+                str(project_dir / "Cargo.toml"),
+                "--target-dir",
+                str(out / "stages" / "source_template" / "target"),
+                "--release",
+            ]
+            _write_source_template_report(
+                out,
+                report_overrides={
+                    "command": command,
+                    "build_validation": {
+                        "requested": False,
+                        "executed": False,
+                        "status": "skipped",
+                        "exit_code": None,
+                        "working_dir": str(project_dir),
+                        "command": command,
+                        "stdout_lines": [],
+                        "stderr_lines": [],
+                    },
+                },
+            )
+
+            report = build_pipeline_report(out, "windows-release")
+
+            self.assertTrue(report["fatal"], report["diagnostics"])
+            self.assertIn(
+                "SourceTemplate report command must not include --release "
+                "for debug profile",
+                report["diagnostics"],
+            )
+            self.assertIn(
+                "SourceTemplate build_validation command must not include --release "
+                "for debug profile",
                 report["diagnostics"],
             )
 

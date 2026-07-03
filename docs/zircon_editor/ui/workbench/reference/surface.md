@@ -44,6 +44,10 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\data\workbench_tree_row.zui
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_viewport_panel.zui
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/checkbox/tick.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests/marks.rs
+  - zircon_editor/assets/icons/zircon_editor_shell/controls/check.svg
   - zircon_runtime_interface/src/ui/v2/repeat.rs
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
@@ -123,6 +127,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
   - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout/rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/rows/surface.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_runtime/src/ui/tests/render_command_palette.rs
@@ -301,6 +309,13 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/row.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/paint.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/support.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene.rs
@@ -367,6 +382,8 @@ implementation_files:
   - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_axis_value_field.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_button.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_checkbox.zui
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/checkbox/tick.rs
+  - zircon_editor/assets/icons/zircon_editor_shell/controls/check.svg
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_component_drawer.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\inputs\workbench_dropdown.zui
   - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_inspector_panel.zui
@@ -772,6 +789,11 @@ tests:
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/model.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/selection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/row.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/paint.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/support.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout/metrics.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout/rows.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/rows/surface.rs (2026-06-29 after popup/dropdown row selected-outline pass: passed)
+  - cargo test -p zircon_editor --lib popup_row_selected_or_checked_uses_selected_surface_and_accent_outline --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0629-thumb-semantic-icon --message-format short --color never -- --test-threads=1 --nocapture (2026-06-29 popup/dropdown row selected-outline pass: 1/1 passed)
+  - cargo test -p zircon_editor --lib template_popup_rows --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0629-thumb-semantic-icon --message-format short --color never -- --test-threads=1 --nocapture (2026-06-29 popup/dropdown row selected-outline pass: 6/6 passed)
+  - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0629-thumb-semantic-icon --message-format short --color never (2026-06-29 popup/dropdown row selected-outline pass: passed with existing warning noise only)
+  - direct zircon_editor test binary capture_workbench_component_slate_atlas_visual_artifact and capture_m3_gui_acceptance_visual_artifacts (2026-06-29 popup/dropdown row selected-outline pass: passed; refreshed `docs/tests/editor` screenshots)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs zircon_editor/src/ui/retained_host/host_contract/painter/workbench_skeleton_regions.rs (2026-06-16 after viewport skeleton paint guard, before later painter hard cutover: passed)
   - cargo check -p zircon_editor --lib --locked (2026-06-16 after viewport skeleton paint guard: passed with existing warning noise only)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs zircon_editor/src/ui/retained_host/host_contract/painter/workbench_skeleton_regions.rs (2026-06-16 after side-panel skeleton paint guard, before later painter hard cutover: passed)
@@ -2443,6 +2465,17 @@ and paint regression tests into
 `template_selection_controls.rs` now keeps only the external test module declaration for test
 builds.
 
+The 2026-06-29 checkbox tick follow-up keeps that low-emphasis selected surface but replaces the
+checked checkbox's temporary three-quad mark with the semantic `checkmark` shell SVG rendered
+through the retained icon-asset path at 16x16. This matches the UE Slate checkbox image-brush
+sizing rule without adding a new selection-control surface role; radio and toggle geometry stay in
+their existing owners.
+
+The 2026-06-30 radio follow-up applies the same primitive-first cleanup to the selected dot: the
+default radio dot drops to 5 px inside the existing 16 px mark, while authored `value_number`
+overrides still work. That keeps the checked radio signal closer to the low-emphasis Slate brush
+language before this control family is composed into larger picker/list surfaces.
+
 The segmented-control geometry/test responsibility split moves segmented-control and tab group
 label, body, segment, divider, selected inset/underline, tab underline, label rect, and line-height
 helpers into `host_contract/paint_template_nodes/template_segmented_control_geometry.rs`, and moves
@@ -2675,8 +2708,10 @@ and the screenshot under `docs/tests/editor/editor-window-m3-workbench-run-mode-
 The follow-up selection controls pass keeps checkbox/radio/toggle styling in the same low-emphasis
 Workbench language instead of allowing authored cyan values to repaint the whole checked control.
 Runtime `selection_controls.rs`, retained `workbench_selection_control` selectors, and
-`workbench_window_projection.rs` now agree on a `#173942` selected surface with `#2aa6b8` markers for
-checkbox/toggle and a low-contrast checked radio fill/border with the same accent dot. Focused
+`workbench_window_projection.rs` now agree on a `#173942` selected surface, a low-contrast checked
+radio fill/border with a small accent dot, and a muted checked toggle track/thumb instead of a bright
+cyan or white toggle marker. The toggle follow-up sets the default thumb to 12 px and projects
+`#414b54` checked border plus `#a4aeb4` checked thumb through the same retained/runtime path. Focused
 runtime, retained painter, template paint, and bridge projection tests passed before the editor build
 and wide screenshot rerun. Build output stayed under
 `D:\cargo-targets\zircon-editor-components-0626-panel`, with the screenshot under
@@ -2735,13 +2770,12 @@ the editor build, and the wide screenshot rerun also passed. Build output stayed
 `D:\cargo-targets\zircon-editor-components-0626-panel`, with the screenshot under
 `docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` instead of Cargo `target`.
 
-The follow-up popup/dropdown row pass applies the same low-emphasis rule to compound popup rows.
-`style_selector/workbench_popup_row/selection.rs` keeps row colors on dark selected and hover
-surfaces with normal text and adornment colors; accent is limited to the 2px selection marker.
-`template_popup_rows/surface/*` owns the square 1px popup shell and marker width through
-`METRICS.selection_indicator_width`. Focused direct-binary coverage passed for `workbench_popup_row`
-2/2 and `template_popup_rows` 6/6; the editor build, M3 menu popup screenshot, and component atlas
-screenshot were refreshed under `docs/tests/editor`.
+The follow-up popup/dropdown row pass first applied the same low-emphasis rule to compound popup
+rows. `style_selector/workbench_popup_row/selection.rs` kept row colors on dark selected and hover
+surfaces with normal text and adornment colors, while the initial accent affordance was still the
+2 px selection marker owned by `template_popup_rows/surface/*`. Focused direct-binary coverage
+passed for `workbench_popup_row` 2/2 and `template_popup_rows` 6/6; the editor build, M3 menu popup
+screenshot, and component atlas screenshot were refreshed under `docs/tests/editor`.
 
 The follow-up selected-only list-row pass applies the same row identity rule to regular list rows.
 `template_list_row_glyphs/selection.rs` now reserves the trailing check adornment for checked rows,
@@ -2750,6 +2784,25 @@ surface plus left 2px indicator. `style_selector/workbench_list_row/selection.rs
 state from adornment marked state so complex list and popup samples no longer show a bright
 right-side checked marker for mere selection. `template_list_rows` passed 9/9, the editor build
 passed, and M3/component-atlas screenshots were refreshed under `docs/tests/editor`.
+
+The later Workbench row selected-outline pass supersedes the left-indicator-only rule for regular
+list, tree, and table rows. These base row components now express selected or checked state through a
+full low-saturation `surface_selected` fill and a 1 px accent outline, while unselected keyboard focus
+continues to use the separate focus-ring token. The list/tree/table surface owners no longer paint a
+standalone left marker, and selected table rows suppress their bottom separator so the rounded outline
+is not overwritten. Focused style and paint coverage passed for all three row families, the editor
+build passed with the external target directory, and the M3/component-atlas screenshots were refreshed
+under `docs/tests/editor` with no editor screenshots written into the repository `target`.
+
+The later popup/dropdown row selected-outline pass applies that same row contract to popup menus,
+dropdown options, picker rows, and command palette rows. `WorkbenchPopupRowStyle` now exposes an
+`outline` token instead of `selection_mark`, and selected or checked popup rows use
+`surface_selected` plus a 1 px `accent` outline while hover/focus-only rows stay on their separate
+surface and focus-ring tokens. `template_popup_rows/surface/row.rs` and
+`template_command_palette/rows/surface.rs` consume the shared outline contract, and the old command
+palette selection-marker geometry constants and helper were removed. Focused popup style coverage,
+`template_popup_rows` 6/6, the editor build, the component atlas screenshot, and the M3 screenshot
+passed with artifacts under `docs/tests/editor` and build output under the external Cargo target.
 
 The follow-up image placeholder pass applies the same low-noise primitive rule to thumbnail preview
 surfaces. `template_asset_placeholder_visuals.rs` now paints one recessed well without an inner

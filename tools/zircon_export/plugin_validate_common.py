@@ -4,13 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from .plugin_build import feature_provider_package_id
+from .plugin_package_identity import feature_provider_package_id
 
 
 PLUGIN_VALIDATE_ROOT_SOURCE = "plugin"
 PLUGIN_VALIDATE_FEATURE_SOURCE = "feature_extension"
+PLUGIN_VALIDATE_DIST_FORM = "dist"
+PLUGIN_VALIDATE_DIST_FEATURE = "dist"
 PLUGIN_VALIDATE_DIST_PACKAGING = "native_dynamic"
-PLUGIN_VALIDATE_DISTRIBUTION_FORMS = ("dist", "embed")
+PLUGIN_VALIDATE_DISTRIBUTION_FORMS = (PLUGIN_VALIDATE_DIST_FORM, "embed")
 PLUGIN_VALIDATE_DEFAULT_PACKAGING = (
     "source_template",
     "library_embed",

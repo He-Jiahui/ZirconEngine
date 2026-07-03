@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime/src/plugin/native.rs
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
   - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
@@ -17,11 +18,13 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_loader.rs
@@ -33,10 +36,16 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
+  - zircon_runtime/src/asset/pack/mod.rs
+  - zircon_runtime/src/asset/pack/install/installer.rs
+  - zircon_runtime/src/asset/pack/install/staging_report.rs
+  - zircon_runtime/src/asset/pack/install/promotion_report.rs
+  - zircon_runtime/src/asset/pack/install/receipt.rs
   - zircon_plugins/Cargo.lock
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
+  - zircon_runtime/src/plugin/native.rs
   - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
   - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
@@ -54,11 +63,13 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
   - zircon_runtime_interface/src/plugin_api.rs
@@ -66,6 +77,11 @@ implementation_files:
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
+  - zircon_runtime/src/asset/pack/mod.rs
+  - zircon_runtime/src/asset/pack/install/installer.rs
+  - zircon_runtime/src/asset/pack/install/staging_report.rs
+  - zircon_runtime/src/asset/pack/install/promotion_report.rs
+  - zircon_runtime/src/asset/pack/install/receipt.rs
   - zircon_plugins/Cargo.lock
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
@@ -96,6 +112,7 @@ tests:
   - cargo test -p zircon_runtime --lib native_live_host_builds_bridge_call_scope_from_loaded_manifest --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-bridge-0613 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib native_live_host_rejects_installed_bridge_bindings_without_loaded_manifest --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-native-bindings-coremin-0613 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-native-bindings-coremin-0613 --message-format short --color never
+  - cargo test -p zircon_runtime --lib --no-default-features --features core-min native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-delta-hot-update-0701-green --message-format short --color never -- --test-threads=1 --nocapture
   - rustfmt --edition 2021 --check zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs zircon_runtime/src/plugin/native_plugin_loader/mod.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs zircon_runtime/src/plugin/mod.rs zircon_runtime/src/plugin/bridge/table.rs zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs zircon_runtime/src/plugin/extension_registry/access.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-reload-coremin-0613 --message-format short --color never
   - cargo test -p zircon_runtime --lib native_live_host_reloads_bridge_lifecycle_and_installed_binding_scope --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-reload-coremin-0613 --message-format short --color never -- --test-threads=1 --nocapture
@@ -145,6 +162,7 @@ The loader is split by responsibility so the ABI boundary does not accumulate be
 - `native_plugin_live_host.rs` owns live runtime/editor native handles, hot reload/unload, runtime behavior descriptors, command dispatch, state snapshots, restore reports, play-mode helper composition, and bridge lifecycle/reload report re-exports including `NativePluginLiveHostBridgeReloadReport`.
 - `native_plugin_live_host/bridge_lifecycle.rs` owns the runtime bridge lifecycle integration for native live-host load, unload, and hot-reload reports. It applies `RuntimePluginBridgeLifecycleEvent` to a supplied `RuntimePluginBridgeLifecycleState`, records `NativePluginLiveHostBridgeLifecycleReport`, uses activation for load, reload for hot reload, deactivation for unload, rejects strong-dependent unloads before dropping the native handle, and rolls bridge state back to active if the native unload path fails after a successful bridge deactivation.
 - `native_plugin_live_host/bridge_methods.rs` owns loaded-manifest native bridge method scope construction, installed binding reuse, and provider-reload scope rebuild. `runtime_bridge_call_scope_from_loaded_manifest(...)` reads the loaded runtime package manifest, pairs `provides_interfaces.methods` with `NativeBridgeMethodBinding` callbacks, resolves method descriptors through the active bridge lifecycle table, and returns a `NativeHostBridgeCallScope`. `install_runtime_bridge_method_bindings(...)` requires a loaded runtime package manifest and validates the manifest/binding pair before storing callbacks; `runtime_bridge_call_scope_from_installed_bindings(...)` rebuilds descriptors from the current loaded manifest after reload; `reload_runtime_bridge_provider_and_scope_from_installed_bindings(...)` applies provider reload and returns the rebuilt call scope plus diagnostics; `clear_runtime_bridge_method_bindings(...)` removes the stored callback set.
+- `native_plugin_live_host/hot_update_application.rs` owns manifest-driven runtime hot-update application and the M5/T2 `zrpack delta -> NativeDynamic runtime hot update` composition entry. `hot_reload_runtime_plugins_after_delta_pack_install(...)` first delegates base+delta reconstruction, staged promotion, backup handling, and optional receipt writing to `ZrPackDeltaInstaller`, then runs `hot_reload_runtime_plugins_from_export_root(...)` against the same export root. `NativePluginRuntimeDeltaHotUpdateReport` keeps the pack staging report, promotion report, optional install receipt, and plugin hot-update report separate so callers can audit which phase failed without moving pack-install policy into the native loader.
 
 `mod.rs` remains structural. It declares the child modules and re-exports only the curated public DTOs and loader/live-host types. The split intentionally did not add compatibility modules or old-path shims.
 
@@ -195,6 +213,8 @@ Callback rules are metadata-derived. Stateful behavior must provide both `save_s
 Runtime plugin registration projection still comes from package manifests. Validation reports add diagnostics to the registration report; they do not replace manifest ownership, create runtime modules, or register callable operations by themselves.
 
 `NativePluginLiveHostLoadReport` now carries `bridge_lifecycle_reports`, and `NativePluginLiveHostOutcome` carries an optional `bridge_lifecycle_report`. The `*_with_bridge_lifecycle(...)` runtime load/unload/hot-reload helpers keep those reports structured instead of flattening them into diagnostics only. Load applies provider activation, hot reload applies provider reload, and unload first applies provider deactivation and returns the stable blocked diagnostic without unloading the native handle when a strong bridge dependent is present. `NativePluginLiveHostBridgeReloadReport` is the descriptor-reload companion report: it preserves the lifecycle report, the rebuilt `NativeHostBridgeCallScope`, and diagnostics such as `native.live_host.bridge_scope_reloaded`. Runtime load and hot reload also emit `native.live_host.bridge_bindings_discovered` or `native.live_host.bridge_bindings_discovery_failed` diagnostics when ABI v3 bridge method tables are present.
+
+`NativePluginRuntimeDeltaHotUpdateRequest` and `NativePluginRuntimeDeltaHotUpdateReport` are the runtime-facing M5/T2 composition DTOs. The request names the export root, base pack, downloaded delta pack, staging pack, installed pack, optional backup pack, and optional install receipt path. The report's `is_clean()` method requires verified delta application, installed manifest equality, a promoted receipt when present, and a clean plugin hot-update report. This makes a Hub/runtime caller able to run one operation for a downloaded update while still keeping `zircon_runtime::asset::pack` as the owner of zrpack filesystem mutation and `native_plugin_live_host` as the owner of runtime plugin reload diagnostics.
 
 ## Runtime State
 
@@ -256,6 +276,7 @@ Scoped evidence recorded during the M1-M6 implementation stages:
 - M5-T3 snapshot rollback alias `hot_reload_failure_rolls_back_to_snapshot` is written in `native_plugin_live_host/tests.rs`, and `failed_registration_revoked_via_ownership` exposes the owner-tracked failed-registration rollback path. `rustfmt --edition 2021 --check zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs` passed. The Cargo invocation for `hot_reload_failure_rolls_back_to_snapshot` exited `-1` with warning-only output, but the warmed lib-test binary then passed both `hot_reload_failure_rolls_back_to_snapshot` and `failed_registration_revoked_via_ownership` directly.
 - M5-T4 native dynamic fixture coverage now asserts the default real fixture descriptor is ABI v3, runtime/editor entry names use v3 symbols, runtime/editor behavior reports `NativePluginBehaviorHealth::Clean`, editor diagnostics come from the v3 host ABI table, accidental v2 editor diagnostics are absent on the v3 path, and the `abi_unknown_version` build remains the explicit unsupported-version guard. `rustfmt --edition 2021 --check zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs` passed after the helper isolation update. The runtime focused `native_loader_calls_real_fixture_descriptor_and_entries` Cargo command passed 1 focused test; the V3-only follow-up replaces the retired V2 fallback binary check with `native_loader_rejects_unknown_abi_version_with_explicit_report`. The earlier fixture-only `--locked` build blocker was superseded on 2026-06-19 by refreshing `zircon_plugins/Cargo.lock` and rerunning the fixture build successfully.
 - M5 export-root runtime load smoke now covers the final loader-manifest path with a real fixture cdylib. `native_runtime_hot_update_loads_real_fixture_from_export_manifest` builds `zircon_plugin_native_dynamic_fixture_native`, lays out an export root containing `plugins/native_dynamic_fixture/plugin.toml`, the platform dynamic library under `plugins/native_dynamic_fixture/native/`, and `plugins/native_plugins.toml`, then calls `NativePluginLiveHost::hot_reload_runtime_plugins_from_export_root(...)`. The test asserts manifest/runtime/loaded plugin id closure, no editor entry invocation, live-host loaded ids, and `invoke_runtime_plugin_command("echo", b"manifest") -> b"echo:manifest"`. The adjacent unknown-ABI contract now asserts the invalid descriptor is attributed through `diagnostics_for_runtime_plugin(...)` instead of being silently absent. Initial validation on 2026-06-19 reached a passing focused smoke and full core-min contract after `cargo build --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --offline --target-dir D:\cargo-targets\zircon-plugin-fixture-repro-0619 --quiet` refreshed `zircon_plugins/Cargo.lock`; the same fixture `--locked` build passed, focused `cargo test -p zircon_runtime --test native_plugin_loader_contract native_runtime_hot_update_loads_real_fixture_from_export_manifest --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-runtime-load-0619 --message-format short --color never -- --test-threads=1 --nocapture` passed 1 test, and `cargo test -p zircon_runtime --test native_plugin_loader_contract --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-runtime-load-coremin-0619 --message-format short --color never -- --test-threads=1 --nocapture` passed all 4 contract tests. Closeout rechecks kept `rustfmt --edition 2021 --check zircon_runtime\tests\native_plugin_loader_contract.rs` and the fixture `--locked` build green, but both native loader Cargo test lanes are currently blocked before tests by unrelated workspace drift: default features hit render/post-process execute arity drift, and core-min hits dynamic_scene `preview_prune_*` plus render `UVec2`/arity drift. No current Cargo test pass is claimed after those unrelated changes.
+- M5/T2 zrpack delta plus NativeDynamic runtime hot-update composition now has `native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload` in the live-host unit-test tree. The test builds a base pack, target pack delta, export-root native plugin manifest, staged path, backup path, and receipt path; it then calls `hot_reload_runtime_plugins_after_delta_pack_install(...)` and verifies pack staging evidence, `Renamed` promotion, receipt format version, manifest-selected runtime plugin id, missing-library diagnostic, installed pack bytes, and receipt creation. Fresh 2026-07-01 validation: scoped `rustfmt --edition 2021 --check` passed for the touched native loader and pack files; `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-delta-hot-update-0701-check --message-format short --color never` passed with existing warning noise; `cargo test -p zircon_runtime --lib --no-default-features --features core-min native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-delta-hot-update-0701-green --message-format short --color never -- --test-threads=1 --nocapture` passed 1/1 after a warmed rerun, with existing warning noise.
 - `rustfmt --edition 2021 --check zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs zircon_runtime/src/plugin/package_manifest/mod.rs zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs zircon_runtime/src/plugin/runtime_plugin/package_validation/interfaces/exports.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs zircon_runtime/src/plugin/native_plugin_loader/mod.rs zircon_runtime/src/plugin/mod.rs zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs zircon_runtime/src/tests/plugin_extensions/runtime_plugin_package_manifest.rs` passed after adding package-manifest bridge method metadata and native manifest descriptor generation. Direct conflict-marker scans passed for the same native/package-manifest slice. Focused Cargo execution was deferred because unrelated runtime Cargo/rustc lanes were active.
 - `cargo test -p zircon_runtime --lib plugin_extensions::runtime_plugin_descriptor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-0612 --message-format short --color never -- --nocapture` was attempted after adding the descriptor-owned system-anchor contract but timed out after 10 minutes under concurrent runtime Cargo load. The timed-out target-dir process was cleaned up; no runtime-descriptor test pass is claimed for this slice.
 - `rustfmt --check zircon_plugins/native_dynamic_fixture/native/src/lib.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs` passed after the fixture v3 editor diagnostic and dotted-plugin-id adapter updates.

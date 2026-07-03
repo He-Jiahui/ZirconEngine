@@ -95,7 +95,7 @@ impl SoundEngineState {
                 .unwrap_or_else(|| vec![0.0; samples_len]),
         };
         for sample in &mut mix.samples {
-            *sample = (*sample * config.master_gain).clamp(-1.0, 1.0);
+            *sample *= config.master_gain;
         }
         Ok(mix)
     }

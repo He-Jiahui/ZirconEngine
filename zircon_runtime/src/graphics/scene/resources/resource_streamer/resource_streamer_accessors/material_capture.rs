@@ -45,6 +45,7 @@ impl ResourceStreamer {
                             unlit: descriptor.unlit || descriptor.lighting_model.is_unlit(),
                             cast_shadows: descriptor.cast_shadows,
                             receive_shadows: descriptor.receive_shadows,
+                            disabled_passes: Default::default(),
                             taa_reactive_mask_strength: descriptor.taa_reactive_mask_strength,
                             base_color_texture: self
                                 .resolve_texture_reference(

@@ -1,9 +1,9 @@
 use crate::core::framework::render::ShaderVariantKey;
-use crate::graphics::scene::resources::PipelineKey;
+use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::create_shadow_mesh_pipeline;
-use super::shader_source::mesh_pipeline_shadow_template_source_for_geometry;
+use super::shader_source::mesh_pipeline_shadow_template_source_for_geometry_descriptor_with_streamer;
 use super::MeshPipelineCache;
 
 const SHADOW_MESH_SHADER_KEY_PREFIX: &str = "zircon.builtin.shadow-mesh@1";
@@ -12,21 +12,25 @@ impl MeshPipelineCache {
     fn ensure_shadow_pipeline<'a>(
         &'a mut self,
         device: &wgpu::Device,
+        streamer: &ResourceStreamer,
         variant_id: MeshPipelineVariantId,
         key: &PipelineKey,
         kind: MeshPassPipelineKind,
         shader_variant_key: &ShaderVariantKey,
     ) -> Option<&'a wgpu::RenderPipeline> {
-        let shader_source = match mesh_pipeline_shadow_template_source_for_geometry(
-            key,
-            shader_variant_key.geometry_source,
-        ) {
-            Ok(source) => source,
-            Err(_) => {
-                self.record_shader_variant_disk_error(shader_variant_key);
-                return None;
-            }
-        };
+        let geometry_source = self.geometry_source_descriptor_for_variant(shader_variant_key)?;
+        let shader_source =
+            match mesh_pipeline_shadow_template_source_for_geometry_descriptor_with_streamer(
+                streamer,
+                key,
+                &geometry_source,
+            ) {
+                Ok(source) => source,
+                Err(_) => {
+                    self.record_shader_variant_disk_error(shader_variant_key);
+                    return None;
+                }
+            };
         let shader_key = shadow_mesh_shader_key(shader_variant_key, &shader_source.source_hash);
         if !self.shader_modules.contains_key(&shader_key) {
             let source =
@@ -52,6 +56,7 @@ impl MeshPipelineCache {
     pub(crate) fn ensure_shadow_pipeline_for_variant<'a>(
         &'a mut self,
         device: &wgpu::Device,
+        streamer: &ResourceStreamer,
         variant_id: MeshPipelineVariantId,
     ) -> Option<&'a wgpu::RenderPipeline> {
         let (kind, pipeline_key, shader_variant_key) =
@@ -60,6 +65,7 @@ impl MeshPipelineCache {
             MeshPassPipelineKind::ShadowDepth | MeshPassPipelineKind::ShadowDepthAlphaMask => self
                 .ensure_shadow_pipeline(
                     device,
+                    streamer,
                     variant_id,
                     &pipeline_key,
                     kind,

@@ -70,6 +70,7 @@ fn import_material_with_dependencies(
             shader: crate::asset::AssetReference::from_locator(
                 AssetUri::parse("builtin://shader/pbr.wgsl").unwrap(),
             ),
+            parent: None,
             base_color: [0.8, 0.8, 0.8, 1.0],
             base_color_texture: None,
             normal_texture: None,
@@ -83,6 +84,8 @@ fn import_material_with_dependencies(
             double_sided: false,
             property_values: Default::default(),
             texture_slots: Default::default(),
+            options: Default::default(),
+            queue: None,
             validation_diagnostics: Vec::new(),
         }),
     )

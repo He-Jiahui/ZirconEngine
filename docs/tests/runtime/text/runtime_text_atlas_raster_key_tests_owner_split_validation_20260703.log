@@ -1,0 +1,16 @@
+Runtime text atlas raster_key tests owner split validation - 2026-07-03
+
+Source changes:
+- zircon_runtime/src/graphics/text/atlas/raster_key/mod.rs owns glyph raster request/key/placement production logic and the cfg(test) mount.
+- zircon_runtime/src/graphics/text/atlas/raster_key/tests.rs owns 10 existing dpi/subpixel/hinting/smoothing/synthetic-style regression tests.
+
+Static verification:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/raster_key/mod.rs zircon_runtime/src/graphics/text/atlas/raster_key/tests.rs: passed, exit code 0.
+- Structure count: raster_key/mod.rs = 184 lines / 0 inline #[test] / 1 test hook; raster_key/tests.rs = 146 lines / 10 #[test].
+
+Cargo status:
+- Deferred: 15 cargo/rustc processes were active, so this slice did not start another compile/test writer.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_atlas_raster_key_tests_owner_split_preview_20260703.png
+- Purpose: static proof image for raster_key tests owner split and target-placement requirement.

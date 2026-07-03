@@ -1,19 +1,17 @@
 use super::super::super::data::FrameRect;
-use super::style::CHIP_LINE_HEIGHT;
-
-const CHIP_TEXT_LEFT: f32 = 10.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_TEXT_RIGHT: f32 =
-    8.0;
+use super::metrics::{chip_line_height, chip_text_left};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_rect(
     rect: &FrameRect,
     right_reserve: f32,
 ) -> FrameRect {
+    let line_height = chip_line_height();
+    let text_left = chip_text_left();
     FrameRect {
-        x: rect.x + CHIP_TEXT_LEFT,
-        y: rect.y + (rect.height - CHIP_LINE_HEIGHT).max(0.0) * 0.5,
-        width: (rect.width - CHIP_TEXT_LEFT - right_reserve).max(1.0),
-        height: CHIP_LINE_HEIGHT,
+        x: rect.x + text_left,
+        y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+        width: (rect.width - text_left - right_reserve).max(1.0),
+        height: line_height,
     }
 }
 

@@ -1,0 +1,24 @@
+runtime_text_sdf_native_pixel_snap_parity_validation_20260703
+Date: 2026-07-03
+Purpose: Visual/data-plane proof for shared device-pixel text origin between native glyphon TextArea and SDF text draw planning.
+User symptom: DengXian editor labels appeared uneven because glyph starts could visually drift left/right when placement inherited fractional frame origins.
+
+Implemented owner:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+
+Code paths consuming the owner:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs: native_text_area_placement uses text_origin_device_px for left/top.
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs: horizontal SDF baseline/start and vertical SDF cursor/column center use text_frame_device_origin.
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs: sdf_draw_plan_snaps_text_origin_before_horizontal_quad_placement covers fractional frame origin.
+
+Visual proof:
+- E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_sdf_native_pixel_snap_parity_preview_20260703.png
+- Image SHA256: ABDC47F299319347C09545730B423A626CA34099B9A09CB49288C19D3BB8A441
+
+Expected lightweight checks for this slice:
+- rustfmt --edition 2021 --check on touched Rust text files.
+- git diff --check on touched tracked files.
+- proof artifact target scan must report 0 matches under target/E:/cargo-targets/D:/cargo-targets.
+
+Cargo note:
+- Cargo is intentionally deferred if existing unrelated cargo/rustc lanes are still active, per repository validation policy.

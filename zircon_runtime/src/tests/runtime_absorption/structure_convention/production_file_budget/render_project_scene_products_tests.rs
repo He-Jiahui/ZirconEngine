@@ -59,7 +59,6 @@ fn runtime_15_project_render_scene_products_tests_are_child_owner() {
         &[
             "unique_temp_project_root",
             "write_flat_color_wgsl",
-            "write_flat_green_wgsl",
             "build_snapshot",
             "submit_snapshot",
             "average_channel",

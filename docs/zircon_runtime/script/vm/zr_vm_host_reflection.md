@@ -317,6 +317,10 @@ This does not change VM backend traits, host descriptor validation, capability e
 
 Runtime 15 M3 script VM hot-reload coordinator test folder split status: `runtime_15_script_vm_hot_reload_coordinator_tests_folder_split_static_passed_cargo_deferred`.
 
+Runtime 15 M3 script VM hot-reload guard child-owner split status: `runtime_15_script_vm_hot_reload_guard_child_owner_split_static_passed_cargo_deferred`.
+
+The structure guard owner for the hot-reload coordinator split now lives at `tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/hot_reload.rs`, with `runtime_15_script_vm_hot_reload_guard_is_child_owner` preventing the coordinator checks from returning to the parent script VM test-budget guard.
+
 `HotReloadCoordinator` now keeps production slot lifecycle logic in `hot_reload_coordinator.rs` while module-local tests live in `hot_reload_coordinator/tests.rs`. The child owner contains the policy recording backend, lifecycle-query backend, slot lifecycle fixture, and the five hot-reload/poison-recovery tests. This keeps the production owner focused without changing VM backend traits, slot generation, hot-reload policy semantics, host lifecycle queries, host export dispatch, or poison recovery behavior.
 
 The structure guard `runtime_15_script_vm_hot_reload_coordinator_tests_are_folder_backed` keeps the parent mount, moved-test scan, test count, line budget, Runtime 15/status rows, and this document synchronized.

@@ -1,5 +1,6 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use crate::asset::pack::{ZrPackDeltaInstallReport, ZrPackInstallReceipt, ZrPackPromotionReport};
 use crate::plugin::native::NativeHostBridgeCallScope;
 use crate::plugin::{
     PluginModuleKind, RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
@@ -101,6 +102,69 @@ pub struct NativePluginRuntimeHotUpdateReport {
     pub skipped_plugin_ids: Vec<String>,
     pub outcomes: Vec<NativePluginLiveHostOutcome>,
     pub diagnostics: Vec<String>,
+}
+
+/// Input paths for applying a zrpack delta before running a manifest-driven runtime hot update.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativePluginRuntimeDeltaHotUpdateRequest {
+    pub export_root: PathBuf,
+    pub base_pack: PathBuf,
+    pub delta_pack: PathBuf,
+    pub staged_pack: PathBuf,
+    pub installed_pack: PathBuf,
+    pub backup_pack: Option<PathBuf>,
+    pub receipt_path: Option<PathBuf>,
+}
+
+impl NativePluginRuntimeDeltaHotUpdateRequest {
+    pub fn new(
+        export_root: impl AsRef<Path>,
+        base_pack: impl AsRef<Path>,
+        delta_pack: impl AsRef<Path>,
+        staged_pack: impl AsRef<Path>,
+        installed_pack: impl AsRef<Path>,
+    ) -> Self {
+        Self {
+            export_root: export_root.as_ref().to_path_buf(),
+            base_pack: base_pack.as_ref().to_path_buf(),
+            delta_pack: delta_pack.as_ref().to_path_buf(),
+            staged_pack: staged_pack.as_ref().to_path_buf(),
+            installed_pack: installed_pack.as_ref().to_path_buf(),
+            backup_pack: None,
+            receipt_path: None,
+        }
+    }
+
+    pub fn with_backup_pack(mut self, backup_pack: impl AsRef<Path>) -> Self {
+        self.backup_pack = Some(backup_pack.as_ref().to_path_buf());
+        self
+    }
+
+    pub fn with_receipt_path(mut self, receipt_path: impl AsRef<Path>) -> Self {
+        self.receipt_path = Some(receipt_path.as_ref().to_path_buf());
+        self
+    }
+}
+
+/// Runtime hot-update report that binds a promoted zrpack delta to the plugin reload pass.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NativePluginRuntimeDeltaHotUpdateReport {
+    pub pack_install: ZrPackDeltaInstallReport,
+    pub pack_promotion: ZrPackPromotionReport,
+    pub pack_install_receipt: Option<ZrPackInstallReceipt>,
+    pub plugin_hot_update: NativePluginRuntimeHotUpdateReport,
+}
+
+impl NativePluginRuntimeDeltaHotUpdateReport {
+    pub fn is_clean(&self) -> bool {
+        self.pack_install.delta_apply_verified
+            && self.pack_promotion.installed_manifest == self.pack_install.target_manifest
+            && self
+                .pack_install_receipt
+                .as_ref()
+                .is_none_or(|receipt| receipt.promoted && receipt.delta_apply_verified)
+            && self.plugin_hot_update.is_clean()
+    }
 }
 
 impl NativePluginRuntimeHotUpdateReport {

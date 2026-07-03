@@ -14,7 +14,7 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let rhi_doc = read_repo("docs/zircon_runtime/rhi/descriptors.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -45,7 +45,10 @@ fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_st
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("RHI descriptor doc", rhi_doc.as_str()),
-        ("status-output M3 foundation row data", status_rows.as_str()),
+        (
+            "status-output M3 lock-poison row data",
+            status_rows.as_str(),
+        ),
     ] {
         assert_contains_all(
             label,

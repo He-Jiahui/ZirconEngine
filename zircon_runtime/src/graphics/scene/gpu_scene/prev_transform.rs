@@ -192,6 +192,7 @@ mod tests {
             prev_world_from_local: test_matrix(previous_x),
             primitive_index: u32::MAX,
             payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+            morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
             ..GpuInstanceData::default()
         }
     }

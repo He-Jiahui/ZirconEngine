@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
-use crate::core::framework::render::{
-    render_mesh_stable_instance_key, PrimitiveRelevance, RenderMeshSnapshot,
-};
+use crate::core::framework::render::{render_mesh_stable_instance_key, PrimitiveRelevance};
 use crate::core::framework::scene::EntityId;
 use crate::graphics::scene::gpu_scene::{GpuScene, GpuSceneUploadReport};
-use crate::graphics::scene::resources::{GpuMeshResource, ResourceStreamer};
+use crate::graphics::scene::resources::{
+    GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, ResourceStreamer,
+};
 use crate::graphics::scene::scene_renderer::lighting::light_buffer::pack_lighting_extract;
 use crate::graphics::scene::scene_renderer::shadow::ShadowLightSlotAssignments;
 use crate::graphics::types::ViewportRenderFrame;
@@ -23,9 +24,12 @@ use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
-use super::gpu_scene_sync::{
-    skinned_gpu_source_geometry_source, sync_gpu_scene_pending_draws, SyncedGpuSceneEntry,
+use super::geometry_source_selection::{
+    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_geometry_source,
+    pending_mesh_source_selection, PendingMeshSourceSelection,
 };
+use super::gpu_scene_sync::{sync_gpu_scene_pending_draws, SyncedGpuSceneEntry};
+use super::morph_payload_upload::upload_morph_payloads;
 use super::pending_command_cache_extract::{
     extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
     PendingMeshCommandCacheExtractionStats,
@@ -37,6 +41,7 @@ use super::pending_command_cache_plan::{
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::phase_ordering::phase_ordered_meshes;
 use super::virtual_geometry_indirect::build_virtual_geometry_indirect_draw_plan;
+use super::virtual_geometry_resident_upload::upload_virtual_geometry_resident_payloads;
 
 pub(crate) struct BuiltMeshDraws {
     draws: Vec<MeshDraw>,
@@ -130,6 +135,7 @@ pub(crate) fn build_mesh_draws(
             streamer,
             frame,
             &build_context,
+            gpu_scene,
             mesh_instance.snapshot,
             mesh_instance.command_sort_input,
         );
@@ -140,6 +146,14 @@ pub(crate) fn build_mesh_draws(
         virtual_geometry_enabled,
         &mut pending_draws,
     );
+    let virtual_geometry_upload_report = upload_virtual_geometry_resident_payloads(
+        device,
+        queue,
+        gpu_scene,
+        virtual_geometry_enabled,
+        frame.virtual_geometry_debug_snapshot.as_ref(),
+    );
+    let morph_upload_report = upload_morph_payloads(device, queue, gpu_scene, &mut pending_draws);
     let mut packed_lights =
         pack_lighting_extract(&frame.extract.lighting, frame.preview().lighting_enabled);
     if let Some(shadow_light_slots) = shadow_light_slots {
@@ -149,6 +163,9 @@ pub(crate) fn build_mesh_draws(
     gpu_scene.write_lights(device, &packed_lights.lights);
     let (gpu_scene_upload_report, gpu_scene_entries) =
         sync_gpu_scene_pending_draws(device, queue, gpu_scene, &mut pending_draws);
+    let gpu_scene_upload_report = gpu_scene_upload_report
+        .with_additional_uploaded_bytes(virtual_geometry_upload_report.uploaded_bytes)
+        .with_additional_uploaded_bytes(morph_upload_report.uploaded_bytes);
     let visibility_states = mesh_visibility_states(frame);
     let pending_command_cache_plan_stats =
         summarize_pending_mesh_command_cache_plan(&pending_draws, |entity| {
@@ -254,61 +271,34 @@ pub(crate) fn build_mesh_draws(
                         synced_gpu_scene_entry.entry.first_instance_index,
                         synced_gpu_scene_entry.entry.instance_count,
                     );
-                    let supports_skinned_gpu_skinning =
-                        pending_draw.pipeline_key.uses_fallback_shader();
-                    let skinned_gpu_source = pending_draw.skinned_gpu_source;
-                    let resolved_skinned_gpu_source =
-                        supports_skinned_gpu_skinning.then_some(()).and_then(|_| {
-                            pending_draw
-                                .resolved_skinned_gpu_source
-                                .as_ref()
-                                .map(|mesh| {
-                                    (
-                                        mesh.clone(),
-                                        skinned_gpu_source
-                                            .as_ref()
-                                            .map(skinned_gpu_source_geometry_source)
-                                            .expect(
-                                                "resolved skinned GPU source has source metadata",
-                                            ),
-                                        skinned_gpu_source.as_ref().is_some_and(
-                                            PendingSkinnedGpuSource::uses_cpu_morphed_source,
-                                        ),
-                                    )
-                                })
-                        });
+                    let skinned_gpu_skinning_enabled =
+                        pending_draw_has_enabled_skinned_gpu_source(&pending_draw);
+                    let source_selection =
+                        pending_mesh_source_selection(&pending_draw, skinned_gpu_skinning_enabled);
+                    let geometry_source = source_selection.geometry_source();
                     let (
                         mesh,
-                        geometry_source,
                         resolved_skinned_gpu_source,
                         skinned_gpu_source_uses_cpu_morphed_source,
-                        skinned_gpu_skinning_enabled,
-                    ) = match pending_draw.mesh {
-                        PendingMeshGeometry::Prepared(mesh) => {
-                            (mesh, MeshDrawGeometrySource::Prepared, None, false, false)
-                        }
-                        PendingMeshGeometry::Dynamic(primitive) => {
-                            if let Some((mesh, geometry_source, uses_cpu_morphed_source)) =
-                                resolved_skinned_gpu_source
-                            {
-                                (
-                                    mesh.clone(),
-                                    geometry_source,
-                                    Some(mesh),
-                                    uses_cpu_morphed_source,
-                                    true,
-                                )
-                            } else {
-                                (
-                                    std::sync::Arc::new(GpuMeshResource::from_asset(
-                                        device, primitive,
-                                    )),
-                                    MeshDrawGeometrySource::Dynamic,
-                                    None,
-                                    false,
-                                    false,
-                                )
-                            }
+                    ) = match source_selection {
+                        PendingMeshSourceSelection::Prepared(mesh)
+                        | PendingMeshSourceSelection::GpuMorphed { mesh } => (mesh, None, false),
+                        PendingMeshSourceSelection::Dynamic { primitive, .. } => (
+                            Arc::new(GpuMeshResource::from_asset(device, primitive)),
+                            None,
+                            false,
+                        ),
+                        PendingMeshSourceSelection::SkinnedGpu {
+                            mesh,
+                            source_uses_cpu_morphed_source,
+                            ..
+                        } => {
+                            let resolved_skinned_gpu_source = Some(mesh.clone());
+                            (
+                                mesh,
+                                resolved_skinned_gpu_source,
+                                source_uses_cpu_morphed_source,
+                            )
                         }
                     };
                     let previous_skinned_joint_palette = if skinned_gpu_skinning_enabled {
@@ -320,6 +310,13 @@ pub(crate) fn build_mesh_draws(
                         .has_previous_velocity_transform
                         && (!skinned_gpu_skinning_enabled
                             || previous_skinned_joint_palette.is_some());
+                    let material_uniform = if let Some(payload) =
+                        pending_draw.material_uniform_override_payload.as_ref()
+                    {
+                        Arc::new(GpuMaterialUniformResource::from_payload(device, payload))
+                    } else {
+                        pending_draw.material_uniform
+                    };
                     let mut mesh_draw = create_mesh_draw(
                         device,
                         gpu_scene,
@@ -331,10 +328,11 @@ pub(crate) fn build_mesh_draws(
                         pending_draw.source_draw_ordinal,
                         pending_draw.static_state,
                         pending_draw.material_textures,
-                        pending_draw.material_uniform,
+                        material_uniform,
                         pending_draw.standard_material_uniform,
                         pending_draw.pipeline_key,
                         pending_draw.cast_shadows,
+                        pending_draw.disabled_passes,
                         pending_draw.taa_reactive_mask_strength,
                         has_previous_velocity_transform,
                         pending_draw.mesh_lod,
@@ -425,8 +423,10 @@ struct PendingPreparedMeshBatchKey {
     occlusion_texture: usize,
     emissive_texture: usize,
     material_uniform: usize,
+    material_uniform_override_signature: u64,
     standard_material_uniform: usize,
     pipeline_key: crate::graphics::scene::resources::PipelineKey,
+    disabled_passes: MaterialDisabledPasses,
     first_index: u32,
     draw_index_count: u32,
 }
@@ -436,8 +436,8 @@ fn prepared_mesh_queue_stats_for_pending_draws(
     gpu_scene_entries: &HashMap<u64, SyncedGpuSceneEntry>,
 ) -> PreparedMeshQueueStats {
     summarize_prepared_mesh_queue_items(pending_draws.iter().map(|pending_draw| {
-        let skinned_gpu_skinning_enabled = pending_draw.pipeline_key.uses_fallback_shader()
-            && pending_draw.resolved_skinned_gpu_source.is_some();
+        let skinned_gpu_skinning_enabled =
+            pending_draw_has_enabled_skinned_gpu_source(pending_draw);
         let has_previous_velocity_transform = gpu_scene_entries
             .get(&render_mesh_stable_instance_key(
                 pending_draw.source_entity,
@@ -480,21 +480,6 @@ fn prepared_mesh_queue_stats_for_pending_draws(
     }))
 }
 
-fn pending_mesh_draw_geometry_source(
-    pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
-    skinned_gpu_skinning_enabled: bool,
-) -> MeshDrawGeometrySource {
-    match &pending_draw.mesh {
-        PendingMeshGeometry::Prepared(_) => MeshDrawGeometrySource::Prepared,
-        PendingMeshGeometry::Dynamic(_) if skinned_gpu_skinning_enabled => pending_draw
-            .skinned_gpu_source
-            .as_ref()
-            .map(skinned_gpu_source_geometry_source)
-            .unwrap_or(MeshDrawGeometrySource::Dynamic),
-        PendingMeshGeometry::Dynamic(_) => MeshDrawGeometrySource::Dynamic,
-    }
-}
-
 fn pending_mesh_draw_batch_key(
     pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
     geometry_source: MeshDrawGeometrySource,
@@ -520,10 +505,32 @@ fn pending_mesh_draw_batch_key(
             &textures.emissive
         }),
         material_uniform: Arc::as_ptr(&pending_draw.material_uniform) as usize,
+        material_uniform_override_signature: material_uniform_override_signature(pending_draw),
         standard_material_uniform: Arc::as_ptr(&pending_draw.standard_material_uniform) as usize,
         pipeline_key: pending_draw.pipeline_key.clone(),
+        disabled_passes: pending_draw.disabled_passes,
         first_index: pending_draw.first_index,
         draw_index_count: pending_draw.draw_index_count,
+    }
+}
+
+fn material_uniform_override_signature(
+    pending_draw: &super::pending_mesh_draw::PendingMeshDraw,
+) -> u64 {
+    let Some(payload) = pending_draw.material_uniform_override_payload.as_ref() else {
+        return 0;
+    };
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    payload.bytes.hash(&mut hasher);
+    for unsupported in &payload.unsupported {
+        unsupported.name.hash(&mut hasher);
+        unsupported.reason.hash(&mut hasher);
+    }
+    let hash = hasher.finish();
+    if hash == 0 {
+        1
+    } else {
+        hash
     }
 }
 
@@ -533,7 +540,8 @@ fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDra
     }
     match &pending_draw.mesh {
         PendingMeshGeometry::Prepared(mesh) => Arc::as_ptr(mesh) as usize,
-        PendingMeshGeometry::Dynamic(_) => {
+        PendingMeshGeometry::GpuMorphed(mesh) => Arc::as_ptr(mesh) as usize,
+        PendingMeshGeometry::Dynamic(_) | PendingMeshGeometry::CpuMorphed(_) => {
             (pending_draw.source_entity as usize).wrapping_mul(31)
                 ^ pending_draw.source_draw_ordinal as usize
         }

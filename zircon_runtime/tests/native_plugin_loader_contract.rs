@@ -245,9 +245,12 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
         mismatch_report.payload.as_deref(),
         Some(&b"mismatch:hello"[..])
     );
-    assert!(mismatch_report.diagnostics.iter().any(
-        |message| message.contains("owned buffer free failed: allocation/free owner mismatch")
-    ));
+    assert!(mismatch_report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains(
+            "native plugin owned buffer free failed: native plugin SDK allocation owner mismatch"
+        )));
 
     let state_report = plugin.save_runtime_state();
     assert_eq!(state_report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);

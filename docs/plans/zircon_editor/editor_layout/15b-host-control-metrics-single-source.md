@@ -121,6 +121,11 @@ impl HostControlMetrics {
 ## 7. 与 15.S1a / 01 的关系
 - **15.S1a**:已把 chrome 取值收敛到一致(FiraSans + 低圆角/薄边框/紧凑字号);本计划把"一致取值"升级为"单源定义",不改像素。
 - **01/S15.6**:度量单源(本文)与色彩单源(`S15.6` 把 `PALETTE` 接 `EditorDesignTokens`)是两条正交收口线;`HostControlMetrics` 后续也可由中央 `EditorDesignTokens` 的 `controls/density` 组投影(留作 `S15.6`/`01.S2` 衔接点)。
+- 补(2026-07-02 评审收口):
+  - **值语义**:`METRICS` 全部字段为**逻辑单位基准**(scale=1.0 取值),渲染前统一乘 scale(逻辑→物理换算单点在 21 顶点装配,遵 16 §3.4);任何调用方不得预乘 scale 存值。
+  - **与 16 §5 合并**:`METRICS` 与 16 §5 的 `WorkbenchChromeMetricsLogical` 语义重叠,收编为**同一投影来源**(单表、双名先并存到切换点),挂 **16.S3** 切片执行合并。
+  - **行高权威**:`line_height_ratio`/`line_height()` 仅为 chrome 层过渡值,行高权威 = **01 typography token**(与 17 §3.6 裁决一致);01.S2 typography 组落地后本表行高字段改为投影,不再自持比例。
+  - **移交条款**:20.S2 级联 `var()` 通路验收后,`METRICS` 降级为级联引擎的内置默认值来源(见 20 §3.6 收编路线),删除时点以 20.S2 验收为准。
 
 ## 8. 结构纪律
 owner 叶子 `paint_theme/metrics.rs`;根 wiring 薄;无 `unwrap/expect/TODO/allow(dead_code)/裸 Result`;文件 ≤800;硬切换删旧符号不留双轨;B 层不越界改。

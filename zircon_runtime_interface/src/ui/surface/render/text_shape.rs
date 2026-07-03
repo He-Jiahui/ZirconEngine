@@ -4,9 +4,14 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::ui::layout::UiFrame;
 
 use super::{
-    UiRenderResourceKey, UiResolvedTextLayout, UiResourceUvRect, UiTextCaret, UiTextComposition,
-    UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextSelection,
+    UiRenderResourceKey, UiResolvedStyle, UiResolvedTextLayout, UiResourceUvRect, UiTextCaret,
+    UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
+    UiTextRunKind, UiTextSelection, UiTextWritingMode,
 };
+
+fn default_text_font_weight() -> u16 {
+    UiResolvedStyle::DEFAULT_FONT_WEIGHT
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiTextPaint {
@@ -14,8 +19,12 @@ pub struct UiTextPaint {
     pub color: Option<String>,
     pub font: Option<String>,
     pub font_family: Option<String>,
+    #[serde(default = "default_text_font_weight")]
+    pub font_weight: u16,
     pub font_size: f32,
     pub line_height: f32,
+    #[serde(default)]
+    pub writing_mode: UiTextWritingMode,
     pub render_mode: UiTextRenderMode,
     pub overflow: UiTextOverflow,
     pub shaped: Option<UiShapedText>,
@@ -33,11 +42,13 @@ pub struct UiTextPaint {
 
 impl UiTextPaint {
     pub fn from_shaped_text(shaped: UiShapedText, color: Option<String>) -> Self {
+        let font_weight = default_text_font_weight();
         let runs = text_paint_runs_from_shaped(
             &shaped,
             &color,
             &None,
             &None,
+            font_weight,
             shaped.font_size,
             shaped.line_height,
         );
@@ -46,8 +57,10 @@ impl UiTextPaint {
             color,
             font: None,
             font_family: None,
+            font_weight,
             font_size: shaped.font_size,
             line_height: shaped.line_height,
+            writing_mode: shaped.writing_mode,
             render_mode: shaped.render_mode,
             overflow: shaped.overflow,
             shaped: Some(shaped),
@@ -70,6 +83,8 @@ pub struct UiTextPaintRun {
     pub color: Option<String>,
     pub font: Option<String>,
     pub font_family: Option<String>,
+    #[serde(default = "default_text_font_weight")]
+    pub font_weight: u16,
     pub font_size: f32,
     pub line_height: f32,
     #[serde(default)]
@@ -161,6 +176,8 @@ pub struct UiShapedText {
     pub line_height: f32,
     pub measured_width: f32,
     pub measured_height: f32,
+    #[serde(default)]
+    pub writing_mode: UiTextWritingMode,
     pub render_mode: UiTextRenderMode,
     #[serde(default)]
     pub font_key: Option<UiRenderResourceKey>,
@@ -186,11 +203,16 @@ impl UiShapedText {
             line_height: layout.line_height,
             measured_width: layout.measured_width,
             measured_height: layout.measured_height,
+            writing_mode: layout.writing_mode,
             render_mode,
             font_key: None,
             atlas_resource: None,
             ellipsis_range: None,
-            lines: layout.lines.iter().map(shaped_line_from_resolved).collect(),
+            lines: layout
+                .lines
+                .iter()
+                .map(|line| shaped_line_from_resolved(line, layout.writing_mode))
+                .collect(),
         }
     }
 }
@@ -315,7 +337,10 @@ pub struct UiShapedTextCluster {
     pub direction: UiTextDirection,
 }
 
-fn shaped_line_from_resolved(line: &super::UiResolvedTextLine) -> UiShapedTextLine {
+fn shaped_line_from_resolved(
+    line: &super::UiResolvedTextLine,
+    writing_mode: UiTextWritingMode,
+) -> UiShapedTextLine {
     UiShapedTextLine {
         text: line.text.clone(),
         frame: line.frame,
@@ -325,7 +350,7 @@ fn shaped_line_from_resolved(line: &super::UiResolvedTextLine) -> UiShapedTextLi
         baseline: line.baseline,
         direction: line.direction,
         ellipsized: line.ellipsized,
-        glyphs: shaped_glyphs_for_line(line),
+        glyphs: shaped_glyphs_for_line(line, writing_mode),
         clusters: line
             .runs
             .iter()
@@ -340,13 +365,20 @@ fn shaped_line_from_resolved(line: &super::UiResolvedTextLine) -> UiShapedTextLi
     }
 }
 
-fn shaped_glyphs_for_line(line: &super::UiResolvedTextLine) -> Vec<UiShapedGlyph> {
+fn shaped_glyphs_for_line(
+    line: &super::UiResolvedTextLine,
+    writing_mode: UiTextWritingMode,
+) -> Vec<UiShapedGlyph> {
     let graphemes = line.text.grapheme_indices(true).collect::<Vec<_>>();
     if graphemes.is_empty() {
         return Vec::new();
     }
 
     let advances = glyph_advances_for_line(line, graphemes.len());
+    if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+        return shaped_vertical_glyphs_for_line(line, &graphemes, advances);
+    }
+
     let mut cursor_x = line.frame.x;
     graphemes
         .iter()
@@ -365,6 +397,43 @@ fn shaped_glyphs_for_line(line: &super::UiResolvedTextLine) -> Vec<UiShapedGlyph
             .with_cluster_flags(cluster_flags_for_grapheme(grapheme, line.direction))
         })
         .collect()
+}
+
+fn shaped_vertical_glyphs_for_line(
+    line: &super::UiResolvedTextLine,
+    graphemes: &[(usize, &str)],
+    advances: Vec<f32>,
+) -> Vec<UiShapedGlyph> {
+    let mut cursor_y = line.frame.y;
+    graphemes
+        .iter()
+        .zip(advances)
+        .map(|((visual_start, grapheme), advance)| {
+            let visual_end = *visual_start + grapheme.len();
+            let advance = advance.max(0.0);
+            let visual_frame = UiFrame::new(line.frame.x, cursor_y, line.frame.width, advance);
+            cursor_y += advance;
+            UiShapedGlyph::new(
+                synthetic_glyph_id(grapheme),
+                source_range_for_visual_span(line, *visual_start, visual_end),
+                visual_frame,
+                advance,
+            )
+            .with_cluster_flags(cluster_flags_for_grapheme(grapheme, line.direction))
+            .with_rotation(vertical_grapheme_rotation(grapheme))
+        })
+        .collect()
+}
+
+fn vertical_grapheme_rotation(grapheme: &str) -> UiShapedGlyphRotation {
+    if grapheme
+        .chars()
+        .all(|ch| ch.is_ascii() && !ch.is_whitespace())
+    {
+        UiShapedGlyphRotation::Cw90
+    } else {
+        UiShapedGlyphRotation::None
+    }
 }
 
 fn glyph_advances_for_line(line: &super::UiResolvedTextLine, grapheme_count: usize) -> Vec<f32> {
@@ -428,8 +497,9 @@ fn source_range_for_visual_span(
 
         let local_start = overlap_start.saturating_sub(run.visual_range.start);
         let local_end = overlap_end.saturating_sub(run.visual_range.start);
-        source_start = source_start.min(run.source_range.start + local_start);
-        source_end = source_end.max(run.source_range.start + local_end);
+        let mapped = source_range_for_run_visual_span(run, local_start, local_end);
+        source_start = source_start.min(mapped.start);
+        source_end = source_end.max(mapped.end);
     }
 
     if source_start == usize::MAX {
@@ -442,6 +512,26 @@ fn source_range_for_visual_span(
             start: source_start,
             end: source_end.max(source_start),
         }
+    }
+}
+
+fn source_range_for_run_visual_span(
+    run: &super::UiResolvedTextRun,
+    local_start: usize,
+    local_end: usize,
+) -> UiTextRange {
+    if local_start >= local_end {
+        return UiTextRange {
+            start: run.source_range.start,
+            end: run.source_range.start,
+        };
+    }
+    if run.source_range.end.saturating_sub(run.source_range.start) != run.text.len() {
+        return run.source_range;
+    }
+    UiTextRange {
+        start: run.source_range.start + local_start,
+        end: run.source_range.start + local_end,
     }
 }
 
@@ -459,6 +549,7 @@ pub(crate) fn text_paint_runs_from_shaped(
     color: &Option<String>,
     font: &Option<String>,
     font_family: &Option<String>,
+    font_weight: u16,
     font_size: f32,
     line_height: f32,
 ) -> Vec<UiTextPaintRun> {
@@ -473,10 +564,11 @@ pub(crate) fn text_paint_runs_from_shaped(
                 text: cluster.text.clone(),
                 source_range: cluster.source_range,
                 visual_range: cluster.visual_range,
-                frame: text_run_frame(line, cluster.visual_range),
+                frame: text_run_frame(shaped.writing_mode, line, cluster.visual_range),
                 color: color.clone(),
                 font: font.clone(),
                 font_family: font_family.clone(),
+                font_weight,
                 font_size,
                 line_height,
                 style: UiTextRunPaintStyle::from_run_kind(cluster.kind),
@@ -486,12 +578,42 @@ pub(crate) fn text_paint_runs_from_shaped(
     runs
 }
 
-fn text_run_frame(line: &UiShapedTextLine, visual_range: UiTextRange) -> UiFrame {
+fn text_run_frame(
+    writing_mode: UiTextWritingMode,
+    line: &UiShapedTextLine,
+    visual_range: UiTextRange,
+) -> UiFrame {
     let visual_start = grapheme_floor(line.text.as_str(), visual_range.start);
     let visual_end = grapheme_ceil(line.text.as_str(), visual_range.end);
+    if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+        let y0 = line_visual_y(line, visual_start);
+        let y1 = line_visual_y(line, visual_end);
+        return UiFrame::new(line.frame.x, y0.min(y1), line.frame.width, (y1 - y0).abs());
+    }
+
     let x0 = line_visual_x(line, visual_start);
     let x1 = line_visual_x(line, visual_end);
     UiFrame::new(x0.min(x1), line.frame.y, (x1 - x0).abs(), line.frame.height)
+}
+
+fn line_visual_y(line: &UiShapedTextLine, visual_offset: usize) -> f32 {
+    let text = line.text.as_str();
+    let offset = grapheme_floor(text, visual_offset.min(text.len()));
+    let total_units = text.graphemes(true).count();
+    let before_units = text[..offset].graphemes(true).count();
+    if line.glyphs.len() == total_units {
+        return line.frame.y
+            + line
+                .glyphs
+                .iter()
+                .take(before_units)
+                .map(|glyph| sanitized_advance(glyph.advance))
+                .sum::<f32>();
+    }
+
+    let total_units = total_units.max(1) as f32;
+    let before_units = before_units as f32;
+    line.frame.y + (line.frame.height.max(0.0) * before_units / total_units)
 }
 
 fn line_visual_x(line: &UiShapedTextLine, visual_offset: usize) -> f32 {

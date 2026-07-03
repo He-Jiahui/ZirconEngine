@@ -157,7 +157,7 @@ fn runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let lifecycle_doc = read_repo("docs/zircon_runtime/core/runtime/lifecycle.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

@@ -40,6 +40,7 @@ tests:
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_reports_runtime_fps_and_render_work --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, ZR_VAMPIRE_CAPTURE_PNG, ZR_VAMPIRE_CAPTURE_WIDTH=640, and ZR_VAMPIRE_CAPTURE_HEIGHT=360 set
   - cargo test -p zircon_runtime --lib runtime_15_gameplay_host_tests_are_folder_backed --no-default-features --features core-min --locked: deferred in Runtime 15 M3 gameplay host test folder split
+  - cargo test -p zircon_runtime --lib runtime_15_script_vm_gameplay_host_guard_is_child_owner --no-default-features --features core-min --locked: deferred in Runtime 15 M3 script VM gameplay host guard child-owner split
   - cargo test -p zircon_runtime --lib review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary --no-default-features --features core-min --locked: deferred while external cargo/rustc lanes are active
   - cargo check -p zircon_runtime --lib --message-format short --color never
 doc_type: module-detail
@@ -88,3 +89,7 @@ Runtime 15 E1/E2/F5 的当前切片新增 `script/vm/gameplay_host/error.rs`，�
 Runtime 15 R4.1/M3 的当前结构切片只调整 gameplay host 测试 owner，不改变 `zr.zircon.gameplay` 注册面、callback 行为或 Runtime 13 host ledger 计数。`script/vm/gameplay_host/tests.rs` 从 891 行降到 46 行，只保留共享导入、`mod combat_lifecycle;`、`mod component_state;`、`mod property_animation;`、`mod spawn_transform;` 和 `assert_vec3_close` / `assert_quat_close` helper。
 
 9 个原测试迁入 `script/vm/gameplay_host/tests/spawn_transform.rs`、`script/vm/gameplay_host/tests/component_state.rs`、`script/vm/gameplay_host/tests/combat_lifecycle.rs` 与 `script/vm/gameplay_host/tests/property_animation.rs`；最大 child `property_animation.rs` 为 289 行，全部低于 800 行预算。新增 `structure_convention/test_file_budget/script_vm_tests.rs::runtime_15_gameplay_host_tests_are_folder_backed`，锁定父/子模块挂载、moved test 不回流、迁移测试数量、owner 行数预算，并要求 Runtime 15 计划、runtime index、结构规范、review findings、module-convention、本文档和 status-output expectations 同步该状态锚。
+
+Runtime 15 M3 script VM gameplay host guard child-owner split status: `runtime_15_script_vm_gameplay_host_guard_child_owner_split_static_passed_cargo_deferred`.
+
+The structure guard owner for the gameplay host test split now lives at `tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/gameplay_host.rs`, with `runtime_15_script_vm_gameplay_host_guard_is_child_owner` preventing the gameplay host checks from returning to the parent script VM test-budget guard.

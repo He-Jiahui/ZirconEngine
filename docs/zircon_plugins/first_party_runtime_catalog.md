@@ -2,6 +2,7 @@
 related_code:
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
   - zircon_app/Cargo.toml
@@ -29,6 +30,7 @@ related_code:
 implementation_files:
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
+  - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
   - tools/audit_plugin_structure.py
   - tools/plugin_structure_audits/manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
@@ -71,6 +73,14 @@ tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_feature_enabled_runtime_descriptor_manifest_parity --features "base-runtime-plugins advanced-render-runtime-plugins navigation-runtime-plugin zr-vm-language-runtime-plugin" --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-feature-catalog-check-0622 --message-format short --color never -- --test-threads=1: 1 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12 --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-feature-catalog-check-0622 --message-format short --color never -- --test-threads=1: 3 passed, 0 failed, 1 filtered out on 2026-06-22 with existing zircon_runtime warnings
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation_runtime navigation_registration_contributes_runtime_module_and_components --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-feature-catalog-check-0622 --message-format short --color never -- --test-threads=1: 1 passed, 0 failed on 2026-06-22 with existing zircon_runtime warnings
+  - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema tools.tests.test_plugin_structure_audit_registration: passed 2026-07-03, 16 tests
+  - python tools\audit_plugin_structure.py --json: passed 2026-07-03 with manifest_count=37, generated_manifest_count=36, manifest_schema_violations=0, capability_source_mismatches=0, runtime_registration_builder_violation_count=0, dist_capable_plugin_count=39, dist_dependency_boundary_violations=0, retired_ui_asset_files=0
+  - read-only first-party catalog snapshot script over zircon_plugins/first_party_runtime_catalog/src/lib.rs and zircon_plugins/**/plugin.toml: passed 2026-07-03 with provider_count=13, static_manifest_count=36, plugin_manifest_count=37, generated_manifest_count=36, native_dynamic_fixture hand-written exception present, snapshot_sha256=e16a68cf81d326342c4694cd3e1a6425e8162d503c1b2c8ca578c8e5b30b54e7
+  - rustfmt --edition 2021 --check zircon_plugins\first_party_runtime_catalog\src\lib.rs zircon_plugins\first_party_runtime_catalog\src\tests\provider_snapshot.rs: passed 2026-07-03
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog --features base-runtime-plugins,advanced-render-runtime-plugins,navigation-runtime-plugin,zr-vm-language-runtime-plugin --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-first-party-catalog-featured-0703 --message-format short --color never -- --nocapture --test-threads=1": passed 2026-07-03, 8/8 tests, doc-tests 0/0
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog --features base-runtime-plugins,advanced-render-runtime-plugins,navigation-runtime-plugin,zr-vm-language-runtime-plugin --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-first-party-catalog-featured-0703 --message-format short --color never feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugins -- --nocapture --test-threads=1": passed 2026-07-03, 1/1 tests, 7 filtered
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog --no-default-features --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-first-party-catalog-0703 --message-format short --color never catalog_without_provider_features_returns_no_registrations -- --nocapture --test-threads=1": passed 2026-07-03 current closeout rerun, 1/1 tests
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog --no-default-features --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-first-party-catalog-0703 --message-format short --color never -- --nocapture --test-threads=1": passed 2026-07-03 current closeout rerun, 7/7 tests, doc-tests 0/0, test runtime 136.39s
 doc_type: module-detail
 ---
 
@@ -143,3 +153,34 @@ Runtime 06 / F8 now requires first-party runtime plugin descriptor production fi
 test fixtures to migrate in a separate slice. Status:
 `runtime_plugin_descriptor_first_party_builder_migration_coremin_check_passed`; RuntimePluginDescriptor
 test fixture migration remains pending.
+
+Frameworks 02 M3 adds a low-interference catalog/source snapshot while runtime/editor Cargo lanes are
+busy. The static provider match order in `first_party_registration_for_runtime_plugin(...)` is:
+`Ai`, `Sound`, `Texture`, `Net`, `Navigation`, `Particles`, `Animation`, `Rendering`,
+`GltfImporter`, `VirtualGeometry`, `HybridGi`, `Solari`, `ZrVmLanguage`. The same snapshot verifies
+that the catalog test array covers 36 generated non-native manifests, the plugin tree still contains
+37 manifests total, and `native_dynamic_fixture` remains the single hand-written native manifest
+exception. Snapshot SHA256:
+`e16a68cf81d326342c4694cd3e1a6425e8162d503c1b2c8ca578c8e5b30b54e7`. This evidence does not replace
+feature-enabled catalog Cargo tests or full plugin workspace build/test.
+
+Frameworks 02 M3 now also has feature-enabled provider execution coverage in
+`src/tests/provider_snapshot.rs`. The test is mounted from the crate test module only when one of
+the provider feature groups is active, then constructs a client-runtime project manifest and calls
+`first_party_runtime_plugin_registrations_for_manifest(...)`. This executes the compiled
+first-party provider `plugin_registration()` functions, asserts the 13-provider package order,
+checks `ProjectPluginSelection.id` against the returned package manifest id, and requires every
+registration report to carry an empty diagnostic list.
+
+The snapshot owner is deliberately outside `src/lib.rs`: adding it inline pushed the crate root to
+roughly 1090 lines, so the test was split to keep the root structural. After the split,
+`src/lib.rs` is 920 lines and `src/tests/provider_snapshot.rs` is 126 lines. Fresh WSL validation
+passed the feature-enabled catalog crate gate 8/8 with doc-tests 0/0, including the provider
+snapshot. The current WSL no-default closeout reruns also pass: the focused
+`catalog_without_provider_features_returns_no_registrations` regression passes 1/1, and the full
+no-default crate passes 7/7 with doc-tests 0/0. The earlier `sdf_fallback.rs` `E0689` compile
+blocker was removed by the active runtime text/SDF owner; this catalog session did not edit that
+file. This closes first-party provider execution and current no-default catalog regression for this
+catalog gate only; it does not claim full
+`zircon_plugins` workspace build/test, host `NativePluginLoader`, public wrapper artifact build, or
+runtime/editor integration.

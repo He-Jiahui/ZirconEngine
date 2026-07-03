@@ -53,10 +53,7 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
         ],
     );
 
-    let runtime_10_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P13 |"))
-        .expect("Runtime index should keep the P13 dynamic API problem row");
+    let runtime_10_problem_row = runtime_index_problem_row_for(runtime_index, "P13", "dynamic API");
     assert_contains_all(
         "Runtime index P13 row",
         runtime_10_problem_row,
@@ -178,10 +175,7 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         ],
     );
 
-    let runtime_10_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P13 |"))
-        .expect("Runtime index should keep the P13 dynamic API problem row");
+    let runtime_10_problem_row = runtime_index_problem_row_for(runtime_index, "P13", "dynamic API");
     assert_contains_all(
         "Runtime index P13 row",
         runtime_10_problem_row,

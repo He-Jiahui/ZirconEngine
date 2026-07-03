@@ -600,7 +600,7 @@ children = [{ child = "toolbar" }]
 
 [nodes.toolbar]
 kind = "reference"
-component_ref = "res://ui/widgets/button.ui.toml#ToolbarButton"
+component_ref = "res://ui/widgets/button.zui#ToolbarButton"
 control_id = "ToolbarHost"
 "##;
 

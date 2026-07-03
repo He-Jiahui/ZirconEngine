@@ -5,11 +5,14 @@ related_code:
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/artifact/cache_payload/json_value.rs
   - zircon_runtime/src/asset/artifact/cache_payload/mesh.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/material_shader.rs
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs
   - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
+  - zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs
+  - zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
   - examples/vampire/library/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
@@ -23,6 +26,7 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/artifact/cache_payload/json_value.rs
   - zircon_runtime/src/asset/artifact/cache_payload/mesh.rs
+  - zircon_runtime/src/asset/artifact/cache_payload/material_shader.rs
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs
   - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
@@ -39,10 +43,10 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_mesh_references
-  - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_camera_targets
-  - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_physics_components
-  - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_scene_assets_with_script_binding_json_values
+  - zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs::artifact_store_roundtrips_scene_assets_with_mesh_references
+  - zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs::artifact_store_roundtrips_scene_assets_with_camera_targets
+  - zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs::artifact_store_roundtrips_scene_assets_with_physics_components
+  - zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs::artifact_store_roundtrips_scene_assets_with_script_binding_json_values
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata
   - zircon_runtime/src/asset/tests/project/zmeta.rs::project_manager_imports_compound_zshader_package_with_subassets
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs::runtime_15_asset_artifact_cache_ui_documents_are_child_owner
@@ -77,17 +81,21 @@ The dedicated cache layer currently protects these known problematic shapes:
 - Scene joint metadata that uses physics constraint metadata with custom deserialization behavior.
 - UI v1/v2 document assets whose interface DTOs rely on TOML-like dynamic values and parser-owned validation.
 
-The cache wire owner is folder-backed where the payload family has its own conversion rules. `cache_payload/json_value.rs` owns bincode-safe JSON canonical values for data assets and scene script bindings. `cache_payload/mesh.rs` owns mesh attributes, indices, morph targets, skin, and virtual-geometry wire conversion. `cache_payload/toml_value.rs` owns TOML table/value conversion for material properties and shader editor metadata. `cache_payload/ui.rs` owns the UI v1/v2 document TOML normalization cache boundary.
+The cache wire owner is folder-backed where the payload family has its own conversion rules. `cache_payload/json_value.rs` owns bincode-safe JSON canonical values for data assets and scene script bindings. `cache_payload/mesh.rs` owns mesh attributes, indices, morph targets, skin, and virtual-geometry wire conversion. `cache_payload/material_shader.rs` owns material and shader cache DTOs, shader render-state/resource/definition/texture-slot conversion, and the TOML value/table bridge consumption for material properties and shader editor metadata. `cache_payload/toml_value.rs` remains the shared TOML table/value conversion utility. `cache_payload/ui.rs` owns the UI v1/v2 document TOML normalization cache boundary.
 
 The scene cache structs in `cache_payload/scene.rs` keep the runtime cache independent from authoring convenience syntax. `SceneCameraTargetAsset`, `SceneColliderShapeAsset`, and `PhysicsJointConstraintMetadata` are converted into cache-local structs or enums before bincode serialization and converted back after cache reads. `SceneMeshInstanceAsset` and `SceneMeshLodLevelAsset` now also protect direct binary serialization by writing all fields whenever `Serializer::is_human_readable()` is false, while their TOML/JSON-style output still omits absent or default authoring fields.
 
 Shader cache payloads follow the same rule. `ShaderImportRedirectAsset` and `ShaderTextureSlotAsset` remain authoring-facing TOML structs, while the `.zasset` cache stores `ArtifactCacheShaderImportRedirectAsset` and `ArtifactCacheShaderTextureSlotAsset`. That keeps `redirect`, `default`, `sampler`, `group`, and `label` present in the bincode stream even when their values are `None`, instead of letting authoring `skip_serializing_if` attributes shift the following bytes into invalid enum tags.
 
+The 2026-07-02 shader v2 follow-up keeps new `ShaderAsset` contract fields in the same cache boundary instead of making editor or importer tests build their own partial shader fixtures. `ArtifactCacheShaderAsset` now round-trips `kind`, `options`, `shading_model`, `render_state`, `queue`, `disabled_passes`, and `resources`; legacy cache reads default absent `kind` to `ShaderAssetKind::Surface` and absent collection fields to empty values. Built-in PBR shader construction also initializes the same fields, so validation gates do not rely on obsolete `ShaderAsset` literals.
+
 UI cache payloads use a normalized text document boundary for the v1 and v2 UI document families. `UiLayoutAsset`, `UiWidgetAsset`, `UiStyleAsset`, `UiV2ViewAsset`, `UiV2ComponentAsset`, and `UiV2StyleAsset` serialize their validated document DTO back to TOML text before bincode caching, then restore through the typed `from_toml_str(...)` parsers after cache reads. `UiThemeAsset` and `UiIconAsset` remain direct cache variants because their payload structs are already bincode-compatible and do not require `deserialize_any`.
 
 Runtime 15 M4 records `Runtime 15 M4 asset artifact cache UI document owner split` with status `runtime_15_asset_artifact_cache_ui_documents_owner_split_static_passed_cargo_deferred`. `asset/artifact/cache_payload.rs` remains the artifact cache dispatcher, while `asset/artifact/cache_payload/ui.rs` owns `ArtifactCacheUiAssetDocument` and `ArtifactCacheUiV2AssetDocument`. The guard `runtime_15_asset_artifact_cache_ui_documents_are_child_owner` keeps the parent and child under the production-file budget and prevents UI document conversion helpers from drifting back into the dispatcher.
 
-Runtime 04 F7 keeps the cache boundary error contract typed. `ArtifactCacheAsset::from_imported(...)`, `ArtifactCacheAsset::into_imported(...)`, and TOML cache conversion now return `AssetImportError` rather than `Result<_, String>`. `AssetImportError::TomlSerialize`, `AssetImportError::TomlDeserialize`, `AssetImportError::CachedTomlDatetime`, `AssetImportError::UiDocument`, `AssetImportError::UiV2Document`, `AssetImportError::ArtifactCacheSerialize`, and `AssetImportError::ArtifactCacheDeserialize` keep the source error visible to callers. `AssetImportError::Registry(#[from] AssetImporterRegistryError)` also preserves importer registry failures without lossy `error.to_string()` conversion; `asset_import_error_preserves_registry_error_source` and `review_f7_asset_artifact_errors_use_asset_import_error_sources` lock the behavior and structure.
+Runtime 15 M4 also records `Runtime 15 M4 asset artifact cache material/shader owner split` with status `runtime_15_asset_artifact_cache_material_shader_owner_split_static_passed_cargo_deferred`. `asset/artifact/cache_payload.rs` now stays as the dispatcher and direct-cache owner at 325 lines, while `asset/artifact/cache_payload/material_shader.rs` is the 635-line child owner for `ArtifactCacheMaterialAsset`, `ArtifactCacheShaderAsset`, shader render-state/resource/definition/texture-slot cache helpers, and material/shader TOML cache conversion helpers. The guard `runtime_15_asset_artifact_cache_ui_documents_are_child_owner` now locks the UI and material/shader child owners together so cache DTOs do not drift back into the dispatcher.
+
+Runtime 04 F7 keeps the cache boundary error contract typed. `ArtifactCacheAsset::from_imported(...)`, `ArtifactCacheAsset::into_imported(...)`, and TOML cache conversion now return `AssetImportError` rather than `Result<_, String>`. `AssetImportError::TomlSerialize`, `AssetImportError::TomlDeserialize`, `AssetImportError::CachedTomlDatetime`, `AssetImportError::UiDocument`, `AssetImportError::UiV2Document`, `AssetImportError::ArtifactCacheSerialize`, and `AssetImportError::ArtifactCacheDeserialize` keep the source error visible to callers. Runtime 15 F7 also closes the JSON cache number restore boundary: `ArtifactCacheJsonValue::into_json(...)` now returns `Result<serde_json::Value, AssetImportError>`, `cache_table_to_json(...)` propagates importer errors, and `AssetImportError::CachedJsonNonFiniteNumber` / `AssetImportError::CachedJsonNumberParse` replace the old cached-number `.expect(...)` path. `AssetImportError::Registry(#[from] AssetImporterRegistryError)` also preserves importer registry failures without lossy `error.to_string()` conversion; `asset_import_error_preserves_registry_error_source` and `review_f7_asset_artifact_errors_use_asset_import_error_sources` lock the behavior and structure, including that `asset/artifact/cache_payload/json_value.rs` stays free of `.unwrap()` and `.expect(`.
 
 ## Runtime 04 Fix Scope
 

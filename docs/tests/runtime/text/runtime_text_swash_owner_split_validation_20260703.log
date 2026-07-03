@@ -1,0 +1,46 @@
+Runtime Text Swash Raster Owner Split Validation
+Date: 2026-07-03
+Slice: runtime_text_at_m1_swash_owner_split_rustfmt_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/text/raster/swash.rs deleted
+- zircon_runtime/src/graphics/text/raster/swash/mod.rs
+- zircon_runtime/src/graphics/text/raster/swash/bitmap.rs
+- zircon_runtime/src/graphics/text/raster/swash/color_strike.rs
+- zircon_runtime/src/graphics/text/raster/swash/error.rs
+- zircon_runtime/src/graphics/text/raster/swash/request.rs
+- zircon_runtime/src/graphics/text/raster/swash/rasterizer.rs
+- zircon_runtime/src/graphics/text/raster/swash/tests.rs
+
+Line ownership after split:
+- swash/mod.rs: 15 lines
+- swash/bitmap.rs: 128 lines
+- swash/color_strike.rs: 126 lines
+- swash/error.rs: 14 lines
+- swash/request.rs: 91 lines
+- swash/rasterizer.rs: 112 lines
+- swash/tests.rs: 295 lines
+
+Verification performed:
+- rustfmt --edition 2021 --check raster/mod.rs and every swash child owner: passed
+- Static token scan confirmed raster/mod.rs still declares mod swash and re-exports the swash public surface.
+- Visual proof rendered and inspected from docs/tests/runtime/text/runtime_text_swash_owner_split_preview_20260703.png
+
+Cargo status:
+Focused Cargo was not started for this slice because existing cargo/rustc processes were active:
+
+ProcessName    Id   CPU StartTime
+-----------    --   --- ---------
+cargo        9856  0.03 2026/7/3 周五 14:09:15
+cargo       16772  0.06 2026/7/3 周五 14:13:01
+cargo       32552  0.03 2026/7/3 周五 14:13:07
+cargo       40060  6.12 2026/7/3 周五 14:09:15
+cargo       40248  3.94 2026/7/3 周五 14:13:07
+cargo       47872  7.03 2026/7/3 周五 14:13:01
+rustc       38460  0.38 2026/7/3 周五 14:14:43
+rustc       43960 70.64 2026/7/3 周五 14:13:20
+
+
+
+Target placement rule:
+The proof image and log are under docs/tests/runtime/text and must not be copied into target directories.

@@ -25,6 +25,17 @@ REQUIRED_ROOT_FIELDS = (
     "supported_platforms",
     "capabilities",
     "maturity",
+    "default_packaging",
+)
+MANIFEST_ROOT_FIELDS = frozenset(
+    """
+    asset_importers asset_roots capabilities capability_statuses category components
+    content_roots default_packaging dependencies description display_name distribution
+    event_catalogs feature_extensions geometry_sources id maturity modules optional_features
+    options package_company package_kind package_name package_prefix provides_interfaces
+    sdk_api_version shader_permutation shading_models supported_platforms supported_targets
+    ui_components version
+    """.split()
 )
 REQUIRED_MODULE_FIELDS = (
     "name",
@@ -45,18 +56,6 @@ REQUIRED_FEATURE_DEPENDENCY_FIELDS = (
     "plugin_id",
     "capability",
     "primary",
-)
-REQUIRED_FEATURE_DISTRIBUTION_FIELDS = (
-    "forms",
-    "default_packaging",
-    "abi_version",
-    "engine_compat",
-    "dist_crate",
-    "descriptor_symbol",
-)
-OPTIONAL_FEATURE_DISTRIBUTION_STRING_FIELDS = (
-    "runtime_entry",
-    "editor_entry",
 )
 STRING_FIELDS = {
     "id",
@@ -95,19 +94,31 @@ POSITIVE_INT_FIELDS = {
     "abi_version",
 }
 SUPPORTED_TARGET_VALUES = ("client_runtime", "server_runtime", "editor_host")
-SUPPORTED_PLATFORM_VALUES = ("windows", "linux", "macos")
+INIT_LEVEL_VALUES = ("kernel", "servers", "scene", "editor", "post")
+SUPPORTED_PLATFORM_VALUES = (
+    "windows",
+    "linux",
+    "macos",
+    "android",
+    "ios",
+    "web_gpu",
+    "wasm",
+    "headless",
+    "windows-x86_64",
+    "linux-x86_64",
+    "macos-aarch64",
+)
+SUPPORTED_PLATFORM_ALIASES = {"windows-x86_64": "windows", "linux-x86_64": "linux", "macos-aarch64": "macos"}
 MATURITY_VALUES = ("stable", "beta", "experimental")
 MODULE_KIND_VALUES = ("runtime", "editor", "native", "vm")
 PACKAGING_VALUES = ("source_template", "library_embed", "native_dynamic")
-DISTRIBUTION_FORM_VALUES = ("embed", "dist")
-
-
 @dataclass(frozen=True)
 class PluginManifestSchemaAudit:
     expected_manifest_roots: list[str]
     missing_plugin_toml_paths: list[str]
     manifest_schema_violation_details: list[str]
     generated_manifest_header_violation_paths: list[str]
+    feature_provider_package_projection_count: int
 
     def to_json(self) -> dict[str, Any]:
         manifest_count = len(self.expected_manifest_roots) - len(
@@ -129,6 +140,9 @@ class PluginManifestSchemaAudit:
             "generated_manifest_header_violation_paths": (
                 self.generated_manifest_header_violation_paths
             ),
+            "feature_provider_package_projection_count": (
+                self.feature_provider_package_projection_count
+            ),
         }
 
     @property
@@ -142,6 +156,7 @@ def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
     missing_paths: list[str] = []
     violations: list[str] = []
     generated_header_violations: list[str] = []
+    loaded_manifests: list[tuple[str, dict[str, Any]]] = []
 
     for plugin_root in expected_roots:
         manifest_path = plugin_workspace / Path(plugin_root) / "plugin.toml"
@@ -161,13 +176,48 @@ def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
         except tomllib.TOMLDecodeError as error:
             violations.append(f"{display_path}: TOML parse error: {error}")
             continue
+        loaded_manifests.append((display_path, manifest))
         collect_manifest_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_asset_importer_capability_gates import collect_asset_importer_required_capability_gate_violations
+    from .manifest_schema_dependency_capability_targets import collect_dependency_capability_target_violations
+    from .manifest_schema_event_catalog_namespaces import collect_global_event_catalog_namespace_violations
+    from .manifest_schema_feature_provider_packages import collect_feature_provider_package_projection_violations
+    from .manifest_schema_feature_provider_targets import collect_feature_provider_target_identity_violations
+    from .manifest_schema_global_identities import collect_global_manifest_identity_violations
+    from .manifest_schema_module_crates import collect_module_workspace_crate_violations
+    from .manifest_schema_option_capability_gates import collect_option_required_capability_gate_violations
+
+    collect_global_manifest_identity_violations(loaded_manifests, violations)
+    collect_global_event_catalog_namespace_violations(loaded_manifests, violations)
+    collect_feature_provider_target_identity_violations(loaded_manifests, violations)
+    feature_provider_package_projection_count = (
+        collect_feature_provider_package_projection_violations(
+            repo_root,
+            loaded_manifests,
+            violations,
+        )
+    )
+    collect_dependency_capability_target_violations(loaded_manifests, violations)
+    collect_asset_importer_required_capability_gate_violations(
+        loaded_manifests,
+        violations,
+    )
+    collect_option_required_capability_gate_violations(loaded_manifests, violations)
+    collect_module_workspace_crate_violations(
+        plugin_workspace,
+        loaded_manifests,
+        violations,
+    )
 
     return PluginManifestSchemaAudit(
         expected_manifest_roots=expected_roots,
         missing_plugin_toml_paths=missing_paths,
         manifest_schema_violation_details=violations,
         generated_manifest_header_violation_paths=generated_header_violations,
+        feature_provider_package_projection_count=(
+            feature_provider_package_projection_count
+        ),
     )
 
 
@@ -193,33 +243,84 @@ def collect_manifest_schema_violations(
     manifest: dict[str, Any],
     violations: list[str],
 ) -> None:
+    from .manifest_schema_root_metadata import collect_root_metadata_schema_violations
+    from .manifest_schema_layout_roots import collect_layout_root_schema_violations
+
+    collect_manifest_root_known_field_violations(display_path, manifest, violations)
     for field in REQUIRED_ROOT_FIELDS:
         collect_required_field_violation(display_path, field, manifest, violations)
-    collect_allowed_string_array_values(
-        display_path,
-        "supported_targets",
-        manifest,
-        "supported_targets",
-        SUPPORTED_TARGET_VALUES,
-        violations,
-    )
-    collect_allowed_string_array_values(
-        display_path,
-        "supported_platforms",
-        manifest,
-        "supported_platforms",
-        SUPPORTED_PLATFORM_VALUES,
-        violations,
-    )
-    collect_allowed_string_value(
-        display_path,
-        "maturity",
-        manifest,
-        "maturity",
-        MATURITY_VALUES,
-        violations,
+    collect_root_metadata_schema_violations(display_path, manifest, violations)
+    collect_layout_root_schema_violations(display_path, manifest, violations)
+
+    asset_importers = manifest.get("asset_importers")
+    if asset_importers is not None:
+        from .manifest_schema_asset_importers import (
+            collect_asset_importers_schema_violations,
+        )
+
+        collect_asset_importers_schema_violations(
+            display_path,
+            manifest,
+            asset_importers,
+            violations,
+        )
+
+    capability_statuses = manifest.get("capability_statuses")
+    if capability_statuses is not None:
+        from .manifest_schema_capability_statuses import (
+            collect_capability_statuses_schema_violations,
+        )
+
+        collect_capability_statuses_schema_violations(
+            display_path,
+            manifest,
+            capability_statuses,
+            violations,
+        )
+
+    from .manifest_schema_components import collect_components_schema_violations
+
+    collect_components_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_event_catalogs import collect_event_catalogs_schema_violations
+
+    collect_event_catalogs_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_dependencies import collect_dependencies_schema_violations
+
+    collect_dependencies_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_interfaces import (
+        collect_provided_interfaces_schema_violations,
     )
 
+    collect_provided_interfaces_schema_violations(display_path, manifest, violations)
+
+    options = manifest.get("options")
+    if options is not None:
+        from .manifest_schema_options import collect_options_schema_violations
+
+        collect_options_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_geometry_sources import (
+        collect_geometry_source_schema_violations,
+    )
+
+    collect_geometry_source_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_shading_models import (
+        collect_shading_model_schema_violations,
+    )
+
+    collect_shading_model_schema_violations(display_path, manifest, violations)
+
+    from .manifest_schema_modules import module_supported_targets
+
+    module_namespace = manifest.get("id")
+    if not is_non_empty_trimmed_string(module_namespace):
+        module_namespace = None
+    supported_targets = module_supported_targets(manifest)
+    module_seen_names: dict[str, str] = {}
     modules = manifest.get("modules")
     if not isinstance(modules, list) or not modules:
         violations.append(f"{display_path}: missing non-empty [[modules]]")
@@ -232,96 +333,53 @@ def collect_manifest_schema_violations(
             module,
             violations,
             table_label=f"[[modules]][{index}]",
+            namespace_id=module_namespace,
+            supported_targets=supported_targets,
+            seen_names=module_seen_names,
+            row_identity=f"modules[{index}]",
         )
 
     optional_features = manifest.get("optional_features")
-    if optional_features is None:
-        return
-    if not isinstance(optional_features, list):
-        violations.append(f"{display_path}: optional_features must be an array of tables")
-        return
-    for feature_index, feature in enumerate(optional_features):
-        if not isinstance(feature, dict):
-            violations.append(
-                f"{display_path}: optional_features[{feature_index}] must be a table"
-            )
-            continue
-        collect_optional_feature_schema_violations(
-            display_path,
-            feature_index,
-            feature,
-            violations,
+    if optional_features is not None:
+        from .manifest_schema_optional_features import (
+            collect_optional_features_schema_violations,
         )
-        feature_dependencies = feature.get("dependencies")
-        if feature_dependencies is not None:
-            if not isinstance(feature_dependencies, list):
-                violations.append(
-                    f"{display_path}: optional_features[{feature_index}].dependencies must be an array of tables"
-                )
-            else:
-                for dependency_index, dependency in enumerate(feature_dependencies):
-                    collect_optional_feature_dependency_schema_violations(
-                        display_path,
-                        feature_index,
-                        dependency_index,
-                        dependency,
-                        violations,
-                    )
-        feature_distribution = feature.get("distribution")
-        if feature_distribution is not None:
-            collect_optional_feature_distribution_schema_violations(
-                display_path,
-                feature_index,
-                feature_distribution,
-                violations,
-            )
-        feature_modules = feature.get("modules")
-        if feature_modules is None:
-            continue
-        if not isinstance(feature_modules, list):
-            violations.append(
-                f"{display_path}: optional_features[{feature_index}].modules must be an array of tables"
-            )
-            continue
-        for module_index, module in enumerate(feature_modules):
-            collect_module_schema_violations(
-                display_path,
-                f"optional_features[{feature_index}].modules[{module_index}]",
-                module,
-                violations,
-            )
+
+        collect_optional_features_schema_violations(
+            display_path,
+            manifest,
+            optional_features,
+            violations,
+            module_seen_names=module_seen_names,
+            module_supported_targets=supported_targets,
+        )
+
+    feature_extensions = manifest.get("feature_extensions")
+    if feature_extensions is not None:
+        from .manifest_schema_feature_extensions import (
+            collect_feature_extensions_schema_violations,
+        )
+
+        collect_feature_extensions_schema_violations(
+            display_path,
+            manifest,
+            feature_extensions,
+            violations,
+            module_seen_names=module_seen_names,
+            module_supported_targets=supported_targets,
+        )
 
 
-def collect_optional_feature_schema_violations(
+def collect_manifest_root_known_field_violations(
     display_path: str,
-    feature_index: int,
-    feature: dict[str, Any],
+    manifest: dict[str, Any],
     violations: list[str],
 ) -> None:
-    field_label = f"optional_features[{feature_index}]"
-    for field in REQUIRED_FEATURE_FIELDS:
-        collect_required_field_violation(
-            display_path,
-            f"{field_label}.{field}",
-            feature,
-            violations,
-            field_name=field,
-        )
-    collect_optional_trimmed_string_field_violation(
-        display_path,
-        f"{field_label}.provider_package_id",
-        feature,
-        "provider_package_id",
-        violations,
-    )
-    collect_allowed_string_array_values(
-        display_path,
-        f"{field_label}.default_packaging",
-        feature,
-        "default_packaging",
-        PACKAGING_VALUES,
-        violations,
-        )
+    for field in sorted(manifest):
+        if field not in MANIFEST_ROOT_FIELDS:
+            violations.append(
+                f"{display_path}: {field} is not a known manifest root field"
+            )
 
 
 def collect_optional_trimmed_string_field_violation(
@@ -337,7 +395,7 @@ def collect_optional_trimmed_string_field_violation(
     if not isinstance(value, str) or not value.strip() or value.strip() != value:
         violations.append(
             f"{display_path}: {field_label} must be a non-empty trimmed string"
-        )
+    )
 
 
 def collect_module_schema_violations(
@@ -347,49 +405,41 @@ def collect_module_schema_violations(
     violations: list[str],
     *,
     table_label: str | None = None,
+    namespace_id: str | None = None,
+    supported_targets: set[str] | None = None,
+    seen_names: dict[str, str] | None = None,
+    row_identity: str | None = None,
 ) -> None:
-    if not isinstance(module, dict):
-        violations.append(
-            f"{display_path}: {table_label or field_label} must be a table"
-        )
-        return
-    for field in REQUIRED_MODULE_FIELDS:
-        collect_required_field_violation(
-            display_path,
-            f"{field_label}.{field}",
-            module,
-            violations,
-            field_name=field,
-        )
-    collect_allowed_string_value(
-        display_path,
-        f"{field_label}.kind",
-        module,
-        "kind",
-        MODULE_KIND_VALUES,
-        violations,
+    from .manifest_schema_modules import (
+        collect_module_schema_violations as collect_module_row_schema_violations,
     )
-    collect_allowed_string_array_values(
+
+    collect_module_row_schema_violations(
         display_path,
-        f"{field_label}.target_modes",
+        field_label,
         module,
-        "target_modes",
-        SUPPORTED_TARGET_VALUES,
         violations,
+        table_label=table_label,
+        namespace_id=namespace_id,
+        supported_targets=supported_targets,
+        seen_names=seen_names,
+        row_identity=row_identity,
     )
 
 
-def collect_optional_feature_dependency_schema_violations(
+def collect_feature_dependency_schema_violations(
     display_path: str,
-    feature_index: int,
-    dependency_index: int,
+    field_label: str,
     dependency: object,
     violations: list[str],
 ) -> None:
-    field_label = f"optional_features[{feature_index}].dependencies[{dependency_index}]"
     if not isinstance(dependency, dict):
         violations.append(f"{display_path}: {field_label} must be a table")
         return
+    violations.extend(
+        f"{display_path}: {field_label}.{field} is not a known optional feature dependency field"
+        for field in sorted(set(dependency) - set(REQUIRED_FEATURE_DEPENDENCY_FIELDS))
+    )
     for field in REQUIRED_FEATURE_DEPENDENCY_FIELDS:
         collect_required_field_violation(
             display_path,
@@ -399,61 +449,108 @@ def collect_optional_feature_dependency_schema_violations(
             field_name=field,
         )
 
-
-def collect_optional_feature_distribution_schema_violations(
+def collect_feature_dependency_primary_count_violation(
     display_path: str,
-    feature_index: int,
-    distribution: object,
+    dependency_label: str,
+    dependencies: list[object],
     violations: list[str],
 ) -> None:
-    field_label = f"optional_features[{feature_index}].distribution"
-    if not isinstance(distribution, dict):
-        violations.append(f"{display_path}: {field_label} must be a table")
+    if not all(
+        optional_feature_dependency_row_supports_primary_count(dependency)
+        for dependency in dependencies
+    ):
         return
-    for field in REQUIRED_FEATURE_DISTRIBUTION_FIELDS:
-        collect_required_field_violation(
-            display_path,
-            f"{field_label}.{field}",
-            distribution,
-            violations,
-            field_name=field,
-        )
-    for field in OPTIONAL_FEATURE_DISTRIBUTION_STRING_FIELDS:
-        if field in distribution:
-            collect_required_field_violation(
-                display_path,
-                f"{field_label}.{field}",
-                distribution,
-                violations,
-                field_name=field,
-            )
-    if "assets" in distribution:
-        collect_required_field_violation(
-            display_path,
-            f"{field_label}.assets",
-            distribution,
-            violations,
-            field_name="assets",
-        )
-    if "runtime_entry" not in distribution and "editor_entry" not in distribution:
-        violations.append(
-            f"{display_path}: {field_label} must declare runtime_entry or editor_entry"
-        )
-    collect_allowed_string_array_values(
-        display_path,
-        f"{field_label}.forms",
-        distribution,
-        "forms",
-        DISTRIBUTION_FORM_VALUES,
-        violations,
+    primary_count = sum(
+        1
+        for dependency in dependencies
+        if isinstance(dependency, dict) and dependency["primary"] is True
     )
-    collect_allowed_string_array_values(
-        display_path,
-        f"{field_label}.default_packaging",
-        distribution,
-        "default_packaging",
-        PACKAGING_VALUES,
-        violations,
+    if primary_count != 1:
+        violations.append(
+            f"{display_path}: {dependency_label} "
+            "should declare exactly one primary dependency"
+        )
+
+def collect_feature_dependency_duplicate_identity_violations(
+    display_path: str,
+    dependency_label: str,
+    dependencies: list[object],
+    violations: list[str],
+) -> None:
+    seen: dict[tuple[str, str], int] = {}
+    for dependency_index, dependency in enumerate(dependencies):
+        if not optional_feature_dependency_row_supports_primary_count(dependency):
+            continue
+        if not isinstance(dependency, dict):
+            continue
+        identity = (dependency["plugin_id"], dependency["capability"])
+        previous_index = seen.get(identity)
+        if previous_index is not None:
+            violations.append(
+                f"{display_path}: {dependency_label}[{dependency_index}] "
+                f"duplicates dependency row {previous_index}"
+            )
+            continue
+        seen[identity] = dependency_index
+
+def collect_feature_dependency_primary_target_violations(
+    display_path: str,
+    dependency_label: str,
+    dependencies: list[object],
+    target_plugin_id: str,
+    target_capabilities: set[str] | None,
+    plugin_id_message: str,
+    capability_message: str,
+    violations: list[str],
+) -> None:
+    if not all(
+        optional_feature_dependency_row_supports_primary_count(dependency)
+        for dependency in dependencies
+    ):
+        return
+    primary_dependencies = [
+        (dependency_index, dependency)
+        for dependency_index, dependency in enumerate(dependencies)
+        if isinstance(dependency, dict) and dependency["primary"] is True
+    ]
+    if len(primary_dependencies) != 1:
+        return
+    dependency_index, dependency = primary_dependencies[0]
+    if not isinstance(dependency, dict):
+        return
+    diagnostic_label = f"{display_path}: {dependency_label}[{dependency_index}]"
+    if dependency["plugin_id"] != target_plugin_id:
+        violations.append(
+            f"{diagnostic_label} {plugin_id_message} {target_plugin_id}"
+        )
+    if target_capabilities is not None and dependency["capability"] not in target_capabilities:
+        violations.append(
+            f"{diagnostic_label} {capability_message}"
+        )
+
+def optional_feature_dependency_primary_target(
+    manifest: dict[str, Any],
+) -> tuple[str, set[str]] | None:
+    package_id = manifest.get("id")
+    capabilities = manifest.get("capabilities")
+    if not is_non_empty_trimmed_string(package_id):
+        return None
+    if not isinstance(capabilities, list) or not capabilities:
+        return None
+    if not all(is_non_empty_trimmed_string(capability) for capability in capabilities):
+        return None
+    return (package_id, set(capabilities))
+
+
+def optional_feature_dependency_row_supports_primary_count(
+    dependency: object,
+) -> bool:
+    if not isinstance(dependency, dict):
+        return False
+    return (
+        is_non_empty_trimmed_string(dependency.get("plugin_id"))
+        and is_non_empty_trimmed_string(dependency.get("capability"))
+        and type(dependency.get("primary")) is bool
     )
 
 
@@ -471,8 +568,10 @@ def collect_required_field_violation(
         return
     value = table[field]
     if field in STRING_FIELDS:
-        if not isinstance(value, str) or not value.strip():
-            violations.append(f"{display_path}: {field_label} must be a non-empty string")
+        if not isinstance(value, str) or not value.strip() or value.strip() != value:
+            violations.append(
+                f"{display_path}: {field_label} must be a non-empty trimmed string"
+            )
         return
     if field in STRING_ARRAY_FIELDS:
         if not isinstance(value, list) or not value:
@@ -481,9 +580,14 @@ def collect_required_field_violation(
             )
             return
         for index, entry in enumerate(value):
-            if not isinstance(entry, str) or not entry.strip():
+            if (
+                not isinstance(entry, str)
+                or not entry.strip()
+                or entry.strip() != entry
+            ):
                 violations.append(
-                    f"{display_path}: {field_label}[{index}] must be a non-empty string"
+                    f"{display_path}: {field_label}[{index}] "
+                    "must be a non-empty trimmed string"
                 )
         return
     if field in BOOL_FIELDS:
@@ -496,6 +600,9 @@ def collect_required_field_violation(
                 f"{display_path}: {field_label} must be a positive integer"
             )
 
+def is_non_empty_trimmed_string(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and value.strip() == value
+
 
 def collect_allowed_string_value(
     display_path: str,
@@ -506,7 +613,7 @@ def collect_allowed_string_value(
     violations: list[str],
 ) -> None:
     value = table.get(field_name)
-    if not isinstance(value, str) or not value.strip():
+    if not isinstance(value, str) or not value.strip() or value.strip() != value:
         return
     allowed = set(allowed_values)
     expected = ", ".join(allowed_values)
@@ -531,7 +638,7 @@ def collect_allowed_string_array_values(
     allowed = set(allowed_values)
     expected = ", ".join(allowed_values)
     for index, entry in enumerate(value):
-        if not isinstance(entry, str) or not entry.strip():
+        if not isinstance(entry, str) or not entry.strip() or entry.strip() != entry:
             continue
         if entry not in allowed:
             violations.append(

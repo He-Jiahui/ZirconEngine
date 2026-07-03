@@ -354,7 +354,11 @@ fn batch_with_geometry(
             geometry_source,
             Mobility::Dynamic,
             false,
-            geometry_source == MeshDrawGeometrySource::DynamicGpuSkinningSource,
+            matches!(
+                geometry_source,
+                MeshDrawGeometrySource::DynamicGpuSkinningSource
+                    | MeshDrawGeometrySource::DynamicGpuSkinnedMorphedSource
+            ),
             false,
         ),
         default_pipeline_key(),

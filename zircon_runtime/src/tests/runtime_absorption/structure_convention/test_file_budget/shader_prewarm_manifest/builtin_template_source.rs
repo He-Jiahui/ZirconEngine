@@ -3,6 +3,7 @@ use super::*;
 #[test]
 fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired() {
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
+    let dynamic_api_tests = read_runtime_src("dynamic_api/shader_prewarm/tests.rs");
     let dynamic_mod = read_runtime_src("dynamic_api/mod.rs");
     let scene_mod = read_runtime_src("graphics/scene/mod.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
@@ -19,7 +20,7 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
 
     assert_contains_all(
         "dynamic API exposes neutral builtin standard material template prewarm builder",
-        &dynamic_api,
+        &(dynamic_api.clone() + &dynamic_api_tests),
         &[
             "pub fn builtin_standard_material_shader_prewarm_manifest",
             "pub fn builtin_standard_material_shader_prewarm_manifest_for_geometry",

@@ -52,6 +52,7 @@ const NESTED_MENU_POPUP_SCREENSHOT: &str = "editor-window-20260507-nested-menu-p
 const M3_WELCOME_INPUT_SCREENSHOT: &str = "editor-window-m3-welcome-input-900x620.png";
 const M3_WORKBENCH_SCREENSHOT: &str = "editor-window-m3-workbench-900x620.png";
 const M3_ASSET_BROWSER_SCREENSHOT: &str = "editor-window-m3-asset-browser-900x620.png";
+const M3_ASSET_BROWSER_LIST_SCREENSHOT: &str = "editor-window-m3-asset-browser-list-900x620.png";
 const M3_DRAWER_SCREENSHOT: &str = "editor-window-m3-assets-drawer-900x620.png";
 const M3_MENU_POPUP_SCREENSHOT: &str = "editor-window-m3-menu-popup-svg-icons-900x620.png";
 const M3_HOST_PAGE_OVERFLOW_SCREENSHOT: &str = "editor-window-m3-host-page-overflow-420x260.png";
@@ -281,6 +282,10 @@ fn capture_m3_gui_acceptance_visual_artifacts() {
     assert_asset_browser_compact_visual_layout(&asset_browser);
     save_window_snapshot(&asset_browser, M3_ASSET_BROWSER_SCREENSHOT);
 
+    let asset_browser_list = asset_browser_list_window(900, 620);
+    assert_asset_browser_list_visual_layout(&asset_browser_list);
+    save_window_snapshot(&asset_browser_list, M3_ASSET_BROWSER_LIST_SCREENSHOT);
+
     let drawer = assets_drawer_window(900, 620);
     save_window_snapshot(&drawer, M3_DRAWER_SCREENSHOT);
 
@@ -422,8 +427,8 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
         atlas_surface("AtlasButtonsPanel", "panel", 18.0, 78.0, 272.0, 190.0),
         atlas_surface("AtlasInputsPanel", "panel", 306.0, 78.0, 276.0, 190.0),
         atlas_surface("AtlasRowsPanel", "panel", 598.0, 78.0, 284.0, 190.0),
-        atlas_surface("AtlasComplexPanel", "panel", 18.0, 286.0, 420.0, 230.0),
-        atlas_surface("AtlasContainersPanel", "panel", 454.0, 286.0, 428.0, 230.0),
+        atlas_surface("AtlasComplexPanel", "panel", 18.0, 286.0, 420.0, 266.0),
+        atlas_surface("AtlasContainersPanel", "panel", 454.0, 286.0, 428.0, 266.0),
         atlas_surface("AtlasStatusBar", "inset", 0.0, 578.0, 900.0, 42.0),
     ];
 
@@ -735,16 +740,26 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
             28.0,
             "selected",
         ),
-        atlas_workbench_content_panel("WorkbenchAtlasLeftPanel", 470.0, 480.0, 374.0, 28.0),
+        atlas_workbench_content_panel("WorkbenchAtlasLeftPanel", 470.0, 480.0, 374.0, 54.0),
         atlas_label(
             "WorkbenchAtlasContentPanelLabel",
             "Workbench content panel",
             486.0,
-            486.0,
+            488.0,
             180.0,
             16.0,
             10.0,
             "muted",
+        ),
+        atlas_label(
+            "WorkbenchAtlasContentPanelBody",
+            "Recessed surface, 1px border, token gap",
+            486.0,
+            508.0,
+            280.0,
+            16.0,
+            10.0,
+            "",
         ),
     ]);
 
@@ -1240,6 +1255,20 @@ fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
 }
 
 fn asset_browser_window(width: u32, height: u32) -> UiHostWindow {
+    asset_browser_window_with_workspace(width, height, m3_asset_workspace())
+}
+
+fn asset_browser_list_window(width: u32, height: u32) -> UiHostWindow {
+    let mut workspace = m3_asset_workspace();
+    workspace.view_mode = AssetViewMode::List;
+    asset_browser_window_with_workspace(width, height, workspace)
+}
+
+fn asset_browser_window_with_workspace(
+    width: u32,
+    height: u32,
+    asset_workspace: AssetWorkspaceSnapshot,
+) -> UiHostWindow {
     let mut fixture = default_preview_fixture();
     let page_id = MainPageId::new("page:asset-browser");
     let instance_id = ViewInstanceId::new("editor.asset_browser#1");
@@ -1269,7 +1298,6 @@ fn asset_browser_window(width: u32, height: u32) -> UiHostWindow {
     };
 
     let mut data = fixture.editor.clone().into_snapshot();
-    let asset_workspace = m3_asset_workspace();
     data.asset_activity = asset_workspace.clone();
     data.asset_browser = asset_workspace;
     data.status_line = "Asset Browser M3 screenshot gate".to_string();
@@ -1358,6 +1386,89 @@ fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
         visible_template_node_count(nodes, "AssetBrowserContentPreviewCard"),
         0,
         "thumbnail asset browser compact view should keep selection feedback inside the tile grid"
+    );
+}
+
+fn assert_asset_browser_list_visual_layout(ui: &UiHostWindow) {
+    let presentation = ui.get_host_presentation();
+    let pane = &presentation.host_scene_data.document_dock.pane;
+    assert_eq!(pane.kind.as_str(), "AssetBrowser");
+
+    let nodes = &pane.asset_browser.nodes;
+    let content = find_template_node(nodes, "AssetBrowserContentPanel");
+    let table = find_template_node(nodes, "AssetBrowserAssetTablePanel");
+    let header = find_template_node(nodes, "WorkbenchAssetBrowserTableHeader");
+    let selected_row = find_template_node(nodes, "WorkbenchAssetBrowserAssetRow01");
+    let next_row = find_template_node(nodes, "WorkbenchAssetBrowserAssetRow02");
+    let preview = find_template_node(nodes, "AssetBrowserContentPreviewCard");
+    let preview_visual = find_template_node(nodes, "AssetBrowserContentPreviewVisual");
+    let preview_name = find_template_node(nodes, "AssetBrowserContentPreviewName");
+    let preview_name_continuation =
+        find_template_node(nodes, "AssetBrowserContentPreviewNameContinuation");
+
+    assert_eq!(
+        visible_template_node_count(nodes, "AssetBrowserAssetTablePanel"),
+        1,
+        "list asset browser should expose one visible retained table panel"
+    );
+    assert!(
+        table.frame.width > content.frame.width * 0.75 && table.frame.height >= 140.0,
+        "list asset browser should keep the table readable in the content panel"
+    );
+    assert!(
+        header.frame.height > 0.0 && selected_row.frame.y > header.frame.y,
+        "list table header and rows should stack in reading order"
+    );
+    assert!(
+        selected_row.selected && !selected_row.focused,
+        "selected list row should not impersonate keyboard focus"
+    );
+    assert!(
+        selected_row
+            .text
+            .as_str()
+            .contains("workbench_page_chrome.zui"),
+        "list table rows should preserve readable asset filenames for scan-heavy workbench lists"
+    );
+    assert!(
+        !next_row.selected && !next_row.focused,
+        "unselected list rows should remain visually idle"
+    );
+    assert!(
+        preview.frame.height > 0.0 && preview.frame.y >= table.frame.y + table.frame.height,
+        "list asset browser should retain a compact selection preview below the table"
+    );
+    assert_eq!(
+        preview_visual.frame.width, preview_visual.frame.height,
+        "selection preview visual should use a square asset icon slot rather than a wide empty pill"
+    );
+    assert_eq!(
+        preview_visual.component_variant.as_str(),
+        "asset-ui-layout",
+        "selection preview should keep the selected asset type icon identity"
+    );
+    assert!(
+        preview_name.frame.x - (preview_visual.frame.x + preview_visual.frame.width) <= 12.0,
+        "selection preview title should sit close to the square asset icon slot"
+    );
+    assert_eq!(
+        preview_name.text.as_str(),
+        "workbench_page_chrome.zui",
+        "selection preview should keep file-like asset names on one readable line"
+    );
+    assert_eq!(
+        preview_name_continuation.text.as_str(),
+        "",
+        "file-like selection preview names should not be split like thumbnail title text"
+    );
+    assert_eq!(
+        preview_name_continuation.frame.height, 0.0,
+        "empty selection preview continuation should collapse out of the summary rhythm"
+    );
+    assert_eq!(
+        visible_template_node_count(nodes, "AssetBrowserThumbGridPanel"),
+        0,
+        "list asset browser should hide the thumbnail grid panel"
     );
 }
 

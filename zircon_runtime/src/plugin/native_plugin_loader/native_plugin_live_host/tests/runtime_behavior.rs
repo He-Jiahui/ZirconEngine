@@ -29,6 +29,23 @@ fn native_live_host_runtime_descriptor_includes_validation_report() {
 }
 
 #[test]
+fn native_live_host_runtime_behavior_reports_typed_unloaded_error() {
+    let error = NativePluginLiveHost::default()
+        .runtime_behavior_descriptor_result("physics")
+        .expect_err("unloaded runtime plugin should produce typed runtime behavior error");
+
+    assert!(matches!(
+        &error,
+        NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded { plugin_id }
+            if plugin_id == "physics"
+    ));
+    assert_eq!(
+        error.to_string(),
+        "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
+    );
+}
+
+#[test]
 fn native_live_host_runtime_broadcasts_and_snapshots_empty_when_no_plugins_loaded() {
     let host = NativePluginLiveHost::default();
 

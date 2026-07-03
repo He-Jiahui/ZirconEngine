@@ -335,7 +335,7 @@ fn compact_workbench_toolbar_uses_slate_command_density() {
     let module_commands = bridge
         .control_frame("WorkbenchModuleCommands")
         .expect("compact toolbar should expose primary module commands");
-    assert_frame_value("module command group width", module_commands.width, 248.0);
+    assert_frame_value("module command group width", module_commands.width, 276.0);
     assert_frame_value("module command group height", module_commands.height, 36.0);
 
     let save = bridge
@@ -347,11 +347,11 @@ fn compact_workbench_toolbar_uses_slate_command_density() {
     let compile = bridge
         .control_frame("WorkbenchModuleCompile")
         .expect("compile command should remain visible");
-    assert_frame_value("save command width", save.width, 64.0);
+    assert_frame_value("save command width", save.width, 72.0);
     assert_frame_value("save command height", save.height, 30.0);
-    assert_frame_value("browse command width", browse.width, 84.0);
+    assert_frame_value("browse command width", browse.width, 92.0);
     assert_frame_value("browse command height", browse.height, 30.0);
-    assert_frame_value("compile command width", compile.width, 92.0);
+    assert_frame_value("compile command width", compile.width, 104.0);
     assert_frame_value("compile command height", compile.height, 30.0);
     assert_frame_value("save to browse gap", browse.x - (save.x + save.width), 4.0);
     assert_frame_value(

@@ -185,6 +185,7 @@ impl VirtualGeometryRuntimeProvider for TestVirtualGeometryRuntimeProvider {
             },
             Vec::new(),
             Vec::new(),
+            Vec::new(),
         ))
     }
 }

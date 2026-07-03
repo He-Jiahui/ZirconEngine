@@ -1,0 +1,9 @@
+
+running 4 tests
+test graphics::text::atlas::render_gpu_plan::tests::render_text_atlas_gpu_plan_flattens_batches_into_ndc_vertices ... ok
+test graphics::text::atlas::render_gpu_plan::tests::render_text_atlas_gpu_plan_keeps_skipped_glyph_counts_without_empty_batches ... ok
+test graphics::text::atlas::render_gpu_plan::tests::render_text_atlas_gpu_plan_keeps_subpixel_and_color_batches_separate ... ok
+test graphics::text::atlas::render_gpu_plan::tests::render_text_atlas_gpu_plan_preserves_vertex_colors ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 6135 filtered out; finished in 0.00s
+

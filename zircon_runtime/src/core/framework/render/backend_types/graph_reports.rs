@@ -374,7 +374,7 @@ impl RenderSceneVelocityReadbackReport {
     pub fn from_raw_rg16_float_bytes(size: UVec2, bytes: &[u8]) -> Self {
         let nonzero_pixel_count = bytes
             .chunks_exact(4)
-            .filter(|pixel| pixel.iter().any(|byte| *byte != 0))
+            .filter(|pixel| rg16_float_pixel_has_nonzero_value(pixel))
             .count();
         Self {
             available: true,
@@ -383,6 +383,12 @@ impl RenderSceneVelocityReadbackReport {
             nonzero_pixel_count,
         }
     }
+}
+
+fn rg16_float_pixel_has_nonzero_value(pixel: &[u8]) -> bool {
+    let x = u16::from_le_bytes([pixel[0], pixel[1]]) & 0x7fff;
+    let y = u16::from_le_bytes([pixel[2], pixel[3]]) & 0x7fff;
+    x != 0 || y != 0
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

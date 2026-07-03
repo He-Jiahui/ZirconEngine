@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn ui_asset_editor_session_projects_selection_indices_source_summary_and_canvas_frames() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -41,7 +41,7 @@ fn ui_asset_editor_session_projects_selection_indices_source_summary_and_canvas_
 #[test]
 fn ui_asset_editor_session_selects_same_node_from_preview_canvas_projection() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -70,7 +70,7 @@ fn ui_asset_editor_session_selects_same_node_from_preview_canvas_projection() {
 #[test]
 fn ui_asset_editor_session_selects_same_node_from_source_outline_projection() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -107,7 +107,7 @@ fn ui_asset_editor_session_selects_same_node_from_source_outline_projection() {
 #[test]
 fn ui_asset_editor_session_selects_same_node_from_source_line_inside_block() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -140,7 +140,7 @@ fn ui_asset_editor_session_selects_same_node_from_source_line_inside_block() {
 #[test]
 fn ui_asset_editor_session_selects_same_node_from_source_byte_offset_inside_block() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -175,7 +175,7 @@ fn ui_asset_editor_session_selects_same_node_from_source_byte_offset_inside_bloc
 #[test]
 fn ui_asset_editor_session_ignores_source_byte_offset_outside_node_blocks() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -203,7 +203,7 @@ fn ui_asset_editor_session_ignores_source_byte_offset_outside_node_blocks() {
 #[test]
 fn ui_asset_editor_session_rejects_source_line_outside_node_blocks() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -230,7 +230,7 @@ fn ui_asset_editor_session_rejects_source_line_outside_node_blocks() {
 #[test]
 fn ui_asset_editor_session_tracks_source_cursor_line_inside_selected_block() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -265,7 +265,7 @@ fn ui_asset_editor_session_tracks_source_cursor_line_inside_selected_block() {
 #[test]
 fn ui_asset_editor_session_preserves_source_cursor_line_through_valid_source_roundtrip() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -310,7 +310,7 @@ fn ui_asset_editor_session_preserves_source_cursor_line_through_valid_source_rou
 #[test]
 fn ui_asset_editor_session_undo_restores_source_cursor_line_within_selected_block() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );
@@ -363,7 +363,7 @@ fn ui_asset_editor_session_undo_restores_source_cursor_line_within_selected_bloc
 #[test]
 fn ui_asset_editor_session_falls_back_to_last_valid_source_selection_when_source_is_invalid() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Split,
     );

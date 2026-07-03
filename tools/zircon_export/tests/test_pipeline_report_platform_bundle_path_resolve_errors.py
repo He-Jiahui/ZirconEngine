@@ -6,9 +6,11 @@ from pathlib import Path
 from unittest import mock
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.pipeline_report_platform_bundle import (
+from tools.zircon_export.pipeline_report_platform_bundle_file_evidence import (
     path_is_relative_to,
     platform_bundle_report_bundle_path,
+)
+from tools.zircon_export.pipeline_report_platform_bundle_template import (
     platform_bundle_template_file_expected_hash,
     platform_bundle_template_file_hashes,
 )

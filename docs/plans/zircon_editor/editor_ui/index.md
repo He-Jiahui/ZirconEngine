@@ -88,9 +88,9 @@ plan_sources:
 
 | #  | 缺口                                                                              | 归属子计划 |
 | -- | --------------------------------------------------------------------------------- | ---------- |
-| 1  | 统一输入 manager 门面、winit 翻译双实现收口、editor 11 个 pointer bridge 手写命中 | 01         |
+| 1  | 统一输入 manager 门面、winit 翻译双实现收口、editor 11 个 pointer bridge 手写命中（（2026-07-02 评审收口）勘误注：input_manager 门面已在码——`zircon_runtime/src/ui/dispatch/input_manager/`，01.M2 已收编；本行余项按 01 状态表推进） | 01         |
 | 2  | 触摸多指针表 / IME 组合闭环                                                       | 01 / 03    |
-| 3  | 文本栈权威未定（glyphon 挂名未接、CJK fallback、测量缓存）                        | 03         |
+| 3  | 文本栈权威未定（glyphon 挂名未接、CJK fallback、测量缓存）（（2026-07-02 评审收口）文本服务实现归 `docs/plans/zircon_runtime/text/`（2026-06-27 接管，选型定稿 cosmic-text/swash/fdsm），03 已降级为编辑器接入与验收） | 03         |
 | 4  | v2 伪状态解析、组件内联状态分支                                                   | 04         |
 | 5  | 中央 theme 文档、token 链、热重载                                                 | 04         |
 | 6  | UiThemeAsset/UiIconAsset、消费级 resolver、persistent cache（归档 M15）           | 05         |
@@ -133,11 +133,11 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 | 01 Slate 输入内核 | 18 输入响应(命中单源/三相/捕获/cursor) + 19 焦点导航(Tab/方向/作用域) |
 | 02 布局 Taffy/容器 | 13 类 CSS 约束语言 + 02 声明式布局接口(family/measure/arrange/虚拟化) |
 | 03 文本与字体栈 | 17 文本渲染与排版(测量=绘制/DPI 重栅格/换行) |
-| 04 样式主题与选择器 | 20 USS 级联样式(选择器/specificity/级联/var/computed) + 01 token |
+| 04 样式主题与选择器 | 20 USS 级联样式(选择器/specificity/级联/var/computed) + 01 token（（2026-07-02 评审收口）级联引擎归 editor_layout/20，04 为其前置/过渡实现） |
 | 05/06 资产/组件库 | 12 组件化 + 01 token + 02 声明接口 |
 | 08/09 壳承载 | 03 停靠架构 + 05 页面模板 + 07 窗口化 |
 
-硬规则:`editor_ui/` **只实现 `editor_layout/` 已定的契约**,不在运行时层另立设计语言/约束语义;契约 DTO 统一落 `zircon_runtime_interface`(规范单源);引擎内部(布局 pass、光栅、wgpu)归 `zircon_runtime`/`render`。三方文档相互勾稽:`editor_layout/index §6.1` ↔ 本节 ↔ `zircon_runtime/runtime/09`、`render/14`。
+硬规则:`editor_ui/` **只实现 `editor_layout/` 已定的契约**,不在运行时层另立设计语言/约束语义;契约 DTO 统一落 `zircon_runtime_interface`(规范单源);引擎内部(布局 pass、光栅、wgpu)归 `zircon_runtime`/`render`。三方文档相互勾稽:`editor_layout/index §6.1` ↔ 本节 ↔ `zircon_runtime/runtime/09`、`render/14`。（2026-07-02 评审收口）各子计划正文需落「遵 editor_layout/NN」引用,2026-07-02 评审已在 02/03/04/05/07 补齐。
 
 ## 4. 子计划地图与阶段
 
@@ -157,7 +157,7 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 
 阶段划分（与「先等 runtime 大模块完成」的 gating 对应）：
 
-- **阶段 A（runtime UI 内核）**：01 + 02 + 03。全部在 `zircon_runtime` 内完成，不动 editor 结构。
+- **阶段 A（runtime UI 内核）**：01 + 02 + 03。全部在 `zircon_runtime` 内完成，不动 editor 结构。（2026-07-02 评审收口，U1）03 的定位同步：文本服务实现权威 = `docs/plans/zircon_runtime/text/`（9 子计划）；03 的 M1（栅格基准）/M2（字体注册表）/M3（measure cache 实现）主体已让渡给 text/01–04/09，03 保留编辑器侧接入切片与验收。
 - **阶段 B（样式与资产）**：04 + 05。05 与 runtime 资产管理大模块联动；材质管理按 `docs/plans/zircon_runtime/render/08-material-shader-permutation.md` 推进，本计划只消费其资产接口。
 - **阶段 C（组件库）**：06 + 07。
 - **阶段 D（编辑器落地）**：08 → 09。**阶段 A/B 完成是阶段 D 的硬性 gate**：editor 在那之前继续使用现有 retained host 路径，不做半吊子切换。
@@ -228,6 +228,11 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 | W16  | 09.M5                                                         |
 
 波次是并行度建议，不是合同：一波内某项滞后不阻塞同波其他项，但**跨波依赖边不可违反**。
+
+（2026-07-02 评审收口）跨目录 gating 注记：
+
+- **03.M2–M4 的实际前置在本目录之外**：03.M2（字体注册）前置 = text/01 FR 里程碑，03.M3（measure/cache 接入）前置 = text/02/03（shaping/布局）与 text/09（两级缓存），03.M4（编辑/IME 链）前置 = text/08 IM 里程碑。上表 W2–W4 中 03.M2–M4 的排波以对应 text/ 里程碑交付为准，波次滞后时顺延，不构成本目录内其他项的阻塞。
+- **05.M5 与 05.M1 同波（W2）存在依赖矛盾**：05.M5（打包/分发验证）逻辑上依赖 05.M1–M4 的资产链成型，与 05.M1 同排 W2 只能按「弱前置例外」读——W2 内的 05.M5 仅限打包工具链探路（不验收资产内容）；完整 05.M5 验收应视作移到 W4 之后执行。
 
 ## 8. 可用编辑器阶段定义（E0–E3）
 

@@ -4,8 +4,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_chrome::{
-    WORKBENCH_CHROME_DRAWER_BG, WORKBENCH_CHROME_PANEL_BG, WORKBENCH_CHROME_SOFT_SEPARATOR,
-    WORKBENCH_CHROME_STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR, WORKBENCH_CHROME_TOPBAR_BG,
+    WORKBENCH_CHROME_CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG, WORKBENCH_CHROME_PANEL_BG,
+    WORKBENCH_CHROME_SOFT_SEPARATOR, WORKBENCH_CHROME_STATUS_BG,
+    WORKBENCH_CHROME_STRONG_SEPARATOR, WORKBENCH_CHROME_TOPBAR_BG,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_status_control::{
     select_workbench_status_chip_style, select_workbench_status_icon_button_style,

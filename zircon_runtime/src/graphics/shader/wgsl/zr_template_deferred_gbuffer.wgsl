@@ -1,21 +1,3 @@
-struct ZrDeferredGBufferOutput {
-    @location(0) albedo: vec4<f32>,
-    @location(1) material: vec4<f32>,
-};
-
-const ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK: u32 = 0x7Fu;
-const ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG: u32 = 0x80u;
-
-fn zr_deferred_encode_material_flags(shading_model_id: u32, receive_shadows: bool) -> f32 {
-    let model = shading_model_id & ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK;
-    let receive_shadow_flag = select(
-        0u,
-        ZR_DEFERRED_MATERIAL_RECEIVE_SHADOWS_FLAG,
-        receive_shadows,
-    );
-    return f32(model | receive_shadow_flag) / 255.0;
-}
-
 fn zr_vs_main_impl(v: ZrVertexInput, instance_index: u32) -> ZrVertexOutput {
     return zr_build_vertex_output(
         instance_index,
@@ -24,7 +6,7 @@ fn zr_vs_main_impl(v: ZrVertexInput, instance_index: u32) -> ZrVertexOutput {
         fetch_tangent(v, instance_index),
         fetch_uv0(v),
         fetch_uv1(v),
-        fetch_color(v),
+        fetch_color(v, instance_index),
     );
 }
 
@@ -47,16 +29,7 @@ fn zr_deferred_apply_alpha_clip(surface: ZrSurfaceOutput) {
 fn zr_fs_main_impl(input: ZrVertexOutput) -> ZrDeferredGBufferOutput {
     let surface = zr_material_surface(input);
     zr_deferred_apply_alpha_clip(surface);
-    let receive_shadows = input.shadow_params.z > 0.5;
-    return ZrDeferredGBufferOutput(
-        surface.base_color,
-        vec4<f32>(
-            surface.metallic,
-            clamp(surface.roughness, 0.04, 1.0),
-            clamp(surface.occlusion, 0.0, 1.0),
-            zr_deferred_encode_material_flags(surface.shading_model_id, receive_shadows),
-        ),
-    );
+    return encode_gbuffer(surface, zr_build_shading_context(input));
 }
 
 @fragment

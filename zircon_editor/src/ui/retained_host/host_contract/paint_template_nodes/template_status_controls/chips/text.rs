@@ -1,10 +1,9 @@
 use super::super::super::super::data::FrameRect;
-use super::super::super::super::paint_text::measure_fallback_text_width;
+use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_status_control_geometry::{
-    status_chip_text_rect, status_font_size, status_line_height,
+    status_chip_text_rect, status_font_size, status_line_height, workbench_status_metrics,
 };
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(super) fn push_status_chip_text(
@@ -53,14 +52,14 @@ fn split_status_chip_text(label: &str) -> StatusChipText {
 
 fn leading_label_rect(base: FrameRect, value_rect: &FrameRect) -> FrameRect {
     FrameRect {
-        width: (value_rect.x - base.x - METRICS.gap_s).max(1.0),
+        width: (value_rect.x - base.x - workbench_status_metrics().text_value_gap).max(1.0),
         ..base
     }
 }
 
 fn right_aligned_text_rect(base: FrameRect, text: &str) -> FrameRect {
-    let measured_width =
-        measure_fallback_text_width(text, status_font_size()) + METRICS.text_clip_guard;
+    let measured_width = measure_runtime_text_width(text, status_font_size())
+        + workbench_status_metrics().text_clip_guard;
     let width = measured_width.min(base.width).max(1.0);
     FrameRect {
         x: base.x + (base.width - width).max(0.0),

@@ -60,6 +60,46 @@ fn native_live_host_reports_unloaded_plugin_by_module_kind() {
 }
 
 #[test]
+fn native_live_host_lifecycle_unload_reports_typed_unloaded_error() {
+    let error = NativePluginLiveHost::default()
+        .unload_plugin_result("physics", PluginModuleKind::Runtime)
+        .expect_err("unloaded runtime plugin should produce typed lifecycle error");
+
+    assert!(matches!(
+        &error,
+        NativePluginLiveHostLifecycleError::RuntimePluginNotLoaded {
+            plugin_id,
+            module_kind: PluginModuleKind::Runtime,
+        } if plugin_id == "physics"
+    ));
+    assert_eq!(
+        error.to_string(),
+        "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
+    );
+}
+
+#[test]
+fn native_live_host_lifecycle_rejects_unmanaged_module_kind_with_typed_error() {
+    let error = load_for_module_kind(
+        &NativePluginLoader::default(),
+        std::path::Path::new("plugins"),
+        PluginModuleKind::Vm,
+    )
+    .expect_err("VM module handles should not be loaded by the native live host");
+
+    assert!(matches!(
+        &error,
+        NativePluginLiveHostLifecycleError::UnsupportedLiveHostModuleKind {
+            module_kind: PluginModuleKind::Vm,
+        }
+    ));
+    assert_eq!(
+        error.to_string(),
+        "native plugin live host does not manage vm module handles"
+    );
+}
+
+#[test]
 fn native_live_host_runtime_behavior_calls_report_unloaded_plugin() {
     let host = NativePluginLiveHost::default();
     let expected = "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package";
@@ -165,6 +205,36 @@ fn native_runtime_reports_synthesize_callback_status_diagnostics() {
 }
 
 #[test]
+fn native_live_host_behavior_diagnostics_report_typed_status_error() {
+    let error = diagnostics_from_behavior_report(
+        "runtime unload before hot reload",
+        NativePluginBehaviorCallReport {
+            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            diagnostics: vec!["native plugin behavior callback unload failed".to_string()],
+            payload: None,
+        },
+    )
+    .expect_err("failed behavior status should produce a typed diagnostic error");
+
+    assert!(matches!(
+        &error,
+        NativePluginBehaviorDiagnosticError::FailedStatus {
+            label,
+            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            diagnostics,
+        } if label == "runtime unload before hot reload"
+            && diagnostics == &vec![
+                "runtime unload before hot reload: native plugin behavior callback unload failed"
+                    .to_string()
+            ]
+    ));
+    assert_eq!(
+        error.to_string(),
+        "runtime unload before hot reload: native plugin behavior callback unload failed"
+    );
+}
+
+#[test]
 fn native_live_host_loads_runtime_export_diagnostics_without_handles() {
     let export_root = std::env::temp_dir().join(format!(
         "zircon-runtime-missing-native-live-host-export-{}-{}",
@@ -184,6 +254,31 @@ fn native_live_host_loads_runtime_export_diagnostics_without_handles() {
         .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.contains("failed to read native plugin load manifest")));
+}
+
+#[test]
+fn native_live_host_loading_lock_reports_typed_error() {
+    let loaded = Mutex::new(BTreeMap::<String, LoadedNativePlugin>::new());
+    let loaded_for_thread = Arc::new(loaded);
+    let poison_target = Arc::clone(&loaded_for_thread);
+    let _ = std::thread::spawn(move || {
+        let _guard = poison_target
+            .lock()
+            .expect("test should lock live host map");
+        panic!("poison native live host loading lock");
+    })
+    .join();
+
+    let error = lock_loaded_native_plugins(&loaded_for_thread)
+        .expect_err("poisoned live-host lock should report a typed loading error");
+    assert!(matches!(
+        error,
+        NativePluginLiveHostLoadingError::LiveHostLockPoisoned
+    ));
+    assert_eq!(
+        error.to_string(),
+        "native plugin live host lock is poisoned"
+    );
 }
 
 #[test]
@@ -285,6 +380,34 @@ fn native_live_host_unload_runtime_plugin_is_blocked_by_strong_bridge_dependents
 
     assert!(error.contains("bridge.provider_lifecycle_blocked"));
     assert_eq!(bridge.call(|provider| provider.sample_count()), Ok(7));
+    assert_eq!(
+        host.loaded_plugin_ids(PluginModuleKind::Runtime)
+            .expect("loaded ids should still be readable"),
+        vec!["physics".to_string()]
+    );
+}
+
+#[test]
+fn native_live_host_bridge_lifecycle_rejected_unload_reports_typed_error() {
+    let host = NativePluginLiveHost::default();
+    {
+        let mut loaded = lock_loaded_native_plugins(&host.loaded)
+            .expect("test should lock the native live host");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, "physics"),
+            native_live_host_test_plugin("physics", PluginModuleKind::Runtime),
+        );
+    }
+    let state = native_live_host_bridge_lifecycle_state(true);
+    let error = host
+        .unload_runtime_plugin_with_bridge_lifecycle_result("physics", &state)
+        .expect_err("strong bridge dependents should reject unload before native unload");
+
+    assert!(matches!(
+        &error,
+        NativePluginBridgeLifecycleError::BridgeLifecycleRejected { diagnostic }
+            if diagnostic.contains("bridge.provider_lifecycle_blocked")
+    ));
     assert_eq!(
         host.loaded_plugin_ids(PluginModuleKind::Runtime)
             .expect("loaded ids should still be readable"),
@@ -519,6 +642,15 @@ pub(super) unsafe extern "C" fn hot_reload_save_state(
     super::super::abi_declarations::NativePluginCallbackStatusV2 {
         code: ZIRCON_NATIVE_PLUGIN_STATUS_OK,
         diagnostics: std::ptr::null(),
+    }
+}
+
+pub(super) unsafe extern "C" fn hot_reload_save_state_failure(
+    _output: *mut super::super::abi_declarations::NativePluginOwnedByteBufferV2,
+) -> super::super::abi_declarations::NativePluginCallbackStatusV2 {
+    super::super::abi_declarations::NativePluginCallbackStatusV2 {
+        code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+        diagnostics: c"save failed during hot reload".as_ptr(),
     }
 }
 

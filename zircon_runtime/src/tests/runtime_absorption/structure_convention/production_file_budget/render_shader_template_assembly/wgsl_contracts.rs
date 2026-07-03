@@ -18,6 +18,11 @@ fn runtime_15_render_shader_template_wgsl_contracts_are_child_owner() {
     let taa_reactive_mask_wgsl =
         read_runtime_src("graphics/shader/wgsl/zr_template_taa_reactive_mask.wgsl");
     let standard_pbr_wgsl = read_runtime_src("graphics/shader/wgsl/zr_shading_standard_pbr.wgsl");
+    let deferred_standard_pbr_wgsl =
+        read_runtime_src("graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl");
+    let deferred_blinn_phong_wgsl =
+        read_runtime_src("graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl");
+    let deferred_unlit_wgsl = read_runtime_src("graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl");
 
     assert_contains_all(
         "scene runtime include exposes current scene uniform ABI",
@@ -233,10 +238,33 @@ fn runtime_15_render_shader_template_wgsl_contracts_are_child_owner() {
             "let surface = zr_material_surface(input);",
             "surface.base_color.a",
             "surface.custom0.x",
-            "fn fs_taa_reactive_material_mask(_input: ZrVertexOutput) -> @location(0) f32",
-            "standard_material_properties.data8.x",
+            "fn fs_taa_reactive_material_mask(input: ZrVertexOutput) -> @location(0) f32",
+            "let reactive_mask = clamp(surface.custom0.x, 0.0, 1.0);",
             "zr_discard_empty_taa_reactive_mask(reactive_mask)",
         ],
+    );
+    assert_contains_all(
+        "deferred standard pbr include delegates to lit deferred shading",
+        &deferred_standard_pbr_wgsl,
+        &[
+            "fn shade_deferred_standard_pbr",
+            "ZR_SHADING_MODEL_STANDARD_PBR_ID",
+            "shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_STANDARD_PBR_ID)",
+        ],
+    );
+    assert_contains_all(
+        "deferred blinn phong include delegates to lit deferred shading",
+        &deferred_blinn_phong_wgsl,
+        &[
+            "fn shade_deferred_blinn_phong",
+            "ZR_SHADING_MODEL_BLINN_PHONG_ID",
+            "shade_deferred_lit(position, coord, albedo, material, normal, ZR_SHADING_MODEL_BLINN_PHONG_ID)",
+        ],
+    );
+    assert_contains_all(
+        "deferred unlit include returns albedo directly",
+        &deferred_unlit_wgsl,
+        &["fn shade_deferred_unlit", "return albedo;"],
     );
 
     for (path, source) in [

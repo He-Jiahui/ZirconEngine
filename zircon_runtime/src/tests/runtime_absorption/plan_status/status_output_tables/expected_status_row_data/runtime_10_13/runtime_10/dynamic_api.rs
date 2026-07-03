@@ -6,7 +6,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 33",
+            "expected_source_file_count = 35",
             "dynamic_api/app/UI gates pending",
         ],
     ),
@@ -15,7 +15,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "host_request_payload_anchors = 38/38",
             "missing_host_request_payload_anchors = []",
-            "expected_source_file_count = 33",
+            "expected_source_file_count = 35",
             "dynamic_api/app/UI Cargo gates pending",
         ],
     ),
@@ -32,9 +32,18 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 10 Dynamic API current audit recheck",
         &[
             "dynamic_api_current_audit_static_passed_cargo_pending",
-            "source files 33/33",
+            "source files 35/35",
             "standalone `dynamic_api_session.rs` 9/9",
             "runtime UI/editor Cargo gates",
+        ],
+    ),
+    (
+        "Runtime 10 Dynamic API 2026-07-01 current audit recheck",
+        &[
+            "dynamic_api_20260701_current_audit_static_passed_cargo_deferred",
+            "source files 35/35",
+            "behavior-test anchors 16/16",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
         ],
     ),
     (
@@ -52,6 +61,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "behavior_test_anchor_count = 16",
             "missing_behavior_test_anchors = []",
             "standalone `dynamic_api_session.rs` 9/9",
+            "standalone dynamic_api_session 9/9",
             "dynamic_api/app/UI gates pending",
         ],
     ),
@@ -59,7 +69,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 10 dynamic_api_session 吸收守卫拆分",
         &[
             "dynamic_api_session/{shared,headless_profiles,event_split,test_owner_split,ffi_panic_boundary,runtime_diagnostics,ui_contract,v2_contract,mirror_docs}.rs",
-            "expected_source_file_count = 33",
+            "expected_source_file_count = 35",
             "cargo test -p zircon_runtime --lib dynamic_api_session",
             "5 passed / 4231 filtered out",
         ],
@@ -132,7 +142,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "runtime_10_dynamic_api_abi_inventory_split_static_passed_cargo_timeout_no_result_tests_deferred",
             "dynamic_runtime_api_abi_inventory.py",
-            "expected_source_file_count = 33",
+            "expected_source_file_count = 35",
             "runtime_session_operation_count = 11",
         ],
     ),
@@ -152,6 +162,26 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "dynamic_runtime_api_markdown.py",
             "dynamic_runtime_api_boundary.py` remains the 330-line audit/risk owner",
             "Markdown owner is 65 lines",
+        ],
+    ),
+    (
+        "Runtime 10 session profile owner audit sync",
+        &[
+            "runtime_10_session_profile_owner_audit_sync_static_passed_cargo_deferred",
+            "dynamic_api/session/profile.rs",
+            "expected_source_file_count = 35",
+            "headless_lifecycle_anchors = 12/12",
+            "missing_headless_lifecycle_anchors = []",
+        ],
+    ),
+    (
+        "Runtime 10 host-request payload test owner split",
+        &[
+            "runtime_10_host_request_payload_test_owner_split_static_passed_cargo_timeout_no_result",
+            "dynamic_api/tests/host_request_payloads.rs",
+            "expected_module_count = 12",
+            "oversized_modules = []",
+            "focused Cargo `cargo test -p zircon_runtime --lib host_request --locked --jobs 1` timed out after 604s with no test result",
         ],
     ),
     (

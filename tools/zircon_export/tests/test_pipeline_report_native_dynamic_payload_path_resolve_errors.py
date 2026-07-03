@@ -6,12 +6,14 @@ from pathlib import Path
 from unittest import mock
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.pipeline_report_native_dynamic_payload import (
-    current_output_native_dynamic_report_path,
+from tools.zircon_export.pipeline_report_native_dynamic_payload_platform_bundle import (
     platform_bundle_native_plugins_package_path_diagnostics,
     platform_bundle_native_plugins_payload_diagnostics,
 )
-from tools.zircon_export.native_dynamic_payload import (
+from tools.zircon_export.pipeline_report_native_dynamic_payload_platform_bundle_stage import (
+    current_output_native_dynamic_report_path,
+)
+from tools.zircon_export.native_dynamic_payload_directory import (
     materialized_package_loadable_artifacts_match_manifest,
 )
 from tools.zircon_export.tests.platform_bundle_report_test_support import (
@@ -103,6 +105,7 @@ class NativeDynamicPayloadPathResolveErrorsTests(unittest.TestCase):
                 any(
                     "native_plugins_payload" in diagnostic
                     or "native_plugins" in diagnostic
+                    or "NativeDynamic payload" in diagnostic
                     for diagnostic in report["diagnostics"]
                 ),
                 report["diagnostics"],

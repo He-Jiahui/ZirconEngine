@@ -9,8 +9,7 @@ use super::support::*;
 fn editor_manager_runs_ui_asset_style_class_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_style_classes");
-    let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_style_classes_file").join("style.ui.toml");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_style_classes_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -55,8 +54,7 @@ fn editor_manager_runs_ui_asset_style_class_editing_actions() {
 fn editor_manager_runs_ui_asset_style_rule_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_style_rules");
-    let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_style_rules_file").join("style.ui.toml");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_style_rules_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -111,7 +109,7 @@ fn editor_manager_runs_ui_asset_style_rule_declaration_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_style_rule_declarations");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_style_rule_declarations_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_style_rule_declarations_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -167,7 +165,7 @@ fn editor_manager_projects_matched_style_rule_summaries_into_stylesheet_items() 
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_matched_rule_details");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_matched_rule_details_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_matched_rule_details_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -210,7 +208,7 @@ fn editor_manager_projects_selected_matched_style_rule_details() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_matched_rule_details");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_matched_rule_details_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_matched_rule_details_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -265,7 +263,7 @@ fn editor_manager_runs_ui_asset_widget_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_widget_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_widget_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_widget_inspector_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -318,7 +316,7 @@ fn editor_manager_runs_ui_asset_slot_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_slot_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_slot_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_slot_inspector_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -393,7 +391,7 @@ fn editor_manager_runs_ui_asset_layout_inspector_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_layout_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_layout_inspector_file").join("style.ui.toml");
+        unique_temp_dir("zircon_editor_asset_layout_inspector_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 
@@ -449,7 +447,7 @@ fn editor_manager_runs_ui_asset_parent_specific_semantic_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_semantic_inspector");
     let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_semantic_inspector_file").join("semantic.ui.toml");
+        unique_temp_dir("zircon_editor_asset_semantic_inspector_file").join("semantic.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, SEMANTIC_UI_LAYOUT_ASSET);
 
@@ -522,8 +520,7 @@ fn editor_manager_runs_ui_asset_parent_specific_semantic_actions() {
 fn editor_manager_runs_ui_asset_style_token_editing_actions() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_asset_style_tokens");
-    let ui_asset_path =
-        unique_temp_dir("zircon_editor_asset_style_tokens_file").join("style.ui.toml");
+    let ui_asset_path = unique_temp_dir("zircon_editor_asset_style_tokens_file").join("style.zui");
     fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
     write_ui_asset(&ui_asset_path, STYLE_UI_LAYOUT_ASSET);
 

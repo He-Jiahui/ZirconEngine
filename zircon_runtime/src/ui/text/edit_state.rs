@@ -26,17 +26,25 @@ pub(crate) fn apply_text_edit_action(
             state.selection = Some(UiTextSelection { anchor, focus });
         }
         UiTextEditAction::SetComposition { range, text } if !state.read_only => {
+            let mut source_range = range;
             if let Some(composition) = state.composition.take() {
                 if let Some(restore_text) = composition.restore_text {
+                    let restored_source_range = UiTextRange {
+                        start: composition.range.start,
+                        end: composition.range.start + restore_text.len(),
+                    };
                     replace_range_preserving_composition(
                         &mut state,
                         composition.range.start,
                         composition.range.end,
                         &restore_text,
                     );
+                    if source_range == composition.range {
+                        source_range = restored_source_range;
+                    }
                 }
             }
-            let range = composition_source_range(&state.text, range, &text);
+            let range = composition_source_range(&state.text, source_range);
             let restore_text = state.text[range.start..range.end].to_string();
             replace_range_preserving_composition(&mut state, range.start, range.end, &text);
             state.composition = Some(zircon_runtime_interface::ui::surface::UiTextComposition {
@@ -160,15 +168,12 @@ fn replace_range_preserving_composition(
     state.selection = None;
 }
 
-fn composition_source_range(text: &str, range: UiTextRange, replacement: &str) -> UiTextRange {
+fn composition_source_range(text: &str, range: UiTextRange) -> UiTextRange {
     let start = clamp_boundary(text, range.start);
-    let explicit_end = clamp_boundary(text, range.end).max(start);
-    let end = if explicit_end == start {
-        start
-    } else {
-        clamp_boundary(text, start + replacement.len()).max(explicit_end)
-    };
-    UiTextRange { start, end }
+    UiTextRange {
+        start,
+        end: clamp_boundary(text, range.end).max(start),
+    }
 }
 
 fn clamp_boundary(text: &str, offset: usize) -> usize {
@@ -189,4 +194,75 @@ fn previous_boundary(text: &str, offset: usize) -> Option<usize> {
 
 fn next_boundary(text: &str, offset: usize) -> Option<usize> {
     next_grapheme_boundary(text, offset)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn set_composition_replaces_explicit_range_without_extending_to_preedit_len() {
+        let state = editable_text_state("abcdef", 5, Some(UiTextRange { start: 1, end: 5 }));
+
+        let next = apply_text_edit_action(
+            state,
+            UiTextEditAction::SetComposition {
+                range: UiTextRange { start: 1, end: 5 },
+                text: "WXYZQ".to_string(),
+            },
+        );
+
+        let composition = next.composition.as_ref().expect("composition");
+        assert_eq!(next.text, "aWXYZQf");
+        assert_eq!(next.caret.offset, 6);
+        assert_eq!(composition.range, UiTextRange { start: 1, end: 6 });
+        assert_eq!(composition.restore_text.as_deref(), Some("bcde"));
+    }
+
+    #[test]
+    fn set_composition_update_reuses_restored_source_range() {
+        let state = editable_text_state("abcdef", 5, Some(UiTextRange { start: 1, end: 5 }));
+        let first = apply_text_edit_action(
+            state,
+            UiTextEditAction::SetComposition {
+                range: UiTextRange { start: 1, end: 5 },
+                text: "WXYZQ".to_string(),
+            },
+        );
+        let visible_composition_range = first.composition.as_ref().unwrap().range;
+
+        let next = apply_text_edit_action(
+            first,
+            UiTextEditAction::SetComposition {
+                range: visible_composition_range,
+                text: "UV".to_string(),
+            },
+        );
+
+        let composition = next.composition.as_ref().expect("composition");
+        assert_eq!(next.text, "aUVf");
+        assert_eq!(next.caret.offset, 3);
+        assert_eq!(composition.range, UiTextRange { start: 1, end: 3 });
+        assert_eq!(composition.restore_text.as_deref(), Some("bcde"));
+    }
+
+    fn editable_text_state(
+        text: &str,
+        caret_offset: usize,
+        selection_range: Option<UiTextRange>,
+    ) -> UiEditableTextState {
+        UiEditableTextState {
+            text: text.to_string(),
+            caret: UiTextCaret {
+                offset: caret_offset,
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+            selection: selection_range.map(|range| UiTextSelection {
+                anchor: range.start,
+                focus: range.end,
+            }),
+            composition: None,
+            read_only: false,
+        }
+    }
 }

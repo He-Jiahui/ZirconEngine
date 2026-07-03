@@ -15,15 +15,25 @@ related_code:
   - zircon_runtime/src/core/modules/tasks.rs
   - zircon_runtime/src/core/modules/time.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_app/src/prelude.rs
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/groups.rs
@@ -67,11 +77,21 @@ implementation_files:
   - zircon_runtime/src/core/modules/tasks.rs
   - zircon_runtime/src/core/modules/time.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly.rs
+  - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs
+  - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_app/src/prelude.rs
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/groups.rs
@@ -139,6 +159,14 @@ tests:
   - cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
   - docs-only M1 review: app plugin groups, stable prelude, state/time/tasks/log/diagnostics gates are sourced from Bevy and Zircon files
   - docs-only M10 review: profile/catalog docs-sync gates are sourced from Bevy CI feature-doc checks and Zircon CI/validator/reporting files
+  - zircon_runtime::builtin::runtime_modules::tests::registration::behavior::target_runtime_modules_follow_descriptor_activation_order
+  - zircon_app::plugins::tests::builtin_plugin_groups_finish_in_descriptor_activation_order
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::runtime_plugin_lifecycle_uses_module_descriptor_order
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::runtime_plugin_ready_runs_after_register_before_finish
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::runtime_plugin_activate_uses_descriptor_order_before_feature_activate
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/builtin/runtime_modules/core_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs zircon_runtime/src/builtin/runtime_modules/load_report/report.rs zircon_runtime/src/builtin/runtime_modules/assembly.rs zircon_app/src/plugins/builder.rs zircon_app/src/entry/engine_entry.rs zircon_app/src/entry/builtin_modules.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs zircon_app/src/plugins/tests.rs
+  - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never
+  - cargo test -p zircon_runtime --lib runtime_plugin_lifecycle_uses_module_descriptor_order --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 Frameworks 02 M3 catalog descriptor ordering: timed out during Windows lib-test compile/link; not counted as passing)
 doc_type: module-detail
 ---
 
@@ -192,6 +220,12 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 | `HeadlessPlugins` | Default-style runtime without visual presentation. | Default core/platform/input/asset/scene/script path without graphics or UI. | Used by server/headless entry modes and export validation. |
 
 `PluginGroupBuilder` is Zircon's equivalent of Bevy's group editing surface. It supports `set`, `disable`, `enable`, `add_before`, `add_after`, duplicate detection, missing-key diagnostics, and built-in membership tests. Zircon deliberately keys ordering by `EngineModule::module_name()` strings instead of Bevy `TypeId` values because modules are trait-object descriptors, not concrete `Plugin` types exposed to users.
+
+Frameworks 02 M2 tightens the split between selection and ordering. Runtime profiles, target manifests, and app plugin groups now select module membership only; they no longer own the final activation sequence. Enabled modules are sorted by their `ModuleDescriptor::init_level` and declared module dependencies through the runtime descriptor sorter. `RuntimeModuleLoadReport` treats ordering errors as fatal diagnostics, and `zircon_app` rejects those reports before bootstrap. App bootstrap registers the full selected descriptor set first and then calls `activate_registered_modules(...)`, so profile entry uses the runtime kernel's batch finish barrier instead of per-module activation order.
+
+Frameworks 02 M3 applies the same rule to RuntimePlugin catalog construction. `RuntimePluginDescriptor` embeds the runtime `ModuleDescriptor`, and `RuntimePluginCatalog::from_plugins(...)`, `from_descriptors(...)`, and `from_lifecycle_plugins(...)` now use the descriptor sorter before registration reports or lifecycle `finish` hooks run. Profile/provider data still decides which runtime plugins are present; plugin input order no longer decides their activation-side order. Validation status: scoped rustfmt and app/server `cargo check` passed with existing warnings, while the focused lifecycle-order test timed out during Windows lib-test compile/link and is not counted as passing.
+
+RuntimePlugin lifecycle is now aligned to the same descriptor vocabulary. A plugin descriptor's embedded `ModuleDescriptor::init_level` defaults to `Post` unless the provider declares a stronger level, and dependency ordering comes from `ModuleDependencySpec` rather than from package list order. Catalog construction runs plugin/feature `register(...)`, then a global `ready(...)` barrier using the full capability view, then `finish(...)` only if every plugin and feature is ready. Runtime-world `activate(...)` uses the same descriptor order for plugins before feature activation; `deactivate(...)` releases features first and plugins in reverse descriptor order. This is a hard cutover: no compatibility registration hook or legacy plugin-order fallback remains in the documented lifecycle.
 
 One G1 decision remains open: Bevy preserves disabled plugin entries as ordering anchors, while Zircon's current builder treats insertion relative to a disabled anchor as a `DisabledAnchor` error. That stricter behavior is acceptable while profile composition is still stabilizing, but it must either become the documented Zircon contract or be aligned to Bevy before broadening default profile membership.
 

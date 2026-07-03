@@ -270,6 +270,7 @@ fn context_with_advanced_plan_and_payloads(
         virtual_geometry_payload_source,
         Vec::new(),
         Vec::new(),
+        Vec::new(),
         None,
         None,
         1,

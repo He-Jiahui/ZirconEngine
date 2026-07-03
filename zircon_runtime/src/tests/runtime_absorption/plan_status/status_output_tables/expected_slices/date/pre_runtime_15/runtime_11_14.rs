@@ -64,6 +64,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-20")
     } else if slice == "Runtime 11 JobSystem current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 11 JobSystem 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 11 JobSystem inventory split" {
         Some("2026-06-21")
     } else if slice == "Runtime 11 JobSystem Markdown renderer split" {
@@ -110,19 +112,27 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-20")
     } else if slice == "Runtime 12 Input stack current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 12 Input stack 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 12 Input stack inventory split"
         || slice == "Runtime 12 Input stack Markdown renderer split"
         || slice == "Runtime 12 input boundary grouped manager import guard repair"
     {
         Some("2026-06-21")
+    } else if slice == "Runtime 12 input_manager child test owner audit sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 14 module family current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 14 module family 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 14 module family markdown renderer split" {
         Some("2026-06-21")
     } else if slice == "Runtime 13 Script binding current audit recheck" {
         Some("2026-06-20")
     } else if slice == "Runtime 13 script binding Markdown renderer split" {
         Some("2026-06-21")
+    } else if slice == "Runtime 13 Script binding 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 11 JobSystem 行为测试锚审计同步" {
         Some("2026-06-17")
     } else {

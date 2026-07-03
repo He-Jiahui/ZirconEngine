@@ -27,10 +27,7 @@ use registration_reports::{
     runtime_modules_for_target_with_plugin_and_feature_registration_reports as runtime_modules_for_target_with_plugin_and_feature_registration_reports_impl,
     runtime_modules_for_target_with_plugin_registration_reports as runtime_modules_for_target_with_plugin_registration_reports_impl,
 };
-use target_modules::{
-    runtime_modules_for_target_with_registration_inputs,
-    runtime_modules_for_target_with_registration_inputs_for_manifest,
-};
+use target_modules::runtime_modules_for_target_with_registration_inputs;
 
 pub fn builtin_runtime_modules() -> Vec<Arc<dyn EngineModule>> {
     runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None).modules

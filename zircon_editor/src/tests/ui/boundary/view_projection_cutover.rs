@@ -147,10 +147,10 @@ fn v2_view_projection_uses_runtime_v2_file_cache_without_editor_local_loader() {
             .join("editor")
             .join("asset_browser.zui"),
     )
-    .expect("asset browser v2 asset");
+    .expect("asset_browser.zui should be readable");
     assert!(asset_browser.contains("res://ui/theme/editor_base.zui"));
     assert!(
         !asset_browser.contains("res://ui/theme/editor_base.ui.toml"),
-        "v2 asset browser must not import the old schema theme"
+        ".zui asset browser must not import the old schema theme"
     );
 }

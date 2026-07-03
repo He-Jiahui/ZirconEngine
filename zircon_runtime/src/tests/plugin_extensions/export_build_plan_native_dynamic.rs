@@ -142,6 +142,10 @@ fn native_dynamic_only_profile_carries_minimal_compile_host_plan() {
     assert!(compile_host
         .command
         .contains(&"--no-default-features".to_string()));
+    assert!(compile_host
+        .command
+        .windows(2)
+        .any(|window| window == ["--manifest-path", "Cargo.toml"]));
     assert!(compile_host.command.contains(&"--features".to_string()));
     assert!(compile_host.command.contains(&"target-client".to_string()));
 

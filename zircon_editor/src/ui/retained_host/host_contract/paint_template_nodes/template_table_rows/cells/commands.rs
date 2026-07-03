@@ -1,5 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_text::measure_fallback_text_width;
+use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::super::paint_theme::METRICS;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::style::table_cell_color;
@@ -42,7 +42,7 @@ fn text_frame_for_cell(rect: FrameRect, text: &str, index: usize) -> FrameRect {
 
 fn right_aligned_text_frame(rect: FrameRect, text: &str) -> FrameRect {
     let measured_width =
-        measure_fallback_text_width(text, TABLE_CELL_FONT_SIZE) + METRICS.text_clip_guard;
+        measure_runtime_text_width(text, TABLE_CELL_FONT_SIZE) + METRICS.text_clip_guard;
     let width = measured_width.min(rect.width).max(0.0);
     FrameRect {
         x: rect.x + (rect.width - width).max(0.0),

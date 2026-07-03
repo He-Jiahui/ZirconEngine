@@ -57,7 +57,6 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
             "fn click_component_events_preserve_every_matching_binding_on_target",
             "fn focus_component_events_emit_focus_and_blur_for_matching_bindings",
             "fn scroll_fallback_continues_to_ancestor_when_nearest_scrollable_is_clamped",
-            "fn bound_custom_template_component_dispatches_click_envelope_after_build",
         ],
     );
     assert_contains_all(
@@ -65,6 +64,7 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
         &dispatch_effects,
         &[
             "fn dispatch_reply_applies_focus_capture_high_precision_and_release_effects",
+            "fn bound_custom_template_component_dispatches_click_envelope_after_build",
             "fn focus_effects_clear_only_their_current_input_owner",
             "fn dispatch_reply_applies_navigation_and_host_owned_input_effects",
             "fn input_method_request_rejects_invalid_surrounding_text_before_host_request",
@@ -129,7 +129,7 @@ fn runtime_15_ui_event_routing_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

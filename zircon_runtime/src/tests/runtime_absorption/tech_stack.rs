@@ -58,8 +58,8 @@ fn runtime_01_tech_stack_mirror_docs_match_structure_audit_counts() {
         "../../../../zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs"
     );
     for behavior_test_anchor in [
-        "heuristic_text_shaper_matches_public_layout_entrypoint",
-        "text_shaper_stack_uses_current_heuristic_backend_until_font_backends_land",
+        "shared_text_shaper_matches_public_layout_entrypoint",
+        "text_shaper_stack_uses_shared_text_service_for_font_backends",
         "empty_jolt_feature_slot_reports_unavailable_not_ready",
         "unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick",
     ] {

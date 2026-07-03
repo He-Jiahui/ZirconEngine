@@ -5,6 +5,8 @@ use crate::core::framework::render::{ShapedGlyph, ShapedGlyphRun};
 use crate::graphics::text::shaping::shape_horizontal_line;
 use zircon_runtime_interface::ui::surface::{UiTextDirection, UiTextRange};
 
+use super::tab::tab_aligned_width;
+
 const DEFAULT_METRICS_SAMPLE: &str = "Hg";
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -29,20 +31,64 @@ pub(crate) fn measure_line_width(text: &str, style: &UiResolvedStyle) -> f32 {
         return 0.0;
     }
 
-    shape_line(text, style).width
+    if !text.contains('\t') {
+        return shape_line(text, style).width;
+    }
+
+    let grapheme_widths = measured_grapheme_widths(text, style);
+    tab_aligned_width(text, &grapheme_widths, style, shape_line(" ", style).width)
 }
 
 pub(crate) fn measured_grapheme_widths(text: &str, style: &UiResolvedStyle) -> Vec<f32> {
     let shaped = shape_unconstrained_line(text, style);
-    let Some(line) = shaped.lines.first() else {
-        return Vec::new();
-    };
     text.grapheme_indices(true)
         .map(|(start, grapheme)| {
             let end = start + grapheme.len();
-            measured_width_from_glyphs(line.text.as_str(), line.glyphs.as_slice(), start, end)
+            measured_width(&shaped, start, end, true)
         })
         .collect()
+}
+
+pub(crate) fn measure_text_source_range_width(
+    text: &str,
+    style: &UiResolvedStyle,
+    range: UiTextRange,
+) -> f32 {
+    if text.is_empty() || range.start >= range.end {
+        return 0.0;
+    }
+
+    let shaped = shape_unconstrained_line(text, style);
+    measured_width(&shaped, range.start, range.end, true)
+}
+
+pub(crate) fn measured_width(
+    run: &ShapedGlyphRun,
+    byte_start: usize,
+    byte_end: usize,
+    _include_kerning: bool,
+) -> f32 {
+    if byte_start >= byte_end {
+        return 0.0;
+    }
+    let source_start = byte_start.max(run.source_range.start);
+    let source_end = byte_end.min(run.source_range.end);
+    if source_start >= source_end {
+        return 0.0;
+    }
+
+    run.lines
+        .iter()
+        .map(|line| {
+            measured_source_width_from_glyphs(
+                &run.source_text,
+                run.source_range.start,
+                line.glyphs.as_slice(),
+                source_start,
+                source_end,
+            )
+        })
+        .fold(0.0_f32, f32::max)
 }
 
 pub(crate) fn line_metrics(style: &UiResolvedStyle) -> TextLineMetrics {
@@ -81,30 +127,144 @@ fn shape_unconstrained_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphR
     )
 }
 
-fn measured_width_from_glyphs(
-    line_text: &str,
+fn measured_source_width_from_glyphs(
+    source_text: &str,
+    source_offset: usize,
     glyphs: &[ShapedGlyph],
-    visual_start: usize,
-    visual_end: usize,
+    source_start: usize,
+    source_end: usize,
 ) -> f32 {
     glyphs
         .iter()
-        .filter(|glyph| {
-            glyph.visual_range.start < visual_end && glyph.visual_range.end > visual_start
+        .map(|glyph| {
+            measured_glyph_source_overlap(
+                source_text,
+                source_offset,
+                glyph,
+                source_start,
+                source_end,
+            )
         })
-        .map(|glyph| glyph.advance.max(0.0) / glyph_grapheme_span(line_text, glyph))
         .sum()
 }
 
-fn glyph_grapheme_span(line_text: &str, glyph: &ShapedGlyph) -> f32 {
-    let start = glyph.visual_range.start.min(line_text.len());
-    let end = glyph.visual_range.end.min(line_text.len()).max(start);
-    if !line_text.is_char_boundary(start) || !line_text.is_char_boundary(end) {
+fn measured_glyph_source_overlap(
+    source_text: &str,
+    source_offset: usize,
+    glyph: &ShapedGlyph,
+    source_start: usize,
+    source_end: usize,
+) -> f32 {
+    let overlap_start = glyph.source_range.start.max(source_start);
+    let overlap_end = glyph.source_range.end.min(source_end);
+    if overlap_start >= overlap_end {
+        return 0.0;
+    }
+
+    let advance = glyph.advance.max(0.0);
+    if overlap_start == glyph.source_range.start && overlap_end == glyph.source_range.end {
+        return advance;
+    }
+
+    let glyph_span = source_grapheme_span(source_text, source_offset, glyph.source_range);
+    let overlap_span = source_grapheme_span(
+        source_text,
+        source_offset,
+        UiTextRange {
+            start: overlap_start,
+            end: overlap_end,
+        },
+    );
+    if glyph_span <= 0.0 || overlap_span <= 0.0 {
+        return advance;
+    }
+    advance * (overlap_span / glyph_span).clamp(0.0, 1.0)
+}
+
+fn source_grapheme_span(source_text: &str, source_offset: usize, range: UiTextRange) -> f32 {
+    let Some(start) = range.start.checked_sub(source_offset) else {
+        return 1.0;
+    };
+    let Some(end) = range.end.checked_sub(source_offset) else {
+        return 1.0;
+    };
+    let start = start.min(source_text.len());
+    let end = end.min(source_text.len()).max(start);
+    if !source_text.is_char_boundary(start) || !source_text.is_char_boundary(end) {
         return 1.0;
     }
-    line_text[start..end].graphemes(true).count().max(1) as f32
+    source_text[start..end].graphemes(true).count().max(1) as f32
 }
 
 fn resolved_line_height(style: &UiResolvedStyle) -> f32 {
     style.line_height.max(style.font_size.max(1.0))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn measured_width_sums_source_subranges() {
+        let style = test_style();
+        let shaped = shape_unconstrained_line("Wi", &style);
+        let line = shaped.lines.first().expect("shaped line");
+        let first = measured_width(&shaped, 0, 1, true);
+        let second = measured_width(&shaped, 1, 2, true);
+        let full = measured_width(&shaped, 0, 2, true);
+
+        assert!(first > 0.0);
+        assert!(second > 0.0);
+        assert!((first + second - full).abs() < 0.1);
+        assert!((full - line.measured_width).abs() < 0.1);
+    }
+
+    #[test]
+    fn measured_width_uses_absolute_source_ranges() {
+        let style = test_style();
+        let source = "xxWi";
+        let shaped = shape_horizontal_line(
+            &source[2..],
+            &style,
+            UiTextDirection::LeftToRight,
+            UiTextRange {
+                start: 2,
+                end: source.len(),
+            },
+        );
+        let local_shaped = shape_unconstrained_line("Wi", &style);
+
+        assert_eq!(measured_width(&shaped, 0, 2, true), 0.0);
+        assert!(
+            (measured_width(&shaped, 2, 3, true) - measured_width(&local_shaped, 0, 1, true)).abs()
+                < 0.1
+        );
+        assert!(
+            (measured_width(&shaped, 2, source.len(), true)
+                - measured_width(&local_shaped, 0, 2, true))
+            .abs()
+                < 0.1
+        );
+    }
+
+    #[test]
+    fn measured_width_splits_partial_cluster_by_grapheme_count() {
+        let style = test_style();
+        let shaped = shape_unconstrained_line("fi", &style);
+        let first = measured_width(&shaped, 0, 1, true);
+        let second = measured_width(&shaped, 1, 2, true);
+        let full = measured_width(&shaped, 0, 2, true);
+
+        assert!(first > 0.0);
+        assert!(second > 0.0);
+        assert!((first + second - full).abs() < 0.1);
+    }
+
+    fn test_style() -> UiResolvedStyle {
+        UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        }
+    }
 }

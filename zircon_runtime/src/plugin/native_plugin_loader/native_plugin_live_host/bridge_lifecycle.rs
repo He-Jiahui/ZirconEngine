@@ -11,13 +11,67 @@ use super::reports::{
 };
 use super::NativePluginLiveHost;
 
+pub(super) type NativePluginBridgeLifecycleResult<T> =
+    std::result::Result<T, NativePluginBridgeLifecycleError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginBridgeLifecycleError {
+    Load {
+        diagnostic: String,
+    },
+    HotReload {
+        diagnostic: String,
+    },
+    Unload {
+        diagnostic: String,
+    },
+    BridgeLifecycleRejected {
+        diagnostic: String,
+    },
+    UnloadRollback {
+        diagnostic: String,
+        rollback_diagnostic: String,
+    },
+}
+
+impl std::fmt::Display for NativePluginBridgeLifecycleError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Load { diagnostic }
+            | Self::HotReload { diagnostic }
+            | Self::Unload { diagnostic }
+            | Self::BridgeLifecycleRejected { diagnostic } => formatter.write_str(diagnostic),
+            Self::UnloadRollback {
+                diagnostic,
+                rollback_diagnostic,
+            } => write!(formatter, "{diagnostic}; {rollback_diagnostic}"),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginBridgeLifecycleError {}
+
 impl NativePluginLiveHost {
     pub fn hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle(
         &self,
         export_root: impl AsRef<Path>,
         lifecycle: &RuntimePluginBridgeLifecycleState,
     ) -> Result<NativePluginRuntimeHotUpdateReport, String> {
-        let mut report = self.hot_reload_runtime_plugins_from_export_root(export_root)?;
+        self.hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle_result(
+            export_root,
+            lifecycle,
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle_result(
+        &self,
+        export_root: impl AsRef<Path>,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> NativePluginBridgeLifecycleResult<NativePluginRuntimeHotUpdateReport> {
+        let mut report = self
+            .hot_reload_runtime_plugins_from_export_root(export_root)
+            .map_err(|diagnostic| NativePluginBridgeLifecycleError::HotReload { diagnostic })?;
         report.apply_runtime_bridge_lifecycle(lifecycle);
         Ok(report)
     }
@@ -27,7 +81,21 @@ impl NativePluginLiveHost {
         export_root: impl AsRef<Path>,
         lifecycle: &RuntimePluginBridgeLifecycleState,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
-        let mut report = self.load_runtime_plugins_from_export_root(export_root)?;
+        self.load_runtime_plugins_from_export_root_with_bridge_lifecycle_result(
+            export_root,
+            lifecycle,
+        )
+        .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn load_runtime_plugins_from_export_root_with_bridge_lifecycle_result(
+        &self,
+        export_root: impl AsRef<Path>,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> NativePluginBridgeLifecycleResult<NativePluginLiveHostLoadReport> {
+        let mut report = self
+            .load_runtime_plugins_from_export_root(export_root)
+            .map_err(|diagnostic| NativePluginBridgeLifecycleError::Load { diagnostic })?;
         report.apply_runtime_bridge_lifecycle(lifecycle);
         Ok(report)
     }
@@ -37,7 +105,18 @@ impl NativePluginLiveHost {
         root: impl AsRef<Path>,
         lifecycle: &RuntimePluginBridgeLifecycleState,
     ) -> Result<NativePluginLiveHostLoadReport, String> {
-        let mut report = self.load_runtime_plugins_from_project_root(root)?;
+        self.load_runtime_plugins_from_project_root_with_bridge_lifecycle_result(root, lifecycle)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn load_runtime_plugins_from_project_root_with_bridge_lifecycle_result(
+        &self,
+        root: impl AsRef<Path>,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> NativePluginBridgeLifecycleResult<NativePluginLiveHostLoadReport> {
+        let mut report = self
+            .load_runtime_plugins_from_project_root(root)
+            .map_err(|diagnostic| NativePluginBridgeLifecycleError::Load { diagnostic })?;
         report.apply_runtime_bridge_lifecycle(lifecycle);
         Ok(report)
     }
@@ -47,6 +126,15 @@ impl NativePluginLiveHost {
         plugin_id: impl AsRef<str>,
         lifecycle: &RuntimePluginBridgeLifecycleState,
     ) -> Result<NativePluginLiveHostOutcome, String> {
+        self.unload_runtime_plugin_with_bridge_lifecycle_result(plugin_id, lifecycle)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn unload_runtime_plugin_with_bridge_lifecycle_result(
+        &self,
+        plugin_id: impl AsRef<str>,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> NativePluginBridgeLifecycleResult<NativePluginLiveHostOutcome> {
         let plugin_id = plugin_id.as_ref();
         let bridge_report = runtime_bridge_lifecycle_report(
             plugin_id,
@@ -55,7 +143,9 @@ impl NativePluginLiveHost {
             lifecycle,
         );
         if !bridge_report.is_applied() {
-            return Err(bridge_report.diagnostic());
+            return Err(NativePluginBridgeLifecycleError::BridgeLifecycleRejected {
+                diagnostic: bridge_report.diagnostic(),
+            });
         }
 
         match self.unload_runtime_plugin(plugin_id) {
@@ -70,7 +160,10 @@ impl NativePluginLiveHost {
                     RuntimePluginBridgeLifecycleEvent::activate_provider(plugin_id),
                     lifecycle,
                 );
-                Err(format!("{error}; {}", rollback_report.diagnostic()))
+                Err(NativePluginBridgeLifecycleError::UnloadRollback {
+                    diagnostic: error,
+                    rollback_diagnostic: rollback_report.diagnostic(),
+                })
             }
         }
     }
@@ -81,8 +174,20 @@ impl NativePluginLiveHost {
         plugin_id: impl AsRef<str>,
         lifecycle: &RuntimePluginBridgeLifecycleState,
     ) -> Result<NativePluginLiveHostOutcome, String> {
+        self.hot_reload_runtime_plugin_with_bridge_lifecycle_result(root, plugin_id, lifecycle)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn hot_reload_runtime_plugin_with_bridge_lifecycle_result(
+        &self,
+        root: impl AsRef<Path>,
+        plugin_id: impl AsRef<str>,
+        lifecycle: &RuntimePluginBridgeLifecycleState,
+    ) -> NativePluginBridgeLifecycleResult<NativePluginLiveHostOutcome> {
         let plugin_id = plugin_id.as_ref();
-        let mut outcome = self.hot_reload_runtime_plugin(root, plugin_id)?;
+        let mut outcome = self
+            .hot_reload_runtime_plugin(root, plugin_id)
+            .map_err(|diagnostic| NativePluginBridgeLifecycleError::HotReload { diagnostic })?;
         let bridge_report = runtime_bridge_lifecycle_report(
             plugin_id,
             NativePluginLiveHostCommand::HotReload,

@@ -2,10 +2,14 @@ use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use zircon_runtime::asset::assets::generate_material_artifact;
 use zircon_runtime::asset::project::{AssetMetaDocument, AssetSourceUnit};
-use zircon_runtime::asset::{AlphaMode, MaterialAsset, ZShaderDocument};
+use zircon_runtime::asset::{
+    AlphaMode, MaterialAsset, ShaderOptionAsset, ShaderTextureSlotAsset, ZShaderDocumentV2,
+};
 use zircon_runtime::core::framework::render::{
-    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
+    GeometrySourceDescriptor, GeometrySourceId, MaterialOptionTable, ShaderAssetKind,
+    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
     ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest, ShadingModelId,
     GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
 };
@@ -13,20 +17,30 @@ use zircon_runtime::core::resource::{ResourceId, ResourceKind};
 use zircon_runtime::dynamic_api::{
     builtin_fallback_shader_prewarm_manifest,
     builtin_standard_material_shader_prewarm_manifest_for_geometry,
+    builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor,
 };
 
+mod module_dependencies;
+mod pass_types;
 mod paths;
 pub(crate) mod permutation_registry;
 pub(crate) mod resource_registry;
 mod revision;
 
+use self::module_dependencies::shader_sources_with_module_dependency_hashes;
+use self::pass_types::{asset_scan_full_material_passes, asset_scan_pass_types_for_zshader};
 use self::paths::{
-    collect_files_with_extension, has_extension, has_sidecar_zmeta,
-    is_inside_compound_shader_source, is_zmeta, meta_path_for_single_source, stable_label_for_path,
+    content_hash, has_extension, has_sidecar_zmeta, is_inside_compound_shader_source, is_zmeta,
+    meta_path_for_single_source, primary_zshader_path, stable_label_for_path,
+    wgsl_files_for_document,
 };
 use self::resource_registry::ShaderPrewarmResourceRegistryOverlay;
 use self::revision::{
     asset_scan_revision_from_content_hashes, asset_scan_revision_from_source_hash,
+};
+use super::error::{
+    ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult, ShaderPrewarmManifestError,
+    ShaderPrewarmManifestResult,
 };
 
 const BUILTIN_STANDARD_MATERIAL_SHADER_URI: &str = "builtin://shader/pbr.wgsl";
@@ -34,35 +48,16 @@ const ASSET_SCAN_TEMPLATE_REVISION: &str = "asset-scan-mesh-template-v1";
 const ASSET_SCAN_NAGA_VERSION: &str = "naga-29.0.1";
 const ASSET_SCAN_WGPU_VERSION: &str = "wgpu-29.0.1";
 const ASSET_SCAN_PLATFORM_TOKEN: &str = "wgpu-runtime";
-const ASSET_SCAN_FULL_MATERIAL_PASSES: [ShaderPassType; 6] = [
-    ShaderPassType::Forward,
-    ShaderPassType::GBuffer,
-    ShaderPassType::DepthPrepass,
-    ShaderPassType::Shadow,
-    ShaderPassType::Velocity,
-    ShaderPassType::TaaReactiveMask,
-];
-const ASSET_SCAN_VERTEX_ONLY_PASSES: [ShaderPassType; 3] = [
-    ShaderPassType::DepthPrepass,
-    ShaderPassType::Shadow,
-    ShaderPassType::Velocity,
-];
-const ASSET_SCAN_FRAGMENT_ONLY_PASSES: [ShaderPassType; 2] =
-    [ShaderPassType::Forward, ShaderPassType::GBuffer];
 const ASSET_SCAN_ALPHA_BLEND_PASSES: [ShaderPassType; 1] = [ShaderPassType::Forward];
 
-pub fn read_manifest(path: &Path) -> Result<ShaderVariantPrewarmManifest, String> {
-    let bytes = fs::read(path).map_err(|error| {
-        format!(
-            "failed to read shader prewarm manifest {}: {error}",
-            path.display()
-        )
+pub fn read_manifest(path: &Path) -> ShaderPrewarmManifestResult<ShaderVariantPrewarmManifest> {
+    let bytes = fs::read(path).map_err(|source| ShaderPrewarmManifestError::Read {
+        path: path.to_path_buf(),
+        source,
     })?;
-    serde_json::from_slice(&bytes).map_err(|error| {
-        format!(
-            "failed to parse shader prewarm manifest {}: {error}",
-            path.display()
-        )
+    serde_json::from_slice(&bytes).map_err(|source| ShaderPrewarmManifestError::Parse {
+        path: path.to_path_buf(),
+        source,
     })
 }
 
@@ -73,43 +68,71 @@ pub fn builtin_fallback_manifest() -> ShaderVariantPrewarmManifest {
 pub fn builtin_fallback_manifest_for_quality_tiers(
     quality_tiers: &[ShaderQualityTier],
 ) -> ShaderVariantPrewarmManifest {
+    let geometry_source_descriptors = BTreeMap::new();
     builtin_fallback_manifest_for_quality_tiers_and_geometry_sources(
         quality_tiers,
         &[GEOMETRY_SOURCE_ID_STATIC_MESH],
+        &geometry_source_descriptors,
     )
 }
 
 pub fn builtin_fallback_manifest_for_quality_tiers_and_geometry_sources(
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
+    geometry_source_descriptors: &BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
+) -> ShaderVariantPrewarmManifest {
+    builtin_fallback_manifest_for_quality_tiers_geometry_sources_and_descriptors(
+        quality_tiers,
+        geometry_sources,
+        geometry_source_descriptors,
+    )
+}
+
+pub fn builtin_fallback_manifest_for_quality_tiers_geometry_sources_and_descriptors(
+    quality_tiers: &[ShaderQualityTier],
+    geometry_sources: &[GeometrySourceId],
+    geometry_source_descriptors: &BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
 ) -> ShaderVariantPrewarmManifest {
     let quality_tiers = manifest_quality_tiers(quality_tiers);
     let geometry_sources = manifest_geometry_sources(geometry_sources);
     let variants = geometry_sources
         .into_iter()
         .flat_map(|geometry_source| {
-            builtin_standard_material_shader_prewarm_manifest_for_geometry(
-                ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
-                SHADING_MODEL_ID_STANDARD_PBR,
-                None,
-                geometry_source,
-                &quality_tiers,
-            )
-            .variants
+            if let Some(descriptor) = geometry_source_descriptors.get(&geometry_source) {
+                builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor(
+                    ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
+                    SHADING_MODEL_ID_STANDARD_PBR,
+                    None,
+                    descriptor,
+                    &quality_tiers,
+                )
+                .variants
+            } else {
+                builtin_standard_material_shader_prewarm_manifest_for_geometry(
+                    ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
+                    SHADING_MODEL_ID_STANDARD_PBR,
+                    None,
+                    geometry_source,
+                    &quality_tiers,
+                )
+                .variants
+            }
         })
         .collect::<Vec<_>>();
     ShaderVariantPrewarmManifest::new(dedupe_prewarm_requests(variants))
 }
 
 #[cfg(test)]
-pub fn asset_root_manifest(asset_root: &Path) -> Result<ShaderVariantPrewarmManifest, String> {
+pub fn asset_root_manifest(
+    asset_root: &Path,
+) -> ShaderPrewarmAssetScanResult<ShaderVariantPrewarmManifest> {
     asset_root_manifest_for_quality_tiers(asset_root, &[ShaderQualityTier::Medium])
 }
 
 pub fn asset_root_manifest_for_quality_tiers(
     asset_root: &Path,
     quality_tiers: &[ShaderQualityTier],
-) -> Result<ShaderVariantPrewarmManifest, String> {
+) -> ShaderPrewarmAssetScanResult<ShaderVariantPrewarmManifest> {
     asset_root_manifest_for_quality_tiers_and_geometry_sources(
         asset_root,
         quality_tiers,
@@ -121,7 +144,7 @@ pub fn asset_root_manifest_for_quality_tiers_and_geometry_sources(
     asset_root: &Path,
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
-) -> Result<ShaderVariantPrewarmManifest, String> {
+) -> ShaderPrewarmAssetScanResult<ShaderVariantPrewarmManifest> {
     let shading_model_ids = BTreeMap::new();
     asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_ids(
         asset_root,
@@ -136,11 +159,13 @@ pub fn asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
     shading_model_ids: &BTreeMap<String, ShadingModelId>,
-) -> Result<ShaderVariantPrewarmManifest, String> {
+) -> ShaderPrewarmAssetScanResult<ShaderVariantPrewarmManifest> {
+    let geometry_source_descriptors = BTreeMap::new();
     asset_root_manifest_with_resource_registry_revisions(
         asset_root,
         quality_tiers,
         geometry_sources,
+        &geometry_source_descriptors,
         shading_model_ids,
         None,
     )
@@ -150,9 +175,10 @@ pub(crate) fn asset_root_manifest_with_resource_registry_revisions(
     asset_root: &Path,
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
+    geometry_source_descriptors: &BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
     shading_model_ids: &BTreeMap<String, ShadingModelId>,
     resource_registry: Option<&ShaderPrewarmResourceRegistryOverlay>,
-) -> Result<ShaderVariantPrewarmManifest, String> {
+) -> ShaderPrewarmAssetScanResult<ShaderVariantPrewarmManifest> {
     let geometry_sources = manifest_geometry_sources(geometry_sources);
     let mut shader_sources = Vec::new();
     collect_shader_sources(
@@ -168,6 +194,7 @@ pub(crate) fn asset_root_manifest_with_resource_registry_revisions(
         .into_iter()
         .filter(|source| seen_sources.insert(source.stable_label.clone()))
         .collect::<Vec<_>>();
+    let shader_sources = shader_sources_with_module_dependency_hashes(shader_sources);
     let mut variants = shader_sources
         .iter()
         .cloned()
@@ -188,6 +215,7 @@ pub(crate) fn asset_root_manifest_with_resource_registry_revisions(
             &shader_sources,
             quality_tiers,
             &geometry_sources,
+            geometry_source_descriptors,
         )
     }));
 
@@ -199,20 +227,18 @@ pub(crate) fn asset_root_manifest_with_resource_registry_revisions(
 pub fn merge_manifests(
     mut base: ShaderVariantPrewarmManifest,
     extra: ShaderVariantPrewarmManifest,
-) -> Result<ShaderVariantPrewarmManifest, String> {
+) -> ShaderPrewarmManifestResult<ShaderVariantPrewarmManifest> {
     if base.schema_version != ShaderVariantPrewarmManifest::SCHEMA_VERSION {
-        return Err(format!(
-            "shader prewarm manifest schema {} is not supported; expected {}",
-            base.schema_version,
-            ShaderVariantPrewarmManifest::SCHEMA_VERSION
-        ));
+        return Err(ShaderPrewarmManifestError::UnsupportedSchema {
+            actual: base.schema_version,
+            expected: ShaderVariantPrewarmManifest::SCHEMA_VERSION,
+        });
     }
     if extra.schema_version != ShaderVariantPrewarmManifest::SCHEMA_VERSION {
-        return Err(format!(
-            "shader prewarm manifest schema {} is not supported; expected {}",
-            extra.schema_version,
-            ShaderVariantPrewarmManifest::SCHEMA_VERSION
-        ));
+        return Err(ShaderPrewarmManifestError::UnsupportedSchema {
+            actual: extra.schema_version,
+            expected: ShaderVariantPrewarmManifest::SCHEMA_VERSION,
+        });
     }
     base.variants.extend(extra.variants);
     Ok(base)
@@ -247,18 +273,19 @@ fn collect_shader_sources(
     asset_root: &Path,
     sources: &mut Vec<ShaderPrewarmSource>,
     resource_registry: Option<&ShaderPrewarmResourceRegistryOverlay>,
-) -> Result<(), String> {
+) -> ShaderPrewarmAssetScanResult<()> {
     if !root.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(root)
-        .map_err(|error| format!("failed to read asset root {}: {error}", root.display()))?
+    for entry in
+        fs::read_dir(root).map_err(|source| ShaderPrewarmAssetScanError::ReadAssetRoot {
+            path: root.to_path_buf(),
+            source,
+        })?
     {
-        let entry = entry.map_err(|error| {
-            format!(
-                "failed to read asset root {} entry: {error}",
-                root.display()
-            )
+        let entry = entry.map_err(|source| ShaderPrewarmAssetScanError::ReadAssetRootEntry {
+            path: root.to_path_buf(),
+            source,
         })?;
         let path = entry.path();
         if path.is_dir() {
@@ -291,18 +318,19 @@ fn collect_material_sources(
     asset_root: &Path,
     sources: &mut Vec<MaterialPrewarmSource>,
     shading_model_ids: &BTreeMap<String, ShadingModelId>,
-) -> Result<(), String> {
+) -> ShaderPrewarmAssetScanResult<()> {
     if !root.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(root)
-        .map_err(|error| format!("failed to read asset root {}: {error}", root.display()))?
+    for entry in
+        fs::read_dir(root).map_err(|source| ShaderPrewarmAssetScanError::ReadAssetRoot {
+            path: root.to_path_buf(),
+            source,
+        })?
     {
-        let entry = entry.map_err(|error| {
-            format!(
-                "failed to read asset root {} entry: {error}",
-                root.display()
-            )
+        let entry = entry.map_err(|source| ShaderPrewarmAssetScanError::ReadAssetRootEntry {
+            path: root.to_path_buf(),
+            source,
         })?;
         let path = entry.path();
         if path.is_dir() {
@@ -324,16 +352,13 @@ fn shader_source_from_zmeta(
     asset_root: &Path,
     meta_path: &Path,
     resource_registry: Option<&ShaderPrewarmResourceRegistryOverlay>,
-) -> Result<Option<ShaderPrewarmSource>, String> {
-    let meta = match AssetMetaDocument::load(meta_path) {
-        Ok(meta) => meta,
-        Err(error) => {
-            return Err(format!(
-                "failed to load shader asset metadata {}: {error}",
-                meta_path.display()
-            ))
+) -> ShaderPrewarmAssetScanResult<Option<ShaderPrewarmSource>> {
+    let meta = AssetMetaDocument::load(meta_path).map_err(|source| {
+        ShaderPrewarmAssetScanError::LoadShaderMetadata {
+            path: meta_path.to_path_buf(),
+            source,
         }
-    };
+    })?;
     if meta.asset_kind != ResourceKind::Shader {
         return Ok(None);
     }
@@ -375,24 +400,39 @@ fn shader_source_from_zshader(
     asset_root: &Path,
     zshader_path: &Path,
     metadata: Option<ShaderSourceMetadata>,
-) -> Result<ShaderPrewarmSource, String> {
-    let document = fs::read_to_string(zshader_path)
-        .map_err(|error| format!("failed to read zshader {}: {error}", zshader_path.display()))?;
-    let document = ZShaderDocument::from_toml_str(&document).map_err(|error| {
-        format!(
-            "failed to parse zshader {}: {error}",
-            zshader_path.display()
-        )
+) -> ShaderPrewarmAssetScanResult<ShaderPrewarmSource> {
+    let document = fs::read_to_string(zshader_path).map_err(|source| {
+        ShaderPrewarmAssetScanError::ReadZShader {
+            path: zshader_path.to_path_buf(),
+            source,
+        }
     })?;
+    let document = ZShaderDocumentV2::from_toml_str(&document).map_err(|source| {
+        ShaderPrewarmAssetScanError::ParseZShader {
+            path: zshader_path.to_path_buf(),
+            source,
+        }
+    })?;
+    let kind = document.kind();
+    let import_path = document.import_path().map(str::to_string);
+    let imports = document
+        .imports()
+        .iter()
+        .map(|import| import.source.clone())
+        .collect::<Vec<_>>();
     let pass_types = asset_scan_pass_types_for_zshader(&document);
+    let (material_layout_hash, material_option_table) = material_signature_for_zshader(&document);
     let package_dir = zshader_path.parent().unwrap_or_else(|| Path::new(""));
     let wgsl_files = wgsl_files_for_document(package_dir, &document)?;
     let mut source = String::new();
     let mut include_hashes = Vec::new();
     for file in wgsl_files {
         let path = package_dir.join(&file);
-        let text = fs::read_to_string(&path)
-            .map_err(|error| format!("failed to read WGSL {}: {error}", path.display()))?;
+        let text =
+            fs::read_to_string(&path).map_err(|source| ShaderPrewarmAssetScanError::ReadWgsl {
+                path: path.to_path_buf(),
+                source,
+            })?;
         if !source.is_empty() {
             source.push('\n');
         }
@@ -405,7 +445,12 @@ fn shader_source_from_zshader(
         source,
         include_hashes,
         pass_types,
+        kind,
+        import_path,
+        imports,
         metadata,
+        material_layout_hash,
+        material_option_table,
     )
 }
 
@@ -413,17 +458,25 @@ fn shader_source_from_wgsl(
     asset_root: &Path,
     wgsl_path: &Path,
     metadata: Option<ShaderSourceMetadata>,
-) -> Result<ShaderPrewarmSource, String> {
-    let source = fs::read_to_string(wgsl_path)
-        .map_err(|error| format!("failed to read WGSL {}: {error}", wgsl_path.display()))?;
+) -> ShaderPrewarmAssetScanResult<ShaderPrewarmSource> {
+    let source =
+        fs::read_to_string(wgsl_path).map_err(|source| ShaderPrewarmAssetScanError::ReadWgsl {
+            path: wgsl_path.to_path_buf(),
+            source,
+        })?;
     let include_hashes = vec![content_hash(&source)];
     shader_prewarm_source(
         asset_root,
         wgsl_path,
         source,
         include_hashes,
-        ASSET_SCAN_FULL_MATERIAL_PASSES.to_vec(),
+        asset_scan_full_material_passes(),
+        ShaderAssetKind::Surface,
+        None,
+        Vec::new(),
         metadata,
+        0,
+        MaterialOptionTable::default(),
     )
 }
 
@@ -431,18 +484,18 @@ fn material_source_from_zmaterial(
     asset_root: &Path,
     material_path: &Path,
     shading_model_ids: &BTreeMap<String, ShadingModelId>,
-) -> Result<MaterialPrewarmSource, String> {
-    let document = fs::read_to_string(material_path).map_err(|error| {
-        format!(
-            "failed to read zmaterial {}: {error}",
-            material_path.display()
-        )
+) -> ShaderPrewarmAssetScanResult<MaterialPrewarmSource> {
+    let document = fs::read_to_string(material_path).map_err(|source| {
+        ShaderPrewarmAssetScanError::ReadZMaterial {
+            path: material_path.to_path_buf(),
+            source,
+        }
     })?;
-    let material = MaterialAsset::from_toml_str(&document).map_err(|error| {
-        format!(
-            "failed to parse zmaterial {}: {error}",
-            material_path.display()
-        )
+    let material = MaterialAsset::from_toml_str(&document).map_err(|source| {
+        ShaderPrewarmAssetScanError::ParseZMaterial {
+            path: material_path.to_path_buf(),
+            source,
+        }
     })?;
     Ok(MaterialPrewarmSource {
         stable_label: stable_label_for_path(asset_root, material_path),
@@ -452,8 +505,27 @@ fn material_source_from_zmaterial(
         shading_model: material_shading_model_id(&material, shading_model_ids),
         alpha_cutoff: material_alpha_cutoff(&material),
         pass_filter: material_pass_filter(&material),
+        material_option_values: material.material_option_values().clone(),
         uses_builtin_standard_shader: material_uses_builtin_standard_shader(&material),
     })
+}
+
+fn material_signature_for_zshader(document: &ZShaderDocumentV2) -> (u64, MaterialOptionTable) {
+    let options = document
+        .options()
+        .iter()
+        .map(ShaderOptionAsset::from)
+        .collect::<Vec<_>>();
+    let texture_slots = document
+        .texture_slots()
+        .iter()
+        .map(ShaderTextureSlotAsset::from)
+        .collect::<Vec<_>>();
+    let generated = generate_material_artifact(document.properties(), &options, &texture_slots);
+    (
+        generated.property_layout.layout_hash,
+        generated.option_table,
+    )
 }
 
 fn shader_prewarm_source(
@@ -462,13 +534,17 @@ fn shader_prewarm_source(
     source: String,
     include_hashes: Vec<String>,
     pass_types: Vec<ShaderPassType>,
+    kind: ShaderAssetKind,
+    import_path: Option<String>,
+    imports: Vec<String>,
     metadata: Option<ShaderSourceMetadata>,
-) -> Result<ShaderPrewarmSource, String> {
+    material_layout_hash: u64,
+    material_option_table: MaterialOptionTable,
+) -> ShaderPrewarmAssetScanResult<ShaderPrewarmSource> {
     if source.trim().is_empty() {
-        return Err(format!(
-            "shader source {} has no runtime WGSL payload",
-            source_path.display()
-        ));
+        return Err(ShaderPrewarmAssetScanError::EmptyShaderSource {
+            path: source_path.to_path_buf(),
+        });
     }
     let fallback_label = stable_label_for_path(asset_root, source_path);
     let metadata = metadata.unwrap_or_else(|| ShaderSourceMetadata {
@@ -483,6 +559,11 @@ fn shader_prewarm_source(
         wgsl_source: source,
         include_content_hashes: include_hashes,
         pass_types,
+        kind,
+        import_path,
+        imports,
+        material_layout_hash,
+        material_option_table,
     })
 }
 
@@ -491,12 +572,16 @@ fn prewarm_requests_for_source(
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
 ) -> Vec<ShaderVariantPrewarmRequest> {
+    let material_layout_hash = source.material_layout_hash;
+    let material_option_bits = source.material_option_table.default_bits();
     prewarm_requests_for_source_with_dimensions(
         source,
         ShaderFeatureBits::new(0),
         SHADING_MODEL_ID_STANDARD_PBR,
         quality_tiers,
         geometry_sources,
+        material_layout_hash,
+        material_option_bits,
     )
 }
 
@@ -505,6 +590,7 @@ fn prewarm_requests_for_material_source(
     shader_sources: &[ShaderPrewarmSource],
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
+    geometry_source_descriptors: &BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
 ) -> Vec<ShaderVariantPrewarmRequest> {
     let Some(shader_source) = shader_sources
         .iter()
@@ -519,19 +605,34 @@ fn prewarm_requests_for_material_source(
                 .iter()
                 .copied()
                 .flat_map(|geometry_source| {
-                    builtin_standard_material_shader_prewarm_manifest_for_geometry(
-                        material.features,
-                        material.shading_model,
-                        material.alpha_cutoff,
-                        geometry_source,
-                        quality_tiers,
-                    )
-                    .variants
+                    if let Some(descriptor) = geometry_source_descriptors.get(&geometry_source) {
+                        builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor(
+                            material.features,
+                            material.shading_model,
+                            material.alpha_cutoff,
+                            descriptor,
+                            quality_tiers,
+                        )
+                        .variants
+                    } else {
+                        builtin_standard_material_shader_prewarm_manifest_for_geometry(
+                            material.features,
+                            material.shading_model,
+                            material.alpha_cutoff,
+                            geometry_source,
+                            quality_tiers,
+                        )
+                        .variants
+                    }
                 })
                 .collect();
         }
         return Vec::new();
     };
+    let material_layout_hash = shader_source.material_layout_hash;
+    let material_option_bits = shader_source
+        .material_option_table
+        .bits_for_values(&material.material_option_values);
     let shader_source = material.apply_to_shader_source(shader_source);
     prewarm_requests_for_source_with_dimensions(
         shader_source,
@@ -539,6 +640,8 @@ fn prewarm_requests_for_material_source(
         material.shading_model,
         quality_tiers,
         geometry_sources,
+        material_layout_hash,
+        material_option_bits,
     )
 }
 
@@ -548,6 +651,8 @@ fn prewarm_requests_for_source_with_dimensions(
     shading_model: ShadingModelId,
     quality_tiers: &[ShaderQualityTier],
     geometry_sources: &[GeometrySourceId],
+    material_layout_hash: u64,
+    material_option_bits: u32,
 ) -> Vec<ShaderVariantPrewarmRequest> {
     let ShaderPrewarmSource {
         stable_label,
@@ -556,6 +661,11 @@ fn prewarm_requests_for_source_with_dimensions(
         wgsl_source,
         include_content_hashes,
         pass_types,
+        kind: _,
+        import_path: _,
+        imports: _,
+        material_layout_hash: _,
+        material_option_table: _,
     } = source;
     let quality_tiers = manifest_quality_tiers(quality_tiers);
     let geometry_sources = manifest_geometry_sources(geometry_sources);
@@ -568,6 +678,8 @@ fn prewarm_requests_for_source_with_dimensions(
                     key: ShaderVariantKey {
                         material_shader: resource_id,
                         material_revision: revision,
+                        material_layout_hash,
+                        material_option_bits,
                         geometry_source: *geometry_source,
                         shading_model,
                         pass_type,
@@ -649,6 +761,11 @@ struct ShaderPrewarmSource {
     wgsl_source: String,
     include_content_hashes: Vec<String>,
     pass_types: Vec<ShaderPassType>,
+    kind: ShaderAssetKind,
+    import_path: Option<String>,
+    imports: Vec<String>,
+    material_layout_hash: u64,
+    material_option_table: MaterialOptionTable,
 }
 
 #[derive(Clone, Debug)]
@@ -667,6 +784,7 @@ struct MaterialPrewarmSource {
     shading_model: ShadingModelId,
     alpha_cutoff: Option<f32>,
     pass_filter: Option<Vec<ShaderPassType>>,
+    material_option_values: BTreeMap<String, toml::Value>,
     uses_builtin_standard_shader: bool,
 }
 
@@ -682,79 +800,6 @@ impl MaterialPrewarmSource {
         }
         shader_source
     }
-}
-
-fn wgsl_files_for_document(
-    package_dir: &Path,
-    document: &ZShaderDocument,
-) -> Result<Vec<PathBuf>, String> {
-    if !document.wgsl_files.is_empty() {
-        return Ok(document.wgsl_files.iter().map(PathBuf::from).collect());
-    }
-    let mut files = Vec::new();
-    collect_files_with_extension(package_dir, "wgsl", &mut files)?;
-    files.sort();
-    files
-        .into_iter()
-        .map(|path| {
-            path.strip_prefix(package_dir)
-                .map(PathBuf::from)
-                .map_err(|error| {
-                    format!(
-                        "shader source {} is outside package dir {}: {error}",
-                        path.display(),
-                        package_dir.display()
-                    )
-                })
-        })
-        .collect()
-}
-
-fn asset_scan_pass_types_for_zshader(document: &ZShaderDocument) -> Vec<ShaderPassType> {
-    if document.entry_points.is_empty() {
-        return ASSET_SCAN_FULL_MATERIAL_PASSES.to_vec();
-    }
-
-    let has_vertex = document
-        .entry_points
-        .iter()
-        .any(|entry| is_vertex_stage(&entry.stage));
-    let has_fragment = document
-        .entry_points
-        .iter()
-        .any(|entry| is_fragment_stage(&entry.stage));
-
-    match (has_vertex, has_fragment) {
-        (true, true) => ASSET_SCAN_FULL_MATERIAL_PASSES.to_vec(),
-        (true, false) => ASSET_SCAN_VERTEX_ONLY_PASSES.to_vec(),
-        (false, true) => ASSET_SCAN_FRAGMENT_ONLY_PASSES.to_vec(),
-        (false, false) => Vec::new(),
-    }
-}
-
-fn is_vertex_stage(stage: &str) -> bool {
-    matches!(
-        stage.trim().to_ascii_lowercase().as_str(),
-        "vertex" | "vert" | "vs"
-    )
-}
-
-fn is_fragment_stage(stage: &str) -> bool {
-    matches!(
-        stage.trim().to_ascii_lowercase().as_str(),
-        "fragment" | "frag" | "fs"
-    )
-}
-
-fn primary_zshader_path(package_dir: &Path) -> Option<PathBuf> {
-    let mut files = Vec::new();
-    collect_files_with_extension(package_dir, "zshader", &mut files).ok()?;
-    files.sort();
-    files.into_iter().next()
-}
-
-fn content_hash(source: &str) -> String {
-    blake3::hash(source.as_bytes()).to_hex().to_string()
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::support::{changed_pixel_count, icon_node, pixel_at, positioned_icon_node};
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 #[test]
 fn selected_toolbar_icon_button_paints_active_surface_and_glyph() {
@@ -76,4 +77,24 @@ fn panel_danger_icon_button_paints_surface_and_error_glyph() {
 
     assert_ne!(pixel_at(&bytes, 48, 8, 8), [0, 0, 0, 255]);
     assert!(changed_pixel_count(&bytes, 48, 14, 12, 20, 24) > 0);
+}
+
+#[test]
+fn asset_import_icon_button_paints_primary_accent_fill() {
+    let mut node = positioned_icon_node(
+        "ImportModel",
+        "editor_pages/asset_browser/import_pipeline/import.svg",
+        false,
+        8.0,
+        8.0,
+        80.0,
+        28.0,
+    );
+    node.action_id = "workbench.asset.import_model".into();
+    node.component_variant = "workbench-icon-button".into();
+
+    let bytes = paint_template_nodes_for_test(104, 48, model_rc(vec![node]));
+
+    assert_eq!(pixel_at(&bytes, 104, 16, 16), PALETTE.accent);
+    assert_eq!(pixel_at(&bytes, 104, 48, 8), PALETTE.accent);
 }

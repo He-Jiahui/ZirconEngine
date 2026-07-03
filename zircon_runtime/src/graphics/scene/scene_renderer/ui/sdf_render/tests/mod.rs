@@ -1,0 +1,190 @@
+use super::super::sdf_font_bake::{
+    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
+};
+use super::super::sdf_params::SdfBakeParams;
+use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
+use super::super::text_pixel_snap::text_frame_device_origin;
+use super::vertices::{
+    aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame, pixel_to_ndc_x,
+    pixel_to_ndc_y, resolve_sdf_glyph_advances, sdf_screen_px_range, vertical_sdf_glyph_frame,
+    RunGlyph,
+};
+use super::*;
+use crate::asset::ProjectAssetManager;
+use crate::core::math::UVec2;
+use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
+    plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasGlyphKey,
+    SdfAtlasPlan, SdfAtlasRect, SdfAtlasRun, SdfAtlasSlot,
+};
+use crate::graphics::text::atlas::{
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphRasterPlacement,
+    GlyphSmoothingMode,
+};
+use crate::graphics::text::font::FontDatabase;
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{
+    UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextWrap, UiTextWritingMode,
+};
+
+mod draw_plan;
+mod layout_placement;
+mod prepare_report;
+mod shader_contract;
+
+fn synthetic_layered_plan(page_index: u32) -> SdfAtlasPlan {
+    let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, page_index);
+    let mut atlas_set = GlyphAtlasSet::default();
+    for index in 0..=page_index {
+        atlas_set = atlas_set.with_page(GlyphAtlasPageSpec::new(
+            GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, index),
+            UVec2::splat(64),
+        ));
+    }
+    SdfAtlasPlan {
+        atlas_size: UVec2::splat(64),
+        atlas_set,
+        slots: vec![SdfAtlasSlot {
+            key: SdfAtlasGlyphKey {
+                glyph: 'A',
+                font: Some("res://fonts/default.font.toml".to_string()),
+                font_family: Some("Zircon Sans".to_string()),
+                font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
+                bake_params: SdfBakeParams::default(),
+            },
+            page_key,
+            rect: SdfAtlasRect {
+                x: 0,
+                y: 0,
+                width: 32,
+                height: 32,
+            },
+        }],
+        runs: vec![SdfAtlasRun {
+            glyph_slot_indices: vec![Some(0)],
+            ..Default::default()
+        }],
+        rebuilt_pages: Vec::new(),
+        allocation_failures: Vec::new(),
+    }
+}
+
+fn allocation_failure(
+    glyph: char,
+    reason: SdfAtlasAllocationFailureReason,
+) -> SdfAtlasAllocationFailure {
+    SdfAtlasAllocationFailure {
+        key: SdfAtlasGlyphKey {
+            glyph,
+            font: Some("res://fonts/default.font.toml".to_string()),
+            font_family: Some("Zircon Sans".to_string()),
+            font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
+            bake_params: SdfBakeParams::default(),
+        },
+        reason,
+        requested_size: UVec2::splat(64),
+        atlas_size: UVec2::splat(64),
+    }
+}
+
+fn synthetic_layered_bake(plan: &SdfAtlasPlan) -> SdfAtlasBake {
+    SdfAtlasBake {
+        pixels: vec![0; plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2],
+        glyphs: vec![SdfBakedGlyph {
+            metrics: SdfGlyphMetrics {
+                bitmap_width: 16,
+                bitmap_height: 16,
+                bitmap_left: 0.0,
+                bitmap_bottom: 0.0,
+                advance: 16.0,
+                ascent: 16.0,
+            },
+            visible: true,
+        }],
+        report: SdfAtlasBakeReport {
+            slot_count: 1,
+            visible_glyph_count: 1,
+            empty_glyph_count: 0,
+            atlas_byte_len: plan.atlas_size.x as usize * plan.atlas_size.y as usize * 2,
+            nonzero_pixel_count: 0,
+            loaded_font_count: 0,
+        },
+    }
+}
+
+fn bake_atlas(
+    plan: &SdfAtlasPlan,
+) -> (
+    SdfFontBakeCache,
+    FontDatabase,
+    ProjectAssetManager,
+    SdfAtlasBake,
+) {
+    let mut font_bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let asset_manager = ProjectAssetManager::default();
+    let atlas_bake = font_bake.build_atlas(plan, &mut font_database, &asset_manager);
+    (font_bake, font_database, asset_manager, atlas_bake)
+}
+
+fn text_advance(
+    font_bake: &mut SdfFontBakeCache,
+    font_database: &mut FontDatabase,
+    asset_manager: &ProjectAssetManager,
+    text: &ScreenSpaceUiTextBatch,
+) -> f32 {
+    text.text
+        .chars()
+        .map(|glyph| {
+            font_bake
+                .measure_glyph(
+                    glyph,
+                    text.font.as_deref(),
+                    text.font_family.as_deref(),
+                    text.font_weight,
+                    text.font_size,
+                    font_database,
+                    asset_manager,
+                )
+                .advance
+        })
+        .sum()
+}
+
+fn first_sdf_screen_px_range(text: ScreenSpaceUiTextBatch) -> f32 {
+    let plan = plan_sdf_atlas(std::slice::from_ref(&text));
+    let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    let vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &mut font_bake,
+        &mut font_database,
+        &asset_manager,
+        UVec2::new(128, 64),
+    );
+    vertices
+        .first()
+        .map(|vertex| vertex.screen_px_range)
+        .expect("visible glyph should emit an SDF vertex")
+}
+
+fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
+    ScreenSpaceUiTextBatch {
+        text: text.to_string(),
+        frame,
+        clip_frame: None,
+        source_range: None,
+        glyph_advances: Vec::new(),
+        color: [0.2, 0.3, 0.4, 0.5],
+        font: Some("res://fonts/default.font.toml".to_string()),
+        font_family: Some("Zircon Sans".to_string()),
+        font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
+        font_size: 16.0,
+        line_height: 20.0,
+        text_align: UiTextAlign::Left,
+        text_direction: UiTextDirection::LeftToRight,
+        writing_mode: UiTextWritingMode::HorizontalTb,
+        wrap: UiTextWrap::None,
+        style: Default::default(),
+    }
+}

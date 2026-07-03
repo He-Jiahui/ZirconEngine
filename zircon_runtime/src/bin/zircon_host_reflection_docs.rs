@@ -1,5 +1,8 @@
+#[path = "zircon_host_reflection_docs/args.rs"]
 mod args;
+#[path = "zircon_host_reflection_docs/error.rs"]
 mod error;
+#[path = "zircon_host_reflection_docs/run.rs"]
 mod run;
 
 fn main() {

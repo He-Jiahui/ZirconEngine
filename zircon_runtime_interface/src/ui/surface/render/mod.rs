@@ -10,6 +10,7 @@ mod list;
 mod paint;
 mod parity;
 mod resolved_style;
+mod text_geometry;
 mod text_layout;
 mod text_shape;
 mod typography;
@@ -55,6 +56,7 @@ pub use text_shape::{
 };
 pub use typography::{
     UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextRunKind, UiTextWrap,
+    UiTextWritingMode,
 };
 pub use visual_asset_ref::UiVisualAssetRef;
 pub use visualizer::{

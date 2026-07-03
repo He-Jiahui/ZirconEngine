@@ -1,0 +1,28 @@
+Command:
+cargo test -p zircon_runtime text_raster_swash --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-swash-subpixel --message-format short --color never -- --nocapture --test-threads=1
+
+Result:
+Passed.
+
+Executed tests:
+graphics::text::raster::swash::tests::text_raster_swash_glyph_bitmap_rejects_data_length_mismatch
+graphics::text::raster::swash::tests::text_raster_swash_glyph_bitmap_rejects_invalid_metrics
+graphics::text::raster::swash::tests::text_raster_swash_glyph_bitmap_tracks_storage_format
+graphics::text::raster::swash::tests::text_raster_swash_normalizes_color_image_to_rgba_bitmap
+graphics::text::raster::swash::tests::text_raster_swash_normalizes_mask_image_to_alpha_bitmap
+graphics::text::raster::swash::tests::text_raster_swash_normalizes_subpixel_mask_image_to_rgba_bitmap
+graphics::text::raster::swash::tests::text_raster_swash_rasterizer_rejects_invalid_font_face
+graphics::text::raster::swash::tests::text_raster_swash_rasterizer_renders_real_alpha_outline_glyph
+graphics::text::raster::swash::tests::text_raster_swash_rasterizer_renders_real_subpixel_outline_glyph
+graphics::text::raster::swash::tests::text_raster_swash_request_rejects_invalid_px_size_before_scaling
+graphics::text::raster::swash::tests::text_raster_swash_subpixel_outline_request_uses_subpixel_render_format
+
+Summary:
+11 passed; 0 failed; 0 ignored; 6018 filtered out.
+
+Support-first unblock notes:
+The previous ASSET_MODULE_NAME and MaterialCaptureSeed blockers were no longer present in the current worktree.
+The remaining lib-test compile blocker was a shader template module_registry test-scope import drift for strip_wgsl_include_directives; adding an explicit test-module import from crate::core::framework::render allowed the runtime lib-test to compile and run the text swash owner tests through the normal path.
+
+Warnings:
+The command emitted existing workspace warning noise, including unused imports/dead-code warnings outside the text swash owner. No diagnostics were emitted from zircon_runtime/src/graphics/text/atlas/* or zircon_runtime/src/graphics/text/raster/*.

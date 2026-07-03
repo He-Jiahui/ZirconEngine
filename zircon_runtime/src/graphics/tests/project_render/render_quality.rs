@@ -16,12 +16,11 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 
 use super::super::plugin_render_feature_fixtures::default_rendering_feature_descriptors;
 use super::{
-    average_channel, average_luma, build_snapshot, dominant_green_pixels,
-    fullscreen_quad_transform, offset_quad_transform,
+    average_channel, average_channel_in_region, average_luma, build_snapshot,
+    dominant_green_pixels, fullscreen_quad_transform, offset_quad_transform,
     project_asset_manager_with_first_wave_plugin_importers, resource_handle, submit_snapshot,
-    unique_temp_project_root, write_checker_png, write_flat_color_wgsl, write_flat_green_wgsl,
-    write_material, write_material_with_base_color_and_texture, write_quad_obj, write_scene,
-    write_solid_png,
+    unique_temp_project_root, write_checker_png, write_flat_color_wgsl, write_material,
+    write_material_with_base_color_and_texture, write_quad_obj, write_scene, write_solid_png,
 };
 #[test]
 fn temporal_history_rotates_history_when_scene_material_changes() {
@@ -526,7 +525,10 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
     .save(paths.manifest_path())
     .unwrap();
 
-    write_flat_green_wgsl(paths.assets_root().join("shaders").join("flat_green.wgsl"));
+    write_flat_color_wgsl(
+        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        [0.0, 1.0, 0.0],
+    );
     write_solid_png(
         paths.assets_root().join("textures").join("white.png"),
         [255, 255, 255, 255],
@@ -631,10 +633,12 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         );
     }
 
-    let forward_red = average_channel(&forward_frame.rgba, 0);
-    let forward_green = average_channel(&forward_frame.rgba, 1);
-    let deferred_red = average_channel(&deferred_frame.rgba, 0);
-    let deferred_green = average_channel(&deferred_frame.rgba, 1);
+    let sample_origin = UVec2::new(viewport_size.x / 4, viewport_size.y / 4);
+    let sample_size = UVec2::new(viewport_size.x / 2, viewport_size.y / 2);
+    let forward_red = average_channel_in_region(&forward_frame, sample_origin, sample_size, 0);
+    let forward_green = average_channel_in_region(&forward_frame, sample_origin, sample_size, 1);
+    let deferred_red = average_channel_in_region(&deferred_frame, sample_origin, sample_size, 0);
+    let deferred_green = average_channel_in_region(&deferred_frame, sample_origin, sample_size, 1);
 
     assert!(
         forward_green > forward_red + 25.0,

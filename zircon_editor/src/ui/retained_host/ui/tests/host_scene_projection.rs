@@ -393,7 +393,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
             .unwrap_or_else(|| panic!("missing ui asset test node `{control_id}`"))
     };
     scene.left_dock.pane.native_body.ui_asset = UiAssetEditorPanePresentation {
-        asset_id: "asset://ui/test.ui.toml".to_string(),
+        asset_id: "asset://ui/test.zui".to_string(),
         mode: "split".to_string(),
         last_error: "clean".to_string(),
         selection_summary: "Root".to_string(),

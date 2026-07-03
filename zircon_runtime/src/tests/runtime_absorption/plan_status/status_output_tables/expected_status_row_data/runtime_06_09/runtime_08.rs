@@ -38,6 +38,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 08 ECS 数据面 2026-07-01 current audit recheck",
+        &[
+            "ecs_kernel_data_20260701_current_audit_static_passed_cargo_deferred",
+            "source files 69/69",
+            "behavior-test anchors 16/16",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
+        ],
+    ),
+    (
         "Runtime 08 ECS source/test inventory split",
         &[
             "ecs_kernel_data_source_inventory_split_static_passed_cargo_deferred_tests_deferred",
@@ -71,6 +80,24 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "ecs_query_state_markdown.py",
             "ecs_query_state_boundary.py` now owns QueryState owner-module audit, root budget checks, forbidden-root behavior scan, and risk aggregation at 141 lines",
             "standalone `ecs_query_structure.rs` 11/11",
+        ],
+    ),
+    (
+        "Runtime 08 QueryState many_item_array audit sync",
+        &[
+            "runtime_08_query_state_many_item_array_audit_sync_static_passed_cargo_deferred",
+            "query_state/many_item_array.rs",
+            "missing_modules = []",
+            "unexpected_modules = []",
+        ],
+    ),
+    (
+        "Runtime 08 ECS hard-cutover owner inventory sync",
+        &[
+            "runtime_08_ecs_hard_cutover_owner_inventory_sync_static_passed_cargo_deferred",
+            "component_storage/component_results.rs",
+            "observer/callback_registry.rs",
+            "source files 69/69",
         ],
     ),
     (
@@ -175,7 +202,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 08 ECS component storage owner folder split",
         &[
-            "scene/ecs/storage/component_storage/{mod,entry,location,sparse,store,table,utils}.rs",
+            "scene/ecs/storage/component_storage/{mod,component_results,entry,location,sparse,store,table}.rs",
             "ComponentStorage",
             "source files 57/57",
             "Cargo 行为 gate",
@@ -193,7 +220,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 08 ECS observer owner folder split",
         &[
-            "scene/ecs/observer/{mod,callbacks,entry,id,store,utils}.rs",
+            "scene/ecs/observer/{mod,callback_registry,callbacks,entry,id,store}.rs",
             "ObserverStore",
             "source files 65/65",
             "Cargo 行为 gate",

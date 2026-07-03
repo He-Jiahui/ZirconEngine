@@ -17,10 +17,17 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
     assert!(
         depth_pass.resources.iter().any(|resource| {
-            resource.name == PostProcessGraphResourceNames::GBUFFER_NORMAL
+            resource.name == PostProcessGraphResourceNames::SCENE_DEPTH
                 && resource.access == RenderGraphResourceAccessKind::Write
         }),
-        "depth prepass should declare the normal target it writes"
+        "depth prepass should declare the depth target it writes"
+    );
+    assert!(
+        depth_pass
+            .resources
+            .iter()
+            .all(|resource| { resource.name != PostProcessGraphResourceNames::GBUFFER_NORMAL }),
+        "pure-depth prepass must not declare the deferred normal target"
     );
 
     let preview_sky_pass = compiled

@@ -17,7 +17,7 @@ use crate::extension_ids::{
 pub(crate) fn register_example_window(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {
-    let operation_path = parse_operation("Sdk.Examples.ToggleWeatherWindow")?;
+    let operation_path = parse_operation("sdk.examples.toggle_weather_window")?;
     registry.register_operation(
         EditorOperationDescriptor::new(operation_path.clone(), "Toggle SDK Weather Window")
             .with_menu_path("Tools/SDK Examples/Toggle Weather Window")
@@ -37,9 +37,9 @@ pub(crate) fn register_example_window(
 pub(crate) fn register_importer_and_inspector(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {
-    let import_operation = parse_operation("Sdk.Examples.ImportModel")?;
-    let open_operation = parse_operation("Sdk.Examples.OpenModelInspector")?;
-    let create_settings_operation = parse_operation("Sdk.Examples.CreateModelImportSettings")?;
+    let import_operation = parse_operation("sdk.examples.import_model")?;
+    let open_operation = parse_operation("sdk.examples.open_model_inspector")?;
+    let create_settings_operation = parse_operation("sdk.examples.create_model_import_settings")?;
 
     registry.register_operation(
         EditorOperationDescriptor::new(import_operation.clone(), "Import SDK Model")

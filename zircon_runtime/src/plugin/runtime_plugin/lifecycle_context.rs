@@ -120,6 +120,35 @@ impl<'a> PluginFinishContext<'a> {
     }
 }
 
+pub struct PluginReadyContext<'a> {
+    pub registry: &'a RuntimeExtensionRegistry,
+    pub capabilities: &'a CapabilityView,
+}
+
+impl<'a> PluginReadyContext<'a> {
+    pub fn new(registry: &'a RuntimeExtensionRegistry, capabilities: &'a CapabilityView) -> Self {
+        Self {
+            registry,
+            capabilities,
+        }
+    }
+
+    pub fn resolve_strong<T>(&self) -> Result<StrongBridge<T>, RuntimeExtensionRegistryError>
+    where
+        T: PluginInterface + ?Sized,
+    {
+        self.registry.frozen_bridge_table().resolve_strong::<T>()
+    }
+
+    pub fn resolve_weak<T>(&self) -> WeakBridge<T>
+    where
+        T: PluginInterface + ?Sized,
+    {
+        let bridge_table = self.registry.frozen_bridge_table();
+        WeakBridge::owned(bridge_table)
+    }
+}
+
 pub struct PluginRuntimeContext<'a> {
     pub world: &'a mut World,
     pub core: &'a CoreHandle,

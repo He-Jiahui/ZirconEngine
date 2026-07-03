@@ -34,8 +34,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("deferred.depth-prepass")
-            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL),
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Deferred,
                 "gbuffer-mesh",
@@ -44,6 +43,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .with_executor_id("deferred.gbuffer")
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,

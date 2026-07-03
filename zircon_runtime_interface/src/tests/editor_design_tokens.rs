@@ -1,5 +1,5 @@
 use crate::ui::design_tokens::{
-    EditorDesignTokens, EditorStateColorRole, EDITOR_WORKBENCH_TOKENS_ID,
+    EditorDesignTokens, EditorStateColorRole, EditorUtilityTabTextRole, EDITOR_WORKBENCH_TOKENS_ID,
 };
 use crate::ui::style::{UiPainterFamily, UiPainterResolvedState, UiPainterState, UiRgbaColor};
 
@@ -41,6 +41,13 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
     assert_eq!(tokens.controls.border_width, 1.0);
     assert_eq!(tokens.controls.compact_height, 32.0);
     assert_eq!(tokens.controls.dense_height, 28.0);
+    assert_eq!(tokens.typography.ui_family, "system-ui");
+    assert_eq!(tokens.typography.code_family, "monospace");
+    assert_eq!(
+        tokens.typography.utility_tab_text_role,
+        EditorUtilityTabTextRole::Ui
+    );
+    assert_eq!(tokens.typography.body_size, 10.0);
     assert_eq!(tokens.density.gap_small, 4.0);
     assert_eq!(tokens.density.drawer_padding, 12.0);
 }
@@ -119,6 +126,14 @@ fn editor_design_tokens_project_into_theme_document_without_losing_contract_valu
     assert_eq!(theme.control_sizes.compact_height, 32.0);
     assert_eq!(theme.control_sizes.dense_height, 28.0);
     assert_eq!(theme.shape.radius_panel, tokens.controls.panel_radius);
+    assert!(theme
+        .typography
+        .iter()
+        .any(|variant| variant.variant == "body" && variant.family == "system-ui"));
+    assert!(theme
+        .typography
+        .iter()
+        .any(|variant| variant.variant == "code" && variant.family == "monospace"));
 }
 
 #[test]

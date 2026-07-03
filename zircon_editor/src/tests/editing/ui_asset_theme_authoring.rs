@@ -10,7 +10,7 @@ version = 1
 display_name = "Theme Summary"
 
 [imports]
-styles = ["res://ui/theme/shared_theme.ui.toml"]
+styles = ["res://ui/theme/shared_theme.zui"]
 
 [tokens]
 accent = "#4488ff"
@@ -77,7 +77,7 @@ version = 1
 display_name = "Shared Theme"
 
 [imports]
-styles = ["res://ui/theme/base_tokens.ui.toml"]
+styles = ["res://ui/theme/base_tokens.zui"]
 
 [tokens]
 accent = "#223344"
@@ -117,7 +117,7 @@ version = 1
 display_name = "Theme Dedupe"
 
 [imports]
-styles = ["res://ui/theme/shared_theme.ui.toml"]
+styles = ["res://ui/theme/shared_theme.zui"]
 
 [tokens]
 accent = "#223344"
@@ -149,8 +149,8 @@ display_name = "Theme Multi Cascade"
 
 [imports]
 styles = [
-  "res://ui/theme/shared_a.ui.toml",
-  "res://ui/theme/shared_b.ui.toml",
+  "res://ui/theme/shared_a.zui",
+  "res://ui/theme/shared_b.zui",
 ]
 
 [tokens]
@@ -212,7 +212,7 @@ set = { self = { text = "Imported Theme B" } }
 #[test]
 fn ui_asset_editor_session_projects_theme_sources_and_selection() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -226,7 +226,7 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
 
     let local_pane = session.pane_presentation();
@@ -234,7 +234,7 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
         local_pane.theme_source_items,
         vec![
             "Local Theme • 1 tokens • 1 rules".to_string(),
-            "res://ui/theme/shared_theme.ui.toml • 1 tokens • 1 rules".to_string(),
+            "res://ui/theme/shared_theme.zui • 1 tokens • 1 rules".to_string(),
         ]
     );
     assert_eq!(local_pane.theme_source_selected_index, 0);
@@ -255,7 +255,7 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
     assert_eq!(
         local_pane.theme_cascade_layer_items,
         vec![
-            "1. Imported • res://ui/theme/shared_theme.ui.toml • 1 tokens • 1 rules".to_string(),
+            "1. Imported • res://ui/theme/shared_theme.zui • 1 tokens • 1 rules".to_string(),
             "2. Local • 1 tokens • 1 rules".to_string(),
         ]
     );
@@ -263,13 +263,13 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
         local_pane.theme_cascade_token_items,
         vec![
             "active • accent • Local = \"#4488ff\"".to_string(),
-            "active • border • res://ui/theme/shared_theme.ui.toml = \"#223344\"".to_string(),
+            "active • border • res://ui/theme/shared_theme.zui = \"#223344\"".to_string(),
         ]
     );
     assert_eq!(
         local_pane.theme_cascade_rule_items,
         vec![
-            "1. Imported • res://ui/theme/shared_theme.ui.toml • shared_theme • Label".to_string(),
+            "1. Imported • res://ui/theme/shared_theme.zui • shared_theme • Label".to_string(),
             "2. Local • local_theme • #RootLabel".to_string(),
         ]
     );
@@ -282,7 +282,7 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
     assert_eq!(imported_pane.theme_selected_source_kind, "Imported");
     assert_eq!(
         imported_pane.theme_selected_source_reference,
-        "res://ui/theme/shared_theme.ui.toml"
+        "res://ui/theme/shared_theme.zui"
     );
     assert_eq!(imported_pane.theme_selected_source_token_count, 1);
     assert_eq!(imported_pane.theme_selected_source_rule_count, 1);
@@ -300,7 +300,7 @@ fn ui_asset_editor_session_projects_theme_sources_and_selection() {
 #[test]
 fn ui_asset_editor_session_reports_missing_imported_theme_details_as_unavailable() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -317,7 +317,7 @@ fn ui_asset_editor_session_reports_missing_imported_theme_details_as_unavailable
     let pane = session.pane_presentation();
     assert_eq!(
         pane.theme_selected_source_reference,
-        "res://ui/theme/shared_theme.ui.toml"
+        "res://ui/theme/shared_theme.zui"
     );
     assert_eq!(pane.theme_selected_source_kind, "Imported");
     assert!(!pane.theme_selected_source_available);
@@ -328,7 +328,7 @@ fn ui_asset_editor_session_reports_missing_imported_theme_details_as_unavailable
 #[test]
 fn ui_asset_editor_session_resolves_selected_theme_source_asset_id_only_for_available_imports() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -344,19 +344,19 @@ fn ui_asset_editor_session_resolves_selected_theme_source_asset_id_only_for_avai
     assert_eq!(session.selected_theme_source_asset_id(), None);
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
         .expect("select imported theme");
     assert_eq!(
         session.selected_theme_source_asset_id().as_deref(),
-        Some("res://ui/theme/shared_theme.ui.toml")
+        Some("res://ui/theme/shared_theme.zui")
     );
 
     let mut missing_session = UiAssetEditorSession::from_source(
         UiAssetEditorRoute::new(
-            "res://ui/tests/theme-summary.ui.toml",
+            "res://ui/tests/theme-summary.zui",
             UiAssetKind::Layout,
             UiAssetEditorMode::Design,
         ),
@@ -373,7 +373,7 @@ fn ui_asset_editor_session_resolves_selected_theme_source_asset_id_only_for_avai
 #[test]
 fn ui_asset_editor_session_projects_and_updates_promote_theme_draft_fields() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -387,7 +387,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_theme_draft_fields() {
     let initial = session.pane_presentation();
     assert_eq!(
         initial.theme_promote_asset_id,
-        "res://ui/themes/theme_summary_theme.ui.toml"
+        "res://ui/themes/theme_summary_theme.zui"
     );
     assert_eq!(
         initial.theme_promote_document_id,
@@ -397,7 +397,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_theme_draft_fields() {
     assert!(initial.theme_can_edit_promote_draft);
 
     assert!(session
-        .set_promote_theme_asset_id("res://ui/themes/custom/editor_shell.ui.toml")
+        .set_promote_theme_asset_id("res://ui/themes/custom/editor_shell.zui")
         .expect("set promote theme asset id"));
     assert!(session
         .set_promote_theme_document_id("ui.theme.custom.editor_shell")
@@ -409,7 +409,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_theme_draft_fields() {
     let updated = session.pane_presentation();
     assert_eq!(
         updated.theme_promote_asset_id,
-        "res://ui/themes/custom/editor_shell.ui.toml"
+        "res://ui/themes/custom/editor_shell.zui"
     );
     assert_eq!(
         updated.theme_promote_document_id,
@@ -421,7 +421,7 @@ fn ui_asset_editor_session_projects_and_updates_promote_theme_draft_fields() {
 #[test]
 fn ui_asset_editor_session_projects_local_cascade_theme_helpers_and_applies_them() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -435,7 +435,7 @@ fn ui_asset_editor_session_projects_local_cascade_theme_helpers_and_applies_them
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
 
     let pane = session.pane_presentation();
@@ -485,7 +485,7 @@ fn ui_asset_editor_session_projects_local_cascade_theme_helpers_and_applies_them
 #[test]
 fn ui_asset_editor_session_detaches_selected_imported_theme_into_local_theme_layer() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -500,7 +500,7 @@ fn ui_asset_editor_session_detaches_selected_imported_theme_into_local_theme_lay
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -575,7 +575,7 @@ fn ui_asset_editor_session_detaches_selected_imported_theme_into_local_theme_lay
 #[test]
 fn ui_asset_editor_session_projects_theme_compare_rule_body_diffs() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-diff.ui.toml",
+        "res://ui/tests/theme-diff.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -590,7 +590,7 @@ fn ui_asset_editor_session_projects_theme_compare_rule_body_diffs() {
     .expect("theme diff session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported diff theme");
 
     let local_compare = session.pane_presentation();
@@ -628,7 +628,7 @@ fn ui_asset_editor_session_projects_theme_compare_rule_body_diffs() {
 #[test]
 fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -643,7 +643,7 @@ fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -661,7 +661,7 @@ fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer
         pane.theme_source_items,
         vec![
             "Local Theme • 3 tokens • 2 rules".to_string(),
-            "res://ui/theme/shared_theme.ui.toml • 2 tokens • 1 rules".to_string(),
+            "res://ui/theme/shared_theme.zui • 2 tokens • 1 rules".to_string(),
         ]
     );
     assert_eq!(
@@ -684,7 +684,7 @@ fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer
         .expect("cloned theme source");
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+        vec!["res://ui/theme/shared_theme.zui".to_string()]
     );
     assert_eq!(
         document.tokens.get("accent").and_then(toml::Value::as_str),
@@ -714,7 +714,7 @@ fn ui_asset_editor_session_clones_selected_imported_theme_into_local_theme_layer
 #[test]
 fn ui_asset_editor_session_projects_and_applies_redundant_imported_theme_refactor_after_clone() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -729,7 +729,7 @@ fn ui_asset_editor_session_projects_and_applies_redundant_imported_theme_refacto
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -742,7 +742,7 @@ fn ui_asset_editor_session_projects_and_applies_redundant_imported_theme_refacto
     let redundant_index = before
         .theme_refactor_items
         .iter()
-        .position(|item| item == "redundant imported theme • res://ui/theme/shared_theme.ui.toml")
+        .position(|item| item == "redundant imported theme • res://ui/theme/shared_theme.zui")
         .expect("redundant imported theme refactor");
 
     assert!(session
@@ -765,7 +765,7 @@ fn ui_asset_editor_session_projects_and_applies_redundant_imported_theme_refacto
 #[test]
 fn ui_asset_editor_session_projects_local_theme_layer_merge_preview_for_imported_source() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -780,7 +780,7 @@ fn ui_asset_editor_session_projects_local_theme_layer_merge_preview_for_imported
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -790,13 +790,13 @@ fn ui_asset_editor_session_projects_local_theme_layer_merge_preview_for_imported
     assert_eq!(
         pane.theme_merge_preview_items,
         vec![
-            "Detach • imports • res://ui/theme/base_tokens.ui.toml".to_string(),
+            "Detach • imports • res://ui/theme/base_tokens.zui".to_string(),
             "Detach • token • accent = \"#4488ff\"".to_string(),
             "Detach • token • panel = \"$shared_theme_accent\"".to_string(),
             "Detach • token • shared_theme_accent = \"#223344\"".to_string(),
             "Detach • rule • shared_theme_local_theme • Button".to_string(),
             "Detach • rule • local_theme • #RootLabel".to_string(),
-            "Clone • imports • res://ui/theme/shared_theme.ui.toml, res://ui/theme/base_tokens.ui.toml"
+            "Clone • imports • res://ui/theme/shared_theme.zui, res://ui/theme/base_tokens.zui"
                 .to_string(),
             "Clone • token • accent = \"#4488ff\"".to_string(),
             "Clone • token • panel = \"$shared_theme_accent\"".to_string(),
@@ -810,7 +810,7 @@ fn ui_asset_editor_session_projects_local_theme_layer_merge_preview_for_imported
 #[test]
 fn ui_asset_editor_session_projects_theme_compare_items_for_selected_imported_source() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -825,7 +825,7 @@ fn ui_asset_editor_session_projects_theme_compare_items_for_selected_imported_so
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -848,7 +848,7 @@ fn ui_asset_editor_session_projects_theme_compare_items_for_selected_imported_so
 #[test]
 fn ui_asset_editor_session_projects_selected_theme_compare_detail_items() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -863,7 +863,7 @@ fn ui_asset_editor_session_projects_selected_theme_compare_detail_items() {
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     assert!(session
         .select_theme_source(1)
@@ -888,7 +888,7 @@ fn ui_asset_editor_session_projects_selected_theme_compare_detail_items() {
 #[test]
 fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -903,7 +903,7 @@ fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports(
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -913,8 +913,8 @@ fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports(
     assert_eq!(
         before.theme_rule_helper_items,
         vec![
-            "Detach res://ui/theme/shared_theme.ui.toml into local theme layer".to_string(),
-            "Clone res://ui/theme/shared_theme.ui.toml into local theme layer".to_string(),
+            "Detach res://ui/theme/shared_theme.zui into local theme layer".to_string(),
+            "Clone res://ui/theme/shared_theme.zui into local theme layer".to_string(),
             "Adopt compare diffs from selected theme (3)".to_string(),
             "Adopt all imported tokens (2)".to_string(),
             "Adopt all imported rules (1)".to_string(),
@@ -946,7 +946,7 @@ fn ui_asset_editor_session_applies_theme_rule_helper_items_for_selected_imports(
 #[test]
 fn ui_asset_editor_session_applies_compare_diff_theme_helper_for_selected_import() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -961,7 +961,7 @@ fn ui_asset_editor_session_applies_compare_diff_theme_helper_for_selected_import
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -1016,7 +1016,7 @@ fn ui_asset_editor_session_applies_compare_diff_theme_helper_for_selected_import
 #[test]
 fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1031,7 +1031,7 @@ fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -1081,7 +1081,7 @@ fn ui_asset_editor_session_adopts_imported_theme_rule_body_helper_items() {
 #[test]
 fn ui_asset_editor_session_applies_theme_batch_adopt_helper_items() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-summary.ui.toml",
+        "res://ui/tests/theme-summary.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1096,7 +1096,7 @@ fn ui_asset_editor_session_applies_theme_batch_adopt_helper_items() {
     .expect("theme summary session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -1151,7 +1151,7 @@ fn ui_asset_editor_session_applies_theme_batch_adopt_helper_items() {
 #[test]
 fn ui_asset_editor_session_prunes_selected_theme_compare_duplicates() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-dedupe.ui.toml",
+        "res://ui/tests/theme-dedupe.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1166,7 +1166,7 @@ fn ui_asset_editor_session_prunes_selected_theme_compare_duplicates() {
     .expect("theme dedupe session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
     session
         .select_theme_source(1)
@@ -1188,14 +1188,14 @@ fn ui_asset_editor_session_prunes_selected_theme_compare_duplicates() {
     assert!(document.stylesheets.is_empty());
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+        vec!["res://ui/theme/shared_theme.zui".to_string()]
     );
 }
 
 #[test]
 fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-dedupe.ui.toml",
+        "res://ui/tests/theme-dedupe.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1210,7 +1210,7 @@ fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
     .expect("theme dedupe session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
 
     let before = session.pane_presentation();
@@ -1220,7 +1220,7 @@ fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
             "duplicate local token • accent • inherited = \"#223344\"".to_string(),
             "duplicate local token • panel • inherited = \"$accent\"".to_string(),
             "duplicate local rule • local_theme • Button".to_string(),
-            "redundant imported theme • res://ui/theme/shared_theme.ui.toml".to_string(),
+            "redundant imported theme • res://ui/theme/shared_theme.zui".to_string(),
         ]
     );
 
@@ -1246,7 +1246,7 @@ fn ui_asset_editor_session_applies_theme_refactor_items_individually() {
 #[test]
 fn ui_asset_editor_session_applies_all_theme_refactors_from_helper() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-dedupe.ui.toml",
+        "res://ui/tests/theme-dedupe.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1261,7 +1261,7 @@ fn ui_asset_editor_session_applies_all_theme_refactors_from_helper() {
     .expect("theme dedupe session");
 
     session
-        .register_style_import("res://ui/theme/shared_theme.ui.toml", imported_theme)
+        .register_style_import("res://ui/theme/shared_theme.zui", imported_theme)
         .expect("register imported theme");
 
     let helper_index = session
@@ -1285,7 +1285,7 @@ fn ui_asset_editor_session_applies_all_theme_refactors_from_helper() {
 #[test]
 fn ui_asset_editor_session_projects_cross_asset_theme_rule_cascade_activity() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-multi-cascade.ui.toml",
+        "res://ui/tests/theme-multi-cascade.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1303,35 +1303,35 @@ fn ui_asset_editor_session_projects_cross_asset_theme_rule_cascade_activity() {
     .expect("multi cascade session");
 
     session
-        .register_style_import("res://ui/theme/shared_a.ui.toml", imported_theme_a)
+        .register_style_import("res://ui/theme/shared_a.zui", imported_theme_a)
         .expect("register theme a");
     session
-        .register_style_import("res://ui/theme/shared_b.ui.toml", imported_theme_b)
+        .register_style_import("res://ui/theme/shared_b.zui", imported_theme_b)
         .expect("register theme b");
 
     let pane = session.pane_presentation();
     assert!(pane
         .theme_cascade_token_items
         .contains(&"active • accent • Local = \"#5588ff\"".to_string()));
-    assert!(pane.theme_cascade_token_items.contains(
-        &"shadowed • accent • res://ui/theme/shared_b.ui.toml = \"#334455\"".to_string()
-    ));
-    assert!(pane.theme_cascade_token_items.contains(
-        &"shadowed • accent • res://ui/theme/shared_a.ui.toml = \"#112233\"".to_string()
-    ));
+    assert!(pane
+        .theme_cascade_token_items
+        .contains(&"shadowed • accent • res://ui/theme/shared_b.zui = \"#334455\"".to_string()));
+    assert!(pane
+        .theme_cascade_token_items
+        .contains(&"shadowed • accent • res://ui/theme/shared_a.zui = \"#112233\"".to_string()));
     assert!(pane.theme_cascade_rule_items.contains(
         &"active • rule • Button • Local • local_theme • self.text = \"Local Theme\"".to_string()
     ));
     assert!(pane
         .theme_cascade_rule_items
         .contains(
-            &"shadowed • rule • Button • res://ui/theme/shared_b.ui.toml • shared_theme_b • self.text = \"Imported Theme B\""
+            &"shadowed • rule • Button • res://ui/theme/shared_b.zui • shared_theme_b • self.text = \"Imported Theme B\""
                 .to_string(),
         ));
     assert!(pane
         .theme_cascade_rule_items
         .contains(
-            &"shadowed • rule • Button • res://ui/theme/shared_a.ui.toml • shared_theme_a • self.text = \"Imported Theme A\""
+            &"shadowed • rule • Button • res://ui/theme/shared_a.zui • shared_theme_a • self.text = \"Imported Theme A\""
                 .to_string(),
         ));
 }
@@ -1339,7 +1339,7 @@ fn ui_asset_editor_session_projects_cross_asset_theme_rule_cascade_activity() {
 #[test]
 fn ui_asset_editor_session_theme_compare_uses_active_imported_cascade_values() {
     let route = UiAssetEditorRoute::new(
-        "res://ui/tests/theme-multi-cascade.ui.toml",
+        "res://ui/tests/theme-multi-cascade.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -1357,10 +1357,10 @@ fn ui_asset_editor_session_theme_compare_uses_active_imported_cascade_values() {
     .expect("multi cascade session");
 
     session
-        .register_style_import("res://ui/theme/shared_a.ui.toml", imported_theme_a)
+        .register_style_import("res://ui/theme/shared_a.zui", imported_theme_a)
         .expect("register theme a");
     session
-        .register_style_import("res://ui/theme/shared_b.ui.toml", imported_theme_b)
+        .register_style_import("res://ui/theme/shared_b.zui", imported_theme_b)
         .expect("register theme b");
 
     let pane = session.pane_presentation();

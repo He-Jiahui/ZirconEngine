@@ -24,7 +24,7 @@ fn editor_manager_applies_theme_batch_adopt_helper_items_for_imported_sources() 
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     assert!(manager
         .select_ui_asset_editor_theme_source(&instance_id, 1)
@@ -84,7 +84,7 @@ fn editor_manager_prunes_selected_theme_compare_duplicates() {
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     assert!(manager
         .select_ui_asset_editor_theme_source(&instance_id, 1)
@@ -110,7 +110,7 @@ fn editor_manager_prunes_selected_theme_compare_duplicates() {
     assert!(document.stylesheets.is_empty());
     assert_eq!(
         document.imports.styles,
-        vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+        vec!["res://ui/theme/shared_theme.zui".to_string()]
     );
 
     cleanup_theme_project(&config_path, &project_root);
@@ -132,7 +132,7 @@ fn editor_manager_applies_theme_batch_refactor_helper() {
     manager.open_project(&project_root).unwrap();
 
     let instance_id = manager
-        .open_ui_asset_editor_by_id("res://ui/layouts/editor.ui.toml", None)
+        .open_ui_asset_editor_by_id("res://ui/layouts/editor.zui", None)
         .expect("ui asset editor should open from project asset id");
     let helper_index = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -155,7 +155,7 @@ fn editor_manager_applies_theme_batch_refactor_helper() {
     assert!(document.stylesheets.is_empty());
     assert!(
         document.imports.styles.is_empty()
-            || document.imports.styles == vec!["res://ui/theme/shared_theme.ui.toml".to_string()]
+            || document.imports.styles == vec!["res://ui/theme/shared_theme.zui".to_string()]
     );
 
     cleanup_theme_project(&config_path, &project_root);

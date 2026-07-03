@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::style::{
     UiPainterFamily, UiPainterResolvedState, UiPainterState, UiPainterStyleSelector, UiRgbaColor,
     UiThemeControlSizes, UiThemeDocument, UiThemeElevation, UiThemePalette, UiThemeShape,
+    UiThemeTypographyVariant,
 };
 
 pub const EDITOR_WORKBENCH_TOKENS_ID: &str = "zircon.editor.workbench";
@@ -12,6 +13,7 @@ pub const EDITOR_WORKBENCH_TOKENS_ID: &str = "zircon.editor.workbench";
 pub struct EditorDesignTokens {
     pub id: String,
     pub palette: EditorPaletteTokens,
+    pub typography: EditorTypographyTokens,
     pub controls: EditorControlTokens,
     pub density: EditorDensityTokens,
     pub state_roles: EditorStateRoleTokens,
@@ -28,6 +30,7 @@ impl EditorDesignTokens {
         Self {
             id: EDITOR_WORKBENCH_TOKENS_ID.to_string(),
             palette: EditorPaletteTokens::workbench_dark(),
+            typography: EditorTypographyTokens::workbench_default(),
             controls: EditorControlTokens::workbench_dense(),
             density: EditorDensityTokens::workbench_dense(),
             state_roles: EditorStateRoleTokens::workbench_dark(),
@@ -126,7 +129,7 @@ impl EditorDesignTokens {
                 error: self.palette.error,
                 separator: self.palette.border,
             },
-            typography: UiThemeDocument::dark().typography,
+            typography: self.typography.to_theme_variants(),
             shape: UiThemeShape {
                 radius_small: self.controls.small_radius,
                 radius_medium: self.controls.control_radius,
@@ -255,6 +258,100 @@ pub struct EditorResolvedPainterStyle {
     pub border_width: f32,
     pub corner_radius: f32,
     pub control_height: f32,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct EditorTypographyTokens {
+    pub ui_family: String,
+    pub ui_strong_family: String,
+    pub code_family: String,
+    pub utility_tab_text_role: EditorUtilityTabTextRole,
+    pub font_smoothing: EditorFontSmoothing,
+    pub body_size: f32,
+    pub caption_size: f32,
+    pub title_size: f32,
+    pub body_weight: u16,
+    pub strong_weight: u16,
+    pub code_weight: u16,
+    pub line_height: f32,
+}
+
+impl Default for EditorTypographyTokens {
+    fn default() -> Self {
+        Self::workbench_default()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EditorFontSmoothing {
+    #[default]
+    Grayscale,
+    Subpixel,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EditorUtilityTabTextRole {
+    #[default]
+    Ui,
+    Code,
+}
+
+impl EditorTypographyTokens {
+    pub const DEFAULT_UI_FAMILY: &'static str = "system-ui";
+    pub const DEFAULT_CODE_FAMILY: &'static str = "monospace";
+
+    pub fn workbench_default() -> Self {
+        Self {
+            ui_family: Self::DEFAULT_UI_FAMILY.to_string(),
+            ui_strong_family: Self::DEFAULT_UI_FAMILY.to_string(),
+            code_family: Self::DEFAULT_CODE_FAMILY.to_string(),
+            utility_tab_text_role: EditorUtilityTabTextRole::Ui,
+            font_smoothing: EditorFontSmoothing::Grayscale,
+            body_size: 10.0,
+            caption_size: 8.5,
+            title_size: 14.0,
+            body_weight: 400,
+            strong_weight: 600,
+            code_weight: 400,
+            line_height: 1.2,
+        }
+    }
+
+    pub fn to_theme_variants(&self) -> Vec<UiThemeTypographyVariant> {
+        vec![
+            UiThemeTypographyVariant {
+                variant: "body".to_string(),
+                family: self.ui_family.clone(),
+                size: self.body_size,
+                weight: self.body_weight,
+                line_height: self.line_height,
+            },
+            UiThemeTypographyVariant {
+                variant: "caption".to_string(),
+                family: self.ui_family.clone(),
+                size: self.caption_size,
+                weight: self.body_weight,
+                line_height: self.line_height,
+            },
+            UiThemeTypographyVariant {
+                variant: "title".to_string(),
+                family: self.ui_strong_family.clone(),
+                size: self.title_size,
+                weight: self.strong_weight,
+                line_height: self.line_height,
+            },
+            UiThemeTypographyVariant {
+                variant: "code".to_string(),
+                family: self.code_family.clone(),
+                size: self.body_size,
+                weight: self.code_weight,
+                line_height: self.line_height,
+            },
+        ]
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

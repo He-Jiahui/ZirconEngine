@@ -9,6 +9,7 @@ pub enum UiTextAlign {
     Right,
     Start,
     End,
+    Justify,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,6 +18,7 @@ pub enum UiTextWrap {
     None,
     #[default]
     Word,
+    WordSmart,
     Glyph,
 }
 
@@ -41,10 +43,26 @@ pub enum UiTextDirection {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum UiTextWritingMode {
+    #[default]
+    HorizontalTb,
+    VerticalRl,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum UiTextOverflow {
     #[default]
     Clip,
     Ellipsis,
+    EllipsisWord,
+    EllipsisStart,
+    EllipsisMiddle,
+    ShrinkToFit,
+    ClampFontSize {
+        min_px: f32,
+        max_px: f32,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

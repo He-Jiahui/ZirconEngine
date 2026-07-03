@@ -1,0 +1,25 @@
+runtime_text_bitmap_atlas_render_submission_validation_20260704
+date: 2026-07-04 +08:00
+scope: AT-M1/AT-M3 bitmap atlas render submission plan data owner
+changed_source:
+  zircon_runtime/src/graphics/text/atlas/render_submission.rs
+  zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs
+  zircon_runtime/src/graphics/text/atlas/mod.rs
+behavior:
+  GlyphAtlasBitmapRenderSubmissionPlan joins bitmap run output, dirty/upload commands, clipped draw batches, and GPU draw plan into one renderer-facing contract.
+  Visible glyphs produce GPU vertices and draw commands; clipped glyphs keep upload commands without GPU vertices; invalid/oversized sources remain diagnostic-only; same-frame page eviction stays blocked.
+checks:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/mod.rs zircon_runtime/src/graphics/text/atlas/render_submission.rs zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs => passed
+  git diff --check -- zircon_runtime/src/graphics/text/atlas/mod.rs zircon_runtime/src/graphics/text/atlas/render_submission.rs zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs => passed
+cargo:
+  focused cargo validation deferred because external cargo/rustc lanes were active at validation time.
+active_processes:
+cargo pid=31560 cpu=0.0625 started=2026/7/4 周六 04:45:43
+cargo pid=38612 cpu=8.71875 started=2026/7/4 周六 04:40:15
+cargo pid=47704 cpu=6.84375 started=2026/7/4 周六 04:45:44
+cargo pid=47904 cpu=0.03125 started=2026/7/4 周六 04:40:15
+rustc pid=40620 cpu=3.5625 started=2026/7/4 周六 04:48:22
+visual_artifact:
+  docs/tests/runtime/text/runtime_text_bitmap_atlas_render_submission_preview_20260704.png
+target_policy:
+  validation image/log are stored under docs/tests/runtime/text and must not be copied into target.

@@ -60,10 +60,8 @@ fn runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation(
         ],
     );
 
-    let runtime_08_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P11 |"))
-        .expect("Runtime index should keep the P11 ECS data-kernel problem row");
+    let runtime_08_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P11", "ECS data-kernel");
     assert_contains_all(
         "Runtime index P11 row",
         runtime_08_problem_row,

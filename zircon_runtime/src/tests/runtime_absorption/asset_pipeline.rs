@@ -98,6 +98,8 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../asset/tests/pipeline/worker_pool.rs"),
         include_str!("../../asset/tests/watcher.rs"),
         include_str!("../../asset/tests/assets/artifact_store.rs"),
+        include_str!("../../asset/tests/assets/artifact_store/scene_components.rs"),
+        include_str!("../../asset/tests/assets/artifact_store/scene_script.rs"),
         include_str!("../../core/resource/tests.rs"),
         include_str!("../../asset/facade/load_state.rs"),
     ]

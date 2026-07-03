@@ -132,7 +132,7 @@ classes = ["host-shell"]
 #[test]
 fn ui_asset_editor_projects_private_selector_contract_diagnostic() {
     let mut session = open_design_session(
-        "asset://ui/card_host.ui.toml",
+        "asset://ui/card_host.zui",
         CARD_LAYOUT_WITH_PRIVATE_SELECTOR,
     );
     session
@@ -164,7 +164,7 @@ fn ui_asset_editor_projects_private_selector_contract_diagnostic() {
 #[test]
 fn ui_asset_editor_projects_api_mismatch_to_source_outline_target() {
     let mut session = open_design_session(
-        "asset://ui/card_host.ui.toml",
+        "asset://ui/card_host.zui",
         CARD_LAYOUT_WITH_INCOMPATIBLE_API,
     );
     session
@@ -188,7 +188,7 @@ fn ui_asset_editor_projects_api_mismatch_to_source_outline_target() {
 #[test]
 fn ui_asset_editor_projects_closed_root_class_contract_diagnostic() {
     let route = crate::ui::asset_editor::UiAssetEditorRoute::new(
-        "asset://ui/closed_card_host.ui.toml",
+        "asset://ui/closed_card_host.zui",
         UiAssetKind::Layout,
         crate::ui::asset_editor::UiAssetEditorMode::Design,
     );

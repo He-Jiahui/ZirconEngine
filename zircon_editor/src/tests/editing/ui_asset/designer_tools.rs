@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn ui_asset_editor_session_projects_and_switches_designer_tool_modes() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/slot-authoring.ui.toml",
+        "asset://ui/tests/slot-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -35,7 +35,7 @@ fn ui_asset_editor_session_projects_and_switches_designer_tool_modes() {
 #[test]
 fn ui_asset_editor_session_resizes_selected_slot_as_single_undoable_transaction() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/slot-authoring.ui.toml",
+        "asset://ui/tests/slot-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -77,7 +77,7 @@ fn ui_asset_editor_session_resizes_selected_slot_as_single_undoable_transaction(
 #[test]
 fn ui_asset_editor_session_dispatches_preview_interact_binding_from_canvas_node() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/structured-binding.ui.toml",
+        "asset://ui/tests/structured-binding.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

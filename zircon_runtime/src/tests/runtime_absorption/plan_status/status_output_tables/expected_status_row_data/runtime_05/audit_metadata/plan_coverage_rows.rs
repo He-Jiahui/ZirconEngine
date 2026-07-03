@@ -52,6 +52,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "runtime_plan_status_boundary",
             "cargo_attempt_status_anchor_count = 20",
             "cargo_attempt_status_guard_present = true",
+            "cargo_blocked_external_compile_drift",
+            "cargo_recheck_blocked_external_ui_compile_drift",
             "Runtime 14 animation Cargo gate 尝试",
         ],
     ),
@@ -62,6 +64,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "cargo_recheck_timeout_no_result",
             "Runtime 14 animation runtime-status focused recheck timeout",
             "runtime_status_reports_player_rig_and_gpu_readiness",
+            "cargo/rustc processes were stopped",
         ],
     ),
     (

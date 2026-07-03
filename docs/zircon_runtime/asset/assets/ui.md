@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -20,6 +21,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/resource_manager_with_builtins.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
+  - zircon_runtime/src/asset/tests/assets/ui/references.rs
   - zircon_runtime/src/asset/tests/assets/ui/wrappers.rs
   - zircon_runtime/src/asset/tests/assets/ui/importer.rs
   - zircon_runtime/src/asset/tests/assets/ui/fixture_validation.rs
@@ -27,6 +29,7 @@ related_code:
   - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
   - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_asset_documents.rs
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/asset/assets/imported.rs
@@ -48,6 +51,7 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/resource_manager_with_builtins.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
+  - zircon_runtime/src/asset/tests/assets/ui/references.rs
   - zircon_runtime/src/asset/tests/assets/ui/wrappers.rs
   - zircon_runtime/src/asset/tests/assets/ui/importer.rs
   - zircon_runtime/src/asset/tests/assets/ui/fixture_validation.rs
@@ -71,6 +75,11 @@ tests:
   - rustfmt --edition 2021 --check touched .zui M1 loader/importer/test files (2026-06-28 Editor UI 11 M1: passed)
   - cargo test -p zircon_runtime --lib v2_asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-zui-m1 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-28 Editor UI 11 M1: blocked by existing runtime graphics/test compile errors before filtered tests ran)
   - cargo test -p zircon_runtime --lib importer_decodes_zui_view_and_style_assets_from_zui --locked --jobs 1 --target-dir E:\cargo-targets\zircon-zui-m1 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-28 Editor UI 11 M1: blocked because external zircon_runtime/Cargo.toml and Cargo.lock ttf-parser state requires lock update)
+  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs::runtime_15_font_ui_asset_schema_names_use_current_policy_terms (2026-06-29 Runtime 15 M2 font/UI asset schema naming hard cutover: runtime_15_font_ui_asset_schema_naming_hard_cutover_static_passed_cargo_deferred static guard added; Cargo deferred by Runtime 15 implementation-slice cadence)
+  - python -m unittest tools.tests.test_zui_static_suffix_convergence.ZuiStaticSuffixConvergenceTests.test_runtime_asset_ui_reference_tests_use_zui_suffix tools.tests.test_zui_docs_suffix_convergence.ZuiDocsSuffixConvergenceTests.test_runtime_asset_ui_reference_zui_guard_status_is_recorded (2026-07-02 Editor UI 11 M5 runtime asset UI reference `.zui` fixture guard: passed 2/2)
+  - python -m unittest tools.tests.test_zui_static_suffix_convergence tools.tests.test_zui_docs_suffix_convergence (2026-07-02 Editor UI 11 M5 runtime asset UI reference `.zui` fixture guard: passed 41/41)
+  - rustfmt --edition 2021 --check zircon_runtime\src\asset\tests\assets\ui.rs zircon_runtime\src\asset\tests\assets\ui\references.rs (2026-07-02 Editor UI 11 M5 runtime asset UI reference `.zui` fixture guard: passed)
+  - cargo test -p zircon_runtime --lib ui_asset_direct_references --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-zui-reference-fixture-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-02 Editor UI 11 M5 runtime asset UI reference `.zui` fixture guard: timed out after 604s with no Rust diagnostics and no target test result; matching target-dir cargo/rustc/link process scan found 0)
 doc_type: module-detail
 ---
 
@@ -91,7 +100,7 @@ doc_type: module-detail
 
 `UiThemeAsset` uses the existing `UiStyleMarker` and `AssetKind::UiStyle` rather than adding a new public `ResourceKind`. The typed facade label is `ui_theme`, which lets editor/tool surfaces distinguish the payload while preserving the stable UI style resource family used by handles, registry rows, and readiness state.
 
-The built-in `.zui` importer registers as `zircon.builtin.ui_document.zui`. It parses through `UiZuiAssetLoader`, then `ui_v2_document_import.rs` maps `asset.kind` to `ImportedAsset::UiV2Component`, `ImportedAsset::UiV2View`, or `ImportedAsset::UiV2Style`. Component documents still use the strict `.zui` component profile, while view/style documents may carry root-style document shape. The old `.ui.toml` and `.v2.ui.toml` source importers have been removed; registering those suffixes now fails at the importer registry boundary.
+The built-in `.zui` importer registers as `zircon.builtin.ui_document.zui`. It parses and validates suffix-authority through `UiZuiAssetLoader`, then `ui_v2_document_import.rs` maps `asset.kind` directly to `ImportedAsset::UiV2Component`, `ImportedAsset::UiV2View`, or `ImportedAsset::UiV2Style`. Runtime 15 M2 font/UI asset schema naming hard cutover removed the unused `UiV2DocumentImportProfile::{LegacyToml,Zui}` branch; component/view/style distinction now comes from the current `.zui` document and wrapper boundaries instead of a legacy TOML profile switch. The old `.ui.toml` and `.v2.ui.toml` source importers remain removed; registering those suffixes still fails at the importer registry boundary.
 
 The built-in importer registers `.theme.toml` as `zircon.builtin.ui_theme.toml` and emits `ImportedAsset::UiTheme`. The generic `.toml` data importer still handles ordinary TOML files, while `.ui.toml` and `.v2.ui.toml` are no longer stageable UI document suffixes after the `.zui` cutover. Project scan writes the imported theme to the same `.zasset` artifact cache path as other imported assets, and `ProjectAssetManager::load_imported_asset(...)` restores UI style-family payloads in this order: v2 style, theme, then v1 style.
 
@@ -109,4 +118,6 @@ Runtime 15 F5 UI asset document typed errors (`runtime_15_ui_asset_document_type
 
 `zircon_runtime/src/asset/tests/assets/ui.rs` covers sparse theme TOML parsing, default palette inheritance, facade label and marker kind, TOML roundtrip, default importer selection for `.theme.toml`, and project-manager scan/restore of the theme payload as `AssetKind::UiStyle`. The same test module covers `.icon.toml` parsing, external icon dependency extraction, `ui_icon` facade label and `TextureMarker` mapping, default importer selection, and project-manager scan plus artifact restore of icon payloads as `AssetKind::Texture`. Runtime 11 asset triage also keeps the UI cache boundary under `asset::tests::assets::ui::project_manager_scans`, covering layout/widget/style asset kind assignment and `.zui` component/view/style restore from `.zasset`.
 
-Runtime 15 typed-error coverage adds `ui_asset_wrappers_preserve_typed_parse_sources`, `ui_icon_asset_reports_typed_validation_errors`, `importer_preserves_typed_theme_and_icon_document_sources`, and the registry rejection coverage for deprecated UI document suffix importers. Editor UI 11 M1/M5 extends coverage with `.zui` view/style loader acceptance, uppercase `.ZUI` file-cache root compilation, `.zui` view/style importer materialization, wrapper rejection of non-component `.zui` documents requested through `UiV2ComponentAsset::from_zui_str`, and `.ui.toml`/`.v2.ui.toml` staging rejection in `tools/zircon_build.py`. The static review guard is `review_f5_ui_asset_documents_use_typed_errors_before_import_boundary`.
+Runtime 15 typed-error coverage adds `ui_asset_wrappers_preserve_typed_parse_sources`, `ui_icon_asset_reports_typed_validation_errors`, `importer_preserves_typed_theme_and_icon_document_sources`, and the registry rejection coverage for deprecated UI document suffix importers. Editor UI 11 M1/M5 extends coverage with `.zui` view/style loader acceptance, uppercase `.ZUI` file-cache root compilation, `.zui` view/style importer materialization, wrapper rejection of non-component `.zui` documents requested through `UiV2ComponentAsset::from_zui_str`, and `.ui.toml`/`.v2.ui.toml` staging rejection in `tools/zircon_build.py`. `runtime_15_font_ui_asset_schema_names_use_current_policy_terms` rejects reintroducing `UiV2DocumentImportProfile` / `LegacyToml` into `asset/importer/ingest/ui_v2_document_import.rs`, locks the direct `.zui` caller path through `asset/importer/ingest/import_ui_zui_asset.rs`, and cross-checks `asset/assets/font.rs` keeps the schema-v1 render-mode input named `schema_v1_render_mode`. The static review guard is `review_f5_ui_asset_documents_use_typed_errors_before_import_boundary`.
+
+`editor_ui_11_m5_runtime_asset_ui_reference_fixture_zui_guard_passed` records the active reference-fixture cleanup for `zircon_runtime/src/asset/tests/assets/ui.rs` and `zircon_runtime/src/asset/tests/assets/ui/references.rs`. `tools/tests/test_zui_static_suffix_convergence.py::test_runtime_asset_ui_reference_tests_use_zui_suffix` locks `ui_asset_direct_references_include_collected_resource_dependencies` and `ui_v2_asset_direct_references_include_imports_and_resources` so the `ui_asset_references` / `ui_v2_asset_references` tests use `.zui` widget/style import locators instead of retired `.ui.toml` / `.v2.ui.toml` suffixes. This is fixture-only convergence: explicit deprecated-suffix importer rejection tests remain in their own owners, and production UI document source import stays `.zui` only.

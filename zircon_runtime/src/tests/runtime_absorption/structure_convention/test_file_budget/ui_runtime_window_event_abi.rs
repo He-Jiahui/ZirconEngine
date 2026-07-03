@@ -114,7 +114,7 @@ fn runtime_15_ui_runtime_window_event_abi_children_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

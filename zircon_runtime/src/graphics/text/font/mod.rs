@@ -4,6 +4,9 @@ mod asset_registration;
 mod coverage;
 mod database;
 mod default_families;
+mod descriptors;
+mod fallback;
+mod matching;
 #[cfg(test)]
 mod test_font_fixtures;
 

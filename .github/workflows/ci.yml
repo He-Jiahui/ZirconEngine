@@ -101,6 +101,10 @@ jobs:
             package: zircon_plugin_physics_dist
           - plugin_id: sound
             package: zircon_plugin_sound_dist
+          - plugin_id: sound_ray_traced_convolution_reverb
+            package: zircon_plugin_sound_ray_traced_convolution_dist
+          - plugin_id: sound_timeline_animation_track
+            package: zircon_plugin_sound_timeline_animation_dist
           - plugin_id: runtime_diagnostics
             package: zircon_plugin_runtime_diagnostics_dist
           - plugin_id: ui_asset_authoring

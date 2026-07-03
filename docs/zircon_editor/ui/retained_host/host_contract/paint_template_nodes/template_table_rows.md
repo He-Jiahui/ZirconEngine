@@ -21,6 +21,11 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/15e-domain-breakpoint-adaptation.md
   - docs/plans/engine-code-structure-convention.md
 tests:
+  - rustfmt --edition 2021 --check --config skip_children=true -- zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs (2026-07-03: passed)
+  - cargo test -p zircon_editor --lib archived_asset_table --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-table-text-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03: cargo wrapper timed out during Windows lib-test compilation/linking; not counted as wrapper green)
+  - D:\cargo-targets\zircon-editor-table-text-0703\debug\deps\zircon_editor-e4a53279ee4b776d.exe archived_asset_table --nocapture --test-threads=1 (2026-07-03: passed, 4 passed)
+  - D:\cargo-targets\zircon-editor-table-text-0703\debug\deps\zircon_editor-e4a53279ee4b776d.exe declared_table_cells_use_the_same_display_normalization --nocapture --test-threads=1 (2026-07-03: passed, 1 passed)
+  - D:\cargo-targets\zircon-editor-table-text-0703\debug\deps\zircon_editor-e4a53279ee4b776d.exe capture_m3_gui_acceptance_visual_artifacts --ignored --nocapture --test-threads=1 (2026-07-03: passed, refreshed docs/tests/editor)
   - cargo fmt -p zircon_editor --check
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
   - cargo test -p zircon_editor --lib table_columns_drop_numeric_cells_for_narrow_layout_context --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never
@@ -46,6 +51,12 @@ doc_type: module-detail
 - `cells/commands.rs` owns cell text command emission, S15.2 single-line ellipsis, and right alignment for numeric columns.
 - `surface.rs`, `actions.rs`, and `style.rs` own row paint frame, action glyphs, and style lookup respectively.
 
+## Display Text Normalization
+
+`cells/text.rs` owns presentation-only cleanup for legacy and declared table cells before paint commands are emitted. It expands compact UI table labels such as `Rev` to `Revision`, compact asset type labels such as `Tex` / `Mat` to `Texture` / `Material`, compact revision values such as `r42` to `rev 42`, and compact sizes such as `12K` / `1.2M` to `12 KB` / `1.2 MB`.
+
+This is deliberately not a font selection or data-source rewrite. The table painter still uses `METRICS.font_body` and the retained host runtime text path for measured rendering, while the asset/workspace snapshots and `.zui` authored text remain unchanged. Concrete font families, colors, and visual style choices must stay on the global appearance preference/token route rather than in this cell-text owner.
+
 ## Responsive Columns
 
 The table painter supports two degradation inputs:
@@ -66,3 +77,5 @@ This subtree does not own table data production, sorting, user-resizable column 
 ## Validation Notes
 
 The current evidence covers formatting, lib compile, the narrow-context column drop regression, selected-row border suppression, and the 2026-06-26 header/tail recessed surface regression. The latest S15.4aj/S15.6aa pass also ran package build plus the M3 screenshot harness with output in `docs/tests/editor/` and Cargo artifacts in `D:\cargo-targets\zircon-editor-components-0626`. Existing warning noise remains outside this module.
+
+The 2026-07-03 display-normalization slice has scoped rustfmt evidence for `cells/text.rs`. Its `cargo test` wrapper attempts timed out during Windows lib-test compilation/linking while other runtime `cargo`/`rustc` jobs were active, so the wrapper invocations are recorded as blocked and not green. The produced editor test binary was then run directly: the four `archived_asset_table` tests and the declared-cell normalization test all passed, and the ignored M3 screenshot harness passed, refreshing `docs/tests/editor/editor-window-m3-asset-browser-list-900x620.png` at `2026-07-03 04:45:35 +08:00`. That screenshot now shows the Asset Browser Type column spelling `Texture` while the same rendered list keeps `Revision`, `64 KB` / `1.2 MB`, and `rev 42`.

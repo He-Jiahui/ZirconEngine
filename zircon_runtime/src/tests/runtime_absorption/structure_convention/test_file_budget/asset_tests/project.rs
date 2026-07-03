@@ -15,7 +15,7 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
 
     assert_contains_all(
@@ -60,8 +60,8 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 9,
-        "asset project zmeta child modules should preserve the original 9 tests"
+        migrated_test_count, 12,
+        "asset project zmeta child modules should preserve the current 12 tests"
     );
 
     assert_contains_all(
@@ -89,7 +89,10 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn project_manager_imports_compound_zshader_package_with_subassets",
-            "RenderShaderPipelineLayoutDescriptor",
+            "fn project_manager_derives_include_shader_import_path_from_project_and_package_path",
+            "fn project_manager_reports_redundant_explicit_shader_import_path",
+            "fn project_manager_reports_duplicate_shader_import_path_conflicts",
+            "assert_eq!(shader.pipeline_layout, Default::default());",
             "material_for_shader(&shader_uri)",
         ],
     );
@@ -99,7 +102,7 @@ fn runtime_15_asset_project_zmeta_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn project_manager_imports_zshader_with_wgsl_capture_diagnostics",
-            "fn zshader_typed_shader_definition_rows_validate_kind_and_value",
+            "fn zshader_v2_options_replace_legacy_user_shader_definition_rows",
             "fn documented_zmeta_shader_material_fixture_parses",
         ],
     );
@@ -166,7 +169,7 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
 
     assert_contains_all(
@@ -210,7 +213,7 @@ fn runtime_15_asset_project_manager_tests_are_folder_backed() {
     .sum::<usize>();
     assert_eq!(
         migrated_test_count, 11,
-        "asset project manager child modules should preserve the original 11 tests"
+        "asset project manager child modules should preserve the current 11 tests"
     );
 
     assert_contains_all(

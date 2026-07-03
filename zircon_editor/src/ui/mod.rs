@@ -10,6 +10,7 @@ pub mod control;
 pub mod host;
 pub(crate) mod layouts;
 pub mod material_editor;
+pub(crate) mod preferences;
 mod reflection;
 pub mod retained_host;
 pub(crate) mod template;

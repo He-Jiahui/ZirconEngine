@@ -123,8 +123,7 @@ impl SoundAsset {
         let mut data = None;
         while cursor + 8 <= bytes.len() {
             let chunk_id = &bytes[cursor..cursor + 4];
-            let chunk_size =
-                u32::from_le_bytes(bytes[cursor + 4..cursor + 8].try_into().unwrap()) as usize;
+            let chunk_size = read_u32(bytes, cursor + 4)? as usize;
             let chunk_start = cursor + 8;
             let chunk_end = chunk_start
                 .checked_add(chunk_size)
@@ -275,8 +274,8 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>>
             .collect()),
         (PCM_FORMAT, 16) => Ok(data
             .chunks_exact(2)
-            .map(|chunk| i16::from_le_bytes(chunk.try_into().unwrap()) as f32 / 32768.0)
-            .collect()),
+            .map(|chunk| Ok(read_i16(chunk, 0)? as f32 / 32768.0))
+            .collect::<SoundAssetResult<Vec<_>>>()?),
         (PCM_FORMAT, 24) => Ok(data
             .chunks_exact(3)
             .map(|chunk| {
@@ -287,12 +286,12 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>>
             .collect()),
         (PCM_FORMAT, 32) => Ok(data
             .chunks_exact(4)
-            .map(|chunk| i32::from_le_bytes(chunk.try_into().unwrap()) as f32 / 2_147_483_648.0)
-            .collect()),
+            .map(|chunk| Ok(read_i32(chunk, 0)? as f32 / 2_147_483_648.0))
+            .collect::<SoundAssetResult<Vec<_>>>()?),
         (IEEE_FLOAT_FORMAT, 32) => Ok(data
             .chunks_exact(4)
-            .map(|chunk| f32::from_le_bytes(chunk.try_into().unwrap()).clamp(-1.0, 1.0))
-            .collect()),
+            .map(|chunk| Ok(read_f32(chunk, 0)?.clamp(-1.0, 1.0)))
+            .collect::<SoundAssetResult<Vec<_>>>()?),
         (audio_format, bits_per_sample) => Err(SoundAssetError::UnsupportedFormat {
             audio_format,
             bits_per_sample,
@@ -365,21 +364,35 @@ fn layout_from_speakers(
 }
 
 fn read_u16(bytes: &[u8], offset: usize) -> SoundAssetResult<u16> {
-    let end = offset
-        .checked_add(2)
-        .ok_or(SoundAssetError::HeaderReadOverflow)?;
-    let range = bytes
-        .get(offset..end)
-        .ok_or(SoundAssetError::HeaderReadOverflow)?;
-    Ok(u16::from_le_bytes(range.try_into().unwrap()))
+    Ok(u16::from_le_bytes(read_fixed_bytes::<2>(bytes, offset)?))
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> SoundAssetResult<u32> {
+    Ok(u32::from_le_bytes(read_fixed_bytes::<4>(bytes, offset)?))
+}
+
+fn read_i16(bytes: &[u8], offset: usize) -> SoundAssetResult<i16> {
+    Ok(i16::from_le_bytes(read_fixed_bytes::<2>(bytes, offset)?))
+}
+
+fn read_i32(bytes: &[u8], offset: usize) -> SoundAssetResult<i32> {
+    Ok(i32::from_le_bytes(read_fixed_bytes::<4>(bytes, offset)?))
+}
+
+fn read_f32(bytes: &[u8], offset: usize) -> SoundAssetResult<f32> {
+    Ok(f32::from_le_bytes(read_fixed_bytes::<4>(bytes, offset)?))
+}
+
+fn read_fixed_bytes<const N: usize>(bytes: &[u8], offset: usize) -> SoundAssetResult<[u8; N]> {
     let end = offset
-        .checked_add(4)
+        .checked_add(N)
         .ok_or(SoundAssetError::HeaderReadOverflow)?;
     let range = bytes
         .get(offset..end)
         .ok_or(SoundAssetError::HeaderReadOverflow)?;
-    Ok(u32::from_le_bytes(range.try_into().unwrap()))
+    let mut value = [0; N];
+    for (output, input) in value.iter_mut().zip(range.iter().copied()) {
+        *output = input;
+    }
+    Ok(value)
 }

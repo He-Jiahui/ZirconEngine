@@ -1,5 +1,7 @@
-use crate::core::ModuleDescriptor;
+use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::engine_module::EngineModule;
+
+use super::time::TIME_MODULE_NAME;
 
 pub const FRAME_COUNT_MODULE_NAME: &str = "FrameCountModule";
 
@@ -17,5 +19,7 @@ impl EngineModule for FrameCountModule {
 
     fn descriptor(&self) -> ModuleDescriptor {
         ModuleDescriptor::new(FRAME_COUNT_MODULE_NAME, self.module_description())
+            .with_init_level(InitLevel::Kernel)
+            .with_module_dependency(ModuleDependencySpec::named(TIME_MODULE_NAME))
     }
 }

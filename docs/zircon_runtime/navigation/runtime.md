@@ -90,6 +90,8 @@ Gameplay calls `nav_move_towards_entity(...)`, which writes the destination agen
 
 `BuiltinNavigationManager` stores runtime navigation state behind one mutex. Runtime 15 M3 navigation lock poison recovery moved every production state access through the private `lock_state()` helper, which recovers poisoned locks with `unwrap_or_else(|poisoned| poisoned.into_inner())` instead of panicking on `expect("navigation state lock poisoned")`.
 
+Status: `runtime_15_navigation_lock_poison_recovery_static_passed_cargo_deferred`.
+
 The recovery policy covers navmesh loading, navigation settings loading, path/sample/raycast queries, agent tick stats, `tick_agent(...)` path/sample lookups, and `stats()`. It does not change `NavigationManager`, baked navmesh serialization, selected-mesh semantics, or the boundary between this built-in fallback and the external Recast-backed plugin stack.
 
 `navigation_manager_accessors_recover_poisoned_state_lock` deliberately poisons the state lock in test-only code and then proves load/settings/sample/stats still work. `runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager` keeps the helper, test, docs, and status anchors synchronized so the production manager cannot silently return to direct lock unwrap or lock-poison panic behavior.

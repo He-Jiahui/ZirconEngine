@@ -6,6 +6,7 @@ use crate::asset::{
     ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset, ShaderEntryPointAsset,
     ShaderSourceLanguage, TextureAsset, UiLayoutAsset, UiV2ViewAsset,
 };
+use crate::core::framework::render::ShaderAssetKind;
 use crate::core::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind, ResourceManager, ResourceRecord,
     ResourceState, TextureMarker, UntypedResourceHandle,
@@ -36,6 +37,7 @@ fn texture_asset(uri: &str) -> TextureAsset {
 fn shader_asset(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() {}".to_string(),
         wgsl_source: "@fragment fn fs_main() {}".to_string(),
@@ -49,7 +51,16 @@ fn shader_asset(uri: &str) -> ShaderAsset {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
@@ -60,6 +71,9 @@ fn material_asset(shader_uri: &str) -> MaterialAsset {
     MaterialAsset {
         name: Some("Grid".to_string()),
         shader: AssetReference::from_locator(locator(shader_uri)),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [0.8, 0.8, 0.8, 1.0],
         base_color_texture: None,
         normal_texture: None,

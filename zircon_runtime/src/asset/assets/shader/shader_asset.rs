@@ -2,19 +2,24 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    RenderShaderDefinitionValue, RenderShaderDependency, RenderShaderEntryPointDescriptor,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderVariantKey,
+    MaterialOptionTable, MaterialPropertyLayout, RenderShaderDefinitionValue,
+    RenderShaderDependency, RenderShaderEntryPointDescriptor, RenderShaderPipelineLayoutDescriptor,
+    RenderShaderVariantKey, ShaderAssetKind, ShaderQueueDescriptor, ShaderRenderStateDescriptor,
+    ShaderResourceDescriptor,
 };
 
 use super::{
-    dependency, language::default_shader_language, ShaderDependencyAsset, ShaderEntryPointAsset,
-    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceFileAsset,
-    ShaderSourceLanguage, ShaderTextureSlotAsset,
+    dependency, generate_material_artifact, language::default_shader_language,
+    ShaderDependencyAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset,
+    ShaderMaterialPropertyAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
+    ShaderTextureSlotAsset,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ShaderAsset {
     pub uri: AssetUri,
+    #[serde(default = "default_shader_asset_kind")]
+    pub kind: ShaderAssetKind,
     #[serde(default = "default_shader_language")]
     pub source_language: ShaderSourceLanguage,
     pub source: String,
@@ -35,7 +40,25 @@ pub struct ShaderAsset {
     #[serde(default)]
     pub property_schema: Vec<ShaderMaterialPropertyAsset>,
     #[serde(default)]
+    pub options: Vec<ShaderOptionAsset>,
+    #[serde(default)]
     pub texture_slots: Vec<ShaderTextureSlotAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shading_model: Option<String>,
+    #[serde(default)]
+    pub render_state: ShaderRenderStateDescriptor,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub queue: Option<ShaderQueueDescriptor>,
+    #[serde(default)]
+    pub disabled_passes: Vec<String>,
+    #[serde(default)]
+    pub resources: Vec<ShaderResourceDescriptor>,
+    #[serde(default)]
+    pub material_property_layout: MaterialPropertyLayout,
+    #[serde(default)]
+    pub material_option_table: MaterialOptionTable,
+    #[serde(default)]
+    pub generated_material_wgsl: String,
     #[serde(default)]
     pub editor: toml::Table,
     #[serde(default)]
@@ -82,4 +105,16 @@ impl ShaderAsset {
     pub fn pipeline_layout_descriptor(&self) -> RenderShaderPipelineLayoutDescriptor {
         self.pipeline_layout.clone()
     }
+
+    pub fn regenerate_material_artifact(&mut self) {
+        let generated =
+            generate_material_artifact(&self.property_schema, &self.options, &self.texture_slots);
+        self.material_property_layout = generated.property_layout;
+        self.material_option_table = generated.option_table;
+        self.generated_material_wgsl = generated.wgsl_source;
+    }
+}
+
+fn default_shader_asset_kind() -> ShaderAssetKind {
+    ShaderAssetKind::Surface
 }

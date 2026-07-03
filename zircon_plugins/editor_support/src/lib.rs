@@ -155,12 +155,12 @@ mod tests {
 
     #[test]
     fn authoring_batch_registers_menu_items_payload_schemas_and_all_descriptor_families() {
-        let import = operation("Support.Authoring.Import");
-        let open = operation("Support.Authoring.Open");
-        let validate = operation("Support.Authoring.Validate");
-        let compile = operation("Support.Authoring.Compile");
-        let create = operation("Support.Authoring.Create");
-        let activate = operation("Support.Authoring.ActivateTool");
+        let import = operation("support.authoring.import");
+        let open = operation("support.authoring.open");
+        let validate = operation("support.authoring.validate");
+        let compile = operation("support.authoring.compile");
+        let create = operation("support.authoring.create");
+        let activate = operation("support.authoring.activate_tool");
         let mut registry = EditorExtensionRegistry::default();
 
         register_authoring_contribution_batch(

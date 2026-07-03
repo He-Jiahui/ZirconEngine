@@ -6,17 +6,17 @@ use crate::core::framework::render::{
 };
 
 const RENDERER_MATERIAL_TEXTURE_BIND_GROUP: u32 = 2;
-const RENDERER_BASE_COLOR_TEXTURE_BINDING: u32 = 0;
-const RENDERER_BASE_COLOR_SAMPLER_BINDING: u32 = 1;
-const RENDERER_NORMAL_TEXTURE_BINDING: u32 = 2;
-const RENDERER_NORMAL_SAMPLER_BINDING: u32 = 3;
-const RENDERER_METALLIC_ROUGHNESS_TEXTURE_BINDING: u32 = 4;
-const RENDERER_METALLIC_ROUGHNESS_SAMPLER_BINDING: u32 = 5;
-const RENDERER_OCCLUSION_TEXTURE_BINDING: u32 = 6;
-const RENDERER_OCCLUSION_SAMPLER_BINDING: u32 = 7;
-const RENDERER_EMISSIVE_TEXTURE_BINDING: u32 = 8;
-const RENDERER_EMISSIVE_SAMPLER_BINDING: u32 = 9;
-const RENDERER_MATERIAL_UNIFORM_BINDING: u32 = 10;
+const RENDERER_MATERIAL_UNIFORM_BINDING: u32 = 0;
+const RENDERER_BASE_COLOR_TEXTURE_BINDING: u32 = 1;
+const RENDERER_BASE_COLOR_SAMPLER_BINDING: u32 = 2;
+const RENDERER_NORMAL_TEXTURE_BINDING: u32 = 3;
+const RENDERER_NORMAL_SAMPLER_BINDING: u32 = 4;
+const RENDERER_METALLIC_ROUGHNESS_TEXTURE_BINDING: u32 = 5;
+const RENDERER_METALLIC_ROUGHNESS_SAMPLER_BINDING: u32 = 6;
+const RENDERER_OCCLUSION_TEXTURE_BINDING: u32 = 7;
+const RENDERER_OCCLUSION_SAMPLER_BINDING: u32 = 8;
+const RENDERER_EMISSIVE_TEXTURE_BINDING: u32 = 9;
+const RENDERER_EMISSIVE_SAMPLER_BINDING: u32 = 10;
 const RENDERER_GPU_SCENE_BIND_GROUP: u32 = 3;
 const RENDERER_GPU_SCENE_PRIMITIVE_BINDING: u32 = 0;
 const RENDERER_GPU_SCENE_INSTANCE_BINDING: u32 = 1;
@@ -42,6 +42,12 @@ fn push_material_bind_group_diagnostics(
     diagnostics: &mut Vec<RenderMaterialValidationError>,
 ) {
     let expected = [
+        ExpectedRendererBinding {
+            binding: RENDERER_MATERIAL_UNIFORM_BINDING,
+            label: "material property uniform",
+            resource_type: RenderShaderBindingResourceType::UniformBuffer,
+            required_visibility: &[RenderShaderStage::Vertex, RenderShaderStage::Fragment],
+        },
         ExpectedRendererBinding {
             binding: RENDERER_BASE_COLOR_TEXTURE_BINDING,
             label: "base-color texture",
@@ -101,12 +107,6 @@ fn push_material_bind_group_diagnostics(
             label: "emissive sampler",
             resource_type: RenderShaderBindingResourceType::Sampler,
             required_visibility: &[RenderShaderStage::Fragment],
-        },
-        ExpectedRendererBinding {
-            binding: RENDERER_MATERIAL_UNIFORM_BINDING,
-            label: "material property uniform",
-            resource_type: RenderShaderBindingResourceType::UniformBuffer,
-            required_visibility: &[RenderShaderStage::Vertex, RenderShaderStage::Fragment],
         },
     ];
 
@@ -358,7 +358,7 @@ fn visibility_description(required_visibility: &[RenderShaderStage]) -> String {
 mod tests {
     use super::*;
     use crate::asset::{AssetUri, ShaderSourceLanguage};
-    use crate::core::framework::render::RenderShaderPipelineLayoutDescriptor;
+    use crate::core::framework::render::{RenderShaderPipelineLayoutDescriptor, ShaderAssetKind};
 
     #[test]
     fn renderer_material_layout_diagnostics_keep_empty_layout_opt_out() {
@@ -480,7 +480,7 @@ mod tests {
 
         assert!(diagnostic_contains(
             &diagnostics,
-            "pipeline_layout.group2.binding0",
+            "pipeline_layout.group2.binding1",
             "base-color texture"
         ));
         assert!(diagnostic_contains(
@@ -568,43 +568,49 @@ mod tests {
         assert!(diagnostic_contains(
             &diagnostics,
             "pipeline_layout.group2.binding0",
-            "Texture"
+            "material property uniform"
         ));
         assert!(diagnostic_contains(
             &diagnostics,
             "pipeline_layout.group2.binding1",
-            "fragment stage"
+            "Texture"
         ));
         assert!(diagnostic_contains(
             &diagnostics,
             "pipeline_layout.group2.binding2",
+            "fragment stage"
+        ));
+        assert!(diagnostic_contains(
+            &diagnostics,
+            "pipeline_layout.group2.binding3",
             "normal texture"
         ));
         assert!(diagnostic_contains(
             &diagnostics,
-            "pipeline_layout.group2.binding4",
+            "pipeline_layout.group2.binding5",
             "metallic-roughness texture"
         ));
         assert!(diagnostic_contains(
             &diagnostics,
-            "pipeline_layout.group2.binding6",
+            "pipeline_layout.group2.binding7",
             "occlusion texture"
         ));
         assert!(diagnostic_contains(
             &diagnostics,
-            "pipeline_layout.group2.binding8",
+            "pipeline_layout.group2.binding9",
             "emissive texture"
         ));
         assert!(diagnostic_contains(
             &diagnostics,
             "pipeline_layout.group2.binding10",
-            "UniformBuffer"
+            "Sampler"
         ));
     }
 
     fn shader_with_layout(bind_groups: Vec<RenderShaderBindGroupLayoutDescriptor>) -> ShaderAsset {
         ShaderAsset {
             uri: AssetUri::parse("res://tests/renderer-layout.zshader").unwrap(),
+            kind: ShaderAssetKind::Surface,
             source_language: ShaderSourceLanguage::Wgsl,
             source: String::new(),
             wgsl_source: String::new(),
@@ -615,7 +621,16 @@ mod tests {
             imports: Vec::new(),
             shader_defs: Vec::new(),
             property_schema: Vec::new(),
+            options: Vec::new(),
             texture_slots: Vec::new(),
+            shading_model: None,
+            render_state: Default::default(),
+            queue: None,
+            disabled_passes: Vec::new(),
+            resources: Vec::new(),
+            material_property_layout: Default::default(),
+            material_option_table: Default::default(),
+            generated_material_wgsl: String::new(),
             editor: Default::default(),
             pipeline_layout: RenderShaderPipelineLayoutDescriptor {
                 bind_groups,

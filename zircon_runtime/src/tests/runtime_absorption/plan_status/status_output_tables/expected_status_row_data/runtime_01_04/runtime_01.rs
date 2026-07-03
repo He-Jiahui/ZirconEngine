@@ -20,12 +20,31 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 01 Tech-stack SharedTextService 锚点同步",
+        &[
+            "tech_stack_shared_text_service_anchor_sync_static_passed_cargo_deferred",
+            "SharedTextService",
+            "missing_text_doc_anchors = []",
+            "missing_behavior_test_anchors = []",
+            "tech_stack/extensions/text_shaper/plugin physics Cargo gates pending",
+        ],
+    ),
+    (
         "Runtime 01 Tech-stack current audit recheck",
         &[
             "manifest files 5/5",
             "tech-stack guard anchors 12/12",
             "behavior-test anchors 4/4",
             "standalone `plan_status.rs` 32/32",
+        ],
+    ),
+    (
+        "Runtime 01 Tech-stack 2026-07-01 current audit recheck",
+        &[
+            "tech_stack_20260701_current_audit_static_passed_cargo_deferred",
+            "manifest files 5/5",
+            "behavior-test anchors 4/4",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
         ],
     ),
     (

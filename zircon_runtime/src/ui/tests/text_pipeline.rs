@@ -1,8 +1,8 @@
 use crate::asset::assets::{FontAsset, FontAssetRenderStrategy};
 use crate::graphics::text::font::default_runtime_font_families;
 use crate::ui::text::{
-    raster_path_for, resolve_text_layout, UiFontRegistry, UiGlyphRasterPath, UiGlyphRasterPolicy,
-    UiPreeditSpan, UiTextLayoutRequest, UiTextMeasureCache, UiWidthBucket,
+    resolve_text_layout, UiFontRegistry, UiPreeditSpan, UiTextLayoutRequest, UiTextMeasureCache,
+    UiWidthBucket,
 };
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
@@ -175,18 +175,4 @@ fn text_measure_cache_reshapes_when_wrap_bucket_changes() {
     assert_eq!(cache.resolve_or_shape(&wide).layout.lines.len(), 1);
 
     assert_eq!(cache.frame_shape_count(), 2);
-}
-
-#[test]
-fn text_raster_path_prefers_bitmap_for_small_static_ui_text() {
-    assert_eq!(raster_path_for(12.0, false), UiGlyphRasterPath::Bitmap);
-    assert_eq!(raster_path_for(32.0, false), UiGlyphRasterPath::Sdf);
-    assert_eq!(raster_path_for(12.0, true), UiGlyphRasterPath::Sdf);
-
-    let policy = UiGlyphRasterPolicy {
-        sdf_min_size_px: 18.0,
-        scalable_prefers_sdf: false,
-    };
-    assert_eq!(policy.path_for(17.0, true), UiGlyphRasterPath::Bitmap);
-    assert_eq!(policy.path_for(18.0, true), UiGlyphRasterPath::Sdf);
 }

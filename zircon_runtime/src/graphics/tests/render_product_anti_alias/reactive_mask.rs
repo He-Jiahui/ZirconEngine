@@ -184,6 +184,9 @@ fn taa_reactive_product_material_with_alpha(
     MaterialAsset {
         name: Some(format!("TaaReactiveMask{strength:.2}")),
         shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [0.1, 0.85, 0.65, alpha],
         base_color_texture: None,
         normal_texture: None,

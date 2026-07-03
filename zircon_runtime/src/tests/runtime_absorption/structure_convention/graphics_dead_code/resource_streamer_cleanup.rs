@@ -38,7 +38,7 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
         "material capture seed re-export stays behind test cfg",
         &runtime_mod,
         &[
-            "pub(crate) use material_runtime::MaterialRuntime;",
+            "pub(crate) use material_runtime::{MaterialDisabledPasses, MaterialRuntime};",
             "#[cfg(test)]",
             "pub(crate) use material_runtime::MaterialCaptureSeed;",
         ],
@@ -47,7 +47,7 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
         "resources facade keeps production material runtime separate from test capture seed",
         &resources_mod,
         &[
-            "pub(crate) use runtime::MaterialRuntime;",
+            "pub(crate) use runtime::{MaterialDisabledPasses, MaterialRuntime};",
             "#[cfg(test)]",
             "pub(crate) use runtime::MaterialCaptureSeed;",
         ],
@@ -97,6 +97,9 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
     let material_capture = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
     );
+    let material_diagnostics = read_runtime_src(
+        "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs",
+    );
     let resource_streamer_ensure = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs",
     );
@@ -113,12 +116,18 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
         "ResourceStreamer diagnostics accessors should be test-only or production-live, not dead-code suppressions"
     );
     assert_contains_all(
-        "test-only asset and material diagnostics accessors",
+        "test-only asset diagnostics accessors stay on the resource accessor root",
         &resource_streamer_accessors,
         &[
             "#[cfg(test)]",
             "pub(crate) fn model_asset_overview(",
             "pub(crate) fn asset_management_record_sets(",
+        ],
+    );
+    assert_contains_all(
+        "test-only material diagnostics accessors are child-owned",
+        &material_diagnostics,
+        &[
             "pub(crate) fn material_uniform_payload_byte_len(",
             "pub(crate) fn material_management_record_set(",
             "pub(crate) fn material_prepared_state(",
@@ -128,6 +137,11 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
         "resource streamer accessors delegates material capture helpers to child owner",
         &resource_streamer_accessors,
         &["#[cfg(test)]", "mod material_capture;"],
+    );
+    assert_contains_all(
+        "resource streamer accessors delegates material diagnostics helpers to child owner",
+        &resource_streamer_accessors,
+        &["#[cfg(test)]", "mod material_diagnostics;"],
     );
     for moved_helper in [
         "pub(crate) fn material_capture_seed(",
@@ -145,6 +159,20 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
             "material_capture.rs should own `{moved_helper}`"
         );
     }
+    for moved_helper in [
+        "pub(crate) fn material_uniform_payload_byte_len(",
+        "pub(crate) fn material_management_record_set(",
+        "pub(crate) fn material_prepared_state(",
+    ] {
+        assert!(
+            !resource_streamer_accessors.contains(moved_helper),
+            "resource_streamer_accessors.rs should delegate `{moved_helper}` to material_diagnostics.rs"
+        );
+        assert!(
+            material_diagnostics.contains(moved_helper),
+            "material_diagnostics.rs should own `{moved_helper}`"
+        );
+    }
     for (path, source) in [
         (
             "graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs",
@@ -153,6 +181,10 @@ fn runtime_15_resource_streamer_diagnostics_accessor_cleanup() {
         (
             "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
             material_capture.as_str(),
+        ),
+        (
+            "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs",
+            material_diagnostics.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

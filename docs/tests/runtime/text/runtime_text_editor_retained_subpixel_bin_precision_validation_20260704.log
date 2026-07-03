@@ -1,0 +1,28 @@
+Runtime text retained-host subpixel bin precision validation
+Date: 2026-07-04
+Scope: editor retained-host small Latin labels from the user crop: `editor base.zui` and `folder-open.svg`.
+
+Problem addressed:
+- DengXian/等线 was selected, but per-character horizontal placement still showed visible left/right unevenness.
+- The retained-host text painter quantized pen-origin phase into 4 bins before rasterization, leaving up to 0.125px origin error and causing near-right phases such as 20.90 to roll to the next pixel cell.
+
+Implementation evidence:
+- `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs`
+  - `TEXT_RASTER_SUPERSAMPLE` is now 8.0 for fallback alpha-mask rasterization.
+  - `RETAINED_TEXT_SUBPIXEL_BINS` is now 8, producing 0 / .125 / .25 / .375 / .5 / .625 / .75 / .875 phases.
+- `zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs`
+  - `retained_glyph_placement_uses_eight_phase_bins_for_editor_labels` locks the precision contract.
+  - `retained_glyph_placement_uses_nearest_subpixel_bin_without_left_bias` now asserts 20.90 remains pixel 20 with phase .875 and only 20.95 rolls to the next pixel.
+
+Checks run:
+- `rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs` passed.
+
+Deferred checks:
+- Focused Cargo was not started because external cargo/rustc lanes were active.
+
+Visual artifact:
+- docs/tests/runtime/text/runtime_text_editor_retained_subpixel_bin_precision_preview_20260704.png
+- preview SHA256: 5A4268CDF1774AFA81B9C9EF7A141F23BE6ED61623DE3F50E7C71C73F35E9CDD
+- This is a screenshot-style deterministic preview using Windows DengXian; it is not a live editor window capture.
+- log SHA256 before append: F6CBCC4ED07F6A2C633918A328C5C5D8ABFB47F7E2D294700364275F5ED751F2
+- repo target, E:/cargo-targets, and D:/cargo-targets same-name scan count: 0

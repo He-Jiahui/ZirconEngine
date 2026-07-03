@@ -16,7 +16,7 @@ fn runtime_15_scene_derived_state_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
     );
 
     assert_contains_all(

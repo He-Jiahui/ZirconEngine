@@ -52,7 +52,7 @@ use crate::{
             UiRenderCommandDebugRecord, UiRenderCommandKind, UiRenderDebugSnapshot,
             UiRenderDebugStats, UiRenderExtract, UiRenderList, UiResolvedStyle,
             UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-            UiSurfaceFrame, UiTextAlign, UiTextWrap, UiVirtualPointerPosition,
+            UiSurfaceFrame, UiTextAlign, UiTextWrap, UiTextWritingMode, UiVirtualPointerPosition,
             UiWidgetReflectorNode, UiWorldHitRay, UI_SURFACE_DEBUG_SCHEMA_VERSION,
         },
         template::{
@@ -1513,6 +1513,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
             text_align: UiTextAlign::Center,
             wrap: UiTextWrap::Word,
             direction: crate::ui::surface::UiTextDirection::LeftToRight,
+            writing_mode: UiTextWritingMode::HorizontalTb,
             overflow: crate::ui::surface::UiTextOverflow::Ellipsis,
             font_size: 16.0,
             line_height: 20.0,
@@ -1680,6 +1681,24 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
     assert!(serde_json::to_string(&extract)
         .unwrap()
         .contains("commands"));
+}
+
+#[test]
+fn ui_text_wrap_word_smart_serializes_as_contract_value() {
+    let encoded = serde_json::to_string(&UiTextWrap::WordSmart).unwrap();
+    assert_eq!(encoded, "\"word_smart\"");
+
+    let decoded: UiTextWrap = serde_json::from_str("\"word_smart\"").unwrap();
+    assert_eq!(decoded, UiTextWrap::WordSmart);
+}
+
+#[test]
+fn ui_text_writing_mode_vertical_rl_serializes_as_contract_value() {
+    let encoded = serde_json::to_string(&UiTextWritingMode::VerticalRl).unwrap();
+    assert_eq!(encoded, "\"vertical_rl\"");
+
+    let decoded: UiTextWritingMode = serde_json::from_str("\"vertical_rl\"").unwrap();
+    assert_eq!(decoded, UiTextWritingMode::VerticalRl);
 }
 
 #[test]

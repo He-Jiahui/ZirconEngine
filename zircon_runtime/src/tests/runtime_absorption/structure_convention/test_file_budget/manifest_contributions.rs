@@ -6,6 +6,8 @@ fn runtime_15_manifest_contributions_tests_are_folder_backed() {
     let editor_only =
         read_runtime_src("tests/plugin_extensions/manifest_contributions/editor_only.rs");
     let net = read_runtime_src("tests/plugin_extensions/manifest_contributions/net.rs");
+    let runtime_family =
+        read_runtime_src("tests/plugin_extensions/manifest_contributions/runtime_family.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -25,6 +27,8 @@ fn runtime_15_manifest_contributions_tests_are_folder_backed() {
             "mod editor_only;",
             "#[path = \"manifest_contributions/net.rs\"]",
             "mod net;",
+            "#[path = \"manifest_contributions/runtime_family.rs\"]",
+            "mod runtime_family;",
         ],
     );
 
@@ -33,6 +37,9 @@ fn runtime_15_manifest_contributions_tests_are_folder_backed() {
         "fn low_overlap_editor_only_plugin_tomls_declare_explicit_experimental_maturity",
         "fn net_plugin_toml_declares_content_download_http_dependency",
         "fn builtin_net_catalog_declares_layered_optional_features",
+        "fn sound_plugin_manifest_matches_catalog_beta_partial_metadata",
+        "fn particles_plugin_toml_matches_catalog_optional_feature_metadata",
+        "fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -60,8 +67,21 @@ fn runtime_15_manifest_contributions_tests_are_folder_backed() {
             "net.content_download",
         ],
     );
+    assert_contains_all(
+        "runtime-family child owns non-rendering runtime manifest contracts",
+        &runtime_family,
+        &[
+            "use super::*;",
+            "fn sound_plugin_manifest_matches_catalog_beta_partial_metadata",
+            "fn animation_plugin_toml_matches_catalog_beta_partial_metadata",
+            "fn navigation_plugin_toml_matches_catalog_beta_partial_metadata",
+            "fn particles_plugin_toml_matches_catalog_optional_feature_metadata",
+            "fn texture_plugin_manifest_matches_catalog_stable_complete_metadata",
+            "fn runtime_experimental_plugin_toml_matches_catalog_partial_metadata",
+        ],
+    );
 
-    let moved_test_count = [editor_only.as_str(), net.as_str()]
+    let moved_test_count = [editor_only.as_str(), net.as_str(), runtime_family.as_str()]
         .iter()
         .map(|source| source.matches("#[test]").count())
         .sum::<usize>();
@@ -83,6 +103,10 @@ fn runtime_15_manifest_contributions_tests_are_folder_backed() {
         (
             "tests/plugin_extensions/manifest_contributions/net.rs",
             net.as_str(),
+        ),
+        (
+            "tests/plugin_extensions/manifest_contributions/runtime_family.rs",
+            runtime_family.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -107,9 +131,12 @@ fn runtime_15_manifest_contributions_tests_are_folder_backed() {
             &[
                 "Runtime 15 M3 manifest contributions test folder split",
                 "runtime_15_manifest_contributions_tests_folder_split_static_passed_cargo_deferred",
+                "Runtime 15 M3 manifest contributions runtime-family test child-owner split",
+                "runtime_15_manifest_contributions_runtime_family_tests_child_owner_split_static_passed_cargo_deferred",
                 "tests/plugin_extensions/manifest_contributions.rs",
                 "tests/plugin_extensions/manifest_contributions/editor_only.rs",
                 "tests/plugin_extensions/manifest_contributions/net.rs",
+                "tests/plugin_extensions/manifest_contributions/runtime_family.rs",
                 "runtime_15_manifest_contributions_tests_are_folder_backed",
             ],
         );

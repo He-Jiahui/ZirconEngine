@@ -19,10 +19,14 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("export_archive_zip_materialization_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 01 Tech-stack current audit recheck" {
         Some("tech_stack_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 01 Tech-stack 2026-07-01 current audit recheck" {
+        Some("tech_stack_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 01 Tech-stack inventory split" {
         Some("tech_stack_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 01 Tech-stack Markdown renderer split" {
         Some("tech_stack_markdown_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 01 Tech-stack SharedTextService 锚点同步" {
+        Some("tech_stack_shared_text_service_anchor_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 05 full scene closeout failed evidence" {
         Some("cargo_recheck_failed_full_scene_gate")
     } else if slice == "Runtime 05 full scene compile-pass graphics-scene blocker" {
@@ -111,10 +115,14 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("guard_sync_static_passed_cargo_pending")
     } else if slice == "Runtime 03 Schedule/frame-loop current audit recheck" {
         Some("schedule_frame_loop_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 03 Schedule/frame-loop 2026-07-01 current audit recheck" {
+        Some("schedule_frame_loop_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 03 Schedule/frame-loop inventory split" {
         Some("schedule_frame_loop_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 03 Schedule/frame-loop markdown renderer split" {
         Some("schedule_frame_loop_markdown_split_static_passed_cargo_deferred_tests_deferred")
+    } else if slice == "Runtime 03 Schedule/frame-loop session profile owner audit sync" {
+        Some("schedule_frame_loop_session_profile_owner_audit_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 04 worker-pool manager frame sampler entry"
         || slice == "Runtime 07 asset worker manager sampler entry"
     {
@@ -123,6 +131,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("asset_worker_request_sender_hard_cutover_static_passed_cargo_deferred")
     } else if slice == "Runtime 04 Asset pipeline current audit recheck" {
         Some("asset_pipeline_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 04 Asset pipeline 2026-07-01 current audit recheck" {
+        Some("asset_pipeline_20260701_current_audit_static_passed_cargo_deferred")
+    } else if slice == "Runtime 04 artifact-store child owner audit sync" {
+        Some("runtime_04_artifact_store_child_owner_audit_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 04 Asset pipeline inventory split" {
         Some("asset_pipeline_inventory_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 04 Asset pipeline Markdown renderer split" {
@@ -141,6 +153,8 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("builtin_root_facade_removed_static_passed_cargo_pending")
     } else if slice == "Runtime 02 core/root/generated current audit recheck" {
         Some("core_root_generated_current_audit_static_passed_cargo_pending")
+    } else if slice == "Runtime 02 core/root/generated 2026-07-01 current audit recheck" {
+        Some("core_root_generated_20260701_current_audit_static_passed_cargo_deferred")
     } else if slice == "Runtime 02 core/root/generated Markdown renderer split" {
         Some("core_root_generated_markdown_split_static_passed_cargo_deferred_tests_deferred")
     } else if slice == "Runtime 02 root-surface Markdown renderer split" {

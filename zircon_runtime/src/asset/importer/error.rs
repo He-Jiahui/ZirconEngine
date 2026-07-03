@@ -55,13 +55,21 @@ pub enum AssetImportError {
         #[source]
         source: toml::value::DatetimeParseError,
     },
+    #[error("cached JSON number `{value}` is invalid because JSON numbers must be finite")]
+    CachedJsonNonFiniteNumber { value: String },
+    #[error("cached JSON number `{value}` is invalid: {source}")]
+    CachedJsonNumberParse {
+        value: String,
+        #[source]
+        source: serde_json::Error,
+    },
     #[error("ui asset document failed while {context}: {source}")]
     UiDocument {
         context: &'static str,
         #[source]
         source: UiAssetDocumentError,
     },
-    #[error("ui v2 asset document failed while {context}: {source}")]
+    #[error(".zui asset document failed while {context}: {source}")]
     UiV2Document {
         context: &'static str,
         #[source]

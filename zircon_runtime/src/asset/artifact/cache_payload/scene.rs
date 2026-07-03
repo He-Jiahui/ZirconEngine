@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use super::json_value::{cache_table_to_json, json_table_to_cache, ArtifactCacheJsonValue};
-use crate::asset::{AssetReference, SceneAsset};
+use crate::asset::{AssetImportError, AssetReference, SceneAsset};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(in crate::asset::artifact) struct ArtifactCacheSceneAsset {
@@ -23,14 +23,14 @@ impl From<&SceneAsset> for ArtifactCacheSceneAsset {
 }
 
 impl ArtifactCacheSceneAsset {
-    pub(super) fn into_asset(self) -> SceneAsset {
-        SceneAsset {
+    pub(super) fn into_asset(self) -> Result<SceneAsset, AssetImportError> {
+        Ok(SceneAsset {
             entities: self
                 .entities
                 .into_iter()
                 .map(ArtifactCacheSceneEntityAsset::into_asset)
-                .collect(),
-        }
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
@@ -113,8 +113,8 @@ impl From<&crate::asset::SceneEntityAsset> for ArtifactCacheSceneEntityAsset {
 }
 
 impl ArtifactCacheSceneEntityAsset {
-    fn into_asset(self) -> crate::asset::SceneEntityAsset {
-        crate::asset::SceneEntityAsset {
+    fn into_asset(self) -> Result<crate::asset::SceneEntityAsset, AssetImportError> {
+        Ok(crate::asset::SceneEntityAsset {
             entity: self.entity,
             name: self.name,
             parent: self.parent,
@@ -149,8 +149,8 @@ impl ArtifactCacheSceneEntityAsset {
                 .script_bindings
                 .into_iter()
                 .map(ArtifactCacheSceneScriptBindingAsset::into_asset)
-                .collect(),
-        }
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
@@ -584,14 +584,14 @@ impl From<&crate::asset::SceneScriptBindingAsset> for ArtifactCacheSceneScriptBi
 }
 
 impl ArtifactCacheSceneScriptBindingAsset {
-    fn into_asset(self) -> crate::asset::SceneScriptBindingAsset {
-        crate::asset::SceneScriptBindingAsset {
+    fn into_asset(self) -> Result<crate::asset::SceneScriptBindingAsset, AssetImportError> {
+        Ok(crate::asset::SceneScriptBindingAsset {
             package: self.package,
             module: self.module,
             enabled: self.enabled,
             update: self.update,
             fixed_update: self.fixed_update,
-            properties: cache_table_to_json(self.properties),
-        }
+            properties: cache_table_to_json(self.properties)?,
+        })
     }
 }

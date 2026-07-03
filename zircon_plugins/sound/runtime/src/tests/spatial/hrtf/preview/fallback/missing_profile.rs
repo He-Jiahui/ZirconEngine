@@ -11,7 +11,7 @@ fn missing_hrtf_profile_uses_preview_fallback_without_loaded_state() {
     sound.update_listener(listener).unwrap();
 
     let mut source = SoundSourceDescriptor::clip(clip);
-    source.position = [0.0, 0.0, 1.0];
+    source.position = [0.5, 0.0, 1.0];
     source.spatial = SoundSpatialSourceSettings {
         spatial_blend: 1.0,
         attenuation: SoundAttenuationMode::None,

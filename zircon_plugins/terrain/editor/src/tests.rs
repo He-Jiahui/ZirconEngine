@@ -9,7 +9,7 @@ fn terrain_authoring_registration_exposes_menu_items_and_payload_schemas() {
         .register_editor_extensions(&mut registry)
         .expect("terrain authoring registration");
     let operation =
-        EditorOperationPath::parse("Terrain.Authoring.ImportHeightfield").expect("operation path");
+        EditorOperationPath::parse("terrain.authoring.import_heightfield").expect("operation path");
     let descriptor = registry
         .operations()
         .descriptor(&operation)

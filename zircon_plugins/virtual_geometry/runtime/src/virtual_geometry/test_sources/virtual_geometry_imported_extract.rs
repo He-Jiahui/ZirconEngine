@@ -55,7 +55,7 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
             tint: Default::default(),
             mobility: Mobility::Dynamic,
             static_state: RenderMeshStaticState::from_transform_static(false),
-            render_layer_mask: RenderLayerSet::from_legacy_mask(1),
+            render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(1),
         }],
         RenderVirtualGeometryDebugState {
             print_leaf_clusters: true,
@@ -75,6 +75,12 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
     );
     assert!(!extract.clusters.is_empty());
     assert!(!extract.pages.is_empty());
+    assert_eq!(output.resident_page_payloads().len(), 1);
+    assert_eq!(output.resident_page_payloads()[0].vertices.len(), 3);
+    assert_eq!(
+        output.resident_page_payloads()[0].vertices[1].position,
+        Vec3::X
+    );
     assert_eq!(output.cpu_reference_instances().len(), 1);
     assert_eq!(output.cpu_reference_instances()[0].entity, 77);
 

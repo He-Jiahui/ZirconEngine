@@ -166,7 +166,17 @@ fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh
     match imported {
         ImportedAsset::Model(model) => {
             assert_eq!(model.primitives.len(), 1);
-            assert_eq!(model.primitives[0].vertices, base_vertices);
+            assert_eq!(
+                model.primitives[0]
+                    .vertices
+                    .iter()
+                    .map(|vertex| vertex.position)
+                    .collect::<Vec<_>>(),
+                base_vertices
+                    .iter()
+                    .map(|vertex| vertex.position)
+                    .collect::<Vec<_>>()
+            );
             assert_eq!(model.primitives[0].indices, base_indices);
             assert_eq!(
                 model.primitives[0].mesh.as_ref().unwrap().locator,

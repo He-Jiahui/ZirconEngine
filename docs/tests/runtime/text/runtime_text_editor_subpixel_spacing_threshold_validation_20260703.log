@@ -1,0 +1,31 @@
+Runtime text editor subpixel spacing threshold validation - 2026-07-03
+
+Source change:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+- Kept the retained-host text bridge on runtime-provided displayed text and line width.
+- Tightened per-grapheme runtime advance acceptance from a loose max(1.25px, host * 25%) window to clamp(host * 6%, 0.35px, 0.60px).
+- Added named constants for total-run and per-grapheme tolerances, avoiding new inline magic thresholds.
+- Added regression: runtime_positioned_glyphs_rejects_subpixel_tab_label_jitter.
+- Regression string: "editor base.zui", matching the editor tab label family of the user-provided screenshot.
+- Regression intent: a +0.75px / -0.75px local advance shift keeps total width close but is visible at editor tab size, so retained-host drawing falls back to the selected host face's natural glyph spacing.
+
+Verification commands:
+1. rustfmt --edition 2021 --check zircon_editor\src\ui\retained_host\host_contract\paint_text\draw\layout.rs
+   Result: passed, exit code 0.
+
+2. Focused Cargo test:
+   Command intentionally deferred in this slice.
+   Reason: existing external cargo/rustc lanes were active before this change and remained active after the change:
+   cargo PIDs 33960, 40476, 45664, 46056; rustc PIDs 31840, 46476.
+   No new Cargo lane was started for this slice, and no Cargo green result is claimed.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_editor_subpixel_spacing_threshold_preview_20260703.png
+- SHA256: BBBED73034CD2C41D8FC18E38EBE6630412E691C03E7728137B6060F9AF54693
+- Purpose: comparison proof image for old total-width/per-grapheme acceptance versus the tightened retained-host threshold on "editor base.zui".
+- This is not a live editor-window capture; live Workbench/Asset Browser/Component Atlas screenshot QA remains open.
+- Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets: 0 matches.
+
+Open validation:
+- Run the focused zircon_editor runtime_positioned_glyphs tests once existing Cargo lanes are idle.
+- Capture a live editor window after the retained-host and GPU text paths are both available for comparison.

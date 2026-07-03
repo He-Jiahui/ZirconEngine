@@ -79,7 +79,7 @@ fn runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_ar
             ),
             "test file budget parent mounts folder-backed guard owners",
             "status output row-data Runtime 15 child owns Runtime 15 row-data guard",
-            "UI shared core test-budget child owns historical shared-core guard",
+            "UI shared core test-budget parent mounts shared-core child owners",
         ],
     );
     assert_contains_all(
@@ -101,6 +101,7 @@ fn runtime_15_test_file_budget_root_layout_folder_backed_support_child_owners_ar
             "pub(super) fn read_guard_sources",
             "test_file_budget/asset_tests/pack.rs",
             "test_file_budget/status_output_row_data/runtime_15_row_data.rs",
+            "test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership.rs",
             "test_file_budget/ui_shared_core.rs",
         ],
     );

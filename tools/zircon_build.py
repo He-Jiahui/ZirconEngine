@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import filecmp
 import os
 import platform
 import shutil
@@ -21,6 +20,32 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
     raise
 
 try:
+    from .zircon_build_asset_staging import (
+        copy_resource_dirs,
+        stage_engine_assets,
+    )
+    from .zircon_build_hub import build_hub
+    from .zircon_build_plugin_assets import collect_plugin_asset_roots
+    from .zircon_build_plugin_manifest_contract import (
+        collect_module_crate_names,
+        distribution_table,
+        normalize_optional_string,
+        require_distribution_forms,
+    )
+    from .zircon_build_plugin_packages import PluginPackage
+    from .zircon_build_plugin_selection import (
+        filter_plugins_by_carrier,
+        print_plugin_catalog,
+        select_plugins,
+    )
+    from .zircon_build_plugin_shader_descriptors import (
+        collect_geometry_source_descriptor_id_specs,
+        collect_geometry_source_descriptors,
+        collect_shader_permutation_id_specs,
+        collect_shading_model_descriptors,
+        shading_model_descriptor_id_specs,
+    )
+    from .zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates
     from .zircon_build_shader_prewarm import (
         build_shader_prewarm_command,
         parse_shader_geometry_source_ids,
@@ -36,6 +61,32 @@ try:
         validate_staged_shader_prewarm_acceptance_contract,
     )
 except ImportError:  # pragma: no cover - exercised when run as a script.
+    from zircon_build_asset_staging import (
+        copy_resource_dirs,
+        stage_engine_assets,
+    )
+    from zircon_build_hub import build_hub
+    from zircon_build_plugin_assets import collect_plugin_asset_roots
+    from zircon_build_plugin_manifest_contract import (
+        collect_module_crate_names,
+        distribution_table,
+        normalize_optional_string,
+        require_distribution_forms,
+    )
+    from zircon_build_plugin_packages import PluginPackage
+    from zircon_build_plugin_selection import (
+        filter_plugins_by_carrier,
+        print_plugin_catalog,
+        select_plugins,
+    )
+    from zircon_build_plugin_shader_descriptors import (
+        collect_geometry_source_descriptor_id_specs,
+        collect_geometry_source_descriptors,
+        collect_shader_permutation_id_specs,
+        collect_shading_model_descriptors,
+        shading_model_descriptor_id_specs,
+    )
+    from zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates
     from zircon_build_shader_prewarm import (
         build_shader_prewarm_command,
         parse_shader_geometry_source_ids,
@@ -55,84 +106,9 @@ except ImportError:  # pragma: no cover - exercised when run as a script.
 TARGETS = ("hub", "editor", "runtime", "plugins")
 MODES = ("debug", "release", "profiling")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
-PLUGIN_DISTRIBUTION_FORM_DIST = "dist"
-PLUGIN_DISTRIBUTION_FORM_EMBED = "embed"
-PLUGIN_DISTRIBUTION_FORMS = (
-    PLUGIN_DISTRIBUTION_FORM_EMBED,
-    PLUGIN_DISTRIBUTION_FORM_DIST,
-)
 TARGET_FEATURES = ("target-client", "target-server", "target-editor-host")
 ENGINE_DIR_NAME = "ZirconEngine"
-HUB_TAURI_BUNDLE_TARGET = "nsis"
-HUB_INSTALLERS_DIR_NAME = "installers"
 PLUGIN_LOAD_MANIFEST = "plugins/native_plugins.toml"
-ENGINE_ASSET_ROOTS = (
-    Path("zircon_editor") / "assets",
-    Path("zircon_runtime") / "assets",
-)
-UI_COMPILED_ARTIFACT_CACHE_ENV = "ZIRCON_UI_COMPILED_ARTIFACT_CACHE"
-UI_COMPILED_ARTIFACT_CACHE_ROOT = Path(".zircon") / "ui" / "compiled_artifacts"
-UI_COMPILED_ARTIFACT_STAGE_ROOT = Path("ui") / "compiled_artifacts"
-UI_COMPILED_ARTIFACT_SUFFIXES = (".zuiart", ".zuicache")
-
-
-@dataclasses.dataclass(frozen=True)
-class CargoPackage:
-    name: str
-    member: str
-    manifest_path: Path
-    crate_types: tuple[str, ...]
-
-    @property
-    def is_native_dynamic(self) -> bool:
-        return "cdylib" in self.crate_types
-
-
-@dataclasses.dataclass(frozen=True)
-class PluginPackage:
-    plugin_id: str
-    display_name: str
-    manifest_path: Path
-    package_root: Path
-    asset_roots: tuple[Path, ...]
-    default_packaging: tuple[str, ...]
-    distribution_forms: tuple[str, ...]
-    dist_crate_name: str | None
-    module_crate_names: tuple[str, ...]
-    shader_geometry_source_ids: tuple[str, ...]
-    shader_shading_model_ids: tuple[str, ...]
-    crates: tuple[CargoPackage, ...]
-
-    @property
-    def native_dynamic_crates(self) -> tuple[CargoPackage, ...]:
-        if PLUGIN_DISTRIBUTION_FORM_DIST not in self.distribution_forms:
-            return ()
-        if self.dist_crate_name:
-            return tuple(
-                crate for crate in self.crates if crate.name == self.dist_crate_name
-            )
-        return tuple(crate for crate in self.crates if crate.is_native_dynamic)
-
-    @property
-    def rlib_static_crates(self) -> tuple[CargoPackage, ...]:
-        if PLUGIN_DISTRIBUTION_FORM_EMBED not in self.distribution_forms:
-            return ()
-        if self.dist_crate_name and len(self.crates) > 1:
-            return tuple(
-                crate for crate in self.crates if crate.name != self.dist_crate_name
-            )
-        return self.crates
-
-    @property
-    def carriers(self) -> tuple[str, ...]:
-        carriers: list[str] = []
-        if self.native_dynamic_crates:
-            carriers.append("native_dynamic")
-        if self.rlib_static_crates:
-            carriers.append("rlib_static")
-        return tuple(carriers)
-
-
 @dataclasses.dataclass(frozen=True)
 class BuildConfig:
     repo_root: Path
@@ -148,8 +124,10 @@ class BuildConfig:
     dry_run: bool
     prewarm_shaders: bool
     validate_wgpu_shaders: bool
+    validate_wgpu_pipelines: bool
     shader_quality_tiers: tuple[str, ...]
     shader_geometry_sources: tuple[str, ...]
+    shader_asset_roots: tuple[Path, ...]
     shader_geometry_source_ids: tuple[str, ...]
     shader_shading_model_ids: tuple[str, ...]
     shader_permutation_registries: tuple[Path, ...]
@@ -174,6 +152,10 @@ class BuildConfig:
     @property
     def runtime_feature_arg(self) -> str:
         return " ".join(self.runtime_features)
+
+    @property
+    def runtime_preview_feature_arg(self) -> str:
+        return self.feature_arg_for_target("target-client")
 
     def feature_arg_for_target(self, target_feature: str) -> str:
         features = [target_feature]
@@ -291,6 +273,15 @@ Plugin carrier boundary:
         ),
     )
     parser.add_argument(
+        "--validate-wgpu-pipelines",
+        action="store_true",
+        help=(
+            "When --prewarm-shaders is enabled, validate each full-template mesh "
+            "prewarm request by creating an offscreen WGPU render pipeline before "
+            "writing the cache."
+        ),
+    )
+    parser.add_argument(
         "--shader-quality-tier",
         action="append",
         choices=("low", "medium", "high", "ultra", "all"),
@@ -308,6 +299,15 @@ Plugin carrier boundary:
         help=(
             "Geometry source(s) to prewarm when --prewarm-shaders is enabled. "
             "Repeat for multiple sources or use all. Default: static."
+        ),
+    )
+    parser.add_argument(
+        "--shader-asset-root",
+        action="append",
+        default=[],
+        help=(
+            "Project shader asset root to scan during --prewarm-shaders and automatic "
+            "shader resource registry export. Repeat for multiple project roots."
         ),
     )
     parser.add_argument(
@@ -382,14 +382,13 @@ def resolve_config(
         raise SystemExit("--mode profiling is not supported for the plugin workspace target.")
 
     selected_plugins: tuple[PluginPackage, ...] = ()
-    if "plugins" in targets:
-        candidates = filter_plugins_by_carrier(plugin_catalog, plugin_carrier)
-        if args.plugins:
-            selected_plugins = tuple(select_plugins(candidates, args.plugins))
-        else:
-            selected_plugins = tuple(prompt_plugins(candidates))
-        if not selected_plugins:
-            raise SystemExit("No plugins selected for the plugins target.")
+    candidates = filter_plugins_by_carrier(plugin_catalog, plugin_carrier)
+    if args.plugins:
+        selected_plugins = tuple(select_plugins(candidates, args.plugins))
+    elif "plugins" in targets:
+        selected_plugins = tuple(prompt_plugins(candidates))
+    if "plugins" in targets and not selected_plugins:
+        raise SystemExit("No plugins selected for the plugins target.")
 
     return BuildConfig(
         repo_root=repo_root,
@@ -405,8 +404,10 @@ def resolve_config(
         dry_run=args.dry_run,
         prewarm_shaders=args.prewarm_shaders,
         validate_wgpu_shaders=args.validate_wgpu_shaders,
+        validate_wgpu_pipelines=args.validate_wgpu_pipelines,
         shader_quality_tiers=parse_shader_quality_tiers(args.shader_quality_tier),
         shader_geometry_sources=parse_shader_geometry_sources(args.shader_geometry_source),
+        shader_asset_roots=resolve_optional_paths(args.shader_asset_root),
         shader_geometry_source_ids=parse_shader_geometry_source_ids(
             args.shader_geometry_source_id
         ),
@@ -539,14 +540,27 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
         distribution_forms = require_distribution_forms(manifest_path, distribution)
         dist_crate_name = normalize_optional_string(distribution.get("dist_crate"))
         module_crate_names = tuple(unique_in_order(collect_module_crate_names(data)))
-        asset_roots = collect_plugin_asset_roots(manifest_path, data, distribution)
+        asset_roots = collect_plugin_asset_roots(
+            manifest_path,
+            data,
+            distribution,
+            plugin_id,
+        )
+        shader_geometry_source_descriptors = collect_geometry_source_descriptors(
+            manifest_path, data
+        )
+        shader_shading_model_descriptors = collect_shading_model_descriptors(
+            manifest_path, data
+        )
         shader_geometry_source_ids = tuple(
             unique_in_order(
                 [
                     *collect_shader_permutation_id_specs(
                         manifest_path, data, "geometry_source_ids"
                     ),
-                    *collect_geometry_source_descriptor_id_specs(manifest_path, data),
+                    *collect_geometry_source_descriptor_id_specs(
+                        shader_geometry_source_descriptors
+                    ),
                 ]
             )
         )
@@ -556,7 +570,9 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                     *collect_shader_permutation_id_specs(
                         manifest_path, data, "shading_model_ids"
                     ),
-                    *collect_shading_model_descriptor_id_specs(manifest_path, data),
+                    *shading_model_descriptor_id_specs(
+                        shader_shading_model_descriptors
+                    ),
                 ]
             )
         )
@@ -575,36 +591,13 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                 dist_crate_name=dist_crate_name,
                 module_crate_names=module_crate_names,
                 shader_geometry_source_ids=shader_geometry_source_ids,
+                shader_geometry_source_descriptors=shader_geometry_source_descriptors,
                 shader_shading_model_ids=shader_shading_model_ids,
+                shader_shading_model_descriptors=shader_shading_model_descriptors,
                 crates=matched_crates,
             )
         )
     return tuple(sorted(packages, key=lambda item: item.plugin_id))
-
-
-def discover_plugin_workspace_crates(plugins_root: Path) -> tuple[CargoPackage, ...]:
-    workspace = read_toml(plugins_root / "Cargo.toml")
-    members = workspace.get("workspace", {}).get("members", [])
-    packages: list[CargoPackage] = []
-    for member in members:
-        manifest_path = plugins_root / member / "Cargo.toml"
-        if not manifest_path.exists():
-            continue
-        data = read_toml(manifest_path)
-        package = data.get("package", {})
-        name = package.get("name")
-        if not name:
-            continue
-        crate_types = data.get("lib", {}).get("crate-type", [])
-        packages.append(
-            CargoPackage(
-                name=str(name),
-                member=str(member).replace("\\", "/"),
-                manifest_path=manifest_path,
-                crate_types=tuple(str(crate_type) for crate_type in crate_types),
-            )
-        )
-    return tuple(packages)
 
 
 def read_toml(path: Path) -> dict:
@@ -616,327 +609,6 @@ def normalize_packaging(values: object) -> list[str]:
     if not isinstance(values, list):
         return []
     return [str(value).strip().lower() for value in values if str(value).strip()]
-
-
-def distribution_table(data: dict) -> dict:
-    distribution = data.get("distribution", {})
-    if isinstance(distribution, dict):
-        return distribution
-    return {}
-
-
-def require_distribution_forms(
-    manifest_path: Path,
-    distribution: dict,
-) -> tuple[str, ...]:
-    raw_forms = distribution.get("forms")
-    if not isinstance(raw_forms, list) or not raw_forms:
-        raise SystemExit(
-            f"{manifest_path}: distribution.forms must be a non-empty array "
-            f"containing only {', '.join(PLUGIN_DISTRIBUTION_FORMS)}"
-        )
-    forms: list[str] = []
-    for index, value in enumerate(raw_forms, start=1):
-        form = str(value).strip().lower()
-        if form not in PLUGIN_DISTRIBUTION_FORMS:
-            raise SystemExit(
-                f"{manifest_path}: distribution.forms[{index}] must be one of "
-                f"{', '.join(PLUGIN_DISTRIBUTION_FORMS)}"
-            )
-        forms.append(form)
-    return tuple(unique_in_order(forms))
-
-
-def normalize_optional_string(value: object) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    return text or None
-
-
-def collect_plugin_asset_roots(
-    manifest_path: Path, data: dict, distribution: dict
-) -> tuple[Path, ...]:
-    roots: list[Path] = []
-    if "asset_roots" in data:
-        asset_root_values = data["asset_roots"]
-        if isinstance(asset_root_values, list) and not asset_root_values:
-            asset_root_values = ["assets"]
-    else:
-        asset_root_values = ["assets"]
-    append_plugin_asset_roots_from_field(
-        roots,
-        manifest_path,
-        asset_root_values,
-        "asset_roots",
-    )
-    append_plugin_asset_roots_from_distribution_assets(
-        roots,
-        manifest_path,
-        distribution.get("assets", []),
-    )
-    existing_roots = [root for root in roots if root.exists() and root.is_dir()]
-    return tuple(unique_paths(existing_roots))
-
-
-def append_plugin_asset_roots_from_field(
-    roots: list[Path], manifest_path: Path, values: object, field: str
-) -> None:
-    if values is None:
-        return
-    if not isinstance(values, list):
-        raise SystemExit(f"{manifest_path}: {field} must be a list.")
-    if not values:
-        return
-    for index, value in enumerate(values, start=1):
-        root = normalized_plugin_asset_root(manifest_path, value, f"{field}[{index}]")
-        roots.append(root)
-
-
-def append_plugin_asset_roots_from_distribution_assets(
-    roots: list[Path], manifest_path: Path, values: object
-) -> None:
-    if values is None:
-        return
-    if not isinstance(values, list):
-        raise SystemExit(f"{manifest_path}: distribution.assets must be a list.")
-    if not values:
-        return
-    for index, value in enumerate(values, start=1):
-        root_text = distribution_asset_root_text(value)
-        if root_text is None:
-            continue
-        roots.append(
-            normalized_plugin_asset_root(
-                manifest_path,
-                root_text,
-                f"distribution.assets[{index}]",
-            )
-        )
-
-
-def distribution_asset_root_text(value: object) -> str | None:
-    text = str(value).strip().replace("\\", "/")
-    if not text:
-        return None
-    wildcard_index = min(
-        (index for index in (text.find("*"), text.find("?")) if index >= 0),
-        default=-1,
-    )
-    if wildcard_index >= 0:
-        text = text[:wildcard_index]
-    if not text:
-        return None
-    if text.endswith("/"):
-        text = text.rstrip("/")
-    else:
-        text = str(Path(text).parent).replace("\\", "/")
-        if text == ".":
-            return None
-    return text or None
-
-
-def normalized_plugin_asset_root(
-    manifest_path: Path, value: object, field: str
-) -> Path:
-    text = str(value).strip()
-    if not text:
-        raise SystemExit(f"{manifest_path}: {field} must not be empty.")
-    relative = Path(text)
-    if relative.is_absolute():
-        raise SystemExit(f"{manifest_path}: {field} must be relative to the package root.")
-    if any(part in ("", ".", "..") for part in relative.parts):
-        raise SystemExit(
-            f"{manifest_path}: {field} must not contain empty, current, or parent segments."
-        )
-    return manifest_path.parent / relative
-
-
-def unique_paths(paths: Iterable[Path]) -> list[Path]:
-    seen: set[str] = set()
-    result: list[Path] = []
-    for path in paths:
-        key = str(path)
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(path)
-    return result
-
-
-def collect_module_crate_names(data: dict) -> list[str]:
-    crate_names: list[str] = []
-    for module in data.get("modules", []):
-        append_module_crate(crate_names, module)
-    for feature_key in ("optional_features", "feature_extensions"):
-        for feature in data.get(feature_key, []):
-            for module in feature.get("modules", []):
-                append_module_crate(crate_names, module)
-    return crate_names
-
-
-def append_module_crate(crate_names: list[str], module: object) -> None:
-    if not isinstance(module, dict):
-        return
-    crate_name = module.get("crate_name")
-    if crate_name:
-        crate_names.append(str(crate_name))
-
-
-def collect_shader_permutation_id_specs(
-    manifest_path: Path, data: dict, field: str
-) -> tuple[str, ...]:
-    permutation = data.get("shader_permutation", {})
-    if not permutation:
-        return ()
-    if not isinstance(permutation, dict):
-        raise SystemExit(
-            f"{manifest_path}: shader_permutation must be a TOML table when present."
-        )
-    entries = permutation.get(field, [])
-    if not entries:
-        return ()
-    if not isinstance(entries, list):
-        raise SystemExit(f"{manifest_path}: shader_permutation.{field} must be a list.")
-    specs: list[str] = []
-    for index, entry in enumerate(entries, start=1):
-        if not isinstance(entry, dict):
-            raise SystemExit(
-                f"{manifest_path}: shader_permutation.{field}[{index}] must be a table."
-            )
-        token = normalize_optional_string(entry.get("token"))
-        id_value = entry.get("id")
-        if token is None:
-            raise SystemExit(
-                f"{manifest_path}: shader_permutation.{field}[{index}].token is required."
-            )
-        if isinstance(id_value, bool) or not isinstance(id_value, int):
-            raise SystemExit(
-                f"{manifest_path}: shader_permutation.{field}[{index}].id must be an integer."
-            )
-        specs.append(f"{token}={id_value}")
-    return tuple(unique_in_order(specs))
-
-
-def collect_geometry_source_descriptor_id_specs(
-    manifest_path: Path, data: dict
-) -> tuple[str, ...]:
-    entries = data.get("geometry_sources", [])
-    if not entries:
-        return ()
-    if not isinstance(entries, list):
-        raise SystemExit(f"{manifest_path}: geometry_sources must be a list.")
-    specs: list[str] = []
-    for index, entry in enumerate(entries, start=1):
-        if not isinstance(entry, dict):
-            raise SystemExit(
-                f"{manifest_path}: geometry_sources[{index}] must be a table."
-            )
-        token = normalize_optional_string(entry.get("token"))
-        id_value = entry.get("id")
-        if token is None:
-            raise SystemExit(
-                f"{manifest_path}: geometry_sources[{index}].token is required."
-            )
-        if isinstance(id_value, bool) or not isinstance(id_value, int):
-            raise SystemExit(
-                f"{manifest_path}: geometry_sources[{index}].id must be an integer."
-            )
-        specs.append(f"{token}={id_value}")
-    return tuple(unique_in_order(specs))
-
-
-def collect_shading_model_descriptor_id_specs(
-    manifest_path: Path, data: dict
-) -> tuple[str, ...]:
-    entries = data.get("shading_models", [])
-    if not entries:
-        return ()
-    if not isinstance(entries, list):
-        raise SystemExit(f"{manifest_path}: shading_models must be a list.")
-    specs: list[str] = []
-    for index, entry in enumerate(entries, start=1):
-        if not isinstance(entry, dict):
-            raise SystemExit(
-                f"{manifest_path}: shading_models[{index}] must be a table."
-            )
-        token = normalize_optional_string(entry.get("token"))
-        id_value = entry.get("id")
-        if token is None:
-            raise SystemExit(
-                f"{manifest_path}: shading_models[{index}].token is required."
-            )
-        if isinstance(id_value, bool) or not isinstance(id_value, int):
-            raise SystemExit(
-                f"{manifest_path}: shading_models[{index}].id must be an integer."
-            )
-        specs.append(f"{token}={id_value}")
-    return tuple(unique_in_order(specs))
-
-
-def filter_plugins_by_carrier(
-    packages: Sequence[PluginPackage], plugin_carrier: str
-) -> list[PluginPackage]:
-    if plugin_carrier == "all":
-        return list(packages)
-    return [package for package in packages if plugin_carrier in package.carriers]
-
-
-def select_plugins(candidates: Sequence[PluginPackage], raw: str) -> list[PluginPackage]:
-    if not candidates:
-        return []
-    by_id = {package.plugin_id.lower(): package for package in candidates}
-    selected: list[PluginPackage] = []
-    for token in parse_csv(raw):
-        if token == "all":
-            selected.extend(candidates)
-        elif token in ("native", "native_dynamic"):
-            selected.extend(package for package in candidates if package.native_dynamic_crates)
-        elif token in ("rlib", "rlib_static", "static"):
-            selected.extend(package for package in candidates if package.rlib_static_crates)
-        elif "-" in token and token.replace("-", "").isdigit():
-            selected.extend(select_range(candidates, token))
-        elif token.isdigit():
-            selected.append(select_index(candidates, int(token)))
-        elif token in by_id:
-            selected.append(by_id[token])
-        else:
-            raise SystemExit(f"Unknown plugin selector: {token}")
-    return unique_plugins(selected)
-
-
-def select_index(candidates: Sequence[PluginPackage], index: int) -> PluginPackage:
-    if index < 1 or index > len(candidates):
-        raise SystemExit(f"Plugin index out of range: {index}")
-    return candidates[index - 1]
-
-
-def select_range(candidates: Sequence[PluginPackage], token: str) -> list[PluginPackage]:
-    start_raw, end_raw = token.split("-", 1)
-    start = int(start_raw)
-    end = int(end_raw)
-    if start > end:
-        start, end = end, start
-    return [select_index(candidates, index) for index in range(start, end + 1)]
-
-
-def unique_plugins(packages: Iterable[PluginPackage]) -> list[PluginPackage]:
-    seen: set[str] = set()
-    result: list[PluginPackage] = []
-    for package in packages:
-        if package.plugin_id in seen:
-            continue
-        seen.add(package.plugin_id)
-        result.append(package)
-    return result
-
-
-def print_plugin_catalog(packages: Sequence[PluginPackage]) -> None:
-    print("Discovered plugins:")
-    for index, package in enumerate(packages, start=1):
-        carriers = ",".join(package.carriers) or "manifest_only"
-        crate_names = ",".join(crate.name for crate in package.crates) or "no matched crate"
-        print(f"  {index:2d}) {package.plugin_id:32s} [{carriers}] {crate_names}")
 
 
 def print_plan(config: BuildConfig) -> None:
@@ -993,111 +665,11 @@ def build(config: BuildConfig) -> None:
         build_plugins(config)
 
 
-def build_hub(config: BuildConfig) -> None:
-    if config.mode == "profiling":
-        raise SystemExit("--mode profiling is not supported for the hub/Tauri target.")
-    target_dir = config.targets_root / "hub"
-    run_tauri_build(config, target_dir)
-    stage_hub_tauri_outputs(config, target_dir)
-
-
-def tauri_cli_path(config: BuildConfig) -> Path:
-    cli_path = (
-        config.repo_root
-        / "zircon_hub"
-        / "node_modules"
-        / "@tauri-apps"
-        / "cli"
-        / "tauri.js"
-    )
-    if not cli_path.exists():
-        raise SystemExit(
-            "Tauri CLI is missing. Run npm install in zircon_hub before "
-            f"building the Hub bundle: {cli_path}"
-        )
-    return cli_path
-
-
-def run_tauri_build(config: BuildConfig, target_dir: Path) -> None:
-    command = [
-        "node",
-        str(tauri_cli_path(config)),
-        "build",
-        "--runner",
-        config.cargo,
-        "--bundles",
-        HUB_TAURI_BUNDLE_TARGET,
-        "--ci",
-        "--no-sign",
-    ]
-    if config.mode == "debug":
-        command.append("--debug")
-
-    runner_args: list[str] = []
-    if config.locked:
-        runner_args.append("--locked")
-    if config.jobs:
-        runner_args.extend(["--jobs", config.jobs])
-    if runner_args:
-        command.append("--")
-        command.extend(runner_args)
-
-    env = os.environ.copy()
-    env["CARGO_TARGET_DIR"] = str(target_dir)
-    if config.dry_run:
-        print("DRY-RUN", f"CARGO_TARGET_DIR={target_dir}", quote_command(command))
-        return
-    print(f"CARGO_TARGET_DIR={target_dir} {quote_command(command)}")
-    subprocess.run(command, cwd=config.repo_root / "zircon_hub", check=True, env=env)
-
-
-def stage_hub_tauri_outputs(config: BuildConfig, target_dir: Path) -> None:
-    bundle_root = target_dir / config.profile_dir / "bundle" / HUB_TAURI_BUNDLE_TARGET
-    installers_dir = config.engine_root / HUB_INSTALLERS_DIR_NAME
-    if config.dry_run:
-        print(
-            "DRY-RUN copy "
-            f"{target_dir / config.profile_dir / platform_executable_name('zircon_hub')} "
-            f"-> {config.engine_root / platform_executable_name('zircon_hub')}"
-        )
-        print(f"DRY-RUN reset {installers_dir}")
-        print(f"DRY-RUN copytree {bundle_root} -> {installers_dir}")
-        return
-
-    copy_artifact(config, target_dir, platform_executable_name("zircon_hub"))
-    stage_hub_tauri_installers(bundle_root, installers_dir, config)
-
-
-def stage_hub_tauri_installers(
-    bundle_root: Path, installers_dir: Path, config: BuildConfig
-) -> None:
-    if not bundle_root.exists() or not bundle_root.is_dir():
-        raise SystemExit(f"Tauri bundle output is missing: {bundle_root}")
-
-    if installers_dir.exists():
-        shutil.rmtree(installers_dir)
-    installers_dir.mkdir(parents=True, exist_ok=True)
-
-    copied = 0
-    for source in sorted(bundle_root.rglob("*")):
-        relative = source.relative_to(bundle_root)
-        destination = installers_dir / relative
-        if source.is_dir():
-            destination.mkdir(parents=True, exist_ok=True)
-            continue
-        if not source.is_file():
-            continue
-        copy_file(source, destination, config)
-        copied += 1
-
-    if copied == 0:
-        raise SystemExit(f"Tauri bundle output has no files: {bundle_root}")
-
-
 def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview: bool) -> None:
     runtime_root = config.targets_root / "runtime"
     lib_target_dir = runtime_root / "lib"
     bin_target_dir = runtime_root / "bin"
+    preview_feature_arg = config.runtime_preview_feature_arg
     run_cargo(
         config,
         [
@@ -1123,7 +695,7 @@ def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview
                 "zircon_runtime",
                 "--no-default-features",
                 "--features",
-                runtime_feature_arg,
+                preview_feature_arg,
                 "--target-dir",
                 str(bin_target_dir),
             ],
@@ -1313,115 +885,6 @@ def copy_sidecars(source: Path, destination_dir: Path, config: BuildConfig) -> N
                 print(f"Copied {sidecar} -> {destination}")
         else:
             copy_file(sidecar, destination, config)
-
-
-def stage_engine_assets(config: BuildConfig) -> None:
-    destination_root = config.engine_root / "assets"
-    if config.dry_run:
-        print(f"DRY-RUN reset {destination_root}")
-    else:
-        if destination_root.exists():
-            shutil.rmtree(destination_root)
-        destination_root.mkdir(parents=True, exist_ok=True)
-
-    for relative_root in ENGINE_ASSET_ROOTS:
-        source_root = config.repo_root / relative_root
-        if not source_root.exists() or not source_root.is_dir():
-            raise SystemExit(f"Engine asset root is missing: {source_root}")
-        print(f"Staging assets {source_root} -> {destination_root}")
-        skipped = copy_tree_contents(source_root, destination_root, config)
-        if skipped:
-            print(f"Skipped {skipped} staged asset(s)")
-    stage_ui_compiled_artifacts(config, destination_root)
-
-
-def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildConfig) -> int:
-    skipped = 0
-    for source in sorted(source_root.rglob("*")):
-        relative = source.relative_to(source_root)
-        destination = destination_root / relative
-        if source.is_dir():
-            if config.dry_run:
-                print(f"DRY-RUN mkdir {destination}")
-            else:
-                destination.mkdir(parents=True, exist_ok=True)
-            continue
-        if not source.is_file():
-            continue
-        validate_staged_engine_asset_suffix(relative, source)
-        copy_asset_file(source, destination, config)
-    return skipped
-
-
-def stage_ui_compiled_artifacts(config: BuildConfig, destination_root: Path) -> None:
-    source_root = ui_compiled_artifact_cache_root(config)
-    destination = destination_root / UI_COMPILED_ARTIFACT_STAGE_ROOT
-    if not source_root.exists():
-        if config.dry_run:
-            print(f"DRY-RUN no UI compiled artifact cache found at {source_root}")
-        return
-    if not source_root.is_dir():
-        raise SystemExit(f"UI compiled artifact cache root is not a directory: {source_root}")
-    print(f"Staging UI compiled artifacts {source_root} -> {destination}")
-    copied = 0
-    skipped = 0
-    for source in sorted(source_root.rglob("*")):
-        if not source.is_file():
-            continue
-        if source.suffix not in UI_COMPILED_ARTIFACT_SUFFIXES:
-            skipped += 1
-            if config.dry_run:
-                print(f"DRY-RUN skip non-compiled UI cache payload {source}")
-            continue
-        relative = source.relative_to(source_root)
-        copy_asset_file(source, destination / relative, config)
-        copied += 1
-    if copied:
-        print(f"Staged {copied} UI compiled artifact cache file(s)")
-    if skipped:
-        print(f"Skipped {skipped} non-compiled UI cache file(s)")
-
-
-def ui_compiled_artifact_cache_root(config: BuildConfig) -> Path:
-    override = os.environ.get(UI_COMPILED_ARTIFACT_CACHE_ENV)
-    if override:
-        return Path(override).expanduser()
-    return config.repo_root / UI_COMPILED_ARTIFACT_CACHE_ROOT
-
-
-def validate_staged_engine_asset_suffix(relative: Path, source: Path) -> None:
-    normalized = relative.as_posix()
-    if normalized.startswith("ui/") and normalized.endswith(".ui.toml"):
-        raise SystemExit(
-            "Legacy UI document suffix is not stageable after .zui cutover: "
-            f"{source}. Rename the asset to .zui."
-        )
-
-
-def copy_asset_file(source: Path, destination: Path, config: BuildConfig) -> None:
-    if destination.exists():
-        if destination.is_file() and filecmp.cmp(source, destination, shallow=False):
-            return
-        raise SystemExit(
-            "Engine asset staging collision: "
-            f"{source} cannot overwrite existing {destination} with different content."
-        )
-    copy_file(source, destination, config)
-
-
-def copy_resource_dirs(source_root: Path, package_out: Path, config: BuildConfig) -> None:
-    for name in ("assets", "asset", "resources", "resource"):
-        source = source_root / name
-        if not source.exists() or not source.is_dir():
-            continue
-        destination = package_out / name
-        if config.dry_run:
-            print(f"DRY-RUN copytree {source} -> {destination}")
-            continue
-        if destination.exists():
-            shutil.rmtree(destination)
-        shutil.copytree(source, destination)
-        print(f"Copied {source} -> {destination}")
 
 
 def write_native_plugin_load_manifest(

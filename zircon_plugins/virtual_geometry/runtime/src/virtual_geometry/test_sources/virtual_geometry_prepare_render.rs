@@ -3876,6 +3876,9 @@ fn write_material_with_base_color_and_alpha_mode(
     let material = MaterialAsset {
         name: Some("VirtualGeometryTest".to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: Some(asset_reference(texture_uri)),
         normal_texture: None,

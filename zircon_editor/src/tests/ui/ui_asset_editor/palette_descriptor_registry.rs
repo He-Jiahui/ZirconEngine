@@ -59,7 +59,7 @@ fn ui_asset_editor_palette_preserves_local_and_imported_reference_sources() {
     let document = layout_document_with_local_component();
     let mut imports = BTreeMap::new();
     let _ = imports.insert(
-        "res://widgets/inspector.ui.toml#InspectorPanel".to_string(),
+        "res://widgets/inspector.zui#InspectorPanel".to_string(),
         imported_widget_document(),
     );
 
@@ -76,7 +76,7 @@ fn ui_asset_editor_palette_preserves_local_and_imported_reference_sources() {
             && matches!(
                 &entry.kind,
                 UiAssetPaletteEntryKind::Reference { component_ref }
-                    if component_ref == "res://widgets/inspector.ui.toml#InspectorPanel"
+                    if component_ref == "res://widgets/inspector.zui#InspectorPanel"
             )
     }));
 }

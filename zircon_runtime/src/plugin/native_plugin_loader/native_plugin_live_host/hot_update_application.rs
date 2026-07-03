@@ -1,13 +1,53 @@
 use std::path::Path;
 
+use crate::asset::pack::ZrPackDeltaInstaller;
 use crate::plugin::native::{NativePluginCandidate, NativePluginLoadReport};
 use crate::plugin::PluginModuleKind;
 
 use super::diagnostics::sorted_unique_diagnostics;
-use super::reports::NativePluginRuntimeHotUpdateReport;
+use super::reports::{
+    NativePluginRuntimeDeltaHotUpdateReport, NativePluginRuntimeDeltaHotUpdateRequest,
+    NativePluginRuntimeHotUpdateReport,
+};
 use super::NativePluginLiveHost;
 
 impl NativePluginLiveHost {
+    pub fn hot_reload_runtime_plugins_after_delta_pack_install(
+        &self,
+        request: NativePluginRuntimeDeltaHotUpdateRequest,
+    ) -> Result<NativePluginRuntimeDeltaHotUpdateReport, String> {
+        let pack_install = ZrPackDeltaInstaller::rebuild_to_staging(
+            &request.base_pack,
+            &request.delta_pack,
+            &request.staged_pack,
+        )
+        .map_err(|error| format!("zrpack delta staging failed before hot update: {error}"))?;
+        let pack_promotion = ZrPackDeltaInstaller::promote_staged_pack(
+            &request.staged_pack,
+            &request.installed_pack,
+            request.backup_pack.as_ref(),
+        )
+        .map_err(|error| format!("zrpack delta promotion failed before hot update: {error}"))?;
+        let pack_install_receipt = match request.receipt_path.as_ref() {
+            Some(path) => Some(
+                ZrPackDeltaInstaller::write_install_receipt(path, &pack_install, &pack_promotion)
+                    .map_err(|error| {
+                    format!("zrpack delta receipt write failed before hot update: {error}")
+                })?,
+            ),
+            None => None,
+        };
+        let plugin_hot_update =
+            self.hot_reload_runtime_plugins_from_export_root(&request.export_root)?;
+
+        Ok(NativePluginRuntimeDeltaHotUpdateReport {
+            pack_install,
+            pack_promotion,
+            pack_install_receipt,
+            plugin_hot_update,
+        })
+    }
+
     pub fn hot_reload_runtime_plugins_from_export_root(
         &self,
         export_root: impl AsRef<Path>,

@@ -9,9 +9,12 @@ related_code:
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs
+  - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/mesh/conversion_import.rs
   - zircon_runtime/src/asset/tests/assets/gltf_scene_fixtures.rs
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
   - zircon_runtime/src/asset/tests/assets/obj_importer.rs
@@ -24,12 +27,15 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
+  - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_meshlet_vertex_ordinal.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/model/model_asset.rs
   - zircon_runtime/src/asset/assets/model/primitive.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
@@ -48,6 +54,13 @@ plan_sources:
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 tests:
+- rustfmt --edition 2021 --check on model primitive VG ordinal encoding, mesh conversion, importer tests, VG WGSL include, shader-source guard, and runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired (2026-06-29 VirtualGeometry meshlet vertex ordinal: static pass; Cargo deferred)
+- Direct generated-binary focused runs on VG ordinal model/mesh/importer/shader tests (2026-07-02 VirtualGeometry meshlet vertex ordinal direct-binary asset/shader pass; status: `render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred`; ProjectAssetManager expected fixture source corrected, Cargo rerun deferred)
+- ProjectAssetManager VG fixture source guard and stale-binary audit (2026-07-02 status: `render_plan08_virtual_geometry_project_asset_manager_fixture_source_guarded_cargo_rerun_deferred`; `asset_manager_imports_model_toml_with_virtual_geometry_payload` expected fixture uses `assign_virtual_geometry_vertex_ordinals()`, stale `05:27:25 +08:00` binary failed and is not counted)
+- ProjectAssetManager VG fixture Cargo-wrapper rerun (2026-07-02 status: `render_plan08_virtual_geometry_project_asset_manager_fixture_cargo_wrapper_passed_renderdoc_deferred`; `asset_manager_imports_model_toml_with_virtual_geometry_payload` passed direct latest binary and fresh no-default Cargo-wrapper 1/1)
+  - zircon_runtime/src/asset/tests/assets/model.rs::virtual_geometry_vertex_ordinals_pack_into_joint_index_slots
+  - zircon_runtime/src/asset/tests/assets/model.rs::virtual_geometry_vertex_ordinals_do_not_rewrite_non_vg_primitives
+  - zircon_runtime/src/asset/tests/pipeline/manager/model_import.rs::asset_manager_imports_model_toml_with_virtual_geometry_payload
   - zircon_runtime/src/asset/tests/assets/model.rs::model_asset_toml_roundtrip_preserves_virtual_geometry_payload
   - zircon_runtime/src/asset/tests/assets/model.rs::model_asset_overview_reports_root_and_primitive_mesh_summary
   - zircon_runtime/src/asset/tests/assets/model.rs::model_asset_overview_handles_empty_model_roots
@@ -102,6 +115,8 @@ The asset gap plan requires this legacy root to coexist with first-class `MeshAs
 ## Overview DTOs
 
 `ModelPrimitiveAsset` now has an optional `mesh: AssetReference` field. Importers populate it with the labeled `MeshAsset` subasset that mirrors the legacy primitive payload. The field is optional and skipped during serialization when absent, so old model TOML files continue to load while newly imported model roots can expose their generated mesh locators.
+
+When a primitive carries `virtual_geometry`, `ModelPrimitiveAsset::assign_virtual_geometry_vertex_ordinals()` standardizes the render-time vertex ordinal used by `zr_geometry_virtual_geometry.wgsl`. The ordinal is packed into `MeshVertex.joint_indices[0]` and `[1]` as a 16+16 bit value, and `decode_virtual_geometry_vertex_ordinal(...)` mirrors the shader-side unpack for tests and import guards. Non-VG primitives keep authored joint channels unchanged; the VG custom geometry source currently treats those first two joint slots as its explicit vertex ordinal channel rather than as skinning data. ProjectAssetManager `.model.toml` import tests now normalize their expected VG primitive through the same helper before comparing against the loaded model, so root model payload assertions match the shared importer/MeshAsset conversion contract. The Runtime 15 guard also records that the stale `zircon_runtime-770562bad16f99eb.exe` binary from `2026-07-02 05:27:25 +08:00` still fails `asset_manager_imports_model_toml_with_virtual_geometry_payload` with the old expected payload; that audit is not counted as a post-fix pass or regression. Follow-up status `render_plan08_virtual_geometry_project_asset_manager_fixture_cargo_wrapper_passed_renderdoc_deferred` proves the rebuilt current-source fixture through direct latest-binary and fresh no-default Cargo-wrapper runs.
 
 `ModelPrimitiveOverview` is derived from `ModelPrimitiveAsset::render_mesh_descriptor()` and records the primitive index, optional mesh subasset reference, topology, bounds, render mesh kind, 2D/3D suitability, vertex count, index count, rendered primitive count, and whether the primitive carries Virtual Geometry data.
 

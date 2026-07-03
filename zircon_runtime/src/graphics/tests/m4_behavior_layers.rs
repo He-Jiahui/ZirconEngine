@@ -13,7 +13,7 @@ use crate::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
     RenderMeshSnapshot, RenderOverlayExtract, RenderPipelineHandle, RenderQualityProfile,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
-    RenderViewportHandle, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderViewportHandle, RenderWorldSnapshotHandle, ShaderAssetKind, ViewportCameraSnapshot,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{
@@ -260,6 +260,9 @@ impl RenderFixture {
                 MaterialAsset {
                     name: Some("SampleOutputTarget".to_string()),
                     shader: asset_reference("res://shaders/sample_texture.wgsl"),
+                    parent: None,
+                    options: Default::default(),
+                    queue: None,
                     base_color: [1.0, 1.0, 1.0, 1.0],
                     base_color_texture: Some(asset_reference(base_color_texture_uri)),
                     normal_texture: None,
@@ -491,9 +494,9 @@ struct MaterialPropertyUniform {{
 }};
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
 
 struct VertexInput {{
     @location(0) position: vec3<f32>,
@@ -533,6 +536,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
 fn sample_texture_shader(uri: AssetUri) -> ShaderAsset {
     ShaderAsset {
         uri,
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: sample_texture_wgsl_source(),
         wgsl_source: String::new(),
@@ -543,7 +547,16 @@ fn sample_texture_shader(uri: AssetUri) -> ShaderAsset {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
@@ -570,9 +583,9 @@ struct MaterialPropertyUniform {
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -649,6 +662,9 @@ fn write_material_with_base_color_and_texture(
     let material = MaterialAsset {
         name: Some("FlatColor".to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: Some(asset_reference(base_color_texture)),
         normal_texture: None,

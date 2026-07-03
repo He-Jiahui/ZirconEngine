@@ -216,6 +216,8 @@ pub struct RenderStats {
     pub last_mesh_alpha_mask_shadow_caster_draw_count: usize,
     pub last_mesh_prepared_geometry_draw_count: usize,
     pub last_mesh_dynamic_geometry_draw_count: usize,
+    pub last_mesh_gpu_morphed_source_draw_count: usize,
+    pub last_mesh_gpu_skinned_morphed_source_draw_count: usize,
     pub last_mesh_skinned_draw_count: usize,
     pub last_mesh_skinned_palette_upload_count: usize,
     pub last_mesh_skinned_previous_palette_upload_count: usize,

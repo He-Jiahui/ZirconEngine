@@ -1,0 +1,28 @@
+Runtime Text Editor Retained Framebuffer Crop validation - 2026-07-04
+
+Slice status:
+- runtime_text_editor_retained_framebuffer_crop_regression_rustfmt_static_visual_cargo_deferred
+
+Changed source:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
+
+Behavior locked:
+- Added retained_text_draws_editor_crop_labels_with_runtime_ellipsis_pixels.
+- The regression draws the user-crop labels "editor base.zui" and "folder-open.svg" through draw_text_with_size_and_style into a real HostRgbaFrame.
+- It asserts retained-host text drawing emits visible non-background pixels for those editor labels.
+- It records the narrow "folder-open.svg" label through HostRgbaFrame::recording_only and asserts the recorded text is not the source string and contains U+2026, proving runtime ellipsis projection reaches retained-host recording.
+
+Validation commands:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs => passed.
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_editor_retained_framebuffer_crop_validation_20260704.png
+- SHA256: 96A4254E602DC5CCA5CAEA51190BFB9EE6B65DBA35B2026B1FF050CF4D34597D
+- The proof image is not a live window capture. It is a framebuffer-crop validation artifact using the same labels and dimensions as the Rust HostRgbaFrame regression.
+
+Cargo status:
+- Focused Cargo was deferred because external cargo/rustc lanes were active during this slice.
+- Observed active processes included cargo PIDs 9184, 17856, 34772, 42548, 45068, 48900 and rustc PIDs 11636, 38508, 46972.
+
+Open:
+- Live editor-window typography QA still requires a running editor window or an available focused Cargo lane.

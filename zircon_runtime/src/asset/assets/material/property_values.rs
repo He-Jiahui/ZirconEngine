@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::asset::{MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset};
-use crate::core::framework::render::RenderMaterialPropertyValue;
+use crate::core::framework::render::{MaterialPropertyKind, RenderMaterialPropertyValue};
 
 pub fn shader_property_values_for_shader(
     material: &MaterialAsset,
@@ -26,36 +26,30 @@ fn render_property_value(
     property: &ShaderMaterialPropertyAsset,
     value: &toml::Value,
 ) -> Option<RenderMaterialPropertyValue> {
-    match property.kind.trim().to_ascii_lowercase().as_str() {
-        "bool" | "boolean" => value
+    match property.kind {
+        MaterialPropertyKind::Bool => value
             .as_bool()
             .map(|value| RenderMaterialPropertyValue::Bool { value }),
-        "float" | "f32" | "number" => {
+        MaterialPropertyKind::Float => {
             toml_number_as_f32(value).map(|value| RenderMaterialPropertyValue::Float { value })
         }
-        "int" | "i32" | "integer" => value
+        MaterialPropertyKind::Int => value
             .as_integer()
             .and_then(|value| i32::try_from(value).ok())
             .map(|value| RenderMaterialPropertyValue::Int { value }),
-        "u32" | "uint" => value
+        MaterialPropertyKind::UInt => value
             .as_integer()
             .and_then(|value| u32::try_from(value).ok())
             .map(|value| RenderMaterialPropertyValue::UInt { value }),
-        "string" => value
-            .as_str()
-            .map(|value| RenderMaterialPropertyValue::String {
-                value: value.to_string(),
-            }),
-        "vec2" => {
+        MaterialPropertyKind::Vec2 => {
             numeric_array::<2>(value).map(|value| RenderMaterialPropertyValue::Vec2 { value })
         }
-        "vec3" => {
+        MaterialPropertyKind::Vec3 => {
             numeric_array::<3>(value).map(|value| RenderMaterialPropertyValue::Vec3 { value })
         }
-        "color" | "color4" | "vec4" => {
+        MaterialPropertyKind::Color | MaterialPropertyKind::Vec4 => {
             numeric_array::<4>(value).map(|value| RenderMaterialPropertyValue::Vec4 { value })
         }
-        _ => None,
     }
 }
 

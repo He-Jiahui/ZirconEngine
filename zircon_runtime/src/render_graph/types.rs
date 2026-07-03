@@ -1,3 +1,4 @@
+use crate::core::framework::render::{ComputeDispatchPlan, ShaderDispatchExtent};
 use crate::rhi::{BufferDesc, TextureDesc};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -353,6 +354,24 @@ impl RenderGraphComputeWorkload {
             workgroup_size,
             RenderGraphComputeDispatchExtent::Fixed(dispatch_groups),
         )
+    }
+
+    pub fn from_shader_dispatch(dispatch: &ComputeDispatchPlan) -> Self {
+        Self::new(
+            dispatch.pipeline_label.clone(),
+            dispatch.workgroup_size,
+            render_graph_dispatch_extent(dispatch.dispatch_extent),
+        )
+    }
+}
+
+fn render_graph_dispatch_extent(extent: ShaderDispatchExtent) -> RenderGraphComputeDispatchExtent {
+    match extent {
+        ShaderDispatchExtent::Viewport => RenderGraphComputeDispatchExtent::Viewport,
+        ShaderDispatchExtent::ClusterGrid => RenderGraphComputeDispatchExtent::ClusterGrid,
+        ShaderDispatchExtent::HzbFurthest => RenderGraphComputeDispatchExtent::HzbFurthest,
+        ShaderDispatchExtent::IndirectArgs => RenderGraphComputeDispatchExtent::IndirectArgs,
+        ShaderDispatchExtent::Fixed(groups) => RenderGraphComputeDispatchExtent::Fixed(groups),
     }
 }
 

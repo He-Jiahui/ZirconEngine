@@ -15,7 +15,7 @@ use crate::core::framework::render::{
     AntiAliasSettings, GeometryExtract, GeometryPhaseInput, ProjectionMode, RenderFrameExtract,
     RenderFramework, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
     RenderMeshStaticState, RenderQualityProfile, RenderSkeletalPoseExtract, RenderStats,
-    RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, ShaderFeatureBits,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, UVec2, Vec4};
@@ -23,12 +23,17 @@ use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind,
     ResourceRecord,
 };
+use crate::graphics::shader::standard_material_surface_source_for_features;
 use crate::graphics::WgpuRenderFramework;
 
 use super::render_product_submit::{
     material_with_import_note, snapshot_with_projection_for_mesh_cache_tests,
 };
 
+mod morph;
+mod project_plugin_registry_material_passes_staged_cache;
+mod project_plugin_registry_staged_cache;
+mod shading_model_parity;
 mod staged_prewarm;
 mod virtual_geometry;
 
@@ -506,6 +511,18 @@ fn register_material_asset_revision(
             material,
         )
         .expect("material insert");
+}
+
+fn registry_staged_cache_runtime_surface_source() -> String {
+    let material_surface = standard_material_surface_source_for_features(
+        ShaderFeatureBits::new(ShaderFeatureBits::RECEIVE_SHADOWS),
+        0.0,
+    );
+    material_surface.source.replacen(
+        &format!("fn {}(", material_surface.entry_point),
+        "fn zr_material_surface(",
+        1,
+    )
 }
 
 fn static_cache_taa_extract(material_id: ResourceId, world: u64) -> RenderFrameExtract {

@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .native_build import read_toml
-from .plugin_build import feature_provider_package_id
+from .native_build_workspace import read_toml
+from .plugin_package_identity import feature_provider_package_id
 from .plugin_validate_common import plugin_validate_manifest_target_id
 
 

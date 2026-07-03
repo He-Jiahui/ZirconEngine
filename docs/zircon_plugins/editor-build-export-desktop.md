@@ -278,9 +278,9 @@ LibraryEmbed, and NativeDynamic report templates, menu-backed operations for
 plan generation and each desktop packaging mode, an asset creation template and
 asset editor for desktop export profiles, and a component drawer whose bindings
 point at the export operations. The registered panel/report documents are now
-backed by plugin-private `.v2.ui.toml` view templates, while the export profile
-drawer is a plugin-private `.zui` component template and the default profile
-document is a TOML template under the plugin `templates/` directory.
+backed by plugin-private `.zui` view templates, while the export profile drawer
+is a plugin-private `.zui` component template and the default profile document
+is a TOML template under the plugin `templates/` directory.
 
 `export_wizard.rs` is the M6 data contract for the plugin panel itself. It references
 `docs/ui-and-layout/ai-workbench-style/ai-build-export-layout.png`, declares the
@@ -288,13 +288,13 @@ Profiles/Pipeline/Report regions, lists the full `Validate -> SourceTemplate ->
 NativeDynamic -> CompileHost -> CookAssets -> Pack -> PlatformBundle -> Report`
 stage flow, standardizes every stage report path as `report.json`, exposes
 Pending/Running/Passed/Fatal progress states, and maps SourceTemplate,
-LibraryEmbed, and NativeDynamic report views to the registered `.v2.ui.toml`
-templates. Each report view also declares the stable ReportBody summary entries
+LibraryEmbed, and NativeDynamic report views to registered `.zui` templates.
+Each report view also declares the stable ReportBody summary entries
 it expects: SourceTemplate and LibraryEmbed consume `report.pipeline_report` plus
 `report.export_plan.*`, while NativeDynamic additionally consumes
 `report.native_plugins_payload.*` bundle/count/hash/package-id rows. The report
 view descriptors also carry the registered template document URI and list the
-template control ids that must exist in that `.v2.ui.toml` document, including
+template control ids that must exist in that `.zui` document, including
 root, summary, primary field, list/space, and diagnostics anchors for all three
 report types. The plugin crate re-exports the host-owned wizard contract so external
 consumers can continue to use the plugin package as the editor extension entry
@@ -533,12 +533,13 @@ policy stay in
 deterministic and independent of editor plugin state.
 
 `EditorExtensionRegistry` now distinguishes UI template documents from component
-drawer documents. UI templates may point at `.zui` components or `.v2.ui.toml`
-view templates, which matches the retained host asset loader split. Component
-drawers remain `.zui`-only because the drawer surface mounts one component asset
-inside an inspector host. The export plugin uses that split directly: panel and
-report surfaces are view templates, and `export_profile_drawer.zui` is the only
-component drawer document.
+drawer documents. UI templates now point at `.zui` view or component templates,
+and stale `.ui.toml` and `.v2.ui.toml` documents are rejected before retained
+projection. Component drawers remain `.zui`-only because the drawer surface mounts
+one component asset inside an inspector host. The export plugin uses that split
+directly: panel and report surfaces are `.zui` view templates, and
+`export_profile_drawer.zui` is the only component drawer document. Current
+production assets state that UI templates use `.zui` documents.
 
 ## Validation
 

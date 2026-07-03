@@ -1,0 +1,19 @@
+Zircon runtime text render_submission folder-backed owner split validation
+Date: 2026-07-04
+Scope: zircon_runtime::graphics::text::atlas::render_submission
+
+Before:
+- render_submission.rs owned the submission plan type, plan construction, report type, report helpers, upload counters, and failure breakdown aggregation.
+- Root file line count before split: 183.
+
+After:
+- render_submission.rs is a navigational boundary with child modules and crate-private re-exports only.
+- render_submission/plan.rs owns GlyphAtlasBitmapRenderSubmissionPlan, upload/failed/rebuilt accessors, and bitmap run -> draw batch -> GPU draw plan assembly.
+- render_submission/report.rs owns GlyphAtlasBitmapRenderSubmissionReport and all report aggregation logic, including upload mode counters, typed failures, retry counts, and placeholder counts.
+- render_submission/tests.rs remains the private behavior regression owner.
+
+Acceptance notes:
+- The parent API re-exported through atlas/mod.rs is preserved.
+- The split directly addresses engine-code-structure-convention mixed-owner risk before real renderer cutover grows this owner further.
+- This is a structure slice; it does not claim real wgpu upload/draw, glyphon TextAtlas cutover, or live editor typography QA.
+- Preview artifact is stored outside Cargo target directories.

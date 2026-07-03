@@ -84,10 +84,10 @@ fn runtime_15_scene_components_light_postprocess_are_child_owners() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
     let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
     );
     let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
     );
 
     for (label, source) in [

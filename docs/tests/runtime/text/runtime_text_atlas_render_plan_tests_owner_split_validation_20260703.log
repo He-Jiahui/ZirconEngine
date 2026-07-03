@@ -1,0 +1,10 @@
+slice=runtime_text_atlas_render_plan_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+render_plan.rs lines=186 inline_tests=0 test_hook=1
+render_plan/tests.rs lines=144 tests=5
+rustfmt_check=passed
+git_diff_check=passed
+target_same_name_scan_count=0
+cargo_deferred_active_lanes=cargo:16032,cargo:38568,cargo:45120,cargo:47672,cargo:48516,cargo:48888,rustc:240,rustc:10288,rustc:35764
+behavior_change=none
+proof_dir=docs/tests/runtime/text

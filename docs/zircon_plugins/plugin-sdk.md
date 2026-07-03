@@ -5,6 +5,7 @@ related_code:
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_runtime/src/core/framework/physics/query_interface.rs
   - zircon_plugins/physics/runtime/src/plugin.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
@@ -82,6 +83,8 @@ related_code:
   - zircon_runtime_interface/src/status.rs
   - zircon_plugins/Cargo.toml
   - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/manifest_schema_modules.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
 implementation_files:
   - zircon_plugins/plugin_sdk/Cargo.toml
@@ -151,6 +154,8 @@ implementation_files:
   - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
   - zircon_plugins/Cargo.toml
   - tools/plugin_structure_audits/manifest_schema.py
+  - tools/plugin_structure_audits/manifest_schema_modules.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
@@ -242,6 +247,8 @@ The builder then accepts category, description, maturity, target modes, capabili
 
 `PluginModuleBuilder` standardizes module naming for `runtime`, `editor`, `native`, and `vm` modules. The editor module builder defaults to `RuntimeTargetMode::EditorHost`, while other module kinds stay explicit so future guard work can verify target-mode intent per plugin.
 
+Frameworks 02 M3 extends the same builder to the runtime kernel descriptor vocabulary. `PluginModuleBuilder` now forwards `with_description(...)`, `with_init_level(...)`, `with_module_dependency(...)`, and `with_module_dependencies(...)` into `PluginModuleManifest`, and the generated manifest row projects through `PluginModuleManifest::module_descriptor()` when native package/feature reports replay it into the runtime registry. `InitLevel` and `ModuleDependencySpec` are re-exported from the SDK prelude so plugin authors do not need to import the runtime crate internals to declare descriptor order.
+
 `PluginFeatureBundleBuilder` standardizes optional feature bundles. It declares feature dependencies, capabilities, runtime modules, editor modules, target modes, enabled-by-default status, and default packaging from one owner. The helper methods `with_runtime_capability_module(...)` and `with_editor_capability_module(...)` project the same feature capability into `PluginFeatureBundleManifest` and the generated `PluginModuleManifest`, so feature-level capability strings do not drift between manifest sections.
 
 The 2026-06-28 D1 capability single-source review/status sync records that M4/T1 and M4/T2 are now mirrored into the Runtime 15 review guard. `review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror` checks the 15 trait-backed first-party runtime roots, the `plugins_12_capability_single_source_conformance` catalog guard, `m4_runtime_capability_gate_status = runtime-capability-single-source-clean`, `capability_source_mismatches = 0`, `m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean`, and `sdk_builder_mirror_violations = 0`. Status anchor: `d1_capability_single_source_review_synced_static_passed_cargo_deferred`.
@@ -287,6 +294,8 @@ The `native` feature is intentionally lightweight:
 
 `RuntimePluginDeclaration` wraps `RuntimePluginDescriptorBuilder` and exposes the same chainable authoring knobs for category, enabled/required defaults, target modes, capabilities, system sets, system anchors, maturity, capability status, optional features, and default packaging.
 
+Frameworks 02 M3 also exposes descriptor ordering knobs here: `RuntimePluginDeclaration::with_init_level(...)` and `RuntimePluginDeclaration::with_module_dependency(...)` update the embedded `RuntimePluginDescriptor` module descriptor before both descriptor and package-manifest projection. The runtime export macro self-test covers that a declaration-generated package manifest preserves the init level and dependency row.
+
 The declaration can return:
 
 - `descriptor()` for runtime registration paths.
@@ -328,7 +337,7 @@ The 2026-06-28 D13 importer runtime export macro convergence extends the same he
 
 The `test` module adds `TestRuntime::builder()` for cross-plugin integration tests.
 
-The 2026-06-28 D11 animation/physics TestRuntime fixture migration moves the original animation/physics contract test onto this SDK fixture. `runtime_physics_animation_tick_contract/runtime_helpers.rs` now owns the `TestRuntime::builder()` setup with physics and animation plugins, while the test body uses `runtime.create_default_level()` and `runtime.tick_level_seconds(...)` instead of rebuilding CoreRuntime, Scene modules, fixed-step clocks, or world extension installation locally. Guard `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` and status `d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred` lock the migration.
+The 2026-06-28 D11 animation/physics TestRuntime fixture migration moves the original animation/physics contract test onto this SDK fixture. `runtime_physics_animation_tick_contract/runtime_helpers.rs` now owns the `TestRuntime::builder()` setup with physics and animation plugins, `runtime_physics_animation_tick_contract/target_resolution.rs` owns the target-id fallback contract tests, and the main test body uses `runtime.create_default_level()` and `runtime.tick_level_seconds(...)` instead of rebuilding CoreRuntime, Scene modules, fixed-step clocks, or world extension installation locally. Guard `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` and status `d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred` lock the migration.
 
 `TestRuntimeBuilder` defaults to the common runtime stack used by plugin tests:
 
@@ -356,6 +365,7 @@ Completed in this area:
 - D11 animation/physics TestRuntime fixture migration with `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` and `d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred`.
 - D10 animation/physics bridge call migration with `physics.query.v1`, `WeakBridge<dyn PhysicsQueryInterface>`, `review_d10_animation_physics_tests_use_sdk_bridge_call`, and `d10_animation_physics_bridge_call_static_passed_cargo_deferred`.
 - M3/T1 importer family and split importer registration entry cutover, with trait-backed reports and descriptor-derived selections.
+- Frameworks 02 M3 native/SDK module descriptor projection, with SDK module builders and runtime declarations exposing `InitLevel` / `ModuleDependencySpec`; status `frameworks_02_m3_native_sdk_module_descriptor_projection_rustfmt_python_app_check_passed_plugin_sdk_locked_blocked`.
 - M3/T2 runtime registration builder plus animation runtime representative migration.
 - M3/D12 `runtime_plugin_exports!` macro plus first-party trait-backed runtime helper rollout across ai, animation, hybrid_gi, navigation, net, particles, physics, prefab_tools, rendering, solari, terrain, texture, tilemap_2d, virtual_geometry, and zr_vm_language.
 - D12 runtime helper export macro review/status sync with `review_d12_runtime_helper_exports_use_sdk_macro` and `d12_runtime_export_macro_review_synced_static_passed_cargo_deferred`.

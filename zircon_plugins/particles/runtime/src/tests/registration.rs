@@ -1,6 +1,6 @@
 use zircon_runtime::graphics::RenderPassStage;
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
-use zircon_runtime::render_graph::QueueLane;
+use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeDispatchExtent};
 
 use crate::{
     render_feature_descriptor, runtime_plugin, PARTICLES_DYNAMIC_EVENT_NAMESPACE,
@@ -131,5 +131,28 @@ fn particles_plugin_registration_contributes_runtime_module_render_feature_and_c
         .iter()
         .all(|pass| pass.stage == RenderPassStage::Transparent3d));
     assert_eq!(descriptor.stage_passes[0].queue, QueueLane::AsyncCompute);
+    let async_workloads = descriptor.stage_passes[..3]
+        .iter()
+        .map(|pass| {
+            pass.compute_workload
+                .as_ref()
+                .expect("particle async compute pass should declare workload")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        async_workloads
+            .iter()
+            .map(|workload| workload.pipeline_label.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "zircon-particle-gpu-spawn-update",
+            "zircon-particle-gpu-compact-alive",
+            "zircon-particle-gpu-indirect-args",
+        ]
+    );
+    assert!(async_workloads.iter().all(|workload| {
+        workload.workgroup_size == [64, 1, 1]
+            && workload.dispatch_extent == RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
+    }));
     assert_eq!(descriptor.stage_passes[3].queue, QueueLane::Graphics);
 }

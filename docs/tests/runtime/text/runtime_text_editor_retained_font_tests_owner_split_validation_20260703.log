@@ -1,0 +1,32 @@
+Runtime text editor retained font tests owner split validation
+status: runtime_text_editor_retained_font_tests_owner_split_rustfmt_visual_cargo_deferred
+date: 2026-07-03
+font_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+tests_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
+font_lines: 321
+font_test_attrs: 0
+font_mod_tests_entries: 1
+tests_lines: 98
+tests_test_attrs: 5
+test_names:
+  - ui_face_keeps_proportional_widths_while_code_face_stays_mono
+  - font_request_for_face_uses_text_preferences_without_platform_paths
+  - runtime_font_family_is_resolved_from_font_preferences
+  - embedded_fallback_keeps_the_requested_runtime_family
+  - runtime_text_style_for_face_projects_the_same_font_request
+target_same_name_matches: 0
+target_match_paths:
+  - none
+cargo_validation: deferred; external cargo/rustc lanes active, so this slice is proven by rustfmt/static checks and visual proof only.
+active_cargo_rustc_processes:
+  - cargo 4584
+  - cargo 23172
+  - cargo 40068
+  - cargo 44380
+  - cargo 45716
+  - cargo 46156
+  - rustc 31560
+  - rustc 39280
+  - rustc 44748
+png_sha256: AC030034EB8EA779E479DF8E2970A2D444843A5F6D00B4FE28CB0600800F689B
+log_sha256_before_hash_line: 11A240060BDE9D7D31BCE9C86F073A7DB3EB0F56A3A221563240D3EF4B010346

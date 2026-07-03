@@ -264,6 +264,30 @@ class ZirconBuildShaderPrewarmCacheContractTests(unittest.TestCase):
                     report_path=report_path,
                 )
 
+    def test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            report_path = _write_report_with_source_provenance(
+                root,
+                written_source_label=" res://materials/source-a.wgsl ",
+                provenance_source_label=" res://materials/source-a.wgsl ",
+            )
+            shard = root / "shader_variants" / "v1" / _HASH_A[:2]
+            shard.mkdir(parents=True)
+            (shard / f"{_HASH_A}.wgsl.zst").write_bytes(b"compressed-wgsl")
+            _write_meta(shard / f"{_HASH_A}.meta", hash_value=_HASH_A)
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "invalid written cache variant.*source_label",
+            ):
+                validate_shader_prewarm_cache_artifact_contract(
+                    root / "shader_variants",
+                    report_path=report_path,
+                )
+
     def test_validate_cache_artifact_contract_rejects_non_blake3_hex_cache_hash(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

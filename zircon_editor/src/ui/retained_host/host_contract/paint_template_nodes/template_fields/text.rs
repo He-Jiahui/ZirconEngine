@@ -4,7 +4,7 @@ use super::super::style_selector::WorkbenchTextFieldStyle;
 use super::super::template_field_stepper::STEPPER_WIDTH;
 use super::super::template_node_labels::template_node_label;
 use super::search::{search_field_label_is_placeholder, search_field_text_left};
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_text(
@@ -21,11 +21,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     if label.trim().is_empty() {
         return;
     }
-    let line_height = METRICS.line_height(METRICS.font_body);
+    let metrics = current_host_metrics();
+    let line_height = metrics.line_height(metrics.font_body);
     let right_reserve = if stepper {
-        STEPPER_WIDTH + METRICS.input_pad[1]
+        STEPPER_WIDTH + metrics.input_pad[1]
     } else {
-        METRICS.input_pad[1]
+        metrics.input_pad[1]
     };
     let text_left = search_field_text_left(node);
     commands.push(HostPaintCommand::text(
@@ -39,7 +40,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         order,
         label,
         style.text,
-        METRICS.font_body,
+        metrics.font_body,
         line_height,
         UiTextRunPaintStyle::default(),
         opacity,

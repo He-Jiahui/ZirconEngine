@@ -1,0 +1,30 @@
+Runtime Text screen-space UI text tests owner split validation
+Date: 2026-07-03
+Status: runtime_15_screen_space_ui_text_tests_owner_split_static_passed_cargo_deferred
+Slice: Runtime 15 M4 screen-space UI text tests owner split
+
+Files:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs: 564 lines; moved private test matches in parent: 0; test mount count: 1
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs: 254 lines; #[test] count: 10
+- zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_tests.rs: 107 lines
+
+Checks already run in this turn:
+- rustfmt --edition 2021 --check text.rs text/tests.rs render_ui_text_tests.rs production_file_budget.rs M4 row/status/date maps: exit 0
+- git diff --check over touched Rust/docs/session files: exit 0 with LF/CRLF working-tree warnings only
+- trailing whitespace scan over text.rs, text/tests.rs, render_ui_text_tests.rs: 0 matches
+- docs/status anchor scan over Runtime 15, runtime index, Runtime Text, structure convention, review findings, graphics text, UI text, module-convention, and session note: anchors present
+
+Cargo state:
+- Existing cargo/rustc processes were active during validation; no new focused Cargo lane was started for this implementation slice.
+
+Visual proof:
+- Image: docs/tests/runtime/text/runtime_text_screen_space_ui_text_tests_owner_split_preview_20260703.png
+- Image SHA256: 9B7D8B949317704A7F6798D7C3A48803240EB6663878BF683223FC70FEFC0AB1
+Target same-name scans:
+- target same-name scan for runtime_text_screen_space_ui_text_tests_owner_split_preview_20260703.png: 0
+- target same-name scan for runtime_text_screen_space_ui_text_tests_owner_split_validation_20260703.log: 0
+- E:\cargo-targets same-name scan for runtime_text_screen_space_ui_text_tests_owner_split_preview_20260703.png: 0
+- E:\cargo-targets same-name scan for runtime_text_screen_space_ui_text_tests_owner_split_validation_20260703.log: 0
+- D:\cargo-targets same-name scan for runtime_text_screen_space_ui_text_tests_owner_split_preview_20260703.png: 0
+- D:\cargo-targets same-name scan for runtime_text_screen_space_ui_text_tests_owner_split_validation_20260703.log: 0
+

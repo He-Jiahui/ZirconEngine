@@ -1,5 +1,8 @@
 use super::super::support::*;
 use super::support::{control_bool, control_float, control_string, control_visibility};
+use crate::ui::retained_host::popup_anchor_metrics::{
+    clamp_popup_x_to_bounds, toolbar_popup_render_gap,
+};
 use zircon_runtime_interface::ui::tree::UiVisibility;
 
 #[test]
@@ -133,6 +136,24 @@ fn workbench_toolbar_window_menus_anchor_to_toolbar_controls_across_widths() {
     }
 }
 
+#[test]
+fn workbench_toolbar_window_menu_anchor_metrics_stay_shared() {
+    let source = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
+        "src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs",
+    ))
+    .expect("window menu state source should be readable");
+
+    assert!(source.contains("popup_anchor_metrics"));
+    assert!(
+        !source.contains("const TOOLBAR_POPUP_EDGE_MARGIN"),
+        "toolbar popup edge margin must stay in popup_anchor_metrics"
+    );
+    assert!(
+        !source.contains("const TOOLBAR_POPUP_RENDER_GAP"),
+        "toolbar popup render gap must stay in popup_anchor_metrics"
+    );
+}
+
 #[derive(Clone, Copy)]
 enum ToolbarMenuAlign {
     Start,
@@ -186,7 +207,7 @@ fn assert_toolbar_menu_anchor(
         &format!("{menu_id} popup_offset_y"),
         control_float(bridge, menu_id, "popup_offset_y")
             .unwrap_or_else(|| panic!("{menu_id} should store popup_offset_y")) as f32,
-        -4.0,
+        -toolbar_popup_render_gap(),
     );
     assert_eq!(
         control_string(bridge, menu_id, "placement").as_deref(),
@@ -195,14 +216,7 @@ fn assert_toolbar_menu_anchor(
 }
 
 fn clamped_toolbar_menu_x(authored_x: f32, menu_width: f32, root_width: f32) -> f32 {
-    const EDGE_MARGIN: f32 = 8.0;
-    let min_x = EDGE_MARGIN.min(root_width * 0.5);
-    let max_x = root_width - min_x - menu_width;
-    if max_x >= min_x {
-        authored_x.clamp(min_x, max_x)
-    } else {
-        0.0_f32.max(root_width - menu_width)
-    }
+    clamp_popup_x_to_bounds(authored_x, 0.0, root_width, menu_width)
 }
 
 fn assert_near(label: &str, actual: f32, expected: f32) {

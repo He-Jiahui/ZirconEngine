@@ -42,6 +42,7 @@ use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
 use crate::ui::host::EditorManager;
 use crate::ui::host::SharedEditorRuntimeClient;
+use crate::ui::preferences::editor_startup_appearance_preferences;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{
@@ -94,7 +95,10 @@ use super::welcome_recent_pointer::{
     WelcomeRecentPointerAction, WelcomeRecentPointerBridge, WelcomeRecentPointerLayout,
     WelcomeRecentPointerState,
 };
-use super::{FrameRect, UiHostWindow, WorkbenchContextMenuRequestData};
+use super::{
+    apply_host_metrics_from_tokens, apply_host_palette_from_tokens, apply_host_text_preferences,
+    project_host_text_preferences, FrameRect, UiHostWindow, WorkbenchContextMenuRequestData,
+};
 
 mod asset_content_pointer;
 mod asset_drag_payload;
@@ -173,6 +177,11 @@ pub fn run_editor_with_startup_request(
     runtime_client: SharedEditorRuntimeClient,
     startup_request: Option<EditorGuiStartupRequest>,
 ) -> Result<(), Box<dyn Error>> {
+    let appearance_preferences = editor_startup_appearance_preferences();
+    let design_tokens = appearance_preferences.design_tokens();
+    apply_host_metrics_from_tokens(design_tokens);
+    apply_host_palette_from_tokens(design_tokens);
+    apply_host_text_preferences(project_host_text_preferences(design_tokens));
     let ui = UiHostWindow::new()?;
     let host = Rc::new(RefCell::new(RetainedEditorHost::new(
         core,

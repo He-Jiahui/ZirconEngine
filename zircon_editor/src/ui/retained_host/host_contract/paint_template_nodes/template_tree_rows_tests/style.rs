@@ -18,15 +18,23 @@ fn tree_row_style_uses_shared_state_priority() {
     node.focused = true;
     node.pressed = true;
 
+    let selected_pressed = tree_row_style(&node);
+    assert_eq!(selected_pressed.state, UiPainterResolvedState::Pressed);
+    assert_eq!(selected_pressed.background, Some(PALETTE.surface_pressed));
+    assert_ne!(selected_pressed.background, Some(PALETTE.surface_selected));
+    assert_eq!(selected_pressed.border, Some(PALETTE.border));
+    assert_ne!(selected_pressed.border, Some(PALETTE.accent));
+    assert_eq!(selected_pressed.text, TREE_TEXT_SELECTED);
+
+    node.selected = false;
+    node.checked = false;
     let pressed = tree_row_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
     assert_eq!(pressed.background, Some(PALETTE.surface_pressed));
     assert_eq!(pressed.border, Some(PALETTE.focus_ring));
-    assert_eq!(pressed.text, TREE_TEXT_SELECTED);
+    assert_eq!(pressed.text, PALETTE.text_muted);
 
     node.pressed = false;
-    node.selected = false;
-    node.checked = false;
     let focused = tree_row_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
     assert_eq!(focused.background, Some(PALETTE.surface_hover));
@@ -41,7 +49,7 @@ fn tree_row_style_uses_shared_state_priority() {
 }
 
 #[test]
-fn tree_row_selected_state_uses_shared_surface_without_focus_border() {
+fn tree_row_selected_state_uses_muted_fill_with_neutral_outline() {
     let mut node = tree_node(
         "WorkbenchScenePlayerItem",
         "TreeRow",
@@ -56,6 +64,8 @@ fn tree_row_selected_state_uses_shared_surface_without_focus_border() {
     let selected = tree_row_style(&node);
 
     assert_eq!(selected.background, Some(PALETTE.surface_pressed));
-    assert_eq!(selected.border, None);
+    assert_ne!(selected.background, Some(PALETTE.surface_selected));
+    assert_eq!(selected.border, Some(PALETTE.border));
+    assert_ne!(selected.border, Some(PALETTE.accent));
     assert_eq!(selected.text, TREE_TEXT_SELECTED);
 }

@@ -1,0 +1,25 @@
+Runtime text SDF Auto direction mixed overlay validation
+Date: 2026-07-03 +08:00
+Slice: runtime_text_sdf_auto_direction_mixed_overlay_rustfmt_visual_cargo_deferred
+
+Changed behavior:
+- SDF mixed native overlay now resolves UiTextDirection::Auto through the shared UI text first-strong direction helper before overlay placement.
+- HorizontalTb + no-wrap + non-Justify Auto batches with first-strong RTL text can keep the SDF batch and overlay only failed spans.
+- UiTextDirection::Mixed remains unsupported in this fallback gate until full UAX#9 paragraph parity is closed.
+
+Primary code touched:
+- zircon_runtime/src/ui/text/layout_engine/direction.rs
+- zircon_runtime/src/ui/text/layout_engine.rs
+- zircon_runtime/src/ui/text/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+
+Regression added:
+- sdf_atlas_fallback_resolves_auto_direction_for_horizontal_rtl_overlay
+
+Lightweight validation:
+- rustfmt --edition 2021 --check on touched Rust files passed.
+- git diff --check on touched Rust files passed with LF-to-CRLF working-tree warnings only.
+- Focused Cargo was deferred because external cargo/rustc lanes were active during this slice.
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_sdf_auto_direction_overlay_preview_20260703.png

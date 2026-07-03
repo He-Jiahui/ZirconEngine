@@ -570,7 +570,7 @@ fn native_host_welcome_material_text_field_accepts_keyboard_input() {
             ("ProjectNameEdited".to_string(), "ZirconX".to_string()),
             ("ProjectNameEdited".to_string(), "Zircon".to_string())
         ],
-        "focused Material text fields should forward keyboard edits through the welcome .ui.toml binding route"
+        "focused Material text fields should forward keyboard edits through the welcome .zui binding route"
     );
 }
 
@@ -814,7 +814,7 @@ fn native_host_asset_template_search_field_routes_asset_change_callback() {
             "SearchEdited".to_string(),
             "cubeX".to_string()
         )],
-        "v2 asset search fields should keep their asset dispatch kind through retained projection and native text focus"
+        ".zui asset search fields should keep their asset dispatch kind through retained projection and native text focus"
     );
 }
 
@@ -963,7 +963,7 @@ fn native_host_asset_template_buttons_route_browser_change_callback() {
             "SetViewMode".to_string(),
             "thumbnail".to_string()
         )],
-        "v2 asset browser buttons should route static value patches through the generic asset callback"
+        ".zui asset browser buttons should route static value patches through the generic asset callback"
     );
 }
 
@@ -1022,7 +1022,7 @@ fn native_host_asset_browser_search_field_routes_browser_change_callback() {
             "SearchEdited".to_string(),
             "matX".to_string()
         )],
-        "v2 asset browser text fields should keep browser source through native focus edits"
+        ".zui asset browser text fields should keep browser source through native focus edits"
     );
 }
 
@@ -1618,7 +1618,7 @@ fn native_host_pointer_click_routes_projected_material_showcase_button() {
             "ButtonDemo".to_string(),
             "UiComponentShowcase/ButtonCommit".to_string()
         )],
-        "native host should route real .ui.toml Material component hits through showcase dispatch metadata"
+        "native host should route real .zui Material component hits through showcase dispatch metadata"
     );
 }
 

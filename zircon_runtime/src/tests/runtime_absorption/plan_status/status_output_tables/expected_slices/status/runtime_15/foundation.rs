@@ -9,6 +9,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_f12_dead_code_review_status_sync_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F12 dead-code runtime/editor boundary status guard" {
         Some("runtime_15_f12_dead_code_runtime_editor_boundary_status_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F12 production dead-code current-state wording cleanup" {
+        Some(
+            "runtime_15_f12_production_dead_code_current_state_wording_static_passed_cargo_deferred",
+        )
     } else if slice == "Runtime 15 F12 UI text edit-state dead-code suppression cleanup" {
         Some(
             "runtime_15_ui_text_edit_state_dead_code_suppression_cleanup_static_passed_cargo_deferred",
@@ -99,6 +103,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some(
             "runtime_15_graphics_facade_visibility_note_static_passed_cargo_blocked_graphics_drift",
         )
+    } else if slice == "Runtime 15 M1 graphics facade visibility review findings mirror" {
+        Some(
+            "runtime_15_graphics_facade_visibility_review_findings_mirror_static_passed_cargo_deferred",
+        )
     } else if slice == "Runtime 15 F14 diagnostics normalization" {
         Some("runtime_15_diagnostics_frame_trait_wrapper_removed_coremin_check_passed")
     } else if slice == "Runtime 15 F5 scene property access typed errors" {
@@ -127,8 +135,76 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_export_cli_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 host reflection docs CLI typed errors" {
         Some("runtime_15_host_reflection_docs_cli_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm args typed errors" {
+        Some("runtime_15_shader_prewarm_args_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm manifest merge typed errors" {
+        Some("runtime_15_shader_prewarm_manifest_merge_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm manifest read typed errors" {
+        Some("runtime_15_shader_prewarm_manifest_read_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm report output typed errors" {
+        Some("runtime_15_shader_prewarm_report_output_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm permutation registry typed errors" {
+        Some("runtime_15_shader_prewarm_permutation_registry_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm resource registry typed errors" {
+        Some(
+            "runtime_15_shader_prewarm_resource_registry_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 shader prewarm asset-root scan typed errors" {
+        Some("runtime_15_shader_prewarm_asset_root_scan_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 shader prewarm CLI typed-error sweep" {
+        Some("runtime_15_shader_prewarm_cli_typed_error_sweep_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 dynamic API session typed errors" {
         Some("runtime_15_dynamic_api_session_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native plugin distribution compatibility typed errors" {
+        Some(
+            "runtime_15_native_plugin_distribution_compat_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 native plugin registration manifest typed errors" {
+        Some(
+            "runtime_15_native_plugin_registration_manifest_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 native plugin behavior ABI typed errors" {
+        Some("runtime_15_native_plugin_behavior_abi_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native bridge method ABI typed errors" {
+        Some("runtime_15_native_bridge_method_abi_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native plugin manifest collection typed errors" {
+        Some(
+            "runtime_15_native_plugin_manifest_collection_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 native plugin manifest candidate typed errors" {
+        Some(
+            "runtime_15_native_plugin_manifest_candidate_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 native plugin string helper typed errors" {
+        Some("runtime_15_native_plugin_string_helper_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native plugin descriptor ABI typed errors" {
+        Some("runtime_15_native_plugin_descriptor_abi_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native plugin entry ABI typed errors" {
+        Some("runtime_15_native_plugin_entry_abi_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native host API adapter typed errors" {
+        Some("runtime_15_native_host_api_adapter_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native live-host loading typed errors" {
+        Some("runtime_15_native_live_host_loading_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native live-host behavior diagnostics typed errors" {
+        Some(
+            "runtime_15_native_live_host_behavior_diagnostics_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 native live-host lifecycle typed errors" {
+        Some("runtime_15_native_live_host_lifecycle_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native live-host hot reload typed errors" {
+        Some("runtime_15_native_live_host_hot_reload_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native live-host registration replay typed errors" {
+        Some(
+            "runtime_15_native_live_host_registration_replay_typed_errors_static_passed_cargo_deferred",
+        )
+    } else if slice == "Runtime 15 F5 native live-host bridge methods typed errors" {
+        Some("runtime_15_native_live_host_bridge_methods_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native live-host runtime behavior typed errors" {
+        Some("runtime_15_native_live_host_runtime_behavior_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 native live-host bridge lifecycle typed errors" {
+        Some(
+            "runtime_15_native_live_host_bridge_lifecycle_typed_errors_static_passed_cargo_deferred",
+        )
     } else if slice == "Runtime 15 F5 typed API residual typed errors" {
         Some("runtime_15_typed_api_residual_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 fixed world mutation typed errors" {
@@ -141,8 +217,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_font_asset_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 sound asset typed errors" {
         Some("runtime_15_sound_asset_typed_errors_static_passed_cargo_deferred")
-    } else if slice == "Runtime 15 F5 zshader definition typed errors" {
-        Some("runtime_15_zshader_definition_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F7 artifact cache JSON number typed errors" {
+        Some("runtime_15_artifact_cache_json_number_typed_errors_static_passed_cargo_deferred")
+    } else if slice == "Runtime 15 F5 zshader v2 user definition migration" {
+        Some("runtime_15_zshader_v2_user_definition_migration_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 asset meta typed errors" {
         Some("runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 F5 texture loader typed errors" {

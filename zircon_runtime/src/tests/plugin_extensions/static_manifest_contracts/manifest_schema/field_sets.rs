@@ -61,10 +61,13 @@ pub(super) const KNOWN_DEPENDENCY_FIELDS: [&str; 4] =
 pub(super) const KNOWN_EVENT_CATALOG_FIELDS: [&str; 3] = ["events", "namespace", "version"];
 pub(super) const KNOWN_EVENT_FIELDS: [&str; 3] = ["display_name", "id", "payload_schema"];
 pub(super) const KNOWN_INTERFACE_FIELDS: [&str; 2] = ["id", "methods"];
-pub(super) const KNOWN_MODULE_FIELDS: [&str; 7] = [
+pub(super) const KNOWN_MODULE_FIELDS: [&str; 10] = [
     "capabilities",
     "crate_name",
+    "description",
+    "init_level",
     "kind",
+    "module_dependencies",
     "name",
     "system_anchors",
     "system_sets",

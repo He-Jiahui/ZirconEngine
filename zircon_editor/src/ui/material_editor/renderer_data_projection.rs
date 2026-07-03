@@ -492,6 +492,56 @@ fn material_validation_diagnostic_row(
                 message: format!("texture slot `{slot}` is not declared by the shader"),
             }
         }
+        RenderMaterialValidationError::UnknownMaterialOption { path, name, .. } => {
+            RendererDataDiagnosticRow {
+                feature: feature.to_string(),
+                material_reference: None,
+                shader_references: Vec::new(),
+                source: None,
+                severity: RendererFeatureContractDiagnosticSeverity::Error,
+                path: path.clone(),
+                message: format!("material option `{name}` is not declared by the shader"),
+            }
+        }
+        RenderMaterialValidationError::MaterialOptionTypeMismatch {
+            path,
+            name,
+            expected,
+            ..
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: path.clone(),
+            message: format!("material option `{name}` must match shader type `{expected}`"),
+        },
+        RenderMaterialValidationError::InvalidMaterialQueueOffset {
+            path,
+            offset,
+            expected,
+            ..
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: path.clone(),
+            message: format!("material queue offset {offset} is invalid, expected {expected}"),
+        },
+        RenderMaterialValidationError::InvalidMaterialParent {
+            path, diagnostic, ..
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: None,
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: path.clone(),
+            message: format!("material parent is invalid: {diagnostic}"),
+        },
         RenderMaterialValidationError::MissingWgslCapture { path, name, .. } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),

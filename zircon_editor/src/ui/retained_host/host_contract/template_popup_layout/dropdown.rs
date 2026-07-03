@@ -1,6 +1,7 @@
 use super::super::data::FrameRect;
 use super::bounds::valid_bounds;
-use super::metrics::{dropdown_option_row_height, TEMPLATE_POPUP_ROW_GAP};
+use super::metrics::{dropdown_option_row_height, TEMPLATE_POPUP_ANCHOR_GAP};
+use crate::ui::retained_host::popup_anchor_metrics::clamp_popup_x_to_bounds;
 
 pub(crate) fn dropdown_option_popup_frame(
     control_frame: &FrameRect,
@@ -12,7 +13,7 @@ pub(crate) fn dropdown_option_popup_frame(
     let row_height = dropdown_option_row_height(control_frame);
     Some(FrameRect {
         x: control_frame.x,
-        y: control_frame.y + control_frame.height + TEMPLATE_POPUP_ROW_GAP,
+        y: control_frame.y + control_frame.height + TEMPLATE_POPUP_ANCHOR_GAP,
         width: control_frame.width.max(1.0),
         height: row_height * row_count as f32,
     })
@@ -28,16 +29,15 @@ pub(crate) fn dropdown_option_popup_frame_within(
         return Some(popup);
     }
 
-    let below_y = control_frame.y + control_frame.height + TEMPLATE_POPUP_ROW_GAP;
-    let above_y = control_frame.y - TEMPLATE_POPUP_ROW_GAP - popup.height;
+    let below_y = control_frame.y + control_frame.height + TEMPLATE_POPUP_ANCHOR_GAP;
+    let above_y = control_frame.y - TEMPLATE_POPUP_ANCHOR_GAP - popup.height;
     let bounds_bottom = bounds.y + bounds.height;
     if below_y + popup.height > bounds_bottom && above_y >= bounds.y {
         popup.y = above_y;
     }
 
     let popup_width = popup.width.min(bounds.width.max(1.0)).max(1.0);
-    let max_x = (bounds.x + bounds.width - popup_width).max(bounds.x);
-    popup.x = popup.x.clamp(bounds.x, max_x);
+    popup.x = clamp_popup_x_to_bounds(popup.x, bounds.x, bounds.width, popup_width);
     popup.width = popup_width;
     Some(popup)
 }
@@ -48,7 +48,7 @@ pub(crate) fn dropdown_option_row_frame(control_frame: &FrameRect, row: usize) -
         x: control_frame.x,
         y: control_frame.y
             + control_frame.height
-            + TEMPLATE_POPUP_ROW_GAP
+            + TEMPLATE_POPUP_ANCHOR_GAP
             + row as f32 * row_height,
         width: control_frame.width.max(1.0),
         height: row_height,

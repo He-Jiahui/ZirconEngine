@@ -7,6 +7,7 @@ const TOTALS_MATCH_STATUS: &str =
 #[test]
 fn runtime_15_shader_prewarm_wgpu_report_contract_is_wired() {
     let build = read_repo("tools/zircon_build.py");
+    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
     let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let wgpu_report_tests =
@@ -25,19 +26,21 @@ fn runtime_15_shader_prewarm_wgpu_report_contract_is_wired() {
         &[
             "def validate_shader_prewarm_report_contract(",
             "require_wgpu_module_validation: bool = False",
+            "require_wgpu_pipeline_validation: bool = False",
             "shader prewarm report did not confirm WGPU module validation",
+            "shader prewarm report did not confirm WGPU render pipeline validation",
             "_count_value(validation, \"requested\")",
             "_count_value(validation, \"validated\")",
             "validated != requested",
-            "shader prewarm WGPU module validation did not validate every",
-            "WGPU module validation counts did not match report totals",
+            "shader prewarm WGPU {label} validation did not validate every",
+            "shader prewarm WGPU {label} validation counts did not match",
             "report_requested = _count_value(report, \"requested\")",
             "requested != report_requested",
         ],
     );
     assert_contains_all(
         "staged build enforces the report contract after a successful prewarm run",
-        &build,
+        &(build + &acceptance_helper),
         &[
             "validate_shader_prewarm_report_contract",
             "if result.returncode == 0:",
@@ -60,7 +63,7 @@ fn runtime_15_shader_prewarm_wgpu_report_contract_is_wired() {
         "general prewarm tests still cover staged success behavior",
         &build_prewarm_tests,
         &[
-            "test_prewarm_shaders_validates_wgpu_report_after_success",
+            "test_prewarm_shaders_validates_staged_acceptance_after_success",
             "nonzero prewarm should not validate",
         ],
     );

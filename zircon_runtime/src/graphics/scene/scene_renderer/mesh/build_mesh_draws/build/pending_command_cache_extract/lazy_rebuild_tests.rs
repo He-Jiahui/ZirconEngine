@@ -75,6 +75,7 @@ fn item() -> PendingMeshCommandCacheExtractItem {
         ),
         static_state: RenderMeshStaticState::new(true, 11, 17),
         casts_shadow: true,
+        disabled_passes: Default::default(),
         taa_reactive_mask_strength: 0.0,
         skinned: false,
     }
@@ -91,6 +92,7 @@ fn store(
             entity: item.entity,
             draw_ordinal: item.draw_ordinal,
             phase,
+            disabled_passes: item.disabled_passes,
         },
         &item.static_state,
         command(phase, sort_key),

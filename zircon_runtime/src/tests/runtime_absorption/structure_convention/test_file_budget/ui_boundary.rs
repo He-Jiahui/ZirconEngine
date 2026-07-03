@@ -35,7 +35,7 @@ fn runtime_15_ui_boundary_tests_are_folder_backed() {
         "binding_api_moves_under_binding_namespace",
         "event_ui_api_moves_under_event_ui_namespace",
         "runtime_fixture_assets_live_under_crate_assets",
-        "ui_v2_surface_projection_does_not_call_template_tree_builder",
+        "zui_surface_projection_does_not_call_template_tree_builder",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -79,7 +79,7 @@ fn runtime_15_ui_boundary_tests_are_folder_backed() {
             "fn runtime_ui_entry_assets_do_not_live_under_src",
             "fn runtime_fixture_assets_live_under_crate_assets",
             "fn runtime_ui_manager_loads_fixture_documents_from_asset_files",
-            "fn ui_v2_surface_projection_does_not_call_template_tree_builder",
+            "fn zui_surface_projection_does_not_call_template_tree_builder",
         ],
     );
 
@@ -131,7 +131,7 @@ fn runtime_15_ui_boundary_tests_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

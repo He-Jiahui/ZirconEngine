@@ -300,3 +300,5 @@ metadata, not only module-local rows. Static `plugin.toml`, linked
 should agree on package `category`, `supported_targets = ["editor_host"]`, and
 the editor capability set so plugin-window and export consumers see the same
 package shape.
+
+2026-07-01 Plan 08 plugin shader permutation mirror: `Plugin shader permutation registry auto-export`, `render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred`, `Plugin shader permutation registry export contract`, `render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred`, `test_zircon_build_discovers_plugin_shader_permutation_records`, `test_validate_generated_registry_requires_selected_plugin_ids`, and `runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired`.

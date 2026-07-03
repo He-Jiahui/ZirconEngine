@@ -71,7 +71,7 @@ status: planned
 | `display: flex/grid/block/none` | `display` | `UiLayoutDisplay` | `style_mapping.rs:184-197` | Flex/Grid/Block | bevy `Display`(convert.rs:66) |
 | `flex-direction: row/column[-reverse]` | `direction` | `UiFlexDirection` | `:199-206` | Flex | bevy(convert.rs:76);slint `flex-direction`(builtins.slint:460) |
 | `flex-wrap: nowrap/wrap/wrap-reverse` | `wrap` | `UiFlexWrap` | `:208-214` | Flex/Wrap | UE `SWrapBox`;bevy(convert.rs:77) |
-| `justify-content` | `justify_content` | `UiJustify`(Start/End/Center/Space*) | `:216-225` | Flex/Grid | slint `alignment`(layout.rs:1224-1261) |
+| `justify-content` | `justify_content` | `UiJustify`(Start/End/Center/Space*) | `:216-225`;DTO 路径完整支持,容器投影路径受 `16` §3.6 限制(互注,2026-07-02 评审收口) | Flex/Grid | slint `alignment`(layout.rs:1224-1261) |
 | `align-items` | `align_items` | `UiAlign`(含 Stretch/Baseline) | `:227-235` | Flex/Grid | godot `SIZE_*`(control.h:79-86) |
 | `align-self` | `align_self` | `UiAlign` | `:237-245` | Flex/Grid | slint `align-self`(layout.rs:1168) |
 | `align-content` | `align_content` | `UiAlign`(**无 Baseline**) | `:247-255` | Flex/Grid | — |
@@ -140,6 +140,8 @@ status: planned
 | 自由容器/尺寸盒 | Container/Free | 单子/裸尺寸(Zircon-owned) |
 
 规范:**优先 Flex/Grid/Block/Wrap(Taffy 标准,`is_taffy_owned()`,`engine.rs:46-48`)**;只有脱流/虚拟/滚动/瀑布等 Taffy 不擅长的才走 Zircon-owned family(`is_zircon_owned()`,`engine.rs:33-44`)。请求落到非支持后端时由 `UiLayoutEngineSelection::select()`(`engine.rs:238-269`)按 fallback reason 回退。
+
+**z-index 决策条款(2026-07-02 评审收口)**:作者侧 **V1 不提供 z-index 词汇**——约束语言不含 `z-index` 属性,不在 T3 扩展候选。层级由"**Overlay family + 提取序**"决定:需要压在内容之上的元素进 Overlay 族,叠放次序由 `21` §3.2 的 `layer_id` 分配表(内容=0 段、dock 浮层=100 段、popup/menu=200 段、tooltip=300 段、拖拽幽灵/焦点环=400 段、调试叠加=900 段,段内按提取序递增)唯一裁决,分配表见 `21` §3.2。
 
 ### 3.4 UiSlotKind ↔ family 映射(衔接 12)
 
@@ -213,7 +215,7 @@ flex_grow = 1.0
 | `repeat(auto-fill/auto-fit)` | `UiGridTrack` 无重复语义 | bevy `RepeatedGridTrack` + `AutoFill/AutoFit`(convert.rs) |
 | `overflow: clip` + clip-margin | `UiOverflow` 仅 Visible/Hidden/Scroll(`style.rs:240-247`) | bevy `OverflowAxis::Clip` + `overflow_clip_margin` |
 | `box-sizing` | 无字段(默认按 Taffy 行为) | bevy `box_sizing`(convert.rs:67) |
-| `direction: ltr/rtl` | 无字段 | bevy `direction`(convert.rs:84) |
+| `direction: ltr/rtl` | 无字段 | bevy `direction`(convert.rs:84)。**决策(2026-07-02 评审收口)**:UI 布局镜像(RTL 工作台)登记为**显式非目标(V1)**;文本 BIDI 归 runtime `text/02`(与布局镜像解耦);若未来立项 RTL 布局,另开计划,不复用本表扩展流程 |
 | `object-fit`(cover/contain/fill) | 仅 `aspect-ratio`,无 fit 模式 | UE `SScaleBox::EStretch{ScaleToFit/ScaleToFill/Fill}`(SScaleBox.h:44-61);godot `AspectRatioContainer::StretchMode`(aspect_ratio_container.h:44-48) |
 
 规范:T3 项**不在 13 内实现**;若后续需要,按"DTO 扩展 + `style_mapping.rs` 映射 + 测试"独立切片立项,并复用此表的跨引擎依据作为设计参照。13 文档负责把它们登记为"已知不支持",避免作者误用。
@@ -223,16 +225,17 @@ flex_grow = 1.0
 1. **百分比归一化**:CSS 作者写 `50%`,token 解析层须产出 `UiDimension::Percent(0.5)`(0.0..=1.0)。grid 轨道百分比同此(`UiGridTrack::Percent` → `MinMax`,`style_mapping.rs:350-353`)。越界/负值/NaN 由 `finite_non_negative()`(`:464-468`)拒绝并回退。
 2. **auto 适用面**:仅 `size/min/max/flex-basis/margin/inset` 可取 `auto`;`gap/padding` 取 auto 会触发 `InvalidLayoutValue`(`:272-280`)。
 3. **align-content 无 baseline**:见 T2。
-4. **overflow 声明 ≠ 选 family**:`overflow: scroll` 是节点样式位;真正的滚动条/视口裁剪/虚拟化由 family `Scrollable`/`VirtualizedList`(Zircon-owned)负责。作者要"可滚动区"时应选对应 `UiSlotKind`(§3.4),而非只写 `overflow: scroll`。
+4. **overflow 声明 ≠ 选 family**:`overflow: scroll` 是节点样式位;真正的滚动条/视口裁剪/虚拟化由 family `Scrollable`/`VirtualizedList`(Zircon-owned)负责。作者要"可滚动区"时应选对应 `UiSlotKind`(§3.4),而非只写 `overflow: scroll`。**滚动线 owner 注记(2026-07-02 评审收口)**:滚动/滚轮输入与裁剪感知命中归 `18`(滚轮冒泡/最近可滚动祖先消费);滚动条视觉规范归 `20`(伪状态)+ `15`(组件);虚拟化契约归 `editor_ui/02` M3;**滚动只触发 paint/提取,不触发 relayout**(滚动偏移不进 taffy 求解)。
 5. **裸像素禁区**:chrome 约束值禁裸物理像素(§3.2),由 01 资产扫描 + 10 渲染契约 + 本规范三处一致校验;center 自由区与用户内容豁免。
 
 ### 3.8 Taffy 求解协议:增量缓存 / measure / rounding(接 09/10/16/17)
 
 把约束喂进 Taffy 后,**增量、内容尺寸、像素吸附**三件事由 Taffy 0.10 的内部协议决定,规范须据此对齐(源码:cargo registry `taffy-0.10.1`,已核实):
 
-1. **增量缓存(接 09/10)**:Taffy 每节点有 9 槽缓存(`tree/cache.rs:24-197`),键 = `known_dimensions × available_space`(`compute_cache_slot` `:73-107`)。**父尺寸不变 → available_space 不变 → 子节点缓存命中、跳过重算**;父尺寸变(如窗口拉宽)→ `AvailableSpace::Definite(new)` 变 → 槽变 → 失效重算。规范:09 的 `ViewDirtySet` 标脏后,**只对脏子树 `cache_clear` 并重 `compute_layout`**;Taffy 无显式 dirty 位(`taffy_tree.rs`),失效靠键变化 + 手动清缓存,故样式/内容变更(11/20)必须显式触发对应子树清缓存,否则 measure 值变而键不变会命中旧缓存。
+1. **增量缓存(接 09/10)**:Taffy 每节点有 9 槽缓存(`tree/cache.rs:24-197`),键 = `known_dimensions × available_space`(`compute_cache_slot` `:73-107`)。**父尺寸不变 → available_space 不变 → 子节点缓存命中、跳过重算**;父尺寸变(如窗口拉宽)→ `AvailableSpace::Definite(new)` 变 → 槽变 → 失效重算。规范:09 的 `ViewDirtySet` 标脏后,**只对脏子树 `cache_clear` 并重 `compute_layout`**;Taffy 无显式 dirty 位(`taffy_tree.rs`),失效靠键变化 + 手动清缓存,故样式/内容变更(11/20)必须显式触发对应子树清缓存,否则 measure 值变而键不变会命中旧缓存。**cache_clear 执行 owner = `09` 帧末 drain 的布局脏处理段**(与 `10` §3.4 条款一致,2026-07-02 评审收口);测试矩阵补 `stale_measure_cache_is_cleared_on_style_change`。
 2. **measure 协议(接 17 文本)**:叶子节点经 measure 回调提供内容尺寸(`compute/leaf.rs:15-164`);`available_space` 为 `MinContent`/`MaxContent`/`Definite` 时分别求最小内容宽/最大内容宽/给定宽下尺寸。规范:文本节点的 measure(17 §3.1 真实字形度量)必须按这三种 available_space 正确返回 `(min_content, max_content, preferred)`,否则 flex/grid 的内容尺寸求解(13 §3.2b)拿到错值。measure 返回的是 **content box** 尺寸(不含 padding/border)。
 3. **rounding 归属(接 16/21)**:已 `disable_rounding()`(保真 30.5px 分数控件)。Taffy 的 `round_layout` 用累积坐标避免取整间隙(`compute/mod.rs:219-274`),关闭后**像素吸附责任移交渲染层**——文本/1px 边框在顶点装配时整像素吸附(`21` §3.5),自由内容不吸附;分数缩放(`16` §3.4a)同此归属。13 只负责喂分数逻辑值,不在此吸附。
+4. **动画 relayout 预算(2026-07-02 评审收口,与 `20` §3.5 对齐)**:可动画属性默认限 **paint-only**——色/α/transform 位移只走渲染层,不进 taffy 求解;**布局属性动画**(width/height/basis/gap 等)须在声明处**显式标注**,并配每帧预算断言(单帧布局脏子树节点数/求解耗时受界),超预算即测试失败。禁止隐式"动个宽度就整树重排"。
 
 ## 4. 接口与数据结构草案(Rust)
 
@@ -284,6 +287,7 @@ pub fn family_for_slot_kind(kind: UiSlotKind) -> UiLayoutEngineFamily;
 - chrome 资产无裸像素约束(扫描证明),center 自由区允许裸值。
 - `UiSlotKind` → family 映射与 12 一致;脱流/虚拟/滚动/瀑布走 Zircon-owned,其余走 Taffy。
 - T3 项(vw/justify-items/grid-auto-flow/overflow:clip 等)在解析层被识别为"已知不支持"并给出明确诊断,不静默吞掉。
+- `stale_measure_cache_is_cleared_on_style_change`:样式变更(measure 值变而缓存键不变)后,09 帧末 drain 已对该子树 `cache_clear`,重算不命中旧缓存(2026-07-02 评审收口)。
 
 ## 8. 风险与对策
 

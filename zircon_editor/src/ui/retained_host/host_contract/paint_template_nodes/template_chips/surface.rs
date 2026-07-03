@@ -1,6 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::style::{chip_border, chip_surface, CHIP_RADIUS};
+use super::metrics::{chip_border_width, chip_radius};
+use super::style::{chip_border, chip_surface};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chip_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -16,8 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
         order,
         Some(chip_surface(node)),
         Some(chip_border(node)),
-        1.0,
-        CHIP_RADIUS,
+        chip_border_width(),
+        chip_radius(),
         opacity,
     ));
 }

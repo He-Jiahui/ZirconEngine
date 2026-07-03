@@ -264,7 +264,11 @@ fn execute_graph_pass(
         gpu = gpu.with_sprite_renderer(sprite_renderer, streamer);
     }
     if let (Some(deferred), Some(mesh_draw_lists)) = (deferred, mesh_draw_lists) {
-        gpu = gpu.with_deferred_renderer(deferred, mesh_draw_lists);
+        gpu = if let Some(streamer) = streamer {
+            gpu.with_deferred_renderer(deferred, streamer, mesh_draw_lists)
+        } else {
+            gpu.with_deferred_lighting_renderer(deferred, mesh_draw_lists)
+        };
     }
     if let Some(particle_renderer) = particle_renderer {
         gpu = gpu.with_particle_renderer(particle_renderer);

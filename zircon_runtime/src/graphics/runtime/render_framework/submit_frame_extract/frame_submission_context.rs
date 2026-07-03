@@ -9,8 +9,8 @@ use crate::core::framework::render::{
     RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
     RenderSpotLightSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
     RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPayloadSource, ShaderQualityTier, SolariRuntimeReport,
-    TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
+    RenderVirtualGeometryPagePayload, RenderVirtualGeometryPayloadSource, ShaderQualityTier,
+    SolariRuntimeReport, TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
@@ -74,6 +74,7 @@ pub(super) struct FrameSubmissionContext {
     virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     virtual_geometry_bvh_visualization_instances:
         Vec<RenderVirtualGeometryBvhVisualizationInstance>,
+    virtual_geometry_resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
     virtual_geometry_page_upload_plan: Option<VisibilityVirtualGeometryPageUploadPlan>,
     virtual_geometry_feedback: Option<VisibilityVirtualGeometryFeedback>,
     predicted_generation: u64,
@@ -120,6 +121,7 @@ impl FrameSubmissionContext {
         virtual_geometry_bvh_visualization_instances: Vec<
             RenderVirtualGeometryBvhVisualizationInstance,
         >,
+        virtual_geometry_resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
         virtual_geometry_page_upload_plan: Option<VisibilityVirtualGeometryPageUploadPlan>,
         virtual_geometry_feedback: Option<VisibilityVirtualGeometryFeedback>,
         predicted_generation: u64,
@@ -151,6 +153,9 @@ impl FrameSubmissionContext {
             .unwrap_or_default();
         let virtual_geometry_bvh_visualization_instances = virtual_geometry_enabled
             .then_some(virtual_geometry_bvh_visualization_instances)
+            .unwrap_or_default();
+        let virtual_geometry_resident_page_payloads = virtual_geometry_enabled
+            .then_some(virtual_geometry_resident_page_payloads)
             .unwrap_or_default();
         let virtual_geometry_page_upload_plan = virtual_geometry_enabled
             .then_some(virtual_geometry_page_upload_plan)
@@ -196,6 +201,7 @@ impl FrameSubmissionContext {
             virtual_geometry_payload_source,
             virtual_geometry_cpu_reference_instances,
             virtual_geometry_bvh_visualization_instances,
+            virtual_geometry_resident_page_payloads,
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
             predicted_generation,
@@ -389,6 +395,12 @@ impl FrameSubmissionContext {
         &self,
     ) -> &[RenderVirtualGeometryBvhVisualizationInstance] {
         &self.virtual_geometry_bvh_visualization_instances
+    }
+
+    pub(super) fn virtual_geometry_resident_page_payloads(
+        &self,
+    ) -> &[RenderVirtualGeometryPagePayload] {
+        &self.virtual_geometry_resident_page_payloads
     }
 
     pub(super) fn predicted_generation(&self) -> u64 {

@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "runtime_15_topics/review_guard_maps.rs"]
+mod review_guard_maps;
+
 #[test]
 fn runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners() {
     let status_runtime_15 = read_runtime_src(
@@ -19,6 +22,17 @@ fn runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners() {
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
         ),
     ];
+    let status_m3_structure_support_children = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/naming_guard_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
+        ),
+    ];
     let date_runtime_15 = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
     );
@@ -34,6 +48,17 @@ fn runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners() {
         ),
         read_runtime_src(
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+        ),
+    ];
+    let date_m3_structure_support_children = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/naming_guard_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
         ),
     ];
     let status_rows = read_runtime_src(
@@ -88,8 +113,18 @@ fn runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners() {
         );
     }
 
-    let status_child_sources = status_children.join("\n");
-    let date_child_sources = date_children.join("\n");
+    let status_child_sources = status_children
+        .iter()
+        .chain(status_m3_structure_support_children.iter())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n");
+    let date_child_sources = date_children
+        .iter()
+        .chain(date_m3_structure_support_children.iter())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n");
     assert_contains_all(
         "Runtime 15 status expected-slice children own topic literals",
         &status_child_sources,
@@ -138,6 +173,18 @@ fn runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners() {
             "status/runtime_15/m3_structure_support.rs",
             status_children[3].as_str(),
         ),
+        (
+            "status/runtime_15/m3_structure_support/review_guard_maps.rs",
+            status_m3_structure_support_children[0].as_str(),
+        ),
+        (
+            "status/runtime_15/m3_structure_support/naming_guard_maps.rs",
+            status_m3_structure_support_children[1].as_str(),
+        ),
+        (
+            "status/runtime_15/m3_structure_support/status_support_maps.rs",
+            status_m3_structure_support_children[2].as_str(),
+        ),
         ("date/runtime_15/foundation.rs", date_children[0].as_str()),
         (
             "date/runtime_15/naming_boundary.rs",
@@ -150,6 +197,18 @@ fn runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners() {
         (
             "date/runtime_15/m3_structure_support.rs",
             date_children[3].as_str(),
+        ),
+        (
+            "date/runtime_15/m3_structure_support/review_guard_maps.rs",
+            date_m3_structure_support_children[0].as_str(),
+        ),
+        (
+            "date/runtime_15/m3_structure_support/naming_guard_maps.rs",
+            date_m3_structure_support_children[1].as_str(),
+        ),
+        (
+            "date/runtime_15/m3_structure_support/status_support_maps.rs",
+            date_m3_structure_support_children[2].as_str(),
         ),
     ] {
         let line_count = source.lines().count();

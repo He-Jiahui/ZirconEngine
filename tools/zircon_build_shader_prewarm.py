@@ -61,14 +61,16 @@ def print_shader_prewarm_plan(config) -> None:
     print("  shader prewarm: enabled")
     if getattr(config, "validate_wgpu_shaders", False):
         print("  shader WGPU module validation: enabled")
+    if getattr(config, "validate_wgpu_pipelines", False):
+        print("  shader WGPU render pipeline validation: enabled")
     print(f"  shader quality tiers: {','.join(config.shader_quality_tiers)}")
     print(f"  shader geometry sources: {','.join(config.shader_geometry_sources)}")
     print(
         "  shader asset roots: "
         f"{','.join(str(path) for path in shader_asset_root_paths_for_prewarm(config))}"
     )
-    print(f"  shader prewarm cache root: {config.shader_prewarm_cache_root}")
-    print(f"  shader prewarm report: {config.shader_prewarm_report_path}")
+    print("  shader prewarm cache root: " f"{config.shader_prewarm_cache_root}")
+    print("  shader prewarm report: " f"{config.shader_prewarm_report_path}")
     print(
         "  shader runtime fallback root: "
         f"{config.engine_root / 'cache' / 'shader_variants'}"
@@ -231,6 +233,8 @@ def build_shader_prewarm_command(config) -> list[str]:
     )
     if getattr(config, "validate_wgpu_shaders", False):
         command.append("--validate-wgpu-modules")
+    if getattr(config, "validate_wgpu_pipelines", False):
+        command.append("--validate-wgpu-pipelines")
     for asset_root in shader_asset_root_paths_for_prewarm(config):
         command.extend(["--asset-root", str(asset_root)])
     for quality_tier in config.shader_quality_tiers:
@@ -284,6 +288,18 @@ def validate_shader_prewarm_command_contract(config, command: Sequence[str]) -> 
             command,
             "--validate-wgpu-modules",
             "WGPU module validation",
+        )
+    if getattr(config, "validate_wgpu_pipelines", False):
+        _require_command_flag(
+            command,
+            "--validate-wgpu-pipelines",
+            "WGPU render pipeline validation",
+        )
+    else:
+        _forbid_command_flag(
+            command,
+            "--validate-wgpu-pipelines",
+            "WGPU render pipeline validation",
         )
     _require_flag_values(
         command,
@@ -351,6 +367,7 @@ def validate_shader_prewarm_command_contract(config, command: Sequence[str]) -> 
 
 def shader_asset_root_paths_for_prewarm(config) -> tuple[Path, ...]:
     roots = [Path(config.engine_root) / "assets"]
+    roots.extend(Path(root) for root in getattr(config, "shader_asset_roots", ()))
     for plugin in getattr(config, "plugins", ()):
         roots.extend(Path(root) for root in getattr(plugin, "asset_roots", ()))
     return _unique_path_values(roots)
@@ -395,10 +412,12 @@ def generated_shader_permutation_registry_document(config) -> dict[str, list[dic
             shader_geometry_source_id_specs(config),
             "shader geometry source id",
         ),
+        "geometry_source_descriptors": shader_geometry_source_descriptors(config),
         "shading_model_ids": _shader_id_records(
             shader_shading_model_id_specs(config),
             "shader shading model id",
         ),
+        "shading_model_descriptors": shader_shading_model_descriptors(config),
     }
 
 
@@ -408,6 +427,52 @@ def shader_geometry_source_id_specs(config) -> tuple[str, ...]:
 
 def shader_shading_model_id_specs(config) -> tuple[str, ...]:
     return _combined_plugin_id_specs(config, "shader_shading_model_ids")
+
+
+def shader_geometry_source_descriptors(config) -> list[dict[str, object]]:
+    descriptors: list[dict[str, object]] = []
+    seen: set[tuple[str, int]] = set()
+    for plugin in getattr(config, "plugins", ()):
+        for descriptor in getattr(plugin, "shader_geometry_source_descriptors", ()):
+            if not isinstance(descriptor, Mapping):
+                continue
+            token = descriptor.get("token")
+            id_value = descriptor.get("id")
+            if (
+                not isinstance(token, str)
+                or isinstance(id_value, bool)
+                or not isinstance(id_value, int)
+            ):
+                continue
+            key = (token, id_value)
+            if key in seen:
+                continue
+            seen.add(key)
+            descriptors.append(dict(descriptor))
+    return descriptors
+
+
+def shader_shading_model_descriptors(config) -> list[dict[str, object]]:
+    descriptors: list[dict[str, object]] = []
+    seen: set[tuple[str, int]] = set()
+    for plugin in getattr(config, "plugins", ()):
+        for descriptor in getattr(plugin, "shader_shading_model_descriptors", ()):
+            if not isinstance(descriptor, Mapping):
+                continue
+            token = descriptor.get("token")
+            id_value = descriptor.get("id")
+            if (
+                not isinstance(token, str)
+                or isinstance(id_value, bool)
+                or not isinstance(id_value, int)
+            ):
+                continue
+            key = (token, id_value)
+            if key in seen:
+                continue
+            seen.add(key)
+            descriptors.append(dict(descriptor))
+    return descriptors
 
 
 def _shader_id_records(raw_values: Sequence[str], label: str) -> list[dict[str, object]]:

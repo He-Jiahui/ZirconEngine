@@ -4,7 +4,7 @@ use toml::Value;
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
-const MATERIAL_THEME_V2: &str = "res://ui/theme/editor_material.zui";
+const MATERIAL_THEME_ZUI: &str = "res://ui/theme/editor_material.zui";
 
 #[test]
 fn global_material_surface_assets_follow_responsive_contracts() {
@@ -13,8 +13,8 @@ fn global_material_surface_assets_follow_responsive_contracts() {
     let files = collect_ui_files(&repo);
     assert_eq!(
         files.len(),
-        42,
-        "Milestone 3 inventory changed; update the acceptance inventory and this conformance test together"
+        41,
+        "Current .zui view surface inventory changed; update the acceptance inventory and this conformance test together"
     );
 
     let documents = load_documents(&files);
@@ -89,7 +89,7 @@ fn material_import_graph_uses_normalized_res_paths() {
     );
     graph.insert(
         "theme/editor_base.zui".to_string(),
-        vec![MATERIAL_THEME_V2.to_string()],
+        vec![MATERIAL_THEME_ZUI.to_string()],
     );
 
     assert!(imports_material_theme("editor/welcome.zui", &graph));
@@ -139,7 +139,8 @@ fn runtime_v2_fixture_assets_parse_from_runtime_crate_assets() {
 
 fn collect_import_graph_files(repo: &std::path::Path, surface_files: &[PathBuf]) -> Vec<PathBuf> {
     let mut files = surface_files.to_vec();
-    collect_ui_files_from(&repo.join("assets/ui/theme"), &mut files);
+    collect_zui_document_files_from(&repo.join("assets/ui/editor"), &mut files);
+    collect_zui_document_files_from(&repo.join("assets/ui/theme"), &mut files);
     files.sort();
     files.dedup();
     files
@@ -187,14 +188,46 @@ fn collect_ui_files_from(root: &std::path::Path, files: &mut Vec<PathBuf>) {
         let path = entry.path();
         if path.is_dir() {
             collect_ui_files_from(&path, files);
-        } else if path.extension() == Some(std::ffi::OsStr::new("toml"))
-            && path
-                .file_name()
-                .is_some_and(|name| name.to_string_lossy().ends_with(".ui.toml"))
-        {
+        } else if is_zui_view_surface_file(&path) {
             files.push(path);
         }
     }
+}
+
+fn collect_zui_document_files_from(root: &std::path::Path, files: &mut Vec<PathBuf>) {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_zui_document_files_from(&path, files);
+        } else if is_zui_file(&path) {
+            files.push(path);
+        }
+    }
+}
+
+fn is_zui_view_surface_file(path: &std::path::Path) -> bool {
+    if !is_zui_file(path) {
+        return false;
+    }
+    let source = std::fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("{} reads as .zui: {error}", path.display()));
+    let document = toml::from_str::<Value>(&source)
+        .unwrap_or_else(|error| panic!("{} parses as .zui TOML: {error}", path.display()));
+    zui_asset_kind(&document) == Some("view")
+}
+
+fn is_zui_file(path: &std::path::Path) -> bool {
+    path.extension() == Some(std::ffi::OsStr::new("zui"))
+}
+
+fn zui_asset_kind(document: &Value) -> Option<&str> {
+    document
+        .get("asset")
+        .and_then(|asset| asset.get("kind"))
+        .and_then(Value::as_str)
 }
 
 fn load_documents(files: &[PathBuf]) -> BTreeMap<PathBuf, Value> {
@@ -234,7 +267,7 @@ fn imports_material_theme(relative: &str, graph: &BTreeMap<String, Vec<String>>)
         }
         visited.push(current.clone());
         for import in graph.get(&current).into_iter().flatten() {
-            if import == MATERIAL_THEME_V2 {
+            if import == MATERIAL_THEME_ZUI {
                 return true;
             }
             if let Some(next) = import.strip_prefix("res://ui/") {

@@ -3,7 +3,9 @@ use std::collections::HashSet;
 use crate::plugin::ProjectPluginManifest;
 
 use super::super::availability::target_manifest_availability;
-use super::super::core_modules::runtime_core_modules_for_target_with_render_features;
+use super::super::core_modules::{
+    runtime_core_modules_for_target_with_render_features, sort_runtime_modules_by_descriptor_order,
+};
 use super::super::ids::RuntimeTargetMode;
 use super::super::load_report::RuntimeModuleLoadReport;
 use super::super::manifest::manifest_with_mode_baseline;
@@ -32,18 +34,22 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
         .iter()
         .cloned()
         .collect::<HashSet<_>>();
-    let mut report =
-        RuntimeModuleLoadReport::new(runtime_core_modules_for_target_with_render_features(
-            target,
-            inputs.asset_importers(),
-            inputs.render_features(),
-            inputs.shading_models(),
-            inputs.render_pass_executors(),
-            inputs.runtime_prepare_collectors(),
-            inputs.hybrid_gi_runtime_providers(),
-            inputs.solari_runtime_providers(),
-            inputs.virtual_geometry_runtime_providers(),
-        ));
+    let core_modules = match runtime_core_modules_for_target_with_render_features(
+        target,
+        inputs.asset_importers(),
+        inputs.render_features(),
+        inputs.geometry_sources(),
+        inputs.shading_models(),
+        inputs.render_pass_executors(),
+        inputs.runtime_prepare_collectors(),
+        inputs.hybrid_gi_runtime_providers(),
+        inputs.solari_runtime_providers(),
+        inputs.virtual_geometry_runtime_providers(),
+    ) {
+        Ok(modules) => modules,
+        Err(error) => return RuntimeModuleLoadReport::from_core_error(error),
+    };
+    let mut report = RuntimeModuleLoadReport::new(core_modules);
     report.runtime_plugin_availability =
         target_manifest_availability(target, manifest, linked_plugin_ids.iter());
 
@@ -87,6 +93,11 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
             report.push_required_missing(runtime_id, reason);
             report.errors.push(message);
         }
+    }
+
+    match sort_runtime_modules_by_descriptor_order(std::mem::take(&mut report.modules)) {
+        Ok(modules) => report.modules = modules,
+        Err(error) => report.errors.push(error.to_string()),
     }
     report
 }

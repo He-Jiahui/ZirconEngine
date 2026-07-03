@@ -59,6 +59,10 @@ mod tests {
                     PLUGIN_CRATE,
                 )
                 .with_category("runtime")
+                .with_init_level(zircon_runtime::core::InitLevel::Scene)
+                .with_module_dependency(zircon_runtime::core::ModuleDependencySpec::named(
+                    "animation.runtime",
+                ))
                 .with_target_modes([zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime])
                 .with_capability("runtime.plugin.sdk_runtime_export")
                 .build(),
@@ -93,6 +97,16 @@ mod tests {
         let manifest = generated_exports::package_manifest();
         assert_eq!(manifest.id, PLUGIN_ID);
         assert_eq!(manifest.description, MANIFEST_OVERRIDE_DESCRIPTION);
+        assert_eq!(
+            manifest.modules[0].init_level,
+            zircon_runtime::core::InitLevel::Scene
+        );
+        assert_eq!(
+            manifest.modules[0].module_dependencies,
+            [zircon_runtime::core::ModuleDependencySpec::named(
+                "animation.runtime"
+            )]
+        );
 
         let selection = generated_exports::runtime_selection();
         assert_eq!(selection.id, PLUGIN_ID);

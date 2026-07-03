@@ -1,0 +1,9 @@
+runtime_text_editor_retained_unavailable_font_fallback_validation_20260704
+Scope: retained-host font fallback owner paint_text/font.rs plus retained layout/raster consumers.
+Code change: removed final production expect for embedded editor host text font. HostTextFont now stores Option<Font>; unavailable_host_font preserves runtime family, empty bytes, and stable cache key when system + embedded + embedded mono fallback all fail.
+Consumer change: draw/layout.rs returns an empty fontdue glyph run when the font is unavailable; raster.rs returns an empty FontdueFallback alpha raster instead of dereferencing a missing font. Empty bytes and empty Arc<[u8]> are explicitly typed.
+Tests added/updated: font/tests.rs covers unavailable_host_font; raster/tests.rs covers empty_fontdue_raster; existing font/raster/layout tests now explicitly expect available test fonts.
+rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs: passed after final explicit-empty-type follow-up
+Static scan: expect_embedded_editor_host_text_font, embedded editor host text font, host text font cache lock, glyph raster cache lock, and swash raster context lock markers: 0 hits in retained paint_text production path.
+Focused Cargo: deferred because external cargo/rustc lanes were active during this slice.
+Preview: E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_unavailable_font_fallback_preview_20260704.png

@@ -33,7 +33,7 @@ fn workbench_table_row_style_uses_shared_state_priority() {
 }
 
 #[test]
-fn selected_table_row_uses_neutral_surface_even_with_declared_background() {
+fn selected_table_row_uses_muted_fill_neutral_outline_even_with_declared_background() {
     let mut node = table_node("WorkbenchTableSelected", true);
     node.button_style.element.background_color =
         Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(23, 57, 66, 255)));
@@ -42,6 +42,7 @@ fn selected_table_row_uses_neutral_surface_even_with_declared_background() {
 
     assert_eq!(style.background, PALETTE.surface_pressed);
     assert_ne!(style.background, PALETTE.surface_selected);
-    assert_eq!(style.border, None);
-    assert_eq!(style.border_width, 0.0);
+    assert_eq!(style.border, Some(PALETTE.border));
+    assert_ne!(style.border, Some(PALETTE.accent));
+    assert_eq!(style.border_width, 1.0);
 }

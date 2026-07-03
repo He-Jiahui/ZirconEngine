@@ -33,6 +33,11 @@ impl RenderPassGpuExecutionContext<'_> {
             )
         })?;
         let stream = mesh_draw_lists.velocity_stream();
+        let streamer = self.streamer.ok_or_else(|| {
+            format!(
+                "mesh object velocity graph executor for pass `{pass_name}` requires resource streamer context"
+            )
+        })?;
 
         let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("MeshObjectVelocityPass"),
@@ -77,7 +82,11 @@ impl RenderPassGpuExecutionContext<'_> {
         replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
             if replayer.should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id) {
                 let pipeline = mesh_pipelines
-                    .ensure_velocity_pipeline_for_variant(self.device, command.pipeline_variant_id)
+                    .ensure_velocity_pipeline_for_variant(
+                        self.device,
+                        streamer,
+                        command.pipeline_variant_id,
+                    )
                     .expect("velocity mesh command must resolve a cache-backed pipeline variant");
                 pass.set_pipeline(pipeline);
             }

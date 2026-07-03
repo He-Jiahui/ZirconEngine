@@ -1,0 +1,47 @@
+Runtime text atlas render contract validation
+Date: 2026-07-03
+
+Slice:
+  AT-M2/AT-M3 SubpixelMask atlas shader/blend contract owner.
+
+Implemented boundary:
+  zircon_runtime/src/graphics/text/atlas/render_contract.rs now maps atlas
+  sampling semantics to shader decode and blend contracts. SubpixelCoverage
+  uses SubpixelRgbCoverage plus SubpixelBackgroundComposite, while ColorRgba
+  uses ColorRgba plus SourceRgba. RGBA8 storage alone no longer selects the
+  color glyph shader path.
+
+Shader owner:
+  zircon_runtime/src/graphics/text/atlas/shaders/glyph_atlas_sampling.wgsl
+  declares alpha coverage, subpixel RGB coverage, and color RGBA decode helpers.
+
+Commands:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/mod.rs zircon_runtime/src/graphics/text/atlas/render_contract.rs
+  cargo test -p zircon_runtime render_text_atlas --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-render-contract --message-format short --color never -- --nocapture --test-threads=1
+
+Result:
+  rustfmt passed.
+  Focused cargo test passed: 18 passed; 0 failed; 0 ignored; 6071 filtered out.
+  Existing warning noise remained, but no Rust compile or test failure was reported.
+
+Covered owner tests:
+  render_text_atlas_subpixel_coverage_uses_dedicated_blend_contract
+  render_text_atlas_rgba_storage_does_not_choose_color_shader_by_storage_alone
+  render_text_atlas_sampling_shader_declares_subpixel_rgb_decode
+  render_text_atlas_sampling_shader_wgsl_parses
+
+Visual proof:
+  docs/tests/runtime/text/runtime_text_atlas_render_contract_preview_20260703.png
+  SHA256 CF07AB48BB71675D2473243601E1CB256D4DFCBF7F9D1E2DA15F19CC928B54FC
+
+Target-directory proof:
+  Same-name scan for runtime_text_atlas_render_contract_preview_20260703.png:
+    E:\Git\ZirconEngine\target = 0
+    E:\cargo-targets = 0
+    D:\cargo-targets = 0
+
+Remaining boundary:
+  This closes the atlas shader/blend contract owner only. The full production
+  bitmap atlas renderer, real background acquisition/compositing path, alpha
+  bitmap atlas/glyphon TextAtlas cutover, and window-level typography QA remain
+  open.

@@ -1,4 +1,3 @@
-use crate::core::ModuleDescriptor;
 use crate::plugin::{PluginFeatureBundleManifest, PluginModuleKind, RuntimeExtensionRegistry};
 
 use super::{project_selection_from_feature_manifest, RuntimePluginFeatureRegistrationReport};
@@ -25,13 +24,7 @@ impl RuntimePluginFeatureRegistrationReport {
             .iter()
             .filter(|module| module.kind == PluginModuleKind::Runtime)
         {
-            if let Err(error) = extensions.register_module(ModuleDescriptor::new(
-                module.name.clone(),
-                format!(
-                    "Native dynamic runtime plugin feature module provided by {}",
-                    manifest.id
-                ),
-            )) {
+            if let Err(error) = extensions.register_module(module.module_descriptor()) {
                 diagnostics.push(error.to_string());
             }
         }

@@ -7,7 +7,8 @@ use crate::core::framework::render::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialLightingModel, RenderMaterialReadinessReport, RenderMaterialTextureTransform,
-    RenderMaterialValidationError, RenderQueueValue, StandardMaterialDescriptor,
+    RenderMaterialValidationError, RenderQueueValue, ShaderQueueDescriptor, ShaderQueueSegment,
+    StandardMaterialDescriptor,
 };
 use crate::core::resource::ResourceId;
 
@@ -28,12 +29,15 @@ use super::{
     dependency_set, is_standard_texture_slot_alias, material_control,
     shader_property_values_for_shader, validate_alpha_mode, validate_render_queue_alpha_mode,
     validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
+    ZMaterialQueueOverride,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MaterialAsset {
     pub name: Option<String>,
     pub shader: AssetReference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<AssetReference>,
     pub base_color: [f32; 4],
     pub base_color_texture: Option<AssetReference>,
     pub normal_texture: Option<AssetReference>,
@@ -49,6 +53,10 @@ pub struct MaterialAsset {
     pub property_values: BTreeMap<String, toml::Value>,
     #[serde(default)]
     pub texture_slots: BTreeMap<String, MaterialTextureSlotValue>,
+    #[serde(default)]
+    pub options: BTreeMap<String, toml::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub queue: Option<ZMaterialQueueOverride>,
     #[serde(default)]
     pub validation_diagnostics: Vec<String>,
 }
@@ -90,6 +98,7 @@ impl MaterialAsset {
         Self {
             name: document.name,
             shader: document.shader,
+            parent: document.parent,
             base_color,
             base_color_texture,
             normal_texture,
@@ -103,17 +112,22 @@ impl MaterialAsset {
             double_sided,
             property_values: document.overrides,
             texture_slots: document.textures,
+            options: document.options,
+            queue: document.queue,
             validation_diagnostics: document.validation_diagnostics,
         }
     }
 
     pub fn to_zmaterial_document(&self) -> ZMaterialDocument {
         ZMaterialDocument {
-            version: 1,
+            version: 2,
             name: self.name.clone(),
             shader: self.shader.clone(),
+            parent: self.parent.clone(),
+            options: self.options.clone(),
             overrides: self.property_overrides_with_schema_v1_defaults(),
             textures: self.texture_slots_with_schema_v1_defaults(),
+            queue: self.queue,
             editor: toml::Table::new(),
             validation_diagnostics: self.validation_diagnostics.clone(),
         }
@@ -132,6 +146,9 @@ impl MaterialAsset {
         errors.extend(validate_render_queue_alpha_mode(
             &self.alpha_mode,
             self.render_queue_from_property(),
+        ));
+        errors.extend(super::validation::validate_material_queue_override(
+            self.queue,
         ));
         errors.extend(material_control::validation_errors(&self.property_values));
         errors
@@ -295,6 +312,19 @@ impl MaterialAsset {
         shader: &ShaderAsset,
     ) -> StandardMaterialDescriptor {
         let mut descriptor = self.standard_material_descriptor();
+        if let Some(lighting_model) = shader
+            .shading_model
+            .as_deref()
+            .and_then(|token| token.parse::<RenderMaterialLightingModel>().ok())
+        {
+            descriptor.unlit = lighting_model.is_unlit();
+            descriptor.lighting_model = lighting_model;
+        }
+        if let Some(queue) = shader.queue {
+            descriptor.render_queue_value = Some(shader_queue_value(queue));
+            descriptor.material_queue =
+                i32::from(self.queue.map(|queue| queue.offset).unwrap_or(0));
+        }
         if let Some(slot) = self.shader_texture_slot(
             shader,
             &["base_color", "base_color_texture", "albedo", "diffuse"],
@@ -355,6 +385,31 @@ impl MaterialAsset {
 
     pub fn property_overrides(&self) -> &BTreeMap<String, toml::Value> {
         &self.property_values
+    }
+
+    pub fn material_option_values(&self) -> &BTreeMap<String, toml::Value> {
+        &self.options
+    }
+
+    pub fn material_option_bits_for_shader(&self, shader: &ShaderAsset) -> u32 {
+        shader
+            .material_option_table
+            .bits_for_values(self.material_option_values())
+    }
+
+    pub fn inherit_parent_values_from(&mut self, parent: &MaterialAsset) {
+        let child = self.clone();
+        *self = parent.clone();
+        self.name = child.name.or_else(|| parent.name.clone());
+        self.shader = child.shader;
+        self.parent = child.parent;
+        self.property_values.extend(child.property_values);
+        self.texture_slots.extend(child.texture_slots);
+        self.options.extend(child.options);
+        self.queue = child.queue.or(parent.queue);
+        self.validation_diagnostics
+            .extend(child.validation_diagnostics);
+        self.refresh_standard_projection();
     }
 
     pub fn shader_property_overrides(&self) -> impl Iterator<Item = (&String, &toml::Value)> {
@@ -509,6 +564,43 @@ impl MaterialAsset {
         material_control::sync_material_control_overrides(&mut overrides, &self.property_values);
         overrides
     }
+
+    fn refresh_standard_projection(&mut self) {
+        self.base_color =
+            override_vec4(&self.property_values, "base_color").unwrap_or([1.0, 1.0, 1.0, 1.0]);
+        self.metallic = override_f32(&self.property_values, "metallic").unwrap_or(0.0);
+        self.roughness = override_f32(&self.property_values, "roughness").unwrap_or(1.0);
+        self.emissive = override_vec3(&self.property_values, "emissive").unwrap_or([0.0, 0.0, 0.0]);
+        self.alpha_mode = self
+            .property_values
+            .get("alpha_mode")
+            .and_then(|value| value.clone().try_into().ok())
+            .unwrap_or(AlphaMode::Opaque);
+        self.double_sided = override_bool(&self.property_values, "double_sided").unwrap_or(false);
+        self.base_color_texture = texture_slot_reference(&self.texture_slots, "base_color")
+            .or_else(|| texture_slot_reference(&self.texture_slots, "base_color_texture"));
+        self.normal_texture = texture_slot_reference(&self.texture_slots, "normal")
+            .or_else(|| texture_slot_reference(&self.texture_slots, "normal_texture"));
+        self.metallic_roughness_texture =
+            texture_slot_reference(&self.texture_slots, "metallic_roughness").or_else(|| {
+                texture_slot_reference(&self.texture_slots, "metallic_roughness_texture")
+            });
+        self.occlusion_texture = texture_slot_reference(&self.texture_slots, "occlusion")
+            .or_else(|| texture_slot_reference(&self.texture_slots, "occlusion_texture"));
+        self.emissive_texture = texture_slot_reference(&self.texture_slots, "emissive")
+            .or_else(|| texture_slot_reference(&self.texture_slots, "emissive_texture"));
+    }
+}
+
+fn shader_queue_value(queue: ShaderQueueDescriptor) -> RenderQueueValue {
+    let base = match queue.segment {
+        ShaderQueueSegment::Background => RenderQueueValue::BACKGROUND,
+        ShaderQueueSegment::Opaque => RenderQueueValue::GEOMETRY,
+        ShaderQueueSegment::AlphaTest => RenderQueueValue::ALPHA_TEST,
+        ShaderQueueSegment::Transparent => RenderQueueValue::TRANSPARENT,
+        ShaderQueueSegment::Overlay => RenderQueueValue::OVERLAY,
+    };
+    base.with_material_offset(queue.offset)
 }
 
 impl MaterialAsset {

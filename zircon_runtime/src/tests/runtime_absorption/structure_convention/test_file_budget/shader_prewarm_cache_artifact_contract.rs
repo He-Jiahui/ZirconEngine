@@ -16,10 +16,13 @@ const WRITTEN_VARIANT_UNIQUENESS_STATUS: &str =
     "render_plan08_build_tool_written_variant_uniqueness_contract_python_passed_cargo_deferred";
 const CACHE_METADATA_FIELD_TYPE_STATUS: &str =
     "render_plan08_build_tool_cache_metadata_field_type_contract_python_passed_cargo_deferred";
+const SOURCE_LABEL_TRIM_STATUS: &str =
+    "render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
     let build = read_repo("tools/zircon_build.py");
+    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
     let prewarm_report =
         read_repo("zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs");
     let prewarm_write_path =
@@ -27,6 +30,7 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
     let cache_contract = read_repo("tools/zircon_build_shader_prewarm_cache_artifacts.py");
     let written_variants_helper =
         read_repo("tools/zircon_build_shader_prewarm_written_variants.py");
+    let cache_contract_sources = format!("{cache_contract}\n{written_variants_helper}");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let cache_contract_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_cache_contract.py");
@@ -39,17 +43,17 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
     let session = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(
-        "build helper validates staged shader cache artifacts after successful prewarm",
-        &build,
+        "staged acceptance helper validates shader cache artifacts after successful prewarm",
+        &(build + &acceptance_helper),
         &[
             "validate_shader_prewarm_cache_artifact_contract",
             "config.shader_prewarm_cache_root",
             "report_path=config.shader_prewarm_report_path",
-            "expected_pass_types=_PRODUCT_BASE_MESH_PASS_TYPES",
+            "expected_pass_types=_PRODUCT_MATERIAL_MESH_PASS_TYPES",
             "expected_quality_tiers=config.shader_quality_tiers",
             "expected_geometry_sources=config.shader_geometry_sources",
-            "expected_geometry_source_ids=shader_geometry_source_id_specs(config)",
-            "expected_shading_model_ids=shader_shading_model_id_specs(config)",
+            "expected_geometry_source_ids=expected_geometry_source_ids",
+            "expected_shading_model_ids=expected_shading_model_ids",
         ],
     );
     assert_contains_all(
@@ -79,7 +83,7 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
     );
     assert_contains_all(
         "cache artifact contract helper checks written report count against disk pairs",
-        &cache_contract,
+        &cache_contract_sources,
         &[
             "def validate_shader_prewarm_cache_artifact_contract(",
             "expected_pass_types: Sequence[str] = ()",
@@ -152,8 +156,10 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
             "def validate_cache_hash_shape(",
             "def validate_written_variant_source_labels(",
             "def _source_provenance_labels(",
+            "def _is_trimmed_nonblank_string(",
             "_BLAKE3_HEX_LENGTH = 64",
             "source_label: str | None",
+            "invalid source_label",
             "duplicate written cache variant identity",
             "cache_hash=",
             "canonical_string=",
@@ -163,7 +169,7 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
         "python regressions cover artifact contract and build handoff",
         &(build_prewarm_tests + &cache_contract_tests),
         &[
-            "test_prewarm_shaders_validates_wgpu_report_after_success",
+            "test_prewarm_shaders_validates_staged_acceptance_after_success",
             "test_validate_cache_artifact_contract_requires_written_cache_pairs",
             "test_validate_cache_artifact_contract_rejects_orphan_wgsl_artifacts",
             "test_validate_cache_artifact_contract_rejects_invalid_metadata",
@@ -183,6 +189,7 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
             "test_validate_cache_artifact_contract_requires_requested_dimension_combinations",
             "test_validate_cache_artifact_contract_requires_requested_custom_id_combinations",
             "test_validate_cache_artifact_contract_requires_written_variant_source_labels_in_provenance",
+            "test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label",
             "test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity",
             "test_validate_cache_artifact_contract_requires_requested_custom_ids",
             "test_validate_cache_artifact_contract_requires_requested_shading_ids",
@@ -251,6 +258,8 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
                 WRITTEN_VARIANT_UNIQUENESS_STATUS,
                 "Build-tool cache metadata field type contract",
                 CACHE_METADATA_FIELD_TYPE_STATUS,
+                "Build-tool source-label trim contract",
+                SOURCE_LABEL_TRIM_STATUS,
                 "render_shader_variant_prewarm_custom_ids_survive_disk_lookup",
                 "render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root",
                 "test_validate_cache_artifact_contract_requires_written_cache_pairs",
@@ -266,6 +275,9 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
                 "test_validate_cache_artifact_contract_requires_requested_dimension_combinations",
                 "test_validate_cache_artifact_contract_requires_requested_custom_id_combinations",
                 "test_validate_cache_artifact_contract_requires_written_variant_source_labels_in_provenance",
+                "test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label",
+                "test_validate_report_contract_rejects_untrimmed_source_provenance_strings",
+                "test_acceptance_contract_rejects_untrimmed_written_variant_source_label",
                 "test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity",
                 "test_acceptance_contract_rejects_duplicate_written_variant_identity",
                 "tools/zircon_build_shader_prewarm_written_variants.py",

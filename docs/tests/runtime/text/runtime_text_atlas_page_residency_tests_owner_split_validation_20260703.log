@@ -1,0 +1,41 @@
+runtime_text_atlas_page_residency_tests_owner_split_validation_20260703
+date: 2026-07-03
+scope: structure-only split of atlas page_residency private tests into folder-backed owner
+
+files:
+  zircon_runtime/src/graphics/text/atlas/page_residency.rs
+  zircon_runtime/src/graphics/text/atlas/page_residency/tests.rs
+
+rustfmt:
+  command: rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/page_residency.rs zircon_runtime/src/graphics/text/atlas/page_residency/tests.rs
+  exit_code: 0
+  output: <empty>
+
+structure_count:
+
+File                                                           Lines Tests TestHooks
+----                                                           ----- ----- ---------
+zircon_runtime\src\graphics\text\atlas\page_residency.rs         144     0         1
+zircon_runtime\src\graphics\text\atlas\page_residency\tests.rs    86     4         0
+
+manual_trailing_whitespace_scan:
+PASS no trailing whitespace in untracked owner paths
+
+cargo_status:
+  focused Cargo deferred because external cargo/rustc lanes were active; no Cargo green is claimed for this slice.
+
+ProcessName    Id   CPU StartTime
+-----------    --   --- ---------
+cargo       18928 15.61 2026/7/3 周五 22:26:43
+cargo       28064  0.05 2026/7/3 周五 22:26:43
+cargo       41844 10.88 2026/7/3 周五 22:47:48
+cargo       46920  0.06 2026/7/3 周五 22:47:48
+rustc        1612  5.94 2026/7/3 周五 22:58:04
+rustc       18500 16.41 2026/7/3 周五 22:57:52
+
+proof_artifact_target_scan:
+PASS same-name proof artifacts not found under target roots
+
+preview_image:
+  path: docs/tests/runtime/text/runtime_text_atlas_page_residency_tests_owner_split_preview_20260703.png
+  sha256: 07E5D89ECA47836C4BDDB82BE0E80A5611868B4186905AAFCF4BF7031F8CFBBB

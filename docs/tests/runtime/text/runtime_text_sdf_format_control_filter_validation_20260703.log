@@ -1,0 +1,28 @@
+Runtime text SDF format-control glyph filtering validation
+Date: 2026-07-03
+Workspace: E:\Git\ZirconEngine
+
+Slice intent
+- Keep Unicode format controls in the SDF scalar run for index parity.
+- Prevent invisible format controls such as ZWJ, zero-width controls, bidi controls, and variation selectors from allocating SDF atlas slots.
+- Ensure fallback measurement contributes 0.0 advance for invisible format controls when resolved layout advances are unavailable.
+
+Implementation files
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_char_run.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
+
+Static verification
+- PASS: rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_char_run.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs
+
+Deferred runtime verification
+- Cargo test was not started in this slice because active cargo/rustc processes were already running in the shared workspace around 2026-07-03 10:38 +08:00.
+- Deferred focused tests: zircon_runtime scene_renderer::ui::sdf_char_run, sdf_atlas, and sdf_render tests.
+
+Visual proof
+- Preview: docs/tests/runtime/text/runtime_text_sdf_format_control_filter_preview_20260703.png
+- Preview SHA256: 44E8F6F622C2C1648EA8AF71D2FD8F51359A2F09EB44CC99DB44FA517E0D924E
+- Target scan for same preview/log names: no matching files reported under target roots.

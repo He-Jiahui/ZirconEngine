@@ -236,7 +236,7 @@ fn assert_line_budgets(sources: &TopLevelMapSources) {
             sources.status_runtime_15_m4_surface_cleanup.as_str(),
         ),
         (
-            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
             sources.status_runtime_15_m3_structure_support.as_str(),
         ),
         (
@@ -276,7 +276,7 @@ fn assert_line_budgets(sources: &TopLevelMapSources) {
             sources.date_runtime_15_m4_surface_cleanup.as_str(),
         ),
         (
-            "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
             sources.date_runtime_15_m3_structure_support.as_str(),
         ),
         (

@@ -6,13 +6,13 @@ use crate::asset::{
     ShaderTextureSlotAsset, TextureAsset, TextureAssetDescriptor,
 };
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialFallbackReason, RenderMaterialLightingModel,
-    RenderMaterialPropertyValue, RenderMaterialTextureSlotFallbackReason,
-    RenderMaterialTextureTransform, RenderMaterialValidationError,
-    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
-    RenderShaderBindingResourceType, RenderShaderDefinitionValue,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, SHADING_MODEL_ID_BLINN_PHONG,
-    SHADING_MODEL_ID_STANDARD_PBR,
+    MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialFallbackReason,
+    RenderMaterialLightingModel, RenderMaterialPropertyValue,
+    RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureTransform,
+    RenderMaterialValidationError, RenderShaderBindGroupLayoutDescriptor,
+    RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, ShaderAssetKind,
+    SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::resource::{
     MaterialMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -36,6 +36,9 @@ fn material_with_refs(shader_uri: &str, base_color_texture_uri: Option<&str>) ->
     MaterialAsset {
         name: Some("StreamerMissingRefs".to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: base_color_texture_uri.map(asset_reference),
         normal_texture: None,
@@ -57,6 +60,9 @@ fn pbr_material_with_all_texture_slots() -> MaterialAsset {
     MaterialAsset {
         name: Some("PbrKey".to_string()),
         shader: asset_reference("builtin://shader/pbr.wgsl"),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [0.25, 0.5, 0.75, 0.8],
         base_color_texture: Some(asset_reference("res://textures/base.png")),
         normal_texture: Some(asset_reference("res://textures/normal.png")),
@@ -129,6 +135,7 @@ fn container_texture(uri: &str) -> TextureAsset {
 fn wgsl_shader(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(1.0); }".to_string(),
         wgsl_source: "".to_string(),
@@ -139,7 +146,16 @@ fn wgsl_shader(uri: &str) -> ShaderAsset {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
@@ -156,6 +172,8 @@ fn shader_with_texture_slot(uri: &str, slot: &str) -> ShaderAsset {
         sampler: Some("linear_repeat".to_string()),
         group: None,
         label: None,
+        option: None,
+        st: false,
         editor: Default::default(),
     }];
     shader
@@ -177,6 +195,7 @@ fn shader_with_property_schema(uri: &str) -> ShaderAsset {
             ])),
         ),
     ];
+    shader.regenerate_material_artifact();
     shader
 }
 
@@ -194,8 +213,11 @@ fn shader_with_required_material_contract(uri: &str) -> ShaderAsset {
         sampler: Some("linear_repeat".to_string()),
         group: None,
         label: None,
+        option: None,
+        st: false,
         editor: Default::default(),
     }];
+    shader.regenerate_material_artifact();
     shader
 }
 
@@ -206,7 +228,7 @@ fn shader_property(
 ) -> crate::asset::ShaderMaterialPropertyAsset {
     crate::asset::ShaderMaterialPropertyAsset {
         name: name.to_string(),
-        kind: kind.to_string(),
+        kind: MaterialPropertyKind::parse_token(kind).expect("test property kind is supported"),
         required: default.is_none(),
         default,
         editor: Default::default(),
@@ -216,6 +238,7 @@ fn shader_property(
 fn glsl_without_runtime_wgsl(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Glsl,
         source: "void main() {}".to_string(),
         wgsl_source: "".to_string(),
@@ -226,7 +249,16 @@ fn glsl_without_runtime_wgsl(uri: &str) -> ShaderAsset {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),

@@ -43,6 +43,8 @@ pub struct ShaderVariantPrewarmReport {
     #[serde(default)]
     pub wgpu_module_validation: ShaderVariantPrewarmWgpuModuleValidationSummary,
     #[serde(default)]
+    pub wgpu_pipeline_validation: ShaderVariantPrewarmWgpuPipelineValidationSummary,
+    #[serde(default)]
     pub dimension_summary: ShaderVariantPrewarmDimensionSummary,
     #[serde(default)]
     pub source_provenance: ShaderVariantPrewarmSourceProvenanceSummary,
@@ -132,10 +134,36 @@ impl ShaderVariantPrewarmReport {
     pub fn record_wgpu_module_validation_skipped(&mut self) {
         self.wgpu_module_validation.skipped_count += 1;
     }
+
+    pub fn enable_wgpu_pipeline_validation(&mut self, requested_count: usize) {
+        self.wgpu_pipeline_validation.enabled = true;
+        self.wgpu_pipeline_validation.requested_count = requested_count;
+    }
+
+    pub fn record_wgpu_pipeline_validation_passed(&mut self) {
+        self.wgpu_pipeline_validation.validated_count += 1;
+    }
+
+    pub fn record_wgpu_pipeline_validation_failed(&mut self) {
+        self.wgpu_pipeline_validation.failed_count += 1;
+    }
+
+    pub fn record_wgpu_pipeline_validation_skipped(&mut self) {
+        self.wgpu_pipeline_validation.skipped_count += 1;
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ShaderVariantPrewarmWgpuModuleValidationSummary {
+    pub enabled: bool,
+    pub requested_count: usize,
+    pub validated_count: usize,
+    pub failed_count: usize,
+    pub skipped_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ShaderVariantPrewarmWgpuPipelineValidationSummary {
     pub enabled: bool,
     pub requested_count: usize,
     pub validated_count: usize,

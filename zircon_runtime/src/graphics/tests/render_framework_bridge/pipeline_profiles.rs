@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use super::*;
 
 #[test]
@@ -7,23 +9,67 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
-
-    server
-        .submit_frame_extract(viewport, test_extract())
+    let extract = test_extract();
+    let expected_pipeline = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_async_compute(false),
+        )
         .unwrap();
+
+    server.submit_frame_extract(viewport, extract).unwrap();
     let stats = server.query_stats().unwrap();
+    let executed_passes = stats
+        .last_graph_executed_passes
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let expected_executed_fallback_pass_count = expected_pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| {
+            executed_passes.contains(pass.name.as_str()) && pass.declared_queue != pass.queue
+        })
+        .count();
+    let expected_executed_compute_workload_count = expected_pipeline
+        .graph
+        .passes()
+        .iter()
+        .filter(|pass| {
+            executed_passes.contains(pass.name.as_str()) && pass.compute_workload.is_some()
+        })
+        .count();
 
     assert!(!stats.capabilities.supports_async_compute);
     assert_eq!(stats.last_async_compute_pass_count, 0);
-    assert_eq!(stats.last_graph_queue_fallback_pass_count, 2);
-    assert_eq!(stats.last_graph_compute_dispatch_count, 2);
+    assert!(expected_executed_fallback_pass_count > 0);
+    assert_eq!(
+        stats.last_graph_queue_fallback_pass_count,
+        expected_executed_fallback_pass_count
+    );
+    assert!(expected_executed_compute_workload_count > 0);
+    assert_eq!(
+        stats.last_graph_compute_dispatch_count,
+        expected_executed_compute_workload_count
+    );
     assert!(
         stats.last_graph_compute_dispatch_group_count > 0,
         "clustered lighting and HZB should record concrete compute dispatch group evidence"
     );
-    assert_eq!(stats.last_graph_compute_storage_write_resource_count, 2);
-    assert_eq!(stats.last_graph_compute_planned_workload_count, 2);
-    assert_eq!(stats.last_graph_compute_matched_workload_count, 2);
+    assert!(
+        stats.last_graph_compute_storage_write_resource_count
+            >= expected_executed_compute_workload_count,
+        "each executed compute workload should record at least one storage write resource"
+    );
+    assert_eq!(
+        stats.last_graph_compute_planned_workload_count,
+        expected_executed_compute_workload_count
+    );
+    assert_eq!(
+        stats.last_graph_compute_matched_workload_count,
+        expected_executed_compute_workload_count
+    );
     assert_eq!(stats.last_graph_compute_missing_dispatch_count, 0);
     assert_eq!(stats.last_graph_compute_workload_mismatch_count, 0);
     assert_eq!(stats.last_graph_compute_unexpected_dispatch_count, 0);

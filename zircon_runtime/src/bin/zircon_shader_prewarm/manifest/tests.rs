@@ -1,25 +1,25 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
 use zircon_runtime::core::framework::render::{
-    GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShadingModelId,
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderDefinitionValue,
+    ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShadingModelId,
     GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
     SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
 };
-use zircon_runtime::core::resource::{
-    ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceState,
-};
+
+mod asset_scan_errors;
+mod io;
+mod module_dependencies;
+mod resource_registry;
 
 use super::{
     asset_root_manifest, asset_root_manifest_for_quality_tiers_and_geometry_sources,
     asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_ids,
-    asset_root_manifest_with_resource_registry_revisions,
     builtin_fallback_manifest_for_quality_tiers_and_geometry_sources,
-    resource_registry::{
-        shader_resource_records_from_asset_root, shader_resource_records_from_manager,
-        ShaderPrewarmResourceRegistryOverlay,
-    },
+    builtin_fallback_manifest_for_quality_tiers_geometry_sources_and_descriptors,
 };
 
 const BUILTIN_MATERIAL_PASS_TYPES: [ShaderPassType; 6] = [
@@ -39,6 +39,7 @@ fn shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources()
             GEOMETRY_SOURCE_ID_STATIC_MESH,
             GEOMETRY_SOURCE_ID_SKINNED_MESH,
         ],
+        &BTreeMap::new(),
     );
 
     assert_eq!(manifest.variants.len(), 24);
@@ -127,16 +128,10 @@ source_hash = "scan-test-hash"
     .unwrap();
     fs::write(
         root.join("shaders/example/example.zshader"),
-        r#"version = 1
+        r#"version = 2
+kind = "surface"
 wgsl_files = ["base.wgsl", "variant.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
+shading_model = "standard_pbr"
 "#,
     )
     .unwrap();
@@ -149,7 +144,7 @@ stage = "fragment"
     fs::create_dir_all(root.join("materials")).unwrap();
     fs::write(
         root.join("materials/example.zmaterial"),
-        r#"version = 1
+        r#"version = 2
 name = "Example"
 
 [shader]
@@ -168,7 +163,7 @@ cutoff = 0.5
     .unwrap();
     fs::write(
         root.join("materials/transparent.zmaterial"),
-        r#"version = 1
+        r#"version = 2
 name = "Transparent"
 
 [shader]
@@ -187,7 +182,7 @@ mode = "blend"
 
     let manifest = asset_root_manifest(&root).unwrap();
 
-    assert_eq!(manifest.variants.len(), 11);
+    assert_eq!(manifest.variants.len(), 13);
     let request = &manifest.variants[0];
     assert_eq!(request.source_label, "res://shaders/example");
     assert!(request.wgsl_source.contains("fn base() {}"));
@@ -201,37 +196,175 @@ mode = "blend"
         .map(|request| request.key.pass_type.token())
         .collect::<Vec<_>>();
     assert_eq!(
-        &passes[..5],
-        vec!["forward", "gbuffer", "depth_prepass", "shadow", "velocity"]
+        &passes[..6],
+        vec![
+            "forward",
+            "gbuffer",
+            "depth_prepass",
+            "shadow",
+            "velocity",
+            "taa_reactive_mask"
+        ]
     );
     assert_eq!(
-        &passes[5..10],
-        vec!["forward", "gbuffer", "depth_prepass", "shadow", "velocity"]
+        &passes[6..12],
+        vec![
+            "forward",
+            "gbuffer",
+            "depth_prepass",
+            "shadow",
+            "velocity",
+            "taa_reactive_mask"
+        ]
     );
-    assert_eq!(passes[10], "forward");
+    assert_eq!(passes[12], "forward");
     let material_feature_bits = ShaderFeatureBits::ALPHA_TEST
         | ShaderFeatureBits::DOUBLE_SIDED
         | ShaderFeatureBits::RECEIVE_SHADOWS;
-    assert!(manifest.variants[..5]
+    assert!(manifest.variants[..6]
         .iter()
         .all(|request| request.key.features.bits() == 0));
-    assert!(manifest.variants[..5]
+    assert!(manifest.variants[..6]
         .iter()
         .all(|request| request.key.shading_model == SHADING_MODEL_ID_STANDARD_PBR));
-    assert!(manifest.variants[5..10]
+    assert!(manifest.variants[6..12]
         .iter()
         .all(|request| request.key.features.bits() == material_feature_bits));
-    assert!(manifest.variants[5..10]
+    assert!(manifest.variants[6..12]
         .iter()
         .all(|request| request.key.shading_model == SHADING_MODEL_ID_BLINN_PHONG));
     assert_eq!(
-        manifest.variants[10].key.features.bits(),
+        manifest.variants[12].key.features.bits(),
         ShaderFeatureBits::DOUBLE_SIDED | ShaderFeatureBits::RECEIVE_SHADOWS
     );
     assert_eq!(
-        manifest.variants[10].key.shading_model, SHADING_MODEL_ID_UNLIT,
+        manifest.variants[12].key.shading_model, SHADING_MODEL_ID_UNLIT,
         "transparent fixture uses the built-in Unlit shading model"
     );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn shader_prewarm_asset_root_manifest_uses_sparse_material_option_keys() {
+    let root = std::env::temp_dir().join(format!(
+        "zircon_shader_prewarm_sparse_options_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("shaders/optioned")).unwrap();
+    fs::write(
+        root.join("shaders/optioned.zmeta"),
+        r#"format_version = 6
+uuid = "00000000-0000-0000-0000-000000000051"
+url = "res://shaders/optioned"
+asset_kind = "Shader"
+unit = "compound"
+source_hash = "sparse-options-hash"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/optioned/optioned.zshader"),
+        r#"version = 2
+kind = "surface"
+name = "Optioned"
+wgsl_files = ["surface.wgsl"]
+shading_model = "standard_pbr"
+
+[[properties]]
+name = "tint"
+kind = "vec4"
+default = [1.0, 1.0, 1.0, 1.0]
+
+[[options]]
+name = "clearcoat"
+kind = "bool"
+default = false
+
+[[options]]
+name = "blend_mode"
+kind = "enum"
+default = "solid"
+editor = { values = "solid, foliage, glass" }
+"#,
+    )
+    .unwrap();
+    fs::write(
+        root.join("shaders/optioned/surface.wgsl"),
+        "fn surface() {}\n",
+    )
+    .unwrap();
+    fs::create_dir_all(root.join("materials")).unwrap();
+    for (name, blend_mode) in [
+        ("foliage_a", "foliage"),
+        ("foliage_b", "foliage"),
+        ("glass", "glass"),
+    ] {
+        fs::write(
+            root.join("materials").join(format!("{name}.zmaterial")),
+            format!(
+                r#"version = 2
+name = "{name}"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000051"
+url = "res://shaders/optioned"
+
+[options]
+clearcoat = true
+blend_mode = "{blend_mode}"
+"#
+            ),
+        )
+        .unwrap();
+    }
+
+    let manifest = asset_root_manifest(&root).unwrap();
+
+    assert_eq!(
+        manifest.variants.len(),
+        18,
+        "one source-default variant set plus two unique material option sets"
+    );
+    let material_requests = manifest
+        .variants
+        .iter()
+        .filter(|request| {
+            request
+                .key
+                .features
+                .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(material_requests.len(), 12);
+    let material_option_bits = material_requests
+        .iter()
+        .map(|request| request.key.material_option_bits)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(material_option_bits, BTreeSet::from([3, 5]));
+    assert!(material_requests
+        .iter()
+        .all(|request| request.key.material_layout_hash != 0));
+
+    let source_requests = manifest
+        .variants
+        .iter()
+        .filter(|request| {
+            !request
+                .key
+                .features
+                .contains(ShaderFeatureBits::RECEIVE_SHADOWS)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(source_requests.len(), 6);
+    assert!(source_requests
+        .iter()
+        .all(|request| request.key.material_option_bits == 0));
+    assert!(source_requests
+        .iter()
+        .all(|request| request.key.material_layout_hash
+            == material_requests[0].key.material_layout_hash));
+
     let _ = fs::remove_dir_all(root);
 }
 
@@ -245,7 +378,7 @@ fn shader_prewarm_asset_root_manifest_templates_builtin_standard_material_source
     fs::create_dir_all(root.join("materials")).unwrap();
     fs::write(
         root.join("materials/builtin.zmaterial"),
-        r#"version = 1
+        r#"version = 2
 name = "Builtin"
 
 [shader]
@@ -394,7 +527,7 @@ fn shader_prewarm_asset_root_manifest_maps_custom_shading_model_plugin_ids() {
     fs::create_dir_all(root.join("materials")).unwrap();
     fs::write(
         root.join("materials/custom.zmaterial"),
-        r#"version = 1
+        r#"version = 2
 name = "Custom"
 
 [shader]
@@ -475,6 +608,38 @@ fn shader_prewarm_asset_root_manifest_expands_custom_geometry_source_plugin_ids(
 }
 
 #[test]
+fn shader_prewarm_builtin_fallback_manifest_uses_custom_geometry_source_descriptor() {
+    let custom_geometry_source = GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START);
+    let mut descriptors = BTreeMap::new();
+    descriptors.insert(custom_geometry_source, virtual_geometry_source_descriptor());
+
+    let manifest = builtin_fallback_manifest_for_quality_tiers_geometry_sources_and_descriptors(
+        &[ShaderQualityTier::Medium],
+        &[custom_geometry_source],
+        &descriptors,
+    );
+
+    assert_eq!(manifest.variants.len(), 6);
+    assert!(manifest.variants.iter().all(|request| {
+        request.key.geometry_source == custom_geometry_source
+            && request.key.geometry_source.is_plugin_range()
+            && request
+                .wgsl_source
+                .contains("// include: zr_geometry_virtual_geometry.wgsl")
+            && request
+                .wgsl_source
+                .contains("const ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY: bool = true;")
+            && request.template_revision == "zr-material-template-v1"
+    }));
+    for pass_type in BUILTIN_MATERIAL_PASS_TYPES {
+        assert!(manifest
+            .variants
+            .iter()
+            .any(|request| request.key.pass_type == pass_type));
+    }
+}
+
+#[test]
 fn shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision() {
     let root = std::env::temp_dir().join(format!(
         "zircon_shader_prewarm_zmeta_revision_{}",
@@ -495,12 +660,10 @@ source_hash = "source-hash-a"
     .unwrap();
     fs::write(
         root.join("shaders/example/example.zshader"),
-        r#"version = 1
+        r#"version = 2
+kind = "surface"
 wgsl_files = ["base.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
+shading_model = "standard_pbr"
 "#,
     )
     .unwrap();
@@ -531,184 +694,6 @@ source_hash = "source-hash-b"
         first_revision, second_revision,
         "zmeta source_hash edits must export a new shader prewarm material revision"
     );
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
-fn shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay() {
-    let root = std::env::temp_dir().join(format!(
-        "zircon_shader_prewarm_registry_revision_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(root.join("shaders")).unwrap();
-    fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
-    fs::write(
-        root.join("shaders/example.wgsl.zmeta"),
-        r#"format_version = 6
-uuid = "00000000-0000-0000-0000-000000000045"
-url = "res://shaders/example"
-asset_kind = "Shader"
-unit = "single"
-source_hash = "source-hash-registry-fallback"
-"#,
-    )
-    .unwrap();
-
-    let mut record = ResourceRecord::new(
-        ResourceId::from_stable_label("registry-shader"),
-        ResourceKind::Shader,
-        ResourceLocator::parse("res://shaders/example").unwrap(),
-    );
-    record.revision = 77;
-    let overlay = ShaderPrewarmResourceRegistryOverlay::from_records([record]);
-
-    let manifest = asset_root_manifest_with_resource_registry_revisions(
-        &root,
-        &[ShaderQualityTier::Medium],
-        &[GEOMETRY_SOURCE_ID_STATIC_MESH],
-        &BTreeMap::new(),
-        Some(&overlay),
-    )
-    .unwrap();
-
-    assert_eq!(manifest.variants.len(), 6);
-    assert!(manifest
-        .variants
-        .iter()
-        .all(|request| request.key.material_revision == 77));
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
-fn shader_prewarm_asset_root_exports_shader_resource_records() {
-    let root = std::env::temp_dir().join(format!(
-        "zircon_shader_prewarm_registry_export_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(root.join("shaders")).unwrap();
-    fs::write(root.join("shaders/example.wgsl"), "fn example() {}\n").unwrap();
-    fs::write(
-        root.join("shaders/example.wgsl.zmeta"),
-        r#"format_version = 6
-uuid = "00000000-0000-0000-0000-000000000046"
-url = "res://shaders/example"
-asset_kind = "Shader"
-unit = "single"
-source_hash = "source-hash-registry-export"
-"#,
-    )
-    .unwrap();
-
-    let records = shader_resource_records_from_asset_root(&root).unwrap();
-
-    assert_eq!(records.len(), 1);
-    let record = &records[0];
-    assert_eq!(record.kind, ResourceKind::Shader);
-    assert_eq!(record.state, ResourceState::Ready);
-    assert_eq!(
-        record.primary_locator,
-        ResourceLocator::parse("res://shaders/example").unwrap()
-    );
-    assert_ne!(record.revision, 0);
-
-    let overlay = ShaderPrewarmResourceRegistryOverlay::from_records(records.clone());
-    let manifest = asset_root_manifest_with_resource_registry_revisions(
-        &root,
-        &[ShaderQualityTier::Medium],
-        &[GEOMETRY_SOURCE_ID_STATIC_MESH],
-        &BTreeMap::new(),
-        Some(&overlay),
-    )
-    .unwrap();
-
-    assert_eq!(manifest.variants.len(), 6);
-    assert!(manifest
-        .variants
-        .iter()
-        .all(|request| request.key.material_revision == record.revision));
-    let _ = fs::remove_dir_all(root);
-}
-
-#[derive(Debug)]
-struct ShaderPayload;
-
-#[test]
-fn shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions() {
-    let root = std::env::temp_dir().join(format!(
-        "zircon_shader_prewarm_live_registry_export_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(root.join("shaders")).unwrap();
-    fs::write(root.join("shaders/live.wgsl"), "fn live() {}\n").unwrap();
-    fs::write(
-        root.join("shaders/live.wgsl.zmeta"),
-        r#"format_version = 6
-uuid = "00000000-0000-0000-0000-000000000047"
-url = "res://shaders/live"
-asset_kind = "Shader"
-unit = "single"
-source_hash = "source-hash-live-manager-fallback"
-"#,
-    )
-    .unwrap();
-
-    let manager = ResourceManager::new();
-    let live_locator = ResourceLocator::parse("res://shaders/live").unwrap();
-    let live_id = ResourceId::from_locator(&live_locator);
-    manager.register_ready(
-        ResourceRecord::new(live_id, ResourceKind::Shader, live_locator.clone())
-            .with_source_hash("live-manager-shader-a"),
-        ShaderPayload,
-    );
-    manager.register_ready(
-        ResourceRecord::new(live_id, ResourceKind::Shader, live_locator)
-            .with_source_hash("live-manager-shader-b"),
-        ShaderPayload,
-    );
-    let model_locator = ResourceLocator::parse("res://models/mesh.glb").unwrap();
-    manager.register_ready(
-        ResourceRecord::new(
-            ResourceId::from_locator(&model_locator),
-            ResourceKind::Model,
-            model_locator,
-        )
-        .with_source_hash("live-manager-model"),
-        ShaderPayload,
-    );
-    let pending_locator = ResourceLocator::parse("res://shaders/pending").unwrap();
-    manager.register_record(ResourceRecord::new(
-        ResourceId::from_locator(&pending_locator),
-        ResourceKind::Shader,
-        pending_locator,
-    ));
-
-    let records = shader_resource_records_from_manager(&manager);
-
-    assert_eq!(records.len(), 1);
-    assert_eq!(records[0].id, live_id);
-    assert_eq!(records[0].kind, ResourceKind::Shader);
-    assert_eq!(records[0].state, ResourceState::Ready);
-    assert_eq!(records[0].revision, 2);
-    let live_revision = records[0].revision;
-
-    let overlay = ShaderPrewarmResourceRegistryOverlay::from_records(records);
-    let manifest = asset_root_manifest_with_resource_registry_revisions(
-        &root,
-        &[ShaderQualityTier::Medium],
-        &[GEOMETRY_SOURCE_ID_STATIC_MESH],
-        &BTreeMap::new(),
-        Some(&overlay),
-    )
-    .unwrap();
-
-    assert_eq!(manifest.variants.len(), 6);
-    assert!(manifest
-        .variants
-        .iter()
-        .all(|request| request.key.material_revision == live_revision));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -783,4 +768,32 @@ fn shader_prewarm_asset_root_manifest_expands_requested_geometry_sources() {
         .all(|request| request.key.quality == ShaderQualityTier::Medium));
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn virtual_geometry_source_descriptor() -> GeometrySourceDescriptor {
+    GeometrySourceDescriptor {
+        id: GeometrySourceId::new(GEOMETRY_SOURCE_PLUGIN_ID_START),
+        token: "custom:virtual_geometry".to_string(),
+        wgsl_include: "zr_geometry_virtual_geometry.wgsl".to_string(),
+        vertex_attributes: vec![
+            GeometrySourceVertexAttribute::Position,
+            GeometrySourceVertexAttribute::Normal,
+            GeometrySourceVertexAttribute::Tangent,
+            GeometrySourceVertexAttribute::Uv0,
+        ],
+        required_bindings: vec![
+            GeometrySourceBindingRequirement::new(
+                GeometrySourceBindingKind::VirtualGeometryPages,
+                "virtual_geometry.pages",
+            ),
+            GeometrySourceBindingRequirement::new(
+                GeometrySourceBindingKind::VirtualGeometryClusters,
+                "virtual_geometry.clusters",
+            ),
+        ],
+        shader_defines: vec![RenderShaderDefinitionValue::bool(
+            "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY",
+            true,
+        )],
+    }
 }

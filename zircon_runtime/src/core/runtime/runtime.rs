@@ -158,6 +158,27 @@ impl CoreRuntime {
         self.handle().activate_module(module_name)
     }
 
+    pub fn activate_module_with_ready_timeout(
+        &self,
+        module_name: &str,
+        ready_timeout: Duration,
+    ) -> Result<(), CoreError> {
+        self.handle()
+            .activate_module_with_ready_timeout(module_name, ready_timeout)
+    }
+
+    pub fn activate_registered_modules(&self) -> Result<(), CoreError> {
+        self.handle().activate_registered_modules()
+    }
+
+    pub fn activate_registered_modules_with_ready_timeout(
+        &self,
+        ready_timeout: Duration,
+    ) -> Result<(), CoreError> {
+        self.handle()
+            .activate_registered_modules_with_ready_timeout(ready_timeout)
+    }
+
     pub fn deactivate_module(&self, module_name: &str) -> Result<(), CoreError> {
         self.handle().deactivate_module(module_name)
     }

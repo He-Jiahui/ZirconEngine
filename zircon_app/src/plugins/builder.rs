@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
-use zircon_runtime::core::ModuleDescriptor;
+use zircon_runtime::core::{sort_module_activation_order, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 
 pub trait PluginGroup: Sized {
@@ -16,6 +16,7 @@ pub enum PluginGroupError {
     MissingKey { group: String, key: String },
     MissingAnchor { group: String, key: String },
     DisabledAnchor { group: String, key: String },
+    ModuleOrder { group: String, reason: String },
 }
 
 impl fmt::Display for PluginGroupError {
@@ -34,6 +35,9 @@ impl fmt::Display for PluginGroupError {
                 f,
                 "plugin group {group} cannot order relative to disabled module {key}"
             ),
+            Self::ModuleOrder { group, reason } => {
+                write!(f, "plugin group {group} has invalid module order: {reason}")
+            }
         }
     }
 }
@@ -176,7 +180,8 @@ impl PluginGroupBuilder {
         Ok(self)
     }
 
-    pub fn finish(mut self) -> ResolvedPluginGroup {
+    pub fn try_finish(mut self) -> Result<ResolvedPluginGroup, PluginGroupError> {
+        let group_name = self.group_name.clone();
         let modules = self
             .order
             .into_iter()
@@ -185,10 +190,16 @@ impl PluginGroupBuilder {
                 entry.enabled.then_some(entry.module)
             })
             .collect();
-        ResolvedPluginGroup {
+        let modules = sort_group_modules(&group_name, modules)?;
+        Ok(ResolvedPluginGroup {
             name: self.group_name,
             modules,
-        }
+        })
+    }
+
+    pub fn finish(self) -> ResolvedPluginGroup {
+        self.try_finish()
+            .expect("plugin group module descriptors must sort")
     }
 
     fn enabled_anchor_index(&self, key: &str) -> Result<usize, PluginGroupError> {
@@ -228,6 +239,40 @@ impl PluginGroupBuilder {
             key,
         }
     }
+
+    fn module_order_error(group: &str, reason: String) -> PluginGroupError {
+        PluginGroupError::ModuleOrder {
+            group: group.to_owned(),
+            reason,
+        }
+    }
+}
+
+fn sort_group_modules(
+    group_name: &str,
+    modules: Vec<Arc<dyn EngineModule>>,
+) -> Result<Vec<Arc<dyn EngineModule>>, PluginGroupError> {
+    let descriptors = modules
+        .iter()
+        .map(|module| module.descriptor())
+        .collect::<Vec<_>>();
+    let order = sort_module_activation_order(&descriptors)
+        .map_err(|error| PluginGroupBuilder::module_order_error(group_name, error.to_string()))?;
+    let mut modules_by_name = modules
+        .into_iter()
+        .map(|module| (module.module_name().to_owned(), module))
+        .collect::<HashMap<_, _>>();
+    order
+        .into_iter()
+        .map(|module_name| {
+            modules_by_name.remove(&module_name).ok_or_else(|| {
+                PluginGroupBuilder::module_order_error(
+                    group_name,
+                    format!("descriptor references missing module {module_name}"),
+                )
+            })
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug)]

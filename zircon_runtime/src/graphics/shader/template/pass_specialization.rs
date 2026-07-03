@@ -1,6 +1,6 @@
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
-use super::include_registry::{light_grid_include, shadow_include, ShaderTemplateInclude};
+use super::module_registry::{light_grid_include, shadow_include, ShaderTemplateInclude};
 
 pub(crate) const MATERIAL_SHADER_TEMPLATE_REVISION: &str = "zr-material-template-v1";
 

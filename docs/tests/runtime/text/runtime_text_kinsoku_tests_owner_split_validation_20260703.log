@@ -1,0 +1,11 @@
+status=runtime_text_lb_m2_kinsoku_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+scope=LB-M2 CJK kinsoku tests owner split
+production_file=zircon_runtime/src/graphics/text/layout/kinsoku.rs
+added_file=zircon_runtime/src/graphics/text/layout/kinsoku/tests.rs
+behavior=structure-only; no kinsoku table, line-break merge, UI layout, glyph fallback, or renderer behavior changed in this slice
+rustfmt=passed for kinsoku.rs and kinsoku/tests.rs before proof generation
+cargo=deferred; active_external_lanes_count=14; active_external_lanes=cargo:744, cargo:8484, cargo:10908, cargo:31384, cargo:39040, cargo:41600, cargo:42948, cargo:44680, cargo:45732, cargo:46032, rustc:23692, rustc:25100, rustc:38868, rustc:48068
+line_counts=zircon_runtime/src/graphics/text/layout/kinsoku.rs:240/0test; zircon_runtime/src/graphics/text/layout/kinsoku/tests.rs:305/18test
+proof_png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_kinsoku_tests_owner_split_preview_20260703.png
+proof_log=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_kinsoku_tests_owner_split_validation_20260703.log

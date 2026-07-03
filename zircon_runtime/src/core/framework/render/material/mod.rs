@@ -5,6 +5,7 @@ mod diagnostic_source;
 mod fallback_policy;
 mod lighting_model;
 mod management;
+mod property_override_block;
 mod property_uniform;
 mod property_value;
 mod readiness_report;
@@ -38,6 +39,7 @@ pub use management::{
     RenderMaterialManagementSortOrder, RenderMaterialManagementStatusIndex,
     RenderMaterialManagementStatusView,
 };
+pub use property_override_block::MaterialPropertyOverrideBlock;
 pub use property_uniform::{
     RenderMaterialPropertyUniformField, RenderMaterialPropertyUniformPayload,
     RenderMaterialPropertyUniformSummary, RenderMaterialPropertyUniformUnsupported,

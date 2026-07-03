@@ -25,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_text(
     );
 }
 
-pub(in crate::ui::retained_host::host_contract) fn draw_text_with_size(
+pub(super) fn draw_text_with_size(
     frame: &mut HostRgbaFrame,
     rect: FrameRect,
     text: &str,

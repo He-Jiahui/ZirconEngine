@@ -132,10 +132,10 @@ pub fn animation_graph_dist_module_manifest() -> PluginModuleManifest {
 }
 
 fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
-    let open_graph = operation("AnimationGraph.Authoring.OpenGraph");
-    let open_state_machine = operation("AnimationGraph.Authoring.OpenStateMachine");
-    let validate = operation("AnimationGraph.Authoring.Validate");
-    let compile = operation("AnimationGraph.Authoring.Compile");
+    let open_graph = operation("animation_graph.authoring.open_graph");
+    let open_state_machine = operation("animation_graph.authoring.open_state_machine");
+    let validate = operation("animation_graph.authoring.validate");
+    let compile = operation("animation_graph.authoring.compile");
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(open_graph.clone(), "Open Animation Graph")
@@ -197,7 +197,7 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
                 "animation.state_machine",
                 ANIMATION_GRAPH_VIEW_ID,
                 "Animation State Machine",
-                operation("AnimationGraph.Authoring.OpenStateMachine"),
+                operation("animation_graph.authoring.open_state_machine"),
                 validate,
             )
             .with_compile_operation(compile)

@@ -11,6 +11,7 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
     let prewarm = read_runtime_src("graphics/shader/variant_cache/prewarm.rs");
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -67,9 +68,9 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
     );
     assert_contains_all(
         "build helper formats WGPU validation and Rust count field summaries",
-        &build_prewarm,
+        &report_contract,
         &[
-            "def _format_wgpu_module_validation(validation: object) -> str | None:",
+            "def _format_wgpu_validation(validation: object, label: str) -> str | None:",
             "wgpu_module_validation",
             "_count_value(validation, \"validated\")",
             "_count_value(validation, \"skipped\")",
@@ -99,6 +100,10 @@ fn runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired() {
         (
             "tools/zircon_build_shader_prewarm.py",
             build_prewarm.as_str(),
+        ),
+        (
+            "tools/zircon_build_shader_prewarm_report_contract.py",
+            report_contract.as_str(),
         ),
         (
             "tools/tests/test_zircon_build_shader_prewarm.py",

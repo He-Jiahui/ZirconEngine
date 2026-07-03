@@ -28,6 +28,81 @@ fn text_hit_test_uses_grapheme_midpoints() {
 }
 
 #[test]
+fn text_hit_test_uses_resolved_tab_advances() {
+    let mut style = fixed_text_style();
+    style.tab_size = 4.0;
+    let text = "a\tb";
+    let layout = layout_text(text, &style, UiFrame::new(10.0, 0.0, 120.0, 20.0), None);
+    let line = &layout.lines[0];
+
+    assert_eq!(line.glyph_advances.len(), 3);
+    let before_tab_midpoint = hit_test_text_layout(
+        &layout,
+        UiPoint::new(
+            line.frame.x + line.glyph_advances[0] + line.glyph_advances[1] * 0.25,
+            4.0,
+        ),
+    );
+    let after_tab_midpoint = hit_test_text_layout(
+        &layout,
+        UiPoint::new(
+            line.frame.x + line.glyph_advances[0] + line.glyph_advances[1] * 0.75,
+            4.0,
+        ),
+    );
+
+    assert_eq!(before_tab_midpoint.source_offset, "a".len());
+    assert_eq!(before_tab_midpoint.visual_grapheme_index, 1);
+    assert_eq!(after_tab_midpoint.source_offset, "a\t".len());
+    assert_eq!(after_tab_midpoint.visual_grapheme_index, 2);
+}
+
+#[test]
+fn text_hit_test_vertical_rl_uses_column_x_and_vertical_advances() {
+    let mut style = fixed_text_style();
+    style.wrap = UiTextWrap::Word;
+    style.text_writing_mode = zircon_runtime_interface::ui::surface::UiTextWritingMode::VerticalRl;
+    let frame_height = measure_text_size("縦書", &style).width + 0.1;
+    let layout = layout_text(
+        "縦書文",
+        &style,
+        UiFrame::new(0.0, 0.0, style.line_height * 3.0, frame_height),
+        None,
+    );
+    let first_column = &layout.lines[0];
+    let second_column = &layout.lines[1];
+
+    assert!(first_column.frame.x > second_column.frame.x);
+    assert_eq!(first_column.glyph_advances.len(), 2);
+    let before_first_midpoint = hit_test_text_layout(
+        &layout,
+        UiPoint::new(
+            first_column.frame.center().x,
+            first_column.frame.y + first_column.glyph_advances[0] * 0.25,
+        ),
+    );
+    let after_first_midpoint = hit_test_text_layout(
+        &layout,
+        UiPoint::new(
+            first_column.frame.center().x,
+            first_column.frame.y + first_column.glyph_advances[0] * 0.75,
+        ),
+    );
+    let second_column_start = hit_test_text_layout(
+        &layout,
+        UiPoint::new(second_column.frame.center().x, second_column.frame.y + 1.0),
+    );
+
+    assert_eq!(before_first_midpoint.line_index, Some(0));
+    assert_eq!(before_first_midpoint.source_offset, 0);
+    assert_eq!(before_first_midpoint.visual_grapheme_index, 0);
+    assert_eq!(after_first_midpoint.source_offset, "縦".len());
+    assert_eq!(after_first_midpoint.visual_grapheme_index, 1);
+    assert_eq!(second_column_start.line_index, Some(1));
+    assert_eq!(second_column_start.source_offset, "縦書".len());
+}
+
+#[test]
 fn text_hit_test_selects_nearest_line_and_clamps_x() {
     let style = fixed_text_style();
     let layout = layout_text("one\ntwo", &style, UiFrame::new(0.0, 0.0, 80.0, 40.0), None);

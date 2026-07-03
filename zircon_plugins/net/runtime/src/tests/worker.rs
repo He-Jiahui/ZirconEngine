@@ -27,14 +27,13 @@ fn worker_shutdown_leaves_no_tasks() {
 
 #[test]
 fn tcp_udp_service_paths_do_not_block_on_tokio_runtime() {
-    for path in [
-        "zircon_plugins/net/runtime/src/service_types/tcp.rs",
-        "zircon_plugins/net/runtime/src/service_types/udp.rs",
-    ] {
-        let source = std::fs::read_to_string(path).expect("read net service source");
+    for path in ["src/service_types/tcp.rs", "src/service_types/udp.rs"] {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
+        let source = std::fs::read_to_string(&path).expect("read net service source");
         assert!(
             !source.contains(".block_on("),
-            "{path} must route Tokio IO through worker commands instead of blocking the caller"
+            "{} must route Tokio IO through worker commands instead of blocking the caller",
+            path.display()
         );
     }
 }

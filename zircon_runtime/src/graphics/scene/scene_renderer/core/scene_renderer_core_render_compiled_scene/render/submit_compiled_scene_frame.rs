@@ -130,6 +130,7 @@ fn attach_scene_velocity_readback_stats(
     graph_execution_record.set_scene_velocity_readback_report(
         RenderSceneVelocityReadbackReport::from_raw_rg16_float_bytes(size, &bytes),
     );
+    graph_execution_record.set_scene_velocity_readback_rg16_float_bytes(bytes);
 }
 
 #[cfg(test)]

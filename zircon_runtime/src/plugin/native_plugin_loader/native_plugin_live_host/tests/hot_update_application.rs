@@ -1,5 +1,9 @@
 use super::*;
 
+use crate::asset::pack::{
+    ZrPackInputAsset, ZrPackPromotionMethod, ZrPackReader, ZrPackWriter,
+    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
+};
 use crate::plugin::BridgeOwnerTransitionMode;
 
 use std::{
@@ -143,6 +147,75 @@ fn native_runtime_hot_update_report_applies_bridge_lifecycle_to_loaded_outcomes(
         .any(|diagnostic| diagnostic.contains("native.live_host.bridge_lifecycle")));
 }
 
+#[test]
+fn native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload() {
+    let export_root = unique_hot_update_temp_dir("delta-pack-runtime");
+    write_runtime_package(&export_root, "physics", "physics_runtime");
+    write_load_manifest(
+        &export_root,
+        r#"
+[[plugins]]
+id = "physics"
+path = "plugins/physics"
+manifest = "plugins/physics/plugin.toml"
+"#,
+    );
+    let base_pack = export_root.join("packs").join("assets.zrpack");
+    let delta_pack = export_root.join("downloads").join("assets.delta.zrpd");
+    let staged_pack = export_root.join("staging").join("assets.zrpack");
+    let backup_pack = export_root.join("backup").join("assets.previous.zrpack");
+    let receipt_path = export_root.join("receipts").join("assets.install.json");
+    write_delta_update_fixture(&base_pack, &delta_pack);
+
+    let request = NativePluginRuntimeDeltaHotUpdateRequest::new(
+        &export_root,
+        &base_pack,
+        &delta_pack,
+        &staged_pack,
+        &base_pack,
+    )
+    .with_backup_pack(&backup_pack)
+    .with_receipt_path(&receipt_path);
+    let report = NativePluginLiveHost::default()
+        .hot_reload_runtime_plugins_after_delta_pack_install(request)
+        .expect("delta install should complete before manifest-driven hot update diagnostics");
+
+    assert_eq!(report.pack_install.base_pack, base_pack);
+    assert_eq!(report.pack_install.delta_pack, delta_pack);
+    assert_eq!(report.pack_promotion.backup_pack, Some(backup_pack));
+    assert_eq!(
+        report.pack_promotion.promotion_method,
+        ZrPackPromotionMethod::Renamed
+    );
+    assert_eq!(
+        report
+            .pack_install_receipt
+            .as_ref()
+            .expect("install receipt should be written")
+            .format_version,
+        ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION
+    );
+    assert_eq!(report.plugin_hot_update.runtime_plugin_ids, vec!["physics"]);
+    assert!(report.plugin_hot_update.loaded_plugin_ids.is_empty());
+    assert!(report
+        .plugin_hot_update
+        .diagnostics
+        .iter()
+        .any(|diagnostic| {
+            diagnostic.contains("native plugin physics skipped because library is missing")
+        }));
+    assert_eq!(
+        ZrPackReader::from_bytes(fs::read(&base_pack).unwrap())
+            .unwrap()
+            .read_asset("textures/changed.bin")
+            .unwrap(),
+        b"new"
+    );
+    assert!(receipt_path.exists());
+
+    let _ = fs::remove_dir_all(export_root);
+}
+
 fn write_runtime_package(export_root: &Path, plugin_id: &str, crate_name: &str) {
     write_plugin_package(export_root, plugin_id, crate_name, "runtime");
 }
@@ -202,6 +275,26 @@ fn write_load_manifest(export_root: &Path, manifest: &str) {
     let manifest_path = export_root.join("plugins").join("native_plugins.toml");
     fs::create_dir_all(manifest_path.parent().unwrap()).unwrap();
     fs::write(manifest_path, manifest.trim_start()).unwrap();
+}
+
+fn write_delta_update_fixture(base_path: &Path, delta_path: &Path) {
+    let base = ZrPackWriter::write([
+        ZrPackInputAsset::new("meshes/keep.bin", b"keep".to_vec()),
+        ZrPackInputAsset::new("textures/changed.bin", b"old".to_vec()),
+    ])
+    .unwrap();
+    let target = ZrPackWriter::write([
+        ZrPackInputAsset::new("meshes/keep.bin", b"keep".to_vec()),
+        ZrPackInputAsset::new("textures/changed.bin", b"new".to_vec()),
+    ])
+    .unwrap();
+    let base_reader = ZrPackReader::from_bytes(base.bytes.clone()).unwrap();
+    let target_reader = ZrPackReader::from_bytes(target.bytes).unwrap();
+    let delta = crate::asset::pack::ZrPackDeltaWriter::write(&base_reader, &target_reader).unwrap();
+    fs::create_dir_all(base_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(delta_path.parent().unwrap()).unwrap();
+    fs::write(base_path, base.bytes).unwrap();
+    fs::write(delta_path, delta.bytes).unwrap();
 }
 
 fn unique_hot_update_temp_dir(label: &str) -> PathBuf {

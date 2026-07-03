@@ -24,7 +24,7 @@ fn runtime_15_ui_shared_core_input_visibility_children_are_folder_backed() {
         ],
     );
     assert_eq!(
-        parent.matches("#[test]").count(),
+        parent.matches(TEST_ATTRIBUTE).count(),
         0,
         "ui/tests/shared_core/input_visibility.rs should only mount child test owners"
     );
@@ -80,7 +80,7 @@ fn runtime_15_ui_shared_core_input_visibility_children_are_folder_backed() {
         pointer_routes.as_str(),
     ]
     .into_iter()
-    .map(|source| source.matches("#[test]").count())
+    .map(|source| source.matches(TEST_ATTRIBUTE).count())
     .sum::<usize>();
     assert_eq!(
         child_test_total, 9,

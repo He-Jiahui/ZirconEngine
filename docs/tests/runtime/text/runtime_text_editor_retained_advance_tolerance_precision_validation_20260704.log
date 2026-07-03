@@ -1,0 +1,20 @@
+runtime_text_editor_retained_advance_tolerance_precision_rustfmt_static_visual_cargo_deferred
+Date: 2026-07-04 Asia/Shanghai
+Scope: retained-host editor text layout bridge
+Changed files:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+Behavior:
+- Replaced the previous per-grapheme advance tolerance window with fixed RETAINED_GLYPH_ADVANCE_TOLERANCE_PX = 0.0625.
+- Kept total run-width tolerance unchanged.
+- Added runtime_positioned_glyphs_rejects_one_eighth_pixel_tab_label_jitter for editor base.zui.
+Static validation:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs: passed.
+- Same-name target scans: repo target = 0; E:/cargo-targets = 0; D:/cargo-targets = 0.
+- Focused Cargo: deferred because external cargo/rustc lanes were already active.
+Visual proof:
+- docs/tests/runtime/text/runtime_text_editor_retained_advance_tolerance_precision_preview_20260704.png
+- PNG SHA256: B9D0783FA13003567E2C10A2176342010F8D7306F061B229E9FA926A2F2BC995
+Notes:
+- This proof image is a deterministic validation diagram, not a live editor capture.
+- Output location is docs/tests/runtime/text, not target.

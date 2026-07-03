@@ -16,6 +16,22 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 15 M3 module convention module-doc frontmatter uniqueness guard",
+        &[
+            "runtime_15_module_convention_module_doc_frontmatter_uniqueness_static_passed_cargo_deferred",
+            "docs/zircon_runtime/structure/module-convention.md",
+            "structure_convention/module_convention_gate.rs",
+            "runtime_15_module_convention_module_doc_frontmatter_has_unique_entries",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs",
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+            "related_code duplicates 0",
+            "implementation_files duplicates 0",
+            "frontmatter duplicate count 0",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
         "Runtime 15 M3 module convention gate output contract",
         &[
             "runtime_15_module_convention_gate_output_contract_static_passed_cargo_deferred",
@@ -68,6 +84,22 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "risk_count=0",
             "risks=[]",
             "runtime_15_module_convention_gate_audit_clear_is_status_locked",
+        ],
+    ),
+    (
+        "Runtime 15 M3 module convention zero-debt revalidation",
+        &[
+            "runtime_15_module_convention_zero_debt_revalidation_static_passed_cargo_timeout_no_result",
+            ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py",
+            ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py",
+            ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py",
+            "module_convention_gate classified-and-clear",
+            "migration_debt_count=0",
+            "render_scoped_migration_debt_count=0",
+            "non_render_migration_debt_count=0",
+            "large_file_ownership_gate classified-and-clear",
+            "hotspot_count=0",
+            "runtime_15_module_convention_zero_debt_revalidation_is_status_locked",
         ],
     ),
     (

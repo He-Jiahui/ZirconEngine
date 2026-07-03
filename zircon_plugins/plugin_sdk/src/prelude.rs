@@ -12,6 +12,7 @@ pub use crate::{
     SDK_API_VERSION,
 };
 pub use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
+pub use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
 pub use zircon_runtime::plugin::{
     ExportPackagingStrategy, ExportTargetPlatform, PluginMaturity, PluginModuleKind,
     PluginPackageManifest, RuntimePluginDescriptor,

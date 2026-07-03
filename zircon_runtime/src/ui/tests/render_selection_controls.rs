@@ -52,7 +52,7 @@ text = "Switch"
 checked = true
 track_width = 34.0
 track_height = 18.0
-thumb_size = 14.0
+thumb_size = 12.0
 "##,
         visible_state(),
     );
@@ -105,13 +105,13 @@ thumb_size = 14.0
             && command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(62.0, 85.0, 34.0, 18.0)
             && command.style.background_color.as_deref() == Some("#173942")
-            && command.style.border_color.as_deref() == Some("#2aa6b8")
+            && command.style.border_color.as_deref() == Some("#414b54")
     }));
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(4)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(80.0, 87.0, 14.0, 14.0)
-            && command.style.background_color.as_deref() == Some("#e8ecee")
+            && command.frame == UiFrame::new(82.0, 88.0, 12.0, 12.0)
+            && command.style.background_color.as_deref() == Some("#a4aeb4")
     }));
 }
 
@@ -258,7 +258,7 @@ foreground_color = "#ffffff"
     assert!(commands.iter().any(|command| {
         command.node_id == UiNodeId::new(4)
             && command.kind == UiRenderCommandKind::Quad
-            && command.frame == UiFrame::new(94.0, 87.0, 14.0, 14.0)
+            && command.frame == UiFrame::new(96.0, 88.0, 12.0, 12.0)
             && command.style.painter_family == UiPainterFamily::Toggle
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.background_color.as_deref() == Some("#59656c")

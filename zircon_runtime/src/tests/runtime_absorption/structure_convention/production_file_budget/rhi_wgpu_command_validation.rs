@@ -12,7 +12,7 @@ fn runtime_15_rhi_wgpu_command_validation_state_is_child_owner() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let rhi_doc = read_repo("docs/zircon_runtime/rhi/descriptors.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
 
     assert_contains_all(

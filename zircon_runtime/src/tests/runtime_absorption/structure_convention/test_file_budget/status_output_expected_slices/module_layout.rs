@@ -11,6 +11,12 @@ fn runtime_15_status_output_expected_slice_guard_child_owner_split() {
     let maps = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps.rs",
     );
+    let top_level_maps = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs",
+    );
+    let top_level_map_assertions = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs",
+    );
     let legacy_maps = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/legacy_maps.rs",
     );
@@ -21,10 +27,10 @@ fn runtime_15_status_output_expected_slice_guard_child_owner_split() {
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/status_scan.rs",
     );
     let status_runtime_15 = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
     );
     let date_runtime_15 = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
     );
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs",
@@ -63,10 +69,10 @@ fn runtime_15_status_output_expected_slice_guard_child_owner_split() {
 
     assert_contains_all(
         "expected-slice maps child owns Runtime 15 split guard",
-        &maps,
+        &format!("{top_level_maps}\n{top_level_map_assertions}"),
         &[
             "fn runtime_15_status_output_expected_slice_maps_are_child_owners",
-            "Runtime 15 status expected-slice child owns Runtime 15 status literals",
+            "Runtime 15 status expected-slice topic owners preserve representative literals",
         ],
     );
     assert_contains_all(
@@ -106,6 +112,14 @@ fn runtime_15_status_output_expected_slice_guard_child_owner_split() {
         (
             "structure_convention/test_file_budget/status_output_expected_slices/maps.rs",
             maps.as_str(),
+        ),
+        (
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs",
+            top_level_maps.as_str(),
+        ),
+        (
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs",
+            top_level_map_assertions.as_str(),
         ),
         (
             "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps.rs",

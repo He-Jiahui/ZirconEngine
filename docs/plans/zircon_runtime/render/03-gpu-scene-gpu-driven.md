@@ -480,7 +480,7 @@ impl IndirectDrawBatcher {
 
 `light_data`:`array<GpuLightData>`,本计划只负责缓冲创建、id 分配与 binding 槽;`GpuLightData` 条目布局与写入由计划 05 定义。
 
-group3 binding 编号(group0–2 语义见 §8 第 1 条;GS-M2 已完成槽位归位:material property uniform 位于 group2 binding 10,shadow receiver 采样位于 group1):
+group3 binding 编号(group0–2 语义见 §8 第 1 条;2026-07-03 SH02-SH04 已完成槽位归位:material property uniform 位于 group2 binding 0,标准贴图/采样器位于 group2 binding 1..10,shadow receiver 采样位于 group1):
 
 | binding | 资源 | 类型 | 说明 |
 |---------|------|------|------|
@@ -671,7 +671,7 @@ previous-shape buffer/velocity writer 仍归计划 06 后续切片。
 
 - `FInstanceCullingManager::BeginDeferredCulling` 在 `GPUScene.GetNumInstances() == 0` 或无 culling view 时直接跳过;`AllowBatchedBuildRenderingCommands` 同时检查 `GPUScene.IsEnabled()` 与 immediate mode —— 剔除批处理整体受 GPUScene 可用性 gate。`GetBinIndex` 按 view 的 prev-HZB 分 bin(bin 0 = `EBatchProcessingMode::UnCulled`)。对 Zircon 的意义:`IndirectDrawBatcher` 的 gate 判定(`gpu_driven_submission_supported()`)要在 batcher 构建前短路,而非提交时;HZB bin 组织归计划 04,本计划的 args buffer 以 STORAGE 用途预留其改写入口即可。
 
-跨计划冲突点备注:GS-M2 的 §8 槽位重排已移动 material property uniform(group3→group2 binding 10)与 shadow 采样(group4→group1),并把 GPUScene 落到 group3;计划 08 的 shader 模板拼接与计划 05 的 shadow 绑定应在这些既定槽位内继续填充。`sort_key` 位段与 light grid 布局本章未定义,分别归计划 09 与 05。
+跨计划冲突点备注:GS-M2 的 §8 槽位重排已把 GPUScene 落到 group3,并把 shadow 采样移动到 group1；2026-07-03 SH02-SH04 进一步把 material property uniform 归位到 group2 binding 0,标准贴图/采样器使用 group2 binding 1..10。计划 08 的 shader 模板拼接与计划 05 的 shadow 绑定应在这些既定槽位内继续填充。`sort_key` 位段与 light grid 布局本章未定义,分别归计划 09 与 05。
 
 ## 风险与回退
 

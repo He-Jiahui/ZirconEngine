@@ -1,5 +1,51 @@
+#[path = "m3_structure_support/naming_guard_maps.rs"]
+mod naming_guard_maps;
+#[path = "m3_structure_support/review_guard_maps.rs"]
+mod review_guard_maps;
+#[path = "m3_structure_support/status_support_maps.rs"]
+mod status_support_maps;
+
 pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
-    if slice == "Runtime 15 M3 graphics dead-code guard module split" {
+    if let Some(date) = review_guard_maps::expected_date_for_slice(slice)
+        .or_else(|| naming_guard_maps::expected_date_for_slice(slice))
+        .or_else(|| status_support_maps::expected_date_for_slice(slice))
+    {
+        return Some(date);
+    }
+
+    // runtime_15_foundation_guards_row_data_owner_child_split_static_passed_cargo_deferred
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/dead_code_surface.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/plugin_importer_review.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/plugin_importer_migrations.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_absorption_followups.rs
+    // runtime_15_foundation_guards_row_data_owner_is_child_backed
+    if slice == "Runtime 15 M3 foundation-guards row-data owner child split" {
+        Some("2026-07-02")
+    // runtime_15_scene_script_row_data_owner_child_split_static_passed_cargo_deferred
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/runtime_07_performance.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/script_vm_runtime.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/script_vm_gameplay_shader.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/scene_ecs_tests.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/scene_asset_world.rs
+    // runtime_15_scene_script_row_data_owner_is_child_backed
+    } else if slice == "Runtime 15 M3 scene-script row-data owner child split" {
+        Some("2026-07-02")
+    // runtime_15_lock_poison_status_row_data_owner_child_split_static_passed_cargo_deferred
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/status_rows.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/policy_guards.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/core_runtime_recovery.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/runtime_services_recovery.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/resource_render_input_recovery.rs
+    // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status/script_vm_recovery.rs
+    // runtime_15_lock_poison_status_row_data_owner_is_child_backed
+    } else if slice == "Runtime 15 M3 lock-poison status row-data owner child split" {
+        Some("2026-07-02")
+    } else if slice == "Runtime 15 M3 graphics dead-code guard module split" {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 graphics dead-code guard child-owner split" {
         Some("2026-06-23")
@@ -16,6 +62,14 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 runtime dead-code guard forbidden attribute literal cleanup" {
         Some("2026-06-24")
+    } else if slice == "Runtime 15 M3 runtime dead-code guard child-owner split" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 M3 runtime dead-code documentation anchor cleanup" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 M3 runtime dead-code module-gate status wording cleanup" {
+        Some("2026-06-29")
+    } else if slice == "Runtime 15 M3 runtime dead-code production-gate status wording cleanup" {
+        Some("2026-06-29")
     } else if slice == "Runtime 15 M3 diagnostics guard module split" {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 core framework test folder split" {
@@ -26,8 +80,14 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 lock-poison status row-data child-owner split" {
         Some("2026-06-28")
+    } else if slice == "Runtime 15 M3 asset/render/input lock-poison guard child-owner split" {
+        Some("2026-07-01")
+    } else if slice == "Runtime 15 M3 runtime services lock-poison guard child-owner split" {
+        Some("2026-07-01")
     } else if slice == "Runtime 15 M3 module-convention status row-data child-owner split" {
         Some("2026-06-28")
+    } else if slice == "Runtime 15 M3 module convention module-doc frontmatter uniqueness guard" {
+        Some("2026-07-03")
     } else if slice == "Runtime 15 M3 module convention gate output contract" {
         Some("2026-06-27")
     } else if slice == "Runtime 15 M3 module convention non-render debt guard" {
@@ -38,38 +98,10 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-27")
     } else if slice == "Runtime 15 M3 module convention gate audit-clear status mirror" {
         Some("2026-06-27")
+    } else if slice == "Runtime 15 M3 module convention zero-debt revalidation" {
+        Some("2026-06-30")
     } else if slice == "Runtime 15 M3 module convention audit script family naming cleanup" {
         Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 code review findings test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 review top-row status row-data child-owner split" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D-S7 static plugin manifest generation/parity review sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D7 core workspace dependency top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D7 core workspace dependency inheritance guard" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D8 runtime registration builder original evidence paths" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D6 RuntimePluginId open string-newtype review sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 F5/F6/F7 typed-error top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 F8/F9/F10 runtime surface top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 F13/F14 provider diagnostics top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 F17/F18 lookup/manager top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 F19 scene renderer construction top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D9 editor/runtime mirror consumer guard" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D5 editor authoring macro consumer guard" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 typed-error convergence guard child-owner split" {
-        Some("2026-06-25")
     } else if slice == "Runtime 15 M3 dynamic scene absorption guard folder split" {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 input manager test folder split" {
@@ -106,6 +138,8 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 UI boundary test folder split" {
         Some("2026-06-23")
+    } else if slice == "Runtime 15 M3 UI boundary ZUI surface projection guard sync" {
+        Some("2026-07-03")
     } else if slice == "Runtime 15 M3 UI component state test folder split" {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 UI component state keyboard test folder split" {
@@ -134,8 +168,12 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 asset project zmeta test folder split" {
         Some("2026-06-23")
+    } else if slice == "Runtime 15 M3 asset project zmeta current 12-test guard sync" {
+        Some("2026-07-03")
     } else if slice == "Runtime 15 M3 asset project manager test folder split" {
         Some("2026-06-23")
+    } else if slice == "Runtime 15 M3 asset project manager current 11-test guard sync" {
+        Some("2026-07-03")
     } else if slice == "Runtime 15 M3 asset project flow sample test folder split" {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 asset project example vampire test folder split" {
@@ -164,12 +202,28 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 no oversized test files global gate" {
         Some("2026-06-27")
+    } else if slice == "Runtime 15 M3 render product mesh-cache morph tests child-owner split" {
+        Some("2026-07-01")
+    } else if slice == "Runtime 15 M3 UI text layout folder-backed owner split" {
+        Some("2026-07-03")
     } else if slice == "Runtime 15 M3 Runtime 07 performance hotspot guard folder split" {
         Some("2026-06-23")
+    } else if slice
+        == "Runtime 15 M3 Runtime 07 owner-budget virtual-geometry guard child-owner split"
+    {
+        Some("2026-07-01")
+    } else if slice == "Runtime 15 M3 Runtime 07 owner-budget large-file gate child-owner split" {
+        Some("2026-07-01")
+    } else if slice == "Runtime 15 M3 Runtime 07 owner-budget mirror-docs child-owner split" {
+        Some("2026-07-01")
     } else if slice == "Runtime 15 M3 script VM test folder split" {
         Some("2026-06-23")
+    } else if slice == "Runtime 15 M3 script VM primary guard child-owner split" {
+        Some("2026-06-30")
     } else if slice == "Runtime 15 M3 script VM hot-reload coordinator test folder split" {
         Some("2026-06-24")
+    } else if slice == "Runtime 15 M3 script VM hot-reload guard child-owner split" {
+        Some("2026-06-30")
     } else if slice == "Runtime 15 M3 native live-host tests folder split" {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 native plugin loader real fixture test folder split" {
@@ -178,14 +232,37 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 manifest contributions test folder split" {
         Some("2026-06-24")
+    } else if slice == "Runtime 15 M3 manifest contributions runtime-family test child-owner split"
+    {
+        Some("2026-07-01")
     } else if slice == "Runtime 15 M3 runtime plugin package manifest test folder split" {
         Some("2026-06-24")
+    } else if slice
+        == "Runtime 15 M3 runtime plugin package manifest capability-status test child-owner split"
+    {
+        Some("2026-07-01")
+    } else if slice
+        == "Runtime 15 M3 runtime plugin catalog feature-dependency report test child-owner split"
+    {
+        Some("2026-07-01")
+    } else if slice == "Runtime 15 M3 runtime plugin lifecycle fixture child-owner split" {
+        Some("2026-07-03")
     } else if slice == "Runtime 15 M3 export build plan test folder split" {
         Some("2026-06-24")
+    } else if slice
+        == "Runtime 15 M3 export build plan profile feature matrix test child-owner split"
+    {
+        Some("2026-07-01")
     } else if slice == "Runtime 15 M3 export build plan platform test folder split" {
         Some("2026-06-24")
+    } else if slice
+        == "Runtime 15 M3 export build plan platform release-adapter test child-owner split"
+    {
+        Some("2026-07-01")
     } else if slice == "Runtime 15 M3 gameplay host test folder split" {
         Some("2026-06-23")
+    } else if slice == "Runtime 15 M3 script VM gameplay host guard child-owner split" {
+        Some("2026-06-30")
     } else if slice == "Runtime 15 M3 shader prewarm manifest test folder split" {
         Some("2026-06-23")
     } else if slice == "Runtime 15 M3 scene ECS schedule test folder split" {
@@ -216,124 +293,6 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 scene property paths test folder split" {
         Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 test file budget root-layout child split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 status output Runtime 15 row data split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 status output Runtime 15 foundation row data split" {
-        Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 status output Runtime 15 M2 row data split" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 support Hub project-actions tests child-owner split" {
-        Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 support Hub runtime-state tests child-owner split" {
-        Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split"
-    {
-        Some("2026-06-27")
-    } else if slice
-        == "Runtime 15 M3 editor retained-host workbench window projection tests child-owner split"
-    {
-        Some("2026-06-27")
-    } else if slice
-        == "Runtime 15 M3 editor retained-host pane data conversion projection owner guard"
-    {
-        Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 production file budget core runtime guard split" {
-        Some("2026-06-23")
-    } else if slice
-        == "Runtime 15 M3 render shader template assembly guard support child-owner split"
-    {
-        Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 shader prewarm manifest guard child-owner split" {
-        Some("2026-06-27")
-    } else if slice == "Runtime 15 M3 status output Runtime 15 M4 row data split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 status output expected-slice maps split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 status output Runtime 15 expected-slice child-owner split" {
-        Some("2026-06-25")
-    } else if slice == "Runtime 15 M3 status output expected-slice guard maps child-owner split" {
-        Some("2026-06-25")
-    } else if slice
-        == "Runtime 15 M3 status output expected-slice top-level map support child-owner split"
-    {
-        Some("2026-06-25")
-    } else if slice == "Runtime 15 M3 status output Runtime 15 M3 row data split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 test file budget root-layout status scan child split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 test file budget root-layout folder-backed guard child split"
-    {
-        Some("2026-06-24")
-    } else if slice
-        == "Runtime 15 M3 test file budget root-layout folder-backed support child-owner split"
-    {
-        Some("2026-06-25")
-    } else if slice == "Runtime 15 M3 test file budget parent guard child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 historical oversized test roots closeout" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 asset test-budget guard child-owner split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI asset test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI asset surface index test folder split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 UI asset MUI web form style test folder split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 UI asset MUI X web style test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI asset MUI web style test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI taffy layout pass test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI runtime window input pump test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI runtime window event ABI child folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 test file budget root-layout UI child split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI widget text input keyboard test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI focus navigation test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI runtime input manager test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 UI runtime input ownership test folder split" {
-        Some("2026-06-23")
-    } else if slice == "Runtime 15 M3 production file budget guard child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 status output variable evidence anchors" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 status output M3 row data child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 status output row-data guard child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 status output expected-slice legacy child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 status output expected-slice legacy group child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 status output expected-slice guard child-owner split" {
-        Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 D12 runtime helper export macro review sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D1 capability single-source review sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D10 animation/physics bridge call migration" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D11 animation/physics TestRuntime fixture migration" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D13 importer manifest parity guard" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 P0/DX priority D13 parity sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D13 importer top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 D-S8/D3 native fixture top-row closed status sync" {
-        Some("2026-06-28")
-    } else if slice == "Runtime 15 M3 P0 F1/F2/F4 top-row closed status sync" {
-        Some("2026-06-28")
     } else {
         None
     }

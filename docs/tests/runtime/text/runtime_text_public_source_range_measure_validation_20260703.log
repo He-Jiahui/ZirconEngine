@@ -1,0 +1,38 @@
+status: runtime_text_lb_m1_public_source_range_measure_rustfmt_visual_cargo_deferred
+date: 2026-07-03
+slice: LB-M1 public shaped source-range measure surface
+code:
+  - zircon_runtime/src/graphics/text/layout/measure.rs
+  - zircon_runtime/src/graphics/text/layout/mod.rs
+  - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/shaper.rs
+  - zircon_runtime/src/ui/text/mod.rs
+  - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/text_shape.rs
+behavior:
+  - added ui::surface::measure_text_source_range_width(text, style, UiTextRange)
+  - API measures source byte ranges after shaping, with kerning included
+  - invalid, reversed, or out-of-run source ranges resolve to 0.0
+  - include_kerning=false / true unkerned GPOS delta remains pending because the backend still does not expose unkerned advances
+proof_png: docs/tests/runtime/text/runtime_text_public_source_range_measure_preview_20260703.png
+proof_png_sha256: E7930642A9DD4CF02936ED97BF50BB5963E0EF00C91A6C0BA7C70D18DD6DAA08
+target_same_name_scan_count: 0
+cargo_status: deferred; existing cargo/rustc lanes were active and this slice did not start another Cargo job
+active_processes:
+
+ProcessName    Id   CPU StartTime
+-----------    --   --- ---------
+cargo       28108  0.08 2026/7/3 周五 23:35:26
+cargo       42252  0.05 2026/7/3 周五 23:49:25
+cargo       43160  0.03 2026/7/3 周五 23:52:52
+cargo       45024  7.03 2026/7/3 周五 23:40:01
+cargo       45448  8.28 2026/7/3 周五 23:49:25
+cargo       46676  0.03 2026/7/3 周五 23:40:01
+cargo       47012 13.41 2026/7/3 周五 23:35:26
+cargo       47188  8.84 2026/7/3 周五 23:52:52
+rustc       10508  1.95 2026/7/3 周五 23:57:30
+rustc       17092 12.78 2026/7/3 周五 23:57:18
+rustc       19704  2.08 2026/7/3 周五 23:57:28
+rustc       48072  1.72 2026/7/3 周五 23:57:16
+
+

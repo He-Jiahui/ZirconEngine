@@ -7,13 +7,15 @@ from pathlib import Path
 from tools.zircon_export.tests.export_test_support import (
     _compile_host_link_plan,
     _compile_host_plan,
+    _pack_binary_bytes,
+    _write_validate_report_with_strategies,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
     _native_dynamic_build_execution_report,
     _native_dynamic_build_plan_report,
     _native_dynamic_operation_audit_report,
     _native_dynamic_operation_audit_summary_report,
     _native_dynamic_package_export,
-    _pack_binary_bytes,
-    _write_validate_report_with_strategies,
 )
 from tools.zircon_export.tests.pack_test_support import (
     empty_delta_manifest,

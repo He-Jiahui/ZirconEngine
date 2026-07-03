@@ -1,8 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use crate::core::math::UVec2;
+use crate::graphics::text::atlas::{
+    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
+    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
+    GlyphAtlasShelfAllocator, GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+};
+use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 use super::render::ScreenSpaceUiTextBatch;
+use super::sdf_char_run::sdf_scalar_requires_atlas_slot;
+use super::sdf_params::SdfBakeParams;
 
 const SDF_ATLAS_SLOT_SIZE_PX: u32 = 64;
 const SDF_ATLAS_MIN_GRID_SIDE: u32 = 8;
@@ -38,11 +46,14 @@ impl SdfAtlasQuality {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct SdfAtlasPlan {
     pub(super) atlas_size: UVec2,
+    pub(super) atlas_set: GlyphAtlasSet,
     pub(super) slots: Vec<SdfAtlasSlot>,
     pub(super) runs: Vec<SdfAtlasRun>,
+    pub(super) rebuilt_pages: Vec<GlyphAtlasPageKey>,
+    pub(super) allocation_failures: Vec<SdfAtlasAllocationFailure>,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct SdfAtlasCacheReport {
     pub(super) previous_slot_count: usize,
     pub(super) current_slot_count: usize,
@@ -54,6 +65,14 @@ pub(super) struct SdfAtlasCacheReport {
     pub(super) added_slot_count: usize,
     pub(super) evicted_slot_count: usize,
     pub(super) atlas_resized: bool,
+    pub(super) dirty_rect: Option<SdfAtlasRect>,
+    pub(super) dirty_pages: Vec<SdfAtlasDirtyPageReport>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct SdfAtlasDirtyPageReport {
+    pub(super) page_key: GlyphAtlasPageKey,
+    pub(super) dirty_rect: SdfAtlasRect,
 }
 
 pub(super) struct ScreenSpaceUiSdfAtlas {
@@ -73,7 +92,22 @@ struct SdfAtlasCachedSlot {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct SdfAtlasSlot {
     pub(super) key: SdfAtlasGlyphKey,
+    pub(super) page_key: GlyphAtlasPageKey,
     pub(super) rect: SdfAtlasRect,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct SdfAtlasAllocationFailure {
+    pub(super) key: SdfAtlasGlyphKey,
+    pub(super) reason: SdfAtlasAllocationFailureReason,
+    pub(super) requested_size: UVec2,
+    pub(super) atlas_size: UVec2,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum SdfAtlasAllocationFailureReason {
+    PageLimit,
+    OversizedSlot,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -89,12 +123,23 @@ pub(super) struct SdfAtlasGlyphKey {
     pub(super) glyph: char,
     pub(super) font: Option<String>,
     pub(super) font_family: Option<String>,
-    pub(super) font_size_milli: u32,
+    pub(super) font_weight: u16,
+    pub(super) bake_params: SdfBakeParams,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct SdfAtlasRun {
     pub(super) glyph_slot_indices: Vec<Option<usize>>,
+    pub(super) glyph_failure_reasons: Vec<Option<SdfAtlasAllocationFailureReason>>,
+    pub(super) allocation_failure_count: usize,
+    pub(super) page_limit_failure_count: usize,
+    pub(super) oversized_failure_count: usize,
+}
+
+impl SdfAtlasRun {
+    pub(super) fn has_allocation_failures(&self) -> bool {
+        self.allocation_failure_count > 0
+    }
 }
 
 impl ScreenSpaceUiSdfAtlas {
@@ -136,7 +181,13 @@ impl ScreenSpaceUiSdfAtlas {
     }
 
     pub(super) fn cache_report(&self) -> SdfAtlasCacheReport {
-        self.last_report
+        self.last_report.clone()
+    }
+
+    pub(super) fn discard_cached_slots_not_in_texts(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
+        let (current_keys, _) = collect_sdf_atlas_text_keys(texts);
+        self.cached_slots
+            .retain(|slot| current_keys.contains(&slot.key));
     }
 
     #[cfg(test)]
@@ -228,24 +279,37 @@ fn cache_report_for_plan_transition(
         .iter()
         .map(|slot| slot.key.clone())
         .collect::<BTreeSet<_>>();
-    let previous_rects = previous
+    let previous_slots = previous
         .slots
         .iter()
-        .map(|slot| (slot.key.clone(), slot.rect))
+        .map(|slot| (slot.key.clone(), (slot.page_key, slot.rect)))
         .collect::<BTreeMap<_, _>>();
-    let current_rects = current
+    let current_slots = current
         .slots
         .iter()
-        .map(|slot| (slot.key.clone(), slot.rect))
+        .map(|slot| (slot.key.clone(), (slot.page_key, slot.rect)))
         .collect::<BTreeMap<_, _>>();
     let retained_slot_count = current_keys.intersection(&previous_keys).count();
     let stable_slot_count = current_keys
         .intersection(&previous_keys)
-        .filter(|key| previous_rects.get(*key) == current_rects.get(*key))
+        .filter(|key| previous_slots.get(*key) == current_slots.get(*key))
         .count();
     let relocated_slot_count = retained_slot_count.saturating_sub(stable_slot_count);
     let added_slot_count = current_keys.difference(&previous_keys).count();
     let evicted_slot_count = previous_keys.difference(&current_keys).count();
+    let atlas_resized = previous.atlas_size != current.atlas_size
+        || sdf_atlas_layer_count(previous) != sdf_atlas_layer_count(current);
+    let rebuilt_pages = current
+        .rebuilt_pages
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let dirty_pages =
+        dirty_pages_for_plan_transition(current, &previous_slots, atlas_resized, &rebuilt_pages);
+    let dirty_rect = dirty_pages
+        .iter()
+        .find(|page| page.page_key == GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0))
+        .map(|page| page.dirty_rect);
 
     SdfAtlasCacheReport {
         previous_slot_count: previous.slots.len(),
@@ -255,7 +319,63 @@ fn cache_report_for_plan_transition(
         relocated_slot_count,
         added_slot_count,
         evicted_slot_count,
-        atlas_resized: previous.atlas_size != current.atlas_size,
+        atlas_resized,
+        dirty_rect,
+        dirty_pages,
+    }
+}
+
+fn dirty_pages_for_plan_transition(
+    current: &SdfAtlasPlan,
+    previous_slots: &BTreeMap<SdfAtlasGlyphKey, (GlyphAtlasPageKey, SdfAtlasRect)>,
+    atlas_resized: bool,
+    rebuilt_pages: &BTreeSet<GlyphAtlasPageKey>,
+) -> Vec<SdfAtlasDirtyPageReport> {
+    let mut dirty_pages = BTreeMap::<GlyphAtlasPageKey, GlyphAtlasDirtyPage>::new();
+    for page_key in rebuilt_pages {
+        dirty_pages
+            .entry(*page_key)
+            .or_insert_with(|| GlyphAtlasDirtyPage::new(*page_key))
+            .mark_dirty(*page_key, full_rect_for_page(current, *page_key));
+    }
+    for slot in &current.slots {
+        let dirty = !rebuilt_pages.contains(&slot.page_key)
+            && (atlas_resized
+                || previous_slots
+                    .get(&slot.key)
+                    .map(|previous_slot| *previous_slot != (slot.page_key, slot.rect))
+                    .unwrap_or(true));
+        if dirty {
+            dirty_pages
+                .entry(slot.page_key)
+                .or_insert_with(|| GlyphAtlasDirtyPage::new(slot.page_key))
+                .mark_dirty(slot.page_key, GlyphAtlasRect::from(slot.rect));
+        }
+    }
+    dirty_pages
+        .into_iter()
+        .filter_map(|(page_key, dirty_page)| {
+            dirty_page
+                .merged_rect()
+                .map(|dirty_rect| SdfAtlasDirtyPageReport {
+                    page_key,
+                    dirty_rect: dirty_rect.into(),
+                })
+        })
+        .collect()
+}
+
+fn full_rect_for_page(plan: &SdfAtlasPlan, page_key: GlyphAtlasPageKey) -> GlyphAtlasRect {
+    let size = plan
+        .atlas_set
+        .page(page_key.format, page_key.page_index)
+        .map(|page| page.size)
+        .unwrap_or(plan.atlas_size);
+    GlyphAtlasRect {
+        x: 0,
+        y: 0,
+        width: size.x.max(1),
+        height: size.y.max(1),
     }
 }
 
@@ -283,7 +403,7 @@ fn collect_sdf_atlas_text_keys(
     for text in texts {
         let mut glyph_keys = Vec::new();
         for glyph in text.text.chars() {
-            if glyph.is_whitespace() {
+            if !sdf_scalar_requires_atlas_slot(glyph) {
                 glyph_keys.push(None);
                 continue;
             }
@@ -291,7 +411,8 @@ fn collect_sdf_atlas_text_keys(
                 glyph,
                 font: text.font.clone(),
                 font_family: text.font_family.clone(),
-                font_size_milli: font_size_milli(text.font_size),
+                font_weight: UiResolvedStyle::normalized_font_weight(text.font_weight),
+                bake_params: SdfBakeParams::default(),
             };
             unique_keys.insert(key.clone());
             glyph_keys.push(Some(key));
@@ -308,76 +429,264 @@ fn plan_sdf_atlas_from_slot_keys(
     quality: SdfAtlasQuality,
 ) -> SdfAtlasPlan {
     let quality = quality.normalized();
-    let mut slot_by_glyph = HashMap::<SdfAtlasGlyphKey, usize>::new();
-    let mut slots = Vec::with_capacity(slot_keys.len());
-    for key in slot_keys {
-        let slot_index = slots.len();
-        slot_by_glyph.insert(key.clone(), slot_index);
-        slots.push(SdfAtlasSlot {
-            key,
-            rect: SdfAtlasRect::default(),
-        });
-    }
+    let (atlas_size, atlas_set, slots, rebuilt_pages, allocation_failures) = if slot_keys.is_empty()
+    {
+        (
+            UVec2::new(1, 1),
+            GlyphAtlasSet::default(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        )
+    } else {
+        let atlas_size = atlas_page_size_for_quality(quality);
+        let (atlas_set, slots, rebuilt_pages, allocation_failures) =
+            allocate_sdf_atlas_slots(slot_keys, atlas_size, quality);
+        (
+            atlas_size,
+            atlas_set,
+            slots,
+            rebuilt_pages,
+            allocation_failures,
+        )
+    };
+    let slot_by_glyph = slots
+        .iter()
+        .enumerate()
+        .map(|(slot_index, slot)| (slot.key.clone(), slot_index))
+        .collect::<HashMap<_, _>>();
+    let failure_reasons = allocation_failures
+        .iter()
+        .map(|failure| (failure.key.clone(), failure.reason))
+        .collect::<HashMap<_, _>>();
     let runs = run_keys
         .into_iter()
-        .map(|glyph_keys| SdfAtlasRun {
-            glyph_slot_indices: glyph_keys
-                .into_iter()
-                .map(|key| key.and_then(|key| slot_by_glyph.get(&key).copied()))
-                .collect(),
+        .map(|glyph_keys| {
+            sdf_atlas_run_for_glyph_keys(glyph_keys, &slot_by_glyph, &failure_reasons)
         })
         .collect();
 
-    let atlas_size = atlas_size_for_slot_count(slots.len(), quality);
-    assign_slot_rects(&mut slots, atlas_size, quality);
     SdfAtlasPlan {
         atlas_size,
+        atlas_set,
         slots,
         runs,
+        rebuilt_pages,
+        allocation_failures,
     }
 }
 
-fn font_size_milli(font_size: f32) -> u32 {
-    (font_size.max(1.0) * 1000.0).round() as u32
+fn sdf_atlas_run_for_glyph_keys(
+    glyph_keys: Vec<Option<SdfAtlasGlyphKey>>,
+    slot_by_glyph: &HashMap<SdfAtlasGlyphKey, usize>,
+    failure_reasons: &HashMap<SdfAtlasGlyphKey, SdfAtlasAllocationFailureReason>,
+) -> SdfAtlasRun {
+    let mut run = SdfAtlasRun {
+        glyph_slot_indices: Vec::with_capacity(glyph_keys.len()),
+        glyph_failure_reasons: Vec::with_capacity(glyph_keys.len()),
+        ..Default::default()
+    };
+
+    for key in glyph_keys {
+        let Some(key) = key else {
+            run.glyph_slot_indices.push(None);
+            run.glyph_failure_reasons.push(None);
+            continue;
+        };
+        let slot_index = slot_by_glyph.get(&key).copied();
+        let failure_reason = if slot_index.is_none() {
+            failure_reasons.get(&key).copied()
+        } else {
+            None
+        };
+        if let Some(reason) = failure_reason {
+            run.allocation_failure_count = run.allocation_failure_count.saturating_add(1);
+            match reason {
+                SdfAtlasAllocationFailureReason::PageLimit => {
+                    run.page_limit_failure_count = run.page_limit_failure_count.saturating_add(1);
+                }
+                SdfAtlasAllocationFailureReason::OversizedSlot => {
+                    run.oversized_failure_count = run.oversized_failure_count.saturating_add(1);
+                }
+            }
+        }
+        run.glyph_slot_indices.push(slot_index);
+        run.glyph_failure_reasons.push(failure_reason);
+    }
+
+    run
 }
 
-fn assign_slot_rects(slots: &mut [SdfAtlasSlot], atlas_size: UVec2, quality: SdfAtlasQuality) {
+struct SdfAtlasPageAllocation {
+    allocation: GlyphAtlasAllocation,
+    rebuilt_page: Option<GlyphAtlasPageKey>,
+}
+
+fn allocate_sdf_atlas_slots(
+    slot_keys: Vec<SdfAtlasGlyphKey>,
+    atlas_size: UVec2,
+    quality: SdfAtlasQuality,
+) -> (
+    GlyphAtlasSet,
+    Vec<SdfAtlasSlot>,
+    Vec<GlyphAtlasPageKey>,
+    Vec<SdfAtlasAllocationFailure>,
+) {
     let quality = quality.normalized();
-    let columns = (atlas_size.x / quality.slot_size_px).max(1) as usize;
-    for (slot_index, slot) in slots.iter_mut().enumerate() {
-        slot.rect = slot_rect(slot_index, columns, quality);
+    let mut atlas_set = GlyphAtlasSet::default();
+    atlas_set.begin_frame();
+    let mut allocators = Vec::<GlyphAtlasShelfAllocator>::new();
+    let mut slots = Vec::with_capacity(slot_keys.len());
+    let mut rebuilt_pages = Vec::new();
+    let mut allocation_failures = Vec::new();
+    let slot_size = UVec2::splat(quality.slot_size_px);
+    for key in slot_keys {
+        if slot_size.x > atlas_size.x || slot_size.y > atlas_size.y {
+            allocation_failures.push(sdf_allocation_failure(
+                key,
+                SdfAtlasAllocationFailureReason::OversizedSlot,
+                slot_size,
+                atlas_size,
+            ));
+            continue;
+        }
+
+        match allocate_sdf_slot(&mut atlas_set, &mut allocators, atlas_size, slot_size) {
+            Ok(page_allocation) => {
+                if let Some(page_key) = page_allocation.rebuilt_page {
+                    rebuilt_pages.push(page_key);
+                }
+                let allocation = page_allocation.allocation;
+                slots.push(SdfAtlasSlot {
+                    key,
+                    page_key: allocation.page_key,
+                    rect: SdfAtlasRect::from(allocation.rect),
+                });
+            }
+            Err(reason) => {
+                allocation_failures
+                    .push(sdf_allocation_failure(key, reason, slot_size, atlas_size));
+            }
+        }
+    }
+    (atlas_set, slots, rebuilt_pages, allocation_failures)
+}
+
+fn sdf_allocation_failure(
+    key: SdfAtlasGlyphKey,
+    reason: SdfAtlasAllocationFailureReason,
+    requested_size: UVec2,
+    atlas_size: UVec2,
+) -> SdfAtlasAllocationFailure {
+    SdfAtlasAllocationFailure {
+        key,
+        reason,
+        requested_size,
+        atlas_size,
     }
 }
 
-fn slot_rect(slot_index: usize, columns: usize, quality: SdfAtlasQuality) -> SdfAtlasRect {
-    let quality = quality.normalized();
-    let x = (slot_index % columns) as u32 * quality.slot_size_px;
-    let y = (slot_index / columns) as u32 * quality.slot_size_px;
-    SdfAtlasRect {
-        x,
-        y,
-        width: quality.slot_size_px,
-        height: quality.slot_size_px,
+fn allocate_sdf_slot(
+    atlas_set: &mut GlyphAtlasSet,
+    allocators: &mut Vec<GlyphAtlasShelfAllocator>,
+    atlas_size: UVec2,
+    slot_size: UVec2,
+) -> Result<SdfAtlasPageAllocation, SdfAtlasAllocationFailureReason> {
+    if let Some(page_allocation) = allocate_sdf_slot_on_existing_page(allocators, slot_size) {
+        return Ok(page_allocation);
+    }
+
+    allocate_sdf_slot_on_new_page(atlas_set, allocators, atlas_size, slot_size)
+}
+
+fn allocate_sdf_slot_on_existing_page(
+    allocators: &mut [GlyphAtlasShelfAllocator],
+    slot_size: UVec2,
+) -> Option<SdfAtlasPageAllocation> {
+    allocators
+        .last_mut()
+        .and_then(|allocator| allocator.allocate(slot_size))
+        .map(|allocation| SdfAtlasPageAllocation {
+            allocation,
+            rebuilt_page: None,
+        })
+}
+
+fn allocate_sdf_slot_on_new_page(
+    atlas_set: &mut GlyphAtlasSet,
+    allocators: &mut Vec<GlyphAtlasShelfAllocator>,
+    atlas_size: UVec2,
+    slot_size: UVec2,
+) -> Result<SdfAtlasPageAllocation, SdfAtlasAllocationFailureReason> {
+    let page_reservation: GlyphAtlasPageReservation = atlas_set.reserve_page_for_format(
+        GlyphAtlasFormat::Sdf,
+        atlas_size,
+        0,
+        GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
+    );
+    let Some(page) = page_reservation.page else {
+        return Err(SdfAtlasAllocationFailureReason::PageLimit);
+    };
+    debug_assert!(matches!(
+        page_reservation.decision,
+        GlyphAtlasPageResidencyDecision::Allocate(_) | GlyphAtlasPageResidencyDecision::Evict(_)
+    ));
+    debug_assert_eq!(page.storage_format, GlyphAtlasStorageFormat::R8Unorm);
+    let mut allocator = GlyphAtlasShelfAllocator::new(page.key, page.size, 0);
+    let Some(allocation) = allocator.allocate(slot_size) else {
+        return Err(SdfAtlasAllocationFailureReason::OversizedSlot);
+    };
+    debug_assert_eq!(allocation.page_key, page.key);
+    debug_assert!(atlas_set.mark_page_used(page.key, 0));
+    let rebuilt_page = match page_reservation.decision {
+        GlyphAtlasPageResidencyDecision::Evict(page_key) => Some(page_key),
+        GlyphAtlasPageResidencyDecision::Allocate(_) | GlyphAtlasPageResidencyDecision::Blocked => {
+            None
+        }
+    };
+    allocators.push(allocator);
+    Ok(SdfAtlasPageAllocation {
+        allocation,
+        rebuilt_page,
+    })
+}
+
+pub(super) fn sdf_atlas_layer_count(plan: &SdfAtlasPlan) -> u32 {
+    plan.slots
+        .iter()
+        .filter(|slot| slot.page_key.format == GlyphAtlasFormat::Sdf)
+        .map(|slot| slot.page_key.page_index.saturating_add(1))
+        .max()
+        .unwrap_or(1)
+        .max(1)
+}
+
+impl From<GlyphAtlasRect> for SdfAtlasRect {
+    fn from(rect: GlyphAtlasRect) -> Self {
+        Self {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+        }
     }
 }
 
-fn atlas_size_for_slot_count(slot_count: usize, quality: SdfAtlasQuality) -> UVec2 {
-    let quality = quality.normalized();
-    if slot_count == 0 {
-        return UVec2::new(1, 1);
+impl From<SdfAtlasRect> for GlyphAtlasRect {
+    fn from(rect: SdfAtlasRect) -> Self {
+        Self {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+        }
     }
+}
 
-    let required_side = ceil_sqrt(slot_count as u32).max(quality.min_grid_side);
-    let grid_side = required_side.next_power_of_two();
+fn atlas_page_size_for_quality(quality: SdfAtlasQuality) -> UVec2 {
+    let quality = quality.normalized();
+    let grid_side = quality.min_grid_side.next_power_of_two();
     UVec2::splat(grid_side * quality.slot_size_px)
-}
-
-fn ceil_sqrt(value: u32) -> u32 {
-    let mut side = 1;
-    while side * side < value {
-        side += 1;
-    }
-    side
 }
 
 #[cfg(test)]

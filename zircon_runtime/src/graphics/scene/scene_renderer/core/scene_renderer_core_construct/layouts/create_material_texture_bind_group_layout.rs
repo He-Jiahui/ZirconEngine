@@ -6,17 +6,17 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_constru
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-material-set-layout"),
         entries: &[
-            material_texture_entry(0),
-            material_sampler_entry(1),
-            material_texture_entry(2),
-            material_sampler_entry(3),
-            material_texture_entry(4),
-            material_sampler_entry(5),
-            material_texture_entry(6),
-            material_sampler_entry(7),
-            material_texture_entry(8),
-            material_sampler_entry(9),
-            material_uniform_entry(10),
+            material_uniform_entry(0),
+            material_texture_entry(1),
+            material_sampler_entry(2),
+            material_texture_entry(3),
+            material_sampler_entry(4),
+            material_texture_entry(5),
+            material_sampler_entry(6),
+            material_texture_entry(7),
+            material_sampler_entry(8),
+            material_texture_entry(9),
+            material_sampler_entry(10),
         ],
     })
 }

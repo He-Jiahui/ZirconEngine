@@ -1,10 +1,13 @@
 use crate::asset::{ShaderAsset, ShaderMaterialPropertyAsset};
 use crate::core::framework::render::{
-    RenderMaterialAlphaMode, RenderMaterialDiagnosticSource, RenderMaterialValidationError,
-    RenderQueueValue,
+    MaterialPropertyKind, RenderMaterialAlphaMode, RenderMaterialDiagnosticSource,
+    RenderMaterialValidationError, RenderQueueValue,
 };
 
-use super::{is_standard_texture_slot_alias, AlphaMode, MaterialAsset};
+use super::{is_standard_texture_slot_alias, AlphaMode, MaterialAsset, ZMaterialQueueOverride};
+
+const MATERIAL_QUEUE_OFFSET_MIN: i16 = -100;
+const MATERIAL_QUEUE_OFFSET_MAX: i16 = 100;
 
 pub fn validate_alpha_mode(alpha_mode: &AlphaMode) -> Vec<RenderMaterialValidationError> {
     match alpha_mode {
@@ -51,18 +54,20 @@ pub fn validate_shader_contract(
     let mut errors = Vec::new();
     for (name, value) in material.shader_property_overrides() {
         match shader
-            .property_schema
+            .material_property_layout
+            .properties
             .iter()
-            .find(|schema| schema.name == *name)
+            .find(|property| property.name == *name)
         {
-            Some(schema) if !schema.accepts_value(value) => errors.push(
-                RenderMaterialValidationError::PropertyOverrideTypeMismatch {
-                    source: RenderMaterialDiagnosticSource::ShaderSchema,
-                    path: format!("overrides.{name}"),
-                    name: name.clone(),
-                    expected: schema.kind.clone(),
-                },
-            ),
+            Some(property) if !material_property_kind_accepts_value(property.kind, value) => errors
+                .push(
+                    RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+                        source: RenderMaterialDiagnosticSource::ShaderSchema,
+                        path: format!("overrides.{name}"),
+                        name: name.clone(),
+                        expected: property.kind.to_string(),
+                    },
+                ),
             Some(_) => {}
             None => errors.push(RenderMaterialValidationError::UnknownPropertyOverride {
                 source: RenderMaterialDiagnosticSource::MaterialOverride,
@@ -81,14 +86,34 @@ pub fn validate_shader_contract(
         }
     }
 
+    for (name, value) in material.material_option_values() {
+        match shader.material_option_table.option(name) {
+            Some(option) if option.value_bits(value).is_none() => {
+                errors.push(RenderMaterialValidationError::MaterialOptionTypeMismatch {
+                    source: RenderMaterialDiagnosticSource::ShaderSchema,
+                    path: format!("options.{name}"),
+                    name: name.clone(),
+                    expected: option.expected_value_description(),
+                });
+            }
+            Some(_) => {}
+            None => errors.push(RenderMaterialValidationError::UnknownMaterialOption {
+                source: RenderMaterialDiagnosticSource::MaterialOverride,
+                path: format!("options.{name}"),
+                name: name.clone(),
+            }),
+        }
+    }
+
     for slot in material.texture_slots.keys() {
         if is_standard_texture_slot_alias(slot) {
             continue;
         }
         if !shader
-            .texture_slots
+            .material_property_layout
+            .texture_bindings
             .iter()
-            .any(|schema| schema.name == *slot)
+            .any(|binding| binding.name == *slot)
         {
             errors.push(RenderMaterialValidationError::UnknownTextureSlot {
                 source: RenderMaterialDiagnosticSource::TextureSlot,
@@ -112,6 +137,24 @@ pub fn validate_shader_contract(
         }
     }
     errors
+}
+
+pub fn validate_material_queue_override(
+    queue: Option<ZMaterialQueueOverride>,
+) -> Vec<RenderMaterialValidationError> {
+    let Some(queue) = queue else {
+        return Vec::new();
+    };
+    if (MATERIAL_QUEUE_OFFSET_MIN..=MATERIAL_QUEUE_OFFSET_MAX).contains(&queue.offset) {
+        Vec::new()
+    } else {
+        vec![RenderMaterialValidationError::InvalidMaterialQueueOffset {
+            source: RenderMaterialDiagnosticSource::MaterialOverride,
+            path: "queue.offset".to_string(),
+            offset: queue.offset,
+            expected: "offset between -100 and 100".to_string(),
+        }]
+    }
 }
 
 pub fn validate_wgsl_captures(shader: &ShaderAsset) -> Vec<RenderMaterialValidationError> {
@@ -142,4 +185,31 @@ pub fn validate_wgsl_captures(shader: &ShaderAsset) -> Vec<RenderMaterialValidat
 
 fn captures_name(source: &str, property: &ShaderMaterialPropertyAsset) -> bool {
     source.contains(&property.name)
+}
+
+fn material_property_kind_accepts_value(kind: MaterialPropertyKind, value: &toml::Value) -> bool {
+    match kind {
+        MaterialPropertyKind::Bool => value.as_bool().is_some(),
+        MaterialPropertyKind::Float => value.as_float().is_some() || value.as_integer().is_some(),
+        MaterialPropertyKind::Int => value
+            .as_integer()
+            .and_then(|value| i32::try_from(value).ok())
+            .is_some(),
+        MaterialPropertyKind::UInt => value
+            .as_integer()
+            .and_then(|value| u32::try_from(value).ok())
+            .is_some(),
+        MaterialPropertyKind::Color | MaterialPropertyKind::Vec4 => numeric_array_len(value, 4),
+        MaterialPropertyKind::Vec3 => numeric_array_len(value, 3),
+        MaterialPropertyKind::Vec2 => numeric_array_len(value, 2),
+    }
+}
+
+fn numeric_array_len(value: &toml::Value, len: usize) -> bool {
+    value.as_array().is_some_and(|items| {
+        items.len() == len
+            && items
+                .iter()
+                .all(|item| item.as_float().is_some() || item.as_integer().is_some())
+    })
 }

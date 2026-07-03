@@ -57,6 +57,26 @@ pub(super) fn changed_pixel_count(
     changed
 }
 
+pub(super) fn matching_pixel_count(
+    bytes: &[u8],
+    frame_width: u32,
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+    reference: [u8; 4],
+) -> usize {
+    let mut matching = 0;
+    for py in y..(y + height) {
+        for px in x..(x + width) {
+            if pixel_at(bytes, frame_width, px, py) == reference {
+                matching += 1;
+            }
+        }
+    }
+    matching
+}
+
 pub(super) fn pixel_at(bytes: &[u8], frame_width: u32, x: u32, y: u32) -> [u8; 4] {
     let index = ((y as usize * frame_width as usize) + x as usize) * 4;
     [

@@ -3,7 +3,21 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas.rs");
-    let tests = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs");
+    let tests_mod = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs");
+    let plan = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs");
+    let allocation =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs");
+    let cache_report =
+        read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs");
+    let owner = read_runtime_src("graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs");
+    let tests = [
+        tests_mod.as_str(),
+        plan.as_str(),
+        allocation.as_str(),
+        cache_report.as_str(),
+        owner.as_str(),
+    ]
+    .join("\n");
 
     let plan_14 = read_repo("docs/plans/zircon_runtime/render/14-2d-stack.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -27,12 +41,18 @@ fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
 
     for moved_test in [
         "fn sdf_atlas_plan_deduplicates_glyph_slots_across_batches(",
-        "fn sdf_atlas_plan_keys_glyph_slots_by_font_identity_and_size(",
+        "fn sdf_atlas_plan_keys_glyph_slots_by_font_identity_and_fixed_bake_params(",
         "fn sdf_atlas_plan_preserves_whitespace_advances_without_slots(",
+        "fn sdf_atlas_plan_assigns_slot_rects_by_key_not_batch_order(",
         "fn sdf_atlas_quality_controls_slot_size_and_min_grid(",
+        "fn sdf_atlas_plan_uses_additional_pages_after_default_page_overflow(",
+        "fn sdf_atlas_plan_reports_page_limit_allocation_failures(",
         "fn sdf_atlas_owner_retains_inactive_slots_between_non_empty_frames(",
+        "fn sdf_atlas_owner_reports_retained_and_added_slots(",
+        "fn sdf_atlas_owner_reuses_retained_slot_without_readding_glyph(",
+        "fn sdf_atlas_owner_clears_previous_plan_for_native_only_frames(",
+        "fn sdf_atlas_owner_preserves_whitespace_runs_without_cache_slots(",
         "fn sdf_atlas_owner_evicts_old_inactive_slots_when_cache_limit_is_exceeded(",
-        "fn sdf_atlas_plan_grows_to_fit_more_than_default_grid(",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -60,7 +80,20 @@ fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
 
     for (path, source) in [
         ("scene_renderer/ui/sdf_atlas.rs", parent.as_str()),
-        ("scene_renderer/ui/sdf_atlas/tests.rs", tests.as_str()),
+        (
+            "scene_renderer/ui/sdf_atlas/tests/mod.rs",
+            tests_mod.as_str(),
+        ),
+        ("scene_renderer/ui/sdf_atlas/tests/plan.rs", plan.as_str()),
+        (
+            "scene_renderer/ui/sdf_atlas/tests/allocation.rs",
+            allocation.as_str(),
+        ),
+        (
+            "scene_renderer/ui/sdf_atlas/tests/cache_report.rs",
+            cache_report.as_str(),
+        ),
+        ("scene_renderer/ui/sdf_atlas/tests/owner.rs", owner.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -83,8 +116,13 @@ fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
             &[
                 "Screen-space UI SDF atlas test owner split",
                 "render_plan14_sdf_atlas_test_owner_split_static_passed_cargo_deferred_active_compile_lane",
+                "Runtime 15 M4 SDF atlas/render tests folder-backed guard sync",
+                "runtime_15_sdf_atlas_render_tests_folder_backed_guard_sync_static_passed_cargo_deferred",
                 "graphics/scene/scene_renderer/ui/sdf_atlas.rs",
-                "graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs",
+                "graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs",
+                "graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs",
+                "graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs",
+                "graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs",
                 "runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split",
             ],
         );

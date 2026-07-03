@@ -31,8 +31,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("mesh.depth-prepass")
-            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
-            .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL),
+            .write_texture(PostProcessGraphResourceNames::SCENE_DEPTH),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Opaque3d,
                 "opaque-mesh",

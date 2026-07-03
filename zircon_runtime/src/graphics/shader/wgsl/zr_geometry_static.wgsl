@@ -26,6 +26,7 @@ fn fetch_uv1(v: ZrVertexInput) -> vec2<f32> {
     return v.uv1;
 }
 
-fn fetch_color(v: ZrVertexInput) -> vec4<f32> {
+fn fetch_color(v: ZrVertexInput, instance_index: u32) -> vec4<f32> {
+    _ = instance_index;
     return v.color;
 }

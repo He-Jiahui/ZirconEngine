@@ -13,6 +13,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 07 scene asset split-drift repair",
         &[
+            "split_drift_static_passed_cargo_deferred_active_lanes",
             "删除拆分后遗留在 `zircon_runtime/src/asset/assets/scene/physics.rs` 的重复 `SceneMobilityAsset` 定义",
             "`scene/mod.rs` 是唯一 owner",
             "`SceneSpotLightAsset` 公开链",
@@ -22,6 +23,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 07 scene asset folder-split public-surface guard",
         &[
+            "folder_split_guard_static_passed_cargo_deferred_active_lanes",
             "runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner",
             "`SceneSpotLightAsset` 字段/导出链",
             "standalone `rustc --edition 2021 --test ...performance_hotspots.rs` 通过 6/6",
@@ -31,6 +33,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 07 scene asset guard 纳入 performance_hotpath_boundary",
         &[
+            "boundary_guard_anchor_static_passed_cargo_deferred_active_lanes",
             "`performance_hotpath_boundary.py`",
             "`hotspot_guard_anchor_count = 20`",
             "`missing_hotspot_guard_anchors = []`",

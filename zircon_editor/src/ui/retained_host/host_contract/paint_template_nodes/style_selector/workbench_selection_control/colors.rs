@@ -1,30 +1,31 @@
 use super::super::super::template_style_color::resolved_style_color;
-use super::palette::WORKBENCH_SELECTION_LABEL_MUTED;
+use super::palette::WorkbenchSelectionControlPalette;
 use super::state::is_unavailable_selection_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn toggle_thumb(
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     checked: bool,
+    palette: WorkbenchSelectionControlPalette,
 ) -> [u8; 4] {
     if is_unavailable_selection_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if checked {
-        PALETTE.text
+        palette.text_muted
     } else {
-        declared_style_foreground(node).unwrap_or(PALETTE.text_muted)
+        declared_style_foreground(node).unwrap_or(palette.text_muted)
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control_accent(
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
+    palette: WorkbenchSelectionControlPalette,
 ) -> [u8; 4] {
     if is_unavailable_selection_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if node.value_color.a > 0 {
         [
             node.value_color.r,
@@ -33,27 +34,29 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control
             node.value_color.a,
         ]
     } else {
-        PALETTE.accent
+        palette.accent
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selection_text(
     _node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
+    palette: WorkbenchSelectionControlPalette,
 ) -> [u8; 4] {
     if is_unavailable_selection_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else {
-        PALETTE.text
+        palette.text
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn mark_label(
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
+    palette: WorkbenchSelectionControlPalette,
 ) -> [u8; 4] {
     if is_unavailable_selection_state(state) {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if node.label_color.a > 0 {
         [
             node.label_color.r,
@@ -62,7 +65,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn mark_la
             node.label_color.a,
         ]
     } else {
-        WORKBENCH_SELECTION_LABEL_MUTED
+        palette.text_muted
     }
 }
 

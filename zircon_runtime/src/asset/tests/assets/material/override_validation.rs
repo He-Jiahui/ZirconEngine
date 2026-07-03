@@ -4,7 +4,7 @@
 fn material_owned_receive_shadows_reports_non_bool_override() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Invalid Receiver"
 
 [shader]
@@ -36,7 +36,7 @@ receive_shadows = "no"
 fn material_owned_cast_shadows_reports_non_bool_override() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Invalid Caster"
 
 [shader]
@@ -68,7 +68,7 @@ cast_shadows = "no"
 fn material_owned_sort_fields_report_invalid_override_types() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Invalid Queue Fields"
 
 [shader]
@@ -130,7 +130,7 @@ depth_bias = "near"
 fn material_owned_taa_reactive_mask_strength_reports_invalid_override() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Invalid Responsive"
 
 [shader]
@@ -162,7 +162,7 @@ taa_reactive_mask_strength = 2.0
 fn material_asset_reports_invalid_lighting_model_as_material_validation_error() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Invalid Lighting"
 
 [shader]

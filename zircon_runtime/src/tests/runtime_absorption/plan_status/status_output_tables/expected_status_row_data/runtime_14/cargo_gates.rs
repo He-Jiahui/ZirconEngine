@@ -22,6 +22,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 14 animation Cargo gate 尝试",
         &[
+            "cargo_blocked_external_compile_drift",
             "cargo test -p zircon_runtime --lib animation --locked",
             "共享 lib-test 编译层",
             "SKINNED_MESH_MAX_JOINT_MATRICES",
@@ -31,6 +32,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 14 animation Cargo gate 修复与复验阻塞",
         &[
+            "cargo_recheck_blocked_external_ui_compile_drift",
             "31 passed; 3 failed",
             "AnimationPlayerRuntimeStatus::sanitized_snapshot",
             "UiInputDispatchDiagnostics.capture_started",
@@ -40,9 +42,11 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
     (
         "Runtime 14 animation runtime-status focused recheck timeout",
         &[
+            "cargo_recheck_timeout_no_result",
             "runtime_status_reports_player_rig_and_gpu_readiness",
             "904s",
             "无测试结果",
+            "cargo/rustc processes were stopped",
             "animation` / `navigation` / `diagnostic_log` / `engine_module` / full lib Cargo gates",
         ],
     ),

@@ -6,10 +6,12 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from .export_template import is_safe_relative_path, normalize_relative_path
-from .pipeline_report_platform_bundle_template_schema import (
+from .export_template_manifest import is_safe_relative_path, normalize_relative_path
+from .pipeline_report_platform_bundle_template_copied_files_schema import (
     PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_FIELDS,
     PLATFORM_BUNDLE_TEMPLATE_COPIED_FILE_STRING_FIELDS,
+)
+from .pipeline_report_platform_bundle_template_schema import (
     platform_bundle_template_report_schema_diagnostics,
     table_required_non_empty_string_diagnostics,
     table_string_schema_diagnostics,

@@ -1,4 +1,29 @@
-use super::shader_source::DEFERRED_LIGHTING_SHADER;
+use crate::core::framework::render::{GBufferChannelMask, ShadingModelDescriptor, ShadingModelId};
+
+use super::shader_source::{
+    assemble_deferred_lighting_shader_source, DeferredLightingShaderSourceError,
+    DeferredLightingShaderSourceRequest, DEFERRED_LIGHTING_SHADER,
+};
+
+mod runtime_pipeline;
+
+const CUSTOM_TOON_DEFERRED_INCLUDE: &str = r#"
+fn shade_deferred_toon(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>) -> vec4<f32> {
+    let band = clamp(normal.z * 0.5 + 0.5 + material.r * 0.0 + f32(coord.x) * 0.0 + position.x * 0.0, 0.0, 1.0);
+    return vec4<f32>(albedo.rgb * band, albedo.a);
+}
+"#;
+
+fn toon_shading_model_descriptor() -> ShadingModelDescriptor {
+    ShadingModelDescriptor::new(
+        ShadingModelId::new(16),
+        "toon",
+        "zr_shading_toon.wgsl",
+        "zr_gbuffer_encode_toon.wgsl",
+        "zr_shade_deferred_toon.wgsl",
+        GBufferChannelMask::standard_lit(),
+    )
+}
 
 #[test]
 fn deferred_lighting_shader_matches_scene_uniform_layout() {
@@ -149,6 +174,58 @@ fn deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_g
             "deferred lighting shader should use `{expected}` for shading model dispatch"
         );
     }
+}
+
+#[test]
+fn deferred_lighting_shader_rejects_unknown_shading_model_deferred_include() {
+    let descriptor = toon_shading_model_descriptor();
+
+    let error = assemble_deferred_lighting_shader_source(
+        DeferredLightingShaderSourceRequest::new().with_shading_model_descriptor(descriptor),
+    )
+    .expect_err("unknown deferred include should fail before shader source assembly succeeds");
+
+    assert_eq!(
+        error,
+        DeferredLightingShaderSourceError::UnknownDeferredInclude {
+            token: "zr_shade_deferred_toon.wgsl".to_string(),
+        }
+    );
+}
+
+#[test]
+fn deferred_lighting_shader_uses_custom_shading_model_deferred_include_source() {
+    let descriptor = toon_shading_model_descriptor();
+
+    let source = assemble_deferred_lighting_shader_source(
+        DeferredLightingShaderSourceRequest::new()
+            .with_shading_model_descriptor(descriptor)
+            .with_shading_model_deferred_include_source(
+                "zr_shade_deferred_toon.wgsl",
+                CUSTOM_TOON_DEFERRED_INCLUDE,
+            ),
+    )
+    .expect("custom descriptor-backed deferred lighting shader source assembly");
+
+    assert!(source.contains("// include: zr_shade_deferred_toon.wgsl"));
+    assert!(source.contains("fn shade_deferred_toon"));
+    assert!(source.contains("if (shading_model_id == 16u)"));
+    assert!(
+        source.contains("return shade_deferred_toon(position, coord, albedo, material, normal);")
+    );
+    assert!(source.contains(
+        "return shade_deferred_standard_pbr(position, coord, albedo, material, normal);"
+    ));
+
+    let module = naga::front::wgsl::parse_str(&source)
+        .unwrap_or_else(|error| panic!("{}", error.emit_to_string(&source)));
+    let mut validator = naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    );
+    validator
+        .validate(&module)
+        .expect("custom deferred lighting shader should validate");
 }
 
 #[test]

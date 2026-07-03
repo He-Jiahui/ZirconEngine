@@ -1,0 +1,16 @@
+Runtime Text font fallback tests owner split validation
+timestamp: 2026-07-03 22:21:21 +08:00
+source: zircon_runtime\src\graphics\text\font\fallback.rs
+tests: zircon_runtime\src\graphics\text\font\fallback\tests.rs
+source_lines: 235
+source_test_functions: 0
+source_test_hook_count: 1
+test_lines: 124
+test_functions: 4
+rustfmt_check: passed
+git_diff_check: passed
+cargo_status: deferred: active external cargo/rustc lanes detected
+active_cargo_rustc: cargo:38568, cargo:45120, cargo:47672, cargo:48888, rustc:1228, rustc:30044
+target_same_name_match_count: 0
+proof_location_policy: docs/tests/runtime/text only; no target output
+png_sha256: 9D38C2B6187BBB7C647997E48EBE8D9B7518449F8D91AAE3CC1115DE69A90BE9

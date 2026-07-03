@@ -97,9 +97,11 @@ tests:
   - delta_installer_writes_install_receipt_from_staging_and_promotion
   - delta_installer_receipt_records_copy_fallback_promotion_method
   - delta_installer_rejects_receipt_for_mismatched_reports
+  - native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload
   - native_runtime_hot_update_uses_export_load_manifest_package_set
   - native_runtime_hot_update_reports_non_runtime_manifest_entries_as_skipped
   - native_runtime_hot_update_accepts_runtime_feature_extension_modules
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/asset_tests/pack.rs::runtime_15_asset_pack_header_readers_are_panic_free
 doc_type: module-detail
 ---
 
@@ -150,6 +152,14 @@ end from the chunk offsets and sizes, then requires the binary header's `manifes
 that end before exposing bytes. After a chunk range is bounded, the reader recomputes
 `zrpack_content_hash` over the physical payload bytes and rejects any chunk whose bytes no longer
 match the manifest hash.
+
+Runtime 15 M3 asset pack panic-free header readers
+(`runtime_15_asset_pack_header_readers_panic_free_static_passed_cargo_deferred`) keeps full-pack and
+delta header parsing on typed read helpers instead of panic-based slice conversion. `reader.rs` owns
+`read_header_u32(...)`, `read_header_u64(...)`, and the fixed-byte helper; `delta.rs` reuses those
+helpers for the matching ZRPD header. Header underflow and offset overflow continue to report
+`ZrPackError::HeaderTooSmall`, while unsupported versions, manifest bounds, trailing bytes, payload
+extent, and content-hash checks keep the existing `ZrPackError` variants and public pack/delta API.
 
 ## Delta Format
 
@@ -203,12 +213,14 @@ then deletes the staged file and reports `CopiedAfterRenameFailure`. If promotio
 backup move, the installer removes any partial installed file and attempts to restore the backup to
 the installed path before returning the original error. This gives Hub/runtime a deterministic
 "downloaded patch is staged and can be promoted" call across same-volume and cross-filesystem staging
-layouts. It is still a filesystem boundary only: asset-manager reload and in-process asset handle
-invalidation remain later slices. NativeDynamic now has separate manifest-driven live-host
-application/report entries (`NativePluginLiveHost::hot_reload_runtime_plugins_from_export_root` and
-`hot_reload_runtime_plugins_from_export_root_with_bridge_lifecycle`), but those entries are not part
-of `ZrPackDeltaInstaller` promotion and do not yet claim a real cdylib success matrix or Hub/editor
-end-to-end invocation.
+layouts. It is still a filesystem boundary only for asset-manager reload and in-process asset handle
+invalidation; those remain later slices. NativeDynamic runtime hot update now has a composition
+entry in the native live host: `NativePluginLiveHost::hot_reload_runtime_plugins_after_delta_pack_install(...)`
+delegates all pack mutation to `ZrPackDeltaInstaller`, optionally writes the install receipt, and
+then runs the export-root manifest hot-update pass. The pack layer still owns staging, promotion,
+backup, receipt validation, and manifest evidence; the native loader owns runtime plugin reload
+diagnostics. This does not yet claim a real cdylib success matrix or Hub/editor end-to-end
+invocation.
 
 `ZrPackDeltaInstaller::write_install_receipt` persists the evidence that staging and promotion
 belong to the same target. It writes a v2 `ZrPackInstallReceipt` JSON file with format version,
@@ -350,6 +362,14 @@ verification flag, `Renamed` promotion method, promotion flag, and format versio
 `CopiedAfterRenameFailure` when promotion used the copy fallback after a staged rename failure.
 `delta_installer_rejects_receipt_for_mismatched_reports` verifies that inconsistent
 staging/promotion reports are rejected before any receipt file is written.
+`native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload` verifies the M5/T2
+composition boundary: a staged delta rebuild promotes into the installed pack path with backup,
+writes a v2 receipt, then runs manifest-driven NativeDynamic runtime hot update and reports the
+runtime plugin manifest diagnostics separately from pack install evidence.
+
+`runtime_15_asset_pack_header_readers_are_panic_free` locks the typed header reader helper ownership
+and rejects reintroducing `expect("header ... bytes")` or `try_into().unwrap()` header conversions
+in `asset/pack/{reader,delta}.rs`.
 
 2026-06-14 validation: `rustfmt --edition 2021 --check`, conflict scan, and `git diff --check`
 passed for the pack files after formatting. `cargo check -p zircon_runtime --bin
@@ -369,6 +389,20 @@ files. `cargo check -p zircon_runtime --bin zircon_export_pack --locked --offlin
 --target-dir D:\cargo-targets\zircon-export-m5-native-dynamic-0614` passed with existing warnings.
 The focused `cargo test -p zircon_runtime --lib delta_pack_contains_only_changed_chunks` command
 timed out after 304 seconds during lib-test compilation before executing the target test.
+
+2026-07-01 M5/T2 NativeDynamic delta hot-update validation: the runtime composition entry now calls
+`ZrPackDeltaInstaller::rebuild_to_staging`, `promote_staged_pack`, and optional
+`write_install_receipt` before invoking manifest-driven runtime plugin hot update. Scoped
+`rustfmt --edition 2021 --check` passed for the touched pack/native-loader files, and
+`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1
+--target-dir D:\cargo-targets\zircon-plugin-delta-hot-update-0701-check --message-format short
+--color never` passed with existing warning noise. The focused lib-test command
+`cargo test -p zircon_runtime --lib --no-default-features --features core-min
+native_runtime_delta_hot_update_installs_pack_then_runs_manifest_hot_reload --locked --jobs 1
+--target-dir D:\cargo-targets\zircon-plugin-delta-hot-update-0701-green --message-format short
+--color never -- --test-threads=1 --nocapture` passed 1/1 after the existing Runtime 07
+`performance_hotspots/owner_budget.rs` child-owner split was re-exposed through explicit
+`#[path = "owner_budget/..."]` module mounts.
 
 2026-06-15 M5-T2 delta apply validation: `ZrPackDeltaReader::apply_to_base` now reconstructs the
 target full pack from a matching base reader plus delta payload and rejects mismatched base

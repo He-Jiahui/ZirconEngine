@@ -25,6 +25,10 @@ impl ShadingModelRegistry {
         self.descriptors.get(&id)
     }
 
+    pub(crate) fn descriptors(&self) -> impl Iterator<Item = &ShadingModelDescriptor> {
+        self.descriptors.values()
+    }
+
     fn resolve_token(&self, token: &str) -> Option<&ShadingModelDescriptor> {
         self.tokens
             .get(&token.trim().to_ascii_lowercase())

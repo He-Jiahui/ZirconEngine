@@ -4,6 +4,9 @@ use super::ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
 
 const CURRENT_ENGINE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+type NativeDistributionCompatibilityResult<T> =
+    std::result::Result<T, NativeDistributionCompatibilityError>;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct EngineVersion {
     major: u64,
@@ -18,6 +21,33 @@ enum VersionComparator {
     Equal,
     LessThan,
     LessThanOrEqual,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum NativeDistributionCompatibilityError {
+    EmptyComparator,
+    EmptyVersion,
+    InvalidVersionShape { version: String },
+    NonNumericVersionComponent { version: String, component: String },
+}
+
+impl std::fmt::Display for NativeDistributionCompatibilityError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::EmptyComparator => formatter.write_str("empty comparator"),
+            Self::EmptyVersion => formatter.write_str("version is empty"),
+            Self::InvalidVersionShape { version } => {
+                write!(
+                    formatter,
+                    "version \"{version}\" must be major.minor[.patch]"
+                )
+            }
+            Self::NonNumericVersionComponent { version, component } => write!(
+                formatter,
+                "version \"{version}\" contains non-numeric component \"{component}\""
+            ),
+        }
+    }
 }
 
 pub(super) fn native_distribution_compatibility_diagnostic(
@@ -64,12 +94,15 @@ pub(super) fn native_distribution_compatibility_diagnostic(
     }
 }
 
-fn engine_compat_matches(range: &str, current: &str) -> Result<bool, String> {
+fn engine_compat_matches(
+    range: &str,
+    current: &str,
+) -> NativeDistributionCompatibilityResult<bool> {
     let current = parse_engine_version(current)?;
     for clause in range.split(',') {
         let clause = clause.trim();
         if clause.is_empty() {
-            return Err("empty comparator".to_string());
+            return Err(NativeDistributionCompatibilityError::EmptyComparator);
         }
         let (comparator, version) = parse_comparator(clause)?;
         let matches = match comparator {
@@ -86,7 +119,9 @@ fn engine_compat_matches(range: &str, current: &str) -> Result<bool, String> {
     Ok(true)
 }
 
-fn parse_comparator(clause: &str) -> Result<(VersionComparator, EngineVersion), String> {
+fn parse_comparator(
+    clause: &str,
+) -> NativeDistributionCompatibilityResult<(VersionComparator, EngineVersion)> {
     let (comparator, version) = if let Some(version) = clause.strip_prefix(">=") {
         (VersionComparator::GreaterThanOrEqual, version)
     } else if let Some(version) = clause.strip_prefix("<=") {
@@ -103,18 +138,20 @@ fn parse_comparator(clause: &str) -> Result<(VersionComparator, EngineVersion), 
     Ok((comparator, parse_engine_version(version.trim())?))
 }
 
-fn parse_engine_version(version: &str) -> Result<EngineVersion, String> {
+fn parse_engine_version(version: &str) -> NativeDistributionCompatibilityResult<EngineVersion> {
     let release = version
         .split(|ch| ch == '-' || ch == '+')
         .next()
         .unwrap_or_default()
         .trim();
     if release.is_empty() {
-        return Err("version is empty".to_string());
+        return Err(NativeDistributionCompatibilityError::EmptyVersion);
     }
     let parts = release.split('.').collect::<Vec<_>>();
     if parts.len() < 2 || parts.len() > 3 {
-        return Err(format!("version \"{version}\" must be major.minor[.patch]"));
+        return Err(NativeDistributionCompatibilityError::InvalidVersionShape {
+            version: version.to_string(),
+        });
     }
     let major = parse_version_component(parts[0], version)?;
     let minor = parse_version_component(parts[1], version)?;
@@ -130,9 +167,15 @@ fn parse_engine_version(version: &str) -> Result<EngineVersion, String> {
     })
 }
 
-fn parse_version_component(component: &str, version: &str) -> Result<u64, String> {
+fn parse_version_component(
+    component: &str,
+    version: &str,
+) -> NativeDistributionCompatibilityResult<u64> {
     component.parse::<u64>().map_err(|_| {
-        format!("version \"{version}\" contains non-numeric component \"{component}\"")
+        NativeDistributionCompatibilityError::NonNumericVersionComponent {
+            version: version.to_string(),
+            component: component.to_string(),
+        }
     })
 }
 
@@ -144,6 +187,33 @@ mod tests {
     #[test]
     fn engine_compat_accepts_current_minor_range() {
         assert!(engine_compat_matches(">=0.1, <0.2", "0.1.0").unwrap());
+    }
+
+    #[test]
+    fn engine_compat_reports_empty_comparator_with_typed_error() {
+        let error = engine_compat_matches(">=0.1, , <0.2", "0.1.0")
+            .expect_err("empty comparator should be rejected");
+
+        assert_eq!(error, NativeDistributionCompatibilityError::EmptyComparator);
+        assert_eq!(error.to_string(), "empty comparator");
+    }
+
+    #[test]
+    fn engine_compat_reports_invalid_version_component_with_typed_error() {
+        let error = engine_compat_matches(">=0.x", "0.1.0")
+            .expect_err("invalid version component should be rejected");
+
+        assert_eq!(
+            error,
+            NativeDistributionCompatibilityError::NonNumericVersionComponent {
+                version: "0.x".to_string(),
+                component: "x".to_string(),
+            }
+        );
+        assert_eq!(
+            error.to_string(),
+            "version \"0.x\" contains non-numeric component \"x\""
+        );
     }
 
     #[test]

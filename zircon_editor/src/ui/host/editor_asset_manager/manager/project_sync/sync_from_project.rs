@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use zircon_runtime::asset::importer::AssetImportError;
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::project::{AssetMetaDocument, PreviewState};
-use zircon_runtime::core::resource::ResourceState;
+use zircon_runtime::core::framework::render::ShaderIdePreviewVariant;
+use zircon_runtime::core::resource::{ResourceKind, ResourceState};
+use zircon_runtime::graphics::write_shader_ide_env_for_project;
 
 use crate::ui::host::editor_asset_manager::{editor_meta_path_for_source, EditorAssetMetaDocument};
 use crate::ui::host::editor_asset_manager::{
@@ -90,6 +92,7 @@ impl DefaultEditorAssetManager {
         }
 
         let reference_graph = ReferenceGraph::rebuild(catalog_by_uuid.values());
+        refresh_shader_ide_env_after_import(&project)?;
         let change = {
             let mut state = self
                 .state
@@ -118,6 +121,23 @@ impl DefaultEditorAssetManager {
         self.broadcast(change);
         Ok(())
     }
+}
+
+fn refresh_shader_ide_env_after_import(project: &ProjectManager) -> Result<(), AssetImportError> {
+    let has_ready_shader = project
+        .registry()
+        .values()
+        .any(|record| record.kind == ResourceKind::Shader && record.state == ResourceState::Ready);
+    if !has_ready_shader {
+        return Ok(());
+    }
+
+    let preview_variants = [ShaderIdePreviewVariant::default_forward()];
+    write_shader_ide_env_for_project(project, None, &preview_variants)
+        .map(|_| ())
+        .map_err(|error| {
+            AssetImportError::ShaderValidation(format!("refresh shader IDE environment: {error}"))
+        })
 }
 
 #[cfg(test)]
@@ -294,6 +314,97 @@ fn fs_main() -> @location(0) vec4f {
 
         let _ = fs::remove_dir_all(root);
         let _ = fs::remove_dir_all(package_root);
+    }
+
+    #[test]
+    fn sync_from_project_refreshes_shader_ide_environment_after_import() {
+        let root = unique_temp_project_root("sync_shader_ide_env");
+        let paths = ProjectPaths::from_root(&root).unwrap();
+        paths.ensure_layout().unwrap();
+        ProjectManifest::new(
+            "Shader Ide Sandbox",
+            AssetUri::parse("res://shaders/hero").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+        write_shader_ide_surface_package(&paths);
+
+        let mut project = ProjectManager::open(&root).unwrap();
+        project.scan_and_import().unwrap();
+
+        let manager = DefaultEditorAssetManager::new();
+        manager.sync_from_project(project).unwrap();
+
+        let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
+        let ide_root = root.join(zircon_runtime::core::framework::render::SHADER_IDE_ENV_CACHE_DIR);
+        let module_map_path =
+            ide_root.join(zircon_runtime::core::framework::render::SHADER_IDE_MODULE_MAP_FILE);
+        let preview_path = ide_root.join(
+            zircon_runtime::core::framework::render::shader_ide_preview_relative_path(
+                &shader_uri,
+                zircon_runtime::core::framework::render::SHADER_IDE_PREVIEW_DEFAULT_VARIANT,
+            ),
+        );
+        let segment_path = ide_root.join(
+            zircon_runtime::core::framework::render::shader_ide_preview_segments_relative_path(
+                &shader_uri,
+                zircon_runtime::core::framework::render::SHADER_IDE_PREVIEW_DEFAULT_VARIANT,
+            ),
+        );
+
+        let module_map = fs::read_to_string(module_map_path).unwrap();
+        assert!(module_map.contains("shader_ide_sandbox::hero"));
+        assert!(module_map.contains("generated/res_shaders_hero.material.wgsl"));
+        assert!(fs::read_to_string(preview_path)
+            .unwrap()
+            .contains("fn zr_material_surface"));
+        assert!(fs::read_to_string(segment_path)
+            .unwrap()
+            .contains("generated_material"));
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn write_shader_ide_surface_package(paths: &ProjectPaths) {
+        let shader_uri = AssetUri::parse("res://shaders/hero").unwrap();
+        let shader_meta_path = paths.assets_root().join("shaders").join("hero.zmeta");
+        let mut shader_meta =
+            AssetMetaDocument::new(AssetUuid::new(), shader_uri, AssetKind::Shader);
+        shader_meta.unit = AssetSourceUnit::Compound;
+        fs::create_dir_all(shader_meta_path.parent().unwrap()).unwrap();
+        shader_meta.save(&shader_meta_path).unwrap();
+
+        let shader_dir = paths.assets_root().join("shaders").join("hero");
+        fs::create_dir_all(&shader_dir).unwrap();
+        fs::write(
+            shader_dir.join("hero.zshader"),
+            r#"
+kind = "surface"
+version = 2
+shading_model = "standard_pbr"
+wgsl_files = ["hero.wgsl"]
+
+[[properties]]
+name = "base_color"
+kind = "vec4"
+default = [0.8, 0.4, 0.2, 1.0]
+"#,
+        )
+        .unwrap();
+        fs::write(
+            shader_dir.join("hero.wgsl"),
+            r#"
+#include <self::material>
+
+fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
+    var surface = zr_surface_default(input);
+    surface.base_color = zr_mat_base_color();
+    return surface;
+}
+"#,
+        )
+        .unwrap();
     }
 
     fn unique_temp_project_root(label: &str) -> PathBuf {

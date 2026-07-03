@@ -109,8 +109,8 @@ fn runtime_15_scene_component_structure_tests_are_folder_backed() {
         &runtime_08_owner_tree,
         &[
             "fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover",
-            "fn runtime_08_ecs_query_owner_trees_stay_folder_backed_after_cutover",
-            "fn runtime_08_scene_tests_cover_source_stable_owner_tree_after_cutover",
+            "fn runtime_08_ecs_change_detection_owner_tree_stays_folder_backed_after_cutover",
+            "fn runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover",
         ],
     );
 
@@ -178,7 +178,7 @@ fn runtime_15_scene_component_structure_tests_are_folder_backed() {
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
     let dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

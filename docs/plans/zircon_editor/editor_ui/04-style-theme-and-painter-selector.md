@@ -55,8 +55,9 @@ status: planned
 ### 3.1 主题 token 治理（M11 补课）
 
 - `zircon_runtime_interface/src/ui/style.rs` 升级为 `style/` 目录（mod.rs 薄声明 + `base.rs`（现有类型平移）+ `theme.rs`（新增）+ `selector.rs`（selector 平移）），新增 `UiThemeDocument`：palette（surface 0–3 层、text primary/secondary/disabled、accent、success/info/warning/error、separator）、typography 阶（对齐 MUI variant：body/caption/subtitle/title）、shape（圆角档 4/5/8/12）、spacing 阶、控件尺寸档（default 40 / compact 32 / dense 28）、elevation。
-- 主题作为资产（TOML theme 文档）进资产管线（计划 05 注册 `UiThemeAsset`），支持热重载：theme 变更 → style 解析缓存指纹失效 → 全表面 restyle，不重建树。
+- 主题作为资产进资产管线，支持热重载：theme 变更 → style 解析缓存指纹失效 → 全表面 restyle，不重建树。（2026-07-02 评审收口）`.zui` 是唯一 UI 资产后缀：theme 文档 = `asset.kind = theme_tokens` 的 **`.zui` profile**（生产已有 `editor_tokens.zui`），序列化形态对齐 `editor_tokens.zui`；原「TOML theme 文档 / `.theme.toml`」新载体方案作废，计划 05 的注册按 theme_tokens profile 物化/facade 执行。
 - token source-chain 校验：每个最终颜色/尺寸能回溯到 token id；CI 测试拒绝模板与 painter 源中的裸 hex（白名单除外）。
+- （2026-07-02 评审收口）token 权威让渡：token 命名/值的规范权威 = editor_layout/01（design tokens 语言契约）+ editor_layout/15c（retained palette 单一来源）；本计划只做 **ThemeRegistry 运行时消费与热重载**，不定义新 token 命名；token 引用语法遵 editor_layout/01 统一文法（含 `$token` 形式）。
 
 ### 3.2 统一状态模型
 
@@ -73,6 +74,13 @@ status: planned
 
 - 状态矩阵快照测试：每组件 × 每状态组合的 resolved style 快照（runtime extract 与 native painter 双路对拍，保证视觉同源）。
 - 复用 component-prototype 的 `verify-native-component-contract.mjs` retained selector-state 覆盖检查。
+
+### 3.5 与 editor_layout/20 的 gating（2026-07-02 评审收口）
+
+- `UiPainterStyleSelector` 的**固定优先级折叠是 editor_layout/20 级联引擎落地前的过渡形态**；20 是 style 级联/computed style 的规范权威。
+- M3 的 v2 伪状态折叠按 20 的 **computed style 形态**实施（解析产物直接采用 20 定义的 computed style 结构），避免「先按旧形态迁一次、20 落地后再迁一次」的双次迁移。
+- 20.S2 验收后，`UiPainterStyleSelector` 的固定优先级表**降级为内置默认 stylesheet**（级联引擎的最低优先级层），不再是独立解析路径。
+- transition 声明字段（2026-07-02 评审收口，U7）：schema 归 editor_layout/20（style 规范权威）；本计划 M3 的解析链**承接实现**（伪状态折叠时携带 transition 声明），计划 07 消费驱动；三方按此引用，不各自定义字段。
 
 ## 4. 接口与数据结构草案
 
@@ -98,11 +106,16 @@ pub struct UiThemePalette {
     pub separator: UiRgbaColor,
 }
 pub struct UiThemeTypographyVariant { pub variant: String /* body|caption|subtitle|title */, pub family: String, pub size: f32, pub weight: u16, pub line_height: f32 }
+// （2026-07-02 评审收口）`family: String` 语义：解析经字体 token → text/01 CompositeFont/FontFaceId 回退链，
+// 不直持裸字符串语义——family 字符串仅是 token/字体名查询键，最终以 FontDatabase 解析结果为准。
 pub struct UiThemeShape { pub radius_small: f32, pub radius_medium: f32, pub radius_large: f32, pub radius_panel: f32 }   // 4/5/8/12
 pub struct UiThemeControlSizes { pub default_height: f32, pub compact_height: f32, pub dense_height: f32 }                 // 40/32/28
 pub struct UiThemeTokenRef(pub String);       // 可回溯 token id，如 "palette.surface.1"
 
-// theme 文档 TOML 形态（资产，05 注册 UiThemeAsset）：
+// theme 文档载体（2026-07-02 评审收口，U6）：asset.kind = theme_tokens 的 `.zui` profile，
+// 序列化形态对齐生产已有的 editor_tokens.zui（不再引入 .theme.toml 第二载体）。
+// 示例（.zui theme_tokens profile，字段以 editor_tokens.zui 为准）：
+// [asset]              kind = "theme_tokens"  id = "zircon.dark"
 // [palette]            surface = ["#111416", "#171a1d", "#1b1f23", "#252b31"]
 // accent = "#3cc7d6"   text_primary = "#e8ecee" ...
 // [[typography]]       variant = "body"  family = "Inter"  size = 13.0  weight = 400  line_height = 1.45
@@ -127,7 +140,7 @@ impl UiV2StyleResolver {
 
 ## 5. 模块与文件落点
 
-**新增**：`zircon_runtime_interface/src/ui/style/{mod.rs, base.rs, theme.rs, selector.rs}`（由 style.rs 拆分，mod.rs 薄）、`zircon_runtime/src/ui/theme/{mod.rs, loader.rs, registry.rs, token_check.rs}`、`zircon_runtime/assets`（或 editor assets）默认 theme 文档 `zircon.dark.theme.toml`
+**新增**：`zircon_runtime_interface/src/ui/style/{mod.rs, base.rs, theme.rs, selector.rs}`（由 style.rs 拆分，mod.rs 薄）、`zircon_runtime/src/ui/theme/{mod.rs, loader.rs, registry.rs, token_check.rs}`、默认 theme 文档 = `.zui` theme_tokens profile（对齐生产 `editor_tokens.zui`；2026-07-02 评审收口，原 `zircon.dark.theme.toml` 载体作废）
 
 **修改**：
 
@@ -149,7 +162,7 @@ impl UiV2StyleResolver {
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
 | M1.S1 | style.rs 拆 style/ 目录（纯平移，零行为变化） | interface style/ | `cargo test -p zircon_runtime_interface --locked` | style.rs 删除（被目录取代） |
-| M1.S2 | `UiThemeDocument` + 默认 dark theme TOML + ThemeRegistry/loader | theme.rs、runtime ui/theme/ | `cargo test -p zircon_runtime --lib theme --locked` | 无删除 |
+| M1.S2 | `UiThemeDocument` + 默认 dark theme（`.zui` theme_tokens profile，对齐 editor_tokens.zui；2026-07-02 评审收口，原 TOML 新载体作废）+ ThemeRegistry/loader | theme.rs、runtime ui/theme/ | `cargo test -p zircon_runtime --lib theme --locked` | 无删除 |
 | M1.S3 | 散落 hex 收编进 token + 裸 hex 扫描测试（扫 `.zui` UI 文档与 `paint_template_nodes` 源，白名单清单显式） | token_check.rs、各模板 | `cargo test -p zircon_runtime --lib token_check --locked` | 中立绘制族内重复常量表删除 |
 | M2.S1 | `UiPainterState` 状态集盘点补全（checked/open/dragging 字段与折叠规则） | interface style/selector.rs | `cargo test -p zircon_runtime_interface --locked` | 无删除 |
 | M2.S2 | 生产者唯一化：交互态只由 01 reply 写入、语义态只由 reducer 写入（依赖 01 M3） | surface 组件状态写入点 | `cargo test -p zircon_runtime --lib --locked` | 散落写入点删除 |
@@ -227,3 +240,4 @@ impl UiV2StyleResolver {
 | 日期 | 范围 | 状态 | 完成项目 | 验证 |
 | --- | --- | --- | --- | --- |
 | 2026-06-28 | Plan 11 M5 style/theme token scan `.zui` target guard | editor_ui_11_m5_style_theme_token_scan_zui_guard_passed | M1.S3 的裸 hex 扫描目标已从 `.zui` + `*.v2.ui.toml` 双后缀改为 `.zui` UI 文档与 `paint_template_nodes` 源；后续 token 检查不再把退役 `.v2.ui.toml` 写成未来扫描目标。 | 新增 `test_style_theme_plan_token_scan_targets_zui_documents_only`；RED 先失败列出旧 `*.v2.ui.toml` 扫描目标，GREEN 后通过。该切片不改生产代码、不运行 Cargo。 |
+| 2026-07-02 | 评审收口（文档修订） | editor_ui_04_review_alignment_recorded | theme 载体定稿 `.zui` theme_tokens profile（U6，.theme.toml 作废）；新增 §3.5 与 editor_layout/20 的 gating（含 transition schema 归属 U7）；token 命名/值权威让渡 editor_layout/01+15c；typography family 补 text/01 FontFaceId 回退链语义。 | 文档修订，无代码变更。 |

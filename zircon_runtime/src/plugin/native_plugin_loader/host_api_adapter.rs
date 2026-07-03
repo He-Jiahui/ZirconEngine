@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
+use std::str::Utf8Error;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
@@ -11,7 +12,7 @@ use zircon_runtime_interface::{
 
 use crate::plugin::{
     BridgeInterfaceStatus, ComponentTypeDescriptor, FrozenBridgeTable, InterfaceSlot,
-    PluginModuleId, RuntimeExtensionRegistry,
+    PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use crate::scene::ecs::{
     ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError, SystemRef, SystemStage,
@@ -23,6 +24,86 @@ use super::bridge_method_bindings::{
 };
 use super::ffi_panic_guard::catch_native_host_api_panic;
 
+type NativeHostApiAdapterResult<T> = std::result::Result<T, NativeHostApiAdapterError>;
+
+#[derive(Debug)]
+enum NativeHostApiAdapterError {
+    InvalidPluginModuleOwner {
+        source: RuntimeExtensionRegistryError,
+    },
+    InvalidUtf8 {
+        source: Utf8Error,
+    },
+    UnknownSystemStage {
+        stage: u32,
+    },
+    InvalidSystemSet {
+        source: RuntimeExtensionRegistryError,
+    },
+    RegisterSystem {
+        source: RuntimeExtensionRegistryError,
+    },
+    UnknownPluginModuleOwner {
+        owner: PluginModuleId,
+    },
+    RegisterComponent {
+        source: RuntimeExtensionRegistryError,
+    },
+}
+
+impl std::fmt::Display for NativeHostApiAdapterError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidPluginModuleOwner { source } => {
+                write!(
+                    formatter,
+                    "native host API plugin module owner is invalid: {source}"
+                )
+            }
+            Self::InvalidUtf8 { source } => {
+                write!(
+                    formatter,
+                    "native host API string field is not valid UTF-8: {source}"
+                )
+            }
+            Self::UnknownSystemStage { stage } => {
+                write!(formatter, "unknown native system stage {stage}")
+            }
+            Self::InvalidSystemSet { source } => {
+                write!(formatter, "native host API system set is invalid: {source}")
+            }
+            Self::RegisterSystem { source } => {
+                write!(
+                    formatter,
+                    "native host API system registration failed: {source}"
+                )
+            }
+            Self::UnknownPluginModuleOwner { owner } => {
+                write!(formatter, "unknown plugin module owner {}", owner.raw())
+            }
+            Self::RegisterComponent { source } => {
+                write!(
+                    formatter,
+                    "native host API component registration failed: {source}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for NativeHostApiAdapterError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::InvalidPluginModuleOwner { source }
+            | Self::InvalidSystemSet { source }
+            | Self::RegisterSystem { source }
+            | Self::RegisterComponent { source } => Some(source),
+            Self::InvalidUtf8 { source } => Some(source),
+            Self::UnknownSystemStage { .. } | Self::UnknownPluginModuleOwner { .. } => None,
+        }
+    }
+}
+
 pub struct NativeHostApiV3RegistrationScope<'registry> {
     handle: ZrRuntimePluginHandle,
     _registry: PhantomData<&'registry mut RuntimeExtensionRegistry>,
@@ -33,9 +114,16 @@ impl<'registry> NativeHostApiV3RegistrationScope<'registry> {
         registry: &'registry mut RuntimeExtensionRegistry,
         module_name: impl Into<String>,
     ) -> Result<Self, String> {
+        Self::new_result(registry, module_name).map_err(|error| error.to_string())
+    }
+
+    fn new_result(
+        registry: &'registry mut RuntimeExtensionRegistry,
+        module_name: impl Into<String>,
+    ) -> NativeHostApiAdapterResult<Self> {
         let owner = registry
             .intern_plugin_module(module_name)
-            .map_err(|error| error.to_string())?;
+            .map_err(|source| NativeHostApiAdapterError::InvalidPluginModuleOwner { source })?;
         let handle = ZrRuntimePluginHandle::new(next_host_handle());
         lock_contexts().insert(
             handle.raw(),
@@ -339,7 +427,7 @@ unsafe fn register_system_from_abi(
     context: NativeHostApiV3RegistrationContext,
     handle: ZrRuntimePluginHandle,
     registration: &ZrSystemRegistrationV1,
-) -> Result<(), String> {
+) -> NativeHostApiAdapterResult<()> {
     let id = read_utf8(registration.system_id)?;
     let stage = stage_from_abi(registration.stage)?;
     let set_names = read_byte_slices(registration.set_names, registration.set_count)?;
@@ -353,7 +441,7 @@ unsafe fn register_system_from_abi(
         .map(|set_name| {
             registry
                 .intern_system_set(set_name)
-                .map_err(|error| error.to_string())
+                .map_err(|source| NativeHostApiAdapterError::InvalidSystemSet { source })
         })
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -373,7 +461,9 @@ unsafe fn register_system_from_abi(
     for system_id in after {
         builder = builder.after(SystemRef::System(system_id));
     }
-    builder.register().map_err(|error| error.to_string())
+    builder
+        .register()
+        .map_err(|source| NativeHostApiAdapterError::RegisterSystem { source })
 }
 
 pub(super) struct NativeDynamicAccess;
@@ -403,14 +493,16 @@ impl SystemParam for NativeDynamicAccess {
 unsafe fn register_component_from_abi(
     context: NativeHostApiV3RegistrationContext,
     descriptor: &ZrComponentDescV1,
-) -> Result<(), String> {
+) -> NativeHostApiAdapterResult<()> {
     let type_id = read_utf8(descriptor.type_id)?;
     let display_name = read_utf8(descriptor.display_name)?;
     let registry = registry_from_context(context);
     let plugin_id = registry
         .plugin_module_name(context.owner)
         .and_then(plugin_id_from_runtime_module_name)
-        .ok_or_else(|| format!("unknown plugin module owner {}", context.owner.raw()))?
+        .ok_or(NativeHostApiAdapterError::UnknownPluginModuleOwner {
+            owner: context.owner,
+        })?
         .to_string();
     registry
         .register_component(ComponentTypeDescriptor::new(
@@ -418,7 +510,7 @@ unsafe fn register_component_from_abi(
             plugin_id,
             display_name,
         ))
-        .map_err(|error| error.to_string())
+        .map_err(|source| NativeHostApiAdapterError::RegisterComponent { source })
 }
 
 unsafe fn registry_from_context<'a>(
@@ -427,17 +519,17 @@ unsafe fn registry_from_context<'a>(
     &mut *(context.registry as *mut RuntimeExtensionRegistry)
 }
 
-fn stage_from_abi(stage: u32) -> Result<SystemStage, String> {
+fn stage_from_abi(stage: u32) -> NativeHostApiAdapterResult<SystemStage> {
     SystemStage::ORDER
         .get(stage as usize)
         .copied()
-        .ok_or_else(|| format!("unknown native system stage {stage}"))
+        .ok_or(NativeHostApiAdapterError::UnknownSystemStage { stage })
 }
 
 unsafe fn read_byte_slices(
     values: *const ZrByteSlice,
     count: usize,
-) -> Result<Vec<String>, String> {
+) -> NativeHostApiAdapterResult<Vec<String>> {
     if values.is_null() || count == 0 {
         return Ok(Vec::new());
     }
@@ -448,10 +540,10 @@ unsafe fn read_byte_slices(
         .collect()
 }
 
-unsafe fn read_utf8(slice: ZrByteSlice) -> Result<String, String> {
+unsafe fn read_utf8(slice: ZrByteSlice) -> NativeHostApiAdapterResult<String> {
     std::str::from_utf8(unsafe { slice.as_slice() })
         .map(str::to_string)
-        .map_err(|error| error.to_string())
+        .map_err(|source| NativeHostApiAdapterError::InvalidUtf8 { source })
 }
 
 fn plugin_id_from_runtime_module_name(module_name: &str) -> Option<&str> {

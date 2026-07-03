@@ -56,14 +56,20 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-21")
     } else if slice == "Runtime 01 Tech-stack current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 01 Tech-stack 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 01 Tech-stack inventory split" {
         Some("2026-06-21")
     } else if slice == "Runtime 01 Tech-stack Markdown renderer split" {
         Some("2026-06-21")
+    } else if slice == "Runtime 01 Tech-stack SharedTextService 锚点同步" {
+        Some("2026-07-01")
     } else if slice == "Runtime 02 F6 core resource registry typed errors" {
         Some("2026-06-22")
     } else if slice == "Runtime 02 core/root/generated current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 02 core/root/generated 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 02 core/root/generated Markdown renderer split"
         || slice == "Runtime 02 generated-code Markdown renderer split"
         || slice == "Runtime 02 root-surface Markdown renderer split"
@@ -71,10 +77,14 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-21")
     } else if slice == "Runtime 03 Schedule/frame-loop current audit recheck" {
         Some("2026-06-20")
+    } else if slice == "Runtime 03 Schedule/frame-loop 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
     } else if slice == "Runtime 03 Schedule/frame-loop inventory split" {
         Some("2026-06-21")
     } else if slice == "Runtime 03 Schedule/frame-loop markdown renderer split" {
         Some("2026-06-21")
+    } else if slice == "Runtime 03 Schedule/frame-loop session profile owner audit sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 01 export build-plan directory materialization boundary"
         || slice == "Runtime 01 NativeDynamic materialization symlink boundary"
         || slice == "Runtime 01 export materialization dry-run preview"
@@ -90,6 +100,10 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         || slice == "Runtime 04 Asset pipeline Markdown renderer split"
     {
         Some("2026-06-21")
+    } else if slice == "Runtime 04 Asset pipeline 2026-07-01 current audit recheck" {
+        Some("2026-07-01")
+    } else if slice == "Runtime 04 artifact-store child owner audit sync" {
+        Some("2026-07-01")
     } else if slice == "Runtime 04 F7 asset artifact/importer typed errors"
         || slice == "Runtime 04 F8 texture import settings apply API"
     {

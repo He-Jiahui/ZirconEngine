@@ -20,7 +20,7 @@ fn runtime_15_core_runtime_service_lists_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let lifecycle_doc = read_repo("docs/zircon_runtime/core/runtime/lifecycle.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
 
     assert!(
@@ -57,7 +57,7 @@ fn runtime_15_core_runtime_service_lists_are_folder_backed() {
         "service-list types owner owns only the returned name lists",
         &types,
         &[
-            "pub(super) struct ModuleServiceLists",
+            "pub(in crate::core::runtime::handle::registration) struct ModuleServiceLists",
             "service_names: Arc<[RegistryName]>",
             "startup_service_names: Arc<[RegistryName]>",
             "shutdown_service_names: Arc<[RegistryName]>",
@@ -78,7 +78,7 @@ fn runtime_15_core_runtime_service_lists_are_folder_backed() {
         "specialized service-list owner owns one-through-five service paths",
         &specialized,
         &[
-            "pub(super) fn single_service_module_lists",
+            "pub(in crate::core::runtime::handle::registration) fn single_service_module_lists",
             "pub(super) fn two_service_module_lists",
             "pub(super) fn three_service_module_lists",
             "pub(super) fn four_service_module_lists",
@@ -172,7 +172,7 @@ fn runtime_15_production_file_budget_core_runtime_guard_is_child_owner() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
     );
 
     assert_contains_all(

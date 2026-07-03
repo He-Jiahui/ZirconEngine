@@ -39,14 +39,14 @@ struct RuntimeUiSemanticGolden {
 }
 
 #[test]
-fn quest_log_runtime_v2_asset_preserves_runtime_semantic_golden() {
+fn quest_log_runtime_zui_asset_preserves_runtime_semantic_golden() {
     let editor_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = editor_root
         .parent()
         .expect("zircon_editor lives directly under workspace root");
     let runtime_root = workspace_root.join("zircon_runtime");
 
-    let runtime_surface = build_v2_surface(
+    let runtime_surface = build_zui_surface(
         &runtime_root.join("assets/ui/runtime/fixtures/quest_log_dialog.zui"),
         "runtime.ui.quest_log_dialog",
     );
@@ -62,33 +62,33 @@ fn quest_log_runtime_v2_asset_preserves_runtime_semantic_golden() {
     assert_eq!(
         runtime_snapshot.component_counts.get("Button").copied(),
         Some(2),
-        "runtime quest log v2 surface should expose two runtime action buttons"
+        "runtime quest log .zui surface should expose two runtime action buttons"
     );
     assert!(
         runtime_snapshot.rendered_text.contains("Quest Log"),
-        "runtime quest log v2 surface should render the dialog title"
+        "runtime quest log .zui surface should render the dialog title"
     );
     assert!(
         runtime_snapshot.rendered_text.contains("Track")
             && runtime_snapshot.rendered_text.contains("Close"),
-        "runtime quest log v2 surface should render matching action labels"
+        "runtime quest log .zui surface should render matching action labels"
     );
     assert_eq!(
         runtime_snapshot.click_binding_ids, expected_click_binding_ids,
-        "runtime quest log v2 surface should preserve shared Click binding ids"
+        "runtime quest log .zui surface should preserve shared Click binding ids"
     );
     assert_eq!(
         runtime_snapshot.click_routes, expected_click_routes,
-        "runtime quest log v2 surface should preserve shared runtime Click routes"
+        "runtime quest log .zui surface should preserve shared runtime Click routes"
     );
     assert!(
         runtime_snapshot.control_ids.contains("QuestLogActions"),
-        "runtime quest log v2 surface should preserve the action-row semantic control id"
+        "runtime quest log .zui surface should preserve the action-row semantic control id"
     );
 }
 
 #[test]
-fn all_runtime_v2_fixtures_share_template_semantic_golden() {
+fn all_runtime_zui_fixtures_share_template_semantic_golden() {
     let editor_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let workspace_root = editor_root
         .parent()
@@ -96,7 +96,7 @@ fn all_runtime_v2_fixtures_share_template_semantic_golden() {
     let runtime_root = workspace_root.join("zircon_runtime");
 
     for golden in runtime_ui_semantic_goldens() {
-        let runtime_surface = build_v2_surface(
+        let runtime_surface = build_zui_surface(
             &runtime_root.join(golden.runtime_asset),
             &format!("runtime.ui.{}", golden.name),
         );
@@ -207,7 +207,7 @@ fn assert_runtime_ui_snapshot(
                 .copied()
                 .unwrap_or(0)
                 >= 1,
-        "runtime {} v2 surface should compile a rooted template tree",
+        "runtime {} .zui surface should compile a rooted template tree",
         golden.name
     );
     assert!(
@@ -217,13 +217,13 @@ fn assert_runtime_ui_snapshot(
             .copied()
             .unwrap_or(0)
             >= golden.minimum_buttons,
-        "runtime {} v2 surface should expose at least {} runtime controls as buttons",
+        "runtime {} .zui surface should expose at least {} runtime controls as buttons",
         golden.name,
         golden.minimum_buttons
     );
     assert!(
         snapshot.text_payload_count >= golden.minimum_text_commands,
-        "runtime {} v2 surface should produce shared text payloads",
+        "runtime {} .zui surface should produce shared text payloads",
         golden.name
     );
     assert!(
@@ -233,40 +233,40 @@ fn assert_runtime_ui_snapshot(
             .copied()
             .unwrap_or(0)
             >= golden.minimum_runtime_quads,
-        "runtime {} v2 surface should produce shared material/quad paint commands",
+        "runtime {} .zui surface should produce shared material/quad paint commands",
         golden.name
     );
 
     for control in golden.required_controls {
         assert!(
             snapshot.control_ids.contains(*control),
-            "runtime {} v2 surface should preserve semantic control `{control}`",
+            "runtime {} .zui surface should preserve semantic control `{control}`",
             golden.name
         );
     }
     for text in golden.required_text {
         assert!(
             snapshot.rendered_text.contains(*text),
-            "runtime {} v2 surface should render semantic text `{text}`",
+            "runtime {} .zui surface should render semantic text `{text}`",
             golden.name
         );
     }
 }
 
-fn build_v2_surface(path: &Path, tree_id: &str) -> UiSurface {
+fn build_zui_surface(path: &Path, tree_id: &str) -> UiSurface {
     let mut cache = UiV2PrototypeStoreFileCache::new();
     let outcome = cache
         .load_store(std::iter::once(path))
-        .unwrap_or_else(|error| panic!("{} loads as ui v2 asset: {error}", path.display()));
+        .unwrap_or_else(|error| panic!("{} loads as .zui asset: {error}", path.display()));
     let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
         UiTreeId::new(tree_id),
         outcome.root_document.as_ref(),
         outcome.compiled.as_ref(),
     )
-    .unwrap_or_else(|error| panic!("{} builds as shared v2 surface: {error}", path.display()));
+    .unwrap_or_else(|error| panic!("{} builds as shared .zui surface: {error}", path.display()));
     surface
         .compute_layout(UiSize::new(1280.0, 720.0))
-        .expect("runtime v2 semantic golden computes layout");
+        .expect("runtime .zui semantic golden computes layout");
     surface
 }
 

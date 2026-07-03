@@ -4,7 +4,7 @@ use super::vampire_root;
 use crate::asset::project::{ProjectManager, ProjectManifest};
 use crate::asset::{
     AlphaMode, AnimationGraphAsset, AnimationStateMachineAsset, AssetKind, AssetUri, MaterialAsset,
-    ModelAsset, NavMeshAsset, SceneAsset, SceneMobilityAsset, TerrainAsset, ZShaderDocument,
+    ModelAsset, NavMeshAsset, SceneAsset, SceneMobilityAsset, TerrainAsset, ZShaderDocumentV2,
 };
 use crate::builtin::RuntimePluginId;
 use crate::core::framework::animation::AnimationParameterValue;
@@ -342,7 +342,7 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
         nav_mesh.vertices.iter().any(|vertex| vertex[1].abs() > 0.5),
         "jungle navmesh should follow the authored uneven terrain height"
     );
-    ZShaderDocument::from_toml_str(
+    ZShaderDocumentV2::from_toml_str(
         &std::fs::read_to_string(root.join("assets/shaders/default_pbr/default_pbr.zshader"))
             .unwrap(),
     )
@@ -465,10 +465,10 @@ fn vampire_example_manifest_scene_and_scripts_are_importable() {
         ),
     ] {
         let document =
-            ZShaderDocument::from_toml_str(&std::fs::read_to_string(root.join(shader)).unwrap())
+            ZShaderDocumentV2::from_toml_str(&std::fs::read_to_string(root.join(shader)).unwrap())
                 .unwrap_or_else(|error| panic!("{shader} should parse as zshader: {error}"));
         assert!(
-            document.wgsl_files.iter().any(|file| file == marker),
+            document.wgsl_files().iter().any(|file| file == marker),
             "{shader} should include its own variant source marker"
         );
     }

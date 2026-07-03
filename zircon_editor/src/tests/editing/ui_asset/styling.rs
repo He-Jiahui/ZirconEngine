@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn ui_asset_editor_session_creates_stylesheet_rule_from_selected_node() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -43,7 +43,7 @@ fn ui_asset_editor_session_creates_stylesheet_rule_from_selected_node() {
 #[test]
 fn ui_asset_editor_session_extracts_inline_overrides_into_stylesheet_rule() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -96,7 +96,7 @@ fn ui_asset_editor_session_extracts_inline_overrides_into_stylesheet_rule() {
 #[test]
 fn ui_asset_editor_session_extracts_inline_overrides_with_unique_rule_id_after_created_rule() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -165,7 +165,7 @@ fn ui_asset_editor_session_extracts_inline_overrides_with_unique_rule_id_after_c
 #[test]
 fn ui_asset_editor_session_redo_restores_created_style_rule_selection_by_id() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -197,7 +197,7 @@ fn ui_asset_editor_session_redo_restores_created_style_rule_selection_by_id() {
 #[test]
 fn ui_asset_editor_session_adds_and_removes_selection_classes() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -243,7 +243,7 @@ fn ui_asset_editor_session_adds_and_removes_selection_classes() {
 #[test]
 fn ui_asset_editor_session_selects_renames_and_deletes_local_stylesheet_rules() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -326,7 +326,7 @@ fn ui_asset_editor_session_selects_renames_and_deletes_local_stylesheet_rules() 
 #[test]
 fn ui_asset_editor_session_selects_upserts_and_deletes_stylesheet_rule_declarations() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -411,7 +411,7 @@ fn ui_asset_editor_session_selects_upserts_and_deletes_stylesheet_rule_declarati
 #[test]
 fn ui_asset_editor_session_upserts_and_deletes_local_tokens() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -484,7 +484,7 @@ fn ui_asset_editor_session_upserts_and_deletes_local_tokens() {
 #[test]
 fn ui_asset_editor_session_toggles_pseudo_state_preview_matches() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -557,7 +557,7 @@ fn ui_asset_editor_session_toggles_pseudo_state_preview_matches() {
 #[test]
 fn ui_asset_editor_session_projects_matched_style_rules_into_stylesheet_summary_items() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );
@@ -591,7 +591,7 @@ fn ui_asset_editor_session_projects_matched_style_rules_into_stylesheet_summary_
 #[test]
 fn ui_asset_editor_session_selects_matched_style_rules_and_projects_details() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/style-authoring.ui.toml",
+        "asset://ui/tests/style-authoring.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Preview,
     );

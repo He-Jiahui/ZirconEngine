@@ -17,12 +17,25 @@ pub(crate) const GPU_INSTANCE_DATA_PREV_WORLD_FROM_LOCAL_OFFSET: usize = 64;
 pub(crate) const GPU_INSTANCE_DATA_PRIMITIVE_INDEX_OFFSET: usize = 128;
 pub(crate) const GPU_INSTANCE_DATA_FLAGS_OFFSET: usize = 132;
 pub(crate) const GPU_INSTANCE_DATA_PAYLOAD_SLOT_OFFSET: usize = 136;
-pub(crate) const GPU_INSTANCE_DATA_PAD0_OFFSET: usize = 140;
+pub(crate) const GPU_INSTANCE_DATA_MORPH_PAYLOAD_SLOT_OFFSET: usize = 140;
+
+pub(crate) const GPU_MORPH_PAYLOAD_STRIDE: usize = 16;
+pub(crate) const GPU_MORPH_DELTA_STRIDE: usize = 16;
+pub(crate) const GPU_MORPH_WEIGHT_STRIDE: usize = 4;
+
+pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_STRIDE: usize = 16;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_CLUSTER_BASE_WORD_OFFSET: usize = 0;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_VERTEX_COUNT_OFFSET: usize = 4;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_PAGE_ID_OFFSET: usize = 8;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_FLAGS_OFFSET: usize = 12;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE: usize = 16;
 
 pub(crate) const GPU_SCENE_INVALID_PAYLOAD_SLOT: u32 = u32::MAX;
 pub(crate) const GPU_PRIMITIVE_FLAG_VISIBLE: u32 = 1 << 0;
 pub(crate) const GPU_PRIMITIVE_FLAG_CAST_SHADOWS: u32 = 1 << 1;
 pub(crate) const GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM: u32 = 1 << 2;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT: u32 = 1 << 0;
+pub(crate) const GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX: u32 = 4;
 
 /// Rust mirror for the WGSL `GpuPrimitiveData` storage-buffer element.
 ///
@@ -66,7 +79,7 @@ pub(crate) struct GpuInstanceData {
     pub(crate) primitive_index: u32,
     pub(crate) flags: u32,
     pub(crate) payload_slot: u32,
-    pub(crate) _pad0: u32,
+    pub(crate) morph_payload_slot: u32,
 }
 
 impl GpuInstanceData {
@@ -76,9 +89,123 @@ impl GpuInstanceData {
             prev_world_from_local: identity_matrix(),
             primitive_index,
             payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
+            morph_payload_slot: GPU_SCENE_INVALID_PAYLOAD_SLOT,
             ..Self::default()
         }
     }
+}
+
+/// A 16-byte morph payload header consumed by `zr_morph_payloads`.
+///
+/// `delta_base` indexes `GpuMorphDelta` rows, `weight_base` indexes
+/// `GpuMorphWeight` rows, and the shader walks `target_count * vertex_count`
+/// rows using the incoming vertex index.
+#[repr(C, align(16))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Pod, Zeroable)]
+pub(crate) struct GpuMorphPayload {
+    pub(crate) delta_base: u32,
+    pub(crate) weight_base: u32,
+    pub(crate) vertex_count: u32,
+    pub(crate) target_count: u32,
+}
+
+impl GpuMorphPayload {
+    pub(crate) const fn new(
+        delta_base: u32,
+        weight_base: u32,
+        vertex_count: u32,
+        target_count: u32,
+    ) -> Self {
+        Self {
+            delta_base,
+            weight_base,
+            vertex_count,
+            target_count,
+        }
+    }
+}
+
+/// A 16-byte morph target delta row consumed by `zr_morph_deltas`.
+#[repr(C, align(16))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+pub(crate) struct GpuMorphDelta {
+    pub(crate) values: [f32; 4],
+}
+
+impl GpuMorphDelta {
+    pub(crate) const fn position_xyz(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            values: [x, y, z, 1.0],
+        }
+    }
+
+    pub(crate) const fn normal_xyz(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            values: [x, y, z, 1.0],
+        }
+    }
+
+    pub(crate) const fn tangent_xyz(x: f32, y: f32, z: f32) -> Self {
+        Self {
+            values: [x, y, z, 1.0],
+        }
+    }
+
+    pub(crate) const fn color_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self {
+            values: [r, g, b, a],
+        }
+    }
+}
+
+/// A scalar morph weight row consumed by `zr_morph_weights`.
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+pub(crate) struct GpuMorphWeight {
+    pub(crate) value: f32,
+}
+
+impl GpuMorphWeight {
+    pub(crate) const fn new(value: f32) -> Self {
+        Self { value }
+    }
+}
+
+/// Rust mirror for one VG page-table row consumed by `zr_virtual_geometry_pages`.
+///
+/// `cluster_base_word` indexes `GpuVirtualGeometryClusterWord` rows, while
+/// `vertex_count` guards shader fetch. Pages without resident payloads keep
+/// `vertex_count == 0` so WGSL falls back to mesh vertex input.
+#[repr(C, align(16))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Pod, Zeroable)]
+pub(crate) struct GpuVirtualGeometryPage {
+    pub(crate) cluster_base_word: u32,
+    pub(crate) vertex_count: u32,
+    pub(crate) page_id: u32,
+    pub(crate) flags: u32,
+}
+
+impl GpuVirtualGeometryPage {
+    pub(crate) const fn new(
+        cluster_base_word: u32,
+        vertex_count: u32,
+        page_id: u32,
+        flags: u32,
+    ) -> Self {
+        Self {
+            cluster_base_word,
+            vertex_count,
+            page_id,
+            flags,
+        }
+    }
+}
+
+/// A 16-byte VG cluster payload word consumed by `zr_virtual_geometry_clusters`.
+#[repr(C, align(16))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Pod, Zeroable)]
+pub(crate) struct GpuVirtualGeometryClusterWord {
+    pub(crate) values: [f32; 4],
 }
 
 fn identity_matrix() -> [[f32; 4]; 4] {
@@ -157,8 +284,37 @@ mod tests {
             GPU_INSTANCE_DATA_PAYLOAD_SLOT_OFFSET
         );
         assert_eq!(
-            offset_of!(GpuInstanceData, _pad0),
-            GPU_INSTANCE_DATA_PAD0_OFFSET
+            offset_of!(GpuInstanceData, morph_payload_slot),
+            GPU_INSTANCE_DATA_MORPH_PAYLOAD_SLOT_OFFSET
+        );
+
+        assert_eq!(size_of::<GpuMorphPayload>(), GPU_MORPH_PAYLOAD_STRIDE);
+        assert_eq!(size_of::<GpuMorphDelta>(), GPU_MORPH_DELTA_STRIDE);
+        assert_eq!(size_of::<GpuMorphWeight>(), GPU_MORPH_WEIGHT_STRIDE);
+
+        assert_eq!(
+            size_of::<GpuVirtualGeometryPage>(),
+            GPU_VIRTUAL_GEOMETRY_PAGE_STRIDE
+        );
+        assert_eq!(
+            offset_of!(GpuVirtualGeometryPage, cluster_base_word),
+            GPU_VIRTUAL_GEOMETRY_PAGE_CLUSTER_BASE_WORD_OFFSET
+        );
+        assert_eq!(
+            offset_of!(GpuVirtualGeometryPage, vertex_count),
+            GPU_VIRTUAL_GEOMETRY_PAGE_VERTEX_COUNT_OFFSET
+        );
+        assert_eq!(
+            offset_of!(GpuVirtualGeometryPage, page_id),
+            GPU_VIRTUAL_GEOMETRY_PAGE_PAGE_ID_OFFSET
+        );
+        assert_eq!(
+            offset_of!(GpuVirtualGeometryPage, flags),
+            GPU_VIRTUAL_GEOMETRY_PAGE_FLAGS_OFFSET
+        );
+        assert_eq!(
+            size_of::<GpuVirtualGeometryClusterWord>(),
+            GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE
         );
     }
 }

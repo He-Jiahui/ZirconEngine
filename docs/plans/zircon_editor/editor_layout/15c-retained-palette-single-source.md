@@ -99,6 +99,7 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_palette(
 - `capture_m3_gui_acceptance_visual_artifacts --ignored` + 组件 atlas 截图刷新 `docs/tests/editor/`。
 - 因 surface/accent **本就一致**,这些区域像素不变;`border/text/error` 等**漂移项收敛到中央值**(像素**有意微调**,在状态表注明为"漂移消除,非回归")。
 - 人工:改中央 token 重跑截图,chrome 色整体随动(单源生效)。
+- 补(2026-07-02 评审收口):当前形态为**编译期单源**——`palette_projection` 经 `OnceLock` 静态投影,改 token 需**重编译**方可生效(资产 `editor_tokens.zui` 值与 DTO 默认值同步,但运行时不重读)。移交条款:**运行时 token 热更**归 20.S2 级联 `var()` 通路接管——20.S2 验收通过后,`palette_projection` 降级为级联引擎的内置默认值来源(见 20 §3.6 收编路线),chrome 色改经 `var(--token)` 消费,`OnceLock` 静态投影随之删除;在此之前本文单源结论仅覆盖"编译期改一处全局动"。
 
 ## 6. 与 01 / 15b 的关系
 - `01.S2` 的色彩侧由本切片收口(度量侧由 `15b`),`01` 的中央 `EditorDesignTokens` 成为 chrome 度量+色彩双单源。
@@ -111,7 +112,7 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_palette(
 4. 跑色板投影测试 + 截图复验(注明漂移消除项)+ grep 守卫;写状态。
 
 ## 8. 边界
-不改选择器优先级机制(属 `editor_ui/04`);不引渐变/辉光/阴影(`shadow` 仅既有微透明,沿用);不动 B 层 MUI 移植件色板(那是 MUI design system)。
+不改选择器优先级机制(属 `editor_ui/04`);不引渐变/辉光/阴影(`shadow` 仅既有微透明,沿用);不动 B 层 MUI 移植件色板(那是 MUI design system)。补(2026-07-02 评审收口):`shadow` 角色的存在与 `10` 的豁免协调——popup 1px 分隔式微透明豁免已在 10 登记,本文 `shadow` 色角色即该豁免的取值来源,两处口径一致,不构成新增阴影语汇。
 
 ## 9. 状态与产出记录
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |

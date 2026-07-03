@@ -496,7 +496,7 @@ events = [{ id = "ComponentLab/RadioOffChange", event = "Change", route = "compo
 component = "WorkbenchToggle"
 control_id = "WorkbenchToggleOn"
 classes = ["workbench-toggle"]
-props = { text = "Switch", value = true, checked = true, selected = true, background_color = "#173942", border_color = "#2aa6b8", foreground_color = "#e8ecee", layout_spacing = 10.0, track_width = 34.0, track_height = 18.0, thumb_size = 14.0 }
+props = { text = "Switch", value = true, checked = true, selected = true, background_color = "#173942", border_color = "#414b54", foreground_color = "#a4aeb4", layout_spacing = 10.0, track_width = 34.0, track_height = 18.0, thumb_size = 12.0 }
 layout = { width = { min = 72.0, preferred = 96.0, max = 120.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/ToggleSwitch", event = "Toggle", route = "component_lab.change.toggle_switch" }]
 

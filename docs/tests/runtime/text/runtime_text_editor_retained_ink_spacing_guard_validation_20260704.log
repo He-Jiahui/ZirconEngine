@@ -1,0 +1,28 @@
+Runtime text editor retained-host ink spacing guard validation
+Date: 2026-07-04 +08:00
+Slice: runtime_text_editor_retained_ink_spacing_guard_rustfmt_static_visual_cargo_deferred
+
+Scope:
+- Added retained_text_editor_crop_labels_keep_stable_ink_spacing in zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs.
+- The regression draws actual retained-host framebuffer crop labels and records an ink profile from rendered pixels.
+- Guarded labels: editor base.zui and folder-open.svg.
+- Guarded invariants: full label internal blank run <= 7 px, narrow/ellipsized label internal blank run <= 5 px, nearby x=8.875/x=8.925 subpixel origins keep ink center delta <= 1 px and left ink edge delta <= 1 px.
+
+Checks:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs: passed.
+- Visual proof: docs/tests/runtime/text/runtime_text_editor_retained_ink_spacing_guard_validation_20260704.png
+- Visual proof SHA256: EF2585989C59E78D25BA0F836A2554FDA509A1800486A3D978955ABA8643308D
+- Focused Cargo: deferred because external cargo/rustc lanes were active during this slice.
+
+Target placement:
+- Proof files are intentionally under docs/tests/runtime/text.
+- Same-name scans for repo target and external Cargo target roots are recorded after this log is written.
+Post-log target scan:
+- target: 0 same-name matches
+- E:\cargo-targets: 0 same-name matches
+- D:\cargo-targets: 0 same-name matches
+- F:\cargo-targets: 0 same-name matches
+
+Cargo/rustc activity observed after slice:
+- External cargo/rustc processes were still active, including cargo PIDs 4412, 24952, 35404, 41680, 42728, 43672 and rustc PIDs 12336, 43296, 44708.
+- No new Cargo lane was started for this slice.

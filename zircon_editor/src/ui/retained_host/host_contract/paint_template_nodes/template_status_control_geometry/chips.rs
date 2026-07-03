@@ -1,12 +1,12 @@
 use super::super::super::data::FrameRect;
-use super::metrics::status_line_height;
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use super::metrics::workbench_status_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_chip_text_rect(
     rect: &FrameRect,
 ) -> FrameRect {
-    let line_height = status_line_height();
-    let inset = METRICS.gap_s;
+    let metrics = workbench_status_metrics();
+    let line_height = metrics.line_height;
+    let inset = metrics.text_inset;
     FrameRect {
         x: rect.x + inset,
         y: rect.y + (rect.height - line_height).max(0.0) * 0.5,

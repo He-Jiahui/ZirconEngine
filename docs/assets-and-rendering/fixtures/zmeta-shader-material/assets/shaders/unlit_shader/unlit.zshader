@@ -1,18 +1,8 @@
-version = 1
+kind = "surface"
+version = 2
 name = "Unlit Shader"
-import_path = "zircon::unlit"
+shading_model = "unlit"
 wgsl_files = ["unlit.wgsl"]
-shader_defs = ["USE_UNLIT"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-file = "unlit.wgsl"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
-file = "unlit.wgsl"
 
 [[properties]]
 name = "base_color"

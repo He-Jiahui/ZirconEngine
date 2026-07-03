@@ -13,7 +13,7 @@ fn workbench_window_source() -> String {
 fn workbench_window_uses_componentized_workbench_layout() {
     let source = workbench_window_source();
     let document =
-        UiV2AssetLoader::load_toml_str(&source).expect("workbench window v2 asset should parse");
+        UiV2AssetLoader::load_toml_str(&source).expect("workbench_window.zui should parse");
 
     assert_eq!(document.asset.id, "editor.window.workbench");
 

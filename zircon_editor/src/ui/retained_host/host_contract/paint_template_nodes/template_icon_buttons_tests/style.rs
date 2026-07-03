@@ -136,6 +136,32 @@ fn icon_button_style_selector_uses_shared_state_priority() {
 }
 
 #[test]
+fn asset_import_icon_button_uses_primary_accent_fill_with_theme_foreground() {
+    let mut node = icon_node(
+        "ImportModel",
+        "editor_pages/asset_browser/import_pipeline/import.svg",
+        false,
+        80.0,
+        28.0,
+    );
+    node.action_id = "workbench.asset.import_model".into();
+    node.component_variant = "workbench-icon-button".into();
+
+    let style = icon_button_style(&node, icon_button_context(&node));
+
+    assert_eq!(style.background, Some(PALETTE.accent));
+    assert_eq!(style.border, Some(PALETTE.accent));
+    assert_eq!(style.border_width, 1.0);
+    assert_eq!(style.glyph, PALETTE.shell_background);
+
+    node.hovered = true;
+    let hovered = icon_button_style(&node, icon_button_context(&node));
+    assert_eq!(hovered.background, Some(PALETTE.focus_ring));
+    assert_eq!(hovered.border, Some(PALETTE.focus_ring));
+    assert_eq!(hovered.glyph, PALETTE.shell_background);
+}
+
+#[test]
 fn dock_tab_close_button_uses_toolbar_context_without_persistent_panel_surface() {
     let node = icon_node("DockTabClose0", "close-outline", false, 20.0, 20.0);
     let context = icon_button_context(&node);

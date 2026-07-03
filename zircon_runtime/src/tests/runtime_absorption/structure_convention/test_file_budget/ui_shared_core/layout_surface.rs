@@ -20,7 +20,7 @@ fn runtime_15_ui_shared_core_layout_surface_children_are_folder_backed() {
         ],
     );
     assert_eq!(
-        parent.matches("#[test]").count(),
+        parent.matches(TEST_ATTRIBUTE).count(),
         0,
         "ui/tests/shared_core/layout_surface.rs should only mount child test owners"
     );
@@ -72,7 +72,7 @@ fn runtime_15_ui_shared_core_layout_surface_children_are_folder_backed() {
         render_extract.as_str(),
     ]
     .into_iter()
-    .map(|source| source.matches("#[test]").count())
+    .map(|source| source.matches(TEST_ATTRIBUTE).count())
     .sum::<usize>();
     assert_eq!(
         child_test_total, 11,

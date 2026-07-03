@@ -133,6 +133,8 @@ related_code:
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/query.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
@@ -442,6 +444,9 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --tests --locked --quiet (blocked: same unrelated active scene world/ECS errors)
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --tests --locked --quiet (blocked: same unrelated active scene world/ECS errors)
   - cargo test -p zircon_runtime --locked physics_animation_manifest_entries_resolve_to_builtin_runtime_domains --lib
+  - tools/tests/test_animation_runtime_helpers_arc_import.py
+  - tools/tests/test_plugin_docs_current_status_animation_runtime_helper_arc_import.py
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-animation-runtime-check-0703-codex --message-format short --color never (2026-07-03 animation helper scope import: passed; existing zircon_runtime warnings only)
 doc_type: module-detail
 ---
 
@@ -1187,3 +1192,11 @@ animation editor 这条 authoring 链现在已经不再停在“只能把 sessio
 ## Runtime 15 M3 Asset Project Example Vampire Test Folder Split
 
 Runtime 15 M3 的 `Runtime 15 M3 asset project example vampire test folder split` 把 vampire 示例验收测试改为 folder-backed owner：`asset/tests/project/example_vampire.rs` 只保留共享 fixture 与子模块挂载，`asset/tests/project/example_vampire/manifest_scene_imports.rs` 继续覆盖 manifest、scene/script、shader、animation 与 import record contract，`asset/tests/project/example_vampire/third_person_render_extract.rs` 继续覆盖 loaded world 到 render frame extract 的 playable third-person mesh、static grass batch、camera 和 post-process contract。结构守卫 `runtime_15_asset_project_example_vampire_tests_are_folder_backed` 同步校验这些路径和本文件的状态锚，当前状态为 `runtime_15_asset_project_example_vampire_tests_folder_split_static_passed_cargo_deferred`。
+
+2026-07-01 follow-up：该守卫的 status-output row-data owner 已同步到 `expected_status_row_data/runtime_15/m3/asset_budget_tests.rs`，并随 asset test-budget 精确组在 `structure_convention_asset_budget_followup.exe --nocapture test_file_budget::asset_` 中通过。
+
+## 2026-07-03 Animation Runtime Test Helper Scope Import
+
+`plugins_13_m5_t1_animation_runtime_helper_arc_import` 关闭了插件工作区整体 `cargo check` 在 `zircon_plugin_animation_runtime` 测试 owner 上暴露的作用域缺口。`runtime_physics_animation_tick_contract/runtime_helpers.rs` 自己声明 `runtime_asset_manager(...) -> Arc<ProjectAssetManager>`，因此子模块必须显式 `use std::sync::Arc;`，不能依赖父测试文件的导入。
+
+同一 owner 内还删除了主测试文件拆分后留下的 stale `EntityPath` import 和一个未使用的 `core` 局部变量，避免下一轮 `cargo check --all-targets` 继续产生这两个测试 warning。验证证据为 `rustfmt --edition 2021 --check` 通过，以及 `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-animation-runtime-check-0703-codex --message-format short --color never` 通过（仅既有 `zircon_runtime` warning）。本补记不声明完整插件 workspace build/test、真实插件构建、Hub/editor E2E、完整 export matrix 或 startup-to-first-frame 完成。

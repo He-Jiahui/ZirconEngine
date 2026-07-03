@@ -13,11 +13,20 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
     let ui_shared_core = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core.rs",
     );
+    let ui_shared_core_root = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core/root.rs",
+    );
     let module_layout = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/module_layout.rs",
     );
     let root_layout_folder = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed.rs",
+    );
+    let root_layout_folder_assertions = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs",
+    );
+    let root_layout_folder_sources = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/folder_backed/sources.rs",
     );
     let root_layout_status_scan = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/root_layout/status_scan.rs",
@@ -72,16 +81,27 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
         ],
     );
     assert_contains_all(
-        "UI shared core budget child owns the UI shared core guard",
+        "UI shared core budget child owns the UI shared core aggregate guard",
         &ui_shared_core,
+        &[
+            "use super::*;",
+            "mod root;",
+            "fn runtime_15_ui_shared_core_guard_child_owners_are_folder_backed",
+        ],
+    );
+    assert_contains_all(
+        "UI shared core root child owns the original UI shared core guard",
+        &ui_shared_core_root,
         &[
             "use super::*;",
             "fn runtime_15_ui_shared_core_tests_are_folder_backed",
         ],
     );
     assert_contains_all(
-        "root-layout folder-backed guard tracks the new child owners",
-        &root_layout_folder,
+        "root-layout folder-backed support tracks the new child owners",
+        &format!(
+            "{root_layout_folder}\n{root_layout_folder_assertions}\n{root_layout_folder_sources}"
+        ),
         &[
             "structure_convention/test_file_budget/core_framework.rs",
             "structure_convention/test_file_budget/ui_v2_asset.rs",
@@ -116,6 +136,10 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
         (
             "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core.rs",
             ui_shared_core.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core/root.rs",
+            ui_shared_core_root.as_str(),
         ),
         (
             "tests/runtime_absorption/structure_convention/test_file_budget/module_layout.rs",

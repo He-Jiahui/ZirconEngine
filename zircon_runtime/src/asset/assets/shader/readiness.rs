@@ -263,6 +263,8 @@ pub struct ShaderImportReadiness {
     pub source: String,
     pub redirect: Option<AssetReference>,
     pub contributes_dependency: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_diagnostic: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -357,6 +359,12 @@ fn import_readiness(shader: &ShaderAsset) -> Vec<ShaderImportReadiness> {
             source: import.source.clone(),
             redirect: import.redirect.clone(),
             contributes_dependency: import.redirect.is_some(),
+            source_diagnostic: import.redirect.as_ref().map(|redirect| {
+                format!(
+                    "shader import `{}` is redirected to `{}`",
+                    import.source, redirect.locator
+                )
+            }),
         })
         .collect()
 }

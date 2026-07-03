@@ -5,10 +5,10 @@ use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
-    RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
-    DEFAULT_RENDER_LAYER_MASK,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderLayerSet,
+    RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderStats, RenderViewportDescriptor, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -182,6 +182,9 @@ fn register_contact_shadow_material(
     let material = MaterialAsset {
         name: Some(name.to_string()),
         shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: None,
         normal_texture: None,
@@ -283,7 +286,7 @@ fn contact_shadow_scene_extract(
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 61_200,
                     light_id: 61_200,
-                    layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                    layer_mask: default_render_layer_set(),
                     direction: Vec3::new(0.30, 0.36, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 1.1,
@@ -369,7 +372,7 @@ fn wide_contact_shadow_scene_extract(
                 directional_lights: vec![RenderDirectionalLightSnapshot {
                     node_id: 62_200,
                     light_id: 62_200,
-                    layer_mask: DEFAULT_RENDER_LAYER_MASK,
+                    layer_mask: default_render_layer_set(),
                     direction: Vec3::new(0.25, 0.42, -1.0).normalize(),
                     color: Vec3::ONE,
                     intensity: 1.15,
@@ -416,8 +419,12 @@ fn contact_shadow_mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Dynamic,
         static_state: Default::default(),
-        render_layer_mask: DEFAULT_RENDER_LAYER_MASK,
+        render_layer_mask: default_render_layer_set(),
     }
+}
+
+fn default_render_layer_set() -> RenderLayerSet {
+    RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK)
 }
 
 fn assert_contact_shadow_wgpu_stats(stats: &RenderStats) {

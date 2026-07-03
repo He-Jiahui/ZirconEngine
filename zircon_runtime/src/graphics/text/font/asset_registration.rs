@@ -3,10 +3,8 @@ use std::path::{Path, PathBuf};
 use crate::asset::{FontAsset, FontAssetFaceStyle, FontAssetFamilyMember, FontAssetVariationCoord};
 use crate::core::framework::render::{FontFaceDescriptor, FontStyle, FontWeight, VariationCoords};
 
-use super::database::{
-    canonical_source_key, descriptor_from_font_bytes, normalized_family_key,
-    stretch_from_ttf_width_class,
-};
+use super::database::{canonical_source_key, normalized_family_key};
+use super::descriptors::{descriptor_from_font_bytes, stretch_from_ttf_width_class};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub(super) struct FontAssetSourceKey {

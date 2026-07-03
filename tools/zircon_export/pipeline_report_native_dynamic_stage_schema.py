@@ -14,14 +14,16 @@ from .pipeline_report_native_dynamic_operation_audit_schema import (
     NATIVE_DYNAMIC_OPERATION_AUDIT_FIELDS,
     native_dynamic_operation_audit_stage_schema_diagnostics,
 )
-from .pipeline_report_native_dynamic_payload_schema import (
+from .pipeline_report_native_dynamic_payload_file_manifest_schema import (
     native_dynamic_file_manifest_schema_diagnostics,
+)
+from .pipeline_report_native_dynamic_payload_materialized_packages_schema import (
     native_dynamic_materialized_packages_schema_diagnostics,
 )
 from .pipeline_report_native_dynamic_report_hash_schema import (
     native_dynamic_report_content_hash_schema_diagnostics,
 )
-from .pipeline_report_schema_table import (
+from .pipeline_report_schema_string_array import (
     string_array_duplicate_entry_index_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
     string_array_trimmed_non_empty_entries_schema_diagnostics,

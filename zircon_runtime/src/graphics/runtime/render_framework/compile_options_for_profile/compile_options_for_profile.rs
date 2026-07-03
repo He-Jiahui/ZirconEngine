@@ -110,6 +110,8 @@ mod tests {
     fn hzb_occlusion_capabilities() -> RenderCapabilitySummary {
         RenderCapabilitySummary {
             supports_storage_buffers: true,
+            max_storage_buffers_per_shader_stage:
+                HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
             supports_indirect_draw: true,
             supports_multi_draw_indirect: true,
             supports_indirect_first_instance: true,

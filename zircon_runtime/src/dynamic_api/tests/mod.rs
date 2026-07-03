@@ -1,5 +1,6 @@
 mod accessibility;
 mod api_table;
+mod host_request_payloads;
 mod host_requests;
 mod input_events;
 mod profile_control;

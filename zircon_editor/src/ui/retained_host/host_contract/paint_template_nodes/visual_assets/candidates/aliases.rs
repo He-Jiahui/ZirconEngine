@@ -8,6 +8,9 @@ pub(super) fn shell_icon_alias(icon_name: &str) -> Option<&'static str> {
         "save" | "save-all" => Some("zircon_editor_shell/toolbar/save.svg"),
         "compile" | "build" => Some("zircon_editor_shell/toolbar/compile.svg"),
         "settings" | "gear" | "cog" => Some("zircon_editor_shell/activity/settings.svg"),
+        "search" | "find" | "magnifier" | "magnifying-glass" | "magnifyingglass" => {
+            Some("zircon_editor_shell/controls/search.svg")
+        }
         "filter" => Some("zircon_editor_shell/scene/filter.svg"),
         "checkmark" | "check-mark" | "tick" => Some("zircon_editor_shell/controls/check.svg"),
         "trash" | "delete" | "remove" => Some("zircon_editor_shell/controls/delete.svg"),

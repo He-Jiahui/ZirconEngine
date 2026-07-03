@@ -31,6 +31,15 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
     assert!(live_pass_names.contains(&"taa-reactive-mask-mesh"));
     assert!(live_pass_names.contains(&"velocity-object"));
     assert!(live_pass_names.contains(&"velocity-camera"));
+    assert!(
+        compiled
+            .history_bindings
+            .contains(&FrameHistoryBinding::read_write(
+                FrameHistorySlot::TaaSceneColor
+            )),
+        "TAA resolve must declare the scene-color history slot; bindings={:?}",
+        compiled.history_bindings
+    );
     for pass_name in [
         "motion-vector-tile-max",
         "motion-vector-tile-max-coarse",
@@ -219,6 +228,15 @@ fn taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled() {
         .collect::<Vec<_>>();
 
     assert!(!live_pass_names.contains(&"taa-resolve"));
+    assert!(
+        !compiled
+            .history_bindings
+            .contains(&FrameHistoryBinding::read_write(
+                FrameHistorySlot::TaaSceneColor
+            )),
+        "TAA-disabled temporal compile should not reserve scene-color history; bindings={:?}",
+        compiled.history_bindings
+    );
     for resource_name in [
         PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
         PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,

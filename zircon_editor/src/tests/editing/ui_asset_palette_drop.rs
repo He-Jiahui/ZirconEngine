@@ -221,7 +221,7 @@ slot_name = "slot_c"
 #[test]
 fn ui_asset_editor_session_synthesizes_grid_slot_from_palette_drag_drop() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/grid-drop.ui.toml",
+        "asset://ui/tests/grid-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -267,7 +267,7 @@ fn ui_asset_editor_session_synthesizes_grid_slot_from_palette_drag_drop() {
 #[test]
 fn ui_asset_editor_session_projects_explicit_grid_slot_target_overlays_for_palette_drag() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/grid-drop.ui.toml",
+        "asset://ui/tests/grid-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -306,7 +306,7 @@ fn ui_asset_editor_session_projects_explicit_grid_slot_target_overlays_for_palet
 #[test]
 fn ui_asset_editor_session_synthesizes_overlay_slot_from_palette_drag_drop() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/overlay-drop.ui.toml",
+        "asset://ui/tests/overlay-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -365,7 +365,7 @@ fn ui_asset_editor_session_synthesizes_overlay_slot_from_palette_drag_drop() {
 #[test]
 fn ui_asset_editor_session_projects_explicit_overlay_slot_target_overlays_for_palette_drag() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/overlay-drop.ui.toml",
+        "asset://ui/tests/overlay-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -399,7 +399,7 @@ fn ui_asset_editor_session_projects_explicit_overlay_slot_target_overlays_for_pa
 #[test]
 fn ui_asset_editor_session_synthesizes_flow_slot_from_palette_drag_drop() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/flow-drop.ui.toml",
+        "asset://ui/tests/flow-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -451,7 +451,7 @@ fn ui_asset_editor_session_synthesizes_flow_slot_from_palette_drag_drop() {
 #[test]
 fn ui_asset_editor_session_projects_explicit_named_slot_target_overlays_for_palette_drag() {
     let local_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/local-component-drop.ui.toml",
+        "asset://ui/tests/local-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -490,7 +490,7 @@ fn ui_asset_editor_session_projects_explicit_named_slot_target_overlays_for_pale
     );
 
     let external_route = UiAssetEditorRoute::new(
-        "asset://ui/tests/external-widget-drop.ui.toml",
+        "asset://ui/tests/external-widget-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -541,7 +541,7 @@ fn ui_asset_editor_session_projects_explicit_named_slot_target_overlays_for_pale
 #[test]
 fn ui_asset_editor_session_routes_palette_drop_into_local_component_mounts() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/local-component-drop.ui.toml",
+        "asset://ui/tests/local-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -580,7 +580,7 @@ fn ui_asset_editor_session_routes_palette_drop_into_local_component_mounts() {
 #[test]
 fn ui_asset_editor_session_routes_palette_drop_into_external_widget_named_slots() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/external-widget-drop.ui.toml",
+        "asset://ui/tests/external-widget-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -628,7 +628,7 @@ fn ui_asset_editor_session_routes_palette_drop_into_external_widget_named_slots(
 #[test]
 fn ui_asset_editor_session_uses_explicit_slot_overlay_regions_for_low_semantic_component_mounts() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -689,7 +689,7 @@ fn ui_asset_editor_session_uses_explicit_slot_overlay_regions_for_low_semantic_c
 #[test]
 fn ui_asset_editor_session_exposes_palette_drag_target_cycle_candidates_for_low_semantic_slots() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -742,7 +742,7 @@ fn ui_asset_editor_session_exposes_palette_drag_target_cycle_candidates_for_low_
 #[test]
 fn ui_asset_editor_session_drop_uses_cycled_palette_drag_target_candidate() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -781,7 +781,7 @@ fn ui_asset_editor_session_drop_uses_cycled_palette_drag_target_candidate() {
 #[test]
 fn ui_asset_editor_session_ambiguous_palette_drop_arms_sticky_target_chooser_after_release() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -824,7 +824,7 @@ fn ui_asset_editor_session_ambiguous_palette_drop_arms_sticky_target_chooser_aft
 #[test]
 fn ui_asset_editor_session_sticky_palette_target_chooser_selects_and_confirms_candidate() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -873,7 +873,7 @@ fn ui_asset_editor_session_sticky_palette_target_chooser_selects_and_confirms_ca
 #[test]
 fn ui_asset_editor_session_sticky_palette_target_chooser_cancels_without_mutating_source() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -908,7 +908,7 @@ fn ui_asset_editor_session_sticky_palette_target_chooser_cancels_without_mutatin
 #[test]
 fn ui_asset_editor_session_sticky_palette_target_chooser_survives_hover_reconciliation() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -950,7 +950,7 @@ fn ui_asset_editor_session_sticky_palette_target_chooser_survives_hover_reconcil
 #[test]
 fn ui_asset_editor_session_sticky_palette_target_chooser_survives_hover_loss_until_cancelled() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/tests/low-semantic-component-drop.ui.toml",
+        "asset://ui/tests/low-semantic-component-drop.zui",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );

@@ -1,10 +1,11 @@
 use crate::builtin::{
     runtime_modules_for_runtime_profile_manifest_with_plugin_and_feature_registration_reports,
     runtime_modules_for_runtime_profile_with_plugin_and_feature_registration_reports,
-    runtime_modules_for_target_with_linked_plugins,
+    runtime_modules_for_target, runtime_modules_for_target_with_linked_plugins,
     runtime_modules_for_target_with_plugin_and_feature_registration_reports, RuntimePluginId,
     RuntimeTargetMode,
 };
+use crate::core::sort_module_activation_order;
 use crate::plugin::{
     PluginModuleManifest, PluginPackageManifest, ProjectPluginManifest, ProjectPluginSelection,
     RuntimePluginAvailabilityCategory, RuntimePluginRegistrationReport, RuntimeProfileId,
@@ -188,4 +189,51 @@ fn runtime_profile_manifest_bootstrap_reports_manifest_optional_provider_availab
         &report.runtime_plugin_availability.externalized_missing,
         RuntimePluginId::Animation
     ));
+}
+
+#[test]
+fn target_runtime_modules_follow_descriptor_activation_order() {
+    let report = runtime_modules_for_target(
+        RuntimeTargetMode::ServerRuntime,
+        Some(&ProjectPluginManifest::default()),
+    );
+
+    assert!(
+        !report.has_fatal_diagnostics(),
+        "server runtime module selection should sort cleanly: {:?}",
+        report.effective_errors()
+    );
+
+    let module_names = report
+        .modules
+        .iter()
+        .map(|module| module.module_name())
+        .collect::<Vec<_>>();
+    let descriptors = report
+        .modules
+        .iter()
+        .map(|module| module.descriptor())
+        .collect::<Vec<_>>();
+    let sorted_names = sort_module_activation_order(&descriptors).unwrap();
+
+    assert_eq!(
+        module_names,
+        sorted_names.iter().map(String::as_str).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        module_names,
+        vec![
+            crate::foundation::FOUNDATION_MODULE_NAME,
+            crate::core::runtime::modules::LOG_MODULE_NAME,
+            crate::core::runtime::modules::TASKS_MODULE_NAME,
+            crate::core::runtime::modules::TIME_MODULE_NAME,
+            crate::core::runtime::modules::FRAME_COUNT_MODULE_NAME,
+            crate::core::runtime::modules::DIAGNOSTICS_CORE_MODULE_NAME,
+            crate::platform::PLATFORM_MODULE_NAME,
+            crate::input::INPUT_MODULE_NAME,
+            crate::asset::ASSET_MODULE_NAME,
+            crate::scene::SCENE_MODULE_NAME,
+            crate::script::SCRIPT_MODULE_NAME,
+        ]
+    );
 }

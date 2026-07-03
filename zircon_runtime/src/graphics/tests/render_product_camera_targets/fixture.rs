@@ -16,7 +16,7 @@ use crate::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderImageColorSpace, RenderImageFallbackKind,
     RenderImageUsage, RenderMeshSnapshot, RenderPipelineHandle, RenderQualityProfile,
     RenderSamplerDescriptor, RenderViewportDescriptor, RenderViewportHandle,
-    RenderWorldSnapshotHandle,
+    RenderWorldSnapshotHandle, ShaderAssetKind,
 };
 use crate::core::math::UVec2;
 use crate::core::resource::{
@@ -169,6 +169,9 @@ impl RenderFixture {
                 MaterialAsset {
                     name: Some("SampleOutputTarget".to_string()),
                     shader: asset_reference("res://shaders/sample_texture.wgsl"),
+                    parent: None,
+                    options: Default::default(),
+                    queue: None,
                     base_color: [1.0, 1.0, 1.0, 1.0],
                     base_color_texture: Some(asset_reference(base_color_texture_uri)),
                     normal_texture: None,
@@ -205,6 +208,7 @@ fn insert_sample_texture_shader(asset_manager: &ProjectAssetManager) {
             ResourceRecord::new(shader_id, ResourceKind::Shader, shader_uri.clone()),
             ShaderAsset {
                 uri: shader_uri,
+                kind: ShaderAssetKind::Surface,
                 source_language: ShaderSourceLanguage::Wgsl,
                 source: sample_texture_wgsl_source(),
                 wgsl_source: String::new(),
@@ -215,7 +219,16 @@ fn insert_sample_texture_shader(asset_manager: &ProjectAssetManager) {
                 imports: Vec::new(),
                 shader_defs: Vec::new(),
                 property_schema: Vec::new(),
+                options: Vec::new(),
                 texture_slots: Vec::new(),
+                shading_model: None,
+                render_state: Default::default(),
+                queue: None,
+                disabled_passes: Vec::new(),
+                resources: Vec::new(),
+                material_property_layout: Default::default(),
+                material_option_table: Default::default(),
+                generated_material_wgsl: String::new(),
                 editor: Default::default(),
                 pipeline_layout: Default::default(),
                 validation_diagnostics: Vec::new(),
@@ -244,9 +257,9 @@ struct MaterialPropertyUniform {
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -304,9 +317,9 @@ struct MaterialPropertyUniform {{
 }};
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
 
 struct VertexInput {{
     @location(0) position: vec3<f32>,
@@ -388,6 +401,9 @@ fn write_material_with_base_color_and_texture(
     let material = MaterialAsset {
         name: Some("FlatColor".to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: Some(asset_reference(base_color_texture)),
         normal_texture: None,

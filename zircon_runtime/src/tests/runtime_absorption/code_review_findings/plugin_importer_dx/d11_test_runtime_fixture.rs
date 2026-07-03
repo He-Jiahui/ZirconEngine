@@ -7,6 +7,9 @@ const ANIMATION_ASSETS_FIXTURE: &str = include_str!(
 const RUNTIME_HELPERS_FIXTURE: &str = include_str!(
     "../../../../../../zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs"
 );
+const TARGET_RESOLUTION_FIXTURE: &str = include_str!(
+    "../../../../../../zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs"
+);
 const PLUGIN_SDK_TEST_RUNTIME: &str =
     include_str!("../../../../../../zircon_plugins/plugin_sdk/src/test.rs");
 const PLUGIN_SDK_LIB: &str = include_str!("../../../../../../zircon_plugins/plugin_sdk/src/lib.rs");
@@ -41,6 +44,7 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         &[
             "#[path = \"runtime_physics_animation_tick_contract/animation_assets.rs\"]",
             "#[path = \"runtime_physics_animation_tick_contract/runtime_helpers.rs\"]",
+            "#[path = \"runtime_physics_animation_tick_contract/target_resolution.rs\"]",
             "runtime.create_default_level().unwrap()",
             "runtime.tick_level_seconds(&level,",
         ],
@@ -54,7 +58,7 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         "runtime helper fixture should be SDK-backed",
         RUNTIME_HELPERS_FIXTURE,
         &[
-            "use zircon_plugin_sdk::TestRuntime;",
+            "use zircon_plugin_sdk::{TestRuntime, WeakBridge};",
             "TestRuntime::builder()",
             ".with_runtime_plugin(&physics_plugin)",
             ".with_runtime_plugin(&animation_plugin)",
@@ -101,6 +105,20 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         RUNTIME_HELPERS_FIXTURE.lines().count() < 800,
         "runtime helper fixture child should stay under the child-file budget"
     );
+    assert_contains_all(
+        "target resolution fixture child should own target-id fallback tests",
+        TARGET_RESOLUTION_FIXTURE,
+        &[
+            "fn clip_sampling_resolves_track_target_id_before_bone_name_fallback",
+            "fn sequence_runtime_resolves_target_id_before_entity_path_fallback",
+            "target_id",
+            "Wrong/Path",
+        ],
+    );
+    assert!(
+        TARGET_RESOLUTION_FIXTURE.lines().count() < 200,
+        "target resolution fixture child should stay under the focused child-file budget"
+    );
 
     assert_contains_all(
         "plugin SDK test runtime should expose fixture APIs",
@@ -129,9 +147,10 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         d11_row,
         &[
             "animation/physics 跨插件测试已迁移到 SDK TestRuntime fixture",
-            "runtime_physics_animation_tick_contract.rs`（981 行）",
+            "runtime_physics_animation_tick_contract.rs`（969 行）",
             "runtime_physics_animation_tick_contract/animation_assets.rs`（288 行）",
-            "runtime_physics_animation_tick_contract/runtime_helpers.rs`（33 行）",
+            "runtime_physics_animation_tick_contract/runtime_helpers.rs`（34 行）",
+            "runtime_physics_animation_tick_contract/target_resolution.rs",
             "d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred",
             "review_d11_animation_physics_tests_use_sdk_test_runtime_fixture",
             "M2 / closed",
@@ -162,6 +181,7 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
                 "d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred",
                 "review_d11_animation_physics_tests_use_sdk_test_runtime_fixture",
                 "runtime_physics_animation_tick_contract/runtime_helpers.rs",
+                "runtime_physics_animation_tick_contract/target_resolution.rs",
             ],
         );
     }

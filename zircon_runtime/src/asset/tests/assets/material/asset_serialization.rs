@@ -8,6 +8,7 @@ fn material_asset_zmaterial_roundtrip_maps_pbr_fields_to_shader_overrides() {
             AssetUuid::from_stable_label("shader"),
             AssetUri::parse("res://shaders/pbr.wgsl").unwrap(),
         ),
+        parent: None,
         base_color: [0.9, 0.8, 0.7, 1.0],
         base_color_texture: Some(AssetReference::new(
             AssetUuid::from_stable_label("albedo"),
@@ -36,6 +37,8 @@ fn material_asset_zmaterial_roundtrip_maps_pbr_fields_to_shader_overrides() {
         double_sided: true,
         property_values: Default::default(),
         texture_slots: Default::default(),
+        options: Default::default(),
+        queue: None,
         validation_diagnostics: Vec::new(),
     };
 
@@ -67,7 +70,7 @@ fn material_asset_zmaterial_roundtrip_maps_pbr_fields_to_shader_overrides() {
 #[test]
 fn material_asset_parses_uuid_url_references() {
     let document = r#"
-version = 1
+version = 2
 name = "Grid"
 
 [shader]
@@ -115,7 +118,7 @@ fallback = "normal"
 fn material_asset_roundtrip_preserves_standard_texture_transforms() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Tiled Grid"
 
 [shader]
@@ -182,7 +185,7 @@ offset = [0.25, 0.5]
 fn material_asset_serialization_rewrites_stale_canonical_overrides() {
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Grid"
 
 [shader]

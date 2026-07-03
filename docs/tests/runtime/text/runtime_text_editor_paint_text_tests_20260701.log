@@ -1,0 +1,25 @@
+
+running 20 tests
+test ui::retained_host::host_contract::paint_text::draw::glyphs::row::tests::sampled_coverage_averages_balanced_supersampled_strokes ... ok
+test ui::retained_host::host_contract::paint_text::draw::glyphs::row::tests::sampled_coverage_clamps_to_bitmap_edge ... ok
+test ui::retained_host::host_contract::paint_text::draw::glyphs::row::tests::sampled_coverage_preserves_single_pixel_supersampled_strokes ... ok
+test ui::retained_host::host_contract::paint_text::draw::glyphs::row::tests::sampled_subpixel_coverage_averages_rgb_channels_independently ... ok
+test ui::retained_host::host_contract::paint_text::draw::glyphs::row::tests::strong_text_uses_selected_font_face_without_synthetic_extra_pass ... ok
+test ui::retained_host::host_contract::paint_text::draw::glyphs::tests::logical_raster_extent_downsamples_scaled_bitmap_bounds ... ok
+test ui::retained_host::host_contract::paint_text::draw::glyphs::tests::logical_raster_extent_keeps_native_subpixel_bitmap_bounds ... ok
+test ui::retained_host::host_contract::paint_text::draw::layout::tests::retained_text_run_carries_runtime_projected_spacing ... ok
+test ui::retained_host::host_contract::paint_text::draw::layout::tests::runtime_positioned_glyphs_use_runtime_grapheme_advances ... ok
+test ui::retained_host::host_contract::paint_text::font::tests::ui_face_keeps_proportional_widths_while_code_face_stays_mono ... ok
+test ui::retained_host::host_contract::paint_text::raster::tests::retained_text_raster_uses_swash_for_ui_face ... ok
+test ui::retained_host::host_contract::paint_text::tests::glyph_raster_cache_keeps_ui_and_mono_faces_separate ... ok
+test ui::retained_host::host_contract::paint_text::tests::glyph_raster_cache_reuses_bitmap_for_same_glyph_and_size ... ok
+test ui::retained_host::host_contract::paint_text::tests::retained_text_font_face_tracks_ui_and_code_styles ... ok
+test ui::retained_host::host_contract::paint_text::tests::retained_text_measure_selects_runtime_family_for_ui_and_code_faces ... ok
+test ui::retained_host::host_contract::paint_text::tests::retained_text_measure_uses_runtime_surface_measurement ... ok
+test ui::retained_host::host_contract::paint_text::tests::retained_text_preserves_small_underscore_stroke_contrast ... ok
+test ui::retained_host::host_contract::paint_text::tests::retained_text_records_runtime_single_line_ellipsis_projection ... ok
+test ui::retained_host::host_contract::paint_text::tests::retained_ui_runtime_family_prefers_latin_system_ui_family ... ok
+test ui::retained_host::host_contract::paint_text::tests::text_draw_skips_disjoint_active_and_explicit_clips ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 2286 filtered out; finished in 2.07s
+

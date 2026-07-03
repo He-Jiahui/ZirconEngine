@@ -1,0 +1,31 @@
+Runtime Text Editor Retained Runtime Ellipsis Cutover validation - 2026-07-04
+
+Slice status:
+- runtime_text_editor_retained_runtime_ellipsis_cutover_rustfmt_static_visual_cargo_deferred
+
+Changed source:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+
+Behavior locked:
+- Added retained_text_run_uses_runtime_ellipsis_for_narrow_editor_labels.
+- Narrow editor labels go through layout_text_run -> runtime_single_line_text -> layout_text(... UiTextOverflow::Ellipsis) -> runtime_positioned_glyphs.
+- The test compares retained display_text with the runtime layout line text, requires runtime_line.ellipsized, requires U+2026, and checks glyph coordinates stay finite.
+- Source text remains caller-owned; retained display_text is the runtime-owned clipped text.
+
+Structure checks:
+- Test-Path zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/ellipsis.rs => False.
+- Select-String for ellipsize_single_line, mod ellipsis, draw/ellipsis under retained paint_text => 0 hits.
+
+Validation commands:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs => passed.
+- git diff --check -- touched retained layout files => exit 0, only existing LF-to-CRLF working-tree warning.
+- target / E:\cargo-targets / D:\cargo-targets same-name preview scan => 0 hits.
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_editor_retained_runtime_ellipsis_cutover_preview_20260704.png
+- SHA256: CAF36D913152319BD119E45BF99318B791D86D317383442F81ABBB0CD8E43C12
+- This is a proof artifact, not a live editor capture.
+
+Cargo status:
+- Focused Cargo was deferred because external cargo/rustc lanes were still active during this slice.
+- Observed active processes included cargo PIDs 39032, 40004, 40868, 45864 and rustc PIDs 33112, 41500.

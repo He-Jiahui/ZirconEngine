@@ -283,7 +283,7 @@ fn runtime_component_projection_maps_workbench_metric_aliases() {
             ("layout_spacing", Value::Float(10.0)),
             ("track_width", Value::Float(34.0)),
             ("track_height", Value::Float(18.0)),
-            ("thumb_size", Value::Float(14.0)),
+            ("thumb_size", Value::Float(12.0)),
         ],
     ))
     .expect("toggle metric aliases should project into the host contract");
@@ -291,7 +291,7 @@ fn runtime_component_projection_maps_workbench_metric_aliases() {
     assert_eq!(toggle.layout_content_offset_x, 10.0);
     assert_eq!(toggle.value_number, 34.0);
     assert_eq!(toggle.layout_content_offset_y, 18.0);
-    assert_eq!(toggle.layout_icon_size, 14.0);
+    assert_eq!(toggle.layout_icon_size, 12.0);
 
     let toast = host_template_node(projected_node(
         "Alert",

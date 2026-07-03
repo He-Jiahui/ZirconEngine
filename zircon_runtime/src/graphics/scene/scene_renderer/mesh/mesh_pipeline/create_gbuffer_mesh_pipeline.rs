@@ -2,6 +2,7 @@ use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 use crate::graphics::scene::scene_renderer::deferred::{
     GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT,
 };
+use crate::graphics::scene::scene_renderer::prepass::NORMAL_FORMAT;
 
 pub(in crate::graphics::scene::scene_renderer::mesh) fn create_gbuffer_mesh_pipeline(
     device: &wgpu::Device,
@@ -41,6 +42,11 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_gbuffer_mesh_pipe
                     write_mask: wgpu::ColorWrites::ALL,
                 }),
                 Some(wgpu::ColorTargetState {
+                    format: NORMAL_FORMAT,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                }),
+                Some(wgpu::ColorTargetState {
                     format: GBUFFER_MATERIAL_FORMAT,
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
@@ -74,6 +80,7 @@ mod tests {
 
         assert!(source.contains("zircon-gbuffer-mesh-pipeline"));
         assert!(source.contains("GBUFFER_ALBEDO_FORMAT"));
+        assert!(source.contains("NORMAL_FORMAT"));
         assert!(source.contains("GBUFFER_MATERIAL_FORMAT"));
         assert!(source.contains("depth_write_enabled: Some(false)"));
         assert!(source.contains("entry_point: Some(\"vs_main\")"));
@@ -151,17 +158,17 @@ mod tests {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("zircon-test-material-set-layout"),
             entries: &[
-                material_texture_entry(0),
-                material_sampler_entry(1),
-                material_texture_entry(2),
-                material_sampler_entry(3),
-                material_texture_entry(4),
-                material_sampler_entry(5),
-                material_texture_entry(6),
-                material_sampler_entry(7),
-                material_texture_entry(8),
-                material_sampler_entry(9),
-                material_uniform_entry(10),
+                material_uniform_entry(0),
+                material_texture_entry(1),
+                material_sampler_entry(2),
+                material_texture_entry(3),
+                material_sampler_entry(4),
+                material_texture_entry(5),
+                material_sampler_entry(6),
+                material_texture_entry(7),
+                material_sampler_entry(8),
+                material_texture_entry(9),
+                material_sampler_entry(10),
             ],
         })
     }

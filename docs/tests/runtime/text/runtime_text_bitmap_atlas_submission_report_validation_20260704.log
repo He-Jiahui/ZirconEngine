@@ -1,0 +1,23 @@
+runtime_text_bitmap_atlas_submission_report validation
+generated_at=2026-07-04T05:12:06
+scope=bitmap atlas render submission report data-plane
+code=zircon_runtime/src/graphics/text/atlas/render_submission.rs
+tests=zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs
+
+implemented:
+- GlyphAtlasBitmapRenderSubmissionReport aggregates source/allocation/failure counts.
+- Report aggregates dirty pages, rebuilt pages, full/partial upload counts and upload bytes.
+- Report aggregates draw batch count, pipeline count, gpu batch count, draw commands and vertices.
+- has_upload_work, has_gpu_work and has_failures expose renderer-facing readiness checks.
+
+covered scenarios:
+- visible mixed AlphaMask/SubpixelMask glyphs: upload+gpu+background composite work.
+- clipped glyph: upload remains present while GPU draw work is zero.
+- full-page dirty glyph: full upload count increments and byte count is 256.
+- invalid Sdf/Oversized bitmap sources: diagnostics remain while upload/GPU work stays zero.
+
+checks_run:
+- rustfmt --edition 2021 zircon_runtime/src/graphics/text/atlas/render_submission.rs zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs: passed
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/render_submission.rs zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs: passed
+- target scans for this preview/log name under repo target, E:/cargo-targets, D:/cargo-targets, F:/cargo-targets: all 0
+- focused Cargo deferred: external cargo/rustc lanes were active before and after this slice.

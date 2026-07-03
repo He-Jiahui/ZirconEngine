@@ -753,7 +753,7 @@ fn asset_editor_component_adapter_updates_selected_widget_text() {
         .expect("editor manager should be registered");
     let temp_dir = unique_asset_adapter_temp_dir("selected_widget_text");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
-    let asset_path = temp_dir.join("asset-editor-adapter.ui.toml");
+    let asset_path = temp_dir.join("asset-editor-adapter.zui");
     write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
 
     let instance_id = manager
@@ -798,7 +798,7 @@ fn asset_editor_component_adapter_updates_selected_widget_props_and_state_litera
         .expect("editor manager should be registered");
     let temp_dir = unique_asset_adapter_temp_dir("selected_widget_props_state");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
-    let asset_path = temp_dir.join("asset-editor-props-state-adapter.ui.toml");
+    let asset_path = temp_dir.join("asset-editor-props-state-adapter.zui");
     write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
 
     let instance_id = manager
@@ -878,7 +878,7 @@ fn asset_editor_component_adapter_updates_selected_component_root_class_policy()
         .expect("editor manager should be registered");
     let temp_dir = unique_asset_adapter_temp_dir("component_root_class_policy");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
-    let asset_path = temp_dir.join("asset-editor-component-adapter.ui.toml");
+    let asset_path = temp_dir.join("asset-editor-component-adapter.zui");
     write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
 
     let instance_id = manager

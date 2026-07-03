@@ -18,7 +18,15 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/geometry.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/enable.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/surrounding_text.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs
   - zircon_runtime/src/core/framework/input/input_event.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/tests/input_manager.rs
@@ -40,7 +48,14 @@ implementation_files:
   - zircon_app/src/entry/runtime_entry_app/gamepad/events.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/codes.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad/rumble.rs
+  - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/mod.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/geometry.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/enable.rs
+  - zircon_app/src/entry/runtime_entry_app/host_requests/ime/surrounding_text.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy 式 Platform Window Input Gilrs 完成度计划.md
   - dev/bevy/crates/bevy_winit/src/state.rs
@@ -59,6 +74,7 @@ tests:
   - zircon_app/src/entry/tests/runtime_entry_input_guards/ime.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
   - zircon_app/src/entry/tests/runtime_entry_device_guards/dispatch.rs
+  - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/window_events.rs
 doc_type: module-detail
 ---
@@ -80,6 +96,8 @@ Keyboard forwarding is isolated in `keyboard_input/`. The event helper converts 
 File drag/drop forwarding is isolated under `file_drag_drop/`. Hovered paths, dropped paths, and cancellation each have a focused helper, preserving the boundary that asset import behavior belongs to later asset systems instead of the app entry dispatcher.
 
 The optional desktop gamepad backend is isolated under `gamepad/`. The host module initializes gilrs, polling drains connection/button/axis events, the events module builds stable ABI values, codes owns button/axis mapping, and rumble owns gilrs force-feedback effect creation plus cleanup. Desktop gilrs remains a concrete host backend; the neutral gamepad state belongs to `zircon_runtime`.
+
+Runtime-to-host requests are isolated under `host_requests/`. `frame_loop.rs` ticks the dynamic runtime first, then `host_requests/drain.rs` drains the optional session batch and routes every request through `host_requests/routing.rs` before redraw. IME request application stays under `host_requests/ime/`: `request.rs` maps `ZrRuntimeImeHostRequestKindV1` to winit `ImeRequest` updates, `geometry.rs` owns logical cursor-area conversion, `enable.rs` owns the initial enable request and capabilities, and `surrounding_text.rs` owns winit surrounding-text validation. `runtime_entry_source_guards::host_requests` locks this chain at source level; the focused `zircon_app` package run timed out after 904s with no Rust diagnostics, so the guard is not counted as a green Cargo result yet.
 
 ## M6 Log Harness
 

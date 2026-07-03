@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/core/resource/runtime.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs
   - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
@@ -62,6 +63,7 @@ tests:
   - zircon_runtime/src/core/resource/manager/registry_export.rs::tests::resource_manager_exports_ready_records_for_kind_with_live_revisions
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs::shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs::shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only
+  - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs::shader_reimport_exports_updated_revision_for_prewarm_registry
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_live_resource_registry.rs::runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f6_core_resource_registry_rename_uses_core_error
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager
@@ -110,6 +112,8 @@ The Runtime 04 structural mirror is split so resource/asset source-count ownersh
 Live ResourceManager shader registry export for Plan 08 is exposed through `ResourceManager::ready_records_for_kind(kind)`. The helper remains resource-generic: it clones records from the authoritative registry, filters to the requested `ResourceKind`, requires `ResourceState::Ready`, drops zero revisions, and sorts by locator/id before returning `ResourceRecord` values for external handoff.
 
 The shader prewarm side consumes this through `shader_resource_records_from_manager(&manager)`, then feeds those records into `ShaderPrewarmResourceRegistryOverlay::from_records(...)` so `.zmeta` shader scans can use live `ResourceRecord.revision` for `ShaderVariantKey.material_revision`. Status is `render_plan08_live_resource_manager_shader_registry_export_focused_tests_passed_renderdoc_deferred`; `resource_manager_exports_ready_records_for_kind_with_live_revisions`, `shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions`, and `runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired` lock the API, prewarm overlay handoff, docs anchors, and 800-line owner budgets.
+
+Plan 08 now also guards the project edit path that feeds that export. `shader_reimport_exports_updated_revision_for_prewarm_registry` edits `res://shaders/pbr.wgsl`, reimports it through `ProjectAssetManager`, and verifies that the updated Ready Shader status is exported by `ready_records_for_kind(ResourceKind::Shader)` with the same `ResourceId` and higher revision. Status is `render_plan08_edited_shader_revision_export_static_guard_cargo_deferred`; direct-binary validation status `render_plan08_edited_shader_revision_export_direct_binary_passed_cargo_wrapper_deferred` records the focused filter passing 1/1. The Selected plugin/source-registry guard Cargo-wrapper backfill status `render_plan08_selected_plugin_source_registry_guards_cargo_wrapper_passed_renderdoc_deferred` records this same edited-revision guard passing 1/1 with 5839 filtered through fresh no-default-features Cargo.
 
 The prewarm overlay now mirrors this Ready-state gate even when records come from caller-provided or auto-exported shader resource registries rather than a live manager helper. `ShaderPrewarmResourceRegistryOverlay::from_records(...)` ignores non-`ResourceState::Ready` shader records before recording revisions, matching the build-tool `_is_usable_shader_record(...)` rule of `kind=Shader`, `state=Ready`, and positive `revision`. Status is `render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred`; `shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only`, `test_validate_registry_export_contract_rejects_non_ready_report_source_record`, `runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired`, and `runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired` lock the Rust overlay and Python contract.
 

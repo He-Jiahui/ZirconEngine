@@ -60,10 +60,8 @@ fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass(
         ],
     );
 
-    let runtime_13_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P16 |"))
-        .expect("Runtime index should keep the P16 script binding problem row");
+    let runtime_13_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P16", "script binding");
     assert_contains_all(
         "Runtime index P16 row",
         runtime_13_problem_row,

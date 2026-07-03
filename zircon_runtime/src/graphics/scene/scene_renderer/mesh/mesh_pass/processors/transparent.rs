@@ -18,6 +18,9 @@ impl MeshPassProcessor for TransparentPassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
+        if batch.disabled_passes.disables_base() {
+            return;
+        }
         if batch.phase() == MeshDrawQueuePhase::Transparent
             && batch.relevant_to_main_phase(RenderPhase::Transparent3d)
         {

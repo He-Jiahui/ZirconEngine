@@ -5,17 +5,26 @@ use zircon_runtime_interface::ui::{
     },
     event_ui::UiNodeId,
     layout::UiFrame,
-    surface::{UiEditableTextState, UiTextRange},
+    surface::{UiEditableTextState, UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
     tree::UiTemplateNodeMetadata,
 };
 
-use super::super::super::surface::UiSurface;
+use super::super::super::{render::resolve_style, surface::UiSurface};
 use super::super::text_state::clamp_text_boundary;
+use crate::ui::text::{
+    caret_frame_for_text_layout_with_source_metrics, resolve_text_layout,
+    text_range_frames_for_text_layout_with_source_metrics, UiTextLayoutRequest,
+};
 
 const DEFAULT_PADDING_X: f32 = 10.0;
 const DEFAULT_PADDING_Y: f32 = 4.0;
 const DEFAULT_FONT_SIZE: f32 = 11.0;
 const CARET_WIDTH: f32 = 1.0;
+
+struct InputMethodTextLayout {
+    layout: UiResolvedTextLayout,
+    style: UiResolvedStyle,
+}
 
 pub(super) fn input_method_update_for_text_state(
     surface: &UiSurface,
@@ -23,17 +32,25 @@ pub(super) fn input_method_update_for_text_state(
     target: UiNodeId,
     state: &UiEditableTextState,
 ) -> Option<UiDispatchEffect> {
-    (surface.input.input_method_owner == Some(target) && input_event_refreshes_context(event)).then(
-        || UiDispatchEffect::RequestInputMethod {
-            request: UiInputMethodRequest {
-                kind: UiInputMethodRequestKind::UpdateCursor,
-                owner: target,
-                cursor_rect: cursor_rect_for_state(surface, target, state),
-                composition_rects: composition_rects_for_state(surface, target, state),
-                surrounding_text: surrounding_text_for_state(state),
-            },
+    if surface.input.input_method_owner != Some(target) || !input_event_refreshes_context(event) {
+        return None;
+    }
+
+    let text_layout = resolved_text_layout_for_state(surface, target, state);
+    Some(UiDispatchEffect::RequestInputMethod {
+        request: UiInputMethodRequest {
+            kind: UiInputMethodRequestKind::UpdateCursor,
+            owner: target,
+            cursor_rect: cursor_rect_for_state(surface, target, state, text_layout.as_ref()),
+            composition_rects: composition_rects_for_state(
+                surface,
+                target,
+                state,
+                text_layout.as_ref(),
+            ),
+            surrounding_text: surrounding_text_for_state(state),
         },
-    )
+    })
 }
 
 fn input_event_refreshes_context(event: &UiInputEvent) -> bool {
@@ -61,7 +78,19 @@ fn cursor_rect_for_state(
     surface: &UiSurface,
     target: UiNodeId,
     state: &UiEditableTextState,
+    text_layout: Option<&InputMethodTextLayout>,
 ) -> Option<UiFrame> {
+    if let Some(frame) = text_layout.and_then(|text_layout| {
+        caret_frame_for_text_layout_with_source_metrics(
+            &text_layout.layout,
+            &state.caret,
+            state.text.as_str(),
+            &text_layout.style,
+        )
+    }) {
+        return Some(frame);
+    }
+
     let text_frame = text_frame_for_node(surface, target)?;
     let font_metrics = font_metrics_for_node(surface, target);
     let wrap_columns = wrap_columns_for_node(surface, target, text_frame, font_metrics);
@@ -82,10 +111,20 @@ fn composition_rects_for_state(
     surface: &UiSurface,
     target: UiNodeId,
     state: &UiEditableTextState,
+    text_layout: Option<&InputMethodTextLayout>,
 ) -> Vec<UiFrame> {
     let Some(composition) = state.composition.as_ref() else {
         return Vec::new();
     };
+    if let Some(text_layout) = text_layout {
+        return text_range_frames_for_text_layout_with_source_metrics(
+            &text_layout.layout,
+            composition.range,
+            state.text.as_str(),
+            &text_layout.style,
+        );
+    }
+
     let Some(text_frame) = text_frame_for_node(surface, target) else {
         return Vec::new();
     };
@@ -98,6 +137,20 @@ fn composition_rects_for_state(
         font_metrics,
         wrap_columns,
     )
+}
+
+fn resolved_text_layout_for_state(
+    surface: &UiSurface,
+    target: UiNodeId,
+    state: &UiEditableTextState,
+) -> Option<InputMethodTextLayout> {
+    let text_frame = text_frame_for_node(surface, target)?;
+    let style = text_style_for_input_method(surface, target);
+    let request = UiTextLayoutRequest::new(&state.text, &style, text_frame, Some(text_frame));
+    Some(InputMethodTextLayout {
+        layout: resolve_text_layout(&request).layout,
+        style,
+    })
 }
 
 fn surrounding_text_for_state(state: &UiEditableTextState) -> Option<UiInputMethodSurroundingText> {
@@ -167,6 +220,30 @@ fn font_metrics_for_node(surface: &UiSurface, target: UiNodeId) -> FontMetrics {
             .unwrap_or(font_size * 1.2)
             .max(font_size),
     }
+}
+
+fn text_style_for_input_method(surface: &UiSurface, target: UiNodeId) -> UiResolvedStyle {
+    let metadata = surface
+        .tree
+        .nodes
+        .get(&target)
+        .and_then(|node| node.template_metadata.as_ref());
+    let mut style = resolve_style(metadata);
+    let font_size = number_attribute(metadata, "font_size")
+        .or_else(|| {
+            (style.font_size != UiResolvedStyle::DEFAULT_FONT_SIZE).then_some(style.font_size)
+        })
+        .unwrap_or(DEFAULT_FONT_SIZE);
+    style.font_size = font_size;
+    style.line_height = number_attribute(metadata, "line_height")
+        .or_else(|| {
+            (style.line_height
+                != UiResolvedStyle::default_line_height(UiResolvedStyle::DEFAULT_FONT_SIZE))
+            .then_some(style.line_height)
+        })
+        .unwrap_or_else(|| UiResolvedStyle::default_line_height(font_size))
+        .max(font_size);
+    style
 }
 
 fn text_frame_for_node(surface: &UiSurface, target: UiNodeId) -> Option<UiFrame> {

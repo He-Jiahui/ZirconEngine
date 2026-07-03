@@ -10,12 +10,12 @@ from unittest import mock
 from tools.zircon_export.cli import (
     run_compile_host,
     run_cook_assets,
-    run_pack,
     run_platform_bundle,
     run_source_template,
     run_validate,
 )
 from tools.zircon_export.native_dynamic import run_native_dynamic
+from tools.zircon_export.pack_stage import run_pack
 from tools.zircon_export.tests.native_dynamic_test_support import (
     _export_args as _native_dynamic_args,
     _write_validate_report_with_native_dynamic_exports,

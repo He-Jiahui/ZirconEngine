@@ -13,32 +13,22 @@ use crate::asset::{
     SceneEntityManagementRecordSet, ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
     ShaderAssetReadinessSummary, ShaderReadinessReport,
 };
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
-    RenderColorLookupTextureLayout, RenderMaterialReadinessReport, RenderMaterialReadinessSummary,
-};
-#[cfg(test)]
-use crate::core::framework::render::{
-    RenderMaterialIssueState, RenderMaterialManagementIssueIndex,
-    RenderMaterialManagementIssueKind, RenderMaterialManagementIssueView,
-    RenderMaterialManagementOverview, RenderMaterialManagementQuery,
-    RenderMaterialManagementQueryResult, RenderMaterialManagementQuerySelection,
-    RenderMaterialManagementRecord, RenderMaterialManagementRecordSet,
-    RenderMaterialManagementRecordSummary, RenderMaterialManagementSelection,
-    RenderMaterialManagementSnapshot, RenderMaterialManagementSortOrder,
-    RenderMaterialManagementStatusIndex, RenderMaterialManagementStatusView,
-    RenderMaterialPreparedState, RenderMaterialPropertyUniformField,
-    RenderMaterialPropertyUniformSummary, RenderMaterialPropertyUniformUnsupported,
-    RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
-    RenderMaterialReadinessStatus, RenderMaterialTextureSlotState,
-    RenderMaterialTextureSlotSummary,
+    MaterialPropertyOverrideBlock, RenderCameraTargetGraphImportReport,
+    RenderCameraTargetWritebackReport, RenderColorLookupTextureLayout,
+    RenderMaterialPropertyUniformPayload, RenderMaterialReadinessReport,
+    RenderMaterialReadinessSummary, RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
+use crate::graphics::shader::ShaderTemplateInclude;
 
 #[cfg(test)]
 mod material_capture;
+#[cfg(test)]
+mod material_diagnostics;
 
 use super::super::{
     GpuMaterialUniformResource, GpuMeshResource, GpuModelResource, GpuTextureResource,
@@ -307,6 +297,22 @@ impl ResourceStreamer {
             .unwrap_or_else(|| self.fallback_material_uniform.clone())
     }
 
+    pub(crate) fn material_uniform_payload_with_overrides(
+        &self,
+        id: &ResourceId,
+        overrides: &MaterialPropertyOverrideBlock,
+    ) -> Option<RenderMaterialPropertyUniformPayload> {
+        if overrides.is_empty() {
+            return None;
+        }
+        self.materials.get(id).map(|prepared| {
+            prepared
+                .runtime
+                .shader_property_uniform_payload
+                .with_override_block(overrides)
+        })
+    }
+
     pub(crate) fn standard_material_uniform(
         &self,
         id: &ResourceId,
@@ -315,130 +321,6 @@ impl ResourceStreamer {
             .get(id)
             .map(|prepared| prepared.standard_uniform.clone())
             .unwrap_or_else(|| self.fallback_standard_material_uniform.clone())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_payload_byte_len(&self, id: &ResourceId) -> Option<u64> {
-        self.materials
-            .get(id)
-            .map(|prepared| prepared.uniform.payload_byte_len())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_buffer_byte_len(&self, id: &ResourceId) -> Option<u64> {
-        self.materials
-            .get(id)
-            .map(|prepared| prepared.uniform.buffer_byte_len())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_field_count(&self, id: &ResourceId) -> Option<usize> {
-        self.materials.get(id).map(|prepared| {
-            prepared
-                .runtime
-                .shader_property_uniform_payload
-                .layout
-                .len()
-        })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_unsupported_count(&self, id: &ResourceId) -> Option<usize> {
-        self.materials.get(id).map(|prepared| {
-            prepared
-                .runtime
-                .shader_property_uniform_payload
-                .unsupported
-                .len()
-        })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_summary(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialPropertyUniformSummary> {
-        self.materials
-            .get(id)
-            .map(|prepared| prepared.runtime.shader_property_uniform_payload.summary())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_fields(
-        &self,
-        id: &ResourceId,
-    ) -> Option<Vec<RenderMaterialPropertyUniformField>> {
-        self.material_readiness_report(id)
-            .map(|report| report.uniform_fields.clone())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_uniform_unsupported(
-        &self,
-        id: &ResourceId,
-    ) -> Option<Vec<RenderMaterialPropertyUniformUnsupported>> {
-        self.material_readiness_report(id)
-            .map(|report| report.uniform_unsupported.clone())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_property_value_summary(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialPropertyValueSummary> {
-        self.materials.get(id).map(|prepared| {
-            RenderMaterialPropertyValueSummary::from_values(
-                &prepared.runtime.shader_property_values,
-            )
-        })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_property_value_states(
-        &self,
-        id: &ResourceId,
-    ) -> Option<Vec<RenderMaterialPropertyValueState>> {
-        self.material_readiness_report(id)
-            .map(|report| report.property_value_states.clone())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_standard_texture_slot_summary(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialTextureSlotSummary> {
-        self.material_readiness_report(id)
-            .and_then(|report| report.standard_texture_slot_summary)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_standard_texture_slot_states(
-        &self,
-        id: &ResourceId,
-    ) -> Option<Vec<RenderMaterialTextureSlotState>> {
-        self.material_readiness_report(id)
-            .map(|report| report.standard_texture_slot_states.clone())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_texture_slot_summary(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialTextureSlotSummary> {
-        self.materials.get(id).map(|prepared| {
-            RenderMaterialTextureSlotSummary::from_non_standard_slots(
-                &prepared.runtime.non_standard_texture_slots,
-            )
-        })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_texture_slot_states(
-        &self,
-        id: &ResourceId,
-    ) -> Option<Vec<RenderMaterialTextureSlotState>> {
-        self.material_readiness_report(id)
-            .map(|report| report.non_standard_texture_slot_states.clone())
     }
 
     pub(crate) fn material_readiness_report(
@@ -454,166 +336,6 @@ impl ResourceStreamer {
     ) -> Option<RenderMaterialReadinessSummary> {
         self.material_readiness_report(id)
             .map(RenderMaterialReadinessReport::summary)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_readiness_status(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialReadinessStatus> {
-        self.material_readiness_report(id)
-            .map(RenderMaterialReadinessReport::status)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_issue_state(&self, id: &ResourceId) -> Option<RenderMaterialIssueState> {
-        self.material_readiness_report(id)
-            .map(RenderMaterialReadinessReport::issue_state)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_snapshot(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialManagementSnapshot> {
-        self.material_readiness_report(id)
-            .map(RenderMaterialReadinessReport::management_snapshot)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_record(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialManagementRecord> {
-        self.material_readiness_report(id)
-            .map(|report| report.management_record(*id))
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_records(&self) -> Vec<RenderMaterialManagementRecord> {
-        let mut records = self
-            .materials
-            .iter()
-            .map(|(id, prepared)| prepared.runtime.readiness_report.management_record(*id))
-            .collect::<Vec<_>>();
-        records.sort_by_key(|record| record.material_id);
-        records
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_record_set(&self) -> RenderMaterialManagementRecordSet {
-        RenderMaterialManagementRecordSet::from_records(self.material_management_records())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_record_set_sorted(
-        &self,
-        sort_order: RenderMaterialManagementSortOrder,
-    ) -> RenderMaterialManagementRecordSet {
-        RenderMaterialManagementRecordSet::from_sorted_records(
-            self.material_management_records(),
-            sort_order,
-        )
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_overview(&self) -> RenderMaterialManagementOverview {
-        self.material_management_record_set().overview()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_overview_sorted(
-        &self,
-        sort_order: RenderMaterialManagementSortOrder,
-    ) -> RenderMaterialManagementOverview {
-        self.material_management_record_set_sorted(sort_order)
-            .overview()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_query(
-        &self,
-        query: RenderMaterialManagementQuery,
-    ) -> RenderMaterialManagementQueryResult {
-        self.material_management_record_set().query(query)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_query_selection(
-        &self,
-        query: RenderMaterialManagementQuery,
-    ) -> RenderMaterialManagementQuerySelection {
-        self.material_management_record_set().query_selection(query)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_selection(
-        &self,
-        material_ids: impl IntoIterator<Item = ResourceId>,
-    ) -> RenderMaterialManagementSelection {
-        self.material_management_record_set().select(material_ids)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_status_index(&self) -> RenderMaterialManagementStatusIndex {
-        self.material_management_record_set().status_index
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_issue_index(&self) -> RenderMaterialManagementIssueIndex {
-        self.material_management_record_set().issue_index
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_issue_view(
-        &self,
-        issue_kind: RenderMaterialManagementIssueKind,
-    ) -> RenderMaterialManagementIssueView {
-        self.material_management_record_set().issue_view(issue_kind)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_issue_view_sorted(
-        &self,
-        issue_kind: RenderMaterialManagementIssueKind,
-        sort_order: RenderMaterialManagementSortOrder,
-    ) -> RenderMaterialManagementIssueView {
-        self.material_management_record_set_sorted(sort_order)
-            .issue_view(issue_kind)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_status_view(
-        &self,
-        status: RenderMaterialReadinessStatus,
-    ) -> RenderMaterialManagementStatusView {
-        self.material_management_record_set().status_view(status)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_status_view_sorted(
-        &self,
-        status: RenderMaterialReadinessStatus,
-        sort_order: RenderMaterialManagementSortOrder,
-    ) -> RenderMaterialManagementStatusView {
-        self.material_management_record_set_sorted(sort_order)
-            .status_view(status)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_management_record_summary(
-        &self,
-    ) -> RenderMaterialManagementRecordSummary {
-        self.material_management_record_set().summary
-    }
-
-    #[cfg(test)]
-    pub(crate) fn material_prepared_state(
-        &self,
-        id: &ResourceId,
-    ) -> Option<RenderMaterialPreparedState> {
-        self.material_readiness_report(id)
-            .map(RenderMaterialReadinessReport::prepared_state)
     }
 
     pub(crate) fn texture(&self, id: Option<ResourceId>) -> Arc<GpuTextureResource> {
@@ -668,6 +390,91 @@ impl ResourceStreamer {
         self.shaders
             .get(shader_id)
             .map(|shader| shader.runtime.source.as_str())
+    }
+
+    pub(crate) fn shader_generated_material_source(&self, shader_id: &ResourceId) -> Option<&str> {
+        self.shaders
+            .get(shader_id)
+            .map(|shader| shader.runtime.generated_material_wgsl.as_str())
+            .filter(|source| !source.trim().is_empty())
+    }
+
+    pub(crate) fn shader_import_path(&self, shader_id: &ResourceId) -> Option<&str> {
+        self.shaders
+            .get(shader_id)
+            .and_then(|shader| shader.runtime.import_path.as_deref())
+    }
+
+    pub(crate) fn shader_is_surface(&self, shader_id: &ResourceId) -> bool {
+        self.shaders
+            .get(shader_id)
+            .is_some_and(|shader| shader.runtime.kind.participates_in_material_variants())
+    }
+
+    pub(crate) fn shader_uses_material_surface_source(&self, shader_id: &ResourceId) -> bool {
+        self.shaders.get(shader_id).is_some_and(|shader| {
+            shader.runtime.kind.participates_in_material_variants()
+                && shader.runtime.source.contains("fn zr_material_surface")
+        })
+    }
+
+    pub(crate) fn shader_module_include_sources(
+        &self,
+        shader_id: &ResourceId,
+    ) -> Vec<ShaderTemplateInclude> {
+        let mut includes = Vec::new();
+        let mut visited = HashSet::new();
+        self.collect_shader_module_include_sources(shader_id, &mut visited, &mut includes);
+        includes
+    }
+
+    fn collect_shader_module_include_sources(
+        &self,
+        shader_id: &ResourceId,
+        visited: &mut HashSet<ResourceId>,
+        includes: &mut Vec<ShaderTemplateInclude>,
+    ) {
+        if !visited.insert(*shader_id) {
+            return;
+        }
+        let Some(shader) = self.shaders.get(shader_id) else {
+            return;
+        };
+        for import in &shader.runtime.imports {
+            let Some(reference) = import.redirect.as_ref() else {
+                continue;
+            };
+            let Some(import_id) = self.asset_manager.resolve_asset_id(&reference.locator) else {
+                continue;
+            };
+            if let Some(import_shader) = self.shaders.get(&import_id) {
+                if import_shader.runtime.kind.is_include() {
+                    if let Some(import_path) = import_shader.runtime.import_path.as_ref() {
+                        includes.push(ShaderTemplateInclude::new(
+                            import_path.clone(),
+                            import_shader.runtime.source.clone(),
+                        ));
+                    }
+                }
+            }
+            self.collect_shader_module_include_sources(&import_id, visited, includes);
+        }
+    }
+
+    pub(crate) fn shader_material_option_defines(
+        &self,
+        shader_id: &ResourceId,
+        material_option_bits: u32,
+    ) -> Vec<RenderShaderDefinitionValue> {
+        self.shaders
+            .get(shader_id)
+            .map(|shader| {
+                shader
+                    .runtime
+                    .material_option_table
+                    .definition_values_for_bits(material_option_bits)
+            })
+            .unwrap_or_default()
     }
 
     pub(crate) fn last_material_count(&self) -> usize {

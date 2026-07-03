@@ -558,6 +558,6 @@ fn mesh_at(node_id: u64, translation: Vec3, uniform_scale: f32) -> RenderMeshSna
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
     }
 }

@@ -7,6 +7,9 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         read_runtime_src("graphics/shader/template/deferred_gbuffer.rs");
     let deferred_gbuffer_wgsl =
         read_runtime_src("graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl");
+    let surface_types_wgsl = read_runtime_src("graphics/shader/wgsl/zr_surface_types.wgsl");
+    let standard_gbuffer_encode =
+        read_runtime_src("graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl");
     let mesh_cache_mod =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs");
     let mesh_cache_state = read_runtime_src(
@@ -17,6 +20,9 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
     );
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
+    let shader_source_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+    );
     let ensure_gbuffer = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs",
     );
@@ -53,18 +59,39 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
             "gpu_scene_include()",
             "surface_types_include()",
             "geometry_source_include_for",
+            "shading_model_gbuffer_include_for",
+            "shading_model_gbuffer_include_token",
+            "with_shading_model_gbuffer_include_source",
+            "UnknownShadingInclude",
             "rename_material_surface_entry",
         ],
     );
     assert_contains_all(
-        "deferred gbuffer WGSL writes albedo and material targets",
-        &deferred_gbuffer_wgsl,
+        "shared surface types own the deferred gbuffer render target layout",
+        &surface_types_wgsl,
         &[
             "struct ZrDeferredGBufferOutput",
             "@location(0) albedo",
-            "@location(1) material",
-            "zr_deferred_encode_material_flags(surface.shading_model_id",
+            "@location(1) normal",
+            "@location(2) material",
+        ],
+    );
+    assert_contains_all(
+        "deferred gbuffer entry template delegates packing to the selected encode include",
+        &deferred_gbuffer_wgsl,
+        &[
             "zr_surface_fails_alpha_clip(surface)",
+            "encode_gbuffer(surface, zr_build_shading_context(input))",
+        ],
+    );
+    assert_contains_all(
+        "standard deferred gbuffer encode include writes albedo, normal, and material targets",
+        &standard_gbuffer_encode,
+        &[
+            "fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext)",
+            "surface.normal_ws * 0.5",
+            "zr_deferred_encode_material_flags(surface.shading_model_id",
+            "ctx.shadow_params.z > 0.5",
         ],
     );
     assert_contains_all(
@@ -97,7 +124,14 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         &[
             "mesh_pipeline_deferred_gbuffer_template_source_for_geometry",
             "DeferredGBufferShaderTemplateRequest",
+        ],
+    );
+    assert_contains_all(
+        "deferred gbuffer shader source tests keep target coverage",
+        &shader_source_tests,
+        &[
             "mesh_pipeline_deferred_gbuffer_template_source_writes_albedo_and_material_targets",
+            "zr_gbuffer_encode_standard_pbr.wgsl",
         ],
     );
     assert_contains_all(
@@ -114,10 +148,11 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         ],
     );
     assert_contains_all(
-        "deferred gbuffer WGPU pipeline writes albedo/material and reads depth",
+        "deferred gbuffer WGPU pipeline writes albedo/normal/material and reads depth",
         &gbuffer_pipeline,
         &[
             "GBUFFER_ALBEDO_FORMAT",
+            "NORMAL_FORMAT",
             "GBUFFER_MATERIAL_FORMAT",
             "depth_write_enabled: Some(false)",
             "entry_point: Some(\"vs_main\")",
@@ -135,8 +170,9 @@ fn runtime_15_deferred_gbuffer_pipeline_template_cache_is_mesh_cache_owned() {
         &[
             "record_gbuffer_geometry",
             "gbuffer_variant_id_for_command_variant(command.pipeline_variant_id)",
-            "ensure_gbuffer_pipeline_for_variant(device, gbuffer_variant_id)",
+            "ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)",
             "MeshPassPipelineKind::GBuffer",
+            "gbuffer_normal_view",
             "bind_standard_material_if_needed(pass, command)",
             "bind_geometry_if_needed(pass, command)",
         ],

@@ -75,9 +75,23 @@ mod tests {
     use zircon_runtime::plugin::{
         ExportPackagingStrategy, PluginMaturity, PluginModuleKind, PluginPackageManifest,
     };
+    #[cfg(not(any(
+        feature = "base-runtime-plugins",
+        feature = "advanced-render-runtime-plugins",
+        feature = "navigation-runtime-plugin",
+        feature = "zr-vm-language-runtime-plugin"
+    )))]
     use zircon_runtime::plugin::{ProjectPluginManifest, ProjectPluginSelection};
 
     use super::*;
+
+    #[cfg(any(
+        feature = "base-runtime-plugins",
+        feature = "advanced-render-runtime-plugins",
+        feature = "navigation-runtime-plugin",
+        feature = "zr-vm-language-runtime-plugin"
+    ))]
+    mod provider_snapshot;
 
     const GENERATED_MANIFEST_HEADER: &str =
         "# @generated from Rust descriptor package_manifest(); do not edit by hand.";
@@ -410,9 +424,12 @@ mod tests {
         );
         let stdout = String::from_utf8(output.stdout).expect("audit JSON must be UTF-8");
         for expected_anchor in [
-            "\"dist_capable_plugin_count\": 1",
+            "\"dist_build_matrix_count\": 39",
+            "\"dist_capable_plugin_count\": 39",
             "\"dist_capable_plugins\": [",
+            "\"ai\"",
             "\"native_dynamic_fixture\"",
+            "\"zr_vm_language\"",
             "\"distribution_section_violations\": 0",
             "\"dist_dependency_boundary_violations\": 0",
             "\"m1_dist_dependency_boundary_gate_status\": \"dist-boundary-clean\"",
@@ -465,18 +482,24 @@ mod tests {
         audit_script: &std::path::Path,
         repo_root: &std::path::Path,
     ) -> std::process::Output {
-        for python in ["python", "python3"] {
-            if let Ok(output) = std::process::Command::new(python)
-                .arg(audit_script)
-                .arg("--json")
-                .arg("--repo-root")
-                .arg(repo_root)
-                .output()
-            {
-                return output;
-            }
-        }
-        panic!("failed to launch python or python3 for plugin structure audit");
+        static AUDIT_OUTPUT: std::sync::OnceLock<std::process::Output> = std::sync::OnceLock::new();
+
+        AUDIT_OUTPUT
+            .get_or_init(|| {
+                for python in ["python", "python3"] {
+                    if let Ok(output) = std::process::Command::new(python)
+                        .arg(audit_script)
+                        .arg("--json")
+                        .arg("--repo-root")
+                        .arg(repo_root)
+                        .output()
+                    {
+                        return output;
+                    }
+                }
+                panic!("failed to launch python or python3 for plugin structure audit");
+            })
+            .clone()
     }
 
     #[cfg(any(

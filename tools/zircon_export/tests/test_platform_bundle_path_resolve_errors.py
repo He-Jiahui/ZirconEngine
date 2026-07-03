@@ -12,8 +12,10 @@ from tools.zircon_export.tests.export_test_support import (
     _file_sha256,
     _platform_bundle_args,
     _run_platform_bundle_quiet,
-    _write_native_dynamic_stage_plugins,
     json_loads,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
+    _write_native_dynamic_stage_plugins,
 )
 
 

@@ -1,10 +1,11 @@
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
-    surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRenderMode},
+    surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange, UiTextRenderMode},
 };
 
 use super::layout_engine::{
     layout_text as shared_layout_text, measure_text_size as shared_measure_text_size,
+    measure_text_source_range_width as shared_measure_text_source_range_width,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -34,6 +35,12 @@ impl<'a> UiTextShapeRequest<'a> {
 pub(crate) trait UiTextShaper {
     fn shape_text(&self, request: &UiTextShapeRequest<'_>) -> UiResolvedTextLayout;
     fn measure_text(&self, text: &str, style: &UiResolvedStyle) -> UiSize;
+    fn measure_text_source_range_width(
+        &self,
+        text: &str,
+        style: &UiResolvedStyle,
+        range: UiTextRange,
+    ) -> f32;
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -127,6 +134,15 @@ impl UiTextShaper for UiSharedTextShaper {
     fn measure_text(&self, text: &str, style: &UiResolvedStyle) -> UiSize {
         shared_measure_text_size(text, style)
     }
+
+    fn measure_text_source_range_width(
+        &self,
+        text: &str,
+        style: &UiResolvedStyle,
+        range: UiTextRange,
+    ) -> f32 {
+        shared_measure_text_source_range_width(text, style, range)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -171,6 +187,25 @@ impl UiTextShaper for UiTextShaperStack {
             | UiTextBackendIntent::SdfAtlas => self.shared.measure_text(text, style),
         }
     }
+
+    fn measure_text_source_range_width(
+        &self,
+        text: &str,
+        style: &UiResolvedStyle,
+        range: UiTextRange,
+    ) -> f32 {
+        let selection = self.selection_for_style(style);
+
+        debug_assert!(selection.fallback_reason.is_none());
+
+        match selection.active_backend {
+            UiTextBackendIntent::SharedTextService
+            | UiTextBackendIntent::NativeGlyphon
+            | UiTextBackendIntent::SdfAtlas => self
+                .shared
+                .measure_text_source_range_width(text, style, range),
+        }
+    }
 }
 
 pub fn layout_text(
@@ -184,4 +219,12 @@ pub fn layout_text(
 
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
     UiTextShaperStack::new().measure_text(text, style)
+}
+
+pub(crate) fn measure_text_source_range_width(
+    text: &str,
+    style: &UiResolvedStyle,
+    range: UiTextRange,
+) -> f32 {
+    UiTextShaperStack::new().measure_text_source_range_width(text, style, range)
 }

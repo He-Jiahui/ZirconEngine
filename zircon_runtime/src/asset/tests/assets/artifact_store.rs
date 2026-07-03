@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use crate::core::framework::physics::{PhysicsJointConstraintMetadata, PhysicsMaterialMetadata};
-use crate::core::framework::render::RenderShaderDefinitionValue;
+use crate::core::framework::render::{RenderShaderDefinitionValue, ShaderAssetKind};
 use crate::core::resource::ResourceRecord;
 
 use crate::asset::project::ProjectPaths;

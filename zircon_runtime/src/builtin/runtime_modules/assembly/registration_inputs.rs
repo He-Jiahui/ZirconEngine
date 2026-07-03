@@ -1,5 +1,5 @@
 use crate::asset::AssetImporterRegistry;
-use crate::core::framework::render::ShadingModelDescriptor;
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -16,6 +16,7 @@ pub(super) struct RuntimeModuleRegistrationInputs {
     asset_importers: AssetImporterRegistry,
     asset_importer_errors: Vec<String>,
     render_features: Vec<RenderFeatureDescriptor>,
+    geometry_sources: Vec<GeometrySourceDescriptor>,
     shading_models: Vec<ShadingModelDescriptor>,
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
     runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
@@ -40,6 +41,7 @@ impl RuntimeModuleRegistrationInputs {
             asset_importers: AssetImporterRegistry::default(),
             asset_importer_errors: Vec::new(),
             render_features: Vec::new(),
+            geometry_sources: Vec::new(),
             shading_models: Vec::new(),
             render_pass_executors: Vec::new(),
             runtime_prepare_collectors: Vec::new(),
@@ -63,6 +65,10 @@ impl RuntimeModuleRegistrationInputs {
 
     pub(super) fn render_features(&self) -> &[RenderFeatureDescriptor] {
         &self.render_features
+    }
+
+    pub(super) fn geometry_sources(&self) -> &[GeometrySourceDescriptor] {
+        &self.geometry_sources
     }
 
     pub(super) fn shading_models(&self) -> &[ShadingModelDescriptor] {
@@ -103,6 +109,7 @@ impl RuntimeModuleRegistrationInputs {
             asset_importers: extension_inputs.asset_importers,
             asset_importer_errors: extension_inputs.asset_importer_errors,
             render_features: extension_inputs.render_features,
+            geometry_sources: extension_inputs.geometry_sources,
             shading_models: extension_inputs.shading_models,
             render_pass_executors: extension_inputs.render_pass_executors,
             runtime_prepare_collectors: extension_inputs.runtime_prepare_collectors,
@@ -149,4 +156,46 @@ pub(super) fn registration_inputs_for_plugin_and_feature_reports(
             .map(|registration| registration.package_manifest.id.as_str()),
         extension_inputs,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builtin::RuntimePluginId;
+    use crate::core::framework::render::{
+        GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, SHADING_MODEL_PLUGIN_ID_START,
+    };
+    use crate::plugin::{PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry};
+
+    #[test]
+    fn plugin_registration_inputs_collect_shading_model_descriptors() {
+        let plugin_id = RuntimePluginId::new("toon_shading");
+        let plugin_key = plugin_id.key().to_string();
+        let descriptor = ShadingModelDescriptor::new(
+            ShadingModelId::new(SHADING_MODEL_PLUGIN_ID_START),
+            "custom:toon",
+            "toon_forward",
+            "toon_gbuffer",
+            "toon_deferred",
+            GBufferChannelMask::standard_lit(),
+        );
+        let mut extensions = RuntimeExtensionRegistry::default();
+        extensions
+            .register_shading_model(&plugin_key, descriptor.clone())
+            .expect("plugin shading model descriptor registers");
+        let registration = RuntimePluginRegistrationReport {
+            package_manifest: PluginPackageManifest::new(plugin_key.clone(), "Toon Shading"),
+            project_selection: ProjectPluginSelection::runtime_plugin(plugin_id, true, true),
+            extensions,
+            diagnostics: Vec::new(),
+        };
+
+        let inputs = registration_inputs_for_plugin_reports(&[&registration]);
+
+        assert_eq!(
+            inputs.linked_plugin_ids(),
+            std::slice::from_ref(&plugin_key)
+        );
+        assert_eq!(inputs.shading_models(), &[descriptor]);
+    }
 }

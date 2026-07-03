@@ -4,7 +4,7 @@ use super::*;
 fn material_owned_lighting_model_drives_standard_descriptor_without_shader_override() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Unlit Grid"
 
 [shader]
@@ -45,7 +45,7 @@ custom_gain = 2.0
 fn material_owned_receive_shadows_defaults_on_and_can_opt_out_without_shader_override() {
     let default_material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Default Receiver"
 
 [shader]
@@ -56,7 +56,7 @@ url = "res://shaders/pbr.zshader"
     .unwrap();
     let mut no_receive_material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "No Receiver"
 
 [shader]
@@ -106,7 +106,7 @@ custom_gain = 2.0
 fn material_owned_cast_shadows_defaults_on_and_can_opt_out_without_shader_override() {
     let default_material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Default Caster"
 
 [shader]
@@ -117,7 +117,7 @@ url = "res://shaders/pbr.zshader"
     .unwrap();
     let mut no_cast_material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "No Caster"
 
 [shader]
@@ -159,7 +159,7 @@ custom_gain = 2.0
 fn material_owned_sort_fields_drive_standard_descriptor_without_shader_override() {
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Queue Shifted"
 
 [shader]
@@ -226,7 +226,7 @@ custom_gain = 2.0
 fn material_owned_render_queue_value_resolves_unity_queue_override() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Late Opaque"
 
 [shader]
@@ -265,7 +265,7 @@ render_queue = 2900
 fn material_owned_render_queue_reports_blend_queue_alpha_conflict() {
     let material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Broken Glass Queue"
 
 [shader]
@@ -314,7 +314,7 @@ mode = "blend"
 fn material_owned_taa_reactive_mask_strength_drives_standard_descriptor_without_shader_override() {
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Responsive Glass"
 
 [shader]

@@ -1,0 +1,26 @@
+runtime_text_editor_retained_cache_poison_recovery_rustfmt_static_visual_cargo_deferred
+date: 2026-07-04
+scope: zircon_editor retained-host paint_text cache/context poison recovery
+
+changed files:
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/sync.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs
+
+validation:
+  - rustfmt --edition 2021 --check touched retained-host paint_text files: passed
+  - scanned font.rs/raster.rs for old lock expect markers: 0 hits
+  - retained proof image stored under docs/tests/runtime/text, not target
+  - focused Cargo/test deferred because external cargo/rustc lanes were active before and after the slice
+
+behavior:
+  - HostTextFont cache lock recovery now uses shared lock_recovering_poison<T>.
+  - Glyph raster cache lock recovery now uses the same helper.
+  - Swash ScaleContext lock recovery now uses the same helper.
+  - Fontdue fallback regression also asserts sample_offset_x preservation.
+
+open:
+  - embedded static font invariant still has its existing final expect path.
+  - focused Cargo needs a quiet compile lane before it can be counted as passing.

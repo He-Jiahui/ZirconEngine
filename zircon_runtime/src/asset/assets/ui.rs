@@ -121,14 +121,14 @@ pub enum UiIconAssetDocumentError {
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiV2AssetDocumentError {
-    #[error("failed to parse ui v2 asset document: {0}")]
+    #[error("failed to parse .zui asset document: {0}")]
     Parse(#[from] UiV2AssetError),
-    #[error("expected ui v2 asset kind {expected:?} but document was {actual:?}")]
+    #[error("expected .zui asset kind {expected:?} but document was {actual:?}")]
     UnexpectedKind {
         expected: UiV2AssetKind,
         actual: UiV2AssetKind,
     },
-    #[error("ui v2 component documents must use `.zui`, not `.v2.ui.toml`")]
+    #[error(".zui component documents must use `.zui`, not `.v2.ui.toml`")]
     ComponentRequiresZui,
 }
 

@@ -470,13 +470,13 @@ fn editor_v2_replacement_assets_do_not_keep_same_name_v1_sources() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative);
         assert!(
             !path.exists(),
-            "v2-replaced editor production asset must stay deleted: {relative}"
+            "retired-suffix editor production asset must stay deleted: {relative}"
         );
     }
 }
 
 #[test]
-fn critical_editor_shells_are_hard_cut_to_v2_assets() {
+fn critical_editor_shells_are_hard_cut_to_zui_assets() {
     let registry = source("src/ui/template_runtime/builtin/template_documents.rs");
     let runtime_host = source("src/ui/template_runtime/runtime/runtime_host.rs");
     for required in [
@@ -506,7 +506,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
     ] {
         assert!(
             registry.contains(required),
-            "builtin template registry missing v2 asset `{required}`"
+            "builtin template registry missing .zui asset `{required}`"
         );
     }
     for component_only in [
@@ -636,7 +636,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
         let source = source(relative);
         assert!(
             source.contains(required),
-            "{relative} should route projection through v2 asset `{required}`"
+            "{relative} should route projection through .zui asset `{required}`"
         );
         assert!(
             !source.contains(forbidden),
@@ -649,7 +649,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
         !Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("assets/ui/editor/ui_asset_editor.ui.toml")
             .exists(),
-        "UI Asset Editor bootstrap must stay on the v2 authoring asset"
+        "UI Asset Editor bootstrap must stay on the .zui authoring asset"
     );
     for required in [
         "ui_asset_editor.zui",
@@ -660,7 +660,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
     ] {
         assert!(
             ui_asset_editor_projection.contains(required),
-            "UI Asset Editor node projection should route through v2 marker `{required}`"
+            "UI Asset Editor node projection should route through .zui runtime marker `{required}`"
         );
     }
     for forbidden in [
@@ -1274,7 +1274,7 @@ fn retained_event_effects_route_dirty_domains_through_invalidation_mask() {
 }
 
 #[test]
-fn runtime_ui_golden_is_hard_cut_to_v2_fixtures() {
+fn runtime_ui_golden_is_hard_cut_to_zui_fixtures() {
     let runtime_golden = source("src/tests/ui/boundary/runtime_ui_golden.rs");
     for required in [
         "UiV2PrototypeStoreFileCache",
@@ -1287,7 +1287,7 @@ fn runtime_ui_golden_is_hard_cut_to_v2_fixtures() {
     ] {
         assert!(
             runtime_golden.contains(required),
-            "runtime UI golden should cover v2 fixture marker `{required}`"
+            "runtime UI golden should cover .zui fixture marker `{required}`"
         );
     }
 
@@ -1310,7 +1310,7 @@ fn runtime_ui_golden_is_hard_cut_to_v2_fixtures() {
 }
 
 #[test]
-fn runtime_fixture_host_tests_are_hard_cut_to_v2_paths() {
+fn runtime_fixture_host_tests_are_hard_cut_to_zui_paths() {
     let pane_body_documents = source("src/tests/host/template_runtime/pane_body_documents.rs");
     let material_surface_assets = source("src/tests/ui/boundary/global_material_surface_assets.rs");
     let ui_asset_editor_preview = source("src/tests/ui/ui_asset_editor/runtime_previews.rs");
@@ -1330,7 +1330,7 @@ fn runtime_fixture_host_tests_are_hard_cut_to_v2_paths() {
                 || material_surface_assets.contains(required)
                 || ui_asset_editor_preview.contains(required)
                 || ui_asset_editor_support.contains(required),
-            "runtime fixture host/material tests should keep v2 marker `{required}`"
+            "runtime fixture host/material tests should keep .zui runtime marker `{required}`"
         );
     }
 
@@ -1361,7 +1361,7 @@ fn runtime_fixture_host_tests_are_hard_cut_to_v2_paths() {
 }
 
 #[test]
-fn component_showcase_is_hard_cut_to_v2_catalog_components() {
+fn component_showcase_is_hard_cut_to_zui_catalog_components() {
     let searchable_assets = [
         "assets/ui/editor/component_showcase.zui",
         "assets/ui/editor/components/showcase/showcase_visual_section.zui",
@@ -1382,7 +1382,7 @@ fn component_showcase_is_hard_cut_to_v2_catalog_components() {
     ] {
         assert!(
             !searchable_assets.contains(forbidden),
-            "component showcase v2 asset should not depend on old recursive `{forbidden}`"
+            "component showcase .zui asset should not depend on old recursive `{forbidden}`"
         );
     }
 
@@ -1438,7 +1438,7 @@ fn component_showcase_is_hard_cut_to_v2_catalog_components() {
     ] {
         assert!(
             searchable_assets.contains(required),
-            "component showcase v2 asset missing `{required}`"
+            "component showcase .zui asset missing `{required}`"
         );
     }
 }

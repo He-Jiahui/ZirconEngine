@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::{
     control_border_color, selection_label_gap, toggle_thumb_color, toggle_thumb_rect,
-    toggle_track_color, toggle_track_rect, PALETTE, TOGGLE_TRACK_WIDTH,
+    toggle_track_color, toggle_track_rect, PALETTE, TOGGLE_THUMB_SIZE, TOGGLE_TRACK_WIDTH,
 };
 use super::support::{node_with_role, resolved_background_foreground_and_border};
 
@@ -25,7 +25,15 @@ fn toggle_thumb_moves_to_checked_end_of_right_aligned_track() {
     );
 
     assert_eq!(track.x, 58.0);
+    assert_eq!(track.y, 11.0);
     assert_eq!(track.width, TOGGLE_TRACK_WIDTH);
+    assert_eq!(track.height, 18.0);
+    assert_eq!(unchecked.x, 60.0);
+    assert_eq!(unchecked.y, 14.0);
+    assert_eq!(unchecked.width, TOGGLE_THUMB_SIZE);
+    assert_eq!(unchecked.height, TOGGLE_THUMB_SIZE);
+    assert_eq!(checked.x, 78.0);
+    assert_eq!(checked.width, TOGGLE_THUMB_SIZE);
     assert!(checked.x > unchecked.x);
     assert_eq!(unchecked.y, checked.y);
 }
@@ -86,8 +94,8 @@ fn toggle_standardizes_checked_track_border_and_thumb_tones() {
     };
 
     assert_eq!(toggle_track_color(&checked), PALETTE.surface_selected);
-    assert_eq!(toggle_thumb_color(&checked), PALETTE.text);
-    assert_eq!(control_border_color(&checked), PALETTE.accent);
+    assert_eq!(toggle_thumb_color(&checked), PALETTE.text_muted);
+    assert_eq!(control_border_color(&checked), PALETTE.separator_strong);
     assert_eq!(toggle_track_color(&unchecked), [15, 20, 23, 255]);
     assert_eq!(toggle_thumb_color(&unchecked), [124, 135, 142, 255]);
     assert_eq!(control_border_color(&unchecked), [53, 64, 71, 255]);

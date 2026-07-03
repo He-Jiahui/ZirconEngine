@@ -89,6 +89,21 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "`runtime-other=13`",
             "`editor-retained-host=3`",
             "direct `performance_hotpath_boundary_audit` risks=0 / hotspots=30",
+            "standalone `performance_hotspots.rs` 6/6",
+            "extract/ecs_query/performance profiling/FPS Cargo gates",
+        ],
+    ),
+    (
+        "Runtime 07 owner-budget 0-hotspot current audit sync",
+        &[
+            "`large_file_m1_gate_status = classified-and-clear`",
+            "`large_file_hotspot_count = 0`",
+            "`large_file_migration_debt_count = 0`",
+            "`large_file_owner_class_count = 0`",
+            "`large_file_unclassified_hotspot_count = 0`",
+            "direct `performance_hotpath_boundary_audit` risks=0 / hotspots=0",
+            "standalone `performance_hotspots.rs` exact owner-budget guards",
+            "extract/ecs_query/performance profiling/FPS Cargo gates",
         ],
     ),
 ];

@@ -34,10 +34,12 @@ pub(crate) use lighting::{
 };
 pub(in crate::graphics::scene) use mesh::skinning::SkinnedMeshJointPaletteUniform;
 pub(crate) use mesh::{
+    create_mesh_prewarm_validation_pipeline_layout,
     mesh_pipeline_standard_material_template_source,
     mesh_pipeline_standard_material_template_source_for_geometry,
-    mesh_pipeline_standard_material_template_source_for_shader_pass, MeshPipelineShaderSource,
-    FALLBACK_MESH_SHADER,
+    mesh_pipeline_standard_material_template_source_for_shader_pass,
+    mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
+    validate_mesh_prewarm_request_render_pipeline, MeshPipelineShaderSource, FALLBACK_MESH_SHADER,
 };
 #[cfg(test)]
 pub(crate) use overlay::ViewportOverlayRenderer;

@@ -17,7 +17,7 @@ fn runtime_15_asset_importer_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
 
     assert_contains_all(
@@ -69,8 +69,8 @@ fn runtime_15_asset_importer_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        23,
-        "asset importer child modules should preserve the original 23 tests"
+        21,
+        "asset importer child modules should preserve the current 21 tests"
     );
 
     assert_contains_all(
@@ -87,9 +87,9 @@ fn runtime_15_asset_importer_tests_are_folder_backed() {
         &typed_toml_ui,
         &[
             "use super::*;",
-            "fn importer_registry_uses_full_suffix_before_plain_extension_fallback",
-            "fn importer_registry_routes_zui_to_component_backend",
-            "fn importer_reports_ui_toml_schema_migration",
+            "fn importer_registry_routes_zui_to_document_backend",
+            "fn importer_default_rejects_ui_toml_without_source_fixture_backend",
+            "fn importer_registry_rejects_unknown_typed_toml_instead_of_plain_data_fallback",
         ],
     );
     assert_contains_all(

@@ -11,7 +11,7 @@ fn runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnost
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -63,7 +63,7 @@ fn runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks(
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -119,7 +119,7 @@ fn runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registr
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let state_doc = read_repo("docs/zircon_runtime/core/state.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -181,7 +181,7 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let lifecycle_doc = read_repo("docs/zircon_runtime/core/runtime/lifecycle.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(

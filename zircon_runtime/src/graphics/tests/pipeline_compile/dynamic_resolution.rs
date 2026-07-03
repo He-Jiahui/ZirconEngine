@@ -35,6 +35,12 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
         "\n",
         include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
         "\n",
+        include_str!("../../shader/wgsl/zr_shade_deferred_standard_pbr.wgsl"),
+        "\n",
+        include_str!("../../shader/wgsl/zr_shade_deferred_blinn_phong.wgsl"),
+        "\n",
+        include_str!("../../shader/wgsl/zr_shade_deferred_unlit.wgsl"),
+        "\n",
         include_str!("../../scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl")
     );
     for (name, shader) in [
@@ -56,8 +62,9 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
     }
 
     assert!(
-        geometry_shader.contains("@location(1) material: vec4<f32>"),
-        "deferred geometry should emit a second material G-buffer target"
+        geometry_shader.contains("@location(1) normal: vec4<f32>")
+            && geometry_shader.contains("@location(2) material: vec4<f32>"),
+        "deferred geometry should emit normal and material G-buffer targets"
     );
     assert!(
         geometry_shader.contains("standard_material_properties.data0.x")

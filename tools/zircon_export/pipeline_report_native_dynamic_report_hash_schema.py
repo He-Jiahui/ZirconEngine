@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .export_template import is_sha256_hex
+from .export_template_manifest import is_sha256_hex
 
 
 def native_dynamic_content_hash_is_schema_clean(value: object) -> bool:

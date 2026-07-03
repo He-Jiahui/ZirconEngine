@@ -2,7 +2,7 @@
 
 mod host;
 
-use crate::core::framework::render::ShadingModelDescriptor;
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
@@ -18,6 +18,7 @@ pub use host::{
 #[derive(Clone, Debug, Default)]
 pub struct GraphicsModule {
     render_features: Vec<RenderFeatureDescriptor>,
+    plugin_geometry_sources: Vec<GeometrySourceDescriptor>,
     plugin_shading_models: Vec<ShadingModelDescriptor>,
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
     runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
@@ -32,6 +33,7 @@ impl GraphicsModule {
     ) -> Self {
         Self {
             render_features: render_features.into_iter().collect(),
+            plugin_geometry_sources: Vec::new(),
             plugin_shading_models: Vec::new(),
             render_pass_executors: Vec::new(),
             runtime_prepare_collectors: Vec::new(),
@@ -50,6 +52,7 @@ impl GraphicsModule {
     ) -> Self {
         Self {
             render_features: render_features.into_iter().collect(),
+            plugin_geometry_sources: Vec::new(),
             plugin_shading_models: Vec::new(),
             render_pass_executors: render_pass_executors.into_iter().collect(),
             runtime_prepare_collectors: Vec::new(),
@@ -63,6 +66,7 @@ impl GraphicsModule {
 
     pub fn with_render_extensions_and_runtime_providers(
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
@@ -74,6 +78,7 @@ impl GraphicsModule {
     ) -> Self {
         Self {
             render_features: render_features.into_iter().collect(),
+            plugin_geometry_sources: plugin_geometry_sources.into_iter().collect(),
             plugin_shading_models: plugin_shading_models.into_iter().collect(),
             render_pass_executors: render_pass_executors.into_iter().collect(),
             runtime_prepare_collectors: runtime_prepare_collectors.into_iter().collect(),
@@ -87,6 +92,10 @@ impl GraphicsModule {
 
     pub fn render_features(&self) -> &[RenderFeatureDescriptor] {
         &self.render_features
+    }
+
+    pub fn plugin_geometry_sources(&self) -> &[GeometrySourceDescriptor] {
+        &self.plugin_geometry_sources
     }
 
     pub fn plugin_shading_models(&self) -> &[ShadingModelDescriptor] {
@@ -128,6 +137,7 @@ impl EngineModule for GraphicsModule {
     fn descriptor(&self) -> ModuleDescriptor {
         module_descriptor_with_render_features(
             self.render_features.clone(),
+            self.plugin_geometry_sources.clone(),
             self.plugin_shading_models.clone(),
             self.render_pass_executors.clone(),
             self.runtime_prepare_collectors.clone(),

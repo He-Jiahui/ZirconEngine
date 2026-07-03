@@ -9,7 +9,7 @@ use super::manifest::{
     validate_zrpack_document_manifest,
 };
 use super::{
-    reader::validate_chunk_payload_extent,
+    reader::{read_header_u32, read_header_u64, validate_chunk_payload_extent},
     writer::{header_size, ZrPackInputAsset, ZrPackWriteReport, ZrPackWriter},
     ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackReader, ZRPACK_FORMAT_VERSION,
 };
@@ -194,14 +194,12 @@ fn read_delta_manifest(bytes: &[u8]) -> Result<ZrPackDeltaDocumentManifest, ZrPa
     if bytes[0..4] != ZRPACK_DELTA_MAGIC {
         return Err(ZrPackError::InvalidMagic);
     }
-    let version = u32::from_le_bytes(bytes[4..8].try_into().expect("header version bytes"));
+    let version = read_header_u32(bytes, 4)?;
     if version != ZRPACK_FORMAT_VERSION {
         return Err(ZrPackError::UnsupportedVersion(version));
     }
-    let manifest_offset =
-        u64::from_le_bytes(bytes[8..16].try_into().expect("header offset bytes")) as usize;
-    let manifest_size =
-        u64::from_le_bytes(bytes[16..24].try_into().expect("header size bytes")) as usize;
+    let manifest_offset = read_header_u64(bytes, 8)? as usize;
+    let manifest_size = read_header_u64(bytes, 16)? as usize;
     let manifest_end = manifest_offset
         .checked_add(manifest_size)
         .ok_or(ZrPackError::ManifestOutOfBounds)?;

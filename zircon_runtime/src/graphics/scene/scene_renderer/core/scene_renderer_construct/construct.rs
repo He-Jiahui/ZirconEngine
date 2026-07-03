@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::framework::render::ShadingModelDescriptor;
+use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
 };
@@ -41,6 +41,7 @@ impl SceneRenderer {
             render_pass_executors,
             runtime_prepare_collectors,
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -49,6 +50,7 @@ impl SceneRenderer {
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_icon_source_and_plugin_render_features_and_shading_models(
@@ -57,6 +59,7 @@ impl SceneRenderer {
             render_features,
             render_pass_executors,
             runtime_prepare_collectors,
+            plugin_geometry_sources,
             plugin_shading_models,
         )
     }

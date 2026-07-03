@@ -35,8 +35,26 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
     let runtime_services = read_runtime_src(
         "tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs",
     );
+    let runtime_services_plugin_bridge = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/plugin_bridge.rs",
+    );
+    let runtime_services_dynamic_scene = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs",
+    );
+    let runtime_services_navigation_resource = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/navigation_resource.rs",
+    );
     let asset_render_input = read_runtime_src(
         "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs",
+    );
+    let asset_render_input_asset_pipeline = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs",
+    );
+    let asset_render_input_render_animation = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/render_animation.rs",
+    );
+    let asset_render_input_input_script = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/input_script.rs",
     );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -46,8 +64,8 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let session_note =
         read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+    let lock_poison_status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(
@@ -126,13 +144,35 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
         ],
     );
     assert_contains_all(
-        "runtime services lock poison child owns plugin scene resource guards",
+        "runtime services lock poison child mounts plugin scene resource owners",
         &runtime_services,
         &[
-            "use super::*;",
+            "mod dynamic_scene;",
+            "mod navigation_resource;",
+            "mod plugin_bridge;",
+            concat!(
+                "fn ",
+                "runtime_15_runtime_services_lock_poison_guard_child_owner_split"
+            ),
+        ],
+    );
+    let runtime_services_children = format!(
+        "{}\n{}\n{}",
+        runtime_services_plugin_bridge,
+        runtime_services_dynamic_scene,
+        runtime_services_navigation_resource
+    );
+    assert_contains_all(
+        "runtime services lock poison children preserve plugin scene resource guards",
+        &runtime_services_children,
+        &[
             concat!(
                 "fn ",
                 "runtime_15_plugin_bridge_table_lock_poison_recovery_guard_covers_provider_slot"
+            ),
+            concat!(
+                "fn ",
+                "runtime_15_dynamic_scene_spawn_task_lock_poison_recovery_guard_covers_spawn_task"
             ),
             concat!(
                 "fn ",
@@ -141,10 +181,28 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
         ],
     );
     assert_contains_all(
-        "asset render input lock poison child owns asset graphics input guards",
+        "asset render input lock poison child mounts asset graphics input owners",
         &asset_render_input,
         &[
-            "use super::*;",
+            "mod asset_pipeline;",
+            "mod input_script;",
+            "mod render_animation;",
+            concat!(
+                "fn ",
+                "runtime_15_asset_render_input_lock_poison_guard_child_owner_split"
+            ),
+        ],
+    );
+    let asset_render_input_children = format!(
+        "{}\n{}\n{}",
+        asset_render_input_asset_pipeline,
+        asset_render_input_render_animation,
+        asset_render_input_input_script
+    );
+    assert_contains_all(
+        "asset render input lock poison children preserve asset graphics input guards",
+        &asset_render_input_children,
+        &[
             concat!(
                 "fn ",
                 "runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager"
@@ -175,9 +233,27 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
                 .matches(TEST_ATTRIBUTE)
                 .count()
             + runtime_services.matches(TEST_ATTRIBUTE).count()
-            + asset_render_input.matches(TEST_ATTRIBUTE).count(),
-        25,
-        "lock poison policy parent plus split children should preserve 21 original guards plus the production global gate, the ZrVM runtime lock guard, and two layout guards"
+            + runtime_services_plugin_bridge
+                .matches(TEST_ATTRIBUTE)
+                .count()
+            + runtime_services_dynamic_scene
+                .matches(TEST_ATTRIBUTE)
+                .count()
+            + runtime_services_navigation_resource
+                .matches(TEST_ATTRIBUTE)
+                .count()
+            + asset_render_input.matches(TEST_ATTRIBUTE).count()
+            + asset_render_input_asset_pipeline
+                .matches(TEST_ATTRIBUTE)
+                .count()
+            + asset_render_input_render_animation
+                .matches(TEST_ATTRIBUTE)
+                .count()
+            + asset_render_input_input_script
+                .matches(TEST_ATTRIBUTE)
+                .count(),
+        27,
+        "lock poison policy parent plus split children should preserve 21 original guards plus the production global gate, the ZrVM runtime lock guard, and four layout guards"
     );
 
     for (path, source) in [
@@ -214,8 +290,32 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
             runtime_services.as_str(),
         ),
         (
+            "structure_convention/lock_poison_policy/runtime_services/plugin_bridge.rs",
+            runtime_services_plugin_bridge.as_str(),
+        ),
+        (
+            "structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs",
+            runtime_services_dynamic_scene.as_str(),
+        ),
+        (
+            "structure_convention/lock_poison_policy/runtime_services/navigation_resource.rs",
+            runtime_services_navigation_resource.as_str(),
+        ),
+        (
             "structure_convention/lock_poison_policy/asset_render_input.rs",
             asset_render_input.as_str(),
+        ),
+        (
+            "structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs",
+            asset_render_input_asset_pipeline.as_str(),
+        ),
+        (
+            "structure_convention/lock_poison_policy/asset_render_input/render_animation.rs",
+            asset_render_input_render_animation.as_str(),
+        ),
+        (
+            "structure_convention/lock_poison_policy/asset_render_input/input_script.rs",
+            asset_render_input_input_script.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -232,7 +332,10 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("session note", session_note.as_str()),
-        ("status-output foundation row data", status_rows.as_str()),
+        (
+            "status-output lock-poison row data",
+            lock_poison_status_rows.as_str(),
+        ),
     ] {
         assert_contains_all(
             label,
@@ -245,6 +348,60 @@ fn runtime_15_lock_poison_policy_guard_is_folder_backed() {
                 "structure_convention/lock_poison_policy/runtime_services.rs",
                 "structure_convention/lock_poison_policy/asset_render_input.rs",
                 "runtime_15_lock_poison_policy_guard_is_folder_backed",
+            ],
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("session note", session_note.as_str()),
+        (
+            "status-output lock-poison row data",
+            lock_poison_status_rows.as_str(),
+        ),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 asset/render/input lock-poison guard child-owner split",
+                "runtime_15_asset_render_input_lock_poison_guard_child_owner_split_static_passed_cargo_deferred",
+                "structure_convention/lock_poison_policy/asset_render_input.rs",
+                "structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs",
+                "structure_convention/lock_poison_policy/asset_render_input/render_animation.rs",
+                "structure_convention/lock_poison_policy/asset_render_input/input_script.rs",
+                "runtime_15_asset_render_input_lock_poison_guard_child_owner_split",
+            ],
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("session note", session_note.as_str()),
+        (
+            "status-output lock-poison row data",
+            lock_poison_status_rows.as_str(),
+        ),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 runtime services lock-poison guard child-owner split",
+                "runtime_15_runtime_services_lock_poison_guard_child_owner_split_static_passed_cargo_deferred",
+                "structure_convention/lock_poison_policy/runtime_services.rs",
+                "structure_convention/lock_poison_policy/runtime_services/plugin_bridge.rs",
+                "structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs",
+                "structure_convention/lock_poison_policy/runtime_services/navigation_resource.rs",
+                "runtime_15_runtime_services_lock_poison_guard_child_owner_split",
             ],
         );
     }

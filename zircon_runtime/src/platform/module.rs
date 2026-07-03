@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use crate::engine_module::{
-    dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, ManagerDescriptor,
-    ModuleDescriptor, ServiceKind, StartupMode,
+    dependency_on, factory, qualified_name, DriverDescriptor, EngineModule, InitLevel,
+    ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor, ServiceKind, StartupMode,
 };
+use crate::foundation::FOUNDATION_MODULE_NAME;
 
 use super::{PlatformDriver, PlatformManager};
 
@@ -19,6 +20,8 @@ pub fn module_descriptor() -> ModuleDescriptor {
         PLATFORM_MODULE_NAME,
         "Platform, windowing, and OS integration",
     )
+    .with_init_level(InitLevel::Servers)
+    .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(PLATFORM_MODULE_NAME, ServiceKind::Driver, "PlatformDriver"),
         StartupMode::Immediate,

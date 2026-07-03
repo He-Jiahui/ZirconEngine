@@ -7,7 +7,7 @@ use crate::core::framework::render::{
     RenderPhaseSortComponents, ShaderQualityTier,
 };
 use crate::core::framework::scene::EntityId;
-use crate::graphics::scene::resources::PipelineKey;
+use crate::graphics::scene::resources::{MaterialDisabledPasses, PipelineKey};
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MeshDrawQueuePhase, MeshDrawQueueProfile,
 };
@@ -25,6 +25,7 @@ pub(crate) struct MeshBatchRef {
     pub(crate) cache_identity: Option<MeshBatchCacheIdentity>,
     pub(crate) queue_profile: MeshDrawQueueProfile,
     pub(crate) casts_shadow: bool,
+    pub(crate) disabled_passes: MaterialDisabledPasses,
     pub(crate) primitive_relevance: Option<PrimitiveRelevance>,
     pub(crate) main_view_visible: bool,
     pub(crate) shadow_view_visible: bool,
@@ -57,6 +58,7 @@ impl MeshBatchRef {
             cache_identity: None,
             queue_profile,
             casts_shadow: false,
+            disabled_passes: MaterialDisabledPasses::default(),
             primitive_relevance: None,
             main_view_visible: true,
             shadow_view_visible: true,
@@ -106,6 +108,11 @@ impl MeshBatchRef {
 
     pub(crate) fn with_casts_shadow(mut self, casts_shadow: bool) -> Self {
         self.casts_shadow = casts_shadow;
+        self
+    }
+
+    pub(crate) fn with_disabled_passes(mut self, disabled_passes: MaterialDisabledPasses) -> Self {
+        self.disabled_passes = disabled_passes;
         self
     }
 
@@ -320,7 +327,7 @@ pub(crate) trait MeshPassProcessor {
 mod tests {
     use crate::core::framework::render::{
         GeometrySourceId, RenderPhase, RenderPhaseSortComponents, ShaderQualityTier,
-        GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
     };
     use crate::core::framework::scene::Mobility;
     use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
@@ -399,6 +406,64 @@ mod tests {
         assert_eq!(
             resolver.last_geometry_source,
             Some(GEOMETRY_SOURCE_ID_SKINNED_MESH)
+        );
+    }
+
+    #[test]
+    fn mesh_pass_build_context_resolves_cpu_morphed_gpu_skinning_as_skinned_variant() {
+        let mut resolver = CapturingVariantResolver::default();
+        let mut context =
+            super::MeshPassBuildContext::new(&mut resolver, ShaderQualityTier::Medium);
+        let batch = MeshBatchRef::new(
+            MeshDrawQueueProfile::new(
+                MeshDrawQueuePhase::Opaque,
+                MeshDrawGeometrySource::DynamicCpuMorphedGpuSkinningSource,
+                Mobility::Dynamic,
+                false,
+                true,
+                false,
+            ),
+            default_pipeline_key(),
+            RenderPhaseSortComponents::new(0.0, 10),
+            MeshGeometryHandle::test(1),
+            MeshDrawArgs::direct_indexed(0, 3),
+        );
+
+        let variant_id = context.pipeline_variant_id(MeshPassPipelineKind::Base, &batch);
+
+        assert_eq!(variant_id, MeshPipelineVariantId::new(9));
+        assert_eq!(
+            resolver.last_geometry_source,
+            Some(GEOMETRY_SOURCE_ID_SKINNED_MESH)
+        );
+    }
+
+    #[test]
+    fn mesh_pass_build_context_resolves_gpu_skinned_morphed_as_skinned_morphed_variant() {
+        let mut resolver = CapturingVariantResolver::default();
+        let mut context =
+            super::MeshPassBuildContext::new(&mut resolver, ShaderQualityTier::Medium);
+        let batch = MeshBatchRef::new(
+            MeshDrawQueueProfile::new(
+                MeshDrawQueuePhase::Opaque,
+                MeshDrawGeometrySource::DynamicGpuSkinnedMorphedSource,
+                Mobility::Dynamic,
+                false,
+                true,
+                false,
+            ),
+            default_pipeline_key(),
+            RenderPhaseSortComponents::new(0.0, 10),
+            MeshGeometryHandle::test(1),
+            MeshDrawArgs::direct_indexed(0, 3),
+        );
+
+        let variant_id = context.pipeline_variant_id(MeshPassPipelineKind::Base, &batch);
+
+        assert_eq!(variant_id, MeshPipelineVariantId::new(9));
+        assert_eq!(
+            resolver.last_geometry_source,
+            Some(GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH)
         );
     }
 

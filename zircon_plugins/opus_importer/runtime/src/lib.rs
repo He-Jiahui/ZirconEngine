@@ -42,16 +42,19 @@ mod tests {
         assert!(!manifest
             .capabilities
             .contains(&NATIVE_IMPORTER_CAPABILITY.to_string()));
-        assert_eq!(manifest.modules.len(), 1);
-        assert_eq!(manifest.modules[0].name, "opus_importer.runtime");
-        assert_eq!(manifest.modules[0].crate_name, RUNTIME_CRATE_NAME);
-        assert!(manifest.modules[0]
+        let runtime_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.name == "opus_importer.runtime")
+            .expect("opus importer package includes runtime module");
+        assert_eq!(runtime_module.crate_name, RUNTIME_CRATE_NAME);
+        assert!(runtime_module
             .capabilities
             .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(manifest.modules[0]
+        assert!(runtime_module
             .capabilities
             .contains(&OPUS_IMPORTER_CAPABILITY.to_string()));
-        assert!(!manifest.modules[0]
+        assert!(!runtime_module
             .capabilities
             .contains(&NATIVE_IMPORTER_CAPABILITY.to_string()));
         assert!(manifest

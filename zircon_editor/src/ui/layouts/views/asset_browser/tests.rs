@@ -15,7 +15,10 @@ fn asset_browser_toolbar_uses_single_row_slate_compound_control_rhythm() {
     let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
     let toolbar = find_node(&nodes, "AssetBrowserToolbarPanel");
     let search = find_node(&nodes, "SearchEdited");
+    let filter_group = find_node(&nodes, "AssetBrowserToolbarKindPrimaryRow");
     let kind_all = find_node(&nodes, "AssetBrowserKindAllChip");
+    let kind_texture = find_node(&nodes, "AssetBrowserKindTextureChip");
+    let kind_material = find_node(&nodes, "AssetBrowserKindMaterialChip");
     let thumb = find_node(&nodes, "AssetBrowserViewModeThumbButton");
     let import_panel = find_node(&nodes, "AssetBrowserImportPanel");
     let import_label = find_node(&nodes, "AssetBrowserImportLabel");
@@ -28,7 +31,15 @@ fn asset_browser_toolbar_uses_single_row_slate_compound_control_rhythm() {
         "asset toolbar should collapse to a single Slate-like compound row: {:?}",
         toolbar.frame
     );
-    for node in [&search, &kind_all, &thumb, &import_path, &import_button] {
+    for node in [
+        &search,
+        &filter_group,
+        &kind_all,
+        &kind_texture,
+        &kind_material,
+        &thumb,
+        &import_button,
+    ] {
         assert_eq!(
             node.frame.height, 30.0,
             "{} should share the toolbar control height",
@@ -52,8 +63,26 @@ fn asset_browser_toolbar_uses_single_row_slate_compound_control_rhythm() {
         "kind chips should follow the search field on the same row"
     );
     assert!(
-        import_path.frame.x > thumb.frame.x + thumb.frame.width,
-        "Quick Import should be a trailing input group instead of a second toolbar row"
+        kind_texture.frame.width > 0.0 && kind_material.frame.width > 0.0,
+        "900px toolbar should prioritize visible filters before the optional import path"
+    );
+    assert!(
+        import_button.frame.x > thumb.frame.x + thumb.frame.width,
+        "Import should remain a trailing command after the filter/view group"
+    );
+    assert_eq!(import_path.frame.width, 0.0);
+    assert_eq!(import_path.frame.height, 0.0);
+    assert_eq!(filter_group.surface_variant.as_str(), "inset");
+    assert_eq!(filter_group.border_width, 1.0);
+    assert_eq!(filter_group.corner_radius, 4.0);
+    assert_eq!(filter_group.z_index, -1);
+    assert!(filter_group.frame.x <= kind_all.frame.x);
+    assert!(filter_group.frame.x + filter_group.frame.width >= thumb.frame.x + thumb.frame.width);
+    assert!(
+        filter_group.frame.width < toolbar.frame.width * 0.58,
+        "filter group should wrap the compound controls instead of spanning the full toolbar: group={:?}, toolbar={:?}",
+        filter_group.frame,
+        toolbar.frame
     );
     assert_eq!(import_label.frame.width, 0.0);
     assert_eq!(import_label.frame.height, 0.0);
@@ -64,6 +93,214 @@ fn asset_browser_toolbar_uses_single_row_slate_compound_control_rhythm() {
         "content should reclaim the old Quick Import row height: content={:?}, toolbar={:?}",
         content.frame,
         toolbar.frame
+    );
+}
+
+#[test]
+fn asset_browser_utility_tabs_use_compact_slate_tab_strip_geometry() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: (1..=6).map(|index| asset_item(index, index == 1)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let row = find_node(&nodes, "AssetBrowserUtilityTabsRow");
+    let preview = find_node(&nodes, "AssetBrowserPreviewTabButton");
+    let references = find_node(&nodes, "AssetBrowserReferencesTabButton");
+    let metadata = find_node(&nodes, "AssetBrowserMetadataTabButton");
+    let plugins = find_node(&nodes, "AssetBrowserPluginsTabButton");
+    let locator = find_node(&nodes, "AssetBrowserSelectionLocatorText");
+    let divider = find_node(&nodes, "AssetBrowserUtilityDivider");
+    let content = find_node(&nodes, "AssetBrowserUtilityContentPanel");
+
+    assert_eq!(row.frame.height, 22.0);
+    assert_eq!(preview.frame.width, 68.0);
+    assert_eq!(references.frame.width, 92.0);
+    assert_eq!(metadata.frame.width, 84.0);
+    assert_eq!(plugins.frame.width, 72.0);
+    for tab in [&preview, &references, &metadata, &plugins] {
+        assert_eq!(
+            tab.frame.height, row.frame.height,
+            "{} should fill the compact utility tab row height",
+            tab.control_id
+        );
+        assert_eq!(
+            tab.frame.y, row.frame.y,
+            "{} should share the utility tab row baseline",
+            tab.control_id
+        );
+        assert_eq!(
+            tab.font_size, 12.0,
+            "{} should opt into the readable UI tab font instead of falling back to the dense body text size",
+            tab.control_id
+        );
+    }
+    assert_eq!(
+        preview.font_weight, 600,
+        "the active utility tab should request the strong UI text face"
+    );
+    for tab in [&references, &metadata, &plugins] {
+        assert_eq!(
+            tab.font_weight, 400,
+            "{} should keep the idle UI text weight",
+            tab.control_id
+        );
+    }
+    assert_eq!(
+        references.frame.x - (preview.frame.x + preview.frame.width),
+        6.0
+    );
+    assert_eq!(
+        metadata.frame.x - (references.frame.x + references.frame.width),
+        6.0
+    );
+    assert_eq!(
+        plugins.frame.x - (metadata.frame.x + metadata.frame.width),
+        6.0
+    );
+    assert_eq!(locator.frame.width, 156.0);
+    assert_eq!(locator.frame.height, row.frame.height);
+    assert!(locator.frame.x > plugins.frame.x + plugins.frame.width);
+    assert_eq!(
+        locator.frame.x + locator.frame.width,
+        row.frame.x + row.frame.width
+    );
+    assert_eq!(divider.frame.y, row.frame.y + 26.0);
+    assert_eq!(content.frame.y, row.frame.y + 28.0);
+}
+
+#[test]
+fn list_view_selected_asset_row_does_not_impersonate_keyboard_focus() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::List,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: (1..=4).map(|index| asset_item(index, index == 1)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let table = find_node(&nodes, "AssetBrowserAssetTablePanel");
+    let row = find_node(&nodes, "WorkbenchAssetBrowserAssetRow01");
+    let next_row = find_node(&nodes, "WorkbenchAssetBrowserAssetRow02");
+    let summary = find_node(&nodes, "AssetBrowserContentPreviewCard");
+
+    assert!(table.frame.height > 0.0);
+    assert!(row.frame.height > 0.0);
+    assert!(summary.frame.height > 0.0);
+    assert!(row.selected);
+    assert!(
+        !row.focused,
+        "Asset Browser list selection should use selected row affordance without forcing focus semantics"
+    );
+    assert!(!next_row.selected);
+    assert!(!next_row.focused);
+    assert_eq!(
+        row.options.row_data(0).as_deref(),
+        Some("Asset_01.mesh"),
+        "list rows should keep readable asset names instead of generic category aliases"
+    );
+    assert!(row.text.as_str().contains("Asset_01.mesh"));
+}
+
+#[test]
+fn list_view_summary_keeps_file_like_selected_name_single_line() {
+    let mut asset = asset_item(1, true);
+    asset.display_name = "workbench_page_chrome.zui".to_string();
+    asset.file_name = "workbench_page_chrome.zui".to_string();
+    asset.extension = "zui".to_string();
+    asset.kind = ResourceKind::UiLayout;
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::List,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: vec![asset],
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let name = find_node(&nodes, "AssetBrowserContentPreviewName");
+    let continuation = find_node(&nodes, "AssetBrowserContentPreviewNameContinuation");
+    let type_badge = find_node(&nodes, "AssetBrowserContentPreviewTypeBadge");
+
+    assert_eq!(name.text.as_str(), "workbench_page_chrome.zui");
+    assert_eq!(continuation.text.as_str(), "");
+    assert_eq!(continuation.frame.height, 0.0);
+    assert!(
+        name.frame.height >= name.font_size * 1.35,
+        "summary title slot should leave baseline-safe room for underscores and descenders: name={:?}",
+        name
+    );
+    assert!(
+        type_badge.frame.y - name.frame.y < 24.0,
+        "file-like summary titles should stay in a compact one-line detail rhythm: name={:?}, badge={:?}",
+        name.frame,
+        type_badge.frame
+    );
+}
+
+#[test]
+fn list_view_summary_uses_square_icon_slot_and_compact_field_row() {
+    let mut asset = asset_item(1, true);
+    asset.display_name = "workbench_page_chrome.zui".to_string();
+    asset.file_name = "workbench_page_chrome.zui".to_string();
+    asset.extension = "zui".to_string();
+    asset.kind = ResourceKind::UiLayout;
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::List,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: vec![asset],
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let summary = find_node(&nodes, "AssetBrowserContentPreviewCard");
+    let visual = find_node(&nodes, "AssetBrowserContentPreviewVisual");
+    let name = find_node(&nodes, "AssetBrowserContentPreviewName");
+    let type_badge = find_node(&nodes, "AssetBrowserContentPreviewTypeBadge");
+    let type_label = find_node(&nodes, "AssetBrowserContentPreviewType");
+    let state = find_node(&nodes, "AssetBrowserContentPreviewState");
+    let revision = find_node(&nodes, "AssetBrowserContentPreviewRevision");
+
+    assert_eq!(visual.surface_variant.as_str(), "asset-preview-visual");
+    assert_eq!(visual.component_role.as_str(), "asset-thumbnail-visual");
+    assert_eq!(visual.component_variant.as_str(), "asset-ui-layout");
+    assert_eq!(
+        visual.frame.width, visual.frame.height,
+        "selected summary visual should be a square asset icon slot, not a wide empty preview pill"
+    );
+    assert!(
+        visual.frame.width <= summary.frame.height,
+        "summary icon slot should be derived from the compact summary height: visual={:?}, summary={:?}",
+        visual.frame,
+        summary.frame
+    );
+    assert!(
+        name.frame.x - (visual.frame.x + visual.frame.width) <= 12.0,
+        "summary title should sit close to the icon slot like a dense Content Browser field row: visual={:?}, name={:?}",
+        visual.frame,
+        name.frame
+    );
+    assert!(
+        name.frame.height >= name.font_size * 1.35,
+        "summary title should keep a baseline-safe text slot before compact composites build on it: {:?}",
+        name
+    );
+    assert_eq!(type_badge.frame.y, state.frame.y);
+    assert_eq!(state.frame.y, revision.frame.y);
+    assert_eq!(type_label.text.as_str(), "UI Layout");
+    assert!(
+        type_badge.frame.width > 48.0 && type_badge.frame.width >= type_label.frame.width,
+        "summary type badge should use a readable label and adapt to its text frame: badge={:?}, label={:?}",
+        type_badge.frame,
+        type_label.frame
+    );
+    assert!(
+        type_badge.frame.y > name.frame.y && type_badge.frame.y < visual.frame.y + visual.frame.height,
+        "type/state/revision row should stay inside the icon-slot vertical rhythm: badge={:?}, visual={:?}, name={:?}",
+        type_badge.frame,
+        visual.frame,
+        name.frame
     );
 }
 
@@ -100,7 +337,10 @@ fn thumbnail_view_projects_adaptive_compact_grid_cards() {
     assert!(first.selected);
     assert!(!first.focused);
     assert_eq!(first.surface_variant.as_str(), "asset-thumbnail-card");
-    assert_eq!(first.border_width, 0.0);
+    assert_eq!(
+        first.border_width, 1.0,
+        "selected asset tiles should carry a thin UE-style card border without becoming keyboard-focused"
+    );
     assert_eq!(second.surface_variant.as_str(), "asset-thumbnail-card");
     assert_eq!(second.border_width, 0.0);
     assert!(first.frame.width >= 104.0);
@@ -145,18 +385,49 @@ fn thumbnail_view_projects_adaptive_compact_grid_cards() {
         first_band.frame
     );
     assert_eq!(first_marker.surface_variant.as_str(), "accent");
-    assert_eq!(first_marker.frame.height, 2.0);
+    assert!(first_marker.frame.width <= 0.0);
+    assert_eq!(first_marker.frame.height, first_band.frame.height);
+    assert_eq!(first_marker.frame.x, first_band.frame.x);
     assert_eq!(first_marker.frame.y, first_band.frame.y);
+    assert!(
+        first_marker.frame.width < first_band.frame.width * 0.04,
+        "selected thumbnail state should be carried by the full card outline, not a bright info-band strip: marker={:?}, band={:?}",
+        first_marker.frame,
+        first_band.frame
+    );
     assert!(first_name.frame.x > first_band.frame.x);
     assert!(first_name.frame.y > first_band.frame.y);
     assert_eq!(first_name_continuation.frame.height, 0.0);
+    assert!(
+        first_band.frame.height <= 44.0,
+        "single-line thumbnail info bands should stay compact so the preview canvas dominates: {:?}",
+        first_band.frame
+    );
+    assert!(
+        first_visual.frame.height >= 86.0,
+        "single-line thumbnail tiles should return vertical space to the preview canvas: visual={:?}, band={:?}",
+        first_visual.frame,
+        first_band.frame
+    );
     assert_eq!(
         first_type_badge.surface_variant.as_str(),
         "asset-type-badge"
     );
-    assert_eq!(first_type.text.as_str(), "MESH");
+    assert_eq!(first_type.text.as_str(), "MSH");
+    assert_eq!(first_type.font_size, 8.5);
+    assert_eq!(first_meta.font_size, 8.5);
     assert!(first_type_badge.frame.y > first_name.frame.y);
-    assert_eq!(first_type.frame.x, first_type_badge.frame.x + 4.0);
+    assert_eq!(first_type.frame.x, first_type_badge.frame.x + 5.0);
+    assert!(
+        first_type_badge.frame.width >= 40.0,
+        "type badge should reserve enough width for a three-letter resource code: {:?}",
+        first_type_badge.frame
+    );
+    assert!(
+        first_type.frame.width >= 32.0,
+        "type label should not be squeezed into ellipsis width: {:?}",
+        first_type.frame
+    );
     assert!(first_type.frame.width < first_type_badge.frame.width);
     assert!(first_meta.frame.x > first_type_badge.frame.x + first_type_badge.frame.width);
     assert_eq!(first_meta.text.as_str(), "Ready");
@@ -164,7 +435,7 @@ fn thumbnail_view_projects_adaptive_compact_grid_cards() {
 }
 
 #[test]
-fn thumbnail_view_places_two_line_names_above_type_status_row() {
+fn thumbnail_view_keeps_file_like_names_single_line_with_extension_tail() {
     let mut asset = asset_item(1, true);
     asset.display_name = "workbench_host_window.zui".to_string();
     asset.file_name = "workbench_host_window.zui".to_string();
@@ -184,15 +455,21 @@ fn thumbnail_view_places_two_line_names_above_type_status_row() {
     let type_badge = find_node(&nodes, "AssetBrowserThumbTypeBadge01");
     let meta = find_node(&nodes, "AssetBrowserThumbMeta01");
 
-    assert_eq!(name.text.as_str(), "workbench_host");
-    assert_eq!(continuation.text.as_str(), "window.zui");
-    assert!(continuation.frame.y > name.frame.y);
-    assert!(continuation.frame.height > 0.0);
+    assert_eq!(name.text.as_str(), "workbench...ndow.zui");
+    assert!(name.text.as_str().ends_with(".zui"));
+    assert!(continuation.text.is_empty());
+    assert_eq!(continuation.frame.height, 0.0);
     assert!(
-        type_badge.frame.y >= continuation.frame.y + continuation.frame.height,
-        "type badge should sit below the second name line: badge={:?}, continuation={:?}",
+        type_badge.frame.y > name.frame.y,
+        "type badge should sit below the single file title: badge={:?}, name={:?}",
         type_badge.frame,
-        continuation.frame
+        name.frame
+    );
+    assert!(
+        type_badge.frame.y - name.frame.y <= 24.0,
+        "single-line file titles should keep a compact Content Browser row rhythm: badge={:?}, name={:?}",
+        type_badge.frame,
+        name.frame
     );
     assert_eq!(meta.frame.y, type_badge.frame.y);
     assert!(
@@ -206,10 +483,10 @@ fn thumbnail_view_places_two_line_names_above_type_status_row() {
 #[test]
 fn thumbnail_view_uses_slate_tile_name_area_typography_and_row_rhythm() {
     let mut asset = asset_item(1, true);
-    asset.display_name = "workbench_host_window.zui".to_string();
-    asset.file_name = "workbench_host_window.zui".to_string();
-    asset.extension = "zui".to_string();
-    asset.kind = ResourceKind::UiLayout;
+    asset.display_name = "NavigationSettingsRuntimeProfile".to_string();
+    asset.file_name = "NavigationSettingsRuntimeProfile".to_string();
+    asset.extension = String::new();
+    asset.kind = ResourceKind::Data;
     let snapshot = AssetWorkspaceSnapshot {
         view_mode: AssetViewMode::Thumbnail,
         selected_asset_uuid: Some("asset-01".to_string()),
@@ -229,9 +506,11 @@ fn thumbnail_view_uses_slate_tile_name_area_typography_and_row_rhythm() {
         "thumbnail name area should reserve a real two-line tile rhythm: band={:?}",
         band.frame
     );
-    assert_eq!(name.font_size, 9.0);
+    assert_eq!(name.font_size, 10.0);
     assert_eq!(name.font_weight, 500);
-    assert_eq!(continuation.font_size, 8.0);
+    assert_eq!(name.text.as_str(), "NavigationSettings");
+    assert_eq!(continuation.text.as_str(), "RuntimeProfile");
+    assert_eq!(continuation.font_size, 9.0);
     assert_eq!(continuation.font_weight, 400);
     assert_eq!(continuation.text_tone.as_str(), "muted");
     assert!(
@@ -247,6 +526,60 @@ fn thumbnail_view_uses_slate_tile_name_area_typography_and_row_rhythm() {
         band.frame,
         type_badge.frame
     );
+}
+
+#[test]
+fn thumbnail_view_uses_short_readable_type_badges_for_dense_resource_tiles() {
+    let resource_kinds = [
+        (ResourceKind::UiLayout, "UI"),
+        (ResourceKind::UiStyle, "STY"),
+        (ResourceKind::Texture, "TEX"),
+        (ResourceKind::UiWidget, "WDG"),
+        (ResourceKind::Material, "MAT"),
+        (ResourceKind::Scene, "SCN"),
+        (ResourceKind::Shader, "SHD"),
+        (ResourceKind::Prefab, "PFB"),
+    ];
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: resource_kinds
+            .iter()
+            .enumerate()
+            .map(|(index, (kind, _))| {
+                let mut asset = asset_item(index + 1, index == 0);
+                asset.kind = *kind;
+                asset
+            })
+            .collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    for (index, (_, expected_code)) in resource_kinds.iter().enumerate() {
+        let control_suffix = format!("{:02}", index + 1);
+        let badge = find_node(
+            &nodes,
+            format!("AssetBrowserThumbTypeBadge{control_suffix}").as_str(),
+        );
+        let label = find_node(
+            &nodes,
+            format!("AssetBrowserThumbType{control_suffix}").as_str(),
+        );
+        assert_eq!(label.text.as_str(), *expected_code);
+        assert!(
+            label.text.chars().count() <= 3,
+            "{} should use a compact badge code",
+            label.control_id
+        );
+        assert!(
+            badge.frame.width >= 40.0 && label.frame.width >= 32.0,
+            "{} should reserve readable pill geometry: badge={:?}, label={:?}",
+            label.control_id,
+            badge.frame,
+            label.frame
+        );
+    }
 }
 
 #[test]
@@ -304,6 +637,8 @@ fn thumbnail_view_keeps_selection_inside_tiles_without_inline_summary_card() {
     assert_control_absent(&nodes, "AssetBrowserContentPreviewState");
     assert_control_absent(&nodes, "AssetBrowserContentPreviewRevision");
     assert!(selected_card.selected);
+    assert_eq!(selected_card.border_width, 1.0);
+    assert!(!selected_card.focused);
     assert!(selected_band.selected);
     assert_eq!(selected_marker.surface_variant.as_str(), "accent");
     assert!(
@@ -323,10 +658,10 @@ fn thumbnail_view_keeps_selection_inside_tiles_without_inline_summary_card() {
 #[test]
 fn thumbnail_view_keeps_two_line_selected_names_on_tile_without_inline_summary_card() {
     let mut asset = asset_item(1, true);
-    asset.display_name = "workbench_host_window.zui".to_string();
-    asset.file_name = "workbench_host_window.zui".to_string();
-    asset.extension = "zui".to_string();
-    asset.kind = ResourceKind::UiLayout;
+    asset.display_name = "NavigationSettingsRuntimeProfile".to_string();
+    asset.file_name = "NavigationSettingsRuntimeProfile".to_string();
+    asset.extension = String::new();
+    asset.kind = ResourceKind::Data;
     let snapshot = AssetWorkspaceSnapshot {
         view_mode: AssetViewMode::Thumbnail,
         selected_asset_uuid: Some("asset-01".to_string()),
@@ -340,8 +675,8 @@ fn thumbnail_view_keeps_two_line_selected_names_on_tile_without_inline_summary_c
     let type_badge = find_node(&nodes, "AssetBrowserThumbTypeBadge01");
     let meta = find_node(&nodes, "AssetBrowserThumbMeta01");
 
-    assert_eq!(name.text.as_str(), "workbench_host");
-    assert_eq!(continuation.text.as_str(), "window.zui");
+    assert_eq!(name.text.as_str(), "NavigationSettings");
+    assert_eq!(continuation.text.as_str(), "RuntimeProfile");
     assert_eq!(continuation.frame.x, name.frame.x);
     assert!(continuation.frame.y > name.frame.y);
     assert!(continuation.frame.height > 0.0);

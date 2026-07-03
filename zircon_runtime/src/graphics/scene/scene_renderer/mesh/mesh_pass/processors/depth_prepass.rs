@@ -17,6 +17,9 @@ impl MeshPassProcessor for DepthPrepassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
+        if batch.disabled_passes.disables_depth_prepass() {
+            return;
+        }
         if batch.queue_profile.early_z_eligible()
             && batch.relevant_to_main_phase(RenderPhase::Prepass)
         {

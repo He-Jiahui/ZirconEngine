@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.zircon_export.pipeline_report import build_pipeline_report
-from tools.zircon_export.pipeline_report_pack_stage_schema import zrpack_content_hash
+from tools.zircon_export.pipeline_report_pack_file_evidence import zrpack_content_hash
 from tools.zircon_export.tests.export_test_support import (
     _pack_binary_bytes,
 )

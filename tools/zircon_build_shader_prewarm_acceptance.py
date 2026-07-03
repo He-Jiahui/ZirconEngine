@@ -65,6 +65,11 @@ def validate_staged_shader_prewarm_acceptance_contract(config) -> None:
             "validate_wgpu_shaders",
             False,
         ),
+        require_wgpu_pipeline_validation=getattr(
+            config,
+            "validate_wgpu_pipelines",
+            False,
+        ),
         require_source_provenance=True,
         expected_pass_types=_PRODUCT_MATERIAL_MESH_PASS_TYPES,
         expected_quality_tiers=config.shader_quality_tiers,
@@ -81,11 +86,19 @@ def validate_staged_shader_prewarm_acceptance_contract(config) -> None:
         expected_geometry_source_ids=expected_geometry_source_ids,
         expected_shading_model_ids=expected_shading_model_ids,
     )
-    if not getattr(config, "shader_resource_registry", None):
-        validate_shader_resource_registry_export_contract(
-            config.shader_prewarm_resource_registry_path,
-            report_path=config.shader_prewarm_report_path,
-        )
+    registry_path = (
+        getattr(config, "shader_resource_registry", None)
+        or config.shader_prewarm_resource_registry_path
+    )
+    requires_project_plugin_auto_export = (
+        _requires_project_plugin_registry_auto_export(config)
+    )
+    validate_shader_resource_registry_export_contract(
+        registry_path,
+        report_path=config.shader_prewarm_report_path,
+        require_usable_shader_records=requires_project_plugin_auto_export,
+        require_report_registry_backed_sources=requires_project_plugin_auto_export,
+    )
 
 
 def validate_staged_shader_prewarm_runtime_fallback_layout(config) -> None:
@@ -111,6 +124,17 @@ def validate_staged_shader_prewarm_runtime_fallback_layout(config) -> None:
             expected_resource_registry_path,
             "staged shader prewarm resource registry export must live beside runtime fallback root",
         )
+
+
+def _requires_project_plugin_registry_auto_export(config) -> bool:
+    if getattr(config, "shader_resource_registry", None):
+        return False
+    if tuple(getattr(config, "shader_asset_roots", ())):
+        return True
+    return any(
+        tuple(getattr(plugin, "asset_roots", ()))
+        for plugin in getattr(config, "plugins", ())
+    )
 
 
 def validate_staged_shader_prewarm_nonempty_success_report(config) -> None:
@@ -179,11 +203,13 @@ def _validate_staged_shader_prewarm_written_variant_identity(
                 "staged shader prewarm acceptance requires written cache variant identity: "
                 f"index={index} report={report_path}"
             )
-        missing = [
-            field
-            for field in required_fields
-            if not isinstance(variant.get(field), str) or not variant.get(field)
-        ]
+        missing = []
+        for field in required_fields:
+            value = variant.get(field)
+            if not isinstance(value, str) or not value.strip():
+                missing.append(field)
+            elif field == "source_label" and value != value.strip():
+                missing.append(field)
         if missing:
             raise RuntimeError(
                 "staged shader prewarm acceptance requires written cache variant identity: "

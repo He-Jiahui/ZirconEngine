@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use crate::asset::{project::ProjectManager, AssetUri};
+use crate::asset::{project::ProjectManager, AssetUri, ASSET_MODULE_NAME};
 use crate::core::manager::LevelManagerHandle;
+use crate::core::runtime::modules::TIME_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    CoreError, CoreHandle, DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind,
-    StartupMode,
+    CoreError, CoreHandle, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
+    ModuleDescriptor, ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -35,6 +36,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
         SCENE_MODULE_NAME,
         "ECS world management, hierarchy, level lifecycle, and render extraction",
     )
+    .with_init_level(InitLevel::Scene)
+    .with_module_dependency(ModuleDependencySpec::named(ASSET_MODULE_NAME))
+    .with_module_dependency(ModuleDependencySpec::named(TIME_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(SCENE_MODULE_NAME, ServiceKind::Driver, "WorldDriver"),
         StartupMode::Immediate,

@@ -53,14 +53,15 @@ pub use project_plugin_manifest::{
     ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
 };
 pub use runtime_plugin::{
-    CapabilityView, PluginFinishContext, PluginRuntimeContext, RuntimeExtensionCatalogReport,
-    RuntimePlugin, RuntimePluginBridgeDependent, RuntimePluginBridgeDisableBlocker,
-    RuntimePluginBridgeLifecycleBlock, RuntimePluginBridgeLifecycleError,
-    RuntimePluginBridgeLifecycleEvent, RuntimePluginBridgeLifecycleOutcome,
-    RuntimePluginBridgeLifecycleReport, RuntimePluginBridgeLifecycleState, RuntimePluginCatalog,
-    RuntimePluginDescriptor, RuntimePluginDescriptorBuilder, RuntimePluginFeature,
-    RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
-    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    CapabilityView, PluginFinishContext, PluginReadyContext, PluginRuntimeContext,
+    RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginBridgeDependent,
+    RuntimePluginBridgeDisableBlocker, RuntimePluginBridgeLifecycleBlock,
+    RuntimePluginBridgeLifecycleError, RuntimePluginBridgeLifecycleEvent,
+    RuntimePluginBridgeLifecycleOutcome, RuntimePluginBridgeLifecycleReport,
+    RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginDescriptorBuilder, RuntimePluginFeature, RuntimePluginFeatureBlock,
+    RuntimePluginFeatureDependencyReport, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
 };
 pub use runtime_profile::{
     RuntimePluginAvailabilityCategory, RuntimePluginAvailabilityEntry,

@@ -49,7 +49,7 @@ pub(super) fn read_top_level_map_sources() -> TopLevelMapSources {
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
         ),
         status_runtime_15_m3_structure_support: read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
         ),
         status_pre_runtime_15: read_runtime_src(
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/pre_runtime_15.rs",
@@ -79,7 +79,7 @@ pub(super) fn read_top_level_map_sources() -> TopLevelMapSources {
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
         ),
         date_runtime_15_m3_structure_support: read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
         ),
         date_pre_runtime_15: read_runtime_src(
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/pre_runtime_15.rs",

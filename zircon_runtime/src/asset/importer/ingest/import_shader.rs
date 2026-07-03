@@ -3,6 +3,7 @@ use crate::asset::assets::{
     ImportedAsset, ShaderAsset, ShaderEntryPointAsset, ShaderSourceLanguage,
 };
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
+use crate::core::framework::render::ShaderAssetKind;
 
 pub(crate) fn import_shader(
     context: &AssetImportContext,
@@ -32,6 +33,7 @@ fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, Asset
         context.uri.clone(),
         ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
+            kind: ShaderAssetKind::Surface,
             source_language: ShaderSourceLanguage::Wgsl,
             source: source.clone(),
             wgsl_source: source,
@@ -42,7 +44,16 @@ fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, Asset
             imports: Vec::new(),
             shader_defs: Vec::new(),
             property_schema: Vec::new(),
+            options: Vec::new(),
             texture_slots: Vec::new(),
+            shading_model: None,
+            render_state: Default::default(),
+            queue: None,
+            disabled_passes: Vec::new(),
+            resources: Vec::new(),
+            material_property_layout: Default::default(),
+            material_option_table: Default::default(),
+            generated_material_wgsl: String::new(),
             editor: Default::default(),
             pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
@@ -102,6 +113,7 @@ fn module_to_shader_asset(
         context.uri.clone(),
         ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
+            kind: ShaderAssetKind::Surface,
             source_language,
             source,
             wgsl_source,
@@ -112,7 +124,16 @@ fn module_to_shader_asset(
             imports: Vec::new(),
             shader_defs: Vec::new(),
             property_schema: Vec::new(),
+            options: Vec::new(),
             texture_slots: Vec::new(),
+            shading_model: None,
+            render_state: Default::default(),
+            queue: None,
+            disabled_passes: Vec::new(),
+            resources: Vec::new(),
+            material_property_layout: Default::default(),
+            material_option_table: Default::default(),
+            generated_material_wgsl: String::new(),
             editor: Default::default(),
             pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),

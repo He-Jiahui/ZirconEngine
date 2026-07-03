@@ -5,7 +5,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 13 Script binding 镜像文档守卫",
         &[
             "runtime_13_script_binding_mirror_docs_match_structure_audit_counts",
-            "expected_source_file_count = 18",
+            "expected_source_file_count = 19",
             "standalone rustc 2/2",
             "script Cargo filters pending",
         ],
@@ -32,7 +32,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 13 Script binding current audit recheck",
         &[
             "script_binding_current_audit_static_passed_cargo_pending",
-            "source files 18/18",
+            "source files 19/19",
             "standalone `script_binding.rs` 2/2",
             "broader `cargo test -p zircon_runtime --lib script --locked`",
         ],
@@ -42,8 +42,17 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         &[
             "script_binding_markdown_split_static_passed_cargo_deferred_tests_deferred",
             "script_binding_markdown.py",
-            "script_binding_boundary.py remains the 351-line audit/risk owner",
+            "script_binding_boundary.py remains the 352-line audit/risk owner",
             "Markdown owner is 106 lines",
+        ],
+    ),
+    (
+        "Runtime 13 Script binding 2026-07-01 current audit recheck",
+        &[
+            "script_binding_20260701_current_audit_static_passed_cargo_deferred",
+            "expected_source_file_count = 19",
+            "guard_anchor_count = 9",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
         ],
     ),
 ];

@@ -6,9 +6,9 @@ use super::super::{
     LoadedNativePlugin, NativePluginBehaviorCallReport, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
-use super::diagnostics::{report_diagnostics, unloaded_plugin_error};
+use super::diagnostics::report_diagnostics;
 use super::keys::live_key;
-use super::loading::lock_loaded_native_plugins;
+use super::loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};
 use super::reports::{
     NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
     NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
@@ -18,23 +18,74 @@ use super::reports::{
 };
 use super::NativePluginLiveHost;
 
+pub(super) type NativePluginRuntimeBehaviorResult<T> =
+    std::result::Result<T, NativePluginRuntimeBehaviorError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginRuntimeBehaviorError {
+    LiveHostLock(NativePluginLiveHostLoadingError),
+    RuntimePluginNotLoaded { plugin_id: String },
+}
+
+impl std::fmt::Display for NativePluginRuntimeBehaviorError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LiveHostLock(error) => write!(formatter, "{error}"),
+            Self::RuntimePluginNotLoaded { plugin_id } => write!(
+                formatter,
+                "plugin {plugin_id} is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginRuntimeBehaviorError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::LiveHostLock(error) => Some(error),
+            Self::RuntimePluginNotLoaded { .. } => None,
+        }
+    }
+}
+
 impl NativePluginLiveHost {
     pub fn runtime_behavior_descriptor(
         &self,
         plugin_id: impl AsRef<str>,
     ) -> Result<NativePluginRuntimeBehaviorDescriptor, String> {
+        self.runtime_behavior_descriptor_result(plugin_id)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn runtime_behavior_descriptor_result(
+        &self,
+        plugin_id: impl AsRef<str>,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeBehaviorDescriptor> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let plugin = loaded
             .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(|| unloaded_plugin_error(plugin_id, PluginModuleKind::Runtime))?;
+            .ok_or_else(
+                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                    plugin_id: plugin_id.to_string(),
+                },
+            )?;
         Ok(runtime_behavior_descriptor(plugin_id, plugin))
     }
 
     pub fn runtime_behavior_descriptors(
         &self,
     ) -> Result<Vec<NativePluginRuntimeBehaviorDescriptor>, String> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        self.runtime_behavior_descriptors_result()
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn runtime_behavior_descriptors_result(
+        &self,
+    ) -> NativePluginRuntimeBehaviorResult<Vec<NativePluginRuntimeBehaviorDescriptor>> {
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         Ok(runtime_plugins(&loaded)
             .map(|(plugin_id, plugin)| runtime_behavior_descriptor(&plugin_id, plugin))
             .collect())
@@ -46,11 +97,26 @@ impl NativePluginLiveHost {
         command_name: impl AsRef<str>,
         payload: impl AsRef<[u8]>,
     ) -> Result<NativePluginBehaviorCallReport, String> {
+        self.invoke_runtime_plugin_command_result(plugin_id, command_name, payload)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn invoke_runtime_plugin_command_result(
+        &self,
+        plugin_id: impl AsRef<str>,
+        command_name: impl AsRef<str>,
+        payload: impl AsRef<[u8]>,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginBehaviorCallReport> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let plugin = loaded
             .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(|| unloaded_plugin_error(plugin_id, PluginModuleKind::Runtime))?;
+            .ok_or_else(
+                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                    plugin_id: plugin_id.to_string(),
+                },
+            )?;
         Ok(plugin.invoke_runtime_command(command_name.as_ref(), payload.as_ref()))
     }
 
@@ -59,9 +125,19 @@ impl NativePluginLiveHost {
         command_name: impl AsRef<str>,
         payload: impl AsRef<[u8]>,
     ) -> Result<NativePluginRuntimeCommandDispatchReport, String> {
+        self.dispatch_runtime_plugin_command_result(command_name, payload)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn dispatch_runtime_plugin_command_result(
+        &self,
+        command_name: impl AsRef<str>,
+        payload: impl AsRef<[u8]>,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeCommandDispatchReport> {
         let command_name = command_name.as_ref();
         let payload = payload.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let mut calls = Vec::new();
         let mut diagnostics = Vec::new();
         for (plugin_id, plugin) in runtime_plugins(&loaded) {
@@ -80,16 +156,37 @@ impl NativePluginLiveHost {
         &self,
         plugin_id: impl AsRef<str>,
     ) -> Result<NativePluginBehaviorCallReport, String> {
+        self.save_runtime_plugin_state_result(plugin_id)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn save_runtime_plugin_state_result(
+        &self,
+        plugin_id: impl AsRef<str>,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginBehaviorCallReport> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let plugin = loaded
             .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(|| unloaded_plugin_error(plugin_id, PluginModuleKind::Runtime))?;
+            .ok_or_else(
+                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                    plugin_id: plugin_id.to_string(),
+                },
+            )?;
         Ok(plugin.save_runtime_state())
     }
 
     pub fn save_runtime_plugin_states(&self) -> Result<NativePluginRuntimeStateSnapshot, String> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        self.save_runtime_plugin_states_result()
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn save_runtime_plugin_states_result(
+        &self,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeStateSnapshot> {
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let mut plugin_states = Vec::new();
         let mut diagnostics = Vec::new();
         for (plugin_id, plugin) in runtime_plugins(&loaded) {
@@ -120,11 +217,25 @@ impl NativePluginLiveHost {
         plugin_id: impl AsRef<str>,
         state: impl AsRef<[u8]>,
     ) -> Result<NativePluginBehaviorCallReport, String> {
+        self.restore_runtime_plugin_state_result(plugin_id, state)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn restore_runtime_plugin_state_result(
+        &self,
+        plugin_id: impl AsRef<str>,
+        state: impl AsRef<[u8]>,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginBehaviorCallReport> {
         let plugin_id = plugin_id.as_ref();
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let plugin = loaded
             .get(&live_key(PluginModuleKind::Runtime, plugin_id))
-            .ok_or_else(|| unloaded_plugin_error(plugin_id, PluginModuleKind::Runtime))?;
+            .ok_or_else(
+                || NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                    plugin_id: plugin_id.to_string(),
+                },
+            )?;
         Ok(plugin.restore_runtime_state(state.as_ref()))
     }
 
@@ -132,7 +243,16 @@ impl NativePluginLiveHost {
         &self,
         snapshot: &NativePluginRuntimeStateSnapshot,
     ) -> Result<NativePluginRuntimeStateRestoreReport, String> {
-        let loaded = lock_loaded_native_plugins(&self.loaded)?;
+        self.restore_runtime_plugin_states_result(snapshot)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn restore_runtime_plugin_states_result(
+        &self,
+        snapshot: &NativePluginRuntimeStateSnapshot,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimeStateRestoreReport> {
+        let loaded = lock_loaded_native_plugins(&self.loaded)
+            .map_err(NativePluginRuntimeBehaviorError::LiveHostLock)?;
         let mut calls = Vec::new();
         let mut skipped_plugin_ids = Vec::new();
         let mut diagnostics = Vec::new();
@@ -142,10 +262,12 @@ impl NativePluginLiveHost {
                 &plugin_state.plugin_id,
             )) else {
                 skipped_plugin_ids.push(plugin_state.plugin_id.clone());
-                diagnostics.push(unloaded_plugin_error(
-                    &plugin_state.plugin_id,
-                    PluginModuleKind::Runtime,
-                ));
+                diagnostics.push(
+                    NativePluginRuntimeBehaviorError::RuntimePluginNotLoaded {
+                        plugin_id: plugin_state.plugin_id.clone(),
+                    }
+                    .to_string(),
+                );
                 continue;
             };
             let loaded_schema = plugin.runtime_state_schema_version();
@@ -176,9 +298,16 @@ impl NativePluginLiveHost {
     }
 
     pub fn enter_runtime_play_mode(&self) -> Result<NativePluginRuntimePlayModeSnapshot, String> {
-        let state_snapshot = self.save_runtime_plugin_states()?;
-        let enter_report =
-            self.dispatch_runtime_plugin_command(NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, b"")?;
+        self.enter_runtime_play_mode_result()
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn enter_runtime_play_mode_result(
+        &self,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimePlayModeSnapshot> {
+        let state_snapshot = self.save_runtime_plugin_states_result()?;
+        let enter_report = self
+            .dispatch_runtime_plugin_command_result(NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND, b"")?;
         Ok(NativePluginRuntimePlayModeSnapshot {
             state_snapshot,
             enter_report,
@@ -189,9 +318,17 @@ impl NativePluginLiveHost {
         &self,
         snapshot: &NativePluginRuntimePlayModeSnapshot,
     ) -> Result<NativePluginRuntimePlayModeExitReport, String> {
-        let exit_report =
-            self.dispatch_runtime_plugin_command(NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND, b"")?;
-        let restore_report = self.restore_runtime_plugin_states(&snapshot.state_snapshot)?;
+        self.exit_runtime_play_mode_result(snapshot)
+            .map_err(|error| error.to_string())
+    }
+
+    pub(super) fn exit_runtime_play_mode_result(
+        &self,
+        snapshot: &NativePluginRuntimePlayModeSnapshot,
+    ) -> NativePluginRuntimeBehaviorResult<NativePluginRuntimePlayModeExitReport> {
+        let exit_report = self
+            .dispatch_runtime_plugin_command_result(NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND, b"")?;
+        let restore_report = self.restore_runtime_plugin_states_result(&snapshot.state_snapshot)?;
         Ok(NativePluginRuntimePlayModeExitReport {
             exit_report,
             restore_report,

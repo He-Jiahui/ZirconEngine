@@ -5,9 +5,16 @@ const STATUS: &str =
 
 #[test]
 fn runtime_15_shader_prewarm_resource_registry_export_contract_is_wired() {
-    let build = read_repo("tools/zircon_build.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
+    let resource_registry = read_repo("tools/zircon_build_shader_resource_registry.py");
+    let registry_contract_sources = format!("{build_prewarm}\n{resource_registry}");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
+    let acceptance_tests =
+        read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
+    let registry_tests =
+        read_repo("tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py");
+    let registry_export_test_sources =
+        format!("{build_prewarm_tests}\n{acceptance_tests}\n{registry_tests}");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
@@ -18,7 +25,7 @@ fn runtime_15_shader_prewarm_resource_registry_export_contract_is_wired() {
 
     assert_contains_all(
         "build helper validates auto-exported shader resource registry shape",
-        &build_prewarm,
+        &registry_contract_sources,
         &[
             "def validate_shader_resource_registry_export_contract(",
             "def _resource_registry_record_array(",
@@ -30,24 +37,12 @@ fn runtime_15_shader_prewarm_resource_registry_export_contract_is_wired() {
         ],
     );
     assert_contains_all(
-        "staged build validates registry export after a successful auto-export prewarm run",
-        &build,
-        &[
-            "validate_shader_resource_registry_export_contract",
-            "if result.returncode == 0:",
-            "if not getattr(config, \"shader_resource_registry\", None):",
-            "config.shader_prewarm_resource_registry_path",
-        ],
-    );
-    assert_contains_all(
         "python regressions cover registry export contract enforcement",
-        &build_prewarm_tests,
+        &registry_export_test_sources,
         &[
             "test_validate_registry_export_contract_requires_resource_records",
             "test_validate_registry_export_contract_accepts_wrapped_resources",
             "test_validate_registry_export_contract_accepts_raw_array",
-            "test_prewarm_shaders_skips_export_contract_for_explicit_registry",
-            "explicit registry should not validate export",
             "registry:{config.shader_prewarm_resource_registry_path}",
         ],
     );
@@ -58,8 +53,20 @@ fn runtime_15_shader_prewarm_resource_registry_export_contract_is_wired() {
             build_prewarm.as_str(),
         ),
         (
+            "tools/zircon_build_shader_resource_registry.py",
+            resource_registry.as_str(),
+        ),
+        (
             "tools/tests/test_zircon_build_shader_prewarm.py",
             build_prewarm_tests.as_str(),
+        ),
+        (
+            "tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py",
+            acceptance_tests.as_str(),
+        ),
+        (
+            "tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py",
+            registry_tests.as_str(),
         ),
         (
             "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs",

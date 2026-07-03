@@ -30,6 +30,17 @@ const AUDIT_SCRIPT_FAMILY_SLICE: &str =
     "Runtime 15 M3 module convention audit script family naming cleanup";
 const AUDIT_SCRIPT_FAMILY_GUARD: &str =
     "runtime_15_module_convention_audit_script_family_uses_gate_names";
+const ZERO_DEBT_REVALIDATION_STATUS: &str =
+    "runtime_15_module_convention_zero_debt_revalidation_static_passed_cargo_timeout_no_result";
+const ZERO_DEBT_REVALIDATION_SLICE: &str = "Runtime 15 M3 module convention zero-debt revalidation";
+const ZERO_DEBT_REVALIDATION_GUARD: &str =
+    "runtime_15_module_convention_zero_debt_revalidation_is_status_locked";
+const MODULE_DOC_FRONTMATTER_UNIQUENESS_STATUS: &str =
+    "runtime_15_module_convention_module_doc_frontmatter_uniqueness_static_passed_cargo_deferred";
+const MODULE_DOC_FRONTMATTER_UNIQUENESS_SLICE: &str =
+    "Runtime 15 M3 module convention module-doc frontmatter uniqueness guard";
+const MODULE_DOC_FRONTMATTER_UNIQUENESS_GUARD: &str =
+    "runtime_15_module_convention_module_doc_frontmatter_has_unique_entries";
 const AUDIT_ROOT: &str =
     ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts";
 
@@ -47,6 +58,125 @@ fn assert_not_contains(label: &str, source: &str, forbidden: &[&str]) {
     assert!(
         present.is_empty(),
         "{label} contains forbidden stale anchors: {present:?}"
+    );
+}
+
+fn frontmatter_section_entries<'a>(source: &'a str, section: &str) -> Vec<&'a str> {
+    let mut in_frontmatter = false;
+    let mut in_section = false;
+    let mut entries = Vec::new();
+
+    for line in source.lines() {
+        if line == "---" {
+            if in_frontmatter {
+                break;
+            }
+            in_frontmatter = true;
+            continue;
+        }
+        if !in_frontmatter {
+            continue;
+        }
+        if let Some(section_name) = line.strip_suffix(':') {
+            in_section = section_name == section;
+            continue;
+        }
+        if in_section {
+            if let Some(entry) = line.trim_start().strip_prefix("- ") {
+                entries.push(entry.trim());
+            }
+        }
+    }
+
+    entries
+}
+
+fn assert_frontmatter_section_has_unique_entries(label: &str, source: &str, section: &str) {
+    let entries = frontmatter_section_entries(source, section);
+    let mut duplicates = Vec::new();
+
+    for (index, entry) in entries.iter().enumerate() {
+        if entries[..index].contains(entry) {
+            duplicates.push(*entry);
+        }
+    }
+
+    assert!(
+        duplicates.is_empty(),
+        "{label} frontmatter section `{section}` contains duplicate entries: {duplicates:?}"
+    );
+}
+
+#[test]
+fn runtime_15_module_convention_module_doc_frontmatter_has_unique_entries() {
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+
+    for section in [
+        "related_code",
+        "implementation_files",
+        "plan_sources",
+        "tests",
+    ] {
+        assert_frontmatter_section_has_unique_entries(
+            "module convention docs",
+            &module_doc,
+            section,
+        );
+    }
+
+    assert_contains_all(
+        "module convention doc frontmatter records status owners",
+        &module_doc,
+        &[
+            "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs",
+            "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs",
+            "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+            "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+            MODULE_DOC_FRONTMATTER_UNIQUENESS_GUARD,
+        ],
+    );
+
+    for doc in [
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/index.md",
+        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/zircon_runtime/structure/module-convention.md",
+        ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
+        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs",
+    ] {
+        let source = read_repo(doc);
+        assert_contains_all(
+            doc,
+            &source,
+            &[
+                MODULE_DOC_FRONTMATTER_UNIQUENESS_SLICE,
+                MODULE_DOC_FRONTMATTER_UNIQUENESS_STATUS,
+                MODULE_DOC_FRONTMATTER_UNIQUENESS_GUARD,
+                "frontmatter duplicate count 0",
+            ],
+        );
+    }
+
+    let status_map = read_repo(
+        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+    );
+    assert_contains_all(
+        "Runtime 15 M3 structure-support status map",
+        &status_map,
+        &[
+            MODULE_DOC_FRONTMATTER_UNIQUENESS_SLICE,
+            MODULE_DOC_FRONTMATTER_UNIQUENESS_STATUS,
+        ],
+    );
+
+    let date_map = read_repo(
+        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+    );
+    assert_contains_all(
+        "Runtime 15 M3 structure-support date map",
+        &date_map,
+        &[MODULE_DOC_FRONTMATTER_UNIQUENESS_SLICE, "2026-07-03"],
     );
 }
 
@@ -328,6 +458,83 @@ fn runtime_15_module_convention_gate_audit_clear_is_status_locked() {
     ] {
         let source = read_repo(doc);
         assert_not_contains(doc, &source, &[stale_anchor]);
+    }
+}
+
+#[test]
+fn runtime_15_module_convention_zero_debt_revalidation_is_status_locked() {
+    let audit_script = read_repo(&format!("{AUDIT_ROOT}/audit_runtime_structure.py"));
+    assert_contains_all(
+        "runtime audit still builds module convention from gate source inputs",
+        &audit_script,
+        &[
+            "inventory = runtime_inventory(root, args.hotspot_threshold)",
+            "large_file_gate = large_file_ownership_gate(",
+            "runtime_naming = runtime_naming_boundary_audit(root)",
+            "hard_cutover_smells = hard_cutover_migration_smells_audit(root)",
+            "non_network_servers = non_network_server_references(",
+            "module_gate = module_convention_gate(",
+            "\"module_convention_gate\": module_gate",
+        ],
+    );
+
+    let module_gate_source = read_repo(&format!(
+        "{AUDIT_ROOT}/runtime_structure_audits/module_convention_gate.py"
+    ));
+    assert_contains_all(
+        "module convention gate exposes zero-debt audit fields",
+        &module_gate_source,
+        &[
+            "\"m1_gate_status\"",
+            "\"migration_debt_count\"",
+            "\"render_scoped_migration_debt_count\"",
+            "\"non_render_migration_debt_count\"",
+            "\"source_gate_statuses\"",
+            "\"violation_fields\"",
+            "\"risk_count\": len(risks)",
+            "\"risks\": risks",
+        ],
+    );
+
+    let large_file_source = read_repo(&format!(
+        "{AUDIT_ROOT}/runtime_structure_audits/large_file_ownership.py"
+    ));
+    assert_contains_all(
+        "large-file ownership gate exposes zero-hotspot fields",
+        &large_file_source,
+        &[
+            "\"hotspot_count\": len(all_hotspots)",
+            "\"large_file_migration_debt_count\": len(migration_debt)",
+            "\"m1_gate_status\"",
+            "\"classified-and-clear\"",
+        ],
+    );
+
+    for doc in [
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/index.md",
+        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/zircon_runtime/structure/module-convention.md",
+        ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",
+    ] {
+        let source = read_repo(doc);
+        assert_contains_all(
+            doc,
+            &source,
+            &[
+                ZERO_DEBT_REVALIDATION_SLICE,
+                ZERO_DEBT_REVALIDATION_STATUS,
+                ZERO_DEBT_REVALIDATION_GUARD,
+                "module_convention_gate classified-and-clear",
+                "migration_debt_count=0",
+                "render_scoped_migration_debt_count=0",
+                "non_render_migration_debt_count=0",
+                "risk_count=0",
+                "large_file_ownership_gate classified-and-clear",
+                "hotspot_count=0",
+            ],
+        );
     }
 }
 

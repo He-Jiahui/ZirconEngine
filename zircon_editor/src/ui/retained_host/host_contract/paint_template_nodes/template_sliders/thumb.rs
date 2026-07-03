@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchSliderStyle;
 use super::super::template_slider_geometry::{
-    centered_rect, slider_thumb_size, SLIDER_THUMB_HALO_SIZE,
+    centered_rect, slider_thumb_size, workbench_slider_metrics,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_thumb(
@@ -15,18 +15,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
     percent: f32,
     opacity: f32,
 ) {
+    let metrics = workbench_slider_metrics();
     let center_x = track_rect.x + track_rect.width * percent;
     let center_y = track_rect.y + track_rect.height * 0.5;
     let thumb_size = slider_thumb_size(node);
     if let Some(halo_color) = style.thumb_halo {
+        let halo_size = metrics.thumb_halo_size;
         commands.push(HostPaintCommand::quad(
-            centered_rect(center_x, center_y, SLIDER_THUMB_HALO_SIZE),
+            centered_rect(center_x, center_y, halo_size),
             Some(clip.clone()),
             order,
             Some(halo_color),
             None,
             0.0,
-            SLIDER_THUMB_HALO_SIZE * 0.5,
+            halo_size * 0.5,
             opacity,
         ));
     }

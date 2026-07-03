@@ -9,9 +9,11 @@ from unittest import mock
 from tools.zircon_export.tests.export_test_support import (
     _export_args,
     _run_stage_quiet,
-    _write_native_dynamic_package_fixture,
     _write_validate_report_with_native_dynamic_exports,
     json_loads,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
+    _write_native_dynamic_package_fixture,
 )
 
 

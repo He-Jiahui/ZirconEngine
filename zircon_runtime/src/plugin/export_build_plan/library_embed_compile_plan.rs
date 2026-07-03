@@ -81,6 +81,8 @@ pub(super) fn library_embed_compile_host_plan(
     let mut command = vec![
         "cargo".to_string(),
         "build".to_string(),
+        "--manifest-path".to_string(),
+        manifest_path.clone(),
         "-p".to_string(),
         target.package.to_string(),
         "--bin".to_string(),

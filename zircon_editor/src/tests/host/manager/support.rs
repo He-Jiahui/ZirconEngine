@@ -107,7 +107,7 @@ version = 1
 display_name = "Detach Theme UI Asset"
 
 [imports]
-styles = ["res://ui/theme/shared_theme.ui.toml"]
+styles = ["res://ui/theme/shared_theme.zui"]
 
 [tokens]
 accent = "#4488ff"

@@ -7994,6 +7994,7 @@ name = "zircon_editor"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "fontdb",
  "fontdue",
  "gltf",
  "image",
@@ -8003,9 +8004,11 @@ dependencies = [
  "serde",
  "serde_json",
  "softbuffer",
+ "swash",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
+ "unicode-segmentation",
  "winit",
  "zircon_runtime",
  "zircon_runtime_interface",
@@ -8234,6 +8237,7 @@ dependencies = [
  "ron",
  "serde",
  "serde_json",
+ "swash",
  "taffy",
  "thiserror 2.0.18",
  "tobj",

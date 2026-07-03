@@ -11,6 +11,7 @@ class ZirconBuildShaderPrewarmCommandContractTests(unittest.TestCase):
     def test_full_staged_wgpu_handoff_keeps_generated_registries_and_roots(self):
         config = _FakePrewarmConfig()
         config.validate_wgpu_shaders = True
+        config.validate_wgpu_pipelines = True
         config.shader_quality_tiers = ("high", "ultra")
         config.shader_geometry_sources = ("static", "skinned")
         config.shader_geometry_source_ids = ("custom:gpu-driven=4",)
@@ -27,6 +28,7 @@ class ZirconBuildShaderPrewarmCommandContractTests(unittest.TestCase):
 
         validate_shader_prewarm_command_contract(config, command)
         self.assertIn("--validate-wgpu-modules", command)
+        self.assertIn("--validate-wgpu-pipelines", command)
         self.assertEqual(
             (
                 str(config.engine_root / "assets"),
@@ -68,6 +70,15 @@ class ZirconBuildShaderPrewarmCommandContractTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "WGPU module validation"):
             validate_shader_prewarm_command_contract(config, command)
 
+    def test_command_contract_rejects_missing_wgpu_pipeline_validation_flag(self):
+        config = _FakePrewarmConfig()
+        config.validate_wgpu_pipelines = True
+        command = build_shader_prewarm_command(config)
+        command.remove("--validate-wgpu-pipelines")
+
+        with self.assertRaisesRegex(RuntimeError, "WGPU render pipeline validation"):
+            validate_shader_prewarm_command_contract(config, command)
+
 
 def _flag_values(command: list[str], flag: str) -> tuple[str, ...]:
     return tuple(command[index + 1] for index, value in enumerate(command) if value == flag)
@@ -90,6 +101,7 @@ class _FakePrewarmConfig:
     shader_shading_model_ids: tuple[str, ...] = ()
     targets_root = Path("target") / "prewarm-command-contract-test"
     validate_wgpu_shaders = False
+    validate_wgpu_pipelines = False
 
     @property
     def shader_prewarm_cache_root(self) -> Path:

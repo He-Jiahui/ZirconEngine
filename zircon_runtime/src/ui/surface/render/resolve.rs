@@ -3,7 +3,7 @@ use toml::Value;
 use zircon_runtime_interface::ui::surface::{
     UiEditableTextState, UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextCaret,
     UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
-    UiTextSelection, UiTextWrap, UiVisualAssetRef,
+    UiTextSelection, UiTextWrap, UiTextWritingMode, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
@@ -35,10 +35,13 @@ pub(super) fn resolve_command_kind(
     }
 }
 
-pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiResolvedStyle {
+pub(in crate::ui::surface) fn resolve_style(
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> UiResolvedStyle {
     let font_size = resolve_style_table_number(metadata, "font", "size")
         .or_else(|| resolve_style_number(metadata, "font_size"))
         .unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
+    let font_weight = resolve_text_font_weight(metadata);
     UiResolvedStyle {
         background_color: resolve_style_color(metadata, "background")
             .or_else(|| resolve_style_color(metadata, "background_color")),
@@ -63,10 +66,12 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
         font_family: resolve_style_table_string(metadata, "font", "family")
             .or_else(|| resolve_style_string(metadata, "font_family"))
             .map(str::to_string),
+        font_weight,
         font_size,
         line_height: resolve_style_table_number(metadata, "font", "line_height")
             .or_else(|| resolve_style_number(metadata, "line_height"))
             .unwrap_or_else(|| UiResolvedStyle::default_line_height(font_size)),
+        tab_size: resolve_text_tab_size(metadata),
         text_align: resolve_style_table_string(metadata, "font", "align")
             .or_else(|| resolve_style_string(metadata, "text_align"))
             .and_then(parse_text_align)
@@ -79,10 +84,12 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
             .or_else(|| resolve_style_string(metadata, "text_direction"))
             .and_then(parse_text_direction)
             .unwrap_or_default(),
-        text_overflow: resolve_style_table_string(metadata, "font", "overflow")
-            .or_else(|| resolve_style_string(metadata, "text_overflow"))
-            .and_then(parse_text_overflow)
+        text_writing_mode: resolve_style_table_string(metadata, "font", "writing_mode")
+            .or_else(|| resolve_style_string(metadata, "text_writing_mode"))
+            .or_else(|| resolve_style_string(metadata, "writing_mode"))
+            .and_then(parse_text_writing_mode)
             .unwrap_or_default(),
+        text_overflow: resolve_text_overflow(metadata),
         rich_text: resolve_style_bool(metadata, "rich_text").unwrap_or(false),
         text_render_mode: resolve_style_table_string(metadata, "font", "render_mode")
             .or_else(|| resolve_style_string(metadata, "text_render_mode"))
@@ -90,6 +97,33 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
             .unwrap_or_default(),
         ..UiResolvedStyle::default()
     }
+}
+
+fn resolve_text_tab_size(metadata: Option<&UiTemplateNodeMetadata>) -> f32 {
+    resolve_style_table_number(metadata, "font", "tab_size")
+        .or_else(|| resolve_style_number(metadata, "text_tab_size"))
+        .or_else(|| resolve_style_number(metadata, "tab_size"))
+        .filter(|tab_size| tab_size.is_finite() && *tab_size > 0.0)
+        .unwrap_or(UiResolvedStyle::DEFAULT_TAB_SIZE)
+}
+
+fn resolve_text_font_weight(metadata: Option<&UiTemplateNodeMetadata>) -> u16 {
+    resolve_style_table_number(metadata, "font", "weight")
+        .or_else(|| resolve_style_number(metadata, "font_weight"))
+        .or_else(|| resolve_style_number(metadata, "text_font_weight"))
+        .and_then(normalize_style_font_weight)
+        .unwrap_or(UiResolvedStyle::DEFAULT_FONT_WEIGHT)
+}
+
+fn normalize_style_font_weight(value: f32) -> Option<u16> {
+    if !value.is_finite() || value <= 0.0 {
+        return None;
+    }
+
+    Some(value.round().clamp(
+        f32::from(UiResolvedStyle::MIN_FONT_WEIGHT),
+        f32::from(UiResolvedStyle::MAX_FONT_WEIGHT),
+    ) as u16)
 }
 
 pub(super) fn resolve_painter_family(metadata: Option<&UiTemplateNodeMetadata>) -> UiPainterFamily {
@@ -537,6 +571,7 @@ fn parse_text_align(value: &str) -> Option<UiTextAlign> {
         "right" => Some(UiTextAlign::Right),
         "start" => Some(UiTextAlign::Start),
         "end" => Some(UiTextAlign::End),
+        "justify" | "justified" => Some(UiTextAlign::Justify),
         _ => None,
     }
 }
@@ -545,6 +580,7 @@ fn parse_text_wrap(value: &str) -> Option<UiTextWrap> {
     match value.trim().to_ascii_lowercase().as_str() {
         "none" | "off" | "nowrap" => Some(UiTextWrap::None),
         "word" | "normal" => Some(UiTextWrap::Word),
+        "word_smart" | "word-smart" | "smart_word" | "smart-word" => Some(UiTextWrap::WordSmart),
         "glyph" | "char" | "character" => Some(UiTextWrap::Glyph),
         _ => None,
     }
@@ -569,10 +605,136 @@ fn parse_text_direction(value: &str) -> Option<UiTextDirection> {
     }
 }
 
+fn parse_text_writing_mode(value: &str) -> Option<UiTextWritingMode> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "horizontal" | "horizontal_tb" | "horizontal-tb" => Some(UiTextWritingMode::HorizontalTb),
+        "vertical" | "vertical_rl" | "vertical-rl" => Some(UiTextWritingMode::VerticalRl),
+        _ => None,
+    }
+}
+
 fn parse_text_overflow(value: &str) -> Option<UiTextOverflow> {
     match value.trim().to_ascii_lowercase().as_str() {
         "clip" | "clipped" => Some(UiTextOverflow::Clip),
         "ellipsis" | "truncate" => Some(UiTextOverflow::Ellipsis),
+        "ellipsis_word" | "word_ellipsis" | "trim_word_ellipsis" | "truncate_word" => {
+            Some(UiTextOverflow::EllipsisWord)
+        }
+        "ellipsis_start" | "start_ellipsis" | "truncate_start" => {
+            Some(UiTextOverflow::EllipsisStart)
+        }
+        "ellipsis_middle" | "middle_ellipsis" | "truncate_middle" => {
+            Some(UiTextOverflow::EllipsisMiddle)
+        }
+        "shrink_to_fit" | "shrink-to-fit" | "shrink" | "fit" | "scale_down" => {
+            Some(UiTextOverflow::ShrinkToFit)
+        }
+        "clamp_font_size" | "clamp-font-size" | "font_size_clamp" | "font-size-clamp" | "clamp" => {
+            Some(default_clamp_font_size_overflow())
+        }
         _ => None,
+    }
+}
+
+fn resolve_text_overflow(metadata: Option<&UiTemplateNodeMetadata>) -> UiTextOverflow {
+    let Some(overflow) = resolve_style_table_string(metadata, "font", "overflow")
+        .or_else(|| resolve_style_string(metadata, "text_overflow"))
+        .and_then(parse_text_overflow)
+    else {
+        return UiTextOverflow::default();
+    };
+
+    if matches!(overflow, UiTextOverflow::ClampFontSize { .. }) {
+        let min_px = resolve_style_table_number(metadata, "font", "min_size")
+            .or_else(|| resolve_style_number(metadata, "min_font_size"));
+        let max_px = resolve_style_table_number(metadata, "font", "max_size")
+            .or_else(|| resolve_style_number(metadata, "max_font_size"));
+        return clamp_font_size_overflow(min_px, max_px);
+    }
+
+    overflow
+}
+
+fn default_clamp_font_size_overflow() -> UiTextOverflow {
+    UiTextOverflow::ClampFontSize {
+        min_px: UiResolvedStyle::DEFAULT_FONT_SIZE,
+        max_px: UiResolvedStyle::DEFAULT_FONT_SIZE,
+    }
+}
+
+fn clamp_font_size_overflow(min_px: Option<f32>, max_px: Option<f32>) -> UiTextOverflow {
+    let min_px = min_px.unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
+    let max_px = max_px.unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
+    UiTextOverflow::ClampFontSize { min_px, max_px }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_style_parses_text_tab_size_alias() {
+        let metadata = UiTemplateNodeMetadata {
+            attributes: toml::from_str(
+                r#"
+text_tab_size = 6.0
+"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+
+        let style = resolve_style(Some(&metadata));
+
+        assert_eq!(style.tab_size, 6.0);
+    }
+
+    #[test]
+    fn resolve_style_parses_and_clamps_font_weight_aliases() {
+        let metadata = UiTemplateNodeMetadata {
+            attributes: toml::from_str(
+                r#"
+[font]
+weight = 620.4
+"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+
+        let style = resolve_style(Some(&metadata));
+
+        assert_eq!(style.font_weight, 620);
+
+        let metadata = UiTemplateNodeMetadata {
+            attributes: toml::from_str(
+                r#"
+text_font_weight = 1800.0
+"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+
+        let style = resolve_style(Some(&metadata));
+
+        assert_eq!(style.font_weight, UiResolvedStyle::MAX_FONT_WEIGHT);
+    }
+
+    #[test]
+    fn resolve_style_parses_text_writing_mode_alias() {
+        let metadata = UiTemplateNodeMetadata {
+            attributes: toml::from_str(
+                r#"
+writing_mode = "vertical-rl"
+"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+
+        let style = resolve_style(Some(&metadata));
+
+        assert_eq!(style.text_writing_mode, UiTextWritingMode::VerticalRl);
     }
 }

@@ -3,6 +3,7 @@ use super::*;
 #[test]
 fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
     let dynamic_api = read_runtime_src("dynamic_api/shader_prewarm.rs");
+    let dynamic_api_tests = read_runtime_src("dynamic_api/shader_prewarm/tests.rs");
     let scene_mod = read_runtime_src("graphics/scene/mod.rs");
     let scene_renderer_mod = read_runtime_src("graphics/scene/scene_renderer/mod.rs");
     let mesh_mod = read_runtime_src("graphics/scene/scene_renderer/mesh/mod.rs");
@@ -10,6 +11,9 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs");
     let mesh_cache_ensure = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs",
+    );
+    let mesh_cache_ensure_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
     );
     let mesh_cache_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
@@ -24,7 +28,7 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
 
     assert_contains_all(
         "dynamic API builtin fallback prewarm uses mesh template source",
-        &dynamic_api,
+        &(dynamic_api.clone() + &dynamic_api_tests),
         &[
             "mesh_pipeline_standard_material_template_source",
             "BUILTIN_STANDARD_MATERIAL_PREWARM_PASSES",
@@ -69,7 +73,7 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
     );
     assert_contains_all(
         "mesh cache ensure delegates source assembly and proves runtime staged hits",
-        &mesh_cache_ensure,
+        &(mesh_cache_ensure.clone() + &mesh_cache_ensure_tests),
         &[
             "mesh_pipeline_shader_source",
             "MeshPipelineShaderSource",
@@ -101,6 +105,10 @@ fn runtime_15_builtin_fallback_prewarm_uses_template_source() {
         (
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs",
             mesh_cache_ensure.as_str(),
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs",
+            mesh_cache_ensure_tests.as_str(),
         ),
         (
             "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs",

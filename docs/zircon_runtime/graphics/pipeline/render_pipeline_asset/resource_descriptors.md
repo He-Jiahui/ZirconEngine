@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/build.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
@@ -33,6 +35,7 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_as_half_power_of_two_mip_chain
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs::compile_routes_bloom_extract_after_split_scene_color_passes
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs::dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-resource-descriptors-0617 --message-format short --color never
 doc_type: module-detail
@@ -62,7 +65,7 @@ This module is intentionally crate-internal to the render pipeline asset compile
 - Upscale outputs and terminal AA inputs after output transfer (`FINAL_COMPOSITED`) use the final view size; most other transient render textures use the effective render size.
 - HZB and SSR pyramid resources derive half-resolution extents and full mip-chain counts where needed.
 - Depth or shadow names use depth format when no post-process format override is present.
-- HDR scene-color-like resources use the configured intermediate HDR format; final composited and tonemapped resources use SDR formats.
+- HDR scene-color-like resources and `bloom-texture` use the configured intermediate HDR format; final composited and tonemapped resources use SDR formats.
 - Non-depth transient textures receive storage and copy-destination usage so compute and post-process passes can bind them without reopening descriptor policy in executor code.
 
 `buffer_desc_for(...)` handles render graph buffer sizing:
@@ -84,6 +87,7 @@ The module does not own external resource typing or required/report-only binding
 
 - HZB and SSR reflection pyramid tests assert half-resolution sizes, mip counts, and high-quality HDR formats.
 - Color LUT tests assert 3D texture dimensions, format, storage usage, and fixed compute dispatch metadata.
+- Bloom extraction routing tests assert that `bloom-texture` is a written intermediate HDR `Rg11b10Ufloat` transient, matching the scene renderer Bloom pipeline target format.
 - HZB compile tests assert the half-power-of-two HZB extent and mip-chain shape used by the runtime HZB executor.
 - The dynamic-resolution terminal-AA regression asserts that `FINAL_COMPOSITED` remains at viewport/presentation size while scene/postprocess internals use the scaled render size.
 

@@ -1,7 +1,8 @@
 use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::ModuleDescriptor;
 use crate::{
     plugin::CapabilityStatusManifest, plugin::ExportPackagingStrategy,
-    plugin::PluginFeatureBundleManifest, plugin::PluginMaturity,
+    plugin::PluginFeatureBundleManifest, plugin::PluginInterfaceManifest, plugin::PluginMaturity,
 };
 
 use super::RuntimePluginDescriptor;
@@ -27,6 +28,10 @@ impl RuntimePluginDescriptor {
         &self.crate_name
     }
 
+    pub fn module_descriptor(&self) -> &ModuleDescriptor {
+        &self.module_descriptor
+    }
+
     pub fn enabled_by_default(&self) -> bool {
         self.enabled_by_default
     }
@@ -41,6 +46,10 @@ impl RuntimePluginDescriptor {
 
     pub fn capabilities(&self) -> &[String] {
         &self.capabilities
+    }
+
+    pub fn provided_interfaces(&self) -> &[PluginInterfaceManifest] {
+        &self.provided_interfaces
     }
 
     pub fn system_sets(&self) -> &[String] {

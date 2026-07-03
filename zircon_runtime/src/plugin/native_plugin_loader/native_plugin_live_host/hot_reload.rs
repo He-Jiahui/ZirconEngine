@@ -5,6 +5,66 @@ use super::super::{
 };
 use super::keys::module_kind_label;
 
+pub(super) type NativePluginHotReloadResult<T> = std::result::Result<T, NativePluginHotReloadError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginHotReloadError {
+    SaveRuntimeState {
+        plugin_id: String,
+        status_code: u32,
+    },
+    MissingRuntimeStatePayload {
+        plugin_id: String,
+    },
+    StateSchemaMismatch {
+        plugin_id: String,
+        snapshot_schema: Option<u32>,
+        loaded_schema: Option<u32>,
+    },
+    RestoreRuntimeState {
+        plugin_id: String,
+        status_code: u32,
+        diagnostics: Vec<String>,
+    },
+}
+
+impl std::fmt::Display for NativePluginHotReloadError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SaveRuntimeState {
+                plugin_id,
+                status_code,
+            } => write!(
+                formatter,
+                "plugin {plugin_id} hot reload failed while saving runtime state: status {status_code}"
+            ),
+            Self::MissingRuntimeStatePayload { plugin_id } => write!(
+                formatter,
+                "plugin {plugin_id} hot reload failed because runtime save-state returned no payload"
+            ),
+            Self::StateSchemaMismatch {
+                plugin_id,
+                snapshot_schema,
+                loaded_schema,
+            } => write!(
+                formatter,
+                "plugin {plugin_id} hot reload restore-state skipped because snapshot state schema {snapshot_schema:?} does not match loaded state schema {loaded_schema:?}"
+            ),
+            Self::RestoreRuntimeState {
+                plugin_id,
+                status_code,
+                diagnostics,
+            } => write!(
+                formatter,
+                "plugin {plugin_id} hot reload failed while restoring runtime state: status {status_code}; {}",
+                diagnostics.join("; ")
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginHotReloadError {}
+
 #[derive(Debug)]
 pub(super) struct NativePluginHotReloadState {
     pub(super) module_kind: PluginModuleKind,
@@ -34,7 +94,7 @@ impl NativePluginHotReloadState {
     pub(super) fn save_existing_runtime_snapshot(
         &mut self,
         plugin_id: &str,
-    ) -> Result<Option<&PluginStateSnapshot>, String> {
+    ) -> NativePluginHotReloadResult<Option<&PluginStateSnapshot>> {
         if self.module_kind != PluginModuleKind::Runtime {
             return Ok(None);
         }
@@ -50,15 +110,15 @@ impl NativePluginHotReloadState {
             &report,
         ));
         if report.status_code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
-            return Err(format!(
-                "plugin {plugin_id} hot reload failed while saving runtime state: status {}",
-                report.status_code
-            ));
+            return Err(NativePluginHotReloadError::SaveRuntimeState {
+                plugin_id: plugin_id.to_string(),
+                status_code: report.status_code,
+            });
         }
         let Some(blob) = report.payload else {
-            return Err(format!(
-                "plugin {plugin_id} hot reload failed because runtime save-state returned no payload"
-            ));
+            return Err(NativePluginHotReloadError::MissingRuntimeStatePayload {
+                plugin_id: plugin_id.to_string(),
+            });
         };
         self.runtime_snapshot = Some(PluginStateSnapshot {
             plugin_id: plugin_id.to_string(),
@@ -83,6 +143,10 @@ impl NativePluginHotReloadState {
     }
 
     pub(super) fn rollback_error(&mut self, error: String) -> String {
+        format!("{error}; {}", self.rollback_diagnostic())
+    }
+
+    pub(super) fn rollback_diagnostic(&self) -> String {
         let rollback = if self.existing.is_some() {
             format!(
                 "rolled back to the previously loaded {} native package",
@@ -99,12 +163,11 @@ impl NativePluginHotReloadState {
                 module_kind_label(self.module_kind)
             )
         };
-        let diagnostics = if self.diagnostics.is_empty() {
+        if self.diagnostics.is_empty() {
             rollback
         } else {
             format!("{rollback}; {}", self.diagnostics.join("; "))
-        };
-        format!("{error}; {diagnostics}")
+        }
     }
 
     pub(super) fn into_rollback_plugin(self) -> Option<LoadedNativePlugin> {
@@ -123,27 +186,27 @@ pub(super) struct PluginStateSnapshot {
 pub(super) fn restore_runtime_snapshot(
     snapshot: &PluginStateSnapshot,
     plugin: &LoadedNativePlugin,
-) -> Result<Vec<String>, String> {
+) -> NativePluginHotReloadResult<Vec<String>> {
     if snapshot.module_kind != PluginModuleKind::Runtime {
         return Ok(Vec::new());
     }
     let loaded_schema = plugin.runtime_state_schema_version();
     if snapshot.schema_version != loaded_schema {
-        return Err(format!(
-            "plugin {} hot reload restore-state skipped because snapshot state schema {:?} does not match loaded state schema {:?}",
-            snapshot.plugin_id, snapshot.schema_version, loaded_schema
-        ));
+        return Err(NativePluginHotReloadError::StateSchemaMismatch {
+            plugin_id: snapshot.plugin_id.clone(),
+            snapshot_schema: snapshot.schema_version,
+            loaded_schema,
+        });
     }
     let report = plugin.restore_runtime_state(&snapshot.blob);
     let diagnostics =
         prefixed_behavior_diagnostics("runtime restore-state after hot reload", &report);
     if report.status_code != ZIRCON_NATIVE_PLUGIN_STATUS_OK {
-        return Err(format!(
-            "plugin {} hot reload failed while restoring runtime state: status {}; {}",
-            snapshot.plugin_id,
-            report.status_code,
-            diagnostics.join("; ")
-        ));
+        return Err(NativePluginHotReloadError::RestoreRuntimeState {
+            plugin_id: snapshot.plugin_id.clone(),
+            status_code: report.status_code,
+            diagnostics,
+        });
     }
     Ok(diagnostics)
 }

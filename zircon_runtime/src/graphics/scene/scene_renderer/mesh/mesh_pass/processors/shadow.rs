@@ -18,6 +18,9 @@ impl MeshPassProcessor for ShadowPassProcessor {
     ) where
         R: MeshPipelineVariantResolver + ?Sized,
     {
+        if batch.disabled_passes.disables_shadow() {
+            return;
+        }
         if !batch.casts_shadow || !batch.relevant_to_shadow_view() {
             return;
         }

@@ -38,12 +38,12 @@ fn ui_asset_authoring_plugin_contributes_view_template_and_capability() {
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.editor.ui_asset.Open"));
+        .any(|menu| menu.operation().as_str() == "view.editor.ui_asset.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.editor.ui_asset.Open"));
+        .any(|operation| operation.path().as_str() == "view.editor.ui_asset.open"));
 }
 
 #[test]

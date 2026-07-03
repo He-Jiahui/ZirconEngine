@@ -1,6 +1,8 @@
 use super::super::data::FrameRect;
+use crate::ui::retained_host::popup_anchor_metrics::SLATE_POPUP_ANCHOR_METRICS;
 
-pub(in crate::ui::retained_host::host_contract) const TEMPLATE_POPUP_ROW_GAP: f32 = 4.0;
+pub(in crate::ui::retained_host::host_contract) const TEMPLATE_POPUP_ANCHOR_GAP: f32 =
+    SLATE_POPUP_ANCHOR_METRICS.anchor_gap;
 const MIN_TEMPLATE_POPUP_ROW_HEIGHT: f32 = 24.0;
 
 pub(in crate::ui::retained_host::host_contract) fn dropdown_option_row_height(

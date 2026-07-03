@@ -109,7 +109,10 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         "UiV2AssetKind::ThemeTokens",
     ] {
         assert!(
-            import_ui_zui_asset.contains(required) || ui_v2_document_import.contains(required),
+            import_ui_zui_asset.contains(required)
+                || ui_v2_document_import.contains(required)
+                || ui_assets.contains(required)
+                || fixture_tests.contains(required),
             "UI v2 importer path should contain typed branch `{required}`"
         );
     }
@@ -129,8 +132,9 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     for required in [
         "ui_asset_wrappers_preserve_typed_parse_sources",
         "ui_icon_asset_reports_typed_validation_errors",
-        "importer_preserves_typed_ui_asset_document_parse_sources",
         "importer_preserves_typed_theme_and_icon_document_sources",
+        "fixture_v2_toml_importer_rejects_component_kind_in_favor_of_zui",
+        "importer_decodes_zui_component_assets_from_zui",
         "UiAssetError::ParseToml",
         "UiV2AssetError::ParseToml",
         "UiIconAssetDocumentError::InvalidSourceUri",

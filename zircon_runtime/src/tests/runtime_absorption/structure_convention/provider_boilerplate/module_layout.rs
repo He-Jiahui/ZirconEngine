@@ -33,10 +33,10 @@ fn runtime_15_provider_boilerplate_guard_child_owner_split() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
     );
     let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
     );
     let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
     );
 
     assert_contains_all(

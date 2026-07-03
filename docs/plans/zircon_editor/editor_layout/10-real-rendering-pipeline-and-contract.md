@@ -79,6 +79,12 @@ status: planned
 
 每段输入/输出类型固定;脏区只重跑必要段(见 §3.4)。
 
+**坐标与 scale 职责条款(2026-07-02 评审收口)**:全管线(SOURCE→STYLE→LAYOUT→COMMAND,即 ①—④)一律**逻辑坐标**;逻辑→物理换算**单点发生在 `21` 顶点装配阶段**(乘 `scale_factor` + 像素吸附),①—④ 段不得出现乘 scale 的代码。唯一例外是**文本字形**:字形栅格按物理像素进行,由 runtime `text/04` 的 `GlyphRasterKey { px_size_bucket }` 承担(`px_size_bucket = logical_px × scale_factor` 量化)。与 `16` §3.4、`21` 同条款互为引用。
+
+**opacity 语义条款(2026-07-02 评审收口)**:透明度为**逐命令 α 直乘**(命令色值的 alpha 通道,COMMAND 段直乘);**子树组透明(group opacity)V1 禁止**——正确组透明需离屏合成,直乘会导致重叠子元素双重混合。如弹层淡入淡出确需整树 α,允许受限形态:整棵子树同一 α **且子元素互不重叠**;离屏合成登记为 V2 项。
+
+**多窗口条款(2026-07-02 评审收口)**:管线以**渲染根(窗口)为单位实例化**——每窗口独立走 ①—⑤,持各自的 `scale_factor` 与 extract/present 节奏;`UiRenderStats` 按窗口分账,跨窗口不合批、不共享脏集(与 `21` 多窗口条款一致)。
+
 ### 3.2 渲染契约(把设计语言固化到渲染层)
 
 把 01 设计语言契约的视觉规则下沉为**提取期硬约束**,编辑器 chrome 渲染必须满足:
@@ -86,12 +92,14 @@ status: planned
 | 渲染契约 | 规则 | 拦截点 |
 | --- | --- | --- |
 | 画刷单源 | 编辑器面板 `Solid`/`Border` 色值必须解析自 01 token,不得为裸 `UiRgbaColor` 字面量 | EXTRACT 期校验节点视觉数据来源 |
-| 禁用视觉 | 编辑器 chrome 不得提取出 `UiBrushSet::Gradient`、阴影、辉光、模糊命令 | COMMAND 期拒绝违规 kind |
+| 禁用视觉 | 编辑器 chrome 不得提取出 `UiBrushSet::Gradient` 命令(现存 DTO 中唯一违规 kind);阴影/辉光/模糊 kind 当前 DTO **不存在**,登记为"未来新增 kind 默认禁用"预防条款(2026-07-02 评审收口) | COMMAND 期拒绝违规 kind |
 | 边框规格 | 边框宽=1px、圆角=低圆角 token,扁平态 | RESOLVE 期取 `control.radius`/`border.width` token |
 | 文本 | 文本色取 `text.*` token,字号取密度 token,无英雄字号 | RESOLVE 期取 typography token |
 | 状态视觉 | 激活/选中/焦点用 accent token,且仅这些态用 accent | RESOLVE 期按状态优先级(01)解析 |
 
 契约只对**编辑器 chrome 资产**强制(`components/workbench/**`、`floating/**`、`layout/**`);用户内容视口(center 自由区)不强制,可用任意画刷。
+
+**15c `shadow` token 豁免行(2026-07-02 评审收口)**:`15c` §8 登记的 popup `shadow` 角色为 **1px 分隔式微透明实线**(非高斯阴影/辉光),属 `Solid`/`Border` 画刷形态,不触发禁用视觉拦截——契约 guard 对该 token 溯源的用法放行,与 `15c` §8 对齐。
 
 ### 3.3 token → 画刷喂入规范
 
@@ -114,6 +122,8 @@ status: planned
 | 布局脏(13 排布变) | ②→④ | ① 部分复用 |
 | 结构脏(增删节点) | ①→④ 该子树 | 兄弟子树缓存 |
 
+**cache_clear owner 条款(2026-07-02 评审收口)**:布局脏对应的 taffy 子树 `cache_clear` 的执行 owner = **`09` 帧末 drain 的布局脏处理段**(脏节点入队后由 09 统一在帧末清缓存并触发重排,本表"布局脏"行的前置动作);`13` §3.8 同步引用此条款。
+
 硬约束:**不存在"全树无条件重提取"的常规入口**;全量重建只作 09 §8 的调试兜底命令。渲染统计(`UiRenderStats`)须能证明"改一个抽屉只重提取该抽屉子树"。
 
 ### 3.5 渲染验收指标(可回归)
@@ -134,7 +144,7 @@ impl EditorRenderContract {
 }
 pub enum EditorRenderViolation {
     UntokenizedColor { node: UiNodeId },
-    ForbiddenBrush { node: UiNodeId, brush: UiBrushSetKind }, // Gradient/Shadow/...
+    ForbiddenBrush { node: UiNodeId, brush: UiBrushSetKind }, // 现存 DTO 仅 Gradient 违规;未来新增 kind 默认禁用(2026-07-02 评审收口)
     NonFlatChrome { node: UiNodeId },
 }
 // 增量提取:只对脏视图子树重提取,对齐 09 ViewDirtySet

@@ -9,6 +9,8 @@ use zircon_runtime::core::framework::render::{
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
 
+use super::error::{ShaderPrewarmArgsError, ShaderPrewarmArgsResult};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShaderPrewarmArgs {
     pub project_root: PathBuf,
@@ -25,12 +27,13 @@ pub struct ShaderPrewarmArgs {
     pub report: Option<PathBuf>,
     pub builtin_fallback: bool,
     pub validate_wgpu_modules: bool,
+    pub validate_wgpu_pipelines: bool,
     pub pretty: bool,
 }
 
 pub fn parse(
     args: impl IntoIterator<Item = OsString>,
-) -> Result<Option<ShaderPrewarmArgs>, String> {
+) -> ShaderPrewarmArgsResult<Option<ShaderPrewarmArgs>> {
     let mut project_root = PathBuf::from(".");
     let mut manifest = None;
     let mut asset_roots = Vec::new();
@@ -45,13 +48,16 @@ pub fn parse(
     let mut report = None;
     let mut builtin_fallback = false;
     let mut validate_wgpu_modules = false;
+    let mut validate_wgpu_pipelines = false;
     let mut pretty = false;
 
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
-        let arg_text = arg
-            .to_str()
-            .ok_or_else(|| "zircon_shader_prewarm expects UTF-8 command arguments".to_string())?;
+        let arg_text = arg.to_str().ok_or_else(|| {
+            ShaderPrewarmArgsError::Usage(
+                "zircon_shader_prewarm expects UTF-8 command arguments".to_string(),
+            )
+        })?;
         match arg_text {
             "-h" | "--help" => return Ok(None),
             "--project-root" => project_root = next_path(&mut args, "--project-root")?,
@@ -87,15 +93,20 @@ pub fn parse(
             "--report" => report = Some(next_path(&mut args, "--report")?),
             "--builtin-fallback" => builtin_fallback = true,
             "--validate-wgpu-modules" => validate_wgpu_modules = true,
+            "--validate-wgpu-pipelines" => validate_wgpu_pipelines = true,
             "--pretty" => pretty = true,
-            unknown => return Err(usage(&format!("unknown argument {unknown}"))),
+            unknown => {
+                return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
+                    "unknown argument {unknown}"
+                ))))
+            }
         }
     }
 
     if manifest.is_none() && asset_roots.is_empty() && !builtin_fallback {
-        return Err(usage(
+        return Err(ShaderPrewarmArgsError::Usage(usage(
             "missing --manifest, --asset-root, or --builtin-fallback",
-        ));
+        )));
     }
     let quality_tiers = normalized_quality_tiers(quality_tiers);
     let geometry_source_ids = normalized_geometry_source_ids(geometry_source_ids)?;
@@ -120,34 +131,35 @@ pub fn parse(
         report,
         builtin_fallback,
         validate_wgpu_modules,
+        validate_wgpu_pipelines,
         pretty,
     }))
 }
 
 pub fn usage(message: &str) -> String {
     format!(
-        "{message}\nusage: zircon_shader_prewarm [--project-root <dir>] [--manifest <manifest.json>] [--asset-root <dir>]... [--quality-tier low|medium|high|ultra|all]... [--geometry-source static|skinned|morphed|skinned-morphed|all]... [--geometry-source-id <custom:name>=<4-255>]... [--shading-model-id <custom:name>=<16-255>]... [--shader-permutation-registry <registry.json>]... [--resource-registry <records.json>] [--export-resource-registry <records.json>] [--cache-dir <dir>] [--report <path>] [--builtin-fallback] [--validate-wgpu-modules] [--pretty]"
+        "{message}\nusage: zircon_shader_prewarm [--project-root <dir>] [--manifest <manifest.json>] [--asset-root <dir>]... [--quality-tier low|medium|high|ultra|all]... [--geometry-source static|skinned|morphed|skinned-morphed|all]... [--geometry-source-id <custom:name>=<4-255>]... [--shading-model-id <custom:name>=<16-255>]... [--shader-permutation-registry <registry.json>]... [--resource-registry <records.json>] [--export-resource-registry <records.json>] [--cache-dir <dir>] [--report <path>] [--builtin-fallback] [--validate-wgpu-modules] [--validate-wgpu-pipelines] [--pretty]"
     )
 }
 
 fn next_path(
     args: &mut impl Iterator<Item = OsString>,
     flag: &'static str,
-) -> Result<PathBuf, String> {
+) -> ShaderPrewarmArgsResult<PathBuf> {
     next_string(args, flag).map(PathBuf::from)
 }
 
 fn next_string(
     args: &mut impl Iterator<Item = OsString>,
     flag: &'static str,
-) -> Result<String, String> {
+) -> ShaderPrewarmArgsResult<String> {
     args.next()
-        .ok_or_else(|| usage(&format!("missing value for {flag}")))?
+        .ok_or_else(|| ShaderPrewarmArgsError::Usage(usage(&format!("missing value for {flag}"))))?
         .into_string()
-        .map_err(|_| usage(&format!("{flag} value must be UTF-8")))
+        .map_err(|_| ShaderPrewarmArgsError::Usage(usage(&format!("{flag} value must be UTF-8"))))
 }
 
-fn parse_quality_tier(value: &str) -> Result<Vec<ShaderQualityTier>, String> {
+fn parse_quality_tier(value: &str) -> ShaderPrewarmArgsResult<Vec<ShaderQualityTier>> {
     match value.trim().to_ascii_lowercase().as_str() {
         "low" => Ok(vec![ShaderQualityTier::Low]),
         "medium" => Ok(vec![ShaderQualityTier::Medium]),
@@ -159,13 +171,13 @@ fn parse_quality_tier(value: &str) -> Result<Vec<ShaderQualityTier>, String> {
             ShaderQualityTier::High,
             ShaderQualityTier::Ultra,
         ]),
-        _ => Err(usage(&format!(
+        _ => Err(ShaderPrewarmArgsError::Usage(usage(&format!(
             "unknown shader quality tier {value}; expected low, medium, high, ultra, or all"
-        ))),
+        )))),
     }
 }
 
-fn parse_geometry_source(value: &str) -> Result<Vec<GeometrySourceId>, String> {
+fn parse_geometry_source(value: &str) -> ShaderPrewarmArgsResult<Vec<GeometrySourceId>> {
     match value.trim().to_ascii_lowercase().as_str() {
         "static" | "static_mesh" | "static-mesh" => Ok(vec![GEOMETRY_SOURCE_ID_STATIC_MESH]),
         "skinned" | "skinned_mesh" | "skinned-mesh" => Ok(vec![GEOMETRY_SOURCE_ID_SKINNED_MESH]),
@@ -176,76 +188,88 @@ fn parse_geometry_source(value: &str) -> Result<Vec<GeometrySourceId>, String> {
             .into_iter()
             .map(|descriptor| descriptor.id)
             .collect()),
-        _ => Err(usage(&format!(
+        _ => Err(ShaderPrewarmArgsError::Usage(usage(&format!(
             "unknown geometry source {value}; expected static, skinned, morphed, skinned-morphed, or all"
-        ))),
+        )))),
     }
 }
 
-fn parse_geometry_source_id(value: &str) -> Result<(String, GeometrySourceId), String> {
+fn parse_geometry_source_id(value: &str) -> ShaderPrewarmArgsResult<(String, GeometrySourceId)> {
     let (token, id) = value.split_once('=').ok_or_else(|| {
-        usage(&format!(
+        ShaderPrewarmArgsError::Usage(usage(&format!(
             "invalid geometry source id {value}; expected <custom:name>=<4-255>"
-        ))
+        )))
     })?;
     let token = normalized_custom_geometry_source_token(token)?;
     let id = id.trim().parse::<u8>().map_err(|_| {
-        usage(&format!(
+        ShaderPrewarmArgsError::Usage(usage(&format!(
             "invalid geometry source id {value}; expected numeric plugin id 4-255"
-        ))
+        )))
     })?;
     if id < GEOMETRY_SOURCE_PLUGIN_ID_START {
-        return Err(usage(&format!(
+        return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
             "invalid geometry source id {value}; plugin geometry source ids must be >= {GEOMETRY_SOURCE_PLUGIN_ID_START}"
-        )));
+        ))));
     }
     Ok((token, GeometrySourceId::new(id)))
 }
 
-pub(crate) fn normalized_custom_geometry_source_token(token: &str) -> Result<String, String> {
+pub(crate) fn normalized_custom_geometry_source_token(
+    token: &str,
+) -> ShaderPrewarmArgsResult<String> {
     let token = token.trim().to_ascii_lowercase();
     if token.is_empty() {
-        return Err(usage("custom geometry source token must not be empty"));
+        return Err(ShaderPrewarmArgsError::Usage(usage(
+            "custom geometry source token must not be empty",
+        )));
     }
     if let Some(name) = token.strip_prefix("custom:") {
         let name = name.trim();
         if name.is_empty() {
-            return Err(usage("custom geometry source token must not be empty"));
+            return Err(ShaderPrewarmArgsError::Usage(usage(
+                "custom geometry source token must not be empty",
+            )));
         }
         return Ok(format!("custom:{name}"));
     }
     Ok(format!("custom:{token}"))
 }
 
-fn parse_shading_model_id(value: &str) -> Result<(String, ShadingModelId), String> {
+fn parse_shading_model_id(value: &str) -> ShaderPrewarmArgsResult<(String, ShadingModelId)> {
     let (token, id) = value.split_once('=').ok_or_else(|| {
-        usage(&format!(
+        ShaderPrewarmArgsError::Usage(usage(&format!(
             "invalid shading model id {value}; expected <custom:name>=<16-255>"
-        ))
+        )))
     })?;
     let token = normalized_custom_shading_model_token(token)?;
     let id = id.trim().parse::<u8>().map_err(|_| {
-        usage(&format!(
+        ShaderPrewarmArgsError::Usage(usage(&format!(
             "invalid shading model id {value}; expected numeric plugin id 16-255"
-        ))
+        )))
     })?;
     if id < SHADING_MODEL_PLUGIN_ID_START {
-        return Err(usage(&format!(
+        return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
             "invalid shading model id {value}; plugin shading model ids must be >= {SHADING_MODEL_PLUGIN_ID_START}"
-        )));
+        ))));
     }
     Ok((token, ShadingModelId::new(id)))
 }
 
-pub(crate) fn normalized_custom_shading_model_token(token: &str) -> Result<String, String> {
+pub(crate) fn normalized_custom_shading_model_token(
+    token: &str,
+) -> ShaderPrewarmArgsResult<String> {
     let token = token.trim().to_ascii_lowercase();
     if token.is_empty() {
-        return Err(usage("custom shading model token must not be empty"));
+        return Err(ShaderPrewarmArgsError::Usage(usage(
+            "custom shading model token must not be empty",
+        )));
     }
     if let Some(name) = token.strip_prefix("custom:") {
         let name = name.trim();
         if name.is_empty() {
-            return Err(usage("custom shading model token must not be empty"));
+            return Err(ShaderPrewarmArgsError::Usage(usage(
+                "custom shading model token must not be empty",
+            )));
         }
         return Ok(format!("custom:{name}"));
     }
@@ -265,22 +289,22 @@ fn normalized_quality_tiers(mut quality_tiers: Vec<ShaderQualityTier>) -> Vec<Sh
 
 fn normalized_shading_model_ids(
     shading_model_ids: Vec<(String, ShadingModelId)>,
-) -> Result<BTreeMap<String, ShadingModelId>, String> {
+) -> ShaderPrewarmArgsResult<BTreeMap<String, ShadingModelId>> {
     let mut by_token = BTreeMap::new();
     let mut by_id = BTreeMap::new();
     for (token, id) in shading_model_ids {
         if let Some(existing_id) = by_token.get(&token) {
             if *existing_id != id {
-                return Err(usage(&format!(
+                return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
                     "custom shading model {token} was assigned both id {existing_id} and id {id}"
-                )));
+                ))));
             }
             continue;
         }
         if let Some(existing_token) = by_id.get(&id) {
-            return Err(usage(&format!(
+            return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
                 "custom shading model id {id} is already assigned to {existing_token} and cannot be reused by {token}"
-            )));
+            ))));
         }
         by_id.insert(id, token.clone());
         by_token.insert(token, id);
@@ -290,25 +314,25 @@ fn normalized_shading_model_ids(
 
 fn normalized_geometry_source_ids(
     geometry_source_ids: Vec<(String, GeometrySourceId)>,
-) -> Result<BTreeMap<String, GeometrySourceId>, String> {
+) -> ShaderPrewarmArgsResult<BTreeMap<String, GeometrySourceId>> {
     let mut by_token: BTreeMap<String, GeometrySourceId> = BTreeMap::new();
     let mut by_id: BTreeMap<u8, String> = BTreeMap::new();
     for (token, id) in geometry_source_ids {
         if let Some(existing_id) = by_token.get(&token) {
             if *existing_id != id {
-                return Err(usage(&format!(
+                return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
                     "custom geometry source {token} was assigned both id {} and id {}",
                     existing_id.value(),
                     id.value()
-                )));
+                ))));
             }
             continue;
         }
         if let Some(existing_token) = by_id.get(&id.value()) {
-            return Err(usage(&format!(
+            return Err(ShaderPrewarmArgsError::Usage(usage(&format!(
                 "custom geometry source id {} is already assigned to {existing_token} and cannot be reused by {token}",
                 id.value()
-            )));
+            ))));
         }
         by_id.insert(id.value(), token.clone());
         by_token.insert(token, id);
@@ -339,6 +363,7 @@ mod tests {
         GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
     };
 
+    use super::super::error::ShaderPrewarmArgsError;
     use super::parse;
 
     #[test]
@@ -527,6 +552,19 @@ mod tests {
     }
 
     #[test]
+    fn shader_prewarm_args_parse_wgpu_pipeline_validation_flag() {
+        let args = parse(
+            ["--asset-root", "assets", "--validate-wgpu-pipelines"]
+                .into_iter()
+                .map(OsString::from),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert!(args.validate_wgpu_pipelines);
+    }
+
+    #[test]
     fn shader_prewarm_args_reject_builtin_shading_model_id_range() {
         let error = parse(
             [
@@ -540,7 +578,10 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(error.contains("plugin shading model ids must be >= 16"));
+        assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
+        assert!(error
+            .to_string()
+            .contains("plugin shading model ids must be >= 16"));
     }
 
     #[test]
@@ -557,6 +598,17 @@ mod tests {
         )
         .unwrap_err();
 
-        assert!(error.contains("plugin geometry source ids must be >= 4"));
+        assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
+        assert!(error
+            .to_string()
+            .contains("plugin geometry source ids must be >= 4"));
+    }
+
+    #[test]
+    fn shader_prewarm_args_missing_value_reports_typed_usage_error() {
+        let error = parse(["--asset-root"].into_iter().map(OsString::from)).unwrap_err();
+
+        assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
+        assert!(error.to_string().contains("missing value for --asset-root"));
     }
 }

@@ -61,7 +61,7 @@ status: planned
 
 ### 3.1 布局描述统一（类 CSS 组件化）
 
-- `zircon_runtime_interface::ui::layout` 新增统一布局属性集 `UiLayoutStyle`（见 §4），对齐 MUI/CSS 命名，作为 `.zui`、v2 style、组件 descriptor 的共同词汇表。
+- `zircon_runtime_interface::ui::layout` 新增统一布局属性集 `UiLayoutStyle`（见 §4），对齐 MUI/CSS 命名，作为 `.zui`、v2 style、组件 descriptor 的共同词汇表。（2026-07-02 评审收口）作者词汇/token 规范权威 = editor_layout/13（含 `$token` 文法）；本计划持有的是 **DTO→taffy 映射与运行时求解**，词汇集定义以 13 为准，本文 §4 草案是其运行时投影。
 - `zircon_runtime/src/ui/layout/style_mapping.rs`（新增）持有唯一「`UiLayoutStyle` → `taffy::Style`」逐字段映射；`taffy_bridge::taffy_style_for_container` 收编进来；任何组件不得自带私有布局解释。
 - legacy `AxisConstraint`/`StretchMode` 经 adapter 折算为 `UiLayoutStyle`，声明源逐步迁移后删除 adapter。
 - 相似布局靠组件 + class 复用（计划 04 的 style 级联），明令禁止逐节点像素硬编码作为对齐手段。
@@ -72,8 +72,8 @@ status: planned
 - 特殊容器职责定稿：
   - **Overlay**：z 序层叠 + anchor 对齐（popup/tooltip/拖拽影子），子项独立测量。
   - **Canvas/Free**：绝对坐标 + pivot/anchor（图编辑器、HUD 画布）。
-  - **Scroll**：视口裁剪 + 内容测量 + 滚动条合成；嵌套滚动按「最内层先消费、未消费冒泡」定稿（与 01 的 wheel 沿 hit path 冒泡协同）。
-  - **Virtual**：窗口化行生成 + 行高三档策略（固定 / 测量缓存 / 估算修正）。
+  - **Scroll**：视口裁剪 + 内容测量 + 滚动条合成；嵌套滚动按「最内层先消费、未消费冒泡」定稿（与 01 的 wheel 沿 hit path 冒泡协同）。（2026-07-02 评审收口）消费语义**按轴部分消费**：wheel delta 按 x/y 轴分别判定消费，某轴到达滚动边界时该轴剩余 delta 冒泡外层，另一轴不受影响。
+  - **Virtual**：窗口化行生成 + 行高三档策略（固定 / 测量缓存 / 估算修正）。（2026-07-02 评审收口）测量缓存档与 03 的文本 measure 缓存为**同一缓存**（text/09 两级缓存的 LayoutCache），不另建行高专用缓存；估算修正档的实测行高**回写**估算模型；行内容变更时经同一失效联动使缓存条目与估算失效。
   - **EditorDocking**：drawer/splitter/tab-stack 框架几何归 editor autolayout；每个 pane 内容区根节点经 `PaneContentRootConstraint` 契约交回 Taffy。
 - fallback：Taffy 求解失败（非法约束、NaN、循环依赖）记录 reason 并以安全尺寸排布；CI 测试断言「白名单之外无 fallback」。
 
@@ -87,10 +87,16 @@ status: planned
 - `UiLayoutDebugPacket`：节点 geometry、输入约束、引擎、style 来源链（asset → class → inline，对接计划 04）、fallback reason 的序列化导出；默认关闭、按帧开启。
 - editor 侧 Widget Tree Debugger 面板（计划 09 批次 3）消费该 packet；本计划只落 runtime 数据面。
 
+### 3.5 DPI 与取整（2026-07-02 评审收口）
+
+- 遵 editor_layout/16 §3.4：布局求解全程使用**逻辑坐标**，物理像素换算集中在 editor_layout/21 的**单点换算**（GPU 提交侧），布局层不出现散落的 `* scale_factor`。
+- 取整策略随 16 §3.4 定稿执行（边界对齐取整，避免相邻节点缝隙/重叠）；本计划不自定取整规则。
+- 16 §3.6 留给本计划的「taffy 桥限制评估」事项列入切片表（见 M1.S5）。
+
 ## 4. 接口与数据结构草案
 
 ```rust
-// 新增 zircon_runtime_interface/src/ui/layout/style.rs
+// 新增 zircon_runtime_interface/src/ui/layout/style.rs（2026-07-02 勘误：已落地）
 pub struct UiLayoutStyle {
     pub display: UiLayoutDisplay,                  // 引擎选择的声明源
     pub direction: UiFlexDirection,                // Row | Column | RowReverse | ColumnReverse
@@ -121,13 +127,13 @@ pub struct UiLayoutStyle {
 pub enum UiLayoutDisplay { Flex, Grid, Block, /* Wrap 经 wrap 字段表达 */ Overlay, Canvas, Scroll, Virtual, None }
 pub enum UiDimension { Auto, Px(f32), Percent(f32) }
 
-// 新增 zircon_runtime/src/ui/layout/style_mapping.rs（唯一映射）
+// 新增 zircon_runtime/src/ui/layout/style_mapping.rs（唯一映射）（2026-07-02 勘误：已落地）
 pub fn taffy_style_from_ui_layout_style(style: &UiLayoutStyle) -> Result<taffy::Style, UiLayoutEngineFallbackReason>;
 pub fn ui_layout_style_from_axis_constraints(                   // legacy adapter（迁移期）
     horizontal: AxisConstraint, vertical: AxisConstraint, stretch: StretchMode,
 ) -> UiLayoutStyle;
 
-// 新增 zircon_runtime_interface/src/ui/layout/debug.rs
+// 新增 zircon_runtime_interface/src/ui/layout/debug.rs（2026-07-02 勘误：已落地）
 pub struct UiLayoutDebugPacket {
     pub frame_index: u64,
     pub selection_report: UiLayoutEngineSelectionReport,  // 现有类型
@@ -157,7 +163,7 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 |---------------|--------------|
 | display(Flex/Grid/Block) | `display` |
 | direction / wrap | `flex_direction` / `flex_wrap` |
-| justify_content / align_items / align_self / align_content | 同名字段 |
+| justify_content / align_items / align_self / align_content | 同名字段（Baseline 对齐（2026-07-02 评审收口）：文本 `first_baseline` 数据来源 = runtime text 布局结果（text/03），不由布局层自行估算） |
 | gap | `gap` |
 | flex_grow / flex_shrink / flex_basis | 同名字段 |
 | grid_template_columns/rows、grid_row/column | `grid_template_*`、`grid_row/column` |
@@ -168,7 +174,7 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 
 ## 5. 模块与文件落点
 
-**新增**：`zircon_runtime_interface/src/ui/layout/style.rs`、`zircon_runtime_interface/src/ui/layout/debug.rs`、`zircon_runtime/src/ui/layout/style_mapping.rs`、`zircon_runtime/src/ui/layout/debug_packet.rs`、`zircon_editor/src/ui/workbench/autolayout/pane_content_contract.rs`
+**新增**：`zircon_runtime_interface/src/ui/layout/style.rs`（已落地）、`zircon_runtime_interface/src/ui/layout/debug.rs`（已落地）、`zircon_runtime/src/ui/layout/style_mapping.rs`（已落地）、`zircon_runtime/src/ui/layout/debug_packet.rs`、`zircon_editor/src/ui/workbench/autolayout/pane_content_contract.rs`（2026-07-02 勘误：前三项撰写后已在码，读作「已存在，按切片继续演进」）
 
 **修改**：
 
@@ -194,6 +200,7 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 | M1.S2 | style_mapping 唯一映射 + taffy_bridge 收编 | style_mapping.rs、taffy_bridge.rs | `cargo test -p zircon_runtime --lib style_mapping --locked` | taffy_bridge 内散落映射删除 |
 | M1.S3 | legacy adapter：AxisConstraint/StretchMode → UiLayoutStyle；pass/axis.rs、slot.rs 改读统一属性 | pass/axis.rs、pass/slot.rs | `cargo test -p zircon_runtime --lib layout --locked` | 无删除（adapter 留到 S4） |
 | M1.S4 | v2 style 与 `.zui` 布局字段切到统一词汇（与 04 M3、05 M1 协同）；属性矩阵对拍 | v2 style 编译路径 | 同上 + `.zui` 治理测试 | 声明源迁完删 adapter |
+| M1.S5 | （2026-07-02 评审收口新增）定稿 **Taffy measure 回调契约**：回调签名、`known_dimensions`/`available_space` 语义（Definite/MinContent/MaxContent 三值如何映射到文本 measure 的 min-content/max-content/preferred）、与文本 measure 缓存（text/09 两级缓存）的接缝。契约规范权威 = editor_layout/13 §3.8，本切片为实现落点；03 M3 与 07 M1 依赖此切片。同切片完成 16 §3.6 留给本计划的「taffy 桥限制评估」（taffy 对逻辑坐标/取整/measure 精度的限制清单） | pass/measure.rs、style_mapping.rs、评估记录 | `cargo test -p zircon_runtime --lib measure --locked` | 无删除 |
 | M2.S1 | SelectionReport 聚合进 surface 帧报告（reason counts + 首例 node） | surface 帧报告、debug_packet.rs | `cargo test -p zircon_runtime --lib engine_selection --locked` | 无删除 |
 | M2.S2 | 非法值用例系统化：NaN/负尺寸/循环约束 → reason 而非 panic/静默 | style_mapping、pass/engine.rs 测试 | 同上 | 无删除 |
 | M2.S3 | 「无静默 fallback」CI 断言：合法模板全量布局后 reason counts 为白名单子集 | 测试 + 白名单清单 | `cargo test -p zircon_runtime --lib --locked` | 无删除 |
@@ -263,3 +270,7 @@ pub fn pane_content_root_constraints(geometry: &WorkbenchShellGeometry) -> Vec<P
 | 自有容器（Canvas/Grid） | `dev/Fyrox/fyrox-ui/src/canvas.rs`、`grid.rs` | `dev/slint/internal/core/layout.rs` | 绝对定位容器与 Rust 端布局求解器的接口形态 |
 | 嵌套滚动/容器语义 | `dev/godot/scene/gui/{container.cpp, box_container.cpp, scroll_bar.cpp}` | `dev/godot/scene/gui/split_container.cpp` | 容器 re-sort 时机、滚动条合成、splitter 拖拽几何 |
 | docking 接缝 | `dev/Fyrox/fyrox-ui/src/dock/{tile.rs, config.rs}` | `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Docking` | docking 树与内容区约束的分界（框架几何 vs 内容布局） |
+
+## 14. 状态与产出记录
+
+- 2026-07-02（评审收口）：勘误 §4/§5——`UiLayoutStyle`（interface layout/style.rs）、`style_mapping.rs`、`layout/debug.rs` 已在码；新增 M1.S5（Taffy measure 回调契约 + taffy 桥限制评估）、§3.5（DPI 与取整，遵 editor_layout/16 §3.4/21）；§3.1 补词汇规范权威=editor_layout/13；§3.2 Scroll 补按轴部分消费、Virtual 补与 03/text 09 measure 缓存接缝、Baseline 补 first_baseline 来源=text/03。后续切片执行时在此回写状态。

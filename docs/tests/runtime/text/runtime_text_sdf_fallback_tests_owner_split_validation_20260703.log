@@ -1,0 +1,35 @@
+Runtime text SDF fallback tests owner split validation - 2026-07-03
+
+Source changes:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  - Kept production SDF fallback report, span grouping, and mixed native overlay logic.
+  - Replaced the large inline #[cfg(test)] mod tests block with #[cfg(test)] mod tests;.
+  - Line count after split: 376.
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs
+  - New module-local private regression owner for the former inline tests.
+  - Keeps coverage for whole-batch fallback, LTR/RTL/Auto mixed overlay, whole-grapheme overlay, unsupported layout reasons, span grouping, and UTF-8 byte ranges.
+  - Line count after split: 485.
+
+Validation commands:
+1. rustfmt --edition 2021 --check zircon_runtime\src\graphics\scene\scene_renderer\ui\text\sdf_fallback.rs zircon_runtime\src\graphics\scene\scene_renderer\ui\text\sdf_fallback\tests.rs
+   Result: passed, exit code 0.
+
+2. git diff --check -- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs
+   Result: passed, exit code 0.
+
+3. Select-String token scan for mod tests and representative regression names.
+   Result: passed. Found mod tests; in sdf_fallback.rs plus representative regressions in sdf_fallback/tests.rs.
+
+4. Select-String trailing whitespace scan on touched Rust files.
+   Result: passed, no matches.
+
+Focused Cargo status:
+- Deferred. Existing cargo/rustc lanes were active on the workstation, so this structure-only slice did not start another long compile.
+- No Cargo green is claimed for this slice.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_sdf_fallback_tests_owner_split_preview_20260703.png
+- Purpose: structure proof showing the former 863-line inline-test owner split into 376-line production owner and 485-line module-local test owner.
+
+Target hygiene:
+- Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets: NO_MATCHING_VALIDATION_ARTIFACTS_IN_TARGETS.

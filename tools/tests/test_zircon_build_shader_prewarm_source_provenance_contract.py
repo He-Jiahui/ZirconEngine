@@ -96,6 +96,100 @@ class ZirconBuildShaderPrewarmSourceProvenanceContractTests(unittest.TestCase):
                     require_source_provenance=True,
                 )
 
+    def test_validate_report_contract_rejects_blank_source_provenance_strings(self):
+        invalid_fields = (
+            "source_label",
+            "source_hash",
+            "template_revision",
+        )
+        for field in invalid_fields:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    report_path = Path(temp_dir) / "shader_variants_report.json"
+                    source = {
+                        "source_label": "res://shader",
+                        "source_hash": "a",
+                        "template_revision": "template",
+                        "requested_count": 1,
+                        "written_count": 1,
+                        "failed_count": 0,
+                    }
+                    source[field] = "   "
+                    report_path.write_text(
+                        json.dumps(
+                            {
+                                "requested_count": 1,
+                                "written_count": 1,
+                                "failed_count": 0,
+                                "source_provenance": {
+                                    "source_count": 1,
+                                    "variant_count": 1,
+                                    "sources": {
+                                        "res://shader#a#template": source,
+                                    },
+                                },
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "did not confirm shader source provenance",
+                    ):
+                        validate_shader_prewarm_report_contract(
+                            report_path,
+                            require_source_provenance=True,
+                        )
+
+    def test_validate_report_contract_rejects_untrimmed_source_provenance_strings(
+        self,
+    ):
+        invalid_values = (
+            ("source_label", " res://shader "),
+            ("source_hash", " a "),
+            ("template_revision", " template "),
+        )
+        for field, value in invalid_values:
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    report_path = Path(temp_dir) / "shader_variants_report.json"
+                    source = {
+                        "source_label": "res://shader",
+                        "source_hash": "a",
+                        "template_revision": "template",
+                        "requested_count": 1,
+                        "written_count": 1,
+                        "failed_count": 0,
+                    }
+                    source[field] = value
+                    report_path.write_text(
+                        json.dumps(
+                            {
+                                "requested_count": 1,
+                                "written_count": 1,
+                                "failed_count": 0,
+                                "source_provenance": {
+                                    "source_count": 1,
+                                    "variant_count": 1,
+                                    "sources": {
+                                        "res://shader#a#template": source,
+                                    },
+                                },
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "shader prewarm report did not confirm shader source provenance",
+                    ):
+                        validate_shader_prewarm_report_contract(
+                            report_path,
+                            require_source_provenance=True,
+                        )
+
 
 if __name__ == "__main__":
     unittest.main()

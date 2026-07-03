@@ -439,9 +439,9 @@ fn prototype_compiler_projects_surface_from_flat_prototype_instance() {
 #[test]
 fn prototype_store_file_cache_reuses_loaded_flat_store_for_projection_hot_path() {
     let temp_dir = prototype_cache_temp_dir("projection_hot_path");
-    let layout_path = temp_dir.join("flat_layout.ui.toml");
-    let widget_path = temp_dir.join("card.ui.toml");
-    let style_path = temp_dir.join("theme.ui.toml");
+    let layout_path = temp_dir.join("flat_layout.zui");
+    let widget_path = temp_dir.join("card.zui");
+    let style_path = temp_dir.join("theme.zui");
     std::fs::write(&layout_path, FLAT_LAYOUT_ASSET_TOML).unwrap();
     std::fs::write(&widget_path, FLAT_WIDGET_ASSET_TOML).unwrap();
     std::fs::write(&style_path, FLAT_STYLE_ASSET_TOML).unwrap();
@@ -472,10 +472,10 @@ fn prototype_store_file_cache_reuses_loaded_flat_store_for_projection_hot_path()
 fn prototype_store_file_cache_resolves_res_aliases_and_transitive_style_imports() {
     let temp_dir = prototype_cache_temp_dir("res_alias_imports");
     let assets_root = temp_dir.join("assets");
-    let layout_path = assets_root.join("ui/editor/layout.ui.toml");
-    let widget_path = assets_root.join("ui/editor/card.ui.toml");
-    let base_style_path = assets_root.join("ui/theme/base.ui.toml");
-    let material_style_path = assets_root.join("ui/theme/material.ui.toml");
+    let layout_path = assets_root.join("ui/editor/layout.zui");
+    let widget_path = assets_root.join("ui/editor/card.zui");
+    let base_style_path = assets_root.join("ui/theme/base.zui");
+    let material_style_path = assets_root.join("ui/theme/material.zui");
     std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(base_style_path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -487,8 +487,8 @@ id = "editor.alias_layout"
 version = 1
 
 [imports]
-widgets = ["res://ui/editor/card.ui.toml#Card"]
-styles = ["res://ui/theme/base.ui.toml"]
+widgets = ["res://ui/editor/card.zui#Card"]
+styles = ["res://ui/theme/base.zui"]
 
 [root]
 node = "root"
@@ -501,7 +501,7 @@ children = [{ child = "card" }]
 
 [nodes.card]
 kind = "reference"
-component_ref = "res://ui/editor/card.ui.toml#Card"
+component_ref = "res://ui/editor/card.zui#Card"
 "##,
     )
     .unwrap();
@@ -533,7 +533,7 @@ id = "ui.theme.base"
 version = 1
 
 [imports]
-styles = ["res://ui/theme/material.ui.toml"]
+styles = ["res://ui/theme/material.zui"]
 
 [[stylesheets]]
 id = "base"
@@ -561,11 +561,8 @@ version = 1
 
     assert!(!first.cache_hit);
     assert!(second.cache_hit);
-    assert!(second.store.get("res://ui/editor/card.ui.toml").is_some());
-    assert!(second
-        .store
-        .get("res://ui/theme/material.ui.toml")
-        .is_some());
+    assert!(second.store.get("res://ui/editor/card.zui").is_some());
+    assert!(second.store.get("res://ui/theme/material.zui").is_some());
     let compiled = UiDocumentCompiler::default()
         .compile_prototype_asset(&second.root_asset_id, second.store.as_ref())
         .unwrap();
@@ -583,7 +580,7 @@ version = 1
 #[test]
 fn prototype_store_file_cache_reports_tree_schema_as_non_flat_without_caching() {
     let temp_dir = prototype_cache_temp_dir("tree_schema_fallback");
-    let layout_path = temp_dir.join("tree_layout.ui.toml");
+    let layout_path = temp_dir.join("tree_layout.zui");
     std::fs::write(
         &layout_path,
         r#"

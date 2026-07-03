@@ -30,11 +30,12 @@ descriptor_symbol = "zircon_native_plugin_descriptor_v3"
 runtime_entry = "zircon_plugin_ui_document_importer_runtime_entry_v3"
 
 [[asset_importers]]
-id = "ui_document_importer.zui_component"
+id = "ui_document_importer.zui_document"
 plugin_id = "ui_document_importer"
 priority = 120
 full_suffixes = [".zui"]
 output_kind = "UiWidget"
+additional_output_kinds = ["UiLayout", "UiStyle"]
 importer_version = 2
 required_capabilities = ["runtime.asset.importer.ui_document"]
 

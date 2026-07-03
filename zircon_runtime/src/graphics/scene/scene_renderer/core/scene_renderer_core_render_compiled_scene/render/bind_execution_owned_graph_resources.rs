@@ -1,3 +1,7 @@
+use bytemuck::{bytes_of, cast_slice};
+use wgpu::util::DeviceExt;
+
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassMeshCommandLists,
 };
@@ -6,6 +10,9 @@ use crate::graphics::scene::scene_renderer::hzb::{
     HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE, HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
     HZB_OCCLUSION_DRAW_COUNT_RESOURCE, HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE,
     HZB_OCCLUSION_STATS_RESOURCE, HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
+};
+use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
+    LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
 };
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshIndirectDrawExecution, INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
@@ -19,6 +26,10 @@ const HZB_FALLBACK_STORAGE_USAGE: wgpu::BufferUsages = wgpu::BufferUsages::STORA
     .union(wgpu::BufferUsages::COPY_SRC);
 const HZB_FALLBACK_INDIRECT_STORAGE_USAGE: wgpu::BufferUsages =
     HZB_FALLBACK_STORAGE_USAGE.union(wgpu::BufferUsages::INDIRECT);
+const LIGHT_GRID_FALLBACK_PARAMS_USAGE: wgpu::BufferUsages =
+    wgpu::BufferUsages::UNIFORM.union(wgpu::BufferUsages::COPY_DST);
+const LIGHT_GRID_FALLBACK_STORAGE_USAGE: wgpu::BufferUsages =
+    wgpu::BufferUsages::STORAGE.union(wgpu::BufferUsages::COPY_DST);
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_execution_owned_graph_resources(
     device: &wgpu::Device,
@@ -32,6 +43,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
+    bind_light_grid_external_buffers(device, graph, resources);
     bind_hzb_occlusion_external_buffers(
         device,
         graph,
@@ -39,6 +51,107 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         &hzb_executions,
         hzb_occlusion_culler,
     );
+}
+
+fn bind_light_grid_external_buffers(
+    device: &wgpu::Device,
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+) {
+    if !graph_declares_any_light_grid_external(graph) {
+        return;
+    }
+
+    bind_light_grid_execution_buffer(
+        device,
+        graph,
+        resources,
+        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        "zircon-light-grid-params-execution-fallback",
+        create_light_grid_params_fallback_buffer,
+    );
+    bind_light_grid_execution_buffer(
+        device,
+        graph,
+        resources,
+        PostProcessGraphResourceNames::LIGHT_ZBINS,
+        "zircon-light-grid-zbins-execution-fallback",
+        create_light_grid_zbins_fallback_buffer,
+    );
+    bind_light_grid_execution_buffer(
+        device,
+        graph,
+        resources,
+        PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+        "zircon-light-grid-tile-masks-execution-fallback",
+        create_light_grid_tile_masks_fallback_buffer,
+    );
+}
+
+fn graph_declares_any_light_grid_external(graph: &CompiledRenderGraph) -> bool {
+    LIGHT_GRID_EXTERNAL_BUFFER_NAMES
+        .iter()
+        .any(|resource_name| graph.resource_lifetime_by_name(resource_name).is_some())
+}
+
+fn bind_light_grid_execution_buffer(
+    device: &wgpu::Device,
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    logical_name: &'static str,
+    fallback_label: &'static str,
+    create_fallback: impl FnOnce(&wgpu::Device, &'static str) -> wgpu::Buffer,
+) {
+    if graph.resource_lifetime_by_name(logical_name).is_none() || resources.has_buffer(logical_name)
+    {
+        return;
+    }
+
+    let fallback = create_fallback(device, fallback_label);
+    resources.bind_execution_owned_buffer(
+        logical_name,
+        light_grid_execution_backing_name(logical_name),
+        &fallback,
+    );
+}
+
+fn create_light_grid_params_fallback_buffer(
+    device: &wgpu::Device,
+    label: &'static str,
+) -> wgpu::Buffer {
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some(label),
+        contents: bytes_of(&LightGridParams::disabled()),
+        usage: LIGHT_GRID_FALLBACK_PARAMS_USAGE,
+    })
+}
+
+fn create_light_grid_zbins_fallback_buffer(
+    device: &wgpu::Device,
+    label: &'static str,
+) -> wgpu::Buffer {
+    let words = [LIGHT_GRID_EMPTY_ZBIN_HEADER, 0, 0];
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some(label),
+        contents: cast_slice(&words),
+        usage: LIGHT_GRID_FALLBACK_STORAGE_USAGE,
+    })
+}
+
+fn create_light_grid_tile_masks_fallback_buffer(
+    device: &wgpu::Device,
+    label: &'static str,
+) -> wgpu::Buffer {
+    let words = [0_u32];
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some(label),
+        contents: cast_slice(&words),
+        usage: LIGHT_GRID_FALLBACK_STORAGE_USAGE,
+    })
+}
+
+fn light_grid_execution_backing_name(logical_name: &str) -> String {
+    format!("{logical_name}:light-grid-execution-fallback")
 }
 
 fn bind_hzb_occlusion_external_buffers(
@@ -180,6 +293,11 @@ const HZB_OCCLUSION_EXTERNAL_BUFFER_NAMES: &[&str] = &[
     HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
     HZB_OCCLUSION_STATS_RESOURCE,
 ];
+const LIGHT_GRID_EXTERNAL_BUFFER_NAMES: &[&str] = &[
+    PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+    PostProcessGraphResourceNames::LIGHT_ZBINS,
+    PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+];
 
 #[cfg(test)]
 mod tests {
@@ -218,6 +336,38 @@ mod tests {
         }));
     }
 
+    #[test]
+    fn light_grid_external_fallback_buffers_satisfy_materialization_report() {
+        let Ok(backend) = RenderBackend::new_offscreen() else {
+            return;
+        };
+        let graph = light_grid_external_graph();
+        let mut resources = RenderGraphExecutionResources::new();
+
+        bind_light_grid_external_buffers(&backend.device, &graph, &mut resources);
+
+        let report = resources
+            .validate_materialized_graph_resources(&graph)
+            .expect("light-grid fallback buffers should bind declared externals");
+        assert_eq!(report.required_external_count, 3);
+        assert_eq!(report.bound_required_external_count, 3);
+        assert_eq!(report.missing_required_external_count, 0);
+        assert_eq!(report.report_only_external_count, 0);
+        assert_eq!(report.bound_external_count(), 3);
+        assert_eq!(report.missing_external_count(), 0);
+        assert!(report.is_complete());
+        let aliases = resources.resource_alias_report();
+        assert_eq!(aliases.buffer_aliases.len(), 3);
+        for logical_name in LIGHT_GRID_EXTERNAL_BUFFER_NAMES {
+            assert!(aliases.buffer_aliases.iter().any(|alias| {
+                alias.logical_name == *logical_name
+                    && alias
+                        .backing_name
+                        .ends_with(":light-grid-execution-fallback")
+            }));
+        }
+    }
+
     fn hzb_external_graph() -> CompiledRenderGraph {
         let mut builder = RenderGraphBuilder::new("hzb-external-materialization");
         let indirect_args =
@@ -246,6 +396,34 @@ mod tests {
         builder.write_storage_external(pass, visible).unwrap();
         builder.write_storage_external(pass, draw_count).unwrap();
         builder.write_storage_external(pass, stats).unwrap();
+        builder.compile().unwrap()
+    }
+
+    fn light_grid_external_graph() -> CompiledRenderGraph {
+        let mut builder = RenderGraphBuilder::new("light-grid-external-materialization");
+        let params = required_external_buffer(
+            &mut builder,
+            PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
+        );
+        let zbins =
+            required_external_buffer(&mut builder, PostProcessGraphResourceNames::LIGHT_ZBINS);
+        let tile_masks = required_external_buffer(
+            &mut builder,
+            PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
+        );
+        let pass = builder.add_pass("mesh-shading", QueueLane::Graphics);
+        builder
+            .set_pass_flags(
+                pass,
+                PassFlags {
+                    allow_culling: true,
+                    has_side_effects: true,
+                },
+            )
+            .unwrap();
+        builder.read_external(pass, params).unwrap();
+        builder.read_external(pass, zbins).unwrap();
+        builder.read_external(pass, tile_masks).unwrap();
         builder.compile().unwrap()
     }
 

@@ -4,6 +4,7 @@ use crate::core::framework::render::{
     RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
 };
 use crate::core::framework::scene::EntityId;
+use crate::graphics::scene::resources::MaterialDisabledPasses;
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::MeshDrawQueuePhase;
 
 use super::{MeshBatchRef, MeshDrawCommand};
@@ -13,6 +14,7 @@ pub(crate) struct CachedMeshDrawKey {
     pub(crate) entity: EntityId,
     pub(crate) draw_ordinal: u32,
     pub(crate) phase: RenderPhase,
+    pub(crate) disabled_passes: MaterialDisabledPasses,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -44,6 +46,7 @@ impl CachedMeshDrawKey {
             entity: identity.entity,
             draw_ordinal: identity.draw_ordinal,
             phase,
+            disabled_passes: batch.disabled_passes,
         })
     }
 }
@@ -197,6 +200,7 @@ mod tests {
             entity: 7,
             draw_ordinal: 2,
             phase: RenderPhase::Opaque3d,
+            disabled_passes: Default::default(),
         };
         let state = RenderMeshStaticState::new(true, 11, 17);
         let command = test_command(RenderPhase::Opaque3d, 1);
@@ -219,6 +223,7 @@ mod tests {
             entity: 7,
             draw_ordinal: 2,
             phase: RenderPhase::Opaque3d,
+            disabled_passes: Default::default(),
         };
         let state = RenderMeshStaticState::new(true, 11, 17);
         let changed_material = RenderMeshStaticState::new(true, 11, 23);

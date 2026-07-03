@@ -55,7 +55,7 @@ props = { label = { text_key = "menu.play", table = "ui", fallback = "Play" } }
 
 #[test]
 fn ui_asset_editor_projects_action_policy_report_items() {
-    let session = open_design_session("asset://ui/policy_network.ui.toml", ACTION_POLICY_LAYOUT);
+    let session = open_design_session("asset://ui/policy_network.zui", ACTION_POLICY_LAYOUT);
     let pane = session.pane_presentation();
 
     assert!(pane
@@ -71,7 +71,7 @@ fn ui_asset_editor_projects_action_policy_report_items() {
 #[test]
 fn ui_asset_editor_projects_localization_report_items_and_diagnostics() {
     let session = open_design_session(
-        "asset://ui/localization_report.ui.toml",
+        "asset://ui/localization_report.zui",
         LOCALIZATION_REPORT_LAYOUT,
     );
 
@@ -104,7 +104,7 @@ fn ui_asset_editor_projects_localization_report_items_and_diagnostics() {
 #[test]
 fn ui_asset_editor_projects_locale_table_missing_key_diagnostics() {
     let mut session = open_design_session(
-        "asset://ui/localization_resolver.ui.toml",
+        "asset://ui/localization_resolver.zui",
         LOCALIZATION_RESOLVER_LAYOUT,
     );
     assert!(session.structured_diagnostics().is_empty());

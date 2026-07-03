@@ -8,6 +8,8 @@ pub(crate) fn default_pipeline_key() -> PipelineKey {
     PipelineKey {
         shader_id: ResourceId::from_locator(&fallback_shader_uri()),
         shader_revision: 1,
+        material_layout_hash: 0,
+        material_option_bits: 0,
         double_sided: false,
         alpha_blend: false,
         alpha_mask: false,

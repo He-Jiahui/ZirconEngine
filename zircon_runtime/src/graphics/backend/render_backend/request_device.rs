@@ -1,5 +1,6 @@
 use crate::graphics::resource_limits::{
     HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+    MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
     POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
 };
 use crate::graphics::types::GraphicsError;
@@ -41,11 +42,18 @@ fn required_render_limits(adapter_limits: &wgpu::Limits) -> wgpu::Limits {
             POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
         ..wgpu::Limits::default()
     };
+    let required_storage_buffers_per_shader_stage =
+        HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+            .max(MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE);
     if adapter_limits.max_storage_buffers_per_shader_stage
-        >= HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        >= required_storage_buffers_per_shader_stage
+    {
+        limits.max_storage_buffers_per_shader_stage = required_storage_buffers_per_shader_stage;
+    } else if adapter_limits.max_storage_buffers_per_shader_stage
+        >= MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
     {
         limits.max_storage_buffers_per_shader_stage =
-            HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
+            MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
     }
     limits
 }
@@ -54,6 +62,7 @@ fn required_render_limits(adapter_limits: &wgpu::Limits) -> wgpu::Limits {
 mod tests {
     use crate::graphics::resource_limits::{
         HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+        MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
         POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
     };
 
@@ -96,15 +105,37 @@ mod tests {
             limits.max_storage_buffers_per_shader_stage
                 >= HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
         );
+        assert!(
+            limits.max_storage_buffers_per_shader_stage
+                >= MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
     }
 
     #[test]
-    fn offscreen_device_limits_keep_hzb_optional_when_adapter_limit_is_lower() {
+    fn offscreen_device_limits_keep_hzb_occlusion_optional_when_only_mesh_capacity_exists() {
+        let limits = required_render_limits(&wgpu::Limits {
+            max_storage_buffers_per_shader_stage:
+                MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
+            ..wgpu::Limits::default()
+        });
+
+        assert!(
+            limits.max_storage_buffers_per_shader_stage
+                >= MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
+        assert!(
+            limits.max_storage_buffers_per_shader_stage
+                < HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+        );
+    }
+
+    #[test]
+    fn offscreen_device_limits_keep_extra_storage_buffers_optional_when_adapter_limit_is_lower() {
         let limits = required_render_limits(&wgpu::Limits::default());
 
         assert!(
             limits.max_storage_buffers_per_shader_stage
-                < HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
+                < MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
         );
     }
 }

@@ -129,12 +129,12 @@ pub fn material_editor_dist_module_manifest() -> PluginModuleManifest {
 }
 
 fn material_authoring_batch() -> EditorAuthoringContributionBatch {
-    let open_graph = operation("MaterialEditor.Graph.Open");
-    let open_material = operation("MaterialEditor.Material.Open");
-    let validate = operation("MaterialEditor.Graph.Validate");
-    let compile = operation("MaterialEditor.Graph.Compile");
-    let preview = operation("MaterialEditor.Graph.Preview");
-    let create = operation("MaterialEditor.Graph.Create");
+    let open_graph = operation("material_editor.graph.open");
+    let open_material = operation("material_editor.material.open");
+    let validate = operation("material_editor.graph.validate");
+    let compile = operation("material_editor.graph.compile");
+    let preview = operation("material_editor.graph.preview");
+    let create = operation("material_editor.graph.create");
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(open_graph.clone(), "Open Material Graph")

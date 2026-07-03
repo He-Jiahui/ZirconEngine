@@ -4,8 +4,9 @@ use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiTextAlign,
-    UiTextDirection, UiTextPaintDecorationKind, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
+    UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiResolvedStyle,
+    UiTextAlign, UiTextDirection, UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode,
+    UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
 };
 
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
@@ -53,13 +54,17 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) text: String,
     pub(super) frame: UiFrame,
     pub(super) clip_frame: Option<UiFrame>,
+    pub(super) source_range: Option<UiTextRange>,
+    pub(super) glyph_advances: Vec<f32>,
     pub(super) color: [f32; 4],
     pub(super) font: Option<String>,
     pub(super) font_family: Option<String>,
+    pub(super) font_weight: u16,
     pub(super) font_size: f32,
     pub(super) line_height: f32,
     pub(super) text_align: UiTextAlign,
     pub(super) text_direction: UiTextDirection,
+    pub(super) writing_mode: UiTextWritingMode,
     pub(super) wrap: UiTextWrap,
     pub(super) style: UiTextRunPaintStyle,
 }
@@ -150,7 +155,7 @@ impl ScreenSpaceUiRenderer {
     }
 
     pub(crate) fn text_prepare_report(&self) -> super::text::ScreenSpaceUiTextPrepareReport {
-        self.last_text_prepare_report
+        self.last_text_prepare_report.clone()
     }
 
     #[cfg(test)]
@@ -378,20 +383,41 @@ fn push_text_batches(
     color: [f32; 4],
     plan: &mut PlannedScreenSpaceUi,
 ) {
+    if let Some(layout) = command
+        .text_layout
+        .as_ref()
+        .filter(|layout| !layout.lines.is_empty())
+    {
+        if !command.style.rich_text {
+            push_resolved_text_layout_line_batches(command, layout, color, plan);
+            return;
+        }
+    }
+
     if let Some(text_paint) = command_text_paint(command) {
         if !text_paint.runs.is_empty() {
             for run in text_paint.runs {
+                let font = run.font.or_else(|| command.style.font.clone());
+                let font_family = run
+                    .font_family
+                    .or_else(|| command.style.font_family.clone());
                 let run_color =
                     parse_color(run.color.as_deref(), color, command.opacity).unwrap_or(color);
                 push_text_batch(
                     command,
                     run.text,
                     run.frame,
+                    Some(run.source_range),
+                    Vec::new(),
+                    font,
+                    font_family,
+                    run.font_weight,
                     run.font_size,
                     run.line_height,
                     run_color,
                     UiTextAlign::Left,
                     command.style.text_direction,
+                    text_paint.writing_mode,
                     UiTextWrap::None,
                     run.style,
                     plan,
@@ -411,11 +437,17 @@ fn push_text_batches(
                 command,
                 line.text.clone(),
                 line.frame,
+                Some(line.source_range),
+                line.glyph_advances.clone(),
+                command.style.font.clone(),
+                command.style.font_family.clone(),
+                command.style.font_weight,
                 layout.font_size,
                 layout.line_height,
                 color,
                 command.style.text_align,
                 line.direction,
+                layout.writing_mode,
                 command.style.wrap,
                 UiTextRunPaintStyle::default(),
                 plan,
@@ -430,12 +462,47 @@ fn push_text_batches(
             command,
             text.clone(),
             fallback_frame,
+            None,
+            Vec::new(),
+            command.style.font.clone(),
+            command.style.font_family.clone(),
+            command.style.font_weight,
             font_size,
             command.style.line_height.max(font_size),
             color,
             command.style.text_align,
             command.style.text_direction,
+            command.style.text_writing_mode,
             command.style.wrap,
+            UiTextRunPaintStyle::default(),
+            plan,
+        );
+    }
+}
+
+fn push_resolved_text_layout_line_batches(
+    command: &UiRenderCommand,
+    layout: &zircon_runtime_interface::ui::surface::UiResolvedTextLayout,
+    color: [f32; 4],
+    plan: &mut PlannedScreenSpaceUi,
+) {
+    for line in &layout.lines {
+        push_text_batch(
+            command,
+            line.text.clone(),
+            line.frame,
+            Some(line.source_range),
+            line.glyph_advances.clone(),
+            command.style.font.clone(),
+            command.style.font_family.clone(),
+            command.style.font_weight,
+            layout.font_size,
+            layout.line_height,
+            color,
+            UiTextAlign::Left,
+            line.direction,
+            layout.writing_mode,
+            UiTextWrap::None,
             UiTextRunPaintStyle::default(),
             plan,
         );
@@ -458,11 +525,17 @@ fn push_text_batch(
     command: &UiRenderCommand,
     text: String,
     frame: UiFrame,
+    source_range: Option<UiTextRange>,
+    glyph_advances: Vec<f32>,
+    font: Option<String>,
+    font_family: Option<String>,
+    font_weight: u16,
     font_size: f32,
     line_height: f32,
     color: [f32; 4],
     text_align: UiTextAlign,
     text_direction: UiTextDirection,
+    writing_mode: UiTextWritingMode,
     wrap: UiTextWrap,
     style: UiTextRunPaintStyle,
     plan: &mut PlannedScreenSpaceUi,
@@ -475,13 +548,17 @@ fn push_text_batch(
         text,
         frame,
         clip_frame: command.clip_frame,
+        source_range,
+        glyph_advances,
         color,
-        font: command.style.font.clone(),
-        font_family: command.style.font_family.clone(),
+        font,
+        font_family,
+        font_weight: UiResolvedStyle::normalized_font_weight(font_weight),
         font_size: font_size.max(1.0),
         line_height: line_height.max(font_size.max(1.0)),
         text_align,
         text_direction,
+        writing_mode,
         wrap,
         style,
     };

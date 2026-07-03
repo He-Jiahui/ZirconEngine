@@ -113,10 +113,7 @@ fn runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass(
         ],
     );
 
-    let runtime_11_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P14 |"))
-        .expect("Runtime index should keep the P14 JobSystem problem row");
+    let runtime_11_problem_row = runtime_index_problem_row_for(runtime_index, "P14", "JobSystem");
     assert_contains_all(
         "Runtime index P14 row",
         runtime_11_problem_row,

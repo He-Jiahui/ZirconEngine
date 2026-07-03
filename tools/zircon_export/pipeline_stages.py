@@ -8,12 +8,14 @@ from typing import Any
 
 from .pipeline_report import pipeline_execution_stage_keys
 from .stage_handoff import (
-    export_strategy_list_is_empty,
-    export_strategy_list_is_invalid,
-    export_strategies_from_validate_report,
     stage_report_diagnostics_diagnostic,
     stage_report_fatal_diagnostic,
     stage_report_identity_diagnostic,
+)
+from .stage_handoff_strategy import (
+    export_strategy_list_is_empty,
+    export_strategy_list_is_invalid,
+    export_strategies_from_validate_report,
     unsupported_export_strategies_from_validate_report,
 )
 

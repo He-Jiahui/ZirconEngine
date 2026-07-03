@@ -5,6 +5,7 @@ use crate::plugin::RuntimePluginAvailabilityReport;
 
 use super::super::ids::RuntimePluginId;
 use super::missing::RuntimeRequiredPluginMissing;
+use crate::core::CoreError;
 
 #[derive(Clone, Debug)]
 pub struct RuntimeModuleLoadReport {
@@ -24,6 +25,12 @@ impl RuntimeModuleLoadReport {
             runtime_plugin_availability: RuntimePluginAvailabilityReport::default(),
             required_missing: Vec::new(),
         }
+    }
+
+    pub(in crate::builtin::runtime_modules) fn from_core_error(error: CoreError) -> Self {
+        let mut report = Self::new(Vec::new());
+        report.errors.push(error.to_string());
+        report
     }
 
     pub(in crate::builtin::runtime_modules) fn with_runtime_plugin_availability(

@@ -1,13 +1,16 @@
+use std::collections::BTreeMap;
+
 use crate::core::framework::render::{
     default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
     sort_render_cameras, CameraRenderDescriptor, DebugOverlayExtract, FallbackSkyboxKind,
-    GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
-    PostProcessVolumeExtract, PreviewEnvironmentExtract, ProjectionMode, RenderCameraOrderInput,
-    RenderCameraOrderReport, RenderExposureSettings, RenderFrameExtract, RenderHybridGiExtract,
-    RenderLayerSet, RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState,
-    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot,
-    RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle,
-    SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
+    GeometryExtract, GeometryPhaseInput, LightingExtract, MaterialPropertyOverrideBlock,
+    ParticleExtract, PostProcessExtract, PostProcessVolumeExtract, PreviewEnvironmentExtract,
+    ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport, RenderExposureSettings,
+    RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet, RenderMeshLodSelection,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract, RenderVirtualGeometryExtract,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SceneViewportRenderPacket,
+    SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
@@ -135,6 +138,7 @@ impl World {
             &extract_layers,
             view.camera.transform.translation,
         );
+        let material_property_overrides = self.material_property_overrides_for_meshes(&meshes);
         let sprites = self.collect_render_sprites(&extract_layers);
         let particles =
             self.collect_render_particles(&camera_layers, view.camera.transform.translation);
@@ -160,7 +164,8 @@ impl World {
                     core_pipeline,
                     meshes,
                     phase_inputs,
-                );
+                )
+                .with_material_property_overrides(material_property_overrides);
                 geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
                     debug: request.virtual_geometry_debug.unwrap_or_default(),
                     ..RenderVirtualGeometryExtract::default()
@@ -252,6 +257,22 @@ impl World {
             .collect::<Vec<_>>();
 
         (meshes, phase_inputs)
+    }
+
+    fn material_property_overrides_for_meshes(
+        &self,
+        meshes: &[RenderMeshSnapshot],
+    ) -> BTreeMap<crate::scene::EntityId, MaterialPropertyOverrideBlock> {
+        meshes
+            .iter()
+            .filter_map(|mesh| {
+                let overrides = &self
+                    .mesh_renderers
+                    .get(&mesh.node_id)?
+                    .material_property_overrides;
+                (!overrides.is_empty()).then(|| (mesh.node_id, overrides.clone()))
+            })
+            .collect()
     }
 
     fn render_mesh_snapshots_for_camera(

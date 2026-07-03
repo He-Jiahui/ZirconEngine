@@ -23,6 +23,7 @@ impl MeshDraw {
         .with_cache_identity(self.source_entity(), self.source_draw_ordinal())
         .with_static_state(self.static_state())
         .with_casts_shadow(self.casts_shadow())
+        .with_disabled_passes(self.disabled_passes)
         .with_taa_reactive_mask_strength(self.taa_reactive_mask_strength)
         .with_visibility(
             self.primitive_relevance,

@@ -52,12 +52,12 @@ fn runtime_15_ui_runtime_input_reply_route_children_are_folder_backed() {
         ],
     );
     assert_eq!(
-        keyboard_parent.matches("#[test]").count(),
+        keyboard_parent.matches(TEST_ATTRIBUTE).count(),
         0,
         "keyboard_navigation_routes.rs should only mount child test owners and shared helpers"
     );
     assert_eq!(
-        tree_parent.matches("#[test]").count(),
+        tree_parent.matches(TEST_ATTRIBUTE).count(),
         0,
         "tree_view_pointer_routes.rs should only mount child test owners and shared helpers"
     );
@@ -144,7 +144,7 @@ fn runtime_15_ui_runtime_input_reply_route_children_are_folder_backed() {
         keyboard_timers_disabled.as_str(),
     ]
     .into_iter()
-    .map(|source| source.matches("#[test]").count())
+    .map(|source| source.matches(TEST_ATTRIBUTE).count())
     .sum::<usize>();
     assert_eq!(
         keyboard_test_total, 15,
@@ -156,7 +156,7 @@ fn runtime_15_ui_runtime_input_reply_route_children_are_folder_backed() {
         tree_virtualization.as_str(),
     ]
     .into_iter()
-    .map(|source| source.matches("#[test]").count())
+    .map(|source| source.matches(TEST_ATTRIBUTE).count())
     .sum::<usize>();
     assert_eq!(
         tree_test_total, 9,
@@ -216,7 +216,7 @@ fn runtime_15_ui_runtime_input_reply_route_children_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
     );
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

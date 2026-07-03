@@ -4,7 +4,6 @@ use super::identity::{is_table_selected, is_table_tail};
 use super::style::{
     table_row_background, table_row_border, table_row_border_width, table_row_style,
 };
-use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
 const TABLE_ROW_RADIUS: f32 = 3.0;
 
@@ -26,34 +25,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         TABLE_ROW_RADIUS,
         opacity,
     ));
-    if is_selected_row(node) {
+    if !is_selected_row(node) {
         commands.push(HostPaintCommand::quad(
-            selection_indicator_rect(rect),
+            FrameRect {
+                x: rect.x,
+                y: rect.y + (rect.height - 1.0).max(0.0),
+                width: rect.width,
+                height: 1.0,
+            },
             Some(clip.clone()),
-            order + 2,
-            Some(PALETTE.accent),
+            order + 1,
+            Some(table_row_style(node).separator),
             None,
             0.0,
             0.0,
             opacity,
         ));
     }
-
-    commands.push(HostPaintCommand::quad(
-        FrameRect {
-            x: rect.x,
-            y: rect.y + (rect.height - 1.0).max(0.0),
-            width: rect.width,
-            height: 1.0,
-        },
-        Some(clip.clone()),
-        order + 1,
-        Some(table_row_style(node).separator),
-        None,
-        0.0,
-        0.0,
-        opacity,
-    ));
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_paint_rect(
@@ -74,13 +62,4 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_p
 
 fn is_selected_row(node: &TemplatePaneNodeData) -> bool {
     node.selected || node.checked || is_table_selected(node)
-}
-
-fn selection_indicator_rect(rect: &FrameRect) -> FrameRect {
-    FrameRect {
-        x: rect.x,
-        y: rect.y,
-        width: METRICS.selection_indicator_width.min(rect.width).max(1.0),
-        height: rect.height,
-    }
 }

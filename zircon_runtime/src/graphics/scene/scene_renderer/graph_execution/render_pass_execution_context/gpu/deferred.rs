@@ -8,9 +8,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &mut self,
         pass_name: &str,
         gbuffer_albedo_resource_name: &str,
+        gbuffer_normal_resource_name: &str,
         gbuffer_material_resource_name: &str,
         depth_resource_name: &str,
         albedo_attachment_ops: RenderGraphAttachmentOps,
+        normal_attachment_ops: RenderGraphAttachmentOps,
         material_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
         let resources = &*self.resources;
@@ -25,6 +27,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resources,
             resource_resolver,
             gbuffer_material_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let gbuffer_normal_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            gbuffer_normal_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
         let depth_view = Self::require_texture_view_by_name(
@@ -45,16 +53,24 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
             format!("deferred graph executor for pass `{pass_name}` requires mesh pipeline context")
         })?;
+        let streamer = self.streamer.ok_or_else(|| {
+            format!(
+                "deferred graph executor for pass `{pass_name}` requires resource streamer context"
+            )
+        })?;
         let replay_stats = deferred.record_gbuffer_geometry(
             self.device,
             self.encoder,
             gbuffer_albedo_view,
+            gbuffer_normal_view,
             gbuffer_material_view,
             depth_view,
             self.scene_bind_group,
             mesh_draw_lists.gpu_scene_bind_group,
+            streamer,
             mesh_pipelines,
             albedo_attachment_ops,
+            normal_attachment_ops,
             material_attachment_ops,
             render_region,
             [

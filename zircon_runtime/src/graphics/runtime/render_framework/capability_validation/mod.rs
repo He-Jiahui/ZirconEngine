@@ -136,7 +136,7 @@ mod tests {
         RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
         RenderPipelineCompileOptions, RendererFeatureAsset,
     };
-    use crate::render_graph::QueueLane;
+    use crate::render_graph::{QueueLane, RenderGraphComputeWorkload};
     use crate::scene::world::World;
 
     use super::{validate_compiled_pipeline_capabilities, validate_quality_profile_capabilities};
@@ -316,6 +316,11 @@ mod tests {
                         QueueLane::AsyncCompute,
                     )
                     .with_executor_id("plugin.neural.capability-validation")
+                    .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                        "plugin-neural-capability-validation",
+                        [1, 1, 1],
+                        [1, 1, 1],
+                    ))
                     .with_side_effects()],
                 )
                 .with_capability_requirement(RenderFeatureCapabilityRequirement::NeuralCompute),

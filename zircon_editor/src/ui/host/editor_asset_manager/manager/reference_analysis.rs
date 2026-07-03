@@ -104,7 +104,7 @@ mod tests {
     fn font_assets_do_not_report_direct_references() {
         let imported = ImportedAsset::Font(FontAsset {
             source: "res://fonts/default.ttf".to_string(),
-            family: Some("Fira Mono".to_string()),
+            family: None,
             render_mode: None,
             face_index: 0,
             family_members: Vec::new(),

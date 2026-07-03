@@ -15,10 +15,10 @@ fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
     );
     let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
     );
     let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
     );
 
     assert_contains_all(
@@ -58,8 +58,8 @@ fn runtime_15_native_host_api_adapter_tests_are_child_owner() {
     );
     assert_eq!(
         parent.matches("#[test]").count() + tests.matches("#[test]").count(),
-        13,
-        "native host API adapter parent plus split child should preserve the original 13 tests"
+        15,
+        "native host API adapter parent plus split child should preserve the current 15 tests"
     );
     for (path, source) in [
         (

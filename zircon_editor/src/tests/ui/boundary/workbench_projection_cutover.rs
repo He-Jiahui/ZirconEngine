@@ -245,7 +245,7 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
 }
 
 #[test]
-fn view_template_projection_is_hard_cut_to_v2_prototype_store() {
+fn view_template_projection_is_hard_cut_to_zui_prototype_store() {
     let view_projection = source_file(&["src", "ui", "layouts", "views", "view_projection.rs"]);
 
     for required in [

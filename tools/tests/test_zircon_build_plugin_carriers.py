@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from tools import zircon_build
+from tools.zircon_build_zui_assets import validate_staged_engine_asset_suffix
 
 
 class ZirconBuildPluginCarrierTests(unittest.TestCase):
@@ -169,6 +170,10 @@ id = 16
             packages["virtual_geometry"].shader_geometry_source_ids,
         )
         self.assertEqual(
+            (),
+            packages["virtual_geometry"].shader_geometry_source_descriptors,
+        )
+        self.assertEqual(
             ("custom:toon=16",),
             packages["virtual_geometry"].shader_shading_model_ids,
         )
@@ -208,6 +213,19 @@ required_channels = 7
             ("custom:toon=16",),
             packages["toon"].shader_shading_model_ids,
         )
+        self.assertEqual(
+            (
+                {
+                    "id": 16,
+                    "token": "custom:toon",
+                    "forward_include": "zr_shading_toon",
+                    "gbuffer_encode_include": "zr_gbuffer_encode_toon",
+                    "deferred_include": "zr_shade_deferred_toon",
+                    "required_channels": 7,
+                },
+            ),
+            packages["toon"].shader_shading_model_descriptors,
+        )
 
     def test_zircon_build_discovers_plugin_geometry_source_descriptors_as_shader_ids(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -243,6 +261,74 @@ shader_defines = []
         self.assertEqual(
             ("custom:virtual_geometry=4",),
             packages["virtual_geometry"].shader_geometry_source_ids,
+        )
+        self.assertEqual(
+            (
+                {
+                    "id": 4,
+                    "token": "custom:virtual_geometry",
+                    "wgsl_include": "zr_geometry_virtual_geometry.wgsl",
+                    "vertex_attributes": ["position", "normal", "uv0"],
+                    "required_bindings": [],
+                    "shader_defines": [],
+                },
+            ),
+            packages["virtual_geometry"].shader_geometry_source_descriptors,
+        )
+
+    def test_zircon_build_selects_plugin_contributions_for_runtime_prewarm(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            plugins_root = repo_root / "zircon_plugins"
+            plugins_root.mkdir()
+            self._write_workspace(plugins_root, ["virtual_geometry/native"])
+            self._write_crate(
+                plugins_root / "virtual_geometry/native",
+                "zircon_plugin_virtual_geometry_native",
+                ['"cdylib"'],
+            )
+            self._write_plugin(
+                plugins_root / "virtual_geometry/plugin.toml",
+                "virtual_geometry",
+                "zircon_plugin_virtual_geometry_native",
+                """
+[[geometry_sources]]
+id = 4
+token = "custom:virtual_geometry"
+wgsl_include = "zr_geometry_virtual_geometry.wgsl"
+vertex_attributes = ["position", "normal", "uv0"]
+required_bindings = []
+shader_defines = []
+""",
+            )
+
+            args = zircon_build.parse_args(
+                [
+                    "--targets",
+                    "runtime",
+                    "--plugins",
+                    "virtual_geometry",
+                    "--out",
+                    str(repo_root / "out"),
+                    "--mode",
+                    "debug",
+                    "--prewarm-shaders",
+                ]
+            )
+            config = zircon_build.resolve_config(
+                args,
+                repo_root,
+                zircon_build.discover_plugins(repo_root),
+            )
+
+        self.assertEqual(("runtime",), config.targets)
+        self.assertEqual(
+            ("virtual_geometry",),
+            tuple(plugin.plugin_id for plugin in config.plugins),
+        )
+        self.assertEqual(
+            ("custom:virtual_geometry=4",),
+            config.plugins[0].shader_geometry_source_ids,
         )
 
     def test_zircon_build_discovers_plugin_asset_roots_for_shader_prewarm(self):
@@ -299,6 +385,10 @@ crate_name = "zircon_plugin_toon_native"
                 ['"cdylib"'],
             )
             (plugins_root / "native_fixture/assets").mkdir()
+            (plugins_root / "native_fixture/assets/asset.txt").write_text(
+                "asset\n",
+                encoding="utf-8",
+            )
             (plugins_root / "native_fixture/plugin.toml").write_text(
                 """
 id = "native_fixture"
@@ -324,6 +414,38 @@ crate_name = "zircon_plugin_native_fixture_native"
             (plugins_root / "native_fixture/assets",),
             packages["native_fixture"].asset_roots,
         )
+
+    def test_zircon_build_rejects_distribution_assets_zui_document_kind_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            plugins_root = repo_root / "zircon_plugins"
+            plugins_root.mkdir()
+            self._write_workspace(plugins_root, ["zui_assets/native"])
+            self._write_crate(
+                plugins_root / "zui_assets/native",
+                "zircon_plugin_zui_assets_native",
+                ['"cdylib"'],
+            )
+            ui_root = plugins_root / "zui_assets/assets/ui"
+            ui_root.mkdir(parents=True)
+            (ui_root / "bad_kind.zui").write_text(
+                '[asset]\nkind = "blueprint"\n',
+                encoding="utf-8",
+            )
+            self._write_plugin(
+                plugins_root / "zui_assets/plugin.toml",
+                "zui_assets",
+                "zircon_plugin_zui_assets_native",
+                'assets = ["assets/ui/*.zui"]',
+            )
+
+            with self.assertRaisesRegex(
+                SystemExit,
+                "plugin zui_assets distribution.assets\\[0\\] matched .zui "
+                "asset assets/ui/bad_kind.zui has unsupported asset.kind "
+                "blueprint; expected one of component, style, theme_tokens, view",
+            ):
+                zircon_build.discover_plugins(repo_root)
 
     def test_zircon_build_uses_existing_default_plugin_assets_root(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -387,10 +509,13 @@ crate_name = "zircon_plugin_bad_assets_native"
     def test_zircon_build_rejects_staged_legacy_ui_document_suffixes(self):
         with tempfile.TemporaryDirectory() as tmp:
             source = Path(tmp) / "assets/ui/editor/panel.ui.toml"
+            zui_source = Path(tmp) / "assets/ui/editor/panel.zui"
+            zui_source.parent.mkdir(parents=True)
+            zui_source.write_text('[asset]\nkind = "view"\n', encoding="utf-8")
 
-            zircon_build.validate_staged_engine_asset_suffix(
+            validate_staged_engine_asset_suffix(
                 Path("ui/editor/panel.zui"),
-                source.with_suffix(".zui"),
+                zui_source,
             )
             for relative in (
                 Path("ui/editor/panel.ui.toml"),
@@ -401,7 +526,24 @@ crate_name = "zircon_plugin_bad_assets_native"
                         SystemExit,
                         "Legacy UI document suffix is not stageable",
                     ):
-                        zircon_build.validate_staged_engine_asset_suffix(relative, source)
+                        validate_staged_engine_asset_suffix(relative, source)
+
+    def test_zircon_build_rejects_staged_zui_document_kind_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "assets/ui/editor/panel.zui"
+            source.parent.mkdir(parents=True)
+            source.write_text('[asset]\nkind = "blueprint"\n', encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                SystemExit,
+                "staged engine asset matched .zui asset "
+                "ui/editor/panel.zui has unsupported asset.kind blueprint; "
+                "expected one of component, style, theme_tokens, view",
+            ):
+                validate_staged_engine_asset_suffix(
+                    Path("ui/editor/panel.zui"),
+                    source,
+                )
 
     def _write_workspace(self, plugins_root: Path, members: list[str]):
         members_toml = "\n".join(f'    "{member}",' for member in members)

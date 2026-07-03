@@ -9,9 +9,11 @@ from unittest import mock
 from tools.zircon_export.tests.export_test_support import (
     _export_args,
     _run_stage_quiet,
-    _write_native_dynamic_package_fixture,
     _write_validate_report_with_native_dynamic_exports,
     json_loads,
+)
+from tools.zircon_export.tests.native_dynamic_export_test_support import (
+    _write_native_dynamic_package_fixture,
 )
 
 
@@ -91,7 +93,7 @@ class NativeDynamicCopyFileErrorsTests(unittest.TestCase):
                 original_copy2(source, destination)
 
             with mock.patch(
-                "tools.zircon_export.native_dynamic.shutil.copy2",
+                "tools.zircon_export.native_dynamic_materialize_io.shutil.copy2",
                 side_effect=copy_or_fail,
             ):
                 exit_code = _run_stage_quiet(args)
@@ -255,7 +257,7 @@ class NativeDynamicCopyFileErrorsTests(unittest.TestCase):
                 original_rmtree(path)
 
             with mock.patch(
-                "tools.zircon_export.native_dynamic.shutil.rmtree",
+                "tools.zircon_export.native_dynamic_materialize_io.shutil.rmtree",
                 side_effect=rmtree_or_fail,
             ):
                 exit_code = _run_stage_quiet(args)
@@ -316,10 +318,10 @@ class NativeDynamicCopyFileErrorsTests(unittest.TestCase):
                 original_rmtree(path)
 
             with mock.patch(
-                "tools.zircon_export.native_dynamic.shutil.copy2",
+                "tools.zircon_export.native_dynamic_materialize_io.shutil.copy2",
                 side_effect=copy_or_fail,
             ), mock.patch(
-                "tools.zircon_export.native_dynamic.shutil.rmtree",
+                "tools.zircon_export.native_dynamic_materialize_io.shutil.rmtree",
                 side_effect=rmtree_or_fail,
             ):
                 exit_code = _run_stage_quiet(args)
@@ -378,10 +380,10 @@ class NativeDynamicCopyFileErrorsTests(unittest.TestCase):
                 original_rmtree(path)
 
             with mock.patch(
-                "tools.zircon_export.native_dynamic.shutil.copy2",
+                "tools.zircon_export.native_dynamic_materialize_io.shutil.copy2",
                 side_effect=copy_or_fail,
             ), mock.patch(
-                "tools.zircon_export.native_dynamic.shutil.rmtree",
+                "tools.zircon_export.native_dynamic_materialize_io.shutil.rmtree",
                 side_effect=rmtree_or_fail,
             ):
                 exit_code = _run_stage_quiet(args)

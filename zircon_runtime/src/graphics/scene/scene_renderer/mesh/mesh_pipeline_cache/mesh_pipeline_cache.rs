@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::{
-    GeometrySourceId, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
-    GEOMETRY_SOURCE_ID_STATIC_MESH,
+    GeometrySourceDescriptor, GeometrySourceId, ShaderQualityTier, ShaderVariantKey,
+    ShaderVariantMissReport, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::PipelineKey;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -49,6 +49,8 @@ pub(crate) struct MeshPipelineCache {
         HashMap<MeshPipelineVariantId, wgpu::RenderPipeline>,
     pub(in crate::graphics::scene::scene_renderer::mesh) pipeline_variant_registry:
         MeshPipelineVariantRegistry,
+    pub(in crate::graphics::scene::scene_renderer::mesh) geometry_source_descriptors:
+        HashMap<GeometrySourceId, GeometrySourceDescriptor>,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_variant_disk_cache:
         ShaderVariantCacheDisk,
 }
@@ -93,6 +95,36 @@ impl MeshPipelineCache {
             key.pipeline_key().clone(),
             key.shader_variant_key().clone(),
         ))
+    }
+
+    pub(crate) fn register_geometry_source_descriptor(
+        &mut self,
+        descriptor: GeometrySourceDescriptor,
+    ) {
+        self.geometry_source_descriptors
+            .insert(descriptor.id, descriptor);
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::mesh) fn geometry_source_descriptor(
+        &self,
+        geometry_source: GeometrySourceId,
+    ) -> Option<GeometrySourceDescriptor> {
+        self.geometry_source_descriptors
+            .get(&geometry_source)
+            .cloned()
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::mesh) fn geometry_source_descriptor_for_variant(
+        &mut self,
+        key: &ShaderVariantKey,
+    ) -> Option<GeometrySourceDescriptor> {
+        match self.geometry_source_descriptor(key.geometry_source) {
+            Some(descriptor) => Some(descriptor),
+            None => {
+                self.record_shader_variant_disk_error(key);
+                None
+            }
+        }
     }
 
     pub(crate) fn reset_shader_variant_miss_report(&mut self) {

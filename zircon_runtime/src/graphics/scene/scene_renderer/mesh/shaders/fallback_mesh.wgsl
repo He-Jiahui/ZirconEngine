@@ -19,17 +19,17 @@ struct MaterialPropertyUniform {
     data8: vec4<f32>,
 };
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(2) @binding(0) var albedo_tex: texture_2d<f32>;
-@group(2) @binding(1) var albedo_sampler: sampler;
-@group(2) @binding(2) var normal_tex: texture_2d<f32>;
-@group(2) @binding(3) var normal_sampler: sampler;
-@group(2) @binding(4) var metallic_roughness_tex: texture_2d<f32>;
-@group(2) @binding(5) var metallic_roughness_sampler: sampler;
-@group(2) @binding(6) var occlusion_tex: texture_2d<f32>;
-@group(2) @binding(7) var occlusion_sampler: sampler;
-@group(2) @binding(8) var emissive_tex: texture_2d<f32>;
-@group(2) @binding(9) var emissive_sampler: sampler;
-@group(2) @binding(10) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(0) var<uniform> material_properties: MaterialPropertyUniform;
+@group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+@group(2) @binding(2) var albedo_sampler: sampler;
+@group(2) @binding(3) var normal_tex: texture_2d<f32>;
+@group(2) @binding(4) var normal_sampler: sampler;
+@group(2) @binding(5) var metallic_roughness_tex: texture_2d<f32>;
+@group(2) @binding(6) var metallic_roughness_sampler: sampler;
+@group(2) @binding(7) var occlusion_tex: texture_2d<f32>;
+@group(2) @binding(8) var occlusion_sampler: sampler;
+@group(2) @binding(9) var emissive_tex: texture_2d<f32>;
+@group(2) @binding(10) var emissive_sampler: sampler;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,

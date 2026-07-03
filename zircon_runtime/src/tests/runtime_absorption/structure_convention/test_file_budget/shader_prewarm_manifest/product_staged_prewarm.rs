@@ -1,10 +1,25 @@
 use super::*;
 
+const PRODUCT_STAGED_PREWARM_OWNER_SPLIT_VELOCITY_STATUS: &str =
+    "render_plan08_product_material_mesh_staged_prewarm_owner_split_velocity_static_passed_cargo_deferred_active_lanes";
+
 #[test]
 fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
     let product_parent = read_runtime_src("graphics/tests/render_product_mesh_cache.rs");
-    let product_staged =
-        read_runtime_src("graphics/tests/render_product_mesh_cache/staged_prewarm.rs");
+    let product_staged_dir = "graphics/tests/render_product_mesh_cache/staged_prewarm";
+    assert!(
+        !repo_path("zircon_runtime/src/graphics/tests/render_product_mesh_cache/staged_prewarm.rs")
+            .exists(),
+        "product staged prewarm owner should stay folder-backed instead of returning to one oversized file"
+    );
+    let product_staged_mod = read_runtime_src(&format!("{product_staged_dir}/mod.rs"));
+    let product_staged_material_passes =
+        read_runtime_src(&format!("{product_staged_dir}/material_passes.rs"));
+    let product_staged = [
+        product_staged_mod.as_str(),
+        product_staged_material_passes.as_str(),
+    ]
+    .join("\n");
     let mesh_cache = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs",
     );
@@ -61,6 +76,14 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
             "disk_hit_count",
             "disk_write_count",
             "disk_error_count",
+            "mod material_passes;",
+            "render_product_material_mesh_passes_second_launch_use_staged_prewarm_without_compile_miss",
+            "temporal.velocity-object",
+            "last_mesh_previous_velocity_transform_draw_count",
+            "last_mesh_missing_velocity_transform_draw_count, 0",
+            "report.dimension_summary.pass_types.get(\"velocity\")",
+            "velocity pass",
+            "previous velocity transform",
         ],
     );
 
@@ -85,8 +108,12 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
             product_parent.as_str(),
         ),
         (
-            "graphics/tests/render_product_mesh_cache/staged_prewarm.rs",
-            product_staged.as_str(),
+            "graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs",
+            product_staged_mod.as_str(),
+        ),
+        (
+            "graphics/tests/render_product_mesh_cache/staged_prewarm/material_passes.rs",
+            product_staged_material_passes.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -115,8 +142,32 @@ fn runtime_15_product_base_mesh_staged_prewarm_is_wired() {
                 "render_plan08_product_base_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred",
                 "render_plan08_runtime_shader_variant_dimension_correlation_product_passed_renderdoc_deferred",
                 "render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss",
-                "graphics/tests/render_product_mesh_cache/staged_prewarm.rs",
+                "graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs",
                 "runtime_15_product_base_mesh_staged_prewarm_is_wired",
+            ],
+        );
+    }
+
+    let current_session_doc =
+        read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
+    for (label, source) in [
+        ("Plan 08", plan_08.as_str()),
+        ("render index", render_index.as_str()),
+        ("shader doc", shader_doc.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("current render session doc", current_session_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Product material mesh staged prewarm owner split + Velocity runtime contract",
+                PRODUCT_STAGED_PREWARM_OWNER_SPLIT_VELOCITY_STATUS,
+                "staged_prewarm/material_passes.rs",
+                "temporal.velocity-object",
+                "velocity pass",
+                "previous velocity transform",
             ],
         );
     }

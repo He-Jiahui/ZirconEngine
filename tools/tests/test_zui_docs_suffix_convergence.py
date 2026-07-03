@@ -175,74 +175,173 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
                 + "\n".join(failures)
             )
 
-    def test_ui_asset_management_plan_uses_zui_for_current_asset_scope(self):
+    def test_plugin_export_plan_m6_current_progress_uses_zui_report_templates(self):
         repo_root = Path(__file__).resolve().parents[2]
         plan_text = (
-            repo_root / "docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md"
+            repo_root / "docs/plans/zircon_plugins/09-export-publishing.md"
         ).read_text(encoding="utf-8")
-        current_goal = _section(
+        current_progress = _section(
             plan_text,
-            "## 1. 目标",
-            "## 2. 现状（按代码核实修正）",
+            "#### M6 当前进度（2026-06-14）",
+            "## 5. 里程碑与任务分解",
         )
 
         stale_phrases = [
-            "`.zui` 单组件、`.v2.ui.toml` 页面模板",
-            "`.v2.ui.toml` 页面模板",
+            "当前仍不声明 `.zui` 模板",
+            "主面板与三类报告现在是 `.v2.ui.toml` view 模板",
+            "当前不声明 `.v2.ui.toml` 真实渲染",
         ]
         required_phrases = [
-            "`.zui` UI 文档",
-            "component / view / style / theme_tokens",
+            "主面板与三类报告当前均为 `.zui` view 模板",
+            "profile drawer 保持 `.zui` component 模板",
             "`.ui.toml` / `.v2.ui.toml` 后缀已退役",
         ]
 
         failures: list[str] = []
         for phrase in stale_phrases:
-            if phrase in current_goal:
-                failures.append(f"stale UI asset management scope: {phrase}")
+            if phrase in current_progress:
+                failures.append(f"stale export wizard template authority: {phrase}")
         for phrase in required_phrases:
-            if phrase not in current_goal:
-                failures.append(f"missing UI asset management zui scope fact: {phrase}")
+            if phrase not in current_progress:
+                failures.append(f"missing export wizard zui authority fact: {phrase}")
 
         if failures:
             self.fail(
-                "UI asset management plan current goal still references retired UI suffixes:\n"
+                "Plugin export plan M6 current progress still references retired report-template suffixes:\n"
                 + "\n".join(failures)
             )
 
-    def test_style_theme_plan_token_scan_targets_zui_documents_only(self):
+    def test_editor_build_export_desktop_doc_current_templates_use_zui(self):
         repo_root = Path(__file__).resolve().parents[2]
-        plan_text = (
-            repo_root
-            / "docs/plans/zircon_editor/editor_ui/04-style-theme-and-painter-selector.md"
+        doc_text = (
+            repo_root / "docs/zircon_plugins/editor-build-export-desktop.md"
         ).read_text(encoding="utf-8")
-        milestone_table = _section(
-            plan_text,
-            "## 7. 里程碑切片化",
-            "## 8. 测试矩阵（代表性用例）",
+        current_sections = "\n".join(
+            [
+                _section(doc_text, "## Contributions", "## Boundary"),
+                _section(doc_text, "## Boundary", "## Validation"),
+            ]
         )
 
         stale_phrases = [
-            "扫 `.zui`/`*.v2.ui.toml`/`paint_template_nodes` 源",
+            "plugin-private `.v2.ui.toml` view templates",
+            "registered `.v2.ui.toml` templates",
+            "that `.v2.ui.toml` document",
+            "UI templates may point at `.zui` components or `.v2.ui.toml` view templates",
+            "UI templates can use `.v2.ui.toml`",
         ]
         required_phrases = [
-            "扫 `.zui` UI 文档与 `paint_template_nodes` 源",
+            "plugin-private `.zui` view templates",
+            "registered `.zui` templates",
+            "that `.zui` document",
+            "UI templates now point at `.zui` view or component templates",
+            "UI templates use `.zui` documents",
+            "stale `.ui.toml` and `.v2.ui.toml` documents are rejected",
         ]
 
         failures: list[str] = []
         for phrase in stale_phrases:
-            if phrase in milestone_table:
-                failures.append(f"stale token scan target: {phrase}")
+            if phrase in current_sections:
+                failures.append(f"stale desktop export template suffix: {phrase}")
         for phrase in required_phrases:
-            if phrase not in milestone_table:
-                failures.append(f"missing zui-only token scan target: {phrase}")
+            if phrase not in current_sections:
+                failures.append(f"missing desktop export zui fact: {phrase}")
 
         if failures:
             self.fail(
-                "Style/theme plan token scan still targets retired UI suffixes:\n"
+                "Desktop export plugin doc still describes current templates with retired suffix authority:\n"
                 + "\n".join(failures)
             )
 
+    def test_editor_command_workflow_component_drawer_uses_zui_document_authority(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        workflow_text = (
+            repo_root / "docs/editor-and-tooling/editor-command-workflow.md"
+        ).read_text(encoding="utf-8")
+        drawer_projection = _section(
+            workflow_text,
+            "### Component Drawer Template Projection",
+            "### EditorOperation 分派",
+        )
+
+        stale_phrases = [
+            "UI document must be a `.v2.ui.toml` asset",
+            "registry rejects legacy `.ui.toml` drawer and template documents",
+        ]
+        required_phrases = [
+            "UI document must be a `.zui` component asset",
+            "registry rejects stale `.ui.toml` and `.v2.ui.toml` drawer/template documents",
+        ]
+
+        failures: list[str] = []
+        for phrase in stale_phrases:
+            if phrase in drawer_projection:
+                failures.append(f"stale component drawer document authority: {phrase}")
+        for phrase in required_phrases:
+            if phrase not in drawer_projection:
+                failures.append(f"missing component drawer zui authority fact: {phrase}")
+
+        if failures:
+            self.fail(
+                "Editor command workflow still describes component drawer documents with retired suffix authority:\n"
+                + "\n".join(failures)
+            )
+
+    def test_editor_workbench_shell_current_authority_uses_zui_host_assets(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        shell_text = (
+            repo_root / "docs/editor-and-tooling/editor-workbench-shell.md"
+        ).read_text(encoding="utf-8")
+        current_sections = "\n".join(
+            [
+                _section(shell_text, "## Purpose", "## Ownership"),
+                _section(shell_text, "## Template Authority", "## Input Authority"),
+                _section(
+                    shell_text,
+                    "## Host Contract And Painter",
+                    "## Hard Cutover From Deleted Slint Host",
+                ),
+                _section(shell_text, "## Hard Cutover From Deleted Slint Host", "## Validation"),
+                shell_text[shell_text.index("## Validation") :],
+            ]
+        )
+
+        stale_phrases = [
+            "consumes `.ui.toml` host assets",
+            "The current shell structure comes from source-controlled `.ui.toml` assets",
+            "Current root-shell frame authority is the host `.ui.toml` geometry",
+            "workbench_shell.ui.toml",
+            "floating_window_source.ui.toml",
+            "workbench_drawer_source.ui.toml",
+            "come from `.ui.toml`, shared surface projection",
+            "Current code, tests, docs, and validation commands should use `retained_host`, `.ui.toml`",
+            "editor boundary tests for `.ui.toml` host assets",
+        ]
+        required_phrases = [
+            "consumes `.zui` host assets",
+            "The current shell structure comes from source-controlled `.zui` assets",
+            "Current root-shell frame authority is the host `.zui` geometry",
+            "workbench_shell.zui",
+            "floating_window_source.zui",
+            "drawer source frame recompute remains owned by `workbench_drawer_source/layout.rs`",
+            "come from `.zui`, shared surface projection",
+            "Current code, tests, docs, and validation commands should use `retained_host`, `.zui`, and Rust-owned `host_contract` names",
+            "editor boundary tests for `.zui` host assets",
+        ]
+
+        failures: list[str] = []
+        for phrase in stale_phrases:
+            if phrase in current_sections:
+                failures.append(f"stale workbench shell host asset authority: {phrase}")
+        for phrase in required_phrases:
+            if phrase not in current_sections:
+                failures.append(f"missing workbench shell zui authority fact: {phrase}")
+
+        if failures:
+            self.fail(
+                "Editor workbench shell doc still describes current host assets with retired suffix authority:\n"
+                + "\n".join(failures)
+            )
 
 if __name__ == "__main__":
     unittest.main()

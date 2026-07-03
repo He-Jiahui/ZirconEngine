@@ -10,6 +10,8 @@ fn runtime_15_ui_shared_core_tests_are_folder_backed() {
         read_runtime_src("ui/tests/shared_core/layout_surface/render_extract.rs");
     let box_flow = read_runtime_src("ui/tests/shared_core/box_flow.rs");
     let input_visibility = read_runtime_src("ui/tests/shared_core/input_visibility.rs");
+    let input_visibility_pointer =
+        read_runtime_src("ui/tests/shared_core/input_visibility/pointer_routes.rs");
     let navigation = read_runtime_src("ui/tests/shared_core/navigation.rs");
     let scroll_mutation = read_runtime_src("ui/tests/shared_core/scroll_mutation.rs");
     let scroll_mutation_property =
@@ -91,7 +93,7 @@ fn runtime_15_ui_shared_core_tests_are_folder_backed() {
     );
     assert_contains_all(
         "UI shared core input visibility child owns pointer/visibility contracts",
-        &input_visibility,
+        &input_visibility_pointer,
         &[
             "fn pointer_dispatcher_exposes_pointer_button_to_shared_route_handlers",
             "fn pointer_capture_routes_move_and_up_to_the_captured_node",
@@ -180,6 +182,10 @@ fn runtime_15_ui_shared_core_tests_are_folder_backed() {
         (
             "ui/tests/shared_core/input_visibility.rs",
             input_visibility.as_str(),
+        ),
+        (
+            "ui/tests/shared_core/input_visibility/pointer_routes.rs",
+            input_visibility_pointer.as_str(),
         ),
         ("ui/tests/shared_core/navigation.rs", navigation.as_str()),
         (

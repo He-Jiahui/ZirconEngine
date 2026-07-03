@@ -39,12 +39,12 @@ fn runtime_diagnostics_plugin_contributes_view_and_capability() {
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.editor.runtime_diagnostics.Open"));
+        .any(|menu| menu.operation().as_str() == "view.editor.runtime_diagnostics.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.editor.runtime_diagnostics.Open"));
+        .any(|operation| operation.path().as_str() == "view.editor.runtime_diagnostics.open"));
 }
 
 #[test]

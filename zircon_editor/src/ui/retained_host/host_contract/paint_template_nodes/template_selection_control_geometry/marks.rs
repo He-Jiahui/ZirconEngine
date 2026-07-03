@@ -1,15 +1,14 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::metrics::{
-    SELECTION_LABEL_GAP, SELECTION_MARK_INSET_X, SELECTION_MARK_SIZE, SELECTION_TEXT_INSET_Y,
-};
+use super::metrics::{workbench_selection_control_metrics, WorkbenchSelectionControlMetrics};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn leading_mark_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> FrameRect {
-    let mark_size = selection_mark_size(node);
+    let metrics = workbench_selection_control_metrics();
+    let mark_size = selection_mark_size(node, metrics);
     FrameRect {
-        x: rect.x + SELECTION_MARK_INSET_X,
+        x: rect.x + metrics.mark_inset_x,
         y: rect.y + (rect.height - mark_size).max(0.0) * 0.5,
         width: mark_size,
         height: mark_size,
@@ -21,12 +20,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn label_r
     rect: &FrameRect,
     mark: &FrameRect,
 ) -> FrameRect {
+    let metrics = workbench_selection_control_metrics();
     let x = mark.x + mark.width + selection_label_gap(node);
     FrameRect {
         x,
-        y: rect.y + SELECTION_TEXT_INSET_Y,
-        width: (rect.x + rect.width - x - SELECTION_MARK_INSET_X).max(1.0),
-        height: (rect.height - SELECTION_TEXT_INSET_Y * 2.0).max(1.0),
+        y: rect.y + metrics.text_inset_y,
+        width: (rect.x + rect.width - x - metrics.mark_inset_x).max(1.0),
+        height: (rect.height - metrics.text_inset_y * 2.0).max(1.0),
     }
 }
 
@@ -36,7 +36,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selecti
     if node.layout_content_offset_x > 0.0 {
         node.layout_content_offset_x
     } else {
-        SELECTION_LABEL_GAP
+        workbench_selection_control_metrics().label_gap
     }
 }
 
@@ -53,10 +53,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centere
     }
 }
 
-fn selection_mark_size(node: &TemplatePaneNodeData) -> f32 {
+fn selection_mark_size(
+    node: &TemplatePaneNodeData,
+    metrics: WorkbenchSelectionControlMetrics,
+) -> f32 {
     if node.layout_icon_size > 0.0 {
         node.layout_icon_size
     } else {
-        SELECTION_MARK_SIZE
+        metrics.mark_size
     }
 }

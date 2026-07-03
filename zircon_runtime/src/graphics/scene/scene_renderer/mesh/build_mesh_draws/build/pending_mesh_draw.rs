@@ -1,11 +1,16 @@
 use std::sync::Arc;
 
 use crate::asset::ModelPrimitiveAsset;
-use crate::core::framework::render::{RenderMeshLodSelection, RenderMeshStaticState};
+use crate::core::framework::render::{
+    RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshStaticState,
+};
 use crate::core::framework::scene::EntityId;
 use crate::core::framework::scene::Mobility;
 use crate::core::math::Vec4;
-use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResource};
+use crate::graphics::scene::gpu_scene::{GpuMorphDelta, GpuMorphWeight};
+use crate::graphics::scene::resources::{
+    GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses,
+};
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MaterialTextureSet, MeshCommandSortInput,
 };
@@ -17,6 +22,8 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 pub(super) enum PendingMeshGeometry {
     Prepared(Arc<GpuMeshResource>),
     Dynamic(ModelPrimitiveAsset),
+    CpuMorphed(ModelPrimitiveAsset),
+    GpuMorphed(Arc<GpuMeshResource>),
 }
 
 #[derive(Clone)]
@@ -44,6 +51,15 @@ impl PendingSkinnedGpuSource {
     }
 }
 
+#[derive(Clone, Debug)]
+pub(super) struct PendingMorphPayload {
+    pub(super) vertex_count: u32,
+    pub(super) target_count: u32,
+    pub(super) deltas: Vec<GpuMorphDelta>,
+    pub(super) weights: Vec<GpuMorphWeight>,
+    pub(super) previous_weights: Vec<GpuMorphWeight>,
+}
+
 #[derive(Clone)]
 pub(super) struct PendingMeshDraw {
     pub(super) mesh: PendingMeshGeometry,
@@ -54,11 +70,16 @@ pub(super) struct PendingMeshDraw {
     pub(super) static_state: RenderMeshStaticState,
     pub(super) material_textures: MaterialTextureSet,
     pub(super) material_uniform: Arc<GpuMaterialUniformResource>,
+    pub(super) material_uniform_override_payload: Option<RenderMaterialPropertyUniformPayload>,
     pub(super) standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pub(super) pipeline_key: crate::graphics::scene::resources::PipelineKey,
+    pub(super) morph_payload: Option<Arc<PendingMorphPayload>>,
+    pub(super) source_morph_weights: Option<Vec<f32>>,
+    pub(super) morph_payload_slot: Option<u32>,
     pub(super) mesh_lod: Option<RenderMeshLodSelection>,
     pub(super) cast_shadows: bool,
     pub(super) receive_shadows: bool,
+    pub(super) disabled_passes: MaterialDisabledPasses,
     pub(super) taa_reactive_mask_strength: f32,
     pub(super) model_matrix: [[f32; 4]; 4],
     pub(super) draw_tint: Vec4,

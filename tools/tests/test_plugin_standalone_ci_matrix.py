@@ -38,6 +38,38 @@ class PluginStandaloneCiMatrixTests(unittest.TestCase):
             job_block,
         )
 
+    def test_plugin_standalone_dist_ci_matrix_covers_feature_extension_targets(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        expected_feature_entries = {
+            (
+                "sound_timeline_animation_track",
+                "zircon_plugin_sound_timeline_animation_dist",
+            ),
+            (
+                "sound_ray_traced_convolution_reverb",
+                "zircon_plugin_sound_ray_traced_convolution_dist",
+            ),
+        }
+
+        audit = audit_plugin_dependency_boundary(repo_root).to_json()
+        audit_entries = {
+            (entry["plugin_id"], entry["package"])
+            for entry in audit["dist_build_matrix_entries"]
+        }
+        workflow_text = (repo_root / ".github" / "workflows" / "ci.yml").read_text(
+            encoding="utf-8"
+        )
+        workflow_entries = standalone_dist_ci_matrix_entries(workflow_text)
+
+        self.assertTrue(
+            expected_feature_entries <= audit_entries,
+            "structure audit dist matrix should include feature extension targets",
+        )
+        self.assertTrue(
+            expected_feature_entries <= workflow_entries,
+            "CI dist matrix should include feature extension targets",
+        )
+
 
 def standalone_dist_ci_matrix_entries(workflow_text: str) -> set[tuple[str, str]]:
     job_block = standalone_dist_ci_job_block(workflow_text)

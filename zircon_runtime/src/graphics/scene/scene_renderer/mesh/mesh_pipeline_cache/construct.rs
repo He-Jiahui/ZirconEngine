@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::core::framework::render::builtin_geometry_source_descriptors;
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::forward_shadow_receiver::{
@@ -61,6 +62,10 @@ impl MeshPipelineCache {
             taa_reactive_mask_mesh_pipelines: HashMap::new(),
             taa_reactive_material_mask_mesh_pipelines: HashMap::new(),
             pipeline_variant_registry: MeshPipelineVariantRegistry::default(),
+            geometry_source_descriptors: builtin_geometry_source_descriptors()
+                .into_iter()
+                .map(|descriptor| (descriptor.id, descriptor))
+                .collect(),
             shader_variant_disk_cache: default_runtime_shader_cache(),
         }
     }

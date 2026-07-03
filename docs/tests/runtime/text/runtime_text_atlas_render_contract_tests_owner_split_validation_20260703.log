@@ -1,0 +1,19 @@
+Runtime Text atlas render_contract tests owner split validation
+timestamp: 2026-07-03 22:30:06 +08:00
+source: zircon_runtime\src\graphics\text\atlas\render_contract.rs
+tests: zircon_runtime\src\graphics\text\atlas\render_contract\tests.rs
+git_status: ?? zircon_runtime/src/graphics/text/atlas/render_contract.rs
+?? zircon_runtime/src/graphics/text/atlas/render_contract/tests.rs
+source_lines: 113
+source_test_functions: 0
+source_test_hook_count: 1
+test_lines: 132
+test_functions: 8
+rustfmt_check: passed
+git_diff_check_tracked_paths: passed
+manual_trailing_whitespace_scan: passed
+cargo_status: deferred: active external cargo/rustc lanes detected
+active_cargo_rustc: cargo:10844, cargo:15628, cargo:18928, cargo:20036, cargo:28064, cargo:33672, cargo:38500, cargo:40640, rustc:18620, rustc:25684, rustc:35900, rustc:43404
+target_same_name_match_count: 0
+proof_location_policy: docs/tests/runtime/text only; no target output
+png_sha256: BF3B401DC99D3A59791736AC93E77E9B75D235A152D75B55324A93B6D7B2EEE3

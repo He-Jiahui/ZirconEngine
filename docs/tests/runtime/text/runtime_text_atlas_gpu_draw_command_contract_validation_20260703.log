@@ -1,0 +1,32 @@
+Runtime text atlas GPU draw command contract validation - 2026-07-03
+
+Source change:
+- zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs
+  - Added GlyphAtlasGpuDrawCommand and GlyphAtlasGpuPrimitiveTopology::TriangleList.
+  - Added draw_commands to GlyphAtlasGpuDrawPlan.
+  - Each non-empty atlas GPU batch now emits an explicit draw command with vertex_start, vertex_count, render_contract, and atlas_layer.
+  - Added regression: render_text_atlas_gpu_draw_commands_follow_batch_quad_ranges.
+
+Expected command contract:
+- Command 0: AlphaMask page 0, TriangleList, start 0, count 12, quads 2, triangles 4, layer 0, StandardAlpha.
+- Command 1: Color page 3, TriangleList, start 12, count 6, quads 1, triangles 2, layer 3, SourceRgba.
+
+Verification commands:
+1. rustfmt --edition 2021 --check zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs
+   Result: passed, exit code 0.
+
+2. Static source token scan:
+   Required tokens: GlyphAtlasGpuDrawCommand, GlyphAtlasGpuPrimitiveTopology, draw_commands, glyph_atlas_gpu_draw_command, render_text_atlas_gpu_draw_commands_follow_batch_quad_ranges, GLYPH_ATLAS_GPU_QUAD_VERTEX_COUNT.
+   Result: 0 missing tokens.
+
+3. Focused Cargo status:
+   Result: deferred. Existing cargo/rustc lanes were already running on the workstation, so this slice did not start another long runtime compile.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_atlas_gpu_draw_command_contract_preview_20260703.png
+- SHA256: 2257609CCC3FFA3539E5F42991F7F85ADE3F3585BD03EF918C6C409287D3C8DB
+- Purpose: draw-command range proof for AlphaMask and Color atlas batches.
+- Same-name scan across repo target, E:\cargo-targets, and D:\cargo-targets: 0 matches for the preview at log creation time.
+
+Open validation:
+- Real wgpu vertex-buffer/shader/draw hookup remains a later renderer integration slice.

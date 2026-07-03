@@ -1,0 +1,20 @@
+runtime text atlas gpu viewport transform validation
+date: 2026-07-03
+source: E:\Git\ZirconEngine\zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs
+contract: pixel-edge glyph quad coordinates map to NDC through GlyphAtlasGpuViewportTransform
+expected viewport 100x50: [0,0] -> [-1,1], [50,25] -> [0,0], [100,50] -> [1,-1]
+expected empty viewport fallback: denominator uses unit extent
+source contract tokens missing: 0
+preview: E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_atlas_gpu_viewport_transform_preview_20260703.png
+preview sha256: 7BE7BBFC33307E711BD6246F32871E181979BF925D259781407DB08D5F0C6866
+focused cargo wrapper status: cargo test -p zircon_runtime render_text_atlas_gpu --lib exceeded the command wait window while compiling the runtime lib-test package.
+focused binary test status: passed by running target\debug\deps\zircon_runtime-90029178d239f47b.exe render_text_atlas_gpu --nocapture --test-threads=1
+focused binary test result: 7 passed, 0 failed, 0 ignored, 0 measured, 6180 filtered out
+covered tests:
+- render_text_atlas_gpu_plan_flattens_batches_into_ndc_vertices
+- render_text_atlas_gpu_plan_keeps_skipped_glyph_counts_without_empty_batches
+- render_text_atlas_gpu_plan_keeps_subpixel_and_color_batches_separate
+- render_text_atlas_gpu_plan_preserves_vertex_colors
+- render_text_atlas_gpu_vertex_layout_matches_cpu_vertex_shape
+- render_text_atlas_gpu_viewport_transform_uses_pixel_edge_ndc_contract
+- render_text_atlas_gpu_viewport_transform_uses_unit_extent_for_empty_viewports

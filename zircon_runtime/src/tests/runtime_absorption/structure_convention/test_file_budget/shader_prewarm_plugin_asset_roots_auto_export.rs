@@ -10,6 +10,7 @@ fn runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired() {
     let native_fixture_shader =
         read_repo("zircon_plugins/native_dynamic_fixture/assets/shader.wgsl");
     let build_tool = read_repo("tools/zircon_build.py");
+    let build_plugin_assets = read_repo("tools/zircon_build_plugin_assets.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let build_plugin_tests = read_repo("tools/tests/test_zircon_build_plugin_carriers.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
@@ -45,8 +46,8 @@ fn runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired() {
         &["@fragment", "native_dynamic_fixture_fragment"],
     );
     assert_contains_all(
-        "build tool discovers package asset roots for selected plugins",
-        &build_tool,
+        "build tool discovers package asset roots for selected plugins through the plugin-assets owner",
+        &(build_tool + &build_plugin_assets),
         &[
             "asset_roots: tuple[Path, ...]",
             "collect_plugin_asset_roots",
@@ -78,6 +79,10 @@ fn runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired() {
     );
 
     for (path, source) in [
+        (
+            "tools/zircon_build_plugin_assets.py",
+            build_plugin_assets.as_str(),
+        ),
         (
             "tools/zircon_build_shader_prewarm.py",
             build_prewarm.as_str(),

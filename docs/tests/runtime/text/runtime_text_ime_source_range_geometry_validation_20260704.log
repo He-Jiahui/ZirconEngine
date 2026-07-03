@@ -1,0 +1,30 @@
+runtime_text_ime_source_range_geometry_20260704
+
+slice_status: runtime_text_ime_source_range_geometry_rustfmt_static_visual_cargo_deferred
+objective: IME/caret geometry now consumes source-range shaped width when the resolved line is a simple LTR source-isomorphic line, while tab/justify/ellipsis/rich or non-isomorphic mappings keep the resolved glyph_advances fallback.
+
+implementation:
+- zircon_runtime/src/ui/text/geometry.rs: added caret_frame_for_text_layout_with_source_metrics and text_range_frames_for_text_layout_with_source_metrics.
+- zircon_runtime/src/ui/text/geometry.rs: line_accepts_source_measure gates source-range measurement to simple LTR, non-tab, non-justified, non-ellipsized, source-isomorphic runs.
+- zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs: InputMethodTextLayout now retains UiResolvedStyle and passes state.text/style into source-metric caret and composition rect geometry.
+- zircon_runtime/src/ui/text/mod.rs: exported the new crate-private geometry entry points.
+
+focused_tests_added:
+- source_geometry_with_source_metrics_uses_shaped_source_range_width: stale per-grapheme advances no longer control simple LTR source-metric caret placement.
+- source_geometry_with_source_metrics_keeps_tab_aligned_advances: tab-aligned resolved advances remain the source of truth.
+
+validation:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs : PASS
+- git diff --check scoped to touched Rust files : PASS (line-ending warnings only)
+- trailing whitespace scan scoped to touched Rust files : PASS
+- target same-name scan for runtime_text_ime_source_range_geometry_* across repo target, E:\cargo-targets, D:\cargo-targets : COUNT=0
+- visual proof inspected: docs/tests/runtime/text/runtime_text_ime_source_range_geometry_preview_20260704.png
+- visual proof sha256: 138A6385C2A0B4A6AC20DCEB649ACEF4F855D09BDED310ACB060C36F0C04A32A
+
+cargo_status:
+- focused cargo tests deferred because existing cargo/rustc lanes were already active during this slice.
+- observed active processes before deferral: cargo/rustc PIDs present, including cargo 9040, 34076, 37412, 46604, 47536, 49064 and rustc 42160, 42800, 47472.
+
+open_followups:
+- Run focused cargo tests once current compile lanes clear: cargo test -p zircon_runtime source_geometry_with_source_metrics --lib --no-default-features --locked --jobs 1.
+- Backend cluster reverse lookup, RTL isolate affinity, and vertical IME geometry remain plan followups.

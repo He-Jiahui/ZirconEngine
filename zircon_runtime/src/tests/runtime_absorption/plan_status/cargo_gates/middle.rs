@@ -104,10 +104,8 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
         ],
     );
 
-    let runtime_09_problem_row = runtime_index
-        .lines()
-        .find(|line| line.starts_with("| P12 |"))
-        .expect("Runtime index should keep the P12 UI subsystem problem row");
+    let runtime_09_problem_row =
+        runtime_index_problem_row_for(runtime_index, "P12", "UI subsystem");
     assert_contains_all(
         "Runtime index P12 row",
         runtime_09_problem_row,

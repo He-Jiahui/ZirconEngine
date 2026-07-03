@@ -1,7 +1,8 @@
 use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
+use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::{
     plugin::CapabilityStatusManifest, plugin::ExportPackagingStrategy,
-    plugin::PluginFeatureBundleManifest, plugin::PluginMaturity,
+    plugin::PluginFeatureBundleManifest, plugin::PluginInterfaceManifest, plugin::PluginMaturity,
 };
 
 use super::super::RuntimePluginDescriptor;
@@ -29,17 +30,28 @@ impl RuntimePluginDescriptorBuilder {
         runtime_id: RuntimePluginId,
         crate_name: impl Into<String>,
     ) -> Self {
+        let package_id = package_id.into();
+        let display_name = display_name.into();
+        let crate_name = crate_name.into();
+        let module_descriptor = ModuleDescriptor::new(
+            format!("{package_id}.runtime"),
+            format!("Runtime plugin module for {display_name}"),
+        )
+        .with_init_level(InitLevel::Post);
+
         Self {
             descriptor: RuntimePluginDescriptor {
-                package_id: package_id.into(),
-                display_name: display_name.into(),
+                package_id,
+                display_name,
                 category: "runtime".to_string(),
                 runtime_id,
-                crate_name: crate_name.into(),
+                crate_name,
+                module_descriptor,
                 enabled_by_default: true,
                 required_by_default: false,
                 target_modes: Vec::new(),
                 capabilities: Vec::new(),
+                provided_interfaces: Vec::new(),
                 system_sets: Vec::new(),
                 system_anchors: Vec::new(),
                 capability_statuses: Vec::new(),
@@ -51,6 +63,24 @@ impl RuntimePluginDescriptorBuilder {
                 ],
             },
         }
+    }
+
+    pub fn with_module_descriptor(mut self, descriptor: ModuleDescriptor) -> Self {
+        self.descriptor.module_descriptor = descriptor;
+        self
+    }
+
+    pub fn with_init_level(mut self, init_level: InitLevel) -> Self {
+        self.descriptor.module_descriptor.init_level = init_level;
+        self
+    }
+
+    pub fn with_module_dependency(mut self, dependency: ModuleDependencySpec) -> Self {
+        self.descriptor
+            .module_descriptor
+            .module_dependencies
+            .push(dependency);
+        self
     }
 
     pub fn with_category(mut self, category: impl Into<String>) -> Self {
@@ -78,6 +108,18 @@ impl RuntimePluginDescriptorBuilder {
 
     pub fn with_capability(mut self, capability: impl Into<String>) -> Self {
         self.descriptor.capabilities.push(capability.into());
+        self
+    }
+
+    pub fn with_provided_interface(mut self, interface: PluginInterfaceManifest) -> Self {
+        self.descriptor.provided_interfaces.push(interface);
+        self
+    }
+
+    pub fn with_provided_interface_id(mut self, interface_id: impl Into<String>) -> Self {
+        self.descriptor
+            .provided_interfaces
+            .push(PluginInterfaceManifest::new(interface_id));
         self
     }
 

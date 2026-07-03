@@ -93,7 +93,14 @@ impl BaseScenePass {
                 {
                     let pipeline = mesh_pipelines
                         .ensure_pipeline_for_variant(device, streamer, command.pipeline_variant_id)
-                        .expect("base mesh command must resolve a cache-backed pipeline variant");
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "base mesh command must resolve a cache-backed pipeline variant: kind={:?}, variant_id={}, pipeline_key={:?}",
+                                command.pipeline_kind,
+                                command.pipeline_variant_id.value(),
+                                command.pipeline_key()
+                            )
+                        });
                     pass.set_pipeline(pipeline);
                 }
                 replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);

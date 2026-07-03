@@ -2,8 +2,13 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::render::{
+    MaterialPropertyKind, MaterialPropertyLayout, MaterialPropertySlotRef, PropertyScalarClass,
+};
+
 use super::{
-    RenderMaterialDiagnosticSource, RenderMaterialPropertyValue, RenderMaterialReadinessDiagnostic,
+    MaterialPropertyOverrideBlock, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue,
+    RenderMaterialReadinessDiagnostic,
 };
 
 // CPU-side material property bytes are prepared once during resource streaming
@@ -16,6 +21,41 @@ pub struct RenderMaterialPropertyUniformPayload {
 }
 
 impl RenderMaterialPropertyUniformPayload {
+    pub fn from_layout_and_values(
+        layout: &MaterialPropertyLayout,
+        values: &BTreeMap<String, RenderMaterialPropertyValue>,
+    ) -> Self {
+        let mut payload = Self {
+            bytes: vec![0; layout.packed_size as usize],
+            ..Self::default()
+        };
+        for property in &layout.properties {
+            let offset = property_uniform_offset(layout, property);
+            payload.layout.push(RenderMaterialPropertyUniformField {
+                name: property.name.clone(),
+                kind: property.kind.to_string(),
+                offset: offset as u32,
+                size: u32::from(property.component_count) * 4,
+                alignment: 4,
+            });
+            let Some(value) = values.get(&property.name) else {
+                continue;
+            };
+            if !write_layout_value(&mut payload.bytes, offset, property, value) {
+                payload
+                    .unsupported
+                    .push(RenderMaterialPropertyUniformUnsupported {
+                        name: property.name.clone(),
+                        reason: RenderMaterialPropertyUniformUnsupportedReason::UnsupportedType,
+                    });
+            }
+        }
+        if payload.bytes.is_empty() {
+            payload.bytes.resize(MATERIAL_PROPERTY_UNIFORM_ALIGNMENT, 0);
+        }
+        payload
+    }
+
     pub fn from_values(values: &BTreeMap<String, RenderMaterialPropertyValue>) -> Self {
         let mut payload = Self::default();
         for (name, value) in values {
@@ -41,6 +81,50 @@ impl RenderMaterialPropertyUniformPayload {
         }
         let final_size = align_to(payload.bytes.len(), MATERIAL_PROPERTY_UNIFORM_ALIGNMENT);
         payload.bytes.resize(final_size, 0);
+        payload
+    }
+
+    pub fn with_override_block(&self, overrides: &MaterialPropertyOverrideBlock) -> Self {
+        if overrides.is_empty() {
+            return self.clone();
+        }
+
+        let mut payload = self.clone();
+        for (name, value) in overrides.values() {
+            let Some(field) = payload
+                .layout
+                .iter()
+                .find(|field| field.name == *name)
+                .cloned()
+            else {
+                payload
+                    .unsupported
+                    .push(RenderMaterialPropertyUniformUnsupported {
+                        name: name.clone(),
+                        reason: RenderMaterialPropertyUniformUnsupportedReason::UnknownProperty,
+                    });
+                continue;
+            };
+            let Some(kind) = MaterialPropertyKind::parse_token(&field.kind) else {
+                payload
+                    .unsupported
+                    .push(RenderMaterialPropertyUniformUnsupported {
+                        name: name.clone(),
+                        reason: RenderMaterialPropertyUniformUnsupportedReason::UnsupportedType,
+                    });
+                continue;
+            };
+            if let Some(reason) =
+                write_field_override_value(&mut payload.bytes, &field, kind, value)
+            {
+                payload
+                    .unsupported
+                    .push(RenderMaterialPropertyUniformUnsupported {
+                        name: name.clone(),
+                        reason,
+                    });
+            }
+        }
         payload
     }
 
@@ -72,6 +156,106 @@ impl RenderMaterialPropertyUniformPayload {
     }
 }
 
+fn property_uniform_offset(
+    layout: &MaterialPropertyLayout,
+    property: &MaterialPropertySlotRef,
+) -> usize {
+    let class_slot = match property.scalar_class {
+        PropertyScalarClass::F32 => property.slot,
+        PropertyScalarClass::U32 => layout.f32_slot_count + property.slot,
+    };
+    usize::from(class_slot) * MATERIAL_PROPERTY_UNIFORM_ALIGNMENT
+        + usize::from(property.component) * 4
+}
+
+fn write_layout_value(
+    bytes: &mut [u8],
+    offset: usize,
+    property: &MaterialPropertySlotRef,
+    value: &RenderMaterialPropertyValue,
+) -> bool {
+    write_kind_value(bytes, offset, property.kind, value)
+}
+
+fn write_field_override_value(
+    bytes: &mut [u8],
+    field: &RenderMaterialPropertyUniformField,
+    kind: MaterialPropertyKind,
+    value: &RenderMaterialPropertyValue,
+) -> Option<RenderMaterialPropertyUniformUnsupportedReason> {
+    let offset = field.offset as usize;
+    let size = u32::from(kind.component_count()) as usize * 4;
+    if offset
+        .checked_add(size)
+        .filter(|end| *end <= bytes.len())
+        .is_none()
+    {
+        return Some(RenderMaterialPropertyUniformUnsupportedReason::PayloadOutOfBounds);
+    }
+    (!write_kind_value(bytes, offset, kind, value))
+        .then_some(RenderMaterialPropertyUniformUnsupportedReason::TypeMismatch)
+}
+
+fn write_kind_value(
+    bytes: &mut [u8],
+    offset: usize,
+    kind: MaterialPropertyKind,
+    value: &RenderMaterialPropertyValue,
+) -> bool {
+    match (kind, value) {
+        (MaterialPropertyKind::Bool, RenderMaterialPropertyValue::Bool { value }) => {
+            write_u32(bytes, offset, u32::from(*value));
+            true
+        }
+        (MaterialPropertyKind::Float, RenderMaterialPropertyValue::Float { value }) => {
+            write_f32(bytes, offset, *value);
+            true
+        }
+        (MaterialPropertyKind::Int, RenderMaterialPropertyValue::Int { value }) => {
+            write_i32(bytes, offset, *value);
+            true
+        }
+        (MaterialPropertyKind::UInt, RenderMaterialPropertyValue::UInt { value }) => {
+            write_u32(bytes, offset, *value);
+            true
+        }
+        (MaterialPropertyKind::Vec2, RenderMaterialPropertyValue::Vec2 { value }) => {
+            write_f32_array(bytes, offset, value);
+            true
+        }
+        (MaterialPropertyKind::Vec3, RenderMaterialPropertyValue::Vec3 { value }) => {
+            write_f32_array(bytes, offset, value);
+            true
+        }
+        (
+            MaterialPropertyKind::Vec4 | MaterialPropertyKind::Color,
+            RenderMaterialPropertyValue::Vec4 { value },
+        ) => {
+            write_f32_array(bytes, offset, value);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn write_f32(bytes: &mut [u8], offset: usize, value: f32) {
+    bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+}
+
+fn write_i32(bytes: &mut [u8], offset: usize, value: i32) {
+    bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+}
+
+fn write_u32(bytes: &mut [u8], offset: usize, value: u32) {
+    bytes[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+}
+
+fn write_f32_array<const N: usize>(bytes: &mut [u8], offset: usize, values: &[f32; N]) {
+    for (index, value) in values.iter().enumerate() {
+        write_f32(bytes, offset + index * 4, *value);
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderMaterialPropertyUniformSummary {
     pub payload_byte_len: u64,
@@ -94,16 +278,22 @@ pub struct RenderMaterialPropertyUniformUnsupported {
     pub reason: RenderMaterialPropertyUniformUnsupportedReason,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RenderMaterialPropertyUniformUnsupportedReason {
     UnsupportedType,
+    UnknownProperty,
+    TypeMismatch,
+    PayloadOutOfBounds,
 }
 
 impl RenderMaterialPropertyUniformUnsupportedReason {
     const fn description(self) -> &'static str {
         match self {
             Self::UnsupportedType => "unsupported property type",
+            Self::UnknownProperty => "property is not present in the material uniform layout",
+            Self::TypeMismatch => "override value type does not match the material uniform layout",
+            Self::PayloadOutOfBounds => "material uniform layout points outside the payload bytes",
         }
     }
 }
@@ -280,6 +470,71 @@ mod tests {
         assert_eq!(
             diagnostics[0].diagnostic,
             "material property debug_label cannot be encoded into the renderer uniform payload: unsupported property type"
+        );
+    }
+
+    #[test]
+    fn material_property_uniform_payload_applies_runtime_override_block() {
+        let mut values = BTreeMap::new();
+        values.insert(
+            "enabled".to_string(),
+            RenderMaterialPropertyValue::Bool { value: true },
+        );
+        values.insert(
+            "gain".to_string(),
+            RenderMaterialPropertyValue::Float { value: 1.0 },
+        );
+        values.insert(
+            "tint".to_string(),
+            RenderMaterialPropertyValue::Vec4 {
+                value: [1.0, 1.0, 1.0, 1.0],
+            },
+        );
+        let payload = RenderMaterialPropertyUniformPayload::from_values(&values);
+        let overrides = MaterialPropertyOverrideBlock::new()
+            .with_value("gain", RenderMaterialPropertyValue::Float { value: 2.5 })
+            .with_value(
+                "tint",
+                RenderMaterialPropertyValue::Vec4 {
+                    value: [0.25, 0.5, 0.75, 1.0],
+                },
+            );
+
+        let overridden = payload.with_override_block(&overrides);
+
+        assert_eq!(f32_at(&overridden.bytes, 4), 2.5);
+        assert_eq!(f32_at(&overridden.bytes, 16), 0.25);
+        assert_eq!(f32_at(&overridden.bytes, 20), 0.5);
+        assert_eq!(f32_at(&overridden.bytes, 24), 0.75);
+        assert_eq!(f32_at(&overridden.bytes, 28), 1.0);
+        assert!(overridden.unsupported.is_empty());
+    }
+
+    #[test]
+    fn material_property_uniform_payload_reports_invalid_override_block_entries() {
+        let mut values = BTreeMap::new();
+        values.insert(
+            "gain".to_string(),
+            RenderMaterialPropertyValue::Float { value: 1.0 },
+        );
+        let payload = RenderMaterialPropertyUniformPayload::from_values(&values);
+        let overrides = MaterialPropertyOverrideBlock::new()
+            .with_value("gain", RenderMaterialPropertyValue::Bool { value: true })
+            .with_value("missing", RenderMaterialPropertyValue::Float { value: 1.0 });
+
+        let overridden = payload.with_override_block(&overrides);
+
+        assert_eq!(f32_at(&overridden.bytes, 0), 1.0);
+        assert_eq!(overridden.unsupported.len(), 2);
+        assert_eq!(overridden.unsupported[0].name, "gain");
+        assert_eq!(
+            overridden.unsupported[0].reason,
+            RenderMaterialPropertyUniformUnsupportedReason::TypeMismatch
+        );
+        assert_eq!(overridden.unsupported[1].name, "missing");
+        assert_eq!(
+            overridden.unsupported[1].reason,
+            RenderMaterialPropertyUniformUnsupportedReason::UnknownProperty
         );
     }
 

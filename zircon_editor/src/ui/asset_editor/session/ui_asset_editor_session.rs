@@ -44,7 +44,7 @@ pub enum UiAssetEditorSessionError {
         expected: UiAssetKind,
         actual: UiAssetKind,
     },
-    #[error("expected ui v2 asset kind {expected:?} but document was {actual:?}")]
+    #[error("expected .zui asset kind {expected:?} but document was {actual:?}")]
     UnexpectedV2Kind {
         expected: UiV2AssetKind,
         actual: UiV2AssetKind,

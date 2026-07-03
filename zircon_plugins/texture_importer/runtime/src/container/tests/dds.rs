@@ -241,7 +241,7 @@ fn dds_dx10_container_importer_rejects_dual_cubemap_sources() {
 
     assert!(
         error.contains(
-            "dds dx10 cubemap must be declared by legacy caps2 or DX10 texturecube flag, not both"
+            "dds dx10 cubemap must be declared by DDSCAPS2_CUBEMAP caps2 policy or DX10 texturecube flag, not both"
         ),
         "unexpected error: {error}"
     );

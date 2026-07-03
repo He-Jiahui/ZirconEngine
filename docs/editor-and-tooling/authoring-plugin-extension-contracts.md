@@ -6,10 +6,12 @@ related_code:
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_plugins/editor_support/src/lib.rs
   - zircon_plugins/animation/editor/src/lib.rs
+  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_plugins/animation_graph/editor/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - zircon_plugins/hybrid_gi/editor/src/lib.rs
   - zircon_plugins/material_editor/editor/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/tests.rs
   - zircon_plugins/navigation/editor/src/lib.rs
   - zircon_plugins/net/editor/src/lib.rs
   - zircon_plugins/particles/editor/src/authoring.rs
@@ -21,6 +23,9 @@ related_code:
   - zircon_plugins/terrain/editor/src/lib.rs
   - zircon_plugins/texture/editor/src/lib.rs
   - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
+  - tools/tests/test_tilemap_editor_authoring_typed_error_diagnostics.py
+  - tools/tests/test_plugin_docs_current_status_tilemap_editor_authoring_typed_error_diagnostics.py
   - zircon_plugins/timeline_sequence/editor/src/lib.rs
   - zircon_plugins/virtual_geometry/editor/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
@@ -44,10 +49,12 @@ implementation_files:
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_plugins/editor_support/src/lib.rs
   - zircon_plugins/animation/editor/src/lib.rs
+  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_plugins/animation_graph/editor/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - zircon_plugins/hybrid_gi/editor/src/lib.rs
   - zircon_plugins/material_editor/editor/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/tests.rs
   - zircon_plugins/navigation/editor/src/lib.rs
   - zircon_plugins/net/editor/src/lib.rs
   - zircon_plugins/particles/editor/src/authoring.rs
@@ -67,8 +74,10 @@ implementation_files:
   - zircon_plugins/terrain/README.md
   - zircon_plugins/tilemap_2d/runtime/src/lib.rs
   - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/authoring.rs
   - zircon_plugins/tilemap_2d/README.md
   - zircon_plugins/material_editor/editor/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/tests.rs
   - zircon_plugins/material_editor/README.md
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
   - zircon_plugins/prefab_tools/editor/src/lib.rs
@@ -112,6 +121,12 @@ tests:
   - cargo build --workspace --locked --verbose
   - cargo test --workspace --locked --verbose
   - cargo test --workspace --locked --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --jobs 1 -- --format terse
+  - rustfmt --edition 2021 --check zircon_plugins\material_editor\editor\src\lib.rs zircon_plugins\material_editor\editor\src\tests.rs (2026-07-03 MaterialAsset v2 authoring compile contract: passed)
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-plugins-workspace-build-0703 --message-format short --color never" (2026-07-03 MaterialAsset v2 authoring compile contract: passed in 22m39s with existing warnings)
+  - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_material_editor_editor --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-plugins-workspace-build-0703 --message-format short --color never material_graph_compile_writes_minimal_material_asset_contract -- --nocapture --test-threads=1" (2026-07-03 MaterialAsset v2 authoring compile contract: timed out while compiling zircon_editor; not counted as passed)
+  - rustfmt --edition 2021 --check zircon_plugins\animation\editor\src\tests.rs (2026-07-03 animation editor operation path hard-cutover: passed)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_animation_editor --lib animation_editor_plugin_contributes_authoring_extensions --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03: passed 1/1)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_support --lib authoring_batch_registers_menu_items_payload_schemas_and_all_descriptor_families --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plugin-workspace-test-0703-codex-rerun2 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 editor_support operation path hard-cutover: passed 1/1)
   - cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 plan_sources:
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
@@ -147,6 +162,10 @@ Unreal 参照用于拆分生命周期和编辑器表面：Landscape 负责 heigh
 这些 descriptor 都带有 capability gate 字段。`EditorExtensionRegistry` 为每一类 descriptor 提供独立 map 和 `register_*` 方法，并执行重复 ID、空 ID、graph palette 空节点和重复 node ID 校验。`EditorPluginCatalog::editor_extensions()` 聚合插件扩展时统一合并 view、drawer、template、operation、menu item、importer、asset editor、component drawer、tool mode、graph/timeline descriptor；workbench 侧应继续消费通用 descriptor，不为单个 Authoring 插件写特殊分支。
 
 `zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、component drawer、template、tool mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
+
+Authoring surface 的打开操作路径只使用当前 `ViewDescriptor::open_operation_path()` 规则：`view.<view_id>.open`。例如 animation authoring view `animation.authoring` 的菜单项和 operation descriptor 都必须指向 `view.animation.authoring.open`。旧式 `View.animation.authoring.Open` 属于退役操作路径，测试和插件注册不得继续接受或断言它，也不通过兼容 alias 映射。
+
+Authoring batch 测试和插件自定义 command 也只使用当前小写分段 operation path。`zircon_plugins/editor_support` 的支持包测试固定示例为 `support.authoring.import`、`support.authoring.open`、`support.authoring.validate`、`support.authoring.compile`、`support.authoring.create` 和 `support.authoring.activate_tool`。旧式 `Support.Authoring.*` 不再是合法测试输入，也不通过 parser 宽松化或菜单 alias 保留。
 
 Authoring UI document references are `.zui`-only on the production extension path. `EditorUiTemplateDescriptor` and `ComponentDrawerDescriptor` must reference `.zui` component assets; the registry rejects stale `.ui.toml` and `.v2.ui.toml` paths. Plugin packages that ship editor component surfaces should package single-component `.zui` documents backed by `UiV2ComponentAsset` payloads. Runtime `.zui` import is now document-kind aware: the split `ui_document_importer` package manifest and runtime registration expose `ui_document_importer.zui_document`, and the importer materializes component, view, or style payloads from the same `.zui` suffix according to `asset.kind`. The legacy serialized `.ui.json` and `.uidoc` importers plus the old production `.v2.ui.toml` importer have been removed from production packaging. Legacy `.ui.toml` and `.v2.ui.toml` authoring documents are reserved for migration and fixture tests, not for new plugin registrations.
 
@@ -218,7 +237,7 @@ editor 能力名固定为：
 
 - `terrain` 提供 heightfield 导入请求校验、import output kind 解析和 `TerrainImportPlan`，覆盖 `raw`、`r16`、`png` 默认扩展，并区分 heightfield 与 layer stack 输出。
 - `tilemap_2d` 提供 tilemap 编辑器校验、projection 支持判定、layer/tile 统计和 `TilemapPaintRequest` 网格写入 helper。
-- `material_editor` 提供 material graph 校验、最小 `MaterialAsset` compile 和 operation-style `MaterialGraphCompileReport`，v1 支持 output、texture sample、scalar/vector parameter、add、multiply。
+- `material_editor` 提供 material graph 校验、最小 `MaterialAsset` compile 和 operation-style `MaterialGraphCompileReport`，v1 支持 output、texture sample、scalar/vector parameter、add、multiply。最小 compile 仍然是 editor-only authoring helper，但它必须构造当前 runtime `MaterialAsset` v2 形状：没有父材质时写 `parent: None`，没有 editor/options payload 时写空 `options`，没有显式队列覆盖时写 `queue: None`，不能依赖旧字段省略或兼容构造器。
 - `prefab_tools` 提供 prefab instance source/override 校验、override precedence 合并、apply/revert overrides 和 break instance 的 editor authoring 状态。
 - `timeline_sequence` 提供 timeline keyframe 范围/排序校验、track path deterministic sort、event marker payload 校验和 keyframe move helper。
 - `animation_graph` 提供 animation graph/state machine 校验、最小 compile output source 解析和 state machine compile report。
@@ -252,6 +271,10 @@ editor 能力名固定为：
 
 - 针对 `prefab_tools`、`terrain`、`tilemap_2d` runtime manifest helper 的 `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p ...` 已通过。
 - `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_prefab_tools_runtime -p zircon_plugin_terrain_runtime -p zircon_plugin_tilemap_2d_runtime --locked --target-dir E:\cargo-targets\zircon-plugins-runtime-interface-boundary --jobs 1 -- --format terse` 已通过：三个包各 1 个 runtime manifest/registration 测试通过，doc-tests 为空。
+
+2026-07-03 `plugins_13_m5_t1_tilemap_editor_authoring_typed_error_diagnostics` closed the `zircon_plugin_tilemap_2d_editor` compile gap introduced by Runtime 15 typed authoring validation. `TileMapAsset::validate_layers()` remains the runtime owner and returns `AssetAuthoringError`; the editor helper `validate_tilemap_for_editor(...) -> Vec<String>` performs `diagnostics.push(error.to_string())` only at the editor diagnostic boundary. Guard coverage is `tools/tests/test_tilemap_editor_authoring_typed_error_diagnostics.py` plus `tools/tests/test_plugin_docs_current_status_tilemap_editor_authoring_typed_error_diagnostics.py`. Focused validation passed `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_tilemap_2d_editor --locked --all-targets` with existing warnings; `zircon_plugin_tilemap_2d_editor` Rust 单测超时未采信.
+
+2026-07-03 Frameworks 02 M3 plugin workspace validation exposed the same hard-cutover rule for `material_editor`: `compile_material_graph(...)` cannot keep constructing `MaterialAsset` with the old field set after runtime material assets gained `parent`, `options`, and `queue`. The editor helper now writes neutral current-shape values and `material_graph_compile_writes_minimal_material_asset_contract` asserts them. Scoped rustfmt passed, the focused material editor Cargo test timed out during `zircon_editor` compilation and is not counted, and the WSL plugin workspace locked build rerun passed in 22m39s. This closes the build break only; full plugin workspace tests and runtime/editor integration remain pending for Frameworks 02 M3.
 - `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --target-dir E:\cargo-targets\zircon-plugins-runtime-interface-boundary --jobs 1 -- --format terse` 已通过；此前记录的 plugin workspace full validation 阻塞已经不再复现。
 - root `cargo test --workspace --locked --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --jobs 1 -- --format terse` 也已通过；此前 virtual-geometry debug snapshot 行为阻塞已经由 runtime-side execution snapshot/stat 收束修复。
 - `cargo test -p zircon_editor --lib authoring_registry_rejects_invalid_operation_payload_schema_ids --locked --jobs 1 --target-dir E:\cargo-targets\zircon-authoring-payload-schema --message-format short --color never` 在多会话 Cargo 队列中两次超时，分别约 604 秒和 904 秒；两次都没有产生通过/失败输出，第二次遗留的 matching Cargo/rustc 进程已按该 target dir 清理。静态兜底检查确认新增 `EditorOperationRegistryError` variant 没有现有 exhaustive match 漏点，且当前声明的 payload schema ID 都符合三段点号规则。

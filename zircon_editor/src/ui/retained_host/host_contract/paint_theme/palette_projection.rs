@@ -1,5 +1,6 @@
+use std::sync::{OnceLock, RwLock};
+
 use super::model::HostMaterialPalette;
-#[cfg(test)]
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 #[cfg(test)]
@@ -8,7 +9,21 @@ use zircon_runtime_interface::ui::style::UiRgbaColor;
 pub(in crate::ui::retained_host::host_contract) const DEFAULT_HOST_PALETTE: HostMaterialPalette =
     default_host_palette_from_central_tokens();
 
-#[cfg(test)]
+pub(crate) fn apply_host_palette_from_tokens(tokens: &EditorDesignTokens) {
+    let next_palette = project_host_palette(tokens);
+    match host_palette().write() {
+        Ok(mut palette) => *palette = next_palette,
+        Err(poisoned) => *poisoned.into_inner() = next_palette,
+    }
+}
+
+pub(in crate::ui::retained_host::host_contract) fn current_host_palette() -> HostMaterialPalette {
+    match host_palette().read() {
+        Ok(palette) => *palette,
+        Err(poisoned) => *poisoned.into_inner(),
+    }
+}
+
 pub(in crate::ui::retained_host::host_contract) fn project_host_palette(
     tokens: &EditorDesignTokens,
 ) -> HostMaterialPalette {
@@ -43,6 +58,11 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_palette(
         border_disabled: palette.border_disabled.to_u8(),
         shadow: palette.shadow.to_u8(),
     }
+}
+
+fn host_palette() -> &'static RwLock<HostMaterialPalette> {
+    static PALETTE: OnceLock<RwLock<HostMaterialPalette>> = OnceLock::new();
+    PALETTE.get_or_init(|| RwLock::new(DEFAULT_HOST_PALETTE))
 }
 
 const fn default_host_palette_from_central_tokens() -> HostMaterialPalette {

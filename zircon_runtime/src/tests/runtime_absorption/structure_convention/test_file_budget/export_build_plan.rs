@@ -5,6 +5,8 @@ fn runtime_15_export_build_plan_tests_are_folder_backed() {
     let parent = read_runtime_src("tests/plugin_extensions/export_build_plan.rs");
     let catalog_projection =
         read_runtime_src("tests/plugin_extensions/export_build_plan/catalog_projection.rs");
+    let profile_feature_matrix =
+        read_runtime_src("tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -22,6 +24,8 @@ fn runtime_15_export_build_plan_tests_are_folder_backed() {
         &[
             "#[path = \"export_build_plan/catalog_projection.rs\"]",
             "mod catalog_projection;",
+            "#[path = \"export_build_plan/profile_feature_matrix.rs\"]",
+            "mod profile_feature_matrix;",
         ],
     );
 
@@ -31,10 +35,14 @@ fn runtime_15_export_build_plan_tests_are_folder_backed() {
         "fn source_template_links_rendering_default_owner_features",
         "fn library_embed_links_advanced_runtime_render_plugins",
         "fn source_template_with_native_dynamic_merges_native_loader_reports",
+        "fn profile_with_features_compiles_to_build_plan",
+        "fn invalid_plugin_combination_rejected_with_diagnostic",
+        "fn validate_report_summarizes_profile_plan_and_fatal_state",
+        "fn feature_matrix_links_selected_plugins_only",
     ] {
         assert!(
             !parent.contains(moved_test),
-            "export build plan parent should mount the catalog projection child owner instead of defining {moved_test}"
+            "export build plan parent should mount child owners instead of defining {moved_test}"
         );
     }
 
@@ -48,11 +56,24 @@ fn runtime_15_export_build_plan_tests_are_folder_backed() {
             "fn source_template_with_native_dynamic_merges_native_loader_reports",
         ],
     );
+    assert_contains_all(
+        "profile feature matrix child owns profile feature and validate report contracts",
+        &profile_feature_matrix,
+        &[
+            "use super::*;",
+            "fn profile_with_features_compiles_to_build_plan",
+            "fn invalid_plugin_combination_rejected_with_diagnostic",
+            "fn validate_report_summarizes_profile_plan_and_fatal_state",
+            "fn feature_matrix_links_selected_plugins_only",
+        ],
+    );
 
     assert_eq!(
-        parent.matches("#[test]").count() + catalog_projection.matches("#[test]").count(),
+        parent.matches("#[test]").count()
+            + catalog_projection.matches("#[test]").count()
+            + profile_feature_matrix.matches("#[test]").count(),
         16,
-        "export build plan parent plus split child should preserve the original 16 tests"
+        "export build plan parent plus split children should preserve the original 16 tests"
     );
 
     for (path, source) in [
@@ -63,6 +84,10 @@ fn runtime_15_export_build_plan_tests_are_folder_backed() {
         (
             "tests/plugin_extensions/export_build_plan/catalog_projection.rs",
             catalog_projection.as_str(),
+        ),
+        (
+            "tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs",
+            profile_feature_matrix.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -87,8 +112,11 @@ fn runtime_15_export_build_plan_tests_are_folder_backed() {
             &[
                 "Runtime 15 M3 export build plan test folder split",
                 "runtime_15_export_build_plan_tests_folder_split_static_passed_cargo_deferred",
+                "Runtime 15 M3 export build plan profile feature matrix test child-owner split",
+                "runtime_15_export_build_plan_profile_feature_matrix_tests_child_owner_split_static_passed_cargo_deferred",
                 "tests/plugin_extensions/export_build_plan.rs",
                 "tests/plugin_extensions/export_build_plan/catalog_projection.rs",
+                "tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs",
                 "runtime_15_export_build_plan_tests_are_folder_backed",
             ],
         );

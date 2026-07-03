@@ -1,5 +1,6 @@
 use super::*;
 
+#[test]
 fn runtime_15_rhi_device_contract_tests_are_folder_backed() {
     let parent = read_runtime_src("rhi/tests/device_contract.rs");
     let basic_resources = read_runtime_src("rhi/tests/device_contract/basic_resources.rs");
@@ -16,7 +17,7 @@ fn runtime_15_rhi_device_contract_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
 
     assert_contains_all(

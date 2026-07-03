@@ -1,11 +1,9 @@
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tools import zircon_build
 from tools.zircon_build_shader_prewarm_acceptance import (
     validate_staged_shader_prewarm_acceptance_contract,
 )
@@ -45,6 +43,7 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
             report_path,
             *,
             require_wgpu_module_validation,
+            require_wgpu_pipeline_validation,
             require_source_provenance,
             expected_pass_types,
             expected_quality_tiers,
@@ -54,7 +53,8 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         ):
             events.append(
                 f"report:{report_path}:"
-                f"{require_wgpu_module_validation}:{require_source_provenance}:"
+                f"{require_wgpu_module_validation}:"
+                f"{require_wgpu_pipeline_validation}:{require_source_provenance}:"
                 f"{expected_pass_types}:{expected_quality_tiers}:"
                 f"{expected_geometry_sources}:"
                 f"{expected_geometry_source_ids}:{expected_shading_model_ids}"
@@ -77,8 +77,18 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
                 f"{expected_geometry_source_ids}:{expected_shading_model_ids}"
             )
 
-        def fake_validate_registry(registry_path, *, report_path):
-            events.append(f"registry:{registry_path}:{report_path}")
+        def fake_validate_registry(
+            registry_path,
+            *,
+            report_path,
+            require_usable_shader_records=False,
+            require_report_registry_backed_sources=False,
+        ):
+            events.append(
+                f"registry:{registry_path}:{report_path}:"
+                f"{require_usable_shader_records}:"
+                f"{require_report_registry_backed_sources}"
+            )
 
         with patch(
             "tools.zircon_build_shader_prewarm_acceptance."
@@ -112,7 +122,7 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
         self.assertEqual(
             [
-                f"report:{config.shader_prewarm_report_path}:True:True:"
+                f"report:{config.shader_prewarm_report_path}:True:False:True:"
                 f"{expected_pass_types}:{config.shader_quality_tiers}:"
                 f"{config.shader_geometry_sources}:"
                 f"{expected_geometry_ids}:{expected_shading_ids}",
@@ -122,12 +132,59 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
                 f"{config.shader_geometry_sources}:"
                 f"{expected_geometry_ids}:{expected_shading_ids}",
                 f"registry:{config.shader_prewarm_resource_registry_path}:"
-                f"{config.shader_prewarm_report_path}",
+                f"{config.shader_prewarm_report_path}:False:False",
             ],
             events,
         )
 
-    def test_acceptance_contract_skips_export_validation_for_explicit_registry(self):
+    def test_acceptance_contract_requires_pipeline_validation_when_enabled(self):
+        config = _FakePrewarmConfig()
+        self.addCleanup(
+            _write_acceptance_report(
+                config,
+                requested_count=1,
+                written_count=1,
+                written_variants=(_written_variant(),),
+            ).cleanup
+        )
+        config.validate_wgpu_pipelines = True
+        events: list[str] = []
+
+        def fake_validate_report(
+            report_path,
+            *,
+            require_wgpu_module_validation,
+            require_wgpu_pipeline_validation,
+            require_source_provenance,
+            expected_pass_types,
+            expected_quality_tiers,
+            expected_geometry_sources,
+            expected_geometry_source_ids,
+            expected_shading_model_ids,
+        ):
+            events.append(
+                f"report:{require_wgpu_module_validation}:"
+                f"{require_wgpu_pipeline_validation}:{require_source_provenance}"
+            )
+
+        with patch(
+            "tools.zircon_build_shader_prewarm_acceptance."
+            "validate_shader_prewarm_report_contract",
+            side_effect=fake_validate_report,
+        ):
+            with patch(
+                "tools.zircon_build_shader_prewarm_acceptance."
+                "validate_shader_prewarm_cache_artifact_contract",
+            ):
+                with patch(
+                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "validate_shader_resource_registry_export_contract",
+                ):
+                    validate_staged_shader_prewarm_acceptance_contract(config)
+
+        self.assertIn("report:False:True:True", events)
+
+    def test_acceptance_contract_validates_explicit_registry_against_report(self):
         config = _FakePrewarmConfig()
         self.addCleanup(
             _write_acceptance_report(
@@ -139,6 +196,19 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         )
         config.shader_resource_registry = Path("Project") / "shader_resource_records.json"
         events: list[str] = []
+
+        def fake_validate_registry(
+            registry_path,
+            *,
+            report_path,
+            require_usable_shader_records=False,
+            require_report_registry_backed_sources=False,
+        ):
+            events.append(
+                f"registry:{registry_path}:{report_path}:"
+                f"{require_usable_shader_records}:"
+                f"{require_report_registry_backed_sources}"
+            )
 
         with patch(
             "tools.zircon_build_shader_prewarm_acceptance."
@@ -153,13 +223,101 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
                 with patch(
                     "tools.zircon_build_shader_prewarm_acceptance."
                     "validate_shader_resource_registry_export_contract",
-                    side_effect=AssertionError(
-                        "explicit resource registry should not validate export"
-                    ),
+                    side_effect=fake_validate_registry,
                 ):
                     validate_staged_shader_prewarm_acceptance_contract(config)
 
-        self.assertEqual(["report", "cache"], events)
+        self.assertEqual(
+            [
+                "report",
+                "cache",
+                f"registry:{config.shader_resource_registry}:"
+                f"{config.shader_prewarm_report_path}:False:False",
+            ],
+            events,
+        )
+
+    def test_acceptance_contract_requires_usable_records_for_project_plugin_auto_export(
+        self,
+    ):
+        config = _FakePrewarmConfig()
+        self.addCleanup(
+            _write_acceptance_report(
+                config,
+                requested_count=1,
+                written_count=1,
+                written_variants=(
+                    _written_variant(source_label="builtin://shader/pbr.wgsl"),
+                ),
+                source_provenance=_source_provenance("builtin://shader/pbr.wgsl"),
+            ).cleanup
+        )
+        config.shader_asset_roots = (Path("Project") / "assets",)
+        config.plugins = (
+            _FakePluginPackage(
+                asset_roots=(Path("plugins") / "toon" / "assets",),
+            ),
+        )
+        config.shader_prewarm_resource_registry_path.write_text(
+            json.dumps({"resources": []}),
+            encoding="utf-8",
+        )
+
+        with patch(
+            "tools.zircon_build_shader_prewarm_acceptance."
+            "validate_shader_prewarm_report_contract",
+        ):
+            with patch(
+                "tools.zircon_build_shader_prewarm_acceptance."
+                "validate_shader_prewarm_cache_artifact_contract",
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "usable Shader ResourceRecord",
+                ):
+                    validate_staged_shader_prewarm_acceptance_contract(config)
+
+    def test_acceptance_contract_rejects_explicit_registry_without_ready_revision(
+        self,
+    ):
+        config = _FakePrewarmConfig()
+        self.addCleanup(
+            _write_acceptance_report(
+                config,
+                requested_count=1,
+                written_count=1,
+                written_variants=(_written_variant(),),
+                source_provenance=_source_provenance("res://materials/prewarm-test.wgsl"),
+            ).cleanup
+        )
+        config.shader_resource_registry = config.engine_root / "live_resource_records.json"
+        config.shader_resource_registry.write_text(
+            json.dumps(
+                {
+                    "resources": [
+                        _shader_resource_record(
+                            "res://materials/prewarm-test.wgsl",
+                            revision=0,
+                        )
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch(
+            "tools.zircon_build_shader_prewarm_acceptance."
+            "validate_shader_prewarm_report_contract",
+        ):
+            with patch(
+                "tools.zircon_build_shader_prewarm_acceptance."
+                "validate_shader_prewarm_cache_artifact_contract",
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "usable shader ResourceRecord revisions",
+                ):
+                    validate_staged_shader_prewarm_acceptance_contract(config)
 
     def test_acceptance_contract_rejects_runtime_fallback_layout_drift(self):
         config = _FakePrewarmConfig()
@@ -303,6 +461,70 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         ):
             validate_staged_shader_prewarm_acceptance_contract(config)
 
+    def test_acceptance_contract_rejects_blank_written_variant_source_label(self):
+        config = _FakePrewarmConfig()
+        self.addCleanup(
+            _write_acceptance_report(
+                config,
+                requested_count=1,
+                written_count=1,
+                written_variants=(
+                    _written_variant(source_label="   "),
+                ),
+            ).cleanup
+        )
+
+        with patch(
+            "tools.zircon_build_shader_prewarm_acceptance."
+            "validate_shader_prewarm_report_contract",
+        ):
+            with patch(
+                "tools.zircon_build_shader_prewarm_acceptance."
+                "validate_shader_prewarm_cache_artifact_contract",
+            ):
+                with patch(
+                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "validate_shader_resource_registry_export_contract",
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "staged shader prewarm acceptance requires written cache variant identity",
+                    ):
+                        validate_staged_shader_prewarm_acceptance_contract(config)
+
+    def test_acceptance_contract_rejects_untrimmed_written_variant_source_label(
+        self,
+    ):
+        config = _FakePrewarmConfig()
+        self.addCleanup(
+            _write_acceptance_report(
+                config,
+                requested_count=1,
+                written_count=1,
+                written_variants=(
+                    _written_variant(source_label=" res://materials/prewarm-test.wgsl "),
+                ),
+            ).cleanup
+        )
+
+        with patch(
+            "tools.zircon_build_shader_prewarm_acceptance."
+            "validate_shader_prewarm_report_contract",
+        ):
+            with patch(
+                "tools.zircon_build_shader_prewarm_acceptance."
+                "validate_shader_prewarm_cache_artifact_contract",
+            ):
+                with patch(
+                    "tools.zircon_build_shader_prewarm_acceptance."
+                    "validate_shader_resource_registry_export_contract",
+                ):
+                    with self.assertRaisesRegex(
+                        RuntimeError,
+                        "staged shader prewarm acceptance requires written cache variant identity",
+                    ):
+                        validate_staged_shader_prewarm_acceptance_contract(config)
+
     def test_acceptance_contract_rejects_duplicate_written_variant_identity(self):
         config = _FakePrewarmConfig()
         self.addCleanup(
@@ -409,41 +631,6 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
         ):
             validate_staged_shader_prewarm_acceptance_contract(config)
 
-    def test_prewarm_shaders_runs_acceptance_bundle_after_success(self):
-        config = _FakePrewarmConfig()
-        events: list[str] = []
-
-        def fake_run(command, cwd, check):
-            self.assertFalse(check)
-            self.assertEqual(config.repo_root, cwd)
-            events.append("run")
-            return subprocess.CompletedProcess(command, 0)
-
-        with patch.object(zircon_build.subprocess, "run", side_effect=fake_run):
-            with patch.object(
-                zircon_build,
-                "print_shader_prewarm_report_dimensions",
-                side_effect=lambda report_path: events.append(f"summary:{report_path}"),
-            ):
-                with patch.object(
-                    zircon_build,
-                    "validate_staged_shader_prewarm_acceptance_contract",
-                    side_effect=lambda actual_config: events.append(
-                        f"acceptance:{actual_config is config}"
-                    ),
-                ):
-                    zircon_build.prewarm_shaders(config)
-
-        self.assertEqual(
-            [
-                "run",
-                f"summary:{config.shader_prewarm_report_path}",
-                "acceptance:True",
-            ],
-            events,
-        )
-
-
 class _FakePrewarmConfig:
     cargo = "cargo"
     dry_run = False
@@ -455,6 +642,7 @@ class _FakePrewarmConfig:
     repo_root = Path(".")
     shader_geometry_source_ids: tuple[str, ...] = ()
     shader_geometry_sources = ("static",)
+    shader_asset_roots: tuple[Path, ...] = ()
     shader_permutation_registries: tuple[Path, ...] = ()
     shader_quality_tiers = ("medium",)
     shader_resource_registry = None
@@ -491,9 +679,11 @@ class _FakePluginPackage:
         self,
         shader_geometry_source_ids: tuple[str, ...] = (),
         shader_shading_model_ids: tuple[str, ...] = (),
+        asset_roots: tuple[Path, ...] = (),
     ):
         self.shader_geometry_source_ids = shader_geometry_source_ids
         self.shader_shading_model_ids = shader_shading_model_ids
+        self.asset_roots = asset_roots
 
 
 def _write_acceptance_report(
@@ -536,12 +726,13 @@ def _written_variant(
     *,
     cache_hash: str = _CACHE_HASH,
     canonical_string: str = "pass=forward|geometry=0|shading=0",
+    source_label: str = "res://materials/prewarm-test.wgsl",
     include_source_label: bool = True,
 ) -> dict[str, object]:
     variant = {
         "cache_hash": cache_hash,
         "canonical_string": canonical_string,
-        "source_label": "res://materials/prewarm-test.wgsl",
+        "source_label": source_label,
         "template_revision": "zr-material-template-v1",
         "naga_version": "test-naga",
         "wgpu_version": "test-wgpu",
@@ -549,6 +740,40 @@ def _written_variant(
     if not include_source_label:
         del variant["source_label"]
     return variant
+
+
+def _source_provenance(source_label: str) -> dict[str, object]:
+    return {
+        "source_count": 1,
+        "variant_count": 1,
+        "sources": {
+            f"{source_label}#source-a#template-a": {
+                "source_label": source_label,
+                "source_hash": "source-a",
+                "template_revision": "template-a",
+                "requested_count": 1,
+                "written_count": 1,
+                "failed_count": 0,
+            }
+        },
+    }
+
+
+def _shader_resource_record(locator: str, *, revision: int = 1) -> dict[str, object]:
+    return {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "kind": "Shader",
+        "primary_locator": locator,
+        "artifact_locator": None,
+        "revision": revision,
+        "state": "Ready",
+        "dependency_ids": [],
+        "diagnostics": [],
+        "source_hash": "source-a",
+        "importer_id": "zircon_shader_importer",
+        "importer_version": 1,
+        "config_hash": "shader-config-hash",
+    }
 
 
 if __name__ == "__main__":

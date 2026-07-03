@@ -7,8 +7,10 @@ from typing import Any
 from .pipeline_report_native_dynamic_payload_schema import (
     platform_bundle_native_plugins_payload_schema_diagnostics,
 )
-from .pipeline_report_platform_bundle_template_schema import (
+from .pipeline_report_platform_bundle_template_copied_files_schema import (
     platform_bundle_template_copied_files_schema_diagnostics,
+)
+from .pipeline_report_platform_bundle_template_schema import (
     platform_bundle_template_report_schema_diagnostics,
 )
 from .pipeline_report_platform_bundle_template_resolution_schema import (

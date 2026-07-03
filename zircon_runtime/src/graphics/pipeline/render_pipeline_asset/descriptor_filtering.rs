@@ -10,6 +10,7 @@ use crate::graphics::feature::{
 use crate::graphics::pipeline::declarations::{RenderPipelineCompileOptions, RendererFeatureAsset};
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
+use crate::graphics::{FrameHistoryBinding, FrameHistorySlot};
 
 pub(super) fn feature_descriptor(feature: &RendererFeatureAsset) -> RenderFeatureDescriptor {
     feature.descriptor()
@@ -166,7 +167,29 @@ fn filter_post_process_descriptor(
         .into_iter()
         .filter_map(|pass| filter_post_process_pass(pass, feature, stack))
         .collect();
+    sync_optional_history_bindings(&mut descriptor, feature, stack);
     descriptor
+}
+
+fn sync_optional_history_bindings(
+    descriptor: &mut RenderFeatureDescriptor,
+    feature: BuiltinRenderFeature,
+    stack: &PostProcessStackDescriptor,
+) {
+    if feature != BuiltinRenderFeature::Temporal {
+        return;
+    }
+
+    descriptor
+        .history_bindings
+        .retain(|binding| binding.slot != FrameHistorySlot::TaaSceneColor);
+    if stack_effect_enabled(stack, PostProcessEffectKind::TaaResolve) {
+        descriptor
+            .history_bindings
+            .push(FrameHistoryBinding::read_write(
+                FrameHistorySlot::TaaSceneColor,
+            ));
+    }
 }
 
 fn filter_post_process_pass(

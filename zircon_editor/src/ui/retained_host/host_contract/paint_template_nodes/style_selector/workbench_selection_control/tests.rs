@@ -1,8 +1,49 @@
 use super::*;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use crate::ui::retained_host::primitives::Color;
+use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
+
+#[test]
+fn selection_controls_enabled_labels_keep_readable_muted_tone() {
+    let node = TemplatePaneNodeData::default();
+
+    for kind in [
+        WorkbenchSelectionControlKind::Checkbox,
+        WorkbenchSelectionControlKind::Radio,
+    ] {
+        let style = select_workbench_selection_control_style(&node, kind);
+
+        assert_eq!(style.state, UiPainterResolvedState::Normal);
+        assert_eq!(style.text, PALETTE.text);
+        assert_eq!(style.label, PALETTE.text_muted);
+        assert_ne!(style.label, PALETTE.text_disabled);
+    }
+}
+
+#[test]
+fn selection_control_palette_projects_from_host_appearance_tokens() {
+    let mut tokens = EditorDesignTokens::workbench_dark();
+    tokens.palette.popup = UiRgbaColor::from_u8(8, 10, 12, 255);
+    tokens.palette.surface_selected = UiRgbaColor::from_u8(28, 44, 50, 255);
+    tokens.palette.surface_hover = UiRgbaColor::from_u8(38, 46, 52, 255);
+    tokens.palette.track = UiRgbaColor::from_u8(18, 22, 26, 255);
+    tokens.palette.text_secondary = UiRgbaColor::from_u8(145, 154, 162, 255);
+    tokens.palette.focus_ring = UiRgbaColor::from_u8(66, 116, 128, 255);
+
+    let palette = super::palette::workbench_selection_control_palette_from_host(
+        project_host_palette(&tokens),
+    );
+
+    assert_eq!(palette.mark_idle_fill, [8, 10, 12, 255]);
+    assert_eq!(palette.checkbox_checked_fill, [28, 44, 50, 255]);
+    assert_eq!(palette.toggle_checked_surface, [28, 44, 50, 255]);
+    assert_eq!(palette.toggle_hover_surface, [38, 46, 52, 255]);
+    assert_eq!(palette.toggle_track, [18, 22, 26, 255]);
+    assert_eq!(palette.text_muted, [145, 154, 162, 255]);
+    assert_eq!(palette.focus_ring, [66, 116, 128, 255]);
+}
 
 #[test]
 fn selection_controls_loading_state_uses_unavailable_visuals() {
@@ -63,6 +104,6 @@ fn selection_controls_checked_state_uses_low_emphasis_markers() {
     assert_eq!(radio.surface, PALETTE.surface_pressed);
     assert_eq!(radio.border, PALETTE.separator_strong);
     assert_eq!(toggle.surface, PALETTE.surface_selected);
-    assert_eq!(toggle.border, PALETTE.accent);
-    assert_eq!(toggle.thumb, PALETTE.text);
+    assert_eq!(toggle.border, PALETTE.separator_strong);
+    assert_eq!(toggle.thumb, PALETTE.text_muted);
 }

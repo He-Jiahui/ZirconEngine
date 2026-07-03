@@ -2,12 +2,12 @@ use crate::asset::{
     AssetReference, AssetUri, ShaderAsset, ShaderAssetManagementRecord,
     ShaderAssetManagementRecordSet, ShaderAssetReadinessSummary, ShaderDependencyAsset,
     ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderRuntimeSourceKind,
-    ShaderSourceLanguage, ZShaderDefinitionError, ZShaderDefinitionValueDocument,
+    ShaderSourceLanguage, ZShaderDocumentV2, ZShaderV2Error,
 };
 use crate::core::framework::render::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderDefinitionValue,
-    RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, ShaderAssetKind,
 };
 use crate::core::resource::{ResourceId, ResourceKind};
 
@@ -57,35 +57,218 @@ fn shader_readiness_reports_runtime_source_kinds() {
 }
 
 #[test]
-fn zshader_definition_values_report_typed_authoring_errors() {
-    let bool_error = ZShaderDefinitionValueDocument {
-        name: "USE_FOG".to_string(),
-        kind: "bool".to_string(),
-        value: toml::Value::Integer(1),
-    }
-    .to_render_definition()
-    .expect_err("non-boolean bool shader definition should fail");
+fn zshader_v2_parses_kind_specific_shader_documents() {
+    let surface = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "surface"
+version = 2
+shading_model = "standard_pbr"
+wgsl_files = ["surface.wgsl"]
+disabled_passes = ["shadow"]
 
+[render_state]
+cull_mode = "back"
+depth_compare = "less_equal"
+depth_write = true
+blend = "opaque"
+
+[queue]
+segment = "opaque"
+offset = 12
+
+[[properties]]
+name = "base_color"
+kind = "color"
+default = [1.0, 1.0, 1.0, 1.0]
+
+[[options]]
+name = "ZR_OPT_ALPHA_TEST"
+kind = "bool"
+default = false
+
+[[texture_slots]]
+name = "base_color"
+kind = "texture_2d"
+"#,
+    )
+    .unwrap();
+
+    let include = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "include"
+version = 2
+import_path = "zircon::lighting"
+wgsl_files = ["lighting.wgsl"]
+"#,
+    )
+    .unwrap();
+
+    let compute = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "compute"
+version = 2
+wgsl_files = ["cull.wgsl"]
+
+[[entry_points]]
+name = "cs_main"
+stage = "compute"
+
+[[resources]]
+name = "work_queue"
+kind = "storage_buffer"
+access = "read_write"
+"#,
+    )
+    .unwrap();
+
+    let fullscreen = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "fullscreen"
+version = 2
+wgsl_files = ["tonemap.wgsl"]
+
+[[entry_points]]
+name = "fs_main"
+stage = "fragment"
+
+[render_state]
+blend = "alpha_blend"
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(surface.kind(), ShaderAssetKind::Surface);
+    assert_eq!(include.kind(), ShaderAssetKind::Include);
+    assert_eq!(compute.kind(), ShaderAssetKind::Compute);
+    assert_eq!(fullscreen.kind(), ShaderAssetKind::Fullscreen);
+    assert!(surface.kind().participates_in_material_variants());
+    assert!(!compute.kind().participates_in_material_variants());
+}
+
+#[test]
+fn zshader_v2_rejects_fields_outside_kind_contracts() {
+    let surface_pipeline_layout = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "surface"
+version = 2
+shading_model = "standard_pbr"
+
+[pipeline_layout]
+"#,
+    )
+    .expect_err("surface shaders must not author pipeline layouts");
     assert_eq!(
-        bool_error,
-        ZShaderDefinitionError::BoolValue {
-            name: "USE_FOG".to_string(),
+        surface_pipeline_layout,
+        ZShaderV2Error::ForbiddenField {
+            kind: "surface".to_string(),
+            field: "pipeline_layout".to_string()
         }
     );
 
-    let kind_error = ZShaderDefinitionValueDocument {
-        name: "WIND_SCALE".to_string(),
-        kind: "float".to_string(),
-        value: toml::Value::Float(1.0),
-    }
-    .to_render_definition()
-    .expect_err("unsupported shader definition kind should fail");
+    let include_properties = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "include"
+version = 2
+import_path = "zircon::math"
 
+[[properties]]
+name = "roughness"
+kind = "float"
+"#,
+    )
+    .expect_err("include shaders must not author material fields");
     assert_eq!(
-        kind_error,
-        ZShaderDefinitionError::UnsupportedKind {
-            name: "WIND_SCALE".to_string(),
-            kind: "float".to_string(),
+        include_properties,
+        ZShaderV2Error::ForbiddenField {
+            kind: "include".to_string(),
+            field: "properties".to_string()
+        }
+    );
+
+    let fullscreen_texture_slots = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "fullscreen"
+version = 2
+
+[[texture_slots]]
+name = "source"
+kind = "texture_2d"
+"#,
+    )
+    .expect_err("fullscreen shaders must use resource declarations, not material texture slots");
+    assert_eq!(
+        fullscreen_texture_slots,
+        ZShaderV2Error::ForbiddenField {
+            kind: "fullscreen".to_string(),
+            field: "texture_slots".to_string()
+        }
+    );
+}
+
+#[test]
+fn zshader_v2_rejects_missing_required_fields_and_wrong_entry_stages() {
+    let missing_kind = ZShaderDocumentV2::from_toml_str(
+        r#"
+version = 2
+"#,
+    )
+    .expect_err("zshader v2 documents require a kind");
+    assert_eq!(
+        missing_kind,
+        ZShaderV2Error::MissingDocumentField {
+            field: "kind".to_string()
+        }
+    );
+
+    let missing_surface_shading = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "surface"
+version = 2
+"#,
+    )
+    .expect_err("surface shaders require a shading model");
+    assert_eq!(
+        missing_surface_shading,
+        ZShaderV2Error::MissingRequiredField {
+            kind: "surface".to_string(),
+            field: "shading_model".to_string()
+        }
+    );
+
+    let empty_include_import = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "include"
+version = 2
+import_path = ""
+"#,
+    )
+    .expect_err("include shaders reject empty explicit import paths");
+    assert_eq!(
+        empty_include_import,
+        ZShaderV2Error::EmptyField {
+            kind: "include".to_string(),
+            field: "import_path".to_string()
+        }
+    );
+
+    let compute_vertex_entry = ZShaderDocumentV2::from_toml_str(
+        r#"
+kind = "compute"
+version = 2
+
+[[entry_points]]
+name = "vs_main"
+stage = "vertex"
+"#,
+    )
+    .expect_err("compute shaders only accept compute entries");
+    assert_eq!(
+        compute_vertex_entry,
+        ZShaderV2Error::InvalidEntryStage {
+            kind: "compute".to_string(),
+            entry: "vs_main".to_string(),
+            stage: "vertex".to_string(),
+            expected: "compute".to_string()
         }
     );
 }
@@ -118,9 +301,14 @@ fn shader_readiness_reports_import_rows_without_blocking_source_only_imports() {
     assert_eq!(report.imports[0].source, "zircon::lighting");
     assert_eq!(report.imports[0].redirect, Some(redirect));
     assert!(report.imports[0].contributes_dependency);
+    assert_eq!(
+        report.imports[0].source_diagnostic.as_deref(),
+        Some("shader import `zircon::lighting` is redirected to `res://shaders/shared_lighting`")
+    );
     assert_eq!(report.imports[1].source, "naga_oil::math");
     assert!(report.imports[1].redirect.is_none());
     assert!(!report.imports[1].contributes_dependency);
+    assert!(report.imports[1].source_diagnostic.is_none());
 }
 
 #[test]
@@ -411,6 +599,7 @@ fn shader_asset_management_record_set_sorts_and_summarizes_records() {
 fn base_shader(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(); }".to_string(),
         wgsl_source: String::new(),
@@ -421,7 +610,16 @@ fn base_shader(uri: &str) -> ShaderAsset {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),

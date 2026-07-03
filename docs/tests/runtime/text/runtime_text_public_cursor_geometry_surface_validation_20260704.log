@@ -1,0 +1,29 @@
+runtime_text_public_cursor_geometry_surface_20260704
+
+slice_status: runtime_text_public_cursor_geometry_surface_rustfmt_static_visual_cargo_deferred
+objective: Expose the source-range-aware caret and range geometry through ui::surface so editor/runtime consumers can use resolved layout geometry without importing private ui::text modules.
+
+implementation:
+- zircon_runtime/src/ui/surface/text_geometry.rs: new public surface leaf with text_caret_frame_for_layout and text_range_frames_for_layout.
+- zircon_runtime/src/ui/surface/text_geometry.rs: focused regressions cover source-range shaped caret placement and tab fallback to resolved advances.
+- zircon_runtime/src/ui/surface/mod.rs: structural module mount and curated public re-export only.
+- zircon_runtime/src/ui/text/geometry.rs remains the private geometry owner; no font, raster, renderer, atlas, or IME platform backend policy changed.
+
+focused_tests_added:
+- surface_text_caret_frame_uses_source_range_metrics: public surface caret/range API uses shaped source-range width instead of stale per-grapheme advances for simple LTR text.
+- surface_text_caret_frame_keeps_tab_resolved_advances: public surface API keeps resolved layout advances for tab text.
+
+validation:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/mod.rs zircon_runtime/src/ui/surface/text_geometry.rs : PASS
+- git diff --check -- zircon_runtime/src/ui/surface/mod.rs zircon_runtime/src/ui/surface/text_geometry.rs : PASS (line-ending warning only)
+- trailing whitespace scan scoped to touched Rust files : PASS
+- visual proof inspected: docs/tests/runtime/text/runtime_text_public_cursor_geometry_surface_preview_20260704.png
+- visual proof sha256: 120E15B98B1A8705A9E6B6F193E9C26D8EAFB11C72DFE2946750EC0FDBC0FD1F
+
+cargo_status:
+- focused cargo tests deferred because existing cargo/rustc lanes were already active during this slice.
+- observed active processes before deferral included cargo 14348, 17812, 21760, 23396, 37072, 40896, 43888, 44548 and rustc 9844, 25108, 33440, 45404.
+
+open_followups:
+- Run focused cargo once compile lanes clear: cargo test -p zircon_runtime surface_text_caret_frame_ --lib --no-default-features --locked --jobs 1.
+- Public API is horizontal/simple-source-range ready; backend cluster reverse lookup, RTL isolate affinity, vertical source-range geometry, true unkerned measure, and live editor typography QA remain plan followups.

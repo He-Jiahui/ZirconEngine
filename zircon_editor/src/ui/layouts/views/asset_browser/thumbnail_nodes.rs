@@ -4,18 +4,23 @@ use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::resource::ResourceKind;
 
-use super::{asset_state_label, compact_resource_kind_label};
+use super::labels::{asset_state_label, resource_kind_badge_code};
 
 const THUMBNAIL_GRID_MAX_ITEMS: usize = 8;
 const THUMBNAIL_NAME_SINGLE_LINE_LIMIT: usize = 20;
 const THUMBNAIL_NAME_MIN_LINE_CHARS: usize = 6;
 const THUMBNAIL_NAME_TARGET_MIN_CHARS: usize = 12;
 const THUMBNAIL_NAME_TARGET_MAX_CHARS: usize = 18;
-const THUMBNAIL_NAME_PRIMARY_FONT_SIZE: f32 = 9.0;
-const THUMBNAIL_NAME_CONTINUATION_FONT_SIZE: f32 = 8.0;
+const THUMBNAIL_FILE_NAME_VISIBLE_CHAR_LIMIT: usize = 20;
+const THUMBNAIL_FILE_NAME_MAX_PREFIX_CHARS: usize = 9;
+const THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 4;
+const THUMBNAIL_FILE_NAME_ELLIPSIS: &str = "...";
+const THUMBNAIL_NAME_PRIMARY_FONT_SIZE: f32 = 10.0;
+const THUMBNAIL_NAME_CONTINUATION_FONT_SIZE: f32 = 9.0;
 const THUMBNAIL_NAME_PRIMARY_FONT_WEIGHT: i32 = 500;
 const THUMBNAIL_NAME_CONTINUATION_FONT_WEIGHT: i32 = 400;
-const THUMBNAIL_META_FONT_SIZE: f32 = 8.0;
+const THUMBNAIL_TYPE_FONT_SIZE: f32 = 8.5;
+const THUMBNAIL_META_FONT_SIZE: f32 = 8.5;
 const THUMBNAIL_CARD_SURFACE: &str = "asset-thumbnail-card";
 const THUMBNAIL_NAME_AREA_SURFACE: &str = "asset-thumbnail-name-area";
 
@@ -42,7 +47,7 @@ pub(super) fn append_asset_browser_thumbnail_nodes(
         if selected {
             nodes.push(thumbnail_selection_marker_node(index));
         }
-        let (name, name_continuation) = asset_display_name_lines(asset.display_name.as_str());
+        let (name, name_continuation) = thumbnail_display_name_lines(asset);
         nodes.push(thumbnail_name_node(index, name));
         nodes.push(thumbnail_name_continuation_node(index, name_continuation));
         nodes.push(thumbnail_type_badge_node(index));
@@ -69,7 +74,7 @@ fn thumbnail_card_node(index: usize, selected: bool) -> ViewTemplateNodeData {
         role: "Panel".into(),
         surface_variant: THUMBNAIL_CARD_SURFACE.into(),
         corner_radius: 4.0,
-        border_width: 0.0,
+        border_width: if selected { 1.0 } else { 0.0 },
         selected,
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
@@ -186,8 +191,8 @@ fn thumbnail_type_node(index: usize, asset: &AssetItemSnapshot) -> ViewTemplateN
     thumbnail_label_node(
         thumbnail_node_id("Type", index),
         thumbnail_control_id("Type", index),
-        compact_resource_kind_label(asset.kind).to_ascii_uppercase(),
-        8.0,
+        resource_kind_badge_code(asset.kind).to_string(),
+        THUMBNAIL_TYPE_FONT_SIZE,
         700,
         "accent",
     )
@@ -225,6 +230,73 @@ fn thumbnail_label_node(
         frame: ViewTemplateFrameData::default(),
         ..ViewTemplateNodeData::default()
     }
+}
+
+fn thumbnail_display_name_lines(asset: &AssetItemSnapshot) -> (String, String) {
+    let name = asset.display_name.trim();
+    if is_file_like_thumbnail_name(name, asset.extension.as_str()) {
+        return (
+            thumbnail_file_like_display_title(name, asset.extension.as_str()),
+            String::new(),
+        );
+    }
+
+    asset_display_name_lines(name)
+}
+
+fn is_file_like_thumbnail_name(display_name: &str, extension: &str) -> bool {
+    let extension = extension.trim().trim_start_matches('.');
+    if extension.is_empty() {
+        return false;
+    }
+
+    display_name
+        .rsplit_once('.')
+        .is_some_and(|(_, suffix)| suffix.eq_ignore_ascii_case(extension))
+}
+
+fn thumbnail_file_like_display_title(display_name: &str, extension: &str) -> String {
+    if display_name.chars().count() <= THUMBNAIL_FILE_NAME_VISIBLE_CHAR_LIMIT {
+        return display_name.to_string();
+    }
+
+    let Some((stem, suffix)) = display_name.rsplit_once('.') else {
+        return display_name.to_string();
+    };
+    let extension = extension.trim().trim_start_matches('.');
+    if !suffix.eq_ignore_ascii_case(extension) {
+        return display_name.to_string();
+    }
+
+    let suffix_char_count = suffix.chars().count();
+    let ellipsis_char_count = THUMBNAIL_FILE_NAME_ELLIPSIS.chars().count();
+    let available_stem_chars = THUMBNAIL_FILE_NAME_VISIBLE_CHAR_LIMIT
+        .saturating_sub(ellipsis_char_count + 1 + suffix_char_count);
+    if available_stem_chars < 2 {
+        return display_name.to_string();
+    }
+
+    let tail_chars = THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS.min(available_stem_chars / 2);
+    let prefix_chars =
+        THUMBNAIL_FILE_NAME_MAX_PREFIX_CHARS.min(available_stem_chars.saturating_sub(tail_chars));
+    let stem_char_count = stem.chars().count();
+    if prefix_chars == 0 || tail_chars == 0 || stem_char_count <= prefix_chars + tail_chars {
+        return display_name.to_string();
+    }
+
+    let prefix = first_n_chars(stem, prefix_chars);
+    let tail = last_n_chars(stem, tail_chars);
+    format!("{prefix}{THUMBNAIL_FILE_NAME_ELLIPSIS}{tail}.{suffix}")
+}
+
+fn first_n_chars(text: &str, count: usize) -> String {
+    text.chars().take(count).collect()
+}
+
+fn last_n_chars(text: &str, count: usize) -> String {
+    let chars = text.chars().collect::<Vec<_>>();
+    let start = chars.len().saturating_sub(count);
+    chars[start..].iter().copied().collect()
 }
 
 pub(super) fn asset_display_name_lines(display_name: &str) -> (String, String) {
@@ -367,7 +439,7 @@ mod tests {
                 && node.selected
                 && !node.focused
                 && node.surface_variant == THUMBNAIL_CARD_SURFACE
-                && node.border_width == 0.0));
+                && node.border_width == 1.0));
         assert!(nodes
             .iter()
             .any(|node| node.control_id == "AssetBrowserThumbInfoBand01"
@@ -410,7 +482,7 @@ mod tests {
                 && node.role == "Label"
                 && node.text == "TEX"
                 && node.text_tone == "accent"
-                && node.font_size == 8.0
+                && node.font_size == THUMBNAIL_TYPE_FONT_SIZE
                 && node.font_weight == 700
         }));
         assert!(nodes
@@ -426,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn thumbnail_nodes_project_long_asset_names_as_two_tile_lines() {
+    fn thumbnail_nodes_keep_file_like_asset_names_on_one_extension_preserving_tile_line() {
         let snapshot = AssetWorkspaceSnapshot {
             view_mode: AssetViewMode::Thumbnail,
             visible_assets: vec![AssetItemSnapshot {
@@ -457,8 +529,8 @@ mod tests {
             .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
             .expect("missing thumbnail continuation name");
 
-        assert_eq!(name.text.as_str(), "workbench_host");
-        assert_eq!(continuation.text.as_str(), "window.zui");
+        assert_eq!(name.text.as_str(), "workbench...ndow.zui");
+        assert!(continuation.text.is_empty());
         assert_eq!(name.overflow.as_str(), "elide");
         assert_eq!(continuation.overflow.as_str(), "elide");
         assert_eq!(name.font_size, THUMBNAIL_NAME_PRIMARY_FONT_SIZE);
@@ -466,6 +538,79 @@ mod tests {
             continuation.font_size,
             THUMBNAIL_NAME_CONTINUATION_FONT_SIZE
         );
+        assert_eq!(continuation.text_tone.as_str(), "muted");
+    }
+
+    #[test]
+    fn thumbnail_nodes_preserve_long_file_extension_when_eliding_title() {
+        let snapshot = AssetWorkspaceSnapshot {
+            view_mode: AssetViewMode::Thumbnail,
+            visible_assets: vec![AssetItemSnapshot {
+                uuid: "asset-scene-preview".to_string(),
+                locator: "res://scene/editor_preview.zscene".to_string(),
+                display_name: "editor_preview.zscene".to_string(),
+                file_name: "editor_preview.zscene".to_string(),
+                extension: "zscene".to_string(),
+                kind: ResourceKind::Scene,
+                preview_artifact_path: String::new(),
+                dirty: false,
+                diagnostics: Vec::new(),
+                selected: true,
+                resource_state: None,
+                resource_revision: Some(42),
+            }],
+            ..AssetWorkspaceSnapshot::default()
+        };
+        let mut nodes = Vec::new();
+        append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
+
+        let name = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserThumbName01")
+            .expect("missing thumbnail primary name");
+        let continuation = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
+            .expect("missing thumbnail continuation name");
+
+        assert_eq!(name.text.as_str(), "editor...view.zscene");
+        assert!(continuation.text.is_empty());
+    }
+
+    #[test]
+    fn thumbnail_nodes_project_non_file_long_asset_names_as_two_tile_lines() {
+        let snapshot = AssetWorkspaceSnapshot {
+            view_mode: AssetViewMode::Thumbnail,
+            visible_assets: vec![AssetItemSnapshot {
+                uuid: "asset-navigation-profile".to_string(),
+                locator: "res://data/NavigationSettingsRuntimeProfile".to_string(),
+                display_name: "NavigationSettingsRuntimeProfile".to_string(),
+                file_name: "NavigationSettingsRuntimeProfile".to_string(),
+                extension: String::new(),
+                kind: ResourceKind::Data,
+                preview_artifact_path: String::new(),
+                dirty: false,
+                diagnostics: Vec::new(),
+                selected: true,
+                resource_state: None,
+                resource_revision: Some(42),
+            }],
+            ..AssetWorkspaceSnapshot::default()
+        };
+        let mut nodes = Vec::new();
+        append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
+
+        let name = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserThumbName01")
+            .expect("missing thumbnail primary name");
+        let continuation = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
+            .expect("missing thumbnail continuation name");
+
+        assert_eq!(name.text.as_str(), "NavigationSettings");
+        assert_eq!(continuation.text.as_str(), "RuntimeProfile");
         assert_eq!(continuation.text_tone.as_str(), "muted");
     }
 

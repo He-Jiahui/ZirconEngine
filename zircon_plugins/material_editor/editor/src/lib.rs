@@ -140,6 +140,7 @@ pub fn compile_material_graph(graph: &MaterialGraphAsset) -> Result<MaterialAsse
     Ok(MaterialAsset {
         name: Some(graph.name.clone()),
         shader,
+        parent: None,
         base_color,
         base_color_texture,
         normal_texture: None,
@@ -153,6 +154,8 @@ pub fn compile_material_graph(graph: &MaterialGraphAsset) -> Result<MaterialAsse
         double_sided: false,
         property_values: Default::default(),
         texture_slots: Default::default(),
+        options: Default::default(),
+        queue: None,
         validation_diagnostics: Vec::new(),
     })
 }

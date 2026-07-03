@@ -97,6 +97,12 @@ fn compile_routes_bloom_extract_after_split_scene_color_passes() {
         resource.name == PostProcessGraphResourceNames::SCENE_COLOR
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
+    assert!(bloom_extract.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::BLOOM
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
+    let bloom = texture_lifetime(&compiled, PostProcessGraphResourceNames::BLOOM);
+    assert_eq!(bloom.format, crate::rhi::TextureFormat::Rg11b10Ufloat);
 }
 
 #[test]

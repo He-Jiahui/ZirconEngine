@@ -19,7 +19,7 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
     let level_doc = read_repo("docs/zircon_runtime/scene/level_system.md");
     let event_doc = read_repo("docs/zircon_runtime/core/runtime/events.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
     );
 
     assert_contains_all(

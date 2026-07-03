@@ -8,9 +8,12 @@ use super::super::super::style_selector::{
 };
 use super::super::super::template_field_stepper::STEPPER_DIVIDER;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
+use super::super::push_field_commands;
 use super::super::style::field_style;
 use super::support::{changed_pixel_count, pixel_at, positioned_field_node};
 use crate::ui::layouts::common::model_rc;
+use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 #[test]
 fn workbench_field_paints_surface_border_and_text() {
@@ -33,7 +36,7 @@ fn workbench_field_paints_surface_border_and_text() {
 }
 
 #[test]
-fn focused_workbench_field_uses_focused_border() {
+fn focused_workbench_field_uses_neutral_focused_border() {
     let mut node = positioned_field_node(
         "WorkbenchInputFocused",
         "Focused input",
@@ -46,6 +49,8 @@ fn focused_workbench_field_uses_focused_border() {
     let bytes = paint_template_nodes_for_test(200, 48, model_rc(vec![node]));
 
     assert_eq!(pixel_at(&bytes, 200, 80, 8), FIELD_FOCUSED_BORDER);
+    assert_eq!(FIELD_FOCUSED_BORDER, PALETTE.border);
+    assert_ne!(FIELD_FOCUSED_BORDER, PALETTE.accent);
 }
 
 #[test]
@@ -100,4 +105,44 @@ fn search_workbench_field_paints_left_icon_before_placeholder_text() {
     assert_ne!(pixel_at(&bytes, 220, 28, 25), [0, 0, 0, 255]);
     assert_ne!(pixel_at(&bytes, 220, 28, 25), FIELD_SURFACE);
     assert!(changed_pixel_count(&bytes, 220, 40, 17, 48, 15) > 0);
+}
+
+#[test]
+fn search_workbench_field_prefers_shell_search_asset_pixels() {
+    let mut search = positioned_field_node("SearchEdited", "", 12.0, 10.0, 184.0, 28.0);
+    search.text = "Search".into();
+    let rect = FrameRect {
+        x: 12.0,
+        y: 10.0,
+        width: 184.0,
+        height: 28.0,
+    };
+    let mut commands = Vec::new();
+
+    assert!(push_field_commands(
+        &mut commands,
+        &search,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+
+    let icon_commands = commands
+        .iter()
+        .filter(|command| command.image_pixels.is_some())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        icon_commands.len(),
+        1,
+        "search fields should render the glass glyph through the shared shell SVG asset"
+    );
+    let icon = icon_commands[0];
+    assert_eq!(icon.frame.width, 16.0);
+    assert_eq!(icon.frame.height, 16.0);
+    assert!(icon
+        .image_pixels
+        .as_ref()
+        .map(|image| !image.resource_key.starts_with("missing-icon:"))
+        .unwrap_or(false));
 }

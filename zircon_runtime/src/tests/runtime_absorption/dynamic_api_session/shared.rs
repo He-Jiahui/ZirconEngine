@@ -7,10 +7,12 @@ pub(super) const EXPECTED_RUNTIME_10_SOURCE_FILES: &[&str] = &[
     "zircon_runtime_interface/src/tests/contracts.rs",
     "zircon_runtime/src/dynamic_api/exports.rs",
     "zircon_runtime/src/dynamic_api/session.rs",
+    "zircon_runtime/src/dynamic_api/session/profile.rs",
     "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
     "zircon_runtime/src/dynamic_api/session/host_requests.rs",
     "zircon_runtime/src/dynamic_api/session/events.rs",
     "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+    "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
     "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
     "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
     "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
@@ -379,19 +381,19 @@ pub(super) const EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS: &[(&str, &str
         ".map(ZrRuntimeHostRequestV1::cursor)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
         "host_request_batch_encodes_runtime_ime_requests",
     ),
     (
-        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
         "host_request_batch_encodes_gamepad_rumble_requests",
     ),
     (
-        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
         "host_request_batch_encodes_cursor_requests",
     ),
     (
-        "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+        "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
         "host_request_free_rejects_wrong_owner_token",
     ),
     (

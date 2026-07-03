@@ -21,6 +21,10 @@ FORBIDDEN_DIST_DEPENDENCIES = {
     "winit",
 }
 ALLOWED_DISTRIBUTION_FORMS = {"embed", "dist"}
+DISTRIBUTION_FIELDS = frozenset(
+    "abi_version assets default_packaging descriptor_symbol dist_crate editor_entry "
+    "engine_compat forms runtime_entry".split()
+)
 DIST_PACKAGING = "native_dynamic"
 EMBED_PACKAGING = "library_embed"
 DIST_CRATE_TYPE = "cdylib"
@@ -90,56 +94,28 @@ def audit_plugin_dependency_boundary(repo_root: Path) -> PluginDependencyBoundar
             )
             continue
 
-        forms = string_array_field(
-            display_path,
-            distribution,
-            "distribution.forms",
-            distribution_violations,
-        )
-        if forms is None:
-            continue
-        invalid_forms = sorted(set(forms) - ALLOWED_DISTRIBUTION_FORMS)
-        if invalid_forms:
-            distribution_violations.append(
-                f"{display_path}: distribution.forms contains unsupported values: "
-                + ", ".join(invalid_forms)
-            )
-        if "dist" not in forms:
-            continue
-
         plugin_id = manifest.get("id")
         if not isinstance(plugin_id, str) or not plugin_id.strip():
             plugin_id = plugin_root
-        dist_capable_plugins.append(plugin_id)
-        collect_dist_distribution_violations(
+        collect_distribution_matrix_entry(
+            display_path,
+            plugin_id,
+            distribution,
+            "distribution",
+            manifest.get("modules"),
+            crate_index,
+            dist_capable_plugins,
+            dist_build_matrix_entries,
+            distribution_violations,
+            boundary_violations,
+        )
+        collect_feature_distribution_matrix_entries(
             display_path,
             manifest,
-            distribution,
-            forms,
+            crate_index,
+            dist_capable_plugins,
+            dist_build_matrix_entries,
             distribution_violations,
-        )
-        dist_crate = distribution.get("dist_crate")
-        if not isinstance(dist_crate, str) or not dist_crate.strip():
-            continue
-        crate = crate_index.get(dist_crate)
-        if crate is None:
-            boundary_violations.append(
-                f"{display_path}: distribution.dist_crate {dist_crate} is not a "
-                "zircon_plugins workspace package"
-            )
-            continue
-        dist_build_matrix_entries.append(
-            {
-                "plugin_id": plugin_id,
-                "package": dist_crate,
-            }
-        )
-        collect_dist_crate_boundary_violations(
-            display_path,
-            dist_crate,
-            forms,
-            crate["manifest"],
-            crate["manifest_path"],
             boundary_violations,
         )
 
@@ -198,15 +174,16 @@ def workspace_crate_index(
 
 def collect_dist_distribution_violations(
     display_path: str,
-    manifest: dict[str, Any],
     distribution: dict[str, Any],
+    distribution_label: str,
     forms: list[str],
+    module_rows: object,
     violations: list[str],
 ) -> None:
     default_packaging = string_array_field(
         display_path,
         distribution,
-        "distribution.default_packaging",
+        f"{distribution_label}.default_packaging",
         violations,
     )
     for field in (
@@ -214,59 +191,189 @@ def collect_dist_distribution_violations(
         "dist_crate",
         "descriptor_symbol",
     ):
-        string_field(display_path, distribution, f"distribution.{field}", violations)
+        string_field(display_path, distribution, f"{distribution_label}.{field}", violations)
     runtime_entry = optional_string_field(
         display_path,
         distribution,
-        "distribution.runtime_entry",
+        f"{distribution_label}.runtime_entry",
         violations,
     )
     editor_entry = optional_string_field(
         display_path,
         distribution,
-        "distribution.editor_entry",
+        f"{distribution_label}.editor_entry",
         violations,
     )
     if runtime_entry is None and editor_entry is None:
         violations.append(
-            f"{display_path}: distribution must declare runtime_entry or editor_entry"
+            f"{display_path}: {distribution_label} must declare runtime_entry or editor_entry"
         )
     abi_version = distribution.get("abi_version")
     if not isinstance(abi_version, int) or abi_version <= 0:
         violations.append(
-            f"{display_path}: distribution.abi_version must be a positive integer"
+            f"{display_path}: {distribution_label}.abi_version must be a positive integer"
         )
     if "assets" in distribution:
-        string_array_field(display_path, distribution, "distribution.assets", violations)
+        string_array_field(display_path, distribution, f"{distribution_label}.assets", violations)
 
     if default_packaging is not None:
         if "dist" in forms and DIST_PACKAGING not in default_packaging:
             violations.append(
-                f"{display_path}: distribution.default_packaging must include "
+                f"{display_path}: {distribution_label}.default_packaging must include "
                 f"{DIST_PACKAGING} when distribution.forms includes dist"
             )
         if "embed" in forms and EMBED_PACKAGING not in default_packaging:
             violations.append(
-                f"{display_path}: distribution.default_packaging must include "
+                f"{display_path}: {distribution_label}.default_packaging must include "
                 f"{EMBED_PACKAGING} when distribution.forms includes embed"
             )
     dist_crate = distribution.get("dist_crate")
     if isinstance(dist_crate, str) and dist_crate.strip():
-        modules = manifest.get("modules")
         module_crates = (
             [
                 module.get("crate_name")
-                for module in modules
+                for module in module_rows
                 if isinstance(module, dict) and isinstance(module.get("crate_name"), str)
             ]
-            if isinstance(modules, list)
+            if isinstance(module_rows, list)
             else []
         )
         if dist_crate not in module_crates:
             violations.append(
-                f"{display_path}: distribution.dist_crate {dist_crate} is not declared "
+                f"{display_path}: {distribution_label}.dist_crate {dist_crate} is not declared "
                 "by any [[modules]].crate_name"
             )
+
+
+def collect_distribution_matrix_entry(
+    display_path: str,
+    target_id: str,
+    distribution: dict[str, Any],
+    distribution_label: str,
+    module_rows: object,
+    crate_index: dict[str, dict[str, Any]],
+    dist_capable_plugins: list[str],
+    dist_build_matrix_entries: list[dict[str, str]],
+    distribution_violations: list[str],
+    boundary_violations: list[str],
+) -> None:
+    collect_distribution_known_field_violations(
+        display_path, distribution, distribution_label, distribution_violations
+    )
+    forms = string_array_field(
+        display_path,
+        distribution,
+        f"{distribution_label}.forms",
+        distribution_violations,
+    )
+    if forms is None:
+        return
+    invalid_forms = sorted(set(forms) - ALLOWED_DISTRIBUTION_FORMS)
+    if invalid_forms:
+        distribution_violations.append(
+            f"{display_path}: {distribution_label}.forms contains unsupported values: "
+            + ", ".join(invalid_forms)
+        )
+    if "dist" not in forms:
+        return
+
+    dist_capable_plugins.append(target_id)
+    collect_dist_distribution_violations(
+        display_path,
+        distribution,
+        distribution_label,
+        forms,
+        module_rows,
+        distribution_violations,
+    )
+    dist_crate = distribution.get("dist_crate")
+    if not isinstance(dist_crate, str) or not dist_crate.strip():
+        return
+    crate = crate_index.get(dist_crate)
+    if crate is None:
+        boundary_violations.append(
+            f"{display_path}: {distribution_label}.dist_crate {dist_crate} is not a "
+            "zircon_plugins workspace package"
+        )
+        return
+    dist_build_matrix_entries.append(
+        {
+            "plugin_id": target_id,
+            "package": dist_crate,
+        }
+    )
+    collect_dist_crate_boundary_violations(
+        display_path,
+        dist_crate,
+        forms,
+        crate["manifest"],
+        crate["manifest_path"],
+        boundary_violations,
+    )
+
+
+def collect_distribution_known_field_violations(
+    display_path: str,
+    distribution: dict[str, Any],
+    distribution_label: str,
+    violations: list[str],
+) -> None:
+    for field in sorted(distribution):
+        if field not in DISTRIBUTION_FIELDS:
+            violations.append(
+                f"{display_path}: {distribution_label}.{field} "
+                "is not a known distribution field"
+            )
+
+
+def collect_feature_distribution_matrix_entries(
+    display_path: str,
+    manifest: dict[str, Any],
+    crate_index: dict[str, dict[str, Any]],
+    dist_capable_plugins: list[str],
+    dist_build_matrix_entries: list[dict[str, str]],
+    distribution_violations: list[str],
+    boundary_violations: list[str],
+) -> None:
+    for field_name in ("optional_features", "feature_extensions"):
+        features = manifest.get(field_name)
+        if not isinstance(features, list):
+            continue
+        for feature_index, feature in enumerate(features):
+            if not isinstance(feature, dict):
+                continue
+            distribution = feature.get("distribution")
+            if distribution is None:
+                continue
+            distribution_label = f"{field_name}[{feature_index}].distribution"
+            if not isinstance(distribution, dict):
+                distribution_violations.append(
+                    f"{display_path}: {distribution_label} must be a table"
+                )
+                continue
+            target_id = feature_distribution_target_id(feature)
+            collect_distribution_matrix_entry(
+                display_path,
+                target_id,
+                distribution,
+                distribution_label,
+                feature.get("modules"),
+                crate_index,
+                dist_capable_plugins,
+                dist_build_matrix_entries,
+                distribution_violations,
+                boundary_violations,
+            )
+
+
+def feature_distribution_target_id(feature: dict[str, Any]) -> str:
+    provider_package_id = feature.get("provider_package_id")
+    if isinstance(provider_package_id, str) and provider_package_id.strip():
+        return provider_package_id
+    feature_id = feature.get("id")
+    if isinstance(feature_id, str) and feature_id.strip():
+        return feature_id.replace(".", "_")
+    return "unknown_feature_distribution"
 
 
 def collect_dist_crate_boundary_violations(

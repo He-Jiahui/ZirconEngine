@@ -3,34 +3,122 @@ related_code:
   - tools/zircon_export/__init__.py
   - tools/zircon_export/__main__.py
   - tools/zircon_export/cli.py
+  - tools/zircon_export/cli_arguments.py
+  - tools/zircon_export/pack_stage.py
+  - tools/zircon_export/pack_stage_paths.py
+  - tools/zircon_export/validate_stage.py
+  - tools/zircon_export/plugin_command.py
   - tools/zircon_export/plugin_build.py
+  - tools/zircon_export/plugin_build_command.py
+  - tools/zircon_export/plugin_build_preflight.py
+  - tools/zircon_export/plugin_build_package.py
+  - tools/zircon_export/plugin_build_asset_pack.py
+  - tools/zircon_export/plugin_build_signature.py
+  - tools/zircon_export/plugin_package_source.py
+  - tools/zircon_export/plugin_package_template.py
+  - tools/zircon_export/plugin_package_identity.py
   - tools/zircon_export/plugin_validate.py
+  - tools/zircon_export/plugin_validate_single_target.py
+  - tools/zircon_export/plugin_validate_capabilities.py
+  - tools/zircon_export/plugin_validate_optional_features.py
+  - tools/zircon_export/plugin_validate_optional_feature_dependencies.py
+  - tools/zircon_export/plugin_validate_optional_feature_distribution.py
+  - tools/zircon_export/plugin_validate_feature_extensions.py
+  - tools/zircon_export/plugin_validate_default_packaging.py
+  - tools/zircon_export/plugin_validate_manifest_classification.py
+  - tools/zircon_export/plugin_validate_manifest_shape.py
+  - tools/zircon_export/plugin_validate_layout.py
+  - tools/zircon_export/plugin_validate_layout_coordinates.py
+  - tools/zircon_export/plugin_validate_layout_public_metadata.py
+  - tools/zircon_export/plugin_validate_layout_targets.py
+  - tools/zircon_export/plugin_validate_layout_roots.py
+  - tools/zircon_export/tests/test_plugin_validate_layout.py
+  - tools/zircon_export/plugin_validate_package_kind.py
   - tools/zircon_export/plugin_validate_report.py
+  - tools/zircon_export/tests/test_plugin_validate_report.py
   - tools/zircon_export/plugin_validate_engine_version.py
   - tools/zircon_export/plugin_validate_distribution_contract.py
+  - tools/zircon_export/plugin_validate_distribution_descriptor_symbol.py
+  - tools/zircon_export/plugin_validate_distribution_entries.py
+  - tools/zircon_export/plugin_validate_distribution_packaging.py
+  - tools/zircon_export/plugin_validate_distribution_scalars.py
+  - tools/zircon_export/plugin_validate_distribution_engine_compat.py
+  - tools/zircon_export/plugin_validate_distribution_assets.py
+  - tools/zircon_export/plugin_validate_distribution_zui_assets.py
+  - tools/zircon_export/plugin_validate_asset_importers.py
+  - tools/zircon_export/plugin_validate_asset_importer_global_ids.py
+  - tools/zircon_export/plugin_validate_asset_importer_ids.py
+  - tools/zircon_export/plugin_validate_asset_importer_metadata_arrays.py
+  - tools/zircon_export/plugin_validate_asset_importer_numbers.py
+  - tools/zircon_export/plugin_validate_asset_importer_required_capabilities.py
+  - tools/zircon_export/plugin_validate_asset_importer_schema.py
+  - tools/zircon_export/plugin_validate_asset_importer_resource_kinds.py
   - tools/zircon_export/plugin_validate_dist_crate.py
+  - tools/zircon_export/plugin_validate_dist_crate_dependency.py
   - tools/zircon_export/plugin_validate_target_discovery.py
   - tools/zircon_export/plugin_validate_distribution_modules.py
+  - tools/zircon_export/plugin_validate_distribution_module_target_modes.py
+  - tools/zircon_export/plugin_validate_modules.py
+  - tools/zircon_export/plugin_validate_module_crates.py
+  - tools/zircon_export/plugin_validate_module_systems.py
+  - tools/zircon_export/plugin_validate_interfaces.py
+  - tools/zircon_export/plugin_validate_interface_methods.py
+  - tools/zircon_export/plugin_validate_interface_signatures.py
+  - tools/zircon_export/plugin_validate_capability_statuses.py
+  - tools/zircon_export/plugin_validate_capability_status_targets.py
+  - tools/zircon_export/plugin_validate_capability_status_references.py
+  - tools/zircon_export/plugin_validate_common.py
+  - tools/zircon_export/plugin_validate_feature_provider.py
+  - tools/zircon_export/plugin_validate_feature_provider_projection_compare.py
+  - tools/zircon_export/plugin_validate_feature_provider_projection_optional.py
+  - tools/zircon_export/plugin_validate_feature_provider_dependencies.py
+  - tools/zircon_export/plugin_validate_feature_provider_capabilities.py
+  - tools/zircon_export/plugin_validate_feature_provider_distribution.py
+  - tools/zircon_export/plugin_validate_feature_provider_extension.py
+  - tools/zircon_export/tests/test_plugin_validate_optional_features.py
+  - tools/zircon_export/tests/test_plugin_validate_optional_feature_distribution.py
+  - tools/zircon_export/tests/test_plugin_validate_feature_extensions.py
   - tools/zircon_export/compile_host.py
+  - tools/zircon_export/compile_host_plan.py
+  - tools/zircon_export/compile_host_plan_command_semantics.py
   - tools/zircon_export/command_plan.py
   - tools/zircon_export/cook_assets.py
+  - tools/zircon_export/cook_assets_manifest.py
+  - tools/zircon_export/cook_assets_project_fallback.py
   - tools/zircon_export/export_strategy_contract.py
   - tools/zircon_export/export_template.py
+  - tools/zircon_export/export_template_resolution.py
+  - tools/zircon_export/export_template_manifest.py
   - tools/zircon_export/native_build.py
+  - tools/zircon_export/native_build_command.py
+  - tools/zircon_export/native_build_workspace.py
   - tools/zircon_export/native_dynamic_contract.py
   - tools/zircon_export/native_dynamic.py
+  - tools/zircon_export/native_dynamic_cli_options.py
+  - tools/zircon_export/native_dynamic_materialize.py
+  - tools/zircon_export/native_dynamic_materialize_io.py
+  - tools/zircon_export/native_dynamic_stage_payload_finalize.py
   - tools/zircon_export/native_dynamic_plan.py
   - tools/zircon_export/native_dynamic_payload.py
+  - tools/zircon_export/native_dynamic_payload_directory.py
+  - tools/zircon_export/native_dynamic_payload_operation_audit.py
+  - tools/zircon_export/native_dynamic_payload_file_manifest.py
   - tools/zircon_export/native_dynamic_templates.py
   - tools/zircon_export/native_signing.py
   - tools/zircon_export/path_resolve.py
   - tools/zircon_export/pipeline_report.py
+  - tools/zircon_export/pipeline_report_compile_host.py
   - tools/zircon_export/pipeline_report_cook_assets.py
+  - tools/zircon_export/pipeline_report_cook_assets_manifest_io.py
+  - tools/zircon_export/pipeline_report_cook_assets_pack_handoff.py
+  - tools/zircon_export/pipeline_report_cook_assets_pack_trim_closure.py
+  - tools/zircon_export/pipeline_report_cook_assets_trim_evidence.py
   - tools/zircon_export/pipeline_report_cook_assets_manifest_shape.py
   - tools/zircon_export/pipeline_report_stage_location.py
   - tools/zircon_export/pipeline_report_stage_schema.py
   - tools/zircon_export/pipeline_report_schema_primitives.py
   - tools/zircon_export/pipeline_report_schema_table.py
+  - tools/zircon_export/pipeline_report_schema_string_array.py
   - tools/zircon_export/pipeline_report_compile_host_stage_schema.py
   - tools/zircon_export/pipeline_report_cook_assets_stage_schema.py
   - tools/zircon_export/pipeline_report_validate_stage_schema.py
@@ -38,41 +126,97 @@ related_code:
   - tools/zircon_export/pipeline_report_native_dynamic_build_audit_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_build_audit_common.py
   - tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_commands.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_package_details.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema_helpers.py
   - tools/zircon_export/pipeline_report_native_dynamic_build_execution_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_execution_packages_schema.py
   - tools/zircon_export/pipeline_report_pack_stage_schema.py
+  - tools/zircon_export/pipeline_report_pack_stage_required_fields.py
+  - tools/zircon_export/pipeline_report_pack_file_evidence.py
   - tools/zircon_export/pipeline_report_pack_trim_schema.py
+  - tools/zircon_export/pipeline_report_pack_trim_object_array_schema.py
   - tools/zircon_export/pipeline_report_pack_manifest_schema.py
+  - tools/zircon_export/pipeline_report_pack_manifest_schema_helpers.py
+  - tools/zircon_export/pipeline_report_pack_manifest_path_hash_schema_helpers.py
   - tools/zircon_export/pipeline_report_pack_delta_schema.py
+  - tools/zircon_export/pipeline_report_pack_delta_semantics.py
+  - tools/zircon_export/pipeline_report_pack_delta_asset_set_semantics.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle_stage.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_loader_manifest.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py
   - tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_stage_payload_operation_audit.py
+  - tools/zircon_export/pipeline_report_native_dynamic_stage_loader_manifest.py
+  - tools/zircon_export/pipeline_report_native_dynamic_stage_package_report.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_execution.py
+  - tools/zircon_export/pipeline_report_native_dynamic_package_exports.py
   - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_summary_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_schema_helpers.py
+  - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_file_manifest_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_schema_helpers.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_string_array_schema_helpers.py
   - tools/zircon_export/pipeline_report_native_dynamic_package_report_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_package_report_payload_files_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_package_report_schema_helpers.py
   - tools/zircon_export/pipeline_report_schema_table.py
   - tools/zircon_export/pipeline_report_platform_bundle.py
+  - tools/zircon_export/pipeline_report_platform_bundle_stage_handoff.py
+  - tools/zircon_export/pipeline_report_platform_bundle_file_evidence.py
   - tools/zircon_export/pipeline_report_platform_bundle_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_identity.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_files_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_report_semantics.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_bundle_files_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_copied_files_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_schema_helpers.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_path_schema_helpers.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_row_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_semantics.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_failure_semantics.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_candidate_semantics.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_path_semantics.py
   - tools/zircon_export/pipeline_report_source_template.py
+  - tools/zircon_export/pipeline_report_source_template_build_handoff.py
+  - tools/zircon_export/pipeline_report_source_template_generated_files.py
+  - tools/zircon_export/pipeline_report_source_template_path_semantics.py
   - tools/zircon_export/pipeline_report_source_template_stage_schema.py
   - tools/zircon_export/pipeline_report_source_template_string_array_schema.py
   - tools/zircon_export/pipeline_report_source_template_validate_schema.py
   - tools/zircon_export/pipeline_report_validate_compile_host_schema.py
+  - tools/zircon_export/pipeline_report_validate_compile_host_semantics.py
+  - tools/zircon_export/pipeline_report_validate_compile_host_command_semantics.py
+  - tools/zircon_export/pipeline_report_validate_compile_host_command_value_semantics.py
   - tools/zircon_export/pipeline_report_validate_compile_host_linkage_schema.py
   - tools/zircon_export/pipeline_report_validate_plan_vector_schema.py
   - tools/zircon_export/pipeline_report_validate_profile_summary_schema.py
   - tools/zircon_export/pipeline_report_validate_runtime_availability_schema.py
   - tools/zircon_export/pipeline_report_validate_string_array_schema.py
   - tools/zircon_export/pipeline_stages.py
+  - tools/zircon_export/platform_bundle_arguments.py
+  - tools/zircon_export/platform_bundle_strategy_handoff.py
+  - tools/zircon_export/platform_bundle_report_payload.py
   - tools/zircon_export/platform_bundle.py
   - tools/zircon_export/report_io.py
   - tools/zircon_export/source_template.py
+  - tools/zircon_export/source_template_plan_command.py
+  - tools/zircon_export/source_template_paths.py
+  - tools/zircon_export/source_template_generated_project.py
   - tools/zircon_export/stage_handoff.py
+  - tools/zircon_export/stage_handoff_strategy.py
   - tools/zircon_export/subprocess_output.py
   - tools/zircon_export/tests/native_dynamic_test_support.py
   - tools/zircon_export/tests/export_test_support.py
@@ -89,8 +233,12 @@ related_code:
   - tools/zircon_export/tests/test_source_template_plan_command_schema.py
   - tools/zircon_export/tests/test_source_template_plan_string_schema.py
   - tools/zircon_export/tests/test_source_template_plan_generated_file_schema.py
+  - tools/zircon_export/tests/test_source_template_command_gate.py
   - tools/zircon_export/tests/test_cook_assets_manifest_schema_gate.py
   - tools/zircon_export/tests/test_cook_assets_pack_stage.py
+  - tools/zircon_export/tests/test_pack_argument_schema_gate.py
+  - tools/zircon_export/tests/test_pack_path_resolve_errors.py
+  - tools/zircon_export/tests/test_pack_subprocess_failures.py
   - tools/zircon_export/tests/test_cook_assets_project_fallback.py
   - tools/zircon_export/tests/test_native_dynamic_build_signing.py
   - tools/zircon_export/tests/test_native_dynamic_copy_file_errors.py
@@ -99,6 +247,24 @@ related_code:
   - tools/zircon_export/tests/test_native_dynamic_path_resolve_errors.py
   - tools/zircon_export/tests/test_plugin_build.py
   - tools/zircon_export/tests/test_plugin_validate.py
+  - tools/zircon_export/tests/test_plugin_validate_capabilities.py
+  - tools/zircon_export/tests/test_plugin_validate_default_packaging.py
+  - tools/zircon_export/tests/test_plugin_validate_manifest_classification.py
+  - tools/zircon_export/tests/test_plugin_validate_manifest_shape.py
+  - tools/zircon_export/tests/test_plugin_validate_package_kind.py
+  - tools/zircon_export/tests/test_plugin_validate_optional_feature_dependencies.py
+  - tools/zircon_export/tests/test_plugin_validate_distribution_contract.py
+  - tools/zircon_export/tests/test_plugin_validate_distribution_modules.py
+  - tools/tests/test_zircon_export_cli_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_build_plan_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_build_plan_schema_helper_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_build_workspace_owner_boundaries.py
+  - tools/tests/test_plugin_docs_current_status_manifest_shape_gate.py
+  - tools/tests/test_plugin_docs_current_status_feature_extension_default_packaging_gate.py
+  - tools/tests/test_plugin_docs_current_status_feature_extension_dependencies_gate.py
+  - tools/tests/test_plugin_docs_current_status_feature_provider_package_id_gate.py
+  - tools/tests/test_plugin_docs_current_status_optional_feature_distribution_gate.py
   - tools/tests/test_plugin_standalone_ci_matrix.py
   - .github/workflows/ci.yml
   - tools/zircon_export/tests/test_native_dynamic_stage.py
@@ -108,6 +274,45 @@ related_code:
   - tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload.py
+  - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload_path_resolve_errors.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_summary_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_materialize_io_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_stage_payload_finalize_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_copied_files_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_candidate_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_failure_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_stage_loader_manifest_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_stage_package_report_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_operation_audit_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_operation_audit_summary_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_operation_audit_stage_packages_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_file_manifest_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_materialized_packages_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_file_manifest_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_package_report_schema_helper_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_build_execution_packages_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_argument_path_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_strategy_handoff_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_report_payload_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_files_materialize_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_native_plugins_materialize_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_owner_boundaries.py
+  - tools/tests/test_zircon_export_template_owner_boundaries.py
+  - tools/tests/test_zircon_export_template_resolution_owner_boundaries.py
+  - tools/tests/test_zircon_export_cook_assets_project_fallback_owner_boundaries.py
+  - tools/tests/test_zircon_export_cook_assets_report_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_build_handoff_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_plan_command_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_stage_owner_boundaries.py
+  - tools/tests/test_zircon_export_pipeline_report_compile_host_owner_boundaries.py
+  - tools/tests/test_zircon_export_validate_compile_host_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_validate_compile_host_command_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_validate_compile_host_command_value_semantics_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_operation_audit_schema.py
   - tools/zircon_export/tests/native_dynamic_stage_report_test_support.py
   - tools/zircon_export/tests/native_dynamic_stage_schema_test_support.py
@@ -128,9 +333,18 @@ related_code:
   - tools/zircon_export/tests/test_pipeline_report_stage_metadata_diagnostics_schema.py
   - tools/zircon_export/tests/test_pipeline_report_stage_metadata.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_schema.py
+  - tools/tests/test_zircon_export_stage_handoff_strategy_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_path_schema_helper_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_plan_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_plan_command_schema.py
+  - tools/tests/test_zircon_export_native_dynamic_build_plan_owner_boundaries.py
+  - tools/tests/test_zircon_export_pack_file_evidence_owner_boundaries.py
+  - tools/tests/test_zircon_export_pack_manifest_schema_helper_owner_boundaries.py
+  - tools/tests/test_zircon_export_pack_delta_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_pack_delta_asset_set_semantics_owner_boundaries.py
+  - tools/tests/test_plugin_docs_current_status_pack_delta_asset_set.py
+  - tools/tests/test_zircon_export_pack_stage_required_fields_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_build_execution_schema.py
   - tools/zircon_export/tests/test_pipeline_report_compile_host_command_semantics.py
   - tools/zircon_export/tests/test_pipeline_report_pack_delta_schema.py
@@ -168,12 +382,16 @@ related_code:
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_diagnostics_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_string_array_schema.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle.py
   - tools/zircon_export/tests/test_report_write_errors.py
   - tools/zircon_export/tests/test_pipeline_resume_flow.py
+  - tools/zircon_export/tests/test_pipeline_resume_platform_bundle_handoff.py
+  - tools/tests/test_zircon_export_pipeline_resume_flow_test_owner_boundaries.py
   - tools/zircon_export/tests/test_stage_directory_errors.py
   - tools/zircon_export/tests/test_subprocess_launch_errors.py
   - tools/zircon_export/tests/test_stage_handoff.py
+  - tools/zircon_export/tests/test_export_template_path_resolve_errors.py
   - tools/zircon_export/tests/test_export_template_trimmed_schema.py
   - tools/zircon_export/tests/test_templates.py
   - tools/zircon_export/tests/test_native_dynamic.py
@@ -203,24 +421,60 @@ related_code:
   - zircon_runtime/Cargo.toml
 implementation_files:
   - tools/zircon_export/cli.py
+  - tools/zircon_export/cli_arguments.py
+  - tools/zircon_export/pack_stage.py
+  - tools/zircon_export/pack_stage_paths.py
+  - tools/zircon_export/validate_stage.py
+  - tools/zircon_export/plugin_command.py
   - tools/zircon_export/plugin_build.py
+  - tools/zircon_export/plugin_build_command.py
+  - tools/zircon_export/plugin_build_preflight.py
+  - tools/zircon_export/plugin_build_package.py
+  - tools/zircon_export/plugin_build_asset_pack.py
+  - tools/zircon_export/plugin_build_signature.py
+  - tools/zircon_export/plugin_package_source.py
+  - tools/zircon_export/plugin_package_template.py
+  - tools/zircon_export/plugin_package_identity.py
   - tools/zircon_export/plugin_validate.py
+  - tools/zircon_export/plugin_validate_single_target.py
+  - tools/zircon_export/plugin_validate_layout.py
+  - tools/zircon_export/plugin_validate_layout_coordinates.py
+  - tools/zircon_export/plugin_validate_layout_public_metadata.py
+  - tools/zircon_export/plugin_validate_layout_targets.py
+  - tools/zircon_export/plugin_validate_layout_roots.py
+  - tools/zircon_export/plugin_validate_capability_statuses.py
+  - tools/zircon_export/plugin_validate_capability_status_targets.py
+  - tools/zircon_export/plugin_validate_capability_status_references.py
   - tools/zircon_export/plugin_validate_distribution_modules.py
+  - tools/zircon_export/plugin_validate_distribution_module_target_modes.py
   - tools/zircon_export/compile_host.py
+  - tools/zircon_export/compile_host_plan.py
+  - tools/zircon_export/compile_host_plan_command_semantics.py
   - tools/zircon_export/command_plan.py
   - tools/zircon_export/cook_assets.py
   - tools/zircon_export/export_strategy_contract.py
   - tools/zircon_export/export_template.py
+  - tools/zircon_export/export_template_resolution.py
+  - tools/zircon_export/export_template_manifest.py
   - tools/zircon_export/native_build.py
   - tools/zircon_export/native_dynamic_contract.py
   - tools/zircon_export/native_dynamic.py
+  - tools/zircon_export/native_dynamic_materialize.py
+  - tools/zircon_export/native_dynamic_materialize_io.py
+  - tools/zircon_export/native_dynamic_stage_payload_finalize.py
   - tools/zircon_export/native_dynamic_plan.py
   - tools/zircon_export/native_dynamic_payload.py
+  - tools/zircon_export/native_dynamic_payload_operation_audit.py
   - tools/zircon_export/native_dynamic_templates.py
   - tools/zircon_export/native_signing.py
   - tools/zircon_export/path_resolve.py
   - tools/zircon_export/pipeline_report.py
+  - tools/zircon_export/pipeline_report_compile_host.py
   - tools/zircon_export/pipeline_report_cook_assets.py
+  - tools/zircon_export/pipeline_report_cook_assets_manifest_io.py
+  - tools/zircon_export/pipeline_report_cook_assets_pack_handoff.py
+  - tools/zircon_export/pipeline_report_cook_assets_pack_trim_closure.py
+  - tools/zircon_export/pipeline_report_cook_assets_trim_evidence.py
   - tools/zircon_export/pipeline_report_cook_assets_manifest_shape.py
   - tools/zircon_export/pipeline_report_stage_location.py
   - tools/zircon_export/pipeline_report_stage_schema.py
@@ -229,36 +483,86 @@ implementation_files:
   - tools/zircon_export/pipeline_report_cook_assets_stage_schema.py
   - tools/zircon_export/pipeline_report_validate_stage_schema.py
   - tools/zircon_export/pipeline_report_native_dynamic_stage_schema.py
+  - tools/zircon_export/native_build_command.py
+  - tools/zircon_export/native_build_workspace.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_commands.py
   - tools/zircon_export/pipeline_report_pack_stage_schema.py
+  - tools/zircon_export/pipeline_report_pack_stage_required_fields.py
   - tools/zircon_export/pipeline_report_pack_trim_schema.py
+  - tools/zircon_export/pipeline_report_pack_trim_object_array_schema.py
   - tools/zircon_export/pipeline_report_pack_manifest_schema.py
   - tools/zircon_export/pipeline_report_pack_delta_schema.py
+  - tools/zircon_export/pipeline_report_pack_delta_asset_set_semantics.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle_stage.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py
+  - tools/zircon_export/native_dynamic_payload_file_manifest.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_loader_manifest.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload_stage_report.py
   - tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py
+  - tools/zircon_export/pipeline_report_native_dynamic_stage_payload_operation_audit.py
+  - tools/zircon_export/pipeline_report_native_dynamic_stage_package_report.py
+  - tools/zircon_export/pipeline_report_native_dynamic_build_execution.py
+  - tools/zircon_export/pipeline_report_native_dynamic_package_exports.py
   - tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_file_manifest_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_schema_helpers.py
+  - tools/zircon_export/pipeline_report_native_dynamic_payload_string_array_schema_helpers.py
   - tools/zircon_export/pipeline_report_native_dynamic_package_report_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_package_report_payload_files_schema.py
+  - tools/zircon_export/pipeline_report_native_dynamic_package_report_schema_helpers.py
   - tools/zircon_export/pipeline_report_platform_bundle.py
+  - tools/zircon_export/pipeline_report_platform_bundle_stage_handoff.py
+  - tools/zircon_export/pipeline_report_platform_bundle_file_evidence.py
   - tools/zircon_export/pipeline_report_platform_bundle_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_manifest_files_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_bundle_files_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_copied_files_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_schema_helpers.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_path_schema_helpers.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_schema.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_row_schema.py
   - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_semantics.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_failure_semantics.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_candidate_semantics.py
+  - tools/zircon_export/pipeline_report_platform_bundle_template_resolution_path_semantics.py
   - tools/zircon_export/pipeline_report_source_template.py
+  - tools/zircon_export/pipeline_report_source_template_build_handoff.py
+  - tools/zircon_export/pipeline_report_source_template_generated_files.py
+  - tools/zircon_export/pipeline_report_source_template_path_semantics.py
   - tools/zircon_export/pipeline_report_source_template_stage_schema.py
   - tools/zircon_export/pipeline_report_source_template_string_array_schema.py
   - tools/zircon_export/pipeline_report_source_template_validate_schema.py
   - tools/zircon_export/pipeline_report_validate_compile_host_schema.py
+  - tools/zircon_export/pipeline_report_validate_compile_host_semantics.py
+  - tools/zircon_export/pipeline_report_validate_compile_host_command_semantics.py
+  - tools/zircon_export/pipeline_report_validate_compile_host_command_value_semantics.py
   - tools/zircon_export/pipeline_report_validate_compile_host_linkage_schema.py
   - tools/zircon_export/pipeline_report_validate_plan_vector_schema.py
   - tools/zircon_export/pipeline_report_validate_runtime_availability_schema.py
   - tools/zircon_export/pipeline_report_validate_string_array_schema.py
   - tools/zircon_export/pipeline_stages.py
+  - tools/zircon_export/platform_bundle_arguments.py
+  - tools/zircon_export/platform_bundle_strategy_handoff.py
   - tools/zircon_export/platform_bundle.py
+  - tools/zircon_export/platform_bundle_materialize.py
+  - tools/zircon_export/platform_bundle_template_files_materialize.py
+  - tools/zircon_export/platform_bundle_native_plugins_materialize.py
+  - tools/zircon_export/platform_bundle_report_payload.py
+  - tools/zircon_export/platform_bundle_native_plugins_payload.py
   - tools/zircon_export/report_io.py
   - tools/zircon_export/source_template.py
+  - tools/zircon_export/source_template_plan_command.py
+  - tools/zircon_export/source_template_paths.py
+  - tools/zircon_export/source_template_generated_project.py
   - tools/zircon_export/stage_handoff.py
   - tools/zircon_export/tests/native_dynamic_test_support.py
   - tools/zircon_export/tests/export_test_support.py
@@ -275,7 +579,11 @@ implementation_files:
   - tools/zircon_export/tests/test_source_template_plan_command_schema.py
   - tools/zircon_export/tests/test_source_template_plan_string_schema.py
   - tools/zircon_export/tests/test_source_template_plan_generated_file_schema.py
+  - tools/zircon_export/tests/test_source_template_command_gate.py
   - tools/zircon_export/tests/test_cook_assets_pack_stage.py
+  - tools/zircon_export/tests/test_pack_argument_schema_gate.py
+  - tools/zircon_export/tests/test_pack_path_resolve_errors.py
+  - tools/zircon_export/tests/test_pack_subprocess_failures.py
   - tools/zircon_export/tests/test_native_dynamic_build_signing.py
   - tools/zircon_export/tests/test_native_dynamic_copy_file_errors.py
   - tools/zircon_export/tests/test_native_dynamic_signing_file_reads.py
@@ -299,16 +607,27 @@ implementation_files:
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_trimmed_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_manifest_file_schema.py
+  - tools/tests/test_zircon_export_platform_bundle_template_manifest_files_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_report_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_diagnostics_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_schema.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle_template_resolution_string_array_schema.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_failure_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries.py
+  - tools/tests/test_zircon_export_platform_bundle_template_resolution_path_semantics_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_platform_bundle.py
   - tools/zircon_export/tests/test_report_write_errors.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py
   - tools/zircon_export/tests/native_dynamic_stage_report_test_support.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_materialized_packages.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_stage_payload.py
+  - tools/tests/test_zircon_export_native_dynamic_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_payload_loader_manifest_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_stage_package_report_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_package_report_schema_helper_owner_boundaries.py
+  - tools/tests/test_zircon_export_native_dynamic_package_report_payload_files_schema_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_package_report_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_package_report_trimmed_schema.py
   - tools/zircon_export/tests/test_pipeline_report_native_dynamic_payload_schema.py
@@ -320,6 +639,13 @@ implementation_files:
   - tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py
   - tools/zircon_export/tests/test_pipeline_report_source_template_schema.py
+  - tools/tests/test_zircon_export_source_template_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_plan_command_owner_boundaries.py
+  - tools/tests/test_zircon_export_source_template_stage_owner_boundaries.py
+  - tools/tests/test_zircon_export_pipeline_report_compile_host_owner_boundaries.py
+  - tools/tests/test_zircon_export_validate_compile_host_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_validate_compile_host_command_semantics_owner_boundaries.py
+  - tools/tests/test_zircon_export_validate_compile_host_command_value_semantics_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_cook_assets_stage_schema.py
   - tools/zircon_export/tests/test_pipeline_report_cook_assets_manifest_shape_schema.py
   - tools/zircon_export/tests/test_pipeline_report_cook_assets_pack_handoff.py
@@ -332,6 +658,7 @@ implementation_files:
   - tools/zircon_export/tests/test_pipeline_report_compile_host_command_semantics.py
   - tools/zircon_export/tests/test_pipeline_report_pack_delta_schema.py
   - tools/zircon_export/tests/test_pipeline_report_pack_stage_schema.py
+  - tools/tests/test_zircon_export_pack_stage_required_fields_owner_boundaries.py
   - tools/zircon_export/tests/test_pipeline_report_pack_file_evidence_schema.py
   - tools/zircon_export/tests/test_pipeline_report_pack_path_string_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_compile_host_schema.py
@@ -342,6 +669,8 @@ implementation_files:
   - tools/zircon_export/tests/test_pipeline_report_validate_native_dynamic_schema.py
   - tools/zircon_export/tests/test_pipeline_report_validate_runtime_availability_schema.py
   - tools/zircon_export/tests/test_pipeline_resume_flow.py
+  - tools/zircon_export/tests/test_pipeline_resume_platform_bundle_handoff.py
+  - tools/tests/test_zircon_export_pipeline_resume_flow_test_owner_boundaries.py
   - tools/zircon_export/tests/test_stage_directory_errors.py
   - tools/zircon_export/tests/test_subprocess_launch_errors.py
   - tools/zircon_export/tests/test_export_template_trimmed_schema.py
@@ -375,6 +704,52 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_plugins/09-export-publishing.md
 tests:
+  - python -m py_compile tools\zircon_export\pipeline_report.py tools\zircon_export\pipeline_report_compile_host.py tools\tests\test_zircon_export_pipeline_report_compile_host_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_pipeline_report_compile_host_owner_boundaries
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_pipeline_report_compile_host_owner_split
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_linkage_schema tools.zircon_export.tests.test_compile_host_output_gate tools.zircon_export.tests.test_compile_host_source_template
+  - python -m py_compile tools\zircon_export\compile_host_plan.py tools\zircon_export\pipeline_report_validate_compile_host_schema.py tools\zircon_export\pipeline_report_validate_compile_host_semantics.py tools\tests\test_zircon_export_validate_compile_host_semantics_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_validate_compile_host_semantics_owner_boundaries
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_validate_compile_host_semantics_owner_split
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_linkage_schema tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics tools.zircon_export.tests.test_compile_host_output_gate
+  - python -m unittest tools.tests.test_zircon_export_platform_bundle_report_owner_boundaries
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_platform_bundle_file_evidence_owner_split
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_build_plan_owner_boundaries
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_build_plan_schema.py tools\zircon_export\pipeline_report_native_dynamic_build_plan_commands.py tools\tests\test_zircon_export_native_dynamic_build_plan_owner_boundaries.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_schema
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_command_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_build_plan_schema.py tools\zircon_export\pipeline_report_native_dynamic_build_plan_schema_helpers.py tools\tests\test_zircon_export_native_dynamic_build_plan_schema_helper_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_build_plan_schema_helper_owner_boundaries
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_build_plan_schema_helper_owner_split
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_command_schema
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_owner_boundaries
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\pipeline_report_native_dynamic_build_execution.py tools\zircon_export\pipeline_report_native_dynamic_package_exports.py tools\tests\test_zircon_export_native_dynamic_owner_boundaries.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_stage_loader_manifest_owner_boundaries
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\pipeline_report_native_dynamic_stage_loader_manifest.py tools\zircon_export\pipeline_report_native_dynamic_loader_manifest.py tools\tests\test_zircon_export_native_dynamic_stage_loader_manifest_owner_boundaries.py
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_owner_boundaries
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_package_report.py tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\tests\test_zircon_export_native_dynamic_payload_owner_boundaries.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle.py tools\zircon_export\pipeline_report_platform_bundle.py tools\zircon_export\tests\test_pipeline_report_native_dynamic_payload_path_resolve_errors.py tools\zircon_export\tests\test_platform_bundle_native_payload_loader_manifest.py tools\tests\test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_loader_manifest_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_file_manifest_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_summary_owner_boundaries
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_path_resolve_errors tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_platform_bundle_native_dynamic tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.ZirconExportNativeDynamicPayloadPlatformBundleHandoffOwnerBoundaryTests.test_stage_report_handoff_lives_in_stage_owner: RED failed before `pipeline_report_native_dynamic_payload_platform_bundle_stage.py` existed, then GREEN passed after NativeDynamic payload PlatformBundle stage-report handoff owner split
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle.py tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle_stage.py tools\zircon_export\pipeline_report_platform_bundle.py tools\zircon_export\tests\test_pipeline_report_native_dynamic_payload_path_resolve_errors.py tools\tests\test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after NativeDynamic payload PlatformBundle stage-report handoff owner split
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_schema_owner_boundaries
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_schema.py tools\zircon_export\pipeline_report_native_dynamic_payload_schema_helpers.py tools\tests\test_zircon_export_native_dynamic_payload_schema_owner_boundaries.py
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_operation_audit_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_build_execution_schema.py tools\zircon_export\pipeline_report_native_dynamic_build_execution_packages_schema.py tools\tests\test_zircon_export_native_dynamic_build_execution_packages_schema_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_build_execution_packages_schema_owner_boundaries
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_build_execution_packages_schema_owner_split
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_execution_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_package_report_schema.py tools\zircon_export\pipeline_report_native_dynamic_package_report_schema_helpers.py tools\tests\test_zircon_export_native_dynamic_package_report_schema_helper_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_native_dynamic_package_report_schema_helper_owner_boundaries
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_package_report_schema_helper_owner_split
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_report_owner_splits
+  - python -m py_compile tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_plugin_docs_current_status_convergence
   - python -m py_compile tools\zircon_export\pipeline_report.py tools\zircon_export\pipeline_report_compile_host_stage_schema.py tools\zircon_export\tests\export_test_support.py tools\zircon_export\tests\test_pipeline_report_compile_host_command_semantics.py tools\zircon_export\tests\test_pipeline_report_compile_host_stage_schema.py
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_command_target_dir_mismatch
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics.CompileHostCommandSemanticsTests.test_report_stage_rejects_compile_host_host_executable_outside_output_root
@@ -445,6 +820,11 @@ tests:
   - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate tools.zircon_export.tests.test_compile_host_plan_command_schema tools.zircon_export.tests.test_compile_host_plan_feature_array_schema
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_validate_compile_host_linkage_schema
   - python -m py_compile tools\zircon_export\compile_host.py tools\zircon_export\pipeline_report_validate_compile_host_schema.py tools\zircon_export\tests\test_compile_host_plan_command_schema.py tools\zircon_export\tests\test_compile_host_plan_feature_array_schema.py tools\zircon_export\tests\test_pipeline_report_validate_compile_host_schema.py tools\zircon_export\tests\test_pipeline_report_validate_schema.py
+  - python -m py_compile tools\zircon_export\compile_host.py tools\zircon_export\compile_host_plan.py tools\zircon_export\compile_host_plan_command_semantics.py tools\tests\test_zircon_export_compile_host_owner_boundaries.py tools\tests\test_zircon_export_compile_host_plan_command_semantics_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_compile_host_owner_boundaries
+  - python -m unittest tools.tests.test_zircon_export_compile_host_plan_command_semantics_owner_boundaries
+  - python -m unittest tools.zircon_export.tests.test_compile_host_output_gate tools.zircon_export.tests.test_compile_host_plan_array_duplicates tools.zircon_export.tests.test_compile_host_plan_command_schema
+  - python -m unittest tools.zircon_export.tests.test_compile_host_source_template tools.zircon_export.tests.test_subprocess_launch_errors tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema
   - python -m py_compile tools\zircon_export\tests\test_pipeline_report_source_template.py tools\zircon_export\tests\test_pipeline_report_source_template_validate_build_plan.py
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_source_template tools.zircon_export.tests.test_pipeline_report_source_template_validate_build_plan
   - python -m py_compile tools/zircon_export/pipeline_report_source_template_stage_schema.py tools/zircon_export/pipeline_report_source_template.py tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py
@@ -501,6 +881,15 @@ tests:
   - python -m py_compile tools/zircon_export/tests/test_pipeline_report_cook_assets_pack_handoff.py
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_cook_assets_pack_handoff
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_cook_assets_stage_schema tools.zircon_export.tests.test_pipeline_report_cook_assets_manifest_evidence tools.zircon_export.tests.test_pipeline_report_cook_assets_pack_handoff
+  - python -m py_compile tools\zircon_export\cook_assets.py tools\zircon_export\cook_assets_manifest.py tools\tests\test_zircon_export_cook_assets_stage_owner_boundaries.py
+  - python -m unittest tools.tests.test_zircon_export_cook_assets_stage_owner_boundaries
+  - python -m unittest tools.zircon_export.tests.test_cook_assets_manifest_schema_gate tools.zircon_export.tests.test_cook_assets_manifest_determinism tools.zircon_export.tests.test_cook_assets_project_fallback
+  - python -m unittest tools.zircon_export.tests.test_cook_assets_argument_schema_gate tools.zircon_export.tests.test_cook_assets_pack_stage tools.zircon_export.tests.test_cook_assets_path_resolve_errors
+  - python -m py_compile tools\zircon_export\pipeline_report_pack_stage_schema.py tools\zircon_export\pipeline_report_pack_stage_required_fields.py tools\tests\test_zircon_export_pack_stage_required_fields_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py
+  - python -m unittest tools.tests.test_zircon_export_pack_stage_required_fields_owner_boundaries
+  - python -m unittest tools.zircon_export.tests.test_pipeline_report_pack_stage_schema tools.zircon_export.tests.test_pipeline_report_pack_delta_schema_clean tools.zircon_export.tests.test_pipeline_report_pack_delta_top_level_schema
+  - python -m py_compile tools\zircon_export\pipeline_report_pack_stage_schema.py tools\zircon_export\pipeline_report_pack_file_evidence.py tools\zircon_export\tests\test_pipeline_report_pack_file_evidence_schema.py tools\tests\test_zircon_export_pack_file_evidence_owner_boundaries.py
+  - python -m unittest tools.tests.test_zircon_export_pack_file_evidence_owner_boundaries
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_pack_file_evidence_schema tools.zircon_export.tests.test_pipeline_report_pack_stage_schema
   - python -m unittest tools.zircon_export.tests.test_pipeline_report_stage_metadata.PipelineReportStageMetadataTests.test_report_stage_rejects_pack_string_array_fields_non_string_array
   - python -m py_compile tools\zircon_export\pipeline_report_pack_stage_schema.py tools\zircon_export\tests\test_pipeline_report_stage_metadata.py
@@ -517,6 +906,344 @@ tests:
   - python -m unittest tools.zircon_export.tests.test_plugin_validate: 7 passed, 0 failed on 2026-06-28
   - python -m unittest tools.tests.test_plugin_standalone_ci_matrix: 2 passed, 0 failed on 2026-06-28 after plugin validate all-target CI preflight
   - python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-28, target_count=39, failed_count=0, diagnostics=0
+- python -m unittest tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider: 34 passed, 0 failed on 2026-06-29 after assets glob existence preflight
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after assets glob existence preflight
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 47 passed, 0 failed on 2026-06-29 after distribution scalar owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after distribution scalar owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_dist_form_constant_does_not_borrow_build_owner: 1 passed, 0 failed on 2026-06-29 after dist form constant owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 48 passed, 0 failed on 2026-06-29 after dist form constant owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after dist form constant owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_dist_crate_feature_constant_does_not_borrow_build_owner: 1 passed, 0 failed on 2026-06-29 after dist feature constant owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 49 passed, 0 failed on 2026-06-29 after dist feature constant owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after dist feature constant owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_validate_cli_form_constant_does_not_borrow_build_owner: 1 passed, 0 failed on 2026-06-29 after CLI form constant owner convergence
+- python -m py_compile tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_dist_crate.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after CLI form constant owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 50 passed, 0 failed on 2026-06-29 after CLI form constant owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after CLI form constant owner convergence
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after CLI form constant owner convergence, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_package_id_lives_in_identity_owner: RED failed before plugin_package_identity.py existed, then GREEN passed on 2026-06-29 after feature-provider package identity owner convergence
+- python -m py_compile tools\zircon_export\plugin_package_identity.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_target_discovery.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_build.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after feature-provider package identity owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 56 passed, 0 failed on 2026-06-29 after feature-provider package identity owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after feature-provider package identity owner convergence
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after feature-provider package identity owner convergence, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_plugin_package_source_resolution_lives_in_source_owner: RED failed before plugin_package_source.py existed, then GREEN passed on 2026-06-29 after plugin package source owner convergence
+- python -m py_compile tools\zircon_export\plugin_package_source.py tools\zircon_export\plugin_package_identity.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_target_discovery.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_build.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after plugin package source owner convergence
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 57 passed, 0 failed on 2026-06-29 after plugin package source owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after plugin package source owner convergence
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after plugin package source owner convergence, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_package_template_lives_in_template_owner: RED failed before plugin_package_template.py existed, then GREEN passed on 2026-06-29 after feature-provider package template owner split
+- python -m py_compile tools\zircon_export\plugin_package_template.py tools\zircon_export\plugin_package_source.py tools\zircon_export\plugin_package_identity.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_target_discovery.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_build.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after feature-provider package template owner split
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 58 passed, 0 failed on 2026-06-29 after feature-provider package template owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after feature-provider package template owner split
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after feature-provider package template owner split, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries.PluginBuildOwnerBoundaryTests.test_signature_sidecar_lives_in_signature_owner: RED failed before plugin_build_signature.py existed, then GREEN passed on 2026-06-29 after plugin build signature owner split
+- python -m py_compile tools\zircon_export\plugin_build_signature.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_package_template.py tools\zircon_export\plugin_package_source.py tools\zircon_export\plugin_package_identity.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_target_discovery.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_build_owner_boundaries.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_build.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after plugin build signature owner split
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 59 passed, 0 failed on 2026-06-29 after plugin build signature owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after plugin build signature owner split
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after plugin build signature owner split, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries.PluginBuildOwnerBoundaryTests.test_asset_pack_lives_in_asset_pack_owner: RED failed before plugin_build_asset_pack.py existed, then GREEN passed on 2026-06-29 after plugin build asset pack owner split
+- python -m py_compile tools\zircon_export\plugin_build_asset_pack.py tools\zircon_export\plugin_build_signature.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_package_template.py tools\zircon_export\plugin_package_source.py tools\zircon_export\plugin_package_identity.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_target_discovery.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_build_owner_boundaries.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_build.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after plugin build asset pack owner split
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 60 passed, 0 failed on 2026-06-29 after plugin build asset pack owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after plugin build asset pack owner split
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after plugin build asset pack owner split, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries.PluginBuildOwnerBoundaryTests.test_package_materialization_lives_in_package_owner: RED failed before plugin_build_package.py existed, then GREEN passed on 2026-06-29 after plugin build package owner split
+- python -m py_compile tools\zircon_export\plugin_build_package.py tools\zircon_export\plugin_build_asset_pack.py tools\zircon_export\plugin_build_signature.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_package_template.py tools\zircon_export\plugin_package_source.py tools\zircon_export\plugin_package_identity.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_common.py tools\zircon_export\plugin_validate_target_discovery.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_report.py tools\tests\test_plugin_build_owner_boundaries.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_build.py tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_report.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after plugin build package owner split
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 61 passed, 0 failed on 2026-06-29 after plugin build package owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29, target_count=39, failed_count=0, diagnostics=0 after plugin build package owner split
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after plugin build package owner split, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_build_package_owner_layering: RED failed before current docs reflected the package-owner layer, then GREEN passed on 2026-06-29 after plugin build owner layering docs guard
+- python -m py_compile tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after plugin build owner layering docs guard
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: 2 passed, 0 failed on 2026-06-29 after plugin build owner layering docs guard
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: 62 passed, 0 failed on 2026-06-29 after plugin build owner layering docs guard
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries.PluginBuildOwnerBoundaryTests.test_plugin_subcommand_dispatch_lives_in_plugin_command_owner: RED failed before plugin_command.py existed, then GREEN passed on 2026-06-29 after plugin command dispatch owner split
+- python -m py_compile tools\zircon_export\plugin_command.py tools\zircon_export\cli.py tools\tests\test_plugin_build_owner_boundaries.py: passed on 2026-06-29 after plugin command dispatch owner split
+- python -m tools.zircon_export plugin validate native_dynamic_fixture --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29 after plugin command dispatch owner split, fatal=false, diagnostics=0
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29 after plugin command dispatch owner split, target_count=39, failed_count=0, diagnostics=0
+- python -m unittest tools.tests.test_zircon_export_cli_owner_boundaries: RED failed before validate_stage.py existed, then GREEN passed on 2026-06-29 after Validate stage helper owner split
+- python -m py_compile tools\zircon_export\validate_stage.py tools\zircon_export\cli.py tools\tests\test_zircon_export_cli_owner_boundaries.py: passed on 2026-06-29 after Validate stage helper owner split
+- python -m unittest tools.tests.test_zircon_export_cli_owner_boundaries tools.zircon_export.tests.test_validate_path_resolve_errors tools.zircon_export.tests.test_subprocess_launch_errors tools.zircon_export.tests.test_stage_directory_errors: passed 17/17 on 2026-06-29 after Validate stage helper owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_resume_flow: passed 31/31 on 2026-06-29 after correcting the single-stage PlatformBundle handoff tests to preserve custom pack/delta fixture bytes through existing report override fields
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29 after Validate stage helper owner split, target_count=39, failed_count=0, diagnostics=0
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_projection_tests_import_projection_owner: RED failed before feature-provider tests imported the projection owner directly, then GREEN passed on 2026-06-29 after feature-provider projection API owner convergence
+- python -m unittest tools.zircon_export.tests.test_plugin_validate_feature_provider: passed 11/11 on 2026-06-29 after feature-provider projection API owner convergence
+- python -m py_compile tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\tests\test_plugin_validate_owner_boundaries.py: passed on 2026-06-29 after feature-provider projection API owner convergence
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: passed 64/64 on 2026-06-29 after feature-provider projection API owner convergence
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29 after feature-provider projection API owner convergence, target_count=39, failed_count=0, diagnostics=0
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after feature-provider projection API owner convergence, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_contract_tests_live_in_distribution_contract_test_owner: RED failed before test_plugin_validate_distribution_contract.py existed, then GREEN passed on 2026-06-29 after distribution contract test owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_validate_distribution_contract: passed 11/11 on 2026-06-29 after distribution contract test owner split
+- python -m py_compile tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_distribution_contract.py tools\tests\test_plugin_validate_owner_boundaries.py: passed on 2026-06-29 after distribution contract test owner split
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: passed 65/65 on 2026-06-29 after distribution contract test owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29 after distribution contract test owner split, target_count=39, failed_count=0, diagnostics=0
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after distribution contract test owner split, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_module_tests_live_in_distribution_modules_test_owner: RED failed before test_plugin_validate_distribution_modules.py existed, then GREEN passed on 2026-06-29 after distribution modules test owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_validate_distribution_modules: passed 7/7 on 2026-06-29 after distribution modules test owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_feature_provider: passed 16/16 on 2026-06-29 after moving distribution module tests out of those owners
+- python -m py_compile tools\zircon_export\tests\test_plugin_validate.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py tools\zircon_export\tests\test_plugin_validate_distribution_modules.py tools\tests\test_plugin_validate_owner_boundaries.py: passed on 2026-06-29 after distribution modules test owner split
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_docs_current_status_convergence: passed 66/66 on 2026-06-29 after distribution modules test owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed 2026-06-29 after distribution modules test owner split, target_count=39, failed_count=0, diagnostics=0
+- python tools\audit_plugin_structure.py --json: passed 2026-06-29 after distribution modules test owner split, dist_capable_plugin_count=37, dist_build_matrix_count=37, dist_dependency_boundary_violations=0, distribution_section_violations=0, manifest_schema_violations=0, runtime_registration_builder_violation_count=0
+- git diff --check, direct trailing whitespace scan, and old-owner moved-test-name scan: passed on 2026-06-29 after distribution modules test owner split; diff-check reported LF-to-CRLF warnings only
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_modules_test_owner: RED failed on 2026-06-29 because the active session still said `test_plugin_validate.py` kept dist crate/module binding, then GREEN passed after the session wording was corrected to dist crate Cargo preflight
+- python -m py_compile tools\tests\test_plugin_docs_current_status_convergence.py: passed 2026-06-29 after distribution modules docs guard
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 3/3 on 2026-06-29 after distribution modules docs guard
+- git diff --check plus direct trailing whitespace scan for touched docs/status guard files: passed on 2026-06-29 after distribution modules docs guard; diff-check reported LF-to-CRLF warnings only
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_assets_lives_in_distribution_assets_owner: RED failed before `plugin_validate_distribution_assets.py` existed, then GREEN passed after distribution.assets glob validation owner split
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_distribution_assets.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after distribution.assets glob validation owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_validate_distribution_contract.PluginValidateDistributionContractTests.test_plugin_validate_reports_distribution_assets_not_array tools.zircon_export.tests.test_plugin_validate_distribution_contract.PluginValidateDistributionContractTests.test_plugin_validate_reports_distribution_assets_untrimmed_entry tools.zircon_export.tests.test_plugin_validate_distribution_contract.PluginValidateDistributionContractTests.test_plugin_validate_reports_distribution_assets_plugin_relative_glob tools.zircon_export.tests.test_plugin_validate_distribution_contract.PluginValidateDistributionContractTests.test_plugin_validate_reports_distribution_assets_empty_glob: passed 4/4 after distribution.assets glob diagnostics moved to `plugin_validate_distribution_assets.py`
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_assets_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_assets_owner_split`, then GREEN passed after docs/status updates
+- `plugin_validate_distribution_assets.py` is the current distribution.assets glob validation owner; `plugin_validate_distribution_contract.py` dispatches to it and no longer owns filesystem glob matching. Current distribution.assets glob diagnostics remain array shape, non-empty/trimmed string entries, plugin-relative glob path checks, manifest-relative file matches, empty glob reporting, and plugin-root containment.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_engine_compat_lives_in_engine_compat_owner: RED failed before `plugin_validate_distribution_engine_compat.py` existed, then GREEN passed after distribution.engine_compat owner split
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_distribution_engine_compat.py tools\zircon_export\plugin_validate_engine_version.py tools\tests\test_plugin_validate_owner_boundaries.py tools\zircon_export\tests\test_plugin_validate_distribution_contract.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after distribution.engine_compat owner split
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_distribution_contract: passed 36/36 after distribution.engine_compat owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_engine_compat_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_engine_compat_owner_split`, then GREEN passed after docs/status updates
+- `plugin_validate_distribution_engine_compat.py` is the current distribution.engine_compat owner for engine compatibility range diagnostics: trimmed string gate, comparator parsing, semantic version parsing, range matching, invalid comparator/version diagnostics, and current engine exclusion checks. `plugin_validate_distribution_contract.py` dispatches to it and no longer owns the parser/matcher; `plugin_validate_engine_version.py` imports the shared parser directly from this owner.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 68/68 after distribution.engine_compat owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report: passed 25/25 after distribution.engine_compat owner split
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after distribution.engine_compat owner split, target_count=39, failed_count=0, diagnostics=0
+- conflict-marker and trailing-whitespace scans over touched distribution.engine_compat owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only after removing a trailing blank line at EOF from `plugin_validate_distribution_contract.py`.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_descriptor_symbol_lives_in_descriptor_owner: RED failed before `plugin_validate_distribution_descriptor_symbol.py` existed, then GREEN passed after distribution descriptor symbol owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_distribution_descriptor_symbol.py tools\tests\test_plugin_validate_owner_boundaries.py: passed after distribution descriptor symbol owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_descriptor_symbol_lives_in_descriptor_owner tools.zircon_export.tests.test_plugin_validate_distribution_contract: passed 13/13 after descriptor symbol diagnostics moved to `plugin_validate_distribution_descriptor_symbol.py`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_descriptor_symbol_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_descriptor_symbol_owner_split`, then GREEN passed after docs/status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 73/73 after distribution descriptor symbol owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_report: passed 66/66 after distribution descriptor symbol owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after distribution descriptor symbol owner split, target_count=39, failed_count=0, diagnostics=0.
+- conflict-marker and trailing-whitespace scans over touched distribution descriptor symbol owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only.
+- `plugin_validate_distribution_descriptor_symbol.py` is the current distribution descriptor symbol owner for descriptor symbol diagnostics: trimmed string validation and ABI v3 symbol equality checks. `plugin_validate_distribution_contract.py` dispatches to it and no longer owns the descriptor symbol constant or helper.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_entries_live_in_entries_owner: RED failed before `plugin_validate_distribution_entries.py` existed, then GREEN passed after distribution entries owner split.
+- python -m unittest tools.zircon_export.tests.test_plugin_validate_distribution_contract.PluginValidateDistributionContractTests.test_plugin_validate_reports_missing_runtime_and_editor_entry: passed after adding the missing runtime/editor entry diagnostic guard.
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_distribution_entries.py tools\zircon_export\tests\test_plugin_validate_distribution_contract.py tools\tests\test_plugin_validate_owner_boundaries.py: passed after distribution entries owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_entries_live_in_entries_owner tools.zircon_export.tests.test_plugin_validate_distribution_contract: passed 14/14 after runtime/editor entry diagnostics moved to `plugin_validate_distribution_entries.py`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_entries_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_entries_owner_split`, then GREEN passed after docs/status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 74/74 after distribution entries owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_report: passed 68/68 after distribution entries owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after distribution entries owner split, target_count=39, failed_count=0, diagnostics=0.
+- conflict-marker and trailing-whitespace scans over touched distribution entries owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only.
+- `plugin_validate_distribution_entries.py` is the current distribution entries owner for runtime/editor entry diagnostics: optional trimmed runtime/editor entry parsing and the required runtime/editor entry presence check. `plugin_validate_distribution_contract.py` dispatches to it and no longer owns `plugin_validate_optional_trimmed_string`.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_packaging_lives_in_packaging_owner: RED failed before `plugin_validate_distribution_packaging.py` existed, then GREEN passed after distribution packaging owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_distribution_packaging.py tools\zircon_export\tests\test_plugin_validate_distribution_contract.py tools\tests\test_plugin_validate_owner_boundaries.py: passed after distribution packaging owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_packaging_lives_in_packaging_owner tools.zircon_export.tests.test_plugin_validate_distribution_contract: passed 14/14 after forms/default_packaging diagnostics moved to `plugin_validate_distribution_packaging.py`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_packaging_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_packaging_owner_split`, then GREEN passed after docs/status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 75/75 after distribution packaging owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_report: passed 69/69 after distribution packaging owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after distribution packaging owner split, target_count=39, failed_count=0, diagnostics=0.
+- conflict-marker and trailing-whitespace scans over touched distribution packaging owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only.
+- `plugin_validate_distribution_packaging.py` is the current distribution packaging owner for forms/default_packaging diagnostics: `distribution.forms` array shape, required `dist` form, allowed forms, `distribution.default_packaging` array shape, required `native_dynamic` packaging, and allowed packaging values. `plugin_validate_distribution_contract.py` dispatches to it and no longer owns packaging constants/helpers.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_scalar_fields_live_in_scalars_owner: RED failed before `plugin_validate_distribution_scalars.py` existed, then GREEN passed after distribution scalars owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_contract.py tools\zircon_export\plugin_validate_distribution_scalars.py tools\zircon_export\tests\test_plugin_validate_distribution_contract.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after distribution scalars owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_scalar_fields_live_in_scalars_owner tools.zircon_export.tests.test_plugin_validate_distribution_contract: passed 14/14 after dist_crate/abi_version diagnostics moved to `plugin_validate_distribution_scalars.py`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_scalars_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_scalars_owner_split`, then GREEN passed after docs/status updates.
+- `plugin_validate_distribution_scalars.py` is the current distribution scalars owner for dist_crate/abi_version diagnostics: `distribution.dist_crate` trimmed string parsing, `distribution.abi_version` integer parsing, and ABI v3 equality checks. `plugin_validate_distribution_contract.py` dispatches to it and no longer owns scalar constants/helpers.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 76/76 after distribution scalars owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_report: passed 69/69 after distribution scalars owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after distribution scalars owner split, target_count=39, failed_count=0, diagnostics=0.
+- conflict-marker and trailing-whitespace scans over touched distribution scalars owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_distribution_module_target_modes_lives_in_target_modes_owner: RED failed before `plugin_validate_distribution_module_target_modes.py` existed, then GREEN passed after distribution module target_modes owner split
+- python -m py_compile tools\zircon_export\plugin_validate_distribution_modules.py tools\zircon_export\plugin_validate_distribution_module_target_modes.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after distribution module target_modes owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_validate_distribution_modules: passed 7/7 after distribution module target_modes owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_distribution_module_target_modes_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_distribution_module_target_modes_owner_split`, then GREEN passed after docs/status updates
+- `plugin_validate_distribution_module_target_modes.py` is the current distribution module target_modes owner for entry/target-mode diagnostics: target_modes array shape, `client_runtime` / `server_runtime` / `editor_host` closed set, runtime entry direction checks, and editor entry direction checks. `plugin_validate_distribution_modules.py` dispatches to it and now stays focused on root/feature-provider module selection plus dist_crate crate_name binding.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_capabilities_lives_in_capabilities_owner: RED failed before `plugin_validate_feature_provider_capabilities.py` existed, then GREEN passed after PluginValidate feature-provider capabilities owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_feature_provider_capabilities.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after PluginValidate feature-provider capabilities owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_feature_provider_capabilities_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_feature_provider_capabilities_owner_split`, then GREEN passed after docs/status updates.
+- `plugin_validate_feature_provider_capabilities.py` is the current feature-provider capabilities owner for capability projection diagnostics: owner optional feature `capabilities` array shape, generated `feature_extensions[0].capabilities` array shape, and owner/generated capability list comparison. `plugin_validate_feature_provider.py` dispatches to it and now stays focused on generated package manifest parsing, owner-manifest selection, feature extension identity, distribution projection dispatch, dependencies owner dispatch, and capabilities owner dispatch.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_distribution_lives_in_distribution_owner: RED failed before `plugin_validate_feature_provider_distribution.py` existed, then GREEN passed after PluginValidate feature-provider distribution owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_feature_provider_distribution.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after PluginValidate feature-provider distribution owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_feature_provider_distribution_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_feature_provider_distribution_owner_split`, then GREEN passed after docs/status updates.
+- `plugin_validate_feature_provider_distribution.py` is the current feature-provider distribution owner for distribution projection diagnostics: owner optional feature `[distribution]` table shape and generated `[distribution]` forms/default_packaging/ABI/engine/dist crate/descriptor/runtime/editor/assets comparison. `plugin_validate_feature_provider.py` dispatches to it and now stays focused on generated package manifest parsing, owner-manifest selection, feature extension identity, and feature-provider child owner dispatch.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_extension_lives_in_extension_owner: RED failed before `plugin_validate_feature_provider_extension.py` existed, then GREEN passed after PluginValidate feature-provider extension owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_feature_provider_extension.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after PluginValidate feature-provider extension owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_feature_provider_extension_owner_split: RED failed before 09/13/standalone/export/session current status recorded `plugins_13_m5_t1_plugin_validate_feature_provider_extension_owner_split`, then GREEN passed after docs/status updates.
+- `plugin_validate_feature_provider_extension.py` is the current feature-provider extension owner for feature extension projection diagnostics: owner manifest loading, owner id validation, selected optional feature lookup, generated feature id/owner id comparison, and distribution/capabilities/dependencies leaf owner dispatch. `plugin_validate_feature_provider.py` dispatches to it and now stays focused on generated package manifest top-level parsing and generated feature-extension wrapper shape.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_report_owner_splits: RED failed on 2026-06-29 because 09 export status and standalone current contract lacked the NativeDynamic report owner split entries, then GREEN passed after docs/status updates
+- python -m py_compile tools\tests\test_plugin_docs_current_status_convergence.py: passed 2026-06-29 after NativeDynamic report owner docs guard
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 4/4 on 2026-06-29 after NativeDynamic report owner docs guard
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_owner_boundaries: RED failed on 2026-06-29 before `native_dynamic_materialize.py` existed and while `native_dynamic.py` was 951 lines, then GREEN passed 5/5 after NativeDynamic materialization owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_materialize_owner_split: RED failed on 2026-06-29 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_native_dynamic_materialize_owner_split`, then GREEN passed after docs/status updates
+- python -m py_compile tools\zircon_export\native_dynamic.py tools\zircon_export\native_dynamic_materialize.py tools\tests\test_zircon_export_native_dynamic_owner_boundaries.py tools\zircon_export\tests\test_native_dynamic_copy_file_errors.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-29 after NativeDynamic materialization owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_owner_boundaries tools.tests.test_plugin_docs_current_status_convergence tools.zircon_export.tests.test_native_dynamic_copy_file_errors tools.zircon_export.tests.test_native_dynamic tools.zircon_export.tests.test_native_dynamic_stage tools.zircon_export.tests.test_native_dynamic_build_signing tools.zircon_export.tests.test_stage_directory_errors: passed 98/98 on 2026-06-29 after NativeDynamic materialization owner split
+- git diff --check plus direct trailing whitespace scan for touched NativeDynamic materialization owner files: passed on 2026-06-29 after NativeDynamic materialization owner split; diff-check reported LF-to-CRLF warnings only
+- `native_dynamic_materialize_io.py` is the current NativeDynamic materialization IO/path owner for directory reset/list/remove, file/tree copy, and stage-child path resolution. `native_dynamic_materialize.py` consumes it while keeping package source discovery, manifest id validation, package materialization, native artifact/resource copy, and materialized package summary; `native_dynamic.py` imports the reset helper directly from the IO/path owner.
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_materialize_io_owner_boundaries: RED failed on 2026-06-30 before `native_dynamic_materialize_io.py` existed and while `native_dynamic_materialize.py` still owned directory/path/file helpers, then GREEN passed 2/2 after `plugins_13_m5_t1_native_dynamic_materialize_io_owner_split`
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_owner_boundaries: GREEN passed 8/8 on 2026-06-30 after NativeDynamic materialization IO/path owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_materialize_io_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_native_dynamic_materialize_io_owner_split`, then GREEN passed after docs/status updates
+- python -m py_compile tools\zircon_export\native_dynamic.py tools\zircon_export\native_dynamic_materialize.py tools\zircon_export\native_dynamic_materialize_io.py tools\tests\test_zircon_export_native_dynamic_materialize_io_owner_boundaries.py tools\tests\test_zircon_export_native_dynamic_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py tools\zircon_export\tests\test_native_dynamic_copy_file_errors.py: passed on 2026-06-30 after NativeDynamic materialization IO/path owner split
+- python -m unittest tools.zircon_export.tests.test_native_dynamic_copy_file_errors tools.zircon_export.tests.test_native_dynamic_path_resolve_errors tools.zircon_export.tests.test_native_dynamic tools.zircon_export.tests.test_native_dynamic_stage tools.zircon_export.tests.test_native_dynamic_build_signing tools.zircon_export.tests.test_stage_directory_errors: passed 89/89 on 2026-06-30 after NativeDynamic materialization IO/path owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 67/67 on 2026-06-30 after NativeDynamic materialization IO/path owner split
+- python -m unittest tools.tests.test_zircon_export_template_owner_boundaries: RED failed on 2026-06-29 before `export_template_manifest.py` existed and while `export_template.py` was 896 lines, then GREEN passed 2/2 after ExportTemplate manifest owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_export_template_manifest_owner_split: RED failed on 2026-06-29 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_export_template_manifest_owner_split`, then GREEN passed after docs/status updates
+- python -m py_compile tools\zircon_export\export_template.py tools\zircon_export\export_template_manifest.py tools\zircon_export\pipeline_report_platform_bundle_template_schema_helpers.py tools\tests\test_zircon_export_template_owner_boundaries.py: passed on 2026-06-29 after ExportTemplate manifest owner split
+- AST moved-helper import scan: passed on 2026-06-29; no template manifest/path/hash helper imports remain from `export_template.py`
+- python -m unittest tools.zircon_export.tests.test_templates tools.zircon_export.tests.test_export_template_path_resolve_errors tools.zircon_export.tests.test_export_template_trimmed_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_bundle_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_diagnostics_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_file_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_file_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_trimmed_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_report_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_diagnostics_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_string_array_schema: passed 153/153 on 2026-06-29 after ExportTemplate manifest owner split
+- python -m unittest tools.tests.test_zircon_export_cook_assets_report_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_cook_assets_manifest_io.py` and `pipeline_report_cook_assets_pack_handoff.py` existed and while `pipeline_report_cook_assets.py` was 893 lines, then GREEN passed 3/3 after CookAssets report owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_cook_assets_report_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_cook_assets_report_owner_split`, then GREEN passed after docs/status updates
+- python -m py_compile tools\zircon_export\pipeline_report.py tools\zircon_export\pipeline_report_cook_assets.py tools\zircon_export\pipeline_report_cook_assets_manifest_io.py tools\zircon_export\pipeline_report_cook_assets_pack_handoff.py tools\tests\test_zircon_export_cook_assets_report_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after CookAssets report owner split
+- python -m unittest tools.tests.test_zircon_export_cook_assets_report_owner_boundaries tools.tests.test_plugin_docs_current_status_convergence tools.zircon_export.tests.test_cook_assets_argument_schema_gate tools.zircon_export.tests.test_cook_assets_manifest_determinism tools.zircon_export.tests.test_cook_assets_manifest_schema_gate tools.zircon_export.tests.test_cook_assets_pack_stage tools.zircon_export.tests.test_cook_assets_path_resolve_errors tools.zircon_export.tests.test_cook_assets_project_fallback tools.zircon_export.tests.test_pipeline_report_cook_assets_manifest_evidence tools.zircon_export.tests.test_pipeline_report_cook_assets_manifest_shape_schema tools.zircon_export.tests.test_pipeline_report_cook_assets_pack_handoff tools.zircon_export.tests.test_pipeline_report_cook_assets_stage_schema: passed 96/96 on 2026-06-30 after CookAssets report owner split
+- python -m unittest tools.tests.test_zircon_export_cook_assets_pack_trim_closure_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_cook_assets_pack_trim_closure.py` existed and while `pipeline_report_cook_assets_pack_handoff.py` still owned trim-closure helpers, then GREEN passed 5/5 after CookAssets Pack trim closure owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_cook_assets_pack_trim_closure_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_cook_assets_pack_trim_closure_owner_split`, then GREEN passed after docs/status updates
+- python -m py_compile tools\zircon_export\pipeline_report.py tools\zircon_export\pipeline_report_cook_assets_pack_handoff.py tools\zircon_export\pipeline_report_cook_assets_pack_trim_closure.py tools\zircon_export\pipeline_report_cook_assets_trim_evidence.py tools\zircon_export\tests\test_pipeline_report_cook_assets_pack_handoff.py tools\tests\test_zircon_export_cook_assets_pack_trim_closure_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after CookAssets Pack trim closure owner split
+- python -m unittest tools.tests.test_zircon_export_cook_assets_pack_trim_closure_owner_boundaries tools.zircon_export.tests.test_pipeline_report_cook_assets_pack_handoff: passed 14/14 on 2026-06-30 after CookAssets Pack trim closure owner split
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_report_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_platform_bundle_file_evidence.py` existed and while `pipeline_report_platform_bundle.py` was 867 lines, then GREEN passed 2/2 after PlatformBundle file evidence owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_platform_bundle_file_evidence_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_platform_bundle_file_evidence_owner_split`, then GREEN passed after docs/status updates
+- python -m py_compile tools\zircon_export\pipeline_report_platform_bundle.py tools\zircon_export\pipeline_report_platform_bundle_file_evidence.py tools\zircon_export\tests\test_pipeline_report_platform_bundle_path_resolve_errors.py tools\tests\test_zircon_export_platform_bundle_report_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle file evidence owner split
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_report_owner_boundaries tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_platform_bundle_file_evidence_owner_split tools.zircon_export.tests.test_pipeline_report_platform_bundle_file_reads tools.zircon_export.tests.test_pipeline_report_platform_bundle_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_manifest_top_level_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_path_resolve_errors tools.zircon_export.tests.test_pipeline_report_platform_bundle_path_trimmed_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_stage_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle: passed 102/102 on 2026-06-30 after PlatformBundle file evidence owner split
+- python -m unittest tools.zircon_export.tests.test_platform_bundle_delta tools.zircon_export.tests.test_platform_bundle_inputs tools.zircon_export.tests.test_platform_bundle_native_dynamic tools.zircon_export.tests.test_platform_bundle_native_dynamic_operation_audit tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_platform_bundle_path_resolve_errors: passed 68/68 on 2026-06-30 after PlatformBundle file evidence owner split
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_argument_path_owner_boundaries: RED failed on 2026-06-30 before `platform_bundle_arguments.py` existed and while `platform_bundle.py` still owned argument/path helpers and exceeded 540 lines, then GREEN passed 2/2 after PlatformBundle argument/path owner split
+- python -m py_compile tools\zircon_export\platform_bundle.py tools\zircon_export\platform_bundle_arguments.py tools\tests\test_zircon_export_platform_bundle_argument_path_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle argument/path owner split
+- python -m unittest tools.zircon_export.tests.test_platform_bundle_inputs tools.zircon_export.tests.test_platform_bundle_delta tools.zircon_export.tests.test_platform_bundle_native_dynamic tools.zircon_export.tests.test_platform_bundle_native_dynamic_operation_audit tools.zircon_export.tests.test_platform_bundle_cleanup_errors tools.zircon_export.tests.test_platform_bundle_native_plugins_copy_errors: passed 48/48 on 2026-06-30 after PlatformBundle argument/path owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_platform_bundle_argument_path_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_platform_bundle_argument_path_owner_split`, then GREEN passed after docs/status updates
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_strategy_handoff_owner_boundaries: RED failed on 2026-06-30 before `platform_bundle_strategy_handoff.py` existed and while `platform_bundle.py` still owned strategy handoff functions and exceeded 430 splitlines, then GREEN passed 2/2 after PlatformBundle strategy handoff owner split
+- python -m py_compile tools\zircon_export\platform_bundle.py tools\zircon_export\platform_bundle_strategy_handoff.py tools\zircon_export\tests\test_platform_bundle_inputs.py tools\tests\test_zircon_export_platform_bundle_strategy_handoff_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle strategy handoff owner split
+- python -m unittest tools.zircon_export.tests.test_platform_bundle_inputs tools.zircon_export.tests.test_platform_bundle_delta tools.zircon_export.tests.test_platform_bundle_path_resolve_errors tools.zircon_export.tests.test_platform_bundle_cleanup_errors tools.zircon_export.tests.test_platform_bundle_native_dynamic: passed 40/40 on 2026-06-30 after PlatformBundle strategy handoff owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_platform_bundle_strategy_handoff_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_platform_bundle_strategy_handoff_owner_split`, then GREEN passed after docs/status updates
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_report_payload_owner_boundaries: RED failed on 2026-06-30 before `platform_bundle_report_payload.py` existed and while `platform_bundle.py` still owned inline manifest/report payload dictionaries, then GREEN passed 2/2 after PlatformBundle report payload owner split.
+- python -m py_compile tools\zircon_export\platform_bundle.py tools\zircon_export\platform_bundle_report_payload.py tools\tests\test_zircon_export_platform_bundle_report_payload_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle report payload owner split.
+- python -m unittest tools.zircon_export.tests.test_platform_bundle_inputs tools.zircon_export.tests.test_platform_bundle_cleanup_errors tools.zircon_export.tests.test_platform_bundle_native_plugins_copy_errors tools.zircon_export.tests.test_platform_bundle_delta: passed 13/13 on 2026-06-30 after PlatformBundle report payload owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_platform_bundle_report_payload_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_platform_bundle_report_payload_owner_split`, then GREEN passed after docs/status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 80/80 after PlatformBundle report payload owner split.
+- conflict-marker and trailing-whitespace scans over touched PlatformBundle report payload owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only after PlatformBundle report payload owner split.
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_template_files_materialize_owner_boundaries: RED failed on 2026-06-30 before `platform_bundle_template_files_materialize.py` existed and while `platform_bundle_materialize.py` still inlined template file copy loops and copied-template filtering, then GREEN passed 2/2 after PlatformBundle template files materialize owner split.
+- python -m py_compile tools\zircon_export\platform_bundle_materialize.py tools\zircon_export\platform_bundle_template_files_materialize.py tools\tests\test_zircon_export_platform_bundle_template_files_materialize_owner_boundaries.py: passed on 2026-06-30 after PlatformBundle template files materialize owner split.
+- python -m unittest tools.zircon_export.tests.test_platform_bundle_inputs tools.zircon_export.tests.test_platform_bundle_cleanup_errors tools.zircon_export.tests.test_platform_bundle_native_plugins_copy_errors tools.zircon_export.tests.test_platform_bundle_native_dynamic: passed 37/37 on 2026-06-30 after PlatformBundle template files materialize owner split.
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_owner_boundaries: passed 4/4 after the generic materialization owner boundary was updated to consume the PlatformBundle template files materialize owner.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_platform_bundle_template_files_materialize_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_platform_bundle_template_files_materialize_owner_split`, then GREEN passed after docs/status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 81/81 after PlatformBundle template files materialize owner split.
+- conflict-marker and trailing-whitespace scans over touched PlatformBundle template files materialize owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only after PlatformBundle template files materialize owner split.
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_native_plugins_materialize_owner_boundaries: RED failed on 2026-06-30 before `platform_bundle_native_plugins_materialize.py` existed and while `platform_bundle_materialize.py` still inlined native plugins destination overwrite and recursive copy logic, then GREEN passed 2/2 after PlatformBundle native plugins materialize owner split.
+- python -m py_compile tools\zircon_export\platform_bundle_materialize.py tools\zircon_export\platform_bundle_native_plugins_materialize.py tools\tests\test_zircon_export_platform_bundle_native_plugins_materialize_owner_boundaries.py tools\tests\test_zircon_export_platform_bundle_owner_boundaries.py tools\zircon_export\tests\test_platform_bundle_native_plugins_copy_errors.py: passed on 2026-06-30 after PlatformBundle native plugins materialize owner split.
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_native_plugins_materialize_owner_boundaries tools.tests.test_zircon_export_platform_bundle_template_files_materialize_owner_boundaries tools.tests.test_zircon_export_platform_bundle_owner_boundaries: passed 8/8 after the generic materialization owner boundary was updated to consume the PlatformBundle native plugins materialize owner.
+- python -m unittest tools.zircon_export.tests.test_platform_bundle_inputs tools.zircon_export.tests.test_platform_bundle_cleanup_errors tools.zircon_export.tests.test_platform_bundle_native_plugins_copy_errors tools.zircon_export.tests.test_platform_bundle_native_dynamic tools.zircon_export.tests.test_templates: passed 71/71 on 2026-06-30 after PlatformBundle native plugins materialize owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_platform_bundle_native_plugins_materialize_owner_split: RED failed on 2026-06-30 because 09/13/standalone/export/session current status lacked `plugins_13_m5_t1_platform_bundle_native_plugins_materialize_owner_split`, then GREEN passed after docs/status updates.
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_owner_boundaries.ZirconExportNativeDynamicOwnerBoundaryTests.test_native_dynamic_package_exports_live_in_package_exports_owner: RED failed before `pipeline_report_native_dynamic_package_exports.py` existed, then GREEN passed on 2026-06-29 after package export owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_owner_boundaries: passed 3/3 on 2026-06-29 after package export owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\pipeline_report_native_dynamic_build_execution.py tools\zircon_export\pipeline_report_native_dynamic_package_exports.py tools\tests\test_zircon_export_native_dynamic_owner_boundaries.py: passed on 2026-06-29 after package export owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload: passed 20/20 on 2026-06-29 after package export owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_owner_boundaries.ZirconExportNativeDynamicPayloadOwnerBoundaryTests.test_platform_bundle_package_report_diagnostics_live_in_payload_package_report_owner: RED failed before `pipeline_report_native_dynamic_payload_package_report.py` existed, then GREEN passed on 2026-06-29 after payload package-report owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_owner_boundaries: passed 2/2 on 2026-06-29 after payload package-report owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_package_report.py tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\tests\test_zircon_export_native_dynamic_payload_owner_boundaries.py: passed on 2026-06-29 after payload package-report owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema: passed 86/86 on 2026-06-29 after payload package-report owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_operation_audit_owner_boundaries.ZirconExportNativeDynamicOperationAuditOwnerBoundaryTests.test_operation_audit_schema_helpers_live_in_helper_owner: RED failed before `pipeline_report_native_dynamic_operation_audit_schema_helpers.py` existed, then GREEN passed on 2026-06-29 after operation-audit schema helper owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_operation_audit_owner_boundaries: passed 2/2 on 2026-06-29 after operation-audit schema helper owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_operation_audit_schema.py tools\zircon_export\pipeline_report_native_dynamic_operation_audit_schema_helpers.py tools\tests\test_zircon_export_native_dynamic_operation_audit_owner_boundaries.py: passed on 2026-06-29 after operation-audit schema helper owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_operation_audit_schema tools.zircon_export.tests.test_platform_bundle_native_dynamic_operation_audit tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema: passed 68/68 on 2026-06-29 after operation-audit schema helper owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_operation_audit_stage_packages_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py` existed and while `pipeline_report_native_dynamic_operation_audit_schema.py` still owned package/artifact constants and exceeded 430 lines, then GREEN passed 2/2 after NativeDynamic operation audit stage packages owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_operation_audit_schema.py tools\zircon_export\pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py tools\tests\test_zircon_export_native_dynamic_operation_audit_stage_packages_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after NativeDynamic operation audit stage packages owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_operation_audit_schema tools.zircon_export.tests.test_platform_bundle_native_dynamic_operation_audit: passed 30/30 on 2026-06-30 after NativeDynamic operation audit stage packages owner split
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_export_plan_reflects_native_dynamic_operation_audit_stage_packages_owner_split: passed on 2026-06-30 after NativeDynamic operation audit stage packages owner split docs/status updates
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 31/31 on 2026-06-30 after NativeDynamic operation audit stage packages owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_schema_owner_boundaries.ZirconExportNativeDynamicPayloadSchemaOwnerBoundaryTests.test_payload_schema_helpers_live_in_helper_owner: RED failed before `pipeline_report_native_dynamic_payload_schema_helpers.py` existed, then GREEN passed on 2026-06-29 after payload schema helper owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_schema_owner_boundaries: passed 2/2 on 2026-06-29 after payload schema helper owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_schema.py tools\zircon_export\pipeline_report_native_dynamic_payload_schema_helpers.py tools\tests\test_zircon_export_native_dynamic_payload_schema_owner_boundaries.py: passed on 2026-06-29 after payload schema helper owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_operation_audit_schema: passed 126/126 on 2026-06-29 after payload schema helper owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_string_array_schema_helper_owner_boundaries: RED failed before `pipeline_report_native_dynamic_payload_string_array_schema_helpers.py` existed and while object-array string-array helpers still lived in the parent payload helper owner, then GREEN passed 2/2 after NativeDynamic payload object-array string-array helper owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_payload_string_array_helper: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_native_dynamic_payload_string_array_helper_owner_split`.
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_schema_helpers.py tools\zircon_export\pipeline_report_native_dynamic_payload_string_array_schema_helpers.py tools\zircon_export\pipeline_report_native_dynamic_payload_materialized_packages_schema.py tools\tests\test_zircon_export_native_dynamic_payload_string_array_schema_helper_owner_boundaries.py tools\tests\test_zircon_export_native_dynamic_payload_schema_owner_boundaries.py: passed after NativeDynamic payload object-array string-array helper owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema: passed 63/63 after NativeDynamic payload object-array string-array helper owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence tools.tests.test_plugin_docs_current_status_payload_string_array_helper: passed 90/90 after NativeDynamic payload object-array string-array helper owner split status updates.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest: passed 109/109 after NativeDynamic payload object-array string-array helper owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after NativeDynamic payload object-array string-array helper owner split, target_count=39, failed_count=0, diagnostics=0.
+- python -m unittest tools.tests.test_zircon_export_validate_compile_host_command_value_semantics_owner_boundaries: RED failed before `pipeline_report_validate_compile_host_command_value_semantics.py` existed and while Validate CompileHost command value semantics owner responsibilities still lived in `pipeline_report_validate_compile_host_command_semantics.py`, then GREEN passed 4/4 after `plugins_13_m5_t1_validate_compile_host_command_value_semantics_owner_split`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_validate_compile_host_command_value: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_validate_compile_host_command_value_semantics_owner_split`.
+- python -m py_compile tools\zircon_export\pipeline_report_validate_compile_host_command_semantics.py tools\zircon_export\pipeline_report_validate_compile_host_command_value_semantics.py tools\zircon_export\compile_host_plan_command_semantics.py tools\tests\test_zircon_export_validate_compile_host_command_value_semantics_owner_boundaries.py: passed after Validate CompileHost command value semantics owner split.
+- python -m unittest tools.tests.test_zircon_export_validate_compile_host_command_value_semantics_owner_boundaries tools.tests.test_zircon_export_validate_compile_host_command_semantics_owner_boundaries: passed 8/8 after Validate CompileHost command value semantics owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_command_semantics tools.zircon_export.tests.test_compile_host_plan_command_schema tools.zircon_export.tests.test_compile_host_plan_feature_array_schema tools.zircon_export.tests.test_compile_host_plan_linked_crate_schema tools.zircon_export.tests.test_compile_host_output_gate: passed 37/37 after Validate CompileHost command value semantics owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence tools.tests.test_plugin_docs_current_status_payload_string_array_helper tools.tests.test_plugin_docs_current_status_pack_trim_object_array tools.tests.test_plugin_docs_current_status_validate_compile_host_command_value: passed 92/92 after Validate CompileHost command value semantics owner split status updates.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after Validate CompileHost command value semantics owner split, target_count=39, failed_count=0, diagnostics=0.
+- python -m unittest tools.tests.test_zircon_export_pack_trim_object_array_schema_owner_boundaries: RED failed before `pipeline_report_pack_trim_object_array_schema.py` existed and while Pack trim object-array schema owner responsibilities still lived in `pipeline_report_pack_trim_schema.py`, then GREEN passed 2/2 after `plugins_13_m5_t1_pack_trim_object_array_schema_owner_split`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_pack_trim_object_array: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_pack_trim_object_array_schema_owner_split`.
+- python -m py_compile tools\zircon_export\pipeline_report_pack_trim_schema.py tools\zircon_export\pipeline_report_pack_trim_object_array_schema.py tools\tests\test_zircon_export_pack_trim_object_array_schema_owner_boundaries.py: passed after Pack trim object-array schema owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_pack_trim_report_schema: passed 7/7 after Pack trim object-array schema owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence tools.tests.test_plugin_docs_current_status_payload_string_array_helper tools.tests.test_plugin_docs_current_status_pack_trim_object_array: passed 91/91 after Pack trim object-array schema owner split status updates.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_pack_trim_report_schema tools.zircon_export.tests.test_pipeline_report_pack_path_string_schema tools.zircon_export.tests.test_pipeline_report_pack_stage_schema tools.zircon_export.tests.test_pipeline_report_pack_delta_top_level_schema tools.zircon_export.tests.test_pipeline_report_pack_file_evidence_schema: passed 72/72 after Pack trim object-array schema owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after Pack trim object-array schema owner split, target_count=39, failed_count=0, diagnostics=0.
+- conflict-marker and trailing-whitespace scans over touched Pack trim object-array owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only after Pack trim object-array schema owner split.
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_file_manifest_schema_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_payload_file_manifest_schema.py` existed and while `pipeline_report_native_dynamic_payload_schema.py` still owned file_manifest row schema diagnostics and exceeded 330 lines, then GREEN passed 2/2 after NativeDynamic payload file_manifest schema owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_schema.py tools\zircon_export\pipeline_report_native_dynamic_payload_file_manifest_schema.py tools\zircon_export\native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle.py tools\zircon_export\pipeline_report_native_dynamic_payload_stage_report.py tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\pipeline_report_native_dynamic_stage_schema.py tools\zircon_export\pipeline_report_native_dynamic_package_report_schema.py tools\tests\test_zircon_export_native_dynamic_payload_file_manifest_schema_owner_boundaries.py: passed on 2026-06-30 after NativeDynamic payload file_manifest schema owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_file_manifest_schema_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_schema_owner_boundaries: passed 4/4 on 2026-06-30 after NativeDynamic payload file_manifest schema owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema: passed 63/63 on 2026-06-30 after NativeDynamic payload file_manifest schema owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_package_report_payload_files_schema_owner_boundaries: RED failed before `pipeline_report_native_dynamic_package_report_payload_files_schema.py` existed and while `payload.files[]` row schema still lived in `pipeline_report_native_dynamic_package_report_schema.py`, then GREEN passed 4/4 after `plugins_13_m5_t1_native_dynamic_package_report_payload_files_schema_owner_split`.
+- python -m unittest tools.tests.test_plugin_docs_current_status_native_dynamic_package_report_payload_files: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_native_dynamic_package_report_payload_files_schema_owner_split`.
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_package_report_schema.py tools\zircon_export\pipeline_report_native_dynamic_package_report_payload_files_schema.py tools\tests\test_zircon_export_native_dynamic_package_report_payload_files_schema_owner_boundaries.py: passed after NativeDynamic package report payload.files schema owner split.
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_package_report_payload_files_schema_owner_boundaries tools.tests.test_zircon_export_native_dynamic_package_report_schema_helper_owner_boundaries: passed 8/8 after NativeDynamic package report payload.files schema owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema: passed 25/25 after NativeDynamic package report payload.files schema owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence tools.tests.test_plugin_docs_current_status_payload_string_array_helper tools.tests.test_plugin_docs_current_status_pack_trim_object_array tools.tests.test_plugin_docs_current_status_validate_compile_host_command_value tools.tests.test_plugin_docs_current_status_native_dynamic_package_report_payload_files: passed 93/93 after NativeDynamic package report payload.files schema owner split status updates.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema: passed 63/63 after NativeDynamic package report payload.files schema owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after NativeDynamic package report payload.files schema owner split, target_count=39, failed_count=0, diagnostics=0.
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_materialized_packages_schema_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_payload_materialized_packages_schema.py` existed and while `pipeline_report_native_dynamic_payload_schema.py` still owned materialized_packages row schema diagnostics and exceeded 210 lines, then GREEN passed 2/2 after NativeDynamic payload materialized_packages schema owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_schema.py tools\zircon_export\pipeline_report_native_dynamic_payload_materialized_packages_schema.py tools\zircon_export\pipeline_report_native_dynamic_payload_file_manifest_schema.py tools\zircon_export\native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle.py tools\zircon_export\pipeline_report_native_dynamic_payload_stage_report.py tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\pipeline_report_native_dynamic_stage_schema.py tools\tests\test_zircon_export_native_dynamic_payload_materialized_packages_schema_owner_boundaries.py: passed on 2026-06-30 after NativeDynamic payload materialized_packages schema owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_materialized_packages_schema_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_file_manifest_schema_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_schema_owner_boundaries: passed 6/6 on 2026-06-30 after NativeDynamic payload materialized_packages schema owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema: passed 63/63 on 2026-06-30 after NativeDynamic payload materialized_packages schema owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_package_path_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_payload_package_path.py` existed and while `pipeline_report_native_dynamic_payload_platform_bundle.py` still owned package path and package_report diagnostics and exceeded 270 lines, then GREEN passed 2/2 after NativeDynamic payload package path owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle.py tools\zircon_export\pipeline_report_native_dynamic_payload_package_path.py tools\tests\test_zircon_export_native_dynamic_payload_package_path_owner_boundaries.py tools\tests\test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py: passed on 2026-06-30 after NativeDynamic payload package path owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_package_path_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries: passed 5/5 on 2026-06-30 after NativeDynamic payload package path owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_path_resolve_errors tools.zircon_export.tests.test_platform_bundle_native_dynamic: passed 119/119 on 2026-06-30 after NativeDynamic payload package path owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_payload_bundle_evidence.py` existed and while `pipeline_report_native_dynamic_payload_platform_bundle.py` still owned current bundle file/hash/count and loadable-artifact diagnostics and exceeded 210 lines, then GREEN passed 2/2 after NativeDynamic payload bundle evidence owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload_platform_bundle.py tools\zircon_export\pipeline_report_native_dynamic_payload_bundle_evidence.py tools\zircon_export\pipeline_report_native_dynamic_payload_package_path.py tools\tests\test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries.py: passed on 2026-06-30 after NativeDynamic payload bundle evidence owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_package_path_owner_boundaries tools.tests.test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries: passed 7/7 on 2026-06-30 after NativeDynamic payload bundle evidence owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_path_resolve_errors tools.zircon_export.tests.test_platform_bundle_native_dynamic: passed 119/119 on 2026-06-30 after NativeDynamic payload bundle evidence owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_file_manifest_owner_boundaries: RED failed on 2026-06-30 before `native_dynamic_payload_file_manifest.py` existed and while `native_dynamic_payload.py` still owned file manifest/path/hash helpers and was 757 lines, then GREEN passed 3/3 after NativeDynamic payload file manifest owner split
+- python -m py_compile tools\zircon_export\native_dynamic_payload.py tools\zircon_export\native_dynamic_payload_file_manifest.py tools\zircon_export\native_dynamic_materialize.py tools\zircon_export\native_dynamic_templates.py tools\zircon_export\pipeline_report_native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_package_report.py tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\plugin_build_package.py tools\tests\test_zircon_export_native_dynamic_payload_file_manifest_owner_boundaries.py: passed on 2026-06-30 after NativeDynamic payload file manifest owner split
+- python -m unittest tools.zircon_export.tests.test_native_dynamic_payload_file_reads tools.zircon_export.tests.test_native_dynamic tools.zircon_export.tests.test_native_dynamic_stage tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_path_resolve_errors tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest: passed 191/191 on 2026-06-30 after NativeDynamic payload file manifest owner split
+- python -m unittest tools.tests.test_zircon_export_native_build_workspace_owner_boundaries: RED failed on 2026-06-30 before `native_build_workspace.py` existed and while `native_build.py` still owned TOML/workspace crate metadata helpers and was 708 lines, then GREEN passed 3/3 after NativeBuild workspace metadata owner split
+- python -m py_compile tools\zircon_export\native_build.py tools\zircon_export\native_build_workspace.py tools\zircon_export\plugin_build.py tools\zircon_export\plugin_package_source.py tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_dist_crate.py tools\zircon_export\plugin_validate_distribution_modules.py tools\zircon_export\plugin_validate_engine_version.py tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_target_discovery.py tools\tests\test_zircon_export_native_build_workspace_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after NativeBuild workspace metadata owner split
+- python -m unittest tools.tests.test_zircon_export_native_build_cargo_command_owner_boundaries: RED failed on 2026-06-30 before `native_build_command.py` existed and while `native_build.py` still owned Cargo command helpers and consumers still borrowed `platform_dynamic_library_name`, then GREEN passed 3/3 after NativeBuild Cargo command owner split
+- python -m py_compile tools\zircon_export\native_build.py tools\zircon_export\native_build_command.py tools\zircon_export\pipeline_report_native_dynamic_build_plan_schema.py tools\zircon_export\plugin_build_package.py tools\tests\test_zircon_export_native_build_cargo_command_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after NativeBuild Cargo command owner split
+- python -m unittest tools.zircon_export.tests.test_native_dynamic_build_signing tools.zircon_export.tests.test_plugin_build tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_execution_schema: passed 102/102 on 2026-06-30 after NativeBuild Cargo command owner split
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_projection_compare_helpers_live_in_compare_owner: RED failed before `plugin_validate_feature_provider_projection_compare.py` existed, then GREEN passed on 2026-06-30 after PluginValidate feature-provider projection compare owner split
+- python -m py_compile tools\zircon_export\plugin_validate_feature_provider.py tools\zircon_export\plugin_validate_feature_provider_projection_compare.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PluginValidate feature-provider projection compare owner split
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_feature_provider tools.tests.test_plugin_docs_current_status_convergence: passed 76/76 on 2026-06-30 after PluginValidate feature-provider projection compare owner split
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_projection_optional_helpers_live_in_optional_owner: RED failed before `plugin_validate_feature_provider_projection_optional.py` existed, then GREEN passed after PluginValidate feature-provider projection optional owner split.
+- python -m py_compile tools\zircon_export\plugin_validate_feature_provider_projection_compare.py tools\zircon_export\plugin_validate_feature_provider_projection_optional.py tools\zircon_export\plugin_validate_feature_provider_distribution.py tools\tests\test_plugin_validate_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py tools\zircon_export\tests\test_plugin_validate_feature_provider.py: passed after PluginValidate feature-provider projection optional owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_projection_optional_owner_split: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_plugin_validate_feature_provider_projection_optional_owner_split`, then GREEN passed after status updates.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_projection_optional_helpers_live_in_optional_owner tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_feature_provider_projection_compare_helpers_live_in_compare_owner tools.zircon_export.tests.test_plugin_validate_feature_provider.PluginValidateFeatureProviderTests.test_plugin_validate_reports_feature_provider_distribution_projection_mismatch: passed 3/3 after PluginValidate feature-provider projection optional owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 77/77 after PluginValidate feature-provider projection optional owner split.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_report: passed 70/70 after PluginValidate feature-provider projection optional owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after PluginValidate feature-provider projection optional owner split, target_count=39, failed_count=0, diagnostics=0.
+- python -m unittest tools.tests.test_plugin_validate_owner_boundaries.PluginValidateOwnerBoundaryTests.test_single_target_validation_lives_in_single_target_owner: RED failed before `plugin_validate_single_target.py` existed, then GREEN passed 1/1 after PluginValidate single-target owner split.
+- python -m py_compile tools\zircon_export\plugin_validate.py tools\zircon_export\plugin_validate_single_target.py tools\tests\test_plugin_validate_owner_boundaries.py: passed after PluginValidate single-target owner split.
+- python -m unittest tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_distribution_contract tools.zircon_export.tests.test_plugin_validate_distribution_modules tools.zircon_export.tests.test_plugin_validate_feature_provider tools.zircon_export.tests.test_plugin_validate_report tools.tests.test_plugin_validate_owner_boundaries: passed 71/71 after PluginValidate single-target owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_plugin_validate_single_target_owner_split: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_plugin_validate_single_target_owner_split`, then GREEN passed 1/1 after status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 89/89 after PluginValidate single-target owner split status updates.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after PluginValidate single-target owner split, target_count=39, failed_count=0, diagnostics=0.
+- scoped conflict-marker/trailing-whitespace scans and git diff --check for PluginValidate single-target owner split files: no conflict markers or trailing whitespace; diff-check produced LF/CRLF warnings only.
+- python -m unittest tools.tests.test_zircon_export_pipeline_report_schema_table_owner_boundaries: RED failed before `pipeline_report_schema_string_array.py` existed and while 20 schema/report consumers imported string-array helpers from `pipeline_report_schema_table.py`, then GREEN passed 2/2 after Pipeline Report schema string-array owner split.
+- python -m py_compile tools\zircon_export\pipeline_report_schema_table.py tools\zircon_export\pipeline_report_schema_string_array.py tools\tests\test_zircon_export_pipeline_report_schema_table_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after Pipeline Report schema string-array owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_execution_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_operation_audit_schema: passed 145/145 after Pipeline Report schema string-array owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_pack_delta_schema tools.zircon_export.tests.test_pipeline_report_pack_stage_schema tools.zircon_export.tests.test_pipeline_report_pack_trim_report_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_string_array_schema: passed 60/60 after Pipeline Report schema string-array owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_source_template_schema tools.zircon_export.tests.test_pipeline_report_source_template_validate_build_plan tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_validate_plan_vector_schema: passed 83/83 after Pipeline Report schema string-array owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_schema_string_array_owner_split: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_pipeline_report_schema_string_array_owner_split`, then GREEN passed after status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 78/78 after Pipeline Report schema string-array owner split.
+- python -m unittest tools.tests.test_zircon_export_pack_stage_path_owner_boundaries: RED failed before `pack_stage_paths.py` existed and while `pack_stage.py` still owned path/argument helpers above the owner budget; GREEN passed 2/2 after Pack stage path/argument owner split.
+- python -m py_compile tools\zircon_export\pack_stage.py tools\zircon_export\pack_stage_paths.py tools\tests\test_zircon_export_pack_stage_path_owner_boundaries.py tools\tests\test_zircon_export_cli_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed after Pack stage path/argument owner split.
+- python -m unittest tools.tests.test_zircon_export_pack_stage_path_owner_boundaries tools.tests.test_zircon_export_cli_owner_boundaries: passed 6/6 after Pack stage path/argument owner split.
+- python -m unittest tools.zircon_export.tests.test_cook_assets_pack_stage tools.zircon_export.tests.test_pack_argument_schema_gate tools.zircon_export.tests.test_pack_path_resolve_errors tools.zircon_export.tests.test_pack_subprocess_failures: passed 43/43 after Pack stage path/argument owner split.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence.PluginDocsCurrentStatusConvergenceTests.test_current_plugin_docs_reflect_pack_stage_path_owner_split: RED failed before 09/13/standalone/export/session status recorded `plugins_13_m5_t1_pack_stage_path_owner_split`; GREEN passed 1/1 after status updates.
+- python -m unittest tools.tests.test_plugin_docs_current_status_convergence: passed 79/79 after Pack stage path/argument owner split.
+- conflict-marker and trailing-whitespace scans over touched Pack stage path owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only after Pack stage path/argument owner split.
+- python -m unittest tools.tests.test_zircon_export_pipeline_report_schema_table_owner_boundaries tools.zircon_export.tests.test_pipeline_report_compile_host_stage_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_plan_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_build_execution_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_operation_audit_schema tools.zircon_export.tests.test_pipeline_report_pack_delta_schema tools.zircon_export.tests.test_pipeline_report_pack_stage_schema tools.zircon_export.tests.test_pipeline_report_pack_trim_report_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_string_array_schema tools.zircon_export.tests.test_pipeline_report_source_template_schema tools.zircon_export.tests.test_pipeline_report_source_template_validate_build_plan tools.zircon_export.tests.test_pipeline_report_validate_compile_host_schema tools.zircon_export.tests.test_pipeline_report_validate_schema tools.zircon_export.tests.test_pipeline_report_validate_plan_vector_schema: passed 290/290 after Pipeline Report schema string-array owner split.
+- python -m tools.zircon_export plugin validate --all --repo-root E:\Git\ZirconEngine --json: passed after Pipeline Report schema string-array owner split, target_count=39, failed_count=0, diagnostics=0.
+- conflict-marker and trailing-whitespace scans over touched projection optional/string-array owner files and docs produced no findings; scoped git diff-check passed with LF/CRLF warnings only after Pipeline Report schema string-array owner split.
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries.PluginBuildOwnerBoundaryTests.test_cargo_command_lives_in_command_owner: RED failed before `plugin_build_command.py` existed, then GREEN passed on 2026-06-30 after Plugin build Cargo command owner split
+- python -m py_compile tools\zircon_export\plugin_build.py tools\zircon_export\plugin_build_command.py tools\tests\test_plugin_build_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after Plugin build Cargo command owner split
+- python -m unittest tools.zircon_export.tests.test_plugin_build.PluginBuildTests.test_plugin_build_emits_isolated_package_dir: passed on 2026-06-30 after Plugin build Cargo command owner split
+- python -m unittest tools.tests.test_plugin_build_owner_boundaries.PluginBuildOwnerBoundaryTests.test_preflight_validation_lives_in_preflight_owner: RED failed before `plugin_build_preflight.py` existed, then GREEN passed on 2026-06-30 after Plugin build preflight owner split
+- python -m py_compile tools\zircon_export\plugin_build.py tools\zircon_export\plugin_build_preflight.py tools\tests\test_plugin_build_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after Plugin build preflight owner split
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_stage_package_report_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_stage_package_report.py` existed and while `pipeline_report_native_dynamic_stage_payload.py` still owned source/package-report helpers and exceeded 560 lines, then GREEN passed 2/2 after NativeDynamic stage package report owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_stage_payload.py tools\zircon_export\pipeline_report_native_dynamic_stage_package_report.py tools\tests\test_zircon_export_native_dynamic_stage_package_report_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after NativeDynamic stage package report owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_materialized_packages tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_package_report_trimmed_schema tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_native_dynamic_stage: passed 120/120 on 2026-06-30 after NativeDynamic stage package report owner split
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_template_resolution_path_semantics_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_platform_bundle_template_resolution_path_semantics.py` existed and while `pipeline_report_platform_bundle_template_resolution_semantics.py` still owned path containment helpers and exceeded 560 lines, then GREEN passed 2/2 after PlatformBundle template resolution path semantics owner split
+- python -m py_compile tools\zircon_export\pipeline_report_platform_bundle_template_resolution_schema.py tools\zircon_export\pipeline_report_platform_bundle_template_resolution_semantics.py tools\zircon_export\pipeline_report_platform_bundle_template_resolution_path_semantics.py tools\tests\test_zircon_export_platform_bundle_template_resolution_path_semantics_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle template resolution path semantics owner split
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_platform_bundle_template_resolution_row_schema.py` existed and while `pipeline_report_platform_bundle_template_resolution_schema.py` still owned row constants/helpers and exceeded 340 lines, then GREEN passed 2/2 after PlatformBundle template resolution row schema owner split
+- python -m py_compile tools\zircon_export\pipeline_report_platform_bundle_template_resolution_schema.py tools\zircon_export\pipeline_report_platform_bundle_template_resolution_row_schema.py tools\tests\test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle template resolution row schema owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_bundle_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_diagnostics_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_file_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_file_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_manifest_trimmed_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_report_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_diagnostics_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_string_array_schema: passed 116/116 on 2026-06-30 after PlatformBundle template resolution path semantics owner split
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_template_resolution_failure_semantics_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_platform_bundle_template_resolution_failure_semantics.py` existed and while `pipeline_report_platform_bundle_template_resolution_semantics.py` still owned fatal no-match/root-failure/multiple-match diagnostics and exceeded the post-split threshold, then GREEN passed 2/2 after PlatformBundle template resolution failure semantics owner split.
+- python -m py_compile tools\zircon_export\pipeline_report_platform_bundle_template_resolution_semantics.py tools\zircon_export\pipeline_report_platform_bundle_template_resolution_failure_semantics.py tools\zircon_export\pipeline_report_platform_bundle_template_resolution_schema.py tools\tests\test_zircon_export_platform_bundle_template_resolution_failure_semantics_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after PlatformBundle template resolution failure semantics owner split.
+- python -m unittest tools.tests.test_zircon_export_platform_bundle_template_resolution_failure_semantics_owner_boundaries tools.tests.test_zircon_export_platform_bundle_template_resolution_candidate_owner_boundaries tools.tests.test_zircon_export_platform_bundle_template_resolution_path_semantics_owner_boundaries tools.tests.test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries: passed 8/8 after PlatformBundle template resolution failure semantics owner split.
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_diagnostics_schema tools.zircon_export.tests.test_pipeline_report_platform_bundle_template_resolution_string_array_schema: passed 53/53 on 2026-06-30 after PlatformBundle template resolution failure semantics owner split.
+- python -m unittest tools.tests.test_zircon_export_native_dynamic_payload_loader_manifest_owner_boundaries: RED failed on 2026-06-30 before `pipeline_report_native_dynamic_payload_loader_manifest.py` existed and while `pipeline_report_native_dynamic_payload.py` still owned loader-manifest helpers and exceeded 560 lines, then GREEN passed 2/2 after NativeDynamic payload loader manifest owner split
+- python -m py_compile tools\zircon_export\pipeline_report_native_dynamic_payload.py tools\zircon_export\pipeline_report_native_dynamic_payload_loader_manifest.py tools\tests\test_zircon_export_native_dynamic_payload_loader_manifest_owner_boundaries.py tools\tests\test_plugin_docs_current_status_convergence.py: passed on 2026-06-30 after NativeDynamic payload loader manifest owner split
+- python -m unittest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload tools.zircon_export.tests.test_platform_bundle_native_payload_loader_manifest tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_schema tools.zircon_export.tests.test_pipeline_report_native_dynamic_payload_path_resolve_errors tools.zircon_export.tests.test_pipeline_report_native_dynamic_stage_payload tools.zircon_export.tests.test_platform_bundle_native_dynamic: passed 139/139 on 2026-06-30 after NativeDynamic payload loader manifest owner split
   - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-package-fixture --target-dir D:\cargo-targets\zircon-plugin-m3-build-fixture: passed 2026-06-23
   - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-t3-package-a --target-dir D:\cargo-targets\zircon-plugin-m3-t3-build-fixture: passed 2026-06-23
   - CARGO_PROFILE_DEV_DEBUG=0 CARGO_BUILD_JOBS=1 python -m tools.zircon_export plugin build native_dynamic_fixture --form dist --platform windows-x86_64 --mode debug --repo-root E:\Git\ZirconEngine --out D:\cargo-targets\zircon-plugin-m3-t3-package-b --target-dir D:\cargo-targets\zircon-plugin-m3-t3-build-fixture: passed 2026-06-23; package sha256 comparison returned MATCH
@@ -948,6 +1675,30 @@ doc_type: workflow-detail
 
 # Zircon Export Tool
 
+Current structure-audit status `plugins_13_m5_t1_structure_audit_asset_importer_semantics_guard`: `tools/plugin_structure_audits/manifest_schema_asset_importers.py` now covers asset importer id namespace, ResourceKind, metadata array, numeric range, and required capability namespace checks. `collect_asset_importer_output_kind_violations` uses `ASSET_IMPORTER_OUTPUT_KINDS` to reject unknown output kinds with `must be a known ResourceKind`; `ASSET_IMPORTER_METADATA_ARRAYS` rejects empty arrays and duplicate metadata rows; `ASSET_IMPORTER_REQUIRED_CAPABILITY_CHARSET_DIAGNOSTIC` keeps required capabilities lowercase dot-separated; numeric range checks report `must fit i32` and positive u32 drift. The audit behavior is locked by `test_manifest_schema_rejects_asset_importer_id_and_resource_kind_drift` and `test_manifest_schema_rejects_asset_importer_capability_and_number_drift`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_shading_models_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `shading_models` and `shader_permutation.shading_model_ids` checks into `tools/plugin_structure_audits/manifest_schema_shading_models.py` through `collect_shading_model_schema_violations`. `SHADING_MODEL_PLUGIN_ID_START` keeps plugin shading model IDs in the 16..255 range, `SHADING_MODEL_FIELDS` owns descriptor closed fields, descriptor tokens must use `custom:<name>`, and `shader_permutation.shading_model_ids` shares descriptor token/id collision checks. The audit behavior is locked by `test_manifest_schema_rejects_shading_model_descriptor_shape` and `test_manifest_schema_rejects_shader_permutation_shading_model_id_mismatch`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_geometry_sources_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `geometry_sources` and `shader_permutation.geometry_source_ids` checks into `tools/plugin_structure_audits/manifest_schema_geometry_sources.py` through `collect_geometry_source_schema_violations`. `GEOMETRY_SOURCE_PLUGIN_ID_START` keeps plugin geometry source IDs in the 4..255 range, `GEOMETRY_SOURCE_VERTEX_ATTRIBUTES` owns the vertex attribute closed set, descriptor tokens must use `custom:<name>`, and `shader_permutation.geometry_source_ids` shares descriptor token/id collision checks. The audit behavior is locked by `test_manifest_schema_rejects_geometry_source_descriptor_shape` and `test_manifest_schema_rejects_shader_permutation_geometry_source_id_mismatch`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_layout_targets_guard`: `tools/plugin_structure_audits/manifest_schema_root_metadata.py` now validates root `supported_targets` through `collect_supported_target_values`. `SUPPORTED_TARGET_VALUES` remains the closed set for `client_runtime`, `server_runtime`, and `editor_host`, and duplicate target declarations now report `duplicates supported_targets`. The audit behavior is locked by `test_manifest_schema_rejects_duplicate_supported_targets`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_layout_coordinates_guard`: `tools/plugin_structure_audits/manifest_schema_root_metadata.py` now dispatches root `package_prefix`, `package_company`, and `package_name` checks into `tools/plugin_structure_audits/manifest_schema_layout_coordinates.py` through `collect_layout_coordinate_schema_violations`. `LAYOUT_COORDINATE_FIELDS` and `LAYOUT_COORDINATE_COMPLETENESS_MESSAGE` close the three-field coordinate contract; diagnostics include `package coordinates must declare package_prefix, package_company, and package_name together or leave all empty`, `must contain only non-empty lowercase coordinate segments`, and `must be a non-empty lowercase coordinate segment`. The audit behavior is locked by `test_manifest_schema_rejects_partial_package_coordinate_set` and `test_manifest_schema_rejects_package_coordinate_segment_drift`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_modules_guard`: `tools/plugin_structure_audits/manifest_schema.py` keeps `collect_module_schema_violations` as the compatibility entrypoint, while `tools/plugin_structure_audits/manifest_schema_modules.py` owns root `modules`, `optional_features[].modules`, and `feature_extensions[].modules` row rules. `MODULE_FIELDS`, `MODULE_SYSTEM_FIELDS`, and `module_supported_targets` close module fields, system fields, and package target coverage; diagnostics include `is not a known module field`, `should stay under namespace`, `should use the zircon_plugin_ prefix`, `is an editor module and should only target editor_host`, `should start with runtime.`, `may only be declared by runtime modules`, and `duplicates module name`. The audit covers `system_sets` and `system_anchors`, with behavior locked by `test_manifest_schema_rejects_module_identity_and_crate_drift`, `test_manifest_schema_rejects_module_target_capability_and_system_contracts`, and `test_manifest_schema_rejects_duplicate_module_names_across_feature_rows`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_options_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `options` checks into `tools/plugin_structure_audits/manifest_schema_options.py` through `collect_options_schema_violations`. `OPTION_FIELDS` and `OPTION_VALUE_TYPES` close option rows and value types; diagnostics include `is not a known option field`, `must use at least two dot-separated namespace segments`, `is unsupported; expected one of bool, integer, number, string, enum`, `must only be declared for enum options`, `bool value must be true or false`, and `number value must be finite`. The audit covers `enum_values`, `default_value`, and `required_capability`, with behavior locked by `test_manifest_schema_rejects_malformed_option_row`, `test_manifest_schema_rejects_enum_option_drift`, and `test_manifest_schema_rejects_malformed_option_default_values`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_interfaces_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `provides_interfaces`, interface `methods`, method `parameters`, and `type_ref` checks into `tools/plugin_structure_audits/manifest_schema_interfaces.py` through `collect_provided_interfaces_schema_violations`. `PROVIDED_INTERFACE_FIELDS`, `INTERFACE_METHOD_FIELDS`, `INTERFACE_METHOD_PARAMETER_FIELDS`, `INTERFACE_METHOD_TYPE_REF_FIELDS`, and `ALLOWED_SCRIPT_HOST_VALUE_KINDS` close interface bridge rows and value kinds; diagnostics include `is not a known provided interface field`, `is not a known provided interface method field`, `is not a known interface method parameter field`, `is not a known interface method type_ref field`, `duplicates provided interface id`, `duplicates provided interface method`, `duplicates interface method parameter`, and `is unsupported; expected one of null, bool, int, float, string, bytes, host_handle`. The audit behavior is locked by `test_manifest_schema_rejects_malformed_provided_interface_row`, `test_manifest_schema_rejects_duplicate_provided_interface_members`, and `test_manifest_schema_rejects_empty_provided_interface_methods`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_dependencies_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `dependencies` checks into `tools/plugin_structure_audits/manifest_schema_dependencies.py` through `collect_dependencies_schema_violations`. `DEPENDENCY_FIELDS` closes dependency rows; diagnostics include `is not a known dependency field`, `must be a non-empty string array`, `duplicates dependency row`, `duplicates dependency interface`, and `should use package.module dot namespace form`. The audit covers dependency `capability` rows and fallback `interfaces`, with behavior locked by `test_manifest_schema_rejects_malformed_dependency_row`, `test_manifest_schema_rejects_missing_dependency_interfaces`, and `test_manifest_schema_rejects_duplicate_dependency_rows`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_event_catalogs_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `event_catalogs` checks into `tools/plugin_structure_audits/manifest_schema_event_catalogs.py` through `collect_event_catalogs_schema_violations`. `EVENT_CATALOG_FIELDS` and `EVENT_FIELDS` close event catalog and event rows; diagnostics include `is not a known event catalog field`, `is not a known event field`, `duplicates event catalog namespace`, `should stay under package namespace`, `should be a positive u32`, and `should end with a version segment like v1`. The audit covers `payload_schema` namespace and version convergence, with behavior locked by `test_manifest_schema_rejects_malformed_event_catalog_row`, `test_manifest_schema_rejects_duplicate_event_catalog_namespace`, and `test_manifest_schema_rejects_event_payload_schema_version`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_components_zui_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `components` and `ui_components` checks into `tools/plugin_structure_audits/manifest_schema_components.py` through `collect_components_schema_violations`. `COMPONENT_FIELDS`, `COMPONENT_PROPERTY_FIELDS`, and `UI_COMPONENT_FIELDS` close component, property, and UI component rows; diagnostics include `is not a known component field`, `is not a known ui_component field`, `duplicates component type_id`, `should reference a .zui component asset`, and `should be a relative forward-slash package path`. The audit covers `ui_document` `.zui` convergence, with behavior locked by `test_manifest_schema_rejects_malformed_component_row`, `test_manifest_schema_rejects_duplicate_component_identity`, and `test_manifest_schema_rejects_ui_component_retired_document_path`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
+Current structure-audit status `plugins_13_m5_t1_structure_audit_capability_statuses_guard`: `tools/plugin_structure_audits/manifest_schema.py` now dispatches root `capability_statuses` checks into `tools/plugin_structure_audits/manifest_schema_capability_statuses.py` through `collect_capability_statuses_schema_violations`. `CAPABILITY_STATUS_FIELDS` closes row keys and `CAPABILITY_STATUS_VALUES` closes `complete`, `partial`, `stub`, `externalized`, `unsupported`; diagnostics include `is not a known capability_status field`, `should be one of complete, partial, stub, externalized, unsupported`, `must reference a package or optional feature capability declared by the same package`, `duplicates capability_status`, `should be covered by package supported_targets`, and `should start with dev/bevy/`. The audit covers `target_modes` and `bevy_references`, with behavior locked by `test_manifest_schema_rejects_malformed_capability_status_row`, `test_manifest_schema_rejects_capability_status_target_modes`, and `test_manifest_schema_rejects_capability_status_bevy_references`. Structure audit evidence remains `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame.
+
 `python -m tools.zircon_export` is the staged export pipeline entry point for project-level release
 builds. M1 implemented `Validate`; M2 added the first executable asset `Pack` stage and a
 `PlatformBundle` staging shell. M3-T1 adds the first `export-template` package contract and version
@@ -1129,6 +1880,15 @@ plugin id helper: `library_embed_compile_host.expected_runtime_plugins[]` and Co
 Validate-side `test_report_stage_rejects_validate_compile_host_duplicate_expected_plugin` and the
 CompileHost-side `test_report_stage_rejects_compile_host_link_plan_duplicate_expected_plugin` keep
 that handoff deterministic.
+`plugins_09_e1_compile_host_expected_plugin_provider_gate` adds the next LibraryEmbed evidence
+check: every schema-clean expected runtime plugin id must have a matching
+`linked_runtime_crates[].provider_package_id` in the same CompileHost plan or stage `link_plan`.
+The shared coverage helper lives in `pipeline_report_validate_compile_host_linkage_schema.py` and
+is used by standalone CompileHost before Cargo launch, by Validate report schema, and by the
+CompileHost stage report schema. `test_compile_host_rejects_plan_missing_expected_plugin_link_provider`,
+`test_report_stage_rejects_validate_compile_host_missing_expected_plugin_provider`, and
+`test_report_stage_rejects_compile_host_link_plan_missing_expected_plugin_provider` cover the three
+entry points.
 After Cargo returns success, CompileHost now requires the expected host output to be a regular file;
 a missing path or directory at that location makes the stage fatal before PlatformBundle can consume
 the handoff.
@@ -1402,15 +2162,96 @@ by the native loader/tooling boundary. The Python stage derives `package_report 
 against that derived path.
 
 The Python implementation is split by publishing responsibility. `native_dynamic.py` owns the
-NativeDynamic stage orchestration, package source discovery, staged package materialization, build,
-signing and notarization sequencing. `native_dynamic_plan.py` owns Validate report loading, strategy
+NativeDynamic stage orchestration, build, signing and notarization sequencing. NativeDynamic
+materialization owner `native_dynamic_materialize.py` owns package copy helpers:
+plugin directory reset/listing, package source discovery, safe stage-child resolution, native
+artifact/resource copy, partial package cleanup, and safe destination resolution.
+`native_dynamic_stage_payload_finalize.py` is the NativeDynamic stage payload finalization owner for
+package report/loader manifest/file manifest finalization: package report TOML writes, loader
+manifest writes, stage file manifest generation, content hash finalization, and materialized package
+loadable artifact refresh stay there. `native_dynamic_plan.py` owns Validate report loading, strategy
 membership, selected package ids, package export rows, target-platform artifact extension selection,
 and ABI/package-path consistency checks before materialization begins. `native_dynamic_contract.py`
 owns the shared stage constants and ABI v3 expected contract strings. `native_dynamic_payload.py`
-owns deterministic file manifests, content hashes, payload summary fallback/validation, and normalized
-release-audit projections used by PlatformBundle and final Report. `native_dynamic_templates.py` owns
+owns stage-report-backed payload summary orchestration and normalized report rows used by PlatformBundle
+and final Report. `native_dynamic_payload_file_manifest.py` owns deterministic file manifests, content
+hashes, payload file reads, path resolution, and loadable artifact discovery.
+`native_dynamic_payload_directory.py` is the NativeDynamic payload directory owner for
+directory-backed payload summary diagnostics: no-stage-report and plugins_dir-mismatch fallback
+summary, directory child traversal, materialized package discovery, package-report id loading, and
+loadable artifact membership checks stay there. `native_dynamic_payload_operation_audit.py` is the
+NativeDynamic payload operation-audit summary owner for operation-audit summary/consistency normalization
+used by payload fallback and final Report stage-report diagnostics. `native_dynamic_templates.py` owns
 the loader manifest and package report TOML rendering. Downstream stages import payload helpers from
 `native_dynamic_payload.py` instead of reaching through the stage runner.
+The NativeDynamic materialization owner keeps package copy/finalization helpers out of the stage
+runner: `native_dynamic.py` now imports only the materialization entrypoints it orchestrates and has
+dropped from 951 to 447 lines, while `native_dynamic_materialize.py` is 411 lines and
+`native_dynamic_stage_payload_finalize.py` is 105 lines after the finalization owner split.
+Final Report PlatformBundle NativeDynamic payload validation stays in
+`pipeline_report_native_dynamic_payload.py`, while package report TOML content, ABI contract, and
+payload hash/file manifest diagnostics now live in
+`pipeline_report_native_dynamic_payload_package_report.py`. The payload owner imports only the
+package-report content diagnostic entrypoint for materialized package rows, dropping from 822 lines to
+616 lines while preserving loader-manifest and stage-backed payload orchestration.
+Final Report NativeDynamic stage-payload validation stays in
+`pipeline_report_native_dynamic_stage_payload.py`, while build-plan/execution field matching plus
+copied loadable/sidecar artifact diagnostics live in
+`pipeline_report_native_dynamic_build_execution.py`. The stage-payload owner imports only those two
+diagnostic entrypoints and remains below the repository large-file warning threshold instead of
+absorbing another build-execution responsibility.
+NativeDynamic package export plan projection and materialized package export-path comparison now live
+in `pipeline_report_native_dynamic_package_exports.py`. The stage-payload owner imports that package
+export owner for Validate handoff rows, stage `package_exports[]`, and materialized package path
+projection, reducing the stage payload owner from 836 lines to 743 lines while keeping package report
+and loader-manifest orchestration in place.
+Operation-audit helper diagnostics now live in
+`pipeline_report_native_dynamic_operation_audit_schema_helpers.py`. The operation-audit schema owner
+keeps the signing/notarization summary and package/artifact table orchestration while importing the
+shared non-empty/trimmed string, SHA-256, safe relative path, platform-allowed, duplicate-field, exit
+code, and non-negative integer helper diagnostics from that owner, dropping from 843 lines to 587
+lines.
+`pipeline_report_native_dynamic_operation_audit_summary_schema.py` is the NativeDynamic
+operation-audit summary schema owner for PlatformBundle `native_plugins_payload` signing/notarization
+summary rows. It owns allowed-platforms shape, entry type, blank/trimmed/unique checks,
+platform gating, required booleans, package count, profile/target platform strings, and the
+PlatformBundle summary schema entrypoint. The stage schema owner imports only the summary constants
+and allowed-platforms helper needed by full NativeDynamic stage operation audits.
+`pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py` is the NativeDynamic
+operation audit stage packages owner. It owns packages[].artifacts[] schema diagnostics, including
+stage `packages[]` row schema, artifact field schema, required string/hash evidence, command array
+shape, safe relative artifact paths, duplicate package-relative artifacts, and the non-fatal
+exit-code policy. `pipeline_report_native_dynamic_operation_audit_schema.py` now imports that owner
+and keeps only operation-audit summary/stage wrapper schema, allowed-platforms, diagnostics array,
+and native_signing/native_notarization dispatch, dropping from 587 lines to 384 lines.
+Payload schema helper diagnostics now live in
+`pipeline_report_native_dynamic_payload_schema_helpers.py`, with object-array string-array helper owner
+responsibilities split to `pipeline_report_native_dynamic_payload_string_array_schema_helpers.py`. The payload schema owner keeps top-level
+payload and operation-audit schema orchestration while importing shared
+table/scalar object-array field helpers from the parent helper owner. NativeDynamic payload file_manifest schema owner
+responsibilities now live in `pipeline_report_native_dynamic_payload_file_manifest_schema.py`; this
+leaf owner owns file_manifest row schema diagnostics for final PlatformBundle payloads and
+stage-backed NativeDynamic payload summaries, including row fields, required string/integer fields,
+non-empty and trimmed path/hash evidence, SHA-256 shape, safe relative paths, duplicate normalized
+paths, and non-negative bytes. The payload schema owner consumes that file_manifest owner directly
+instead of holding those row rules.
+NativeDynamic payload materialized_packages schema owner responsibilities now live in
+`pipeline_report_native_dynamic_payload_materialized_packages_schema.py`; this leaf owner owns
+materialized_packages row schema diagnostics for final PlatformBundle payloads and stage-backed
+NativeDynamic payload summaries, including row fields, required string/integer/string-array fields,
+package id uniqueness, non-empty and trimmed scalar evidence, non-negative loadable artifact counts,
+loadable artifact entry type/blank/trimmed/safe-relative/unique checks, and count/list length
+matching. The payload schema owner consumes that materialized_packages owner directly instead of
+holding those row rules.
+NativeDynamic package report schema helper owner responsibilities live in
+`pipeline_report_native_dynamic_package_report_schema_helpers.py`. That owner keeps package report
+reusable field diagnostics for non-empty/trimmed strings, SHA-256 strings, safe relative paths,
+non-negative integers, object-array row fields, and uniqueness checks.
+NativeDynamic package report payload.files schema owner responsibilities live in
+`pipeline_report_native_dynamic_package_report_payload_files_schema.py`. That leaf owner keeps the
+`[[payload.files]]` row schema for package-local payload files, while
+`pipeline_report_native_dynamic_package_report_schema.py` remains the bundled
+`native_dynamic_package.toml` top-level, `[payload]`, `[abi]`, and sub-owner dispatch owner.
 
 The Rust build plan generates `plugins/native_plugins.toml` with `id`, `path`, `manifest`,
 `package_report`, and `[plugins.abi]` for each native package. When native packages are materialized,
@@ -1635,6 +2476,13 @@ PlatformBundle or Report trusts build commands, expected artifacts, stdout/stder
 or package counts. Wrong-typed entries produce diagnostics such as
 `native_dynamic report native_build_plan.packages[0].command[0] must be a string` and
 `native_dynamic report native_build_execution.packages[0].exit_code must be an integer`.
+The build-plan implementation is split by validation responsibility:
+`pipeline_report_native_dynamic_build_plan_schema.py` owns the typed top-level/package schema,
+package header matching, derived expected-artifact checks, and schema-clean helper gates, while
+`pipeline_report_native_dynamic_build_plan_commands.py` owns Cargo command semantics such as
+forbidden feature/target/package/profile flags, manifest/package/target-dir value matching,
+`--release` presence, and empty-feature `--features` absence. The schema owner imports the command
+semantics owner instead of carrying those command helper functions inline.
 Each `native_build_plan.packages[]` row must carry the complete Cargo package build evidence:
 `package_id`, `crate_name`, `manifest_path`, `workspace_manifest`, `target_dir`,
 `cargo_profile`, `expected_loadable_artifact`, `release`, `features`, and `command`. The string
@@ -1859,11 +2707,12 @@ The before/after hash fields must also be SHA-256 hex digests, so successful sig
 notarization audit rows cannot publish arbitrary non-empty placeholders as byte evidence.
 Captured `stdout` and `stderr` remain allowed to be empty strings.
 The operation-audit schema boundary now lives in
-`pipeline_report_native_dynamic_operation_audit_schema.py`; generic table/sequence schema row
+`pipeline_report_native_dynamic_operation_audit_schema.py`, with reusable helper diagnostics in
+`pipeline_report_native_dynamic_operation_audit_schema_helpers.py`; generic table/sequence schema row
 dispatch lives in `pipeline_report_schema_table.py`. The payload schema keeps the stable
 NativeDynamic payload/file/materialized-package contract and imports the audit entry points for
-compatibility, so new audit release-evidence checks should extend the operation-audit module instead
-of growing `pipeline_report_native_dynamic_payload_schema.py`.
+compatibility, so new audit release-evidence checks should extend the operation-audit owner/helper
+pair instead of growing `pipeline_report_native_dynamic_payload_schema.py`.
 NativeDynamic stage schema also imports the shared string-array helpers from
 `pipeline_report_schema_table.py`, so top-level stage arrays, build plan/execution command arrays,
 copied sidecar arrays, and operation-audit command/platform arrays use the same blank-entry,
@@ -2291,6 +3140,16 @@ The manifest shape is:
 
 ## Pack Stage
 
+Pack stage owner: `tools/zircon_export/pack_stage.py` owns Pack stage orchestration, CookAssets
+report handoff, preflight failure report shape, pack command construction, subprocess launch/error
+handling, and report writing. `tools/zircon_export/pack_stage_paths.py` is the Pack stage
+path/argument owner for path and argument preflight: explicit path argument diagnostics,
+Pack-prefixed stage path resolution, CookAssets default cooked manifest fallback, Pack output path
+resolution, delta argument pairing, and asset manifest existence/file checks.
+`tools/zircon_export/cli.py` imports only `run_pack(...)` and remains the root command/pipeline
+orchestration owner. This keeps pack command/report/path helpers out of the CLI root and holds
+`cli.py` below the large-file warning threshold after the Validate/Pack stage owner splits.
+
 `Pack` consumes a cooked asset manifest rather than reading `zircon-project.toml` directly. If
 `--asset-manifest` is supplied, that explicit path is used. Otherwise `Pack` first reads a matching
 non-fatal `<out>/stages/cook_assets/report.json` and uses its `cooked_asset_manifest` field. If no
@@ -2381,12 +3240,21 @@ index instead of collapsing the whole field back to a string-array diagnostic.
 `test_report_stage_rejects_pack_trim_report_schema_before_preflight` covers padded duplicate and
 missing-dependency paths so they do not also emit the non-fatal preflight empty-list diagnostic.
 `pipeline_report_pack_stage_schema.py` owns the Pack stage wrapper,
+`pipeline_report_pack_stage_required_fields.py` is the Pack stage required-fields owner for non-fatal and delta-publication required-field diagnostics,
+`pipeline_report_pack_file_evidence.py` is the Pack file evidence owner for pack file and binary evidence diagnostics,
 `pipeline_report_pack_trim_schema.py` owns trim-report schema, preflight, and manifest consistency,
+`pipeline_report_pack_trim_object_array_schema.py` owns Pack trim object-array schema owner checks for `trimmed_assets[]`, `missing_dependencies[]`, trim reasons, and optional asset paths,
 `pipeline_report_stage_location.py` owns report-path-derived stage output location checks shared by
 Validate and Pack,
 `pipeline_report_pack_manifest_schema.py` owns embedded pack manifest schema/count/dedup evidence,
-and `pipeline_report_pack_delta_schema.py` owns delta manifest schema/count/asset-set/chunk
-evidence. This keeps final Report aggregation behavior unchanged while keeping the Pack release
+`pipeline_report_pack_delta_schema.py` owns delta manifest field schema evidence,
+`pipeline_report_pack_delta_semantics.py` owns Pack delta report publication/count/target semantic diagnostics,
+and `pipeline_report_pack_delta_asset_set_semantics.py` owns Pack delta asset-set semantics owner
+checks for removed/changed/reused asset derivation, changed asset entry matching, changed chunk hash
+matching, and document manifest fingerprints. The file evidence owner checks non-fatal `asset_manifest`, `pack`, `delta_pack`, and
+`previous_pack` path existence, reads ZRPK/ZRPD embedded manifests, validates binary header/version
+shape, compares embedded manifests back to report manifests, and verifies chunk payload ranges and
+hashes. This keeps final Report aggregation behavior unchanged while keeping the Pack release
 evidence checks split by responsibility.
 For non-fatal reports that carry schema-clean `trim_report` and `manifest` objects, final Report also
 compares `trim_report.included_assets` with `manifest.assets[].path`. The lists must match after
@@ -2515,6 +3383,38 @@ pack-only run.
 
 ## PlatformBundle Stage
 
+PlatformBundle materialization owner: `platform_bundle.py` is now the stage orchestration owner for
+handoffs, template validation, manifest/report write orchestration, cleanup, and exit-code selection. `platform_bundle_materialize.py`
+owns host/pack/delta bundle copy/cleanup helpers, template output path resolution, and materialization orchestration.
+`platform_bundle_native_plugins_materialize.py` is the PlatformBundle native plugins materialize owner for
+native plugins directory overwrite and recursive copy: resolving bundled `plugins/`, removing stale destination
+contents, filtering copied `template_files[]` outside the overwritten directory, and recursively copying native
+plugin payload files live there. `platform_bundle_template_files_materialize.py` is the PlatformBundle template files materialize owner for
+template file copy and native plugins overwrite filtering: template manifest file copies, host-template duplicate copy
+suppression, and copied `template_files[]` retention when bundled native plugins replace `plugins/` live there.
+`platform_bundle_native_plugins_payload.py` is the
+PlatformBundle native plugins payload owner for native_plugins_payload bundle-path rewriting:
+payload `bundle_path`, `loader_manifest`, `materialized_packages[].destination`, and
+`package_report` are projected into the bundled `plugins/` directory there. This keeps the stage entry file
+below the large-file warning threshold while preserving the existing PlatformBundle report contract.
+`platform_bundle_report_payload.py` is the PlatformBundle report payload owner for bundle manifest and stage report payload assembly:
+stage-directory failure report payload, `bundle.json` manifest payload, and PlatformBundle stage
+`report.json` payload live there. `platform_bundle.py` imports that owner and no longer owns inline
+payload dictionaries.
+`platform_bundle_arguments.py` is the PlatformBundle argument/path owner for argument origin/path resolution diagnostics.
+It owns host/pack/delta source-origin derivation, empty argument diagnostics,
+optional PlatformBundle path argument resolution, repo-root/default-root resolution, and
+PlatformBundle-prefixed stage path diagnostics. `platform_bundle.py` imports that owner and keeps
+Validate/Pack/NativeDynamic handoff, template validation, materialization dispatch, bundle
+manifest/report write orchestration, cleanup, and exit-code orchestration.
+`platform_bundle_strategy_handoff.py` is the PlatformBundle strategy handoff owner for
+Validate strategy/native-dynamic handoff diagnostics: Validate report strategy metadata handoff,
+required PlatformBundle strategy diagnostics, native_dynamic strategy allowance, native plugins
+payload requirement, and trusted Validate strategy report load/identity/fatal/diagnostics gates
+stay there. `platform_bundle.py` imports that owner and keeps stage argument handoff, template
+root/direct validation orchestration, materialization dispatch, bundle manifest/report write
+orchestration, cleanup, and exit-code orchestration.
+
 `PlatformBundle` currently creates:
 
 ```text
@@ -2638,6 +3538,18 @@ unknown `[bundle]` keys, and unknown `[[files]]` row keys are fatal template dia
 PlatformBundle can trust or copy the package. `compatible_profiles` must be a string array and
 cannot contain empty, whitespace-only, or duplicate entries, so profile matching metadata cannot
 carry inert or repeated sidecar rows.
+ExportTemplate manifest owner responsibilities are centralized in
+`tools/zircon_export/export_template_manifest.py`: template manifest/path/hash helpers, bundle and
+file field constants, file-manifest SHA-256 verification, aggregate content hash generation, safe
+relative path resolution, target platform normalization, workspace engine version lookup, and
+Validate target platform lookup all live there. `tools/zircon_export/export_template_resolution.py`
+is the ExportTemplate resolution owner for template root candidate resolution: template root
+resolution, direct-child `template.toml` scan, resolution-time manifest read, profile/engine/target
+pre-match, candidate projection, no-match/multiple-match diagnostics, and skipped-candidate
+collection stay there. `tools/zircon_export/export_template.py` remains the single-template
+validation owner, consuming manifest/path/hash helpers while keeping fatal report assembly,
+closed top-level manifest validation, scalar/profile/path/bundle/file/content-hash validation, and
+exit-code selection in one stage-facing module.
 `host_artifact` is also required and must be either `placeholder` or `precompiled`. The checked-in
 M3 template packages deliberately publish `placeholder` because their host files are contract
 fixtures; real CI-built runtime hosts must publish `precompiled` before release/Hub distribution
@@ -2928,6 +3840,21 @@ without it, NativeDynamic only consumes existing package `native/` artifacts. Re
 `--native-dynamic-build-feature` to pass Cargo features such as `abi_v2_only` into the native cdylib
 build plan and execution command. Build feature arguments must be non-empty trimmed strings; blank,
 padded, or non-string values fail before the stage can construct a Cargo `--features` argument.
+The 2026-06-30 NativeDynamic CLI options owner split keeps that normalization out of the stage
+runner. `tools/zircon_export/native_dynamic_cli_options.py` owns the NativeDynamic CLI options
+owner surface for CLI option normalization for build/signing/notarization: optional trimmed
+strings, deduped string arrays, lowercase platform allow-lists, signing/notarization profile
+normalization, default repo-root selection, and user path resolution. `native_dynamic.py` now
+imports those helpers while retaining only NativeDynamic stage orchestration and report assembly.
+The 2026-06-30 NativeDynamic build-plan package details owner split keeps final Report
+build-plan package details out of the top-level schema owner.
+`tools/zircon_export/pipeline_report_native_dynamic_build_plan_package_details.py` owns the
+NativeDynamic build-plan package details owner surface for header match and expected artifact diagnostics:
+build-plan header/package row comparison, expected loadable artifact derivation, path separator
+normalization, and comparable header value checks.
+`pipeline_report_native_dynamic_build_plan_schema.py` now imports that owner while retaining
+top-level build-plan table schema, release evidence, profile/release checks, package schema helper
+dispatch, and package details owner dispatch.
 `plugin build <id>` is the Plugins 13 per-plugin dist entry. It reads the plugin root
 `plugin.toml` `[distribution]` section, builds the declared `dist_crate` with
 `--no-default-features --features dist --locked` by default, and writes an isolated package
@@ -2941,28 +3868,1669 @@ running it through Cargo. The command uses its own `--target-dir` and does not c
 pipeline output under `<out>/stages`. Package reports use package-relative paths so two runs from
 the same source can be compared byte-for-byte without out/target absolute path drift.
 `plugin validate <id>` and `plugin validate --all` perform the same standalone distribution
-contract checks without running Cargo or writing package output. The validator now also binds entry
-direction to the declared dist module target modes: `distribution.runtime_entry` requires the
-module that declares `distribution.dist_crate` to include `client_runtime` or `server_runtime`, and
+contract checks without running Cargo or writing package output. Distribution module target-mode
+checks now live in `plugin_validate_distribution_module_target_modes.py`, the distribution module
+target_modes owner for entry/target-mode diagnostics. It binds entry direction to the declared dist
+module target modes: `distribution.runtime_entry` requires the module that declares
+`distribution.dist_crate` to include `client_runtime` or `server_runtime`, and
 `distribution.editor_entry` requires `editor_host`. The rule applies to root `[[modules]]` and to
-selected feature-provider `[[optional_features]].modules` entries. The same preflight rejects
-dist module `target_modes` values outside `client_runtime`, `server_runtime`, and `editor_host`.
+selected feature-provider `[[optional_features]].modules` entries. The same owner rejects dist
+module `target_modes` values outside `client_runtime`, `server_runtime`, and `editor_host`.
 All-target discovery for root and feature-provider distributions is owned by
 `plugin_validate_target_discovery.py`, keeping target scanning and duplicate-target diagnostics out
 of the validate command orchestration owner.
-Distribution manifest contract checks are owned by `plugin_validate_distribution_contract.py`, keeping
-forms/default packaging, engine compatibility, descriptor symbol, entries, and asset glob validation
-out of the validate command orchestration owner.
+Root and feature-provider package source resolution is owned by `plugin_package_source.py`; it
+resolves repo paths, root plugin manifests, feature-provider package ids via
+`plugin_package_identity.py`, and generated feature-provider package manifest text from
+`plugin_package_template.py` for both build and validate. `plugin_build.py` and the
+PluginValidate single-target owner `plugin_validate_single_target.py` consume this source owner,
+and `plugin_validate.py` no longer imports `plugin_build.py`.
+Generated feature-provider package manifest templating is owned by
+`plugin_package_template.py`, keeping runtime module projection, dependency projection, and TOML
+output helpers out of the package source resolver.
+Feature-provider package id derivation itself remains owned by `plugin_package_identity.py`;
+validate common helpers and all-target discovery consume that identity owner directly for
+selected-feature and target-scanning paths.
+Feature-provider generated package/distribution/dependency projection orchestration is
+owned by `plugin_validate_feature_provider.py`. The PluginValidate single-target owner
+`plugin_validate_single_target.py` consumes that projection owner directly during single-target
+validation orchestration, while feature-provider tests import `plugin_validate_feature_provider.py`
+directly instead of borrowing a helper from `plugin_validate.py`.
+`plugin_validate_feature_provider_extension.py` is the PluginValidate feature-provider extension owner
+for feature extension projection diagnostics. It loads the owner manifest, validates owner and selected
+feature ids, compares generated `feature_extensions[0].id` and `owner_plugin_id`, and dispatches to the
+distribution, capabilities, and dependencies leaf owners. `plugin_validate_feature_provider.py` keeps
+generated package manifest top-level parsing, generated id/package_kind/distribution/feature_extensions
+shape checks, and extension-owner dispatch.
+`plugin_validate_feature_provider_projection_compare.py` is the PluginValidate feature-provider projection compare owner
+`plugin_validate_feature_provider_projection_optional.py` is the PluginValidate feature-provider projection optional owner for optional projection diagnostics: optional string and optional string-array presence/equality checks. `plugin_validate_feature_provider_distribution.py` consumes this owner beside the required-field compare owner.
+for feature-provider distribution projection field comparison. Required
+string arrays, integers, required strings, optional strings, and optional string arrays are compared
+there, while `plugin_validate_feature_provider.py` keeps generated package manifest parsing,
+owner-manifest selection, feature extension identity, distribution projection dispatch, and child
+owner dispatch.
+`plugin_validate_feature_provider_distribution.py` is the PluginValidate feature-provider distribution owner
+for distribution projection diagnostics. Owner optional feature `[distribution]` must be a table
+there, and generated `[distribution]` forms, default packaging, ABI, engine range, dist crate,
+descriptor symbol, runtime/editor entries, and assets are compared against the selected owner
+feature. It consumes the projection compare owner for typed field checks, while
+`plugin_validate_feature_provider.py` keeps generated package manifest parsing, owner-manifest
+selection, feature extension identity, and feature-provider child owner dispatch.
+`plugin_validate_feature_provider_dependencies.py` is the PluginValidate feature-provider dependencies owner
+for feature-provider dependency projection diagnostics. Optional feature dependencies and generated
+feature_extensions dependencies are parsed as arrays of tables there, including `plugin_id`,
+`capability`, and `primary` field validation, while `plugin_validate_feature_provider.py` keeps
+generated package manifest parsing, owner-manifest selection, feature extension identity,
+distribution projection dispatch, and dependencies owner dispatch.
+`plugin_validate_feature_provider_capabilities.py` is the PluginValidate feature-provider capabilities owner
+for capability projection diagnostics. Owner optional feature `capabilities` and generated
+`feature_extensions[0].capabilities` are parsed as arrays there, and the owner/generated capability
+list comparison is kept out of the feature-provider projection parent. `plugin_validate_feature_provider.py`
+keeps generated package manifest parsing, owner-manifest selection, feature extension identity,
+distribution projection dispatch, dependencies owner dispatch, and capabilities owner dispatch.
+Distribution manifest contract aggregation is owned by `plugin_validate_distribution_contract.py`, keeping
+child owner dispatch and typed result assembly out of the validate command orchestration owner.
+Dist_crate/abi_version diagnostics now live in `plugin_validate_distribution_scalars.py`, where
+distribution scalars owner code handles `distribution.dist_crate` trimmed string parsing,
+`distribution.abi_version` integer parsing, and ABI v3 equality checks. Forms/default_packaging
+diagnostics now live in `plugin_validate_distribution_packaging.py`, where distribution packaging
+owner code handles array shape, required `dist` form, required `native_dynamic` packaging, and
+closed-set value checks.
+Descriptor symbol diagnostics now live in
+`plugin_validate_distribution_descriptor_symbol.py`, where distribution descriptor symbol owner code
+handles `distribution.descriptor_symbol` trimmed string validation and ABI v3 descriptor symbol
+matching. Runtime/editor entry diagnostics now live in `plugin_validate_distribution_entries.py`,
+where distribution entries owner code handles optional trimmed entry parsing and the required
+runtime/editor entry presence diagnostic. Engine compatibility range diagnostics now live in `plugin_validate_distribution_engine_compat.py`, where distribution.engine_compat
+owner code handles trimmed string validation, comparator parsing, semantic version parsing, range
+matching, invalid comparator/version diagnostics, and current engine exclusion checks. The contract
+owner consumes validate-side constants from `plugin_validate_common.py`, including
+`PLUGIN_VALIDATE_DIST_FORM`, dispatches asset globs to `plugin_validate_distribution_assets.py`, and
+does not borrow build-side distribution constants from `plugin_build.py`.
+For `plugins_13_m5_t1_plugin_validate_distribution_assets_zui_suffix_gate`,
+`plugin_validate_distribution_assets.py` also owns the `distribution.assets` retired UI asset suffix
+gate: matched `.ui.toml` and `.v2.ui.toml` files are rejected with
+`retired UI asset suffix ...; use .zui`, keeping `.zui` as the only packageable UI asset suffix.
+For `plugins_13_m5_t1_plugin_validate_distribution_assets_zui_document_gate`,
+`plugin_validate_distribution_zui_assets.py` owns matched `.zui` document validation behind
+`validate_plugin_distribution_zui_asset`. `distribution.assets` glob matches that end in `.zui`
+are parsed as TOML and must declare `asset.kind` as one of `component, style, theme_tokens, view`;
+malformed files, missing kind, or unsupported kind values report `matched .zui asset ... asset.kind ...`.
+Behavior coverage is `test_distribution_assets_rejects_zui_documents_without_known_kind` and
+`test_plugin_validate_reports_distribution_assets_zui_kind_drift`; real `plugin validate --all`
+remains `target_count=39`, `failed_count=0`, and `diagnostics=0`.
+GREEN evidence for this gate now covers focused behavior/owner/docs 3/3, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame coverage.
+For `plugins_13_m5_t1_zircon_build_staged_zui_document_gate`,
+`zircon_build_zui_assets.py` now owns staged UI asset suffix and `.zui` document validation.
+`zircon_build.py` imports `validate_staged_engine_asset_suffix` from that owner, keeping the main
+staged build script as orchestration while the owner reuses `validate_plugin_distribution_zui_asset`.
+Staged `ui/**/*.zui` files must declare `asset.kind` as one of `component, style, theme_tokens,
+view`; drift reports `staged engine asset matched .zui asset ... asset.kind ...`.
+Behavior coverage is `test_zircon_build_rejects_staged_zui_document_kind_drift`; owner coverage is
+`test_staged_zui_asset_checks_live_in_zui_asset_owner`. This is a Python tooling guard only and
+does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_build_asset_pack_zui_document_gate`,
+`plugin_build_asset_pack.py` now reuses `plugin_validate_distribution_zui_assets.py` and
+`validate_plugin_distribution_zui_asset` while collecting asset-pack entries for
+`plugins_13_m5_t1_plugin_build_asset_pack_zui_document_gate`. Build-side
+`distribution.assets` matches that end in `.zui` must declare `asset.kind` as one of
+`component, style, theme_tokens, view`; drift reports the shared `matched .zui asset ...
+asset.kind ...` diagnostic and prevents the pack command from launching. Behavior coverage is
+`test_plugin_build_rejects_asset_pack_with_zui_kind_drift`, whose assertion includes
+`asset pack command must not run`; owner coverage is
+`PluginBuildOwnerBoundaryTests.test_asset_pack_lives_in_asset_pack_owner`. This is a Python
+tooling guard only and does not claim Cargo build/test/export, real plugin build,
+Hub/editor E2E, full export matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_distribution_assets_zui_pattern_suffix_gate`,
+`plugin_validate_distribution_assets.py` additionally owns
+`plugin_validate_retired_ui_asset_pattern_suffix(...)`: `distribution.assets` entries that directly
+target `.ui.toml` or `.v2.ui.toml` now report `targets retired UI asset suffix ...; use .zui`
+before glob expansion. `plugin_build_asset_pack.py` reuses the same helper so build-side asset-pack
+preflight and validate-side distribution checks agree on `.zui` as the only UI layout suffix.
+For `plugins_13_m5_t1_plugin_validate_asset_importers_zui_suffix_gate`,
+`plugin_validate_asset_importers.py` owns root plugin manifest `[[asset_importers]].full_suffixes`
+validation. It reuses `plugin_validate_retired_ui_asset_pattern_suffix(...)` so `.ui.toml` and
+`.v2.ui.toml` importer suffixes report `declares retired UI asset suffix ...; use .zui`, while `.zui`
+continues to pass. `plugin_validate_single_target.py` dispatches this owner only for root source
+targets, and `plugin_validate.py` does not inline `asset_importers` or `full_suffixes` policy.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_non_empty_array_gate`,
+`plugin_validate_asset_importers.py` also rejects a declared but empty `asset_importers` array before
+row dispatch. Empty declarations report `must not be empty when declared`; the behavior guard is
+`test_plugin_validate_rejects_empty_asset_importers_array`, and
+`test_asset_importers_lives_in_asset_importers_owner` keeps the array-level row dispatch rule in
+the importer owner.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_schema_gate`,
+`plugin_validate_asset_importer_schema.py` owns the field schema for each `asset_importers` row:
+`id`, `plugin_id`, and `output_kind` must be non-empty trimmed strings, `priority` must be an
+integer, `importer_version` must be a positive integer, and `required_capabilities` must be an
+optional string array. `plugin_validate_asset_importers.py` remains the manifest dispatch and
+`full_suffixes` `.zui` suffix gate owner, so field schema checks do not bloat that owner.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_string_arrays_gate`,
+`plugin_validate_asset_importer_schema.py` also validates optional importer metadata arrays:
+`source_extensions` and `additional_output_kinds` use the same optional string-array rule as
+`required_capabilities`. Entries must be non-empty trimmed strings, producing `must be trimmed` or
+`must be a non-empty string` diagnostics before malformed `asset_importers` metadata reaches export
+packaging.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_metadata_duplicates_gate`,
+`plugin_validate_asset_importer_metadata_arrays.py` owns duplicate checks for importer metadata
+arrays. After schema shape validation, `required_capabilities` and `additional_output_kinds`
+duplicate valid strings report `duplicates entry <first-index>`. The behavior guard is
+`test_plugin_validate_rejects_duplicate_asset_importer_metadata_arrays`, and
+`test_asset_importer_metadata_arrays_lives_in_metadata_array_owner` keeps this duplicate policy out
+of the schema, ResourceKind allow-list, and validate entry owners.
+GREEN verification passed: focused behavior/owner/docs group passed 3/3; py_compile passed for
+touched Python files; `test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_metadata_empty_arrays_gate`,
+the same `plugin_validate_asset_importer_metadata_arrays.py` owner also rejects declared empty metadata arrays.
+`required_capabilities` and `additional_output_kinds` remain optional when absent, but an empty declared
+array now reports `must not be empty when declared`. The behavior guard is
+`test_plugin_validate_rejects_empty_asset_importer_metadata_arrays`, and
+`test_asset_importer_metadata_arrays_lives_in_metadata_array_owner` keeps the empty-array rule in the
+metadata arrays owner instead of the schema owner. GREEN verification passed: focused
+behavior/owner/docs group passed 3/3; py_compile passed for touched Python files;
+`test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed 124/124;
+current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0.
+No Cargo build/test/export, real importer execution, real plugin build, Hub/editor E2E,
+full export matrix, or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_options_required_capability_declared_gate`,
+`plugin_validate_options.py` owns root plugin option validation for `required_capability` gates.
+Valid option `required_capability` strings must reference a `declared static package/feature
+capability` or a `host-owned capability`; unknown entries fail before packaging. The behavior
+guards are `test_plugin_validate_rejects_option_undeclared_required_capability` and
+`test_plugin_validate_accepts_option_optional_feature_required_capability`, while
+`test_options_required_capability_gates_lives_in_options_owner` keeps option gates out of the
+validate entry and asset_importers owners.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_options_schema_gate`,
+`plugin_validate_option_schema.py` owns root plugin option row schema. The
+`validate_plugin_option_schema` leaf checks dot-namespaced option keys, trimmed display names,
+closed-set value types, typed default values, and `enum_values` enum-only/token/duplicate/default
+inclusion rules. The behavior guards are `test_plugin_validate_rejects_malformed_options_schema`
+and `test_plugin_validate_rejects_malformed_option_default_values`, while
+`test_option_schema_lives_in_schema_owner` keeps schema policy out of the options dispatch owner.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_dependencies_schema_gate`,
+`plugin_validate_dependencies.py` owns root plugin top-level `dependencies` schema validation. The
+`validate_plugin_dependencies` leaf requires declared `dependencies` arrays to be non-empty, each
+row to be a table, `id` to be a non-empty trimmed string, and `required` to be bool. Rows with
+`capability` use capability identity; rows without it must declare non-empty trimmed `interfaces`.
+Duplicate `(id, capability/interfaces)` rows report `duplicates dependency row`. The behavior
+guards are `test_plugin_validate_rejects_malformed_dependencies`,
+`test_plugin_validate_rejects_empty_dependencies_array`, and
+`test_plugin_validate_rejects_duplicate_dependency_rows`, while
+`test_dependencies_lives_in_dependencies_owner` keeps dependency policy out of the validate entry,
+options, asset_importers, and feature-provider dependency owners.
+GREEN verification passed: focused behavior/owner/docs group passed 5/5; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_optional_feature_dependencies_gate`,
+`plugin_validate_optional_feature_dependencies.py` owns root plugin optional feature dependency
+schema validation. The `validate_plugin_optional_feature_dependencies` leaf requires every
+`[[optional_features]]` entry to declare a non-empty `dependencies` array, dependency rows to carry
+non-empty trimmed `plugin_id` and `capability` strings, and `primary` to be bool. Each optional
+feature must have `exactly one primary dependency`; an owner mismatch reports
+`primary dependency plugin_id must match package id`, and duplicate `(plugin_id, capability)` rows
+report `duplicates dependency row`. The behavior guards are
+`test_plugin_validate_rejects_optional_feature_without_dependencies`,
+`test_plugin_validate_rejects_malformed_optional_feature_dependencies`,
+`test_plugin_validate_rejects_invalid_optional_feature_primary_dependency`, and
+`test_plugin_validate_rejects_duplicate_optional_feature_dependency_rows`, while
+`test_optional_feature_dependencies_lives_in_optional_feature_owner` keeps optional feature
+dependency schema out of the validate entry, top-level dependency, and feature-provider projection
+owners.
+GREEN verification passed: focused behavior/owner/docs group passed 6/6; py_compile passed for
+touched Python files; `test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_feature_provider_package_id_schema_gate`,
+`plugin_validate_optional_features.py` and `plugin_validate_feature_extensions.py` now validate
+optional `provider_package_id` row metadata directly in root-source `plugin validate`.
+Both owners use `plugin_validate_optional_trimmed_string`, so declared `optional_features` or
+`feature_extensions` provider ids must be non-empty trimmed strings and malformed values report
+`must be a non-empty trimmed string`. This keeps the row-schema contract aligned with existing
+feature-provider target discovery without moving provider id policy into discovery, build, package
+source, or distribution owners. The behavior guards are
+`test_plugin_validate_rejects_optional_feature_provider_package_id_schema` and
+`test_plugin_validate_rejects_feature_extension_provider_package_id_schema`, while
+`test_optional_features_schema_lives_in_optional_features_owner` and
+`test_feature_extensions_schema_lives_in_feature_extensions_owner` lock the owner boundaries.
+GREEN verification passed: focused behavior/owner/docs group passed 5/5; py_compile passed for
+touched Python files; optional/feature extension schema owners passed 5/5; expanded PluginValidate
+discovery passed 133/133; current-status docs guards passed 127/127; real `plugin validate --all`
+passed with target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_optional_feature_distribution_schema_gate`,
+root-source `plugin validate` now checks `optional_features.distribution` through
+`plugin_validate_optional_feature_distribution.py`. `validate_plugin_optional_feature_distribution`
+dispatches each nested table to `validate_plugin_distribution(..., distribution_label=...)`, so
+`plugin_validate_distribution_packaging.py` and sibling distribution leaf owners keep the
+forms/default_packaging/ABI/entry/assets contract while diagnostics use
+`optional_features[0].distribution`. Behavior and owner guards are
+`test_plugin_validate_rejects_optional_feature_distribution_contract` and
+`test_optional_feature_distribution_lives_in_optional_feature_distribution_owner`.
+For `plugins_13_m5_t1_plugin_validate_feature_extension_dependencies_gate`,
+`plugin_validate_optional_feature_dependencies.py` also owns root `feature_extensions` dependency
+row checks through `validate_plugin_feature_extension_dependencies`. The helper walks
+`[[feature_extensions]].dependencies` arrays, derives the primary owner from `owner_plugin_id`, and
+reuses `validate_plugin_optional_feature_dependency_rows` for row shape, non-empty `dependencies`,
+`must be a non-empty trimmed string`, `must be a bool`, `exactly one primary dependency`, and
+`duplicates dependency row` diagnostics. Optional feature primary ownership still reports
+`primary dependency plugin_id must match package id`; feature extension primary ownership reports
+`primary dependency plugin_id must match owner plugin id`. `plugin_validate_feature_extensions.py`
+remains the feature-extension row-schema owner, and `plugin_validate_dependencies.py` remains the
+top-level dependency owner. This is the current feature extension dependencies gate, with behavior
+coverage in `test_plugin_validate_optional_feature_dependencies.py`. The behavior guards are
+`test_plugin_validate_rejects_malformed_feature_extension_dependencies` and
+`test_plugin_validate_rejects_feature_extension_primary_owner_mismatch`, while
+`test_optional_feature_dependencies_lives_in_optional_feature_owner` keeps this policy in the
+dependency owner. GREEN verification passed: focused behavior/owner/docs group passed 4/4;
+py_compile passed for touched Python files; `test_plugin_validate` adjacent optional dependency
+cases passed 3/3; expanded PluginValidate discovery passed 131/131; current-status docs guards
+passed 126/126; real `plugin validate --all` passed with target_count=39, failed_count=0,
+diagnostics=0; structure audit passed with dist_capable_plugin_count=37,
+dist_build_matrix_count=37, manifest_schema_violations=0, dist_dependency_boundary_violations=0,
+distribution_section_violations=0, runtime_registration_builder_violation_count=0, and
+capability_source_mismatches=0. No Cargo build/test/export, real plugin build, Hub/editor E2E,
+full export matrix, or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_optional_feature_dependency_capability_resolution_gate`,
+`plugin_validate_optional_feature_dependency_capabilities.py` owns optional feature dependency
+capability resolution. The `validate_plugin_optional_feature_dependency_capability_gate` leaf checks
+`[[optional_features.dependencies]].capability` after row schema validation, using the same static
+package/optional feature/feature extension target index as top-level dependency capability checks.
+Known static package dependencies must reference a capability declared by the `referenced static
+plugin package`; external dependencies must use a `runtime.module.* or runtime.capability.*` host
+namespace. The behavior guards are
+`test_plugin_validate_rejects_optional_feature_dependency_capability_not_declared_by_package` and
+`test_plugin_validate_rejects_optional_feature_external_dependency_capability_namespace`, while
+`test_optional_feature_dependency_capabilities_lives_in_capability_owner` keeps resolution policy
+out of the optional feature dependency schema owner and validate entry owner.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_optional_features_schema_gate`,
+`plugin_validate_optional_features.py` owns root plugin `optional_features` row schema validation.
+The `validate_plugin_optional_features` leaf uses `PLUGIN_VALIDATE_OPTIONAL_FEATURE_FIELDS` to
+reject unknown-field drift with `is not a known optional feature field`, checks package-owned feature `id`, trims
+`display_name`, requires `owner_plugin_id` to match the root package, reuses capability namespace
+and duplicate checks for `capabilities`, and rejects non-bool declarations with
+`enabled_by_default must be a bool`. The behavior guards are
+`test_plugin_validate_rejects_malformed_optional_feature_schema` and
+`test_plugin_validate_rejects_non_table_optional_feature_row`, while
+`test_optional_features_schema_lives_in_optional_features_owner` keeps row schema out of
+`plugin_validate_optional_feature_dependencies.py`, `plugin_validate_default_packaging.py`, and
+`plugin_validate_modules.py`. GREEN verification passed: focused behavior/owner/docs group passed
+4/4; py_compile passed for touched Python files; expanded PluginValidate discovery passed 126/126;
+current-status docs guards passed 122/122; real `plugin validate --all` passed with target_count=39,
+failed_count=0, diagnostics=0; structure audit passed with dist_capable_plugin_count=37,
+dist_build_matrix_count=37, and key violation counts at 0. No Cargo build/test/export, real plugin
+build, Hub/editor E2E, full export matrix, or startup-to-first-frame result is claimed for this
+owner split.
+For `plugins_13_m5_t1_plugin_validate_optional_features_empty_array_gate`,
+For `plugins_13_m5_t2_feature_extension_dist_ci_matrix`,
+`tools/plugin_structure_audits/dependency_boundary.py` now includes
+`optional_features[].distribution` and `feature_extensions[].distribution` when collecting
+standalone dist matrix entries. The CI workflow `.github/workflows/ci.yml` mirrors that result in
+the `plugin-standalone-dist` matrix by adding `sound_timeline_animation_track` /
+`zircon_plugin_sound_timeline_animation_dist` and `sound_ray_traced_convolution_reverb` /
+`zircon_plugin_sound_ray_traced_convolution_dist`. The parity guard lives in
+`tools/tests/test_plugin_standalone_ci_matrix.py` as
+`test_plugin_standalone_dist_ci_matrix_covers_feature_extension_targets`; `zircon_plugins/Cargo.lock`
+was refreshed for the current workspace manifest, and the new feature dist packages pass
+`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_timeline_animation_dist -p zircon_plugin_sound_ray_traced_convolution_dist --no-default-features --features dist --locked`.
+The current audit reports `dist_capable_plugin_count=39` and `dist_build_matrix_count=39`, while
+real `plugin validate --all` remains `target_count=39`, `failed_count=0`, `diagnostics=0`.
+
+For `plugins_09_e1_current_status_native_dynamic_report_owner_budget_recovered`,
+NativeDynamic report current-status docs guards now use
+`tools/tests/plugin_docs_current_status_native_dynamic_report_support.py` for shared section
+loading and split the status checks into focused owners. The boundary
+`tools/tests/test_plugin_docs_current_status_native_dynamic_report_owner_boundaries.py=107` locks
+`test_native_dynamic_report_status_tests_live_in_focused_owners` and
+`test_native_dynamic_report_status_owners_stay_under_line_budgets`; the owner files are
+`tools/tests/test_plugin_docs_current_status_native_dynamic_report_owner_splits.py=66`,
+`tools/tests/test_plugin_docs_current_status_native_dynamic_report_schema_owner_splits.py=200`, and
+`tools/tests/test_plugin_docs_current_status_native_dynamic_stage_report_owner_splits.py=162`.
+Representative coverage includes
+`test_current_export_plan_reflects_native_dynamic_stage_loader_manifest_owner_split` and
+`test_current_export_plan_reflects_native_dynamic_build_plan_package_details_owner_split`.
+focused owner/docs 13/13, current-status docs 281/281, and py_compile pass for this
+current-status-only split.
+
+For `plugins_09_e1_current_status_export_template_cook_assets_owner_budget_recovered`,
+ExportTemplate/CookAssets current-status docs guards now share section loading through
+`tools/tests/plugin_docs_current_status_export_template_cook_assets_support.py`. The boundary
+`tools/tests/test_plugin_docs_current_status_export_template_cook_assets_owner_boundaries.py=106`
+locks `test_export_template_cook_assets_status_tests_live_in_focused_owners` and
+`test_export_template_cook_assets_status_owners_stay_under_line_budgets`; the owner files are
+`tools/tests/test_plugin_docs_current_status_export_template_cook_assets_owner_splits.py=148`,
+`tools/tests/test_plugin_docs_current_status_cook_assets_owner_splits.py=169`, and
+`tools/tests/test_plugin_docs_current_status_stage_handoff_owner_splits.py=51`. Representative
+coverage includes `test_current_export_plan_reflects_export_template_manifest_owner_split`,
+`test_current_export_plan_reflects_cook_assets_project_fallback_owner_split`, and
+`test_current_export_plan_reflects_stage_handoff_strategy_owner_split`. focused owner/docs 12/12,
+current-status docs 284/284, and py_compile pass for this current-status-only split.
+
+For `plugins_09_e1_current_status_source_template_compile_host_owner_budget_recovered`,
+SourceTemplate/CompileHost current-status docs guards now share section loading through
+`tools/tests/plugin_docs_current_status_source_template_compile_host_support.py`. The boundary
+`tools/tests/test_plugin_docs_current_status_source_template_compile_host_owner_boundaries.py=85`
+locks `test_source_template_compile_host_status_tests_live_in_focused_owners` and
+`test_source_template_compile_host_status_owners_stay_under_line_budgets`; the owner files are
+`tools/tests/test_plugin_docs_current_status_source_template_compile_host_owner_splits.py=155`
+and `tools/tests/test_plugin_docs_current_status_compile_host_owner_splits.py=186`.
+Representative coverage includes
+`test_current_export_plan_reflects_source_template_generated_files_owner_split`,
+`test_current_plugin_docs_reflect_source_template_plan_command_owner_split`,
+`test_current_export_plan_reflects_compile_host_plan_owner_split`, and
+`test_current_export_plan_reflects_validate_compile_host_command_semantics_owner_split`.
+focused owner/docs 12/12, current-status docs 287/287, and py_compile pass for this
+current-status-only split.
+
+For `plugins_09_e1_current_status_platform_bundle_owner_budget_recovered`,
+PlatformBundle current-status docs guards now share section loading through
+`tools/tests/plugin_docs_current_status_platform_bundle_support.py`. The boundary
+`tools/tests/test_plugin_docs_current_status_platform_bundle_owner_boundaries.py=86`
+locks `test_platform_bundle_status_tests_live_in_focused_owners` and
+`test_platform_bundle_status_owners_stay_under_line_budgets`; the owner files are
+`tools/tests/test_plugin_docs_current_status_platform_bundle_owner_splits.py=115`,
+`tools/tests/test_plugin_docs_current_status_platform_bundle_report_owner_splits.py=116`,
+and `tools/tests/test_plugin_docs_current_status_platform_bundle_strategy_owner_splits.py=83`.
+Representative coverage includes
+`test_current_export_plan_reflects_platform_bundle_materialize_owner_split`,
+`test_current_plugin_docs_reflect_platform_bundle_native_plugins_materialize_owner_split`,
+`test_current_export_plan_reflects_platform_bundle_stage_handoff_report_owner_split`, and
+`test_current_export_plan_reflects_platform_bundle_strategy_handoff_owner_split`.
+focused owner/docs 11/11, current-status docs 290/290, and py_compile pass for this
+current-status-only split.
+
+For `plugins_09_e1_current_status_plugin_validate_owner_budget_recovered`,
+PluginValidate current-status docs guards now share section loading through
+`tools/tests/plugin_docs_current_status_plugin_validate_support.py`. The boundary
+`tools/tests/test_plugin_docs_current_status_plugin_validate_owner_budget_boundaries.py=119`
+locks `test_plugin_validate_status_tests_live_in_focused_owners` and
+`test_plugin_validate_status_owners_stay_under_line_budgets`; the owner files are
+`tools/tests/test_plugin_docs_current_status_plugin_validate_owner_splits.py=86`,
+`tools/tests/test_plugin_docs_current_status_plugin_validate_feature_provider_status_owner_splits.py=95`,
+`tools/tests/test_plugin_docs_current_status_plugin_validate_distribution_status_owner_splits.py=121`,
+and `tools/tests/test_plugin_docs_current_status_plugin_validate_entry_status_owner_splits.py=27`.
+Representative coverage includes
+`test_current_plugin_docs_reflect_distribution_modules_test_owner`,
+`test_current_export_plan_reflects_feature_provider_projection_compare_owner_split`,
+`test_current_plugin_docs_reflect_distribution_module_target_modes_owner_split`, and
+`test_current_plugin_docs_reflect_plugin_validate_single_target_owner_split`.
+focused owner/docs 18/18, current-status docs 307/307, and py_compile pass for this
+current-status-only split.
+
+For `plugins_09_e1_validate_schema_compile_host_plan_test_owner_split`, the broad
+Validate schema test owner no longer owns the nested `library_embed_compile_host` plan
+schema cases. `tools/zircon_export/tests/test_pipeline_report_validate_schema.py=731`
+keeps top-level/profile_summary/plan_summary schema checks, while
+`tools/zircon_export/tests/test_pipeline_report_validate_compile_host_plan_schema.py=237`
+owns the nested CompileHost plan object/unknown/string/bool/string-array checks. The
+boundary `tools/tests/test_zircon_export_validate_schema_test_owner_boundaries.py=79`
+locks `test_compile_host_plan_schema_tests_live_in_dedicated_owner` and
+`test_validate_schema_test_owners_stay_under_line_budgets`; representative coverage
+includes `test_report_stage_rejects_validate_compile_host_plan_non_object` and
+`test_report_stage_rejects_validate_compile_host_plan_string_array_fields_non_string_array`.
+focused owner/tests 22/22, current-status docs 308/308, and py_compile pass for this
+test-owner split.
+
+For `plugins_09_e1_pipeline_resume_platform_bundle_handoff_test_owner_split`, the
+broad resume flow test owner no longer owns PlatformBundle report handoff and path
+fallback cases. `tools/zircon_export/tests/test_pipeline_resume_flow.py=557` keeps
+CLI stage order, Validate strategy selection, resume failure, and Pack handoff
+coverage, while
+`tools/zircon_export/tests/test_pipeline_resume_platform_bundle_handoff.py=422` owns
+CompileHost report host, Pack/delta path, NativeDynamic plugin payload, and invalid
+handoff diagnostics. The boundary
+`tools/tests/test_zircon_export_pipeline_resume_flow_test_owner_boundaries.py=110`
+locks `test_platform_bundle_handoff_tests_live_in_dedicated_owner` and
+`test_pipeline_resume_flow_test_owners_stay_under_line_budgets`; representative
+coverage includes `test_pipeline_platform_bundle_uses_compile_host_report_host` and
+`test_stage_platform_bundle_uses_native_dynamic_report_plugins`. focused owner/tests 34/34,
+current-status docs 309/309, and py_compile pass for this test-owner split.
+
+`plugin_validate_optional_features.py` also keeps declared `optional_features` arrays meaningful:
+`validate_plugin_optional_features` rejects `optional_features = []` with
+`must not be empty when declared`. The behavior guard
+`test_plugin_validate_rejects_empty_optional_features_array` lives in
+`test_plugin_validate_optional_features.py`, and
+`test_optional_features_schema_lives_in_optional_features_owner` keeps the policy in the optional
+feature row owner.
+For `plugins_13_m5_t1_manifest_schema_optional_features_empty_array_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` mirrors that declaration rule in
+`collect_manifest_schema_violations`: declared empty `optional_features` now reports
+`must not be empty when declared` during structure audit as well. The focused guard
+`test_manifest_schema_rejects_empty_optional_features_array` lives in
+`test_plugin_structure_audit_manifest_schema.py`, keeping generated manifest schema checks aligned
+with `plugin_validate_optional_features.py`.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_test_owner_budget_recovered`,
+feature extension manifest schema tests now share fixtures through
+`tools/tests/plugin_structure_audit_feature_extension_support.py`; row and identity behavior stays in
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extensions.py`, while
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extension_dependencies.py`,
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extension_modules.py`, and
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extension_distribution.py` own the
+dependencies, modules, and distribution cases. The boundary
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extension_owner_boundaries.py`
+locks `test_feature_extension_schema_tests_live_in_focused_owners` and
+`test_manifest_schema_feature_extension_test_owners_stay_under_line_budgets`, with
+`test_plugin_structure_audit_manifest_schema.py=324`,
+`test_plugin_structure_audit_manifest_schema_feature_extensions.py=205`,
+`test_plugin_structure_audit_manifest_schema_feature_extension_dependencies.py=261`,
+`test_plugin_structure_audit_manifest_schema_feature_extension_modules.py=58`, and
+`test_plugin_structure_audit_manifest_schema_feature_extension_distribution.py=88`. Representative
+coverage includes `test_manifest_schema_rejects_empty_feature_extensions_array` and
+`test_manifest_schema_rejects_feature_extension_distribution_missing_entry`; focused owner/behavior 25/25
+passes and the structure audit remains `manifest_schema_violations=0`.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_test_owner_split`,
+feature extension manifest schema behavior tests now live in
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extensions.py` instead of the root
+manifest schema test file. The owner boundary
+`tools/tests/test_plugin_structure_audit_manifest_schema_feature_extension_owner_boundaries.py`
+locks `test_feature_extension_schema_tests_live_in_feature_extension_owner` and
+`test_manifest_schema_feature_extension_test_owners_stay_under_line_budgets`, with
+`test_plugin_structure_audit_manifest_schema.py=781` and
+`test_plugin_structure_audit_manifest_schema_feature_extensions.py=632`. Representative moved
+coverage includes `test_manifest_schema_rejects_empty_feature_extensions_array` and
+`test_manifest_schema_rejects_feature_extension_module_missing_field`; the structure audit remains
+`manifest_schema_violations=0`.
+For `plugins_13_m5_t1_manifest_schema_optional_feature_test_owner_split`,
+optional feature manifest schema behavior tests now live in
+`tools/tests/test_plugin_structure_audit_manifest_schema_optional_features.py` instead of the root
+manifest schema test file. The owner boundary
+`tools/tests/test_plugin_structure_audit_manifest_schema_optional_feature_test_owner_boundaries.py`
+locks `test_optional_feature_schema_tests_live_in_optional_feature_owner` and
+`test_manifest_schema_optional_feature_test_owners_stay_under_line_budgets`, with
+`test_plugin_structure_audit_manifest_schema.py=185` and
+`test_plugin_structure_audit_manifest_schema_optional_features.py=770`. Representative moved
+coverage includes `test_manifest_schema_rejects_empty_optional_features_array` and
+`test_manifest_schema_rejects_optional_feature_distribution_missing_entry`; the structure audit
+remains `manifest_schema_violations=0`.
+For `plugins_13_m5_t1_manifest_schema_trimmed_string_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` also keeps generated manifest schema strings
+schema-clean before semantic checks: `collect_required_field_violation` now rejects padded required
+strings and string-array entries with `must be a non-empty trimmed string`, while
+`collect_allowed_string_array_values` skips value-set checks for entries that already failed the
+trimmed string rule. The focused guards live in
+`tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_padded_required_root_string`,
+`test_manifest_schema_rejects_padded_required_string_array_entry`, and
+`test_manifest_schema_reports_padded_allowed_array_entry_before_value_set`; the latest structure
+audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_optional_feature_dependencies_required_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` also mirrors the runtime optional dependency
+contract from `plugin_validate_optional_feature_dependencies.py`: `collect_manifest_schema_violations`
+now requires each optional feature to declare a non-empty `optional_features[0].dependencies`
+table array before row-level dependency schema checks. Missing rows report
+`missing optional_features[0].dependencies`, empty arrays report
+`should declare at least one dependency`, and the focused guards live in
+`tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_optional_feature_missing_dependencies` and
+`test_manifest_schema_rejects_optional_feature_empty_dependencies`; the latest structure audit
+remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_optional_feature_primary_dependency_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the primary dependency count from
+`plugin_validate_optional_feature_dependencies.py`: `collect_optional_feature_dependency_primary_count_violation`
+requires schema-countable `optional_features[0].dependencies` rows to contain exactly one
+`primary = true` entry. The diagnostic is `optional_features[0].dependencies should declare exactly one primary dependency`,
+and the focused guards live in `tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_optional_feature_without_primary_dependency` and
+`test_manifest_schema_rejects_optional_feature_multiple_primary_dependencies`; the latest structure
+audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_optional_feature_duplicate_dependency_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors duplicate dependency row rejection
+from `plugin_validate_optional_feature_dependencies.py`: `collect_optional_feature_dependency_duplicate_identity_violations`
+rejects repeated `(plugin_id, capability)` pairs after dependency row schema is countable. The
+diagnostic is `optional_features[0].dependencies[1] duplicates dependency row 0`, and the focused
+guard lives in `tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_optional_feature_duplicate_dependency_rows`; the latest structure
+audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_optional_feature_primary_target_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors primary target validation from
+`plugin_validate_optional_feature_dependencies.py`: `collect_optional_feature_dependency_primary_target_violations`
+requires the primary dependency to reference the package id and one of the package capabilities once
+root and dependency schemas are countable. The diagnostics include `primary dependency plugin_id must match package id`
+and `primary dependency capability must be a package capability`, and the focused guards live in
+`tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_optional_feature_primary_plugin_mismatch` and
+`test_manifest_schema_rejects_optional_feature_primary_capability_mismatch`; the latest structure
+audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_feature_extensions_basic_schema_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now scans root `feature_extensions` basic row
+schema with `collect_feature_extensions_schema_violations` and
+`collect_feature_extension_schema_violations`, aligning the structure audit with
+`plugin_validate_feature_extensions.py` at the foundational declaration layer. Empty declarations
+report `feature_extensions must not be empty when declared`, non-table rows report
+`feature_extensions[0] must be a table`, and missing required fields include
+`missing feature_extensions[0].owner_plugin_id`. The focused guards live in
+`tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_empty_feature_extensions_array`,
+`test_manifest_schema_rejects_feature_extension_non_table`, and
+`test_manifest_schema_rejects_feature_extension_missing_required_field`; the latest structure audit
+remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_dependencies_required_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now scans root `feature_extensions[0].dependencies`
+with the shared `collect_feature_dependency_schema_violations` row helper, aligning the structure
+audit with the feature extension dependency row schema in `plugin_validate_optional_feature_dependencies.py`.
+Missing dependency tables report `missing feature_extensions[0].dependencies`, empty arrays report
+`feature_extensions[0].dependencies should declare at least one dependency`, non-table rows report
+`feature_extensions[0].dependencies[0] must be a table`, and missing row fields include
+`missing feature_extensions[0].dependencies[0].plugin_id`. The focused guards live in
+`tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_feature_extension_missing_dependencies`,
+`test_manifest_schema_rejects_feature_extension_empty_dependencies`,
+`test_manifest_schema_rejects_feature_extension_dependency_non_table`, and
+`test_manifest_schema_rejects_feature_extension_dependency_missing_plugin_id`; the latest structure
+audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_dependency_semantics_guard`,
+the structure audit now also mirrors the feature extension dependency semantics from
+`plugin_validate_optional_feature_dependencies.py`. `collect_feature_dependency_primary_count_violation`
+requires exactly one primary dependency, `collect_feature_dependency_duplicate_identity_violations`
+rejects duplicate `(plugin_id, capability)` rows, and
+`collect_feature_extension_dependency_primary_target_violations` requires primary rows to target the
+feature extension `owner_plugin_id`. The diagnostics include
+`feature_extensions[0].dependencies should declare exactly one primary dependency`,
+`feature_extensions[0].dependencies[1] duplicates dependency row 0`,
+`primary dependency plugin_id must match owner plugin id`, and
+`primary dependency capability must be an owner plugin capability`. The focused guards live in
+`tools/tests/test_plugin_structure_audit_manifest_schema.py` as
+`test_manifest_schema_rejects_feature_extension_without_primary_dependency`,
+`test_manifest_schema_rejects_feature_extension_multiple_primary_dependencies`,
+`test_manifest_schema_rejects_feature_extension_duplicate_dependency_rows`,
+`test_manifest_schema_rejects_feature_extension_primary_owner_mismatch`, and
+`test_manifest_schema_rejects_feature_extension_primary_capability_mismatch`; the latest structure
+audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_modules_schema_guard`,
+the structure audit now mirrors the feature extension module row entry in
+`plugin_validate_modules.py::validate_plugin_feature_extension_modules`.
+`tools/plugin_structure_audits/manifest_schema.py` adds
+`collect_feature_extension_modules_schema_violations` and reuses
+`collect_module_schema_violations`, so `feature_extensions[0].modules must not be empty when declared`
+and `missing feature_extensions[0].modules[0].crate_name` are reported before export.
+`test_manifest_schema_rejects_feature_extension_empty_modules` and
+`test_manifest_schema_rejects_feature_extension_module_missing_field` lock this path; the
+current structure audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_distribution_schema_guard`,
+the structure audit now mirrors the distribution field contract used by
+`plugin_validate_distribution_contract.py::validate_plugin_distribution` for declared
+`feature_extensions[0].distribution` tables. `collect_feature_extension_distribution_schema_violations`
+dispatches to shared `collect_feature_distribution_schema_violations`, while
+`collect_optional_feature_distribution_schema_violations` remains the optional feature entry.
+The guard reports `feature_extensions[0].distribution must be a table`,
+`missing feature_extensions[0].distribution.abi_version`, and
+`feature_extensions[0].distribution must declare runtime_entry or editor_entry`.
+`test_manifest_schema_rejects_feature_extension_distribution_non_table`,
+`test_manifest_schema_rejects_feature_extension_distribution_missing_abi`, and
+`test_manifest_schema_rejects_feature_extension_distribution_missing_entry` lock this path; the
+current structure audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_manifest_schema_feature_extension_closed_fields_guard`,
+the structure audit now mirrors `plugin_validate_feature_extensions.py` closed-field validation.
+`tools/plugin_structure_audits/manifest_schema.py` adds `FEATURE_EXTENSION_FIELDS`, and
+`collect_feature_extension_schema_violations` reports
+`feature_extensions[0].sidecar is not a known feature extension field` for unknown fields.
+This aligns with `PLUGIN_VALIDATE_FEATURE_EXTENSION_FIELDS`;
+`test_manifest_schema_rejects_unknown_feature_extension_field` locks the behavior, and the
+current structure audit remains manifest_schema_violations=0.
+For `plugins_13_m5_t1_plugin_validate_feature_extensions_schema_gate`,
+`plugin_validate_feature_extensions.py` owns root plugin `feature_extensions` row schema validation.
+The `validate_plugin_feature_extensions` leaf uses `PLUGIN_VALIDATE_FEATURE_EXTENSION_FIELDS` to
+reject unknown-field drift with `is not a known feature extension field`, checks owner-owned feature
+`id`, trims `display_name`, validates `owner_plugin_id` package-token shape, reuses capability
+namespace and duplicate checks for `capabilities`, and rejects non-bool declarations with
+`enabled_by_default must be a bool`. `plugin_validate_single_target.py` only dispatches this root
+source target owner; `plugin_validate_package_kind.py` stays limited to `package_kind` coherence,
+and `plugin_validate_feature_provider.py` / `plugin_validate_feature_provider_extension.py` stay
+limited to generated package projection. RED/GREEN coverage is
+`test_plugin_validate_rejects_malformed_feature_extension_schema`; owner coverage is
+`test_feature_extensions_schema_lives_in_feature_extensions_owner`. Verification: focused
+behavior/owner group passed 2/2, py_compile passed for touched Python files, expanded
+PluginValidate discovery passed 127/127, current-status docs guards passed 123/123, real
+`plugin validate --all` passed with target_count=39/failed_count=0/diagnostics=0, and the
+structure audit kept dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation
+counts at 0. The docs guard `test_plugin_docs_current_status_feature_extensions_schema_gate`
+records this status. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_event_catalogs_gate`,
+`plugin_validate_event_catalogs.py` owns root plugin `event_catalogs` validation. The
+`validate_plugin_event_catalogs` leaf checks catalog namespace/package prefix, version positive u32,
+non-empty events, event id namespace/catalog prefix, display_name trimming, optional
+`payload_schema` package prefix and version segment, and cross-manifest
+`duplicates event catalog namespace` detection. The behavior guards are
+`test_plugin_validate_rejects_malformed_event_catalog`,
+`test_plugin_validate_rejects_malformed_event_rows`, and
+`test_plugin_validate_rejects_duplicate_event_catalog_namespace`, while
+`test_event_catalogs_lives_in_event_catalog_owner` keeps event catalog validation out of the
+validate entry and sibling owners, and `test_event_catalog_tests_live_in_event_catalog_test_owner`
+keeps those behavior tests in `test_plugin_validate_event_catalogs.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 6/6; py_compile passed for
+touched Python files; `test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_components_gate`,
+`plugin_validate_components.py` owns root plugin `components` and `ui_components` validation. The
+`validate_plugin_components` leaf checks component type_id namespace/package prefix, plugin_id
+owner, display_name trimming, property rows, value_type, editable bool, UI component_id,
+`ui_document` package path, `.zui component asset` policy, and cross-manifest
+`duplicates component type_id` detection. The behavior guards are
+`test_plugin_validate_rejects_malformed_component_row`,
+`test_plugin_validate_rejects_duplicate_component_type_id`, and
+`test_plugin_validate_rejects_ui_component_retired_document_path`, while
+`test_components_lives_in_components_owner` keeps component validation out of the validate entry
+and sibling owners, and `test_component_tests_live_in_component_test_owner` keeps those behavior
+tests in `test_plugin_validate_components.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 6/6; py_compile passed for
+touched Python files; `test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_modules_gate`,
+`plugin_validate_modules.py` owns root plugin `modules` and `optional_features.modules`
+validation. The `validate_plugin_modules` leaf checks module name namespace, owner namespace,
+module kind closed set, crate_name shape, non-empty `target_modes`, package supported_targets
+coverage, editor-only target mode, runtime/editor `capabilities` prefix, and `duplicates module name`
+across package and optional feature module rows. The behavior guards are
+`test_plugin_validate_rejects_malformed_module_row`,
+`test_plugin_validate_rejects_duplicate_module_name`, and
+`test_plugin_validate_rejects_optional_feature_module_namespace`, while
+`test_modules_lives_in_modules_owner` keeps module row validation out of the validate entry,
+distribution module, and sibling owners, and `test_module_tests_live_in_module_test_owner` keeps
+those behavior tests in `test_plugin_validate_modules.py`.
+The 2026-07-01 GREEN pass also covered module crate workspace and module system leaf owners:
+focused behavior/owner/docs group passed 13/13; py_compile passed for touched Python files;
+`test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed 124/124;
+current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_capability_status_optional_arrays_gate`,
+declared capability-status optional arrays must contain evidence. `plugin_validate_capability_status_targets.py`
+rejects empty `target_modes` arrays, and `plugin_validate_capability_status_references.py` rejects empty
+`bevy_references` arrays; both diagnostics use `must not be empty when declared`, while absent fields
+remain optional. The behavior guard is `test_plugin_validate_rejects_empty_capability_status_optional_arrays`,
+and `test_capability_status_targets_live_in_capability_status_targets_owner` plus
+`test_capability_status_references_live_in_capability_status_references_owner` keep the optional arrays
+rule in the two leaf owners instead of the capability status row owner. GREEN verification passed:
+focused behavior/owner/docs group passed 4/4; py_compile passed for touched Python files;
+`test_plugin_validate_capability_statuses` passed 5/5; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_capability_status_references_gate`,
+`plugin_validate_capability_status_references.py` owns package `capability_statuses.bevy_references`
+validation. The `validate_plugin_capability_status_references` leaf parses optional
+`bevy_references` arrays on each status row, and `validate_plugin_capability_status_bevy_reference`
+requires every reference to be a non-empty trimmed string under `dev/bevy/`, using repository-relative
+forward-slash paths with no drive separator and no empty/current/parent segments
+(`should not contain empty, current, or parent path segments`). Duplicate entries in one row report
+`duplicates capability_status bevy_references`. The behavior guard is
+`test_plugin_validate_rejects_capability_status_bevy_reference_drift`, while
+`test_capability_status_references_live_in_capability_status_references_owner` keeps Bevy-reference
+path policy out of the capability status row owner and unrelated PluginValidate owners.
+GREEN verification passed: focused behavior/owner/docs checks passed 3/3 in this pass; py_compile
+passed for touched Python files; `test_plugin_validate_capability_statuses` passed 5/5; expanded
+PluginValidate discovery passed 124/124; current-status docs guards passed 120/120; real
+`plugin validate --all` passed with target_count=39, failed_count=0, diagnostics=0; structure audit
+passed with dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0.
+No Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_layout_coordinates_gate`,
+`plugin_validate_layout.py` owns root package layout dispatch and `plugin_validate_layout_coordinates.py`
+owns top-level package coordinate validation. `validate_plugin_layout` reads the root manifest during
+single-target root source validation, then dispatches `validate_plugin_layout_coordinates`.
+`package_prefix`, `package_company`, and `package_name` must be declared together or all left empty;
+missing one of the group reports `package coordinates must declare package_prefix, package_company, and package_name together or leave all empty`.
+`validate_plugin_layout_coordinate_prefix` checks that `package_prefix` contains only non-empty lowercase
+coordinate segments and reports `must contain only non-empty lowercase coordinate segments` on drift,
+while `validate_plugin_layout_coordinate_segment` applies the non-empty lowercase coordinate segment rule
+to `package_company` and `package_name`. The behavior guard is
+`test_plugin_validate_rejects_package_coordinate_drift`, and
+`test_layout_coordinates_live_in_layout_coordinates_owner` keeps the coordinate rules out of the
+single-target owner, layout dispatcher, and sibling PluginValidate owners.
+GREEN verification refresh for `plugins_13_m5_t1_plugin_validate_layout_coordinates_gate`: focused
+behavior/owner/docs checks passed 4/4; py_compile passed for touched Python files;
+`tools.zircon_export.tests.test_plugin_validate` passed 45/45; expanded PluginValidate discovery
+passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_layout_public_metadata_gate`,
+`plugin_validate_layout.py` keeps `validate_plugin_layout` as the root package layout dispatcher and
+`plugin_validate_layout_public_metadata.py` owns top-level public metadata validation. The dispatcher
+calls `validate_plugin_layout_public_metadata` before coordinate validation. The leaf owner validates
+`category` with the required trimmed-string rule, reporting `must be a non-empty trimmed string` on
+drift, and `validate_plugin_layout_description` validates optional `description` values, reporting
+`must be trimmed when present` for non-empty untrimmed text. The behavior guard is
+`test_plugin_validate_rejects_layout_public_metadata_drift`, while
+`test_layout_public_metadata_lives_in_layout_public_metadata_owner` keeps public metadata policy out
+of the layout dispatcher and unrelated PluginValidate owners.
+GREEN verification refresh for `plugins_13_m5_t1_plugin_validate_layout_public_metadata_gate`:
+focused behavior/owner/docs checks passed 4/4; py_compile passed for touched Python files;
+`tools.zircon_export.tests.test_plugin_validate` passed 45/45; expanded PluginValidate discovery
+passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_layout_targets_gate`,
+`plugin_validate_layout.py` keeps `validate_plugin_layout` as the root package layout dispatcher and
+`plugin_validate_layout_targets.py` owns top-level target/platform list validation. The dispatcher
+calls `validate_plugin_layout_targets`; that leaf uses `validate_plugin_layout_string_set` for
+`supported_targets` and `supported_platforms`. Target modes are limited to `client_runtime`,
+`server_runtime`, and `editor_host`; platforms are limited to `windows`, `linux`, `macos`, `android`,
+`ios`, `web_gpu`, `wasm`, `headless`, and the desktop aliases. Unsupported values report
+`unsupported; expected one of`, repeated target modes report `duplicates supported_targets`, and
+repeated platforms report `duplicates supported_platforms`. The behavior guard is
+`test_plugin_validate_rejects_layout_target_and_platform_drift`, while
+`test_layout_targets_live_in_layout_targets_owner` keeps target/platform policy out of sibling
+PluginValidate owners.
+GREEN verification refresh for `plugins_13_m5_t1_plugin_validate_layout_targets_gate`: focused
+behavior/owner/docs checks passed 4/4; py_compile passed for touched Python files;
+`tools.zircon_export.tests.test_plugin_validate` passed 45/45; expanded PluginValidate discovery
+passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_layout_roots_gate`,
+`plugin_validate_layout.py` keeps `validate_plugin_layout` as the root package layout dispatcher and
+`plugin_validate_layout_roots.py` owns top-level root path validation. The dispatcher calls
+`validate_plugin_layout_roots`; that leaf uses `validate_plugin_layout_root_array` for `asset_roots`
+and `content_roots`, and `validate_plugin_layout_root_path` for path rules. Root entries must be
+non-empty trimmed relative paths, use forward slashes, and avoid empty, current, or parent path
+segments. Absolute paths report `must be relative`, backslashes report `must use forward slashes`,
+bad segments report `must not contain empty, current, or parent path segments`, and repeated entries
+report `duplicates asset_roots` or `duplicates content_roots`. The behavior guard is
+`test_plugin_validate_rejects_layout_root_path_drift`, while
+`test_layout_roots_live_in_layout_roots_owner` keeps root path policy out of sibling PluginValidate
+owners.
+GREEN verification refresh for `plugins_13_m5_t1_plugin_validate_layout_roots_gate`: focused
+behavior/owner/docs checks passed 4/4; py_compile passed for touched Python files;
+`tools.zircon_export.tests.test_plugin_validate` passed 45/45; expanded PluginValidate discovery
+passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_layout_roots_drive_separator_gate`,
+`plugin_validate_layout_roots.py` now keeps Windows drive separator rejection inside the root path
+owner. `validate_plugin_layout_root_path` dispatches `plugin_validate_layout_root_has_drive_separator`
+for both `asset_roots` and `content_roots`, so `C:/assets` or `D:/content` style entries report
+`must not contain a drive separator` before export packaging can consume them. The behavior guard is
+`test_plugin_validate_rejects_layout_root_drive_separator_drift`, and
+`test_layout_roots_live_in_layout_roots_owner` keeps the policy in the layout roots owner. Scope:
+不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export,
+real plugin build, or full export matrix is claimed.
+For `plugins_13_m5_t1_manifest_schema_layout_roots_drive_separator_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the layout roots drive separator gate in
+structure audit. `collect_layout_root_schema_violations` scans root `asset_roots` and `content_roots`,
+`collect_layout_root_path_violations` owns the per-entry path checks, and
+`layout_root_has_drive_separator` rejects `C:/assets` / `D:/content` style evidence with
+`must not contain a drive separator`. `test_manifest_schema_rejects_layout_root_drive_separator`
+first showed the old audit returned `violations=[]`; the real structure audit still reports
+`manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或
+startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+For `plugins_13_m5_t1_plugin_validate_capability_status_targets_gate`,
+`plugin_validate_capability_status_targets.py` owns package `capability_statuses.target_modes`
+validation. The `PLUGIN_VALIDATE_CAPABILITY_STATUS_TARGET_MODES` list is `client_runtime`,
+`server_runtime`, and `editor_host`. The `validate_plugin_capability_status_targets` leaf checks
+declared target entries, closed-set membership (`unsupported; expected one of`), duplicate entries
+(`duplicates capability_status target_modes`), and package coverage (`should be covered by package supported_targets`). `plugin_validate_capability_status_supported_targets` derives the coverage
+set from root `supported_targets`. The behavior guard is
+`test_plugin_validate_rejects_capability_status_target_modes_drift`, while
+`test_capability_status_targets_live_in_capability_status_targets_owner` keeps target-mode policy
+out of the capability status row owner and unrelated PluginValidate owners.
+GREEN verification passed: focused behavior/owner/docs checks passed 3/3 in this pass; py_compile
+passed for touched Python files; `test_plugin_validate_capability_statuses` passed 5/5; expanded
+PluginValidate discovery passed 124/124; current-status docs guards passed 120/120; real
+`plugin validate --all` passed with target_count=39, failed_count=0, diagnostics=0; structure audit
+passed with dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0.
+No Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_capability_statuses_gate`,
+`plugin_validate_capability_statuses.py` owns package `capability_statuses` validation. The
+`PLUGIN_VALIDATE_CAPABILITY_STATUS_VALUES` list is `complete`, `partial`, `stub`, `externalized`,
+and `unsupported`. The `validate_plugin_capability_statuses` entry loads the root manifest,
+`validate_plugin_capability_status_rows` walks declared status rows,
+`validate_plugin_capability_status_row` checks row `capability`, `status`, and optional `note`,
+and `plugin_validate_capability_status_owned_capabilities` derives the package-owned capability
+set from root `capabilities` plus optional feature capabilities. Capability rows must reference
+a package-owned capability; otherwise they report `must reference a package or optional feature capability declared by the same package`. Duplicate rows report `duplicates capability_status`.
+The behavior guards are `test_plugin_validate_rejects_malformed_capability_status_row` and
+`test_plugin_validate_rejects_duplicate_capability_status_row`, while
+`test_capability_statuses_live_in_capability_statuses_owner` keeps these checks out of the
+single-target orchestration and sibling owners.
+GREEN verification passed: focused behavior/owner/docs group passed 5/5; py_compile passed for
+touched Python files; `test_plugin_validate_capability_statuses` passed 5/5; expanded PluginValidate
+discovery passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all`
+passed with target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_interface_signatures_gate`,
+`plugin_validate_interface_signatures.py` owns bridge method signature field validation. The
+`ALLOWED_SCRIPT_HOST_VALUE_KINDS` list is `null`, `bool`, `int`, `float`, `string`, `bytes`,
+and `host_handle`. The `validate_plugin_interface_method_return_kind` leaf checks
+`return_value_kind`, `validate_plugin_interface_method_parameter_signature` checks parameter
+`value_kind`, and `validate_plugin_interface_method_type_ref` checks `type_ref.value_kind` and
+`type_ref.type_name`. Unsupported kinds report `unsupported; expected one of`; parameter
+`value_kind` is required, and declared `type_ref` values must be tables. The behavior guard is
+`test_plugin_validate_rejects_malformed_provided_interface_signature`, while
+`test_interface_signature_contracts_live_in_interface_signatures_owner` keeps these checks out
+of the parent method owner and validate entry.
+GREEN verification passed: focused behavior/owner/docs checks passed 3/3 in this pass; py_compile
+passed for touched Python files; `test_plugin_validate_interfaces` passed 9/9; expanded
+PluginValidate discovery passed 124/124; current-status docs guards passed 120/120; real
+`plugin validate --all` passed with target_count=39, failed_count=0, diagnostics=0; structure audit
+passed with dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0.
+No Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_interface_methods_gate`,
+`plugin_validate_interface_methods.py` owns bridge interface method validation behind
+provided interface rows. The `validate_plugin_provided_interface_methods` leaf checks
+`provides_interfaces.methods` rows, method `name` lowercase tokens, non-negative
+`method_slot`, and `duplicates provided interface method` / `duplicates provided interface
+method_slot`. `validate_plugin_interface_method_parameters` checks parameter name tokens,
+while `validate_plugin_interface_method_required_capabilities` checks lowercase
+dot-namespaced method capabilities and `duplicates required capability`. The behavior
+guards are `test_plugin_validate_rejects_malformed_provided_interface_method` and
+`test_plugin_validate_rejects_duplicate_provided_interface_methods`, while
+`test_interface_method_contracts_live_in_interface_methods_owner` keeps these checks out of
+the parent interface owner, dependency owner, and validate entry.
+For `plugins_13_m5_t1_plugin_validate_interface_method_required_capabilities_empty_array_gate`,
+the same `plugin_validate_interface_methods.py` owner also rejects declared empty
+method-level `required_capabilities`. The field stays optional when absent, but
+`required_capabilities = []` now reports `must not be empty when declared`; `parameters = []`
+still represents a zero-argument interface method. The behavior guard is
+`test_plugin_validate_rejects_empty_interface_method_required_capabilities`, and
+`test_interface_method_contracts_live_in_interface_methods_owner` keeps the empty-array rule in
+the interface method owner instead of the parent interface owner.
+GREEN verification refresh for
+`plugins_13_m5_t1_plugin_validate_interface_method_required_capabilities_empty_array_gate`:
+focused behavior/owner/docs checks passed 5/5 together with the adjacent documentation gate;
+py_compile passed for touched Python files; `test_plugin_validate_interfaces` passed 9/9;
+`tools.zircon_export.tests.test_plugin_validate` passed 45/45; expanded PluginValidate discovery
+passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_interface_method_documentation_gate`,
+`plugin_validate_interface_methods.py` also owns method `documentation` string shape. The field
+stays optional when absent, but when declared it is validated through
+`plugin_validate_optional_trimmed_string`, so empty or untrimmed documentation reports
+`must be a non-empty trimmed string`. The behavior guard is
+`test_plugin_validate_rejects_malformed_interface_method_documentation`, and
+`test_interface_method_contracts_live_in_interface_methods_owner` keeps the documentation rule
+with the rest of the interface method contract.
+GREEN verification refresh for
+`plugins_13_m5_t1_plugin_validate_interface_method_documentation_gate`: focused
+behavior/owner/docs checks passed 5/5 together with the adjacent required-capabilities gate;
+py_compile passed for touched Python files; `test_plugin_validate_interfaces` passed 9/9;
+`tools.zircon_export.tests.test_plugin_validate` passed 45/45; expanded PluginValidate discovery
+passed 124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this slice.
+For `plugins_13_m5_t1_plugin_validate_interface_method_parameter_duplicates_gate`,
+`plugin_validate_interface_methods.py` rejects duplicate parameter names inside one
+interface method. After parameter signature and token shape validation,
+`validate_plugin_interface_method_parameters` tracks method-local `parameters[].name` values and
+reports `duplicates interface method parameter` for repeated names. The behavior guard is
+`test_plugin_validate_rejects_duplicate_interface_method_parameters`, and
+`test_interface_method_contracts_live_in_interface_methods_owner` keeps the uniqueness rule in
+the interface method owner. GREEN verification passed: focused behavior/owner/docs group 3/3;
+py_compile passed for touched Python files; `test_plugin_validate_interfaces` passed 9/9;
+expanded PluginValidate discovery passed 124/124; current-status docs guards passed 120/120;
+real `plugin validate --all` passed with target_count=39, failed_count=0, diagnostics=0; structure
+audit passed with dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation
+counts at 0. No Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_interfaces_gate`,
+`plugin_validate_interfaces.py` owns bridge interface manifest validation. The
+`validate_plugin_provided_interfaces` leaf checks `provides_interfaces` rows for non-empty arrays,
+non-empty trimmed lowercase dot-namespaced ids, and `duplicates provided interface id`. The
+`plugin_validate_dependency_interfaces` leaf checks `dependencies.interfaces` arrays for non-empty
+trimmed lowercase dot-namespaced entries and `duplicates dependency interface` inside each
+dependency row. `plugin_validate_dependencies.py` dispatches the provided-interface check after
+loading the root manifest and reuses the same leaf for dependency interface arrays. The behavior
+guards are `test_plugin_validate_rejects_malformed_provided_interface_id`,
+`test_plugin_validate_rejects_duplicate_provided_interface_id`, and
+`test_plugin_validate_rejects_dependency_interface_namespace_and_duplicate`, while
+`test_interface_contracts_live_in_interfaces_owner` keeps these checks out of the dependency owner
+and validate entry.
+For `plugins_13_m5_t1_plugin_validate_module_systems_gate`,
+`plugin_validate_module_systems.py` owns module system field validation behind module row validation.
+The `validate_plugin_module_system_contracts` leaf dispatches `validate_plugin_module_system_names`
+for `system_sets` and `system_anchors`, requiring non-empty arrays when declared, lowercase dot
+namespaces, package/feature ownership with `should stay under namespace`, duplicate diagnostics
+`duplicates system_sets` / `duplicates system_anchors`, and runtime-only ownership with
+`may only be declared by runtime modules`. The behavior guards are
+`test_plugin_validate_rejects_malformed_module_system_names`,
+`test_plugin_validate_rejects_duplicate_module_system_names`, and
+`test_plugin_validate_rejects_non_runtime_module_system_names`, while
+`test_module_system_contracts_live_in_module_systems_owner` keeps these checks out of the module row
+owner, crate workspace owner, and entry owners.
+For `plugins_13_m5_t1_plugin_validate_module_crate_workspace_gate`,
+`plugin_validate_module_crates.py` owns module crate workspace checks behind module row validation.
+The `validate_plugin_module_workspace_crate` leaf verifies every module `crate_name` resolves to a
+`zircon_plugins` workspace member and that the member path stays under the declaring plugin root or
+optional feature root; missing crates emit `must be a zircon_plugins workspace member`, and
+out-of-package crates emit `must stay under`. `native_build_workspace.py` now exposes
+`native_dynamic_workspace_crate_index` plus `native_dynamic_cdylib_crate_index_from_workspace`, so
+`plugin_validate.py` can keep a full `workspace_crate_index` for module ownership while still using
+a cdylib-only index for dist crate preflight. The behavior guards are
+`test_plugin_validate_rejects_module_crate_missing_workspace_member` and
+`test_plugin_validate_rejects_module_crate_outside_package_root`, while
+`test_module_workspace_crate_checks_live_in_module_crates_owner` keeps the workspace crate logic out
+of the module row owner and entry owners.
+For `plugins_13_m5_t1_plugin_validate_dependency_capability_resolution_gate`,
+`plugin_validate_dependency_capabilities.py` owns top-level dependency capability resolution. The
+`plugin_validate_dependency_capability_target_index` helper scans root plugin manifests for package,
+optional feature, and feature extension capabilities, while `validate_plugin_dependency_capability_gate`
+checks dependency rows after schema validation. Known static package dependencies must reference a
+capability declared by the `referenced static plugin package`; external dependencies must use a
+`runtime.module.* or runtime.capability.*` host namespace. The behavior guards are
+`test_plugin_validate_rejects_dependency_capability_not_declared_by_package` and
+`test_plugin_validate_rejects_external_dependency_capability_namespace`, while
+`test_dependency_capabilities_lives_in_capabilities_owner` keeps resolution policy out of the
+schema owner and validate entry owner.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_options_global_key_gate`,
+`plugin_validate_option_global_keys.py` owns `validate_plugin_option_global_keys`, the
+cross-manifest option key uniqueness check for
+`plugin validate --all`. It scans root `plugin.toml` `options` rows after target discovery and
+writes all-report diagnostics when a repeated key `is duplicated by` two plugin rows. The behavior
+guard is `test_plugin_validate_all_rejects_duplicate_option_keys`, and
+`test_option_global_keys_lives_in_global_key_owner` keeps the global index out of single-target
+validation, options dispatch, and option schema owners.
+GREEN verification passed: focused behavior/owner/docs group passed 3/3; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_required_capability_declared_gate`,
+`plugin_validate_asset_importer_required_capability_gates.py` owns importer required capability
+declared/host gates. Valid `required_capabilities` entries must reference a `declared static
+package/feature capability` or a `host-owned capability` (`runtime.capability.*` or
+`runtime.asset.importer.native`). The behavior guards are
+`test_plugin_validate_rejects_asset_importer_undeclared_required_capability` and
+`test_plugin_validate_accepts_asset_importer_optional_feature_capability`, while
+`test_asset_importer_required_capability_gates_lives_in_gate_owner` keeps the static capability
+index out of namespace format, schema, and validate entry owners.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_required_capability_namespace_gate`,
+`plugin_validate_asset_importer_required_capabilities.py` owns importer required capability namespace
+policy. Valid `required_capabilities` entries must use at least two `dot-separated namespace
+segments` and contain only `lowercase ASCII letters, digits, underscores, and dots`. The behavior
+guard is `test_plugin_validate_rejects_asset_importer_required_capability_namespace`, and
+`test_asset_importer_required_capabilities_lives_in_required_capability_owner` keeps namespace
+policy separate from string-array shape and metadata duplicate owners.
+GREEN verification passed: focused behavior/owner/docs group passed 3/3; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_global_id_uniqueness_gate`,
+`plugin_validate_asset_importer_global_ids.py` owns cross-manifest importer id uniqueness for
+`plugin validate --all`. It scans root `plugin.toml` `asset_importers` rows after target discovery
+and writes all-report diagnostics when a repeated id `is duplicated by` two plugin rows. The
+behavior guard is `test_plugin_validate_all_rejects_duplicate_asset_importer_ids`, and
+`test_asset_importer_global_ids_lives_in_global_id_owner` keeps the global index out of single-target
+validation, row dispatch, and schema owners.
+GREEN verification passed: focused behavior/owner/docs group passed 3/3; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_id_gate`,
+`plugin_validate_asset_importer_ids.py` owns importer id namespace policy. After the basic schema
+owner confirms `id` is a trimmed string, importer ids must use at least two `dot-separated namespace segments`,
+must not contain empty namespace segments, and must contain only lowercase ASCII letters, digits,
+underscores, and dots. The behavior guard is
+`test_plugin_validate_rejects_malformed_asset_importer_ids`, and
+`test_asset_importer_ids_lives_in_ids_owner` keeps this dot-namespaced id policy out of the schema
+and validate entry owners.
+GREEN verification passed: focused behavior/owner/docs group passed 3/3; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_numeric_range_gate`,
+`plugin_validate_asset_importer_numbers.py` owns importer numeric range policy. After the schema
+owner confirms integer shape, `priority` values outside i32 report `must fit i32`, and
+`importer_version` values above u32 report `must be a positive u32`. The behavior guard is
+`test_plugin_validate_rejects_asset_importer_numeric_range_overflow`, and
+`test_asset_importer_numbers_lives_in_numbers_owner` keeps range constants out of the schema owner.
+GREEN verification passed: focused behavior/owner/docs group passed 3/3; py_compile passed for
+touched Python files; `test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_output_kind_resource_kind_gate`,
+`plugin_validate_asset_importer_resource_kinds.py` owns the static `ResourceKind` allow-list for
+importer outputs. After the schema owner confirms string shape, `output_kind` and
+`additional_output_kinds` values that are not known resource kinds report
+`must be a known ResourceKind`. The behavior guard is
+`test_plugin_validate_rejects_unknown_asset_importer_output_kinds`, and
+`test_asset_importer_resource_kinds_lives_in_resource_kind_owner` keeps the allow-list out of the
+dispatch and field-shape owners.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; `test_plugin_validate` passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real `plugin validate --all` passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_plugin_id_match_gate`,
+`plugin_validate_asset_importer_schema.py` compares each importer row `plugin_id` to the current
+`package_id` after the basic non-empty trimmed string check. A mismatched owner reports
+`must match package id <package_id>`, while `plugin_validate_asset_importers.py` only passes the
+package id through and keeps manifest dispatch plus `full_suffixes` policy. The behavior guard is
+`test_plugin_validate_rejects_asset_importer_plugin_id_mismatch`, and
+`test_asset_importer_schema_lives_in_schema_owner` locks this policy into the schema owner.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_source_selector_gate`,
+`plugin_validate_asset_importers.py` owns the cross-field selector presence rule: each
+`asset_importers` row must declare `source_extensions` or `full_suffixes`, otherwise validation
+reports `must declare source_extensions or full_suffixes`. The behavior guard is
+`test_plugin_validate_rejects_asset_importer_without_source_selector`, and
+`test_asset_importers_lives_in_asset_importers_owner` keeps this matcher policy out of the schema
+owner and validate entry.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_source_extensions_format_gate`,
+`plugin_validate_asset_importer_schema.py` owns source extension format: `source_extensions` entries
+must be a lowercase extension without dots, values with dots report `lowercase extension without
+dots; use full_suffixes for dotted suffixes`, and uppercase values report `must be lowercase`.
+The behavior guard is `test_plugin_validate_rejects_malformed_source_extensions`, while
+`test_asset_importer_schema_lives_in_schema_owner` locks the rule into the schema owner.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_full_suffixes_format_gate`,
+`plugin_validate_asset_importers.py` owns full suffix format: `full_suffixes` entries must be
+lowercase dotted suffixes, values without a leading dot report `must be a dotted suffix`, and
+uppercase values report `must be lowercase`. `source_extensions` remains the no-dot extension
+schema owner. The behavior guard is `test_plugin_validate_rejects_malformed_full_suffixes`, and
+`test_asset_importers_lives_in_asset_importers_owner` / `test_asset_importer_schema_lives_in_schema_owner`
+lock the importer/schema owner boundary.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export matrix,
+or startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_selector_duplicates_gate`,
+selector duplicate checks stay with their existing leaf owners: `source_extensions` duplicates are
+reported by `plugin_validate_asset_importer_schema.py`, `full_suffixes` duplicates are reported by
+`plugin_validate_asset_importers.py`, and both diagnostics use `duplicates entry <first-index>`.
+The behavior guards are `test_plugin_validate_rejects_duplicate_source_extensions` and
+`test_plugin_validate_rejects_duplicate_full_suffixes`.
+Distribution contract behavior tests live in
+`tools/zircon_export/tests/test_plugin_validate_distribution_contract.py`; the root
+`test_plugin_validate.py` owner keeps root/general validation, dist crate Cargo preflight, and
+all-target scheduling scenarios. Distribution module binding and entry/target-mode behavior tests
+live in `tools/zircon_export/tests/test_plugin_validate_distribution_modules.py`, including the
+root and feature-provider module cases that used to be split across the entry and feature-provider
+test owners.
+For `plugins_13_m5_t1_plugin_validate_manifest_classification_gate`,
+`plugin_validate_manifest_classification.py` owns root manifest classification checks and is
+dispatched by `plugin_validate_single_target.py` only for root source targets through
+`validate_plugin_manifest_classification`. `validate_plugin_manifest_maturity` uses
+`PLUGIN_VALIDATE_MANIFEST_MATURITY_VALUES` so top-level `maturity` is required and must be one of
+`stable`, `beta`, or `experimental`; unknown values report
+`is unsupported; expected one of stable, beta, experimental`. The behavior guards are
+`test_plugin_validate_rejects_missing_manifest_maturity` and
+`test_plugin_validate_rejects_unknown_manifest_maturity`, while
+`test_manifest_classification_lives_in_manifest_classification_owner` and
+`test_manifest_classification_tests_live_in_manifest_classification_test_owner` keep production and
+test ownership out of shape/layout/common/entry owners.
+This status is locked by `tools/tests/test_plugin_docs_current_status_manifest_classification_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 5/5; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_manifest_category_gate`, the same
+`plugin_validate_manifest_classification.py` owner also exposes `validate_plugin_manifest_category`
+and `PLUGIN_VALIDATE_MANIFEST_CATEGORY_VALUES`. `category` shape remains owned by layout public
+metadata, but formed category values must be one of `asset_importer`, `authoring`, `diagnostics`,
+`platform`, `rendering`, `runtime`, or `sdk`; unknown values report
+`is unsupported; expected one of asset_importer, authoring, diagnostics, platform, rendering, runtime, sdk`.
+The behavior guard is `test_plugin_validate_rejects_unknown_manifest_category`, while
+`test_manifest_classification_lives_in_manifest_classification_owner` and
+`test_manifest_classification_tests_live_in_manifest_classification_test_owner` keep production and
+test ownership inside the manifest classification owner. This status is locked by
+`tools/tests/test_plugin_docs_current_status_manifest_category_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 6/6; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_capabilities_gate`,
+`plugin_validate_capabilities.py` owns root package capability declarations and is dispatched by
+`plugin_validate_single_target.py` only for root source targets through
+`validate_plugin_capabilities`. `validate_plugin_capability_values` reuses the shared string-array
+shape rule, so missing or empty top-level `capabilities` reports
+`must be a non-empty string array`; `validate_plugin_capability_namespace` rejects values with
+`should use at least two dot-separated namespace segments`, `should not contain empty namespace segments`,
+or `should contain only lowercase ASCII letters, digits, underscores, and dots`. Duplicate declarations use
+`PLUGIN_VALIDATE_CAPABILITIES_DUPLICATE_MESSAGE` and report `duplicates capabilities`. The behavior
+guards are `test_plugin_validate_rejects_malformed_root_capabilities` and
+`test_plugin_validate_rejects_empty_root_capabilities`, while
+`test_root_capabilities_lives_in_root_capabilities_owner` and
+`test_root_capabilities_tests_live_in_root_capabilities_test_owner` keep production and test
+ownership out of capability-status, dependency, module, common, and entry owners. This status is
+locked by `tools/tests/test_plugin_docs_current_status_capabilities_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 5/5; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_package_kind_gate`,
+`plugin_validate_package_kind.py` owns root `package_kind` policy and is dispatched by
+`plugin_validate_single_target.py` only for root source targets through
+`validate_plugin_package_kind`. `PLUGIN_VALIDATE_PACKAGE_KIND_VALUES` keeps the allow-list at
+`standard` and `feature_extension`, with missing `package_kind` treated as `standard`; unknown values
+report `should be standard or feature_extension`. `validate_plugin_package_kind_coherence` uses
+`plugin_validate_table_array_row_count` so `feature_extension` packages must declare at least one
+`feature_extensions` row and report `should declare at least one feature_extensions row` when they
+do not, while `standard` packages report `should not declare feature_extensions rows` if feature
+rows are present. The behavior guards are `test_plugin_validate_rejects_unknown_package_kind`,
+`test_plugin_validate_rejects_feature_extension_package_kind_without_rows`, and
+`test_plugin_validate_rejects_standard_package_kind_with_feature_rows`, while
+`test_package_kind_lives_in_package_kind_owner` and
+`test_package_kind_tests_live_in_package_kind_test_owner` keep production and test ownership out of
+shape/classification/common/entry owners. This status is locked by
+`tools/tests/test_plugin_docs_current_status_package_kind_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 6/6; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_default_packaging_metadata_gate`,
+`plugin_validate_default_packaging.py` owns top-level and optional-feature metadata
+`default_packaging` checks, while `plugin_validate_distribution_packaging.py` keeps ownership of
+`[distribution].default_packaging`. `validate_plugin_default_packaging` is dispatched by
+`plugin_validate_single_target.py` only for root source targets and calls
+`validate_plugin_default_packaging_values` for the root field plus
+`validate_plugin_optional_feature_default_packaging` for `optional_features` rows. The metadata gate
+requires a non-empty string array, uses the shared `PLUGIN_VALIDATE_DEFAULT_PACKAGING` allow-list
+(`source_template`, `library_embed`, `native_dynamic`), reports
+`is unsupported; expected one of source_template, library_embed, native_dynamic` for unknown values,
+and uses `PLUGIN_VALIDATE_DEFAULT_PACKAGING_METADATA_DUPLICATE_MESSAGE` to report
+`duplicates default_packaging`. The behavior guards are
+`test_plugin_validate_rejects_missing_root_default_packaging`,
+`test_plugin_validate_rejects_malformed_root_default_packaging`, and
+`test_plugin_validate_rejects_malformed_optional_feature_default_packaging`, while
+`test_default_packaging_lives_in_default_packaging_owner` and
+`test_default_packaging_tests_live_in_default_packaging_test_owner` keep production and test
+ownership out of distribution/common/entry owners. This status is locked by
+`tools/tests/test_plugin_docs_current_status_default_packaging_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 6/6; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_feature_extension_default_packaging_gate`,
+`plugin_validate_default_packaging.py` also owns `feature_extensions` metadata
+`default_packaging` checks through `validate_plugin_feature_extension_default_packaging`. The helper
+reuses `validate_plugin_default_packaging_values`, so feature extension rows use the same
+`source_template`, `library_embed`, and `native_dynamic` closed set, the same
+`is unsupported; expected one of source_template, library_embed, native_dynamic` diagnostic, and the
+same `duplicates default_packaging` duplicate diagnostic as root and optional-feature metadata.
+`plugin_validate_feature_extensions.py` remains the row-schema owner, and
+`plugin_validate_distribution_packaging.py` remains the `[distribution].default_packaging` owner. The
+behavior guard is `test_plugin_validate_rejects_malformed_feature_extension_default_packaging`, while
+`test_default_packaging_lives_in_default_packaging_owner` and
+`test_default_packaging_tests_live_in_default_packaging_test_owner` keep production/test ownership in
+the default packaging owner. GREEN verification passed: focused behavior/owner/docs group passed
+7/7; py_compile passed for touched Python files; expanded PluginValidate discovery passed 128/128;
+current-status docs guards passed 124/124; real plugin validate --all passed with target_count=39,
+failed_count=0, diagnostics=0; structure audit passed with dist_capable_plugin_count=37,
+dist_build_matrix_count=37, manifest_schema_violations=0, dist_dependency_boundary_violations=0,
+distribution_section_violations=0, runtime_registration_builder_violation_count=0, and
+capability_source_mismatches=0. No Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_feature_extension_modules_gate`,
+`plugin_validate_modules.py` also owns `feature_extensions` module row checks through
+`validate_plugin_feature_extension_modules`. The helper dispatches each
+`[[feature_extensions.modules]]` row into `validate_plugin_module_rows`, so root, optional-feature,
+and feature-extension module rows share module shape, target mode, capability, system-contract, and
+workspace-crate checks while the feature extension `id` supplies the required module namespace.
+Malformed feature extension module names now report `should stay under namespace`.
+`plugin_validate_feature_extensions.py` remains the feature-extension row-schema owner, and
+`plugin_validate_distribution_modules.py` remains the distribution dist_crate/module binding owner.
+The behavior guard is `test_plugin_validate_rejects_feature_extension_module_namespace`, while
+`test_modules_lives_in_modules_owner` and `test_module_tests_live_in_module_test_owner` keep
+production/test ownership in the module owner. GREEN verification passed: focused
+behavior/owner/docs group passed 4/4; py_compile passed for touched Python files; expanded
+PluginValidate discovery passed 129/129; current-status docs guards passed 125/125; real plugin
+validate --all passed with target_count=39, failed_count=0, diagnostics=0; structure audit passed
+with dist_capable_plugin_count=37, dist_build_matrix_count=37, manifest_schema_violations=0,
+dist_dependency_boundary_violations=0, distribution_section_violations=0,
+runtime_registration_builder_violation_count=0, and capability_source_mismatches=0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame
+result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_manifest_shape_gate`,
+`plugin_validate_manifest_shape.py` owns root manifest scalar shape checks and is dispatched by
+`plugin_validate_single_target.py` only for root source targets through
+`validate_plugin_manifest_shape`. `plugin_validate_manifest_identity` validates top-level `id`
+with diagnostics such as `must contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments`,
+`must start with a lowercase ASCII letter`, and
+`segments must not end with an underscore or contain repeated underscores`.
+`PLUGIN_VALIDATE_MANIFEST_VERSION_FIELDS` covers `version` and `sdk_api_version`, and
+`plugin_validate_manifest_semver` reports `must use MAJOR.MINOR.PATCH form`,
+`must contain ASCII digits`, `must not use leading zeroes`, and `must fit in u32`.
+`display_name` remains a required non-empty trimmed string. The behavior guards are
+`test_plugin_validate_rejects_manifest_identity_and_display_name_shape`,
+`test_plugin_validate_rejects_manifest_version_shape`, and
+`test_plugin_validate_rejects_manifest_version_numeric_boundaries`, while
+`test_manifest_shape_lives_in_manifest_shape_owner` and
+`test_manifest_shape_tests_live_in_manifest_shape_test_owner` keep production and test ownership out
+of layout/common/entry owners. This status is locked by
+`tools/tests/test_plugin_docs_current_status_manifest_shape_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 7/7; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_distribution_packaging_uniqueness_gate`,
+`plugin_validate_distribution_packaging.py` keeps forms/default-packaging policy inside the
+distribution packaging owner and now adds `plugin_validate_distribution_unique_values`. After the
+existing `distribution.forms` and `distribution.default_packaging` string-array and allowed-value
+checks, duplicate forms report `duplicates distribution.forms` through
+`PLUGIN_VALIDATE_DISTRIBUTION_FORMS_DUPLICATE_MESSAGE`, and duplicate default packaging entries
+report `duplicates distribution.default_packaging` through
+`PLUGIN_VALIDATE_DEFAULT_PACKAGING_DUPLICATE_MESSAGE`. The behavior guard is
+`test_plugin_validate_reports_duplicate_distribution_packaging_values`, while
+`test_distribution_packaging_lives_in_packaging_owner` keeps the helper and diagnostics out of the
+parent distribution contract owner, and
+`test_distribution_contract_tests_live_in_distribution_contract_test_owner` keeps the behavior test
+in `tools/zircon_export/tests/test_plugin_validate_distribution_contract.py`.
+This status is locked by
+`tools/tests/test_plugin_docs_current_status_distribution_packaging_uniqueness_gate.py`.
+GREEN verification passed: focused behavior/owner/docs group passed 4/4; py_compile passed for
+touched Python files; test_plugin_validate passed 45/45; expanded PluginValidate discovery passed
+124/124; current-status docs guards passed 120/120; real plugin validate --all passed with
+target_count=39, failed_count=0, diagnostics=0; structure audit passed with
+dist_capable_plugin_count=37, dist_build_matrix_count=37, and key violation counts at 0. No Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame result is claimed for this owner split.
+For `plugins_13_m5_t1_plugin_validate_docs_status_owner_split`,
+`tools/tests/test_plugin_docs_current_status_plugin_validate_owner_splits.py` now owns
+PluginValidate/distribution/feature-provider current-status documentation guards. The broad
+`tools/tests/test_plugin_docs_current_status_convergence.py` no longer owns those PluginValidate
+docs assertions and has dropped to 6346 lines; the new data-driven owner is 666 lines.
+For `plugins_13_m5_t1_platform_bundle_template_docs_status_owner_split`,
+`tools/tests/test_plugin_docs_current_status_platform_bundle_template_owner_splits.py` now owns
+PlatformBundle template current-status documentation guards. The broad
+`tools/tests/test_plugin_docs_current_status_convergence.py` no longer owns those PlatformBundle
+template docs assertions and has dropped to 5392 lines; the new data-driven owner is 181 lines.
+For `plugins_13_m5_t1_native_dynamic_payload_docs_status_owner_split`,
+`tools/tests/test_plugin_docs_current_status_native_dynamic_payload_owner_splits.py` now owns
+NativeDynamic payload current-status documentation guards, including payload file_manifest/materialized_packages
+schema, package path, bundle evidence, file manifest, loader manifest, PlatformBundle handoff/stage-report
+handoff, operation-audit summary, and directory owner anchors. The broad
+`tools/tests/test_plugin_docs_current_status_convergence.py` no longer owns those NativeDynamic
+payload docs assertions and has dropped to 4519 lines; the new data-driven owner is 172 lines.
+For `plugins_13_m5_t1_plugin_build_docs_status_owner_split`,
+`tools/tests/test_plugin_docs_current_status_plugin_build_owner_splits.py` now owns
+PluginBuild current-status documentation guards for build package owner layering, Plugin build
+Cargo command owner, and Plugin build preflight owner anchors. The broad
+`tools/tests/test_plugin_docs_current_status_convergence.py` no longer owns those PluginBuild
+docs assertions and has dropped from 4519 to 3876 lines; the new data-driven owner is 203 lines.
+`tools/tests/test_plugin_docs_current_status_plugin_build_owner_boundaries.py` locks the moved
+markers and line budgets.
+For `plugins_13_m5_t1_pack_docs_status_owner_split`,
+`tools/tests/test_plugin_docs_current_status_pack_owner_splits.py` now owns Pack current-status
+documentation guards for Pack stage, required-fields, file evidence, manifest schema helper, delta
+semantics, manifest path/hash helper, and stage path/argument owner anchors. The broad
+`tools/tests/test_plugin_docs_current_status_convergence.py` no longer owns those Pack docs
+assertions and has dropped from 4270 to 3664 lines; the new data-driven owner is 307 lines.
+`tools/tests/test_plugin_docs_current_status_pack_owner_boundaries.py` locks the moved Pack
+markers and line budgets.
 Dist crate workspace-member resolution and Cargo-manifest preflight are owned by
-`plugin_validate_dist_crate.py`, so cdylib member diagnostics, `[features].dist`, SDK dependency,
-ABI helper, and forbidden dependency-route checks stay out of the validate command orchestration
-owner.
-Report dictionary assembly and text rendering are owned by `plugin_validate_report.py`, keeping the
-single-target and all-target presentation layer out of `plugin_validate.py`. The all-target report
-owner also assembles `target_count`, `failed_count`, `fatal`, `diagnostics`, and `items`, so the
-validate command owner only discovers targets and runs per-target validation.
+`plugin_validate_dist_crate.py`, so cdylib member diagnostics, Cargo manifest load, and
+`[features].dist` array/entry checks stay out of the validate command orchestration owner.
+`plugin_validate_dist_crate_dependency.py` is the PluginValidate dist crate dependency owner
+for dist crate SDK dependency/ABI helper diagnostics, including `zircon_plugin_sdk` dependency
+lookup, dependency table traversal, `default-features = false`, native/dist ABI helper
+enablement, and forbidden `zircon_runtime` feature-route checks. The preflight owner consumes
+validate-side `PLUGIN_VALIDATE_DIST_FEATURE` from
+`plugin_validate_common.py` and does not borrow build-side Cargo feature constants from
+`plugin_build.py`.
+The validate command's own `--form` choices/default also consume validate-side
+`PLUGIN_VALIDATE_DIST_FORM`, so CLI argument shape no longer borrows build-side form constants.
+`plugin_validate_single_target.py` is the PluginValidate single-target owner for single-target validation orchestration: package source resolution, distribution contract validation,
+feature-provider package projection, distribution module checks, dist crate workspace-member
+preflight, and report assembly handoff. `plugin_validate.py` stays as the CLI/run dispatch owner:
+argument parsing, repo/workspace/engine context setup, output rendering, exit-code selection, and
+`--all` target scheduling. Report dictionary assembly and text rendering are owned by
+`plugin_validate_report.py`, keeping the single-target and all-target presentation layer out of
+`plugin_validate.py`. The all-target report owner also assembles `target_count`, `failed_count`,
+`fatal`, `diagnostics`, and `items`, so the validate command owner only discovers targets and
+dispatches per-target validation through the single-target owner. The single-target text report
+includes the resolved repo root, workspace manifest, plugin manifest, engine version, package/source
+identity, dist crate, dist crate manifest, ABI version, status, and diagnostics; the all-target text
+report includes aggregate counts plus per-target item diagnostics.
 Engine-version discovery is owned by `plugin_validate_engine_version.py`, so root `Cargo.toml`
 version reading and shape diagnostics stay out of the validate command orchestration owner.
+Plugin build signature/hash sidecar assembly is owned by `plugin_build_signature.py`, keeping
+signing audit execution, loadable artifact hashing, signing artifact projection, and `.sig` TOML
+rendering out of the `plugin_build.py` build orchestration owner; package materialization consumes
+this owner through `plugin_build_package.py`.
+Plugin build asset subpackage materialization is owned by `plugin_build_asset_pack.py`, keeping
+asset glob expansion, temporary asset manifest writing, zrpack command construction/execution, and
+pack report parsing out of the `plugin_build.py` build orchestration owner; package materialization
+consumes this owner through `plugin_build_package.py`.
+For `plugins_13_m5_t1_plugin_build_asset_pack_zui_suffix_gate`,
+`plugin_build_asset_pack.py` reuses `plugin_validate_retired_ui_asset_suffix(...)` before asset-pack
+command execution: `distribution.assets` matches ending in `.ui.toml` or `.v2.ui.toml` produce
+`retired UI asset suffix ...; use .zui` and must be migrated to `.zui`; any asset preflight diagnostic prevents zrpack command
+startup so package builds cannot carry retired UI layout assets.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame coverage.
+For `plugins_13_m5_t1_distribution_assets_zui_pattern_suffix_gate`, the same owner also consumes
+`plugin_validate_retired_ui_asset_pattern_suffix(...)`; `distribution.assets` patterns that directly
+target `.ui.toml` or `.v2.ui.toml` produce `targets retired UI asset suffix ...; use .zui` before
+the asset glob is expanded, so a missing retired UI layout file is not downgraded to an empty-match
+diagnostic.
+GREEN evidence for this gate now covers focused behavior/owner/docs 7/7, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real plugin build, Hub/editor E2E, full export matrix, or
+startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importers_zui_suffix_gate`, importer declarations are
+covered at the manifest level as well: `plugin_validate_asset_importers.py` checks
+`[[asset_importers]].full_suffixes` and rejects `.ui.toml` / `.v2.ui.toml` with
+`declares retired UI asset suffix ...; use .zui`. This keeps asset importer registration aligned
+with the `.zui` only layout description rule before any plugin package is built.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_non_empty_array_gate`, root plugin manifests
+also fail before packaging when `asset_importers` is declared as an empty array, with
+`must not be empty when declared`.
+GREEN evidence for this gate now covers focused behavior/owner/docs 3/3, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_schema_gate`, malformed importer declarations
+now fail before export packaging: `plugin_validate_asset_importer_schema.py` rejects wrong
+`id`/`plugin_id`/`output_kind` string shape, non-integer `priority`, non-positive
+`importer_version`, and malformed `required_capabilities`; optional `full_suffixes` continues to be
+handled by the `.zui` suffix owner.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_string_arrays_gate`, the same schema owner now
+rejects malformed optional `source_extensions` and `additional_output_kinds` arrays with `must be
+trimmed` / `must be a non-empty string`, keeping importer selection and extra output-kind metadata
+typed alongside `required_capabilities` while `plugin_validate_asset_importers.py` stays the
+manifest dispatch owner.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_metadata_duplicates_gate`, metadata arrays are
+also de-duplicated before packaging: `required_capabilities` and `additional_output_kinds`
+duplicates report `duplicates entry <first-index>` through
+`plugin_validate_asset_importer_metadata_arrays.py`, keeping duplicate policy separate from string
+shape and `ResourceKind` allow-list owners.
+GREEN evidence covers focused behavior/owner/docs group 3/3, `test_plugin_validate` 45/45,
+PluginValidate discovery 124/124, current-status docs guards 120/120, real `plugin validate --all`
+target_count=39/failed_count=0/diagnostics=0, and structure audit dist_capable_plugin_count=37,
+dist_build_matrix_count=37, key violation counts=0.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_required_capability_namespace_gate`,
+`required_capabilities` entries are also namespace-normalized before packaging: missing namespace
+segments report `dot-separated namespace segments`, while uppercase or invalid characters report
+`lowercase ASCII letters, digits, underscores, and dots`.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_required_capability_declared_gate`,
+`required_capabilities` entries are also resolved against the static plugin capability index before
+packaging. `plugin_validate_asset_importer_required_capability_gates.py` accepts top-level,
+optional-feature, and feature-extension capabilities, plus host-owned capability names, and rejects
+unknown entries with a `declared static package/feature capability` diagnostic.
+For `plugins_13_m5_t1_plugin_validate_options_required_capability_declared_gate`, option
+`required_capability` gates are resolved before export packaging through
+`plugin_validate_options.py`. The same static capability index and host-owned capability rules are
+used for root `[[options]]` rows, so options cannot advertise gates that no static package/feature
+or host namespace provides.
+For `plugins_13_m5_t1_plugin_validate_options_schema_gate`, option row schema is validated before
+packaging through `plugin_validate_option_schema.py`: malformed keys report `dot-separated
+namespace segments`, invalid bool defaults report `bool value must be true or false`, and malformed
+`enum_values` rows fail before any package artifact is emitted.
+For `plugins_13_m5_t1_plugin_validate_options_global_key_gate`, `plugin validate --all` also rejects
+duplicate option keys across root plugin manifests. The global index lives in
+`plugin_validate_option_global_keys.py`, and repeated keys report `plugin validate options key` plus
+`is duplicated by` in the all-report diagnostics without turning either single target item fatal on
+its own.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_global_id_uniqueness_gate`, `plugin validate --all`
+also rejects duplicate importer ids across root plugin manifests. The global index lives in
+`plugin_validate_asset_importer_global_ids.py`, and repeated ids report `is duplicated by` in the
+all-report diagnostics without turning either single target item fatal on its own.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_id_gate`, importer ids are normalized before
+packaging as dot-namespaced identities: missing dots, empty namespace segments, uppercase letters,
+or punctuation outside lowercase ASCII letters, digits, underscores, and dots are rejected by
+`plugin_validate_asset_importer_ids.py`.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_numeric_range_gate`, importer numeric fields
+also get static-contract range checks before packaging: `priority` must fit i32, and
+`importer_version` must stay within positive u32 bounds.
+GREEN evidence covers focused behavior/owner/docs group 3/3, `test_plugin_validate` 45/45,
+PluginValidate discovery 124/124, current-status docs guards 120/120, real `plugin validate --all`
+target_count=39/failed_count=0/diagnostics=0, and structure audit dist_capable_plugin_count=37,
+dist_build_matrix_count=37, key violation counts=0.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_output_kind_resource_kind_gate`, importer
+output metadata is also checked against the static `ResourceKind` set before packaging:
+`output_kind` and `additional_output_kinds` unknown values report `must be a known ResourceKind`.
+The allow-list lives in `plugin_validate_asset_importer_resource_kinds.py`, not in the command
+entrypoint or row dispatch owner.
+GREEN evidence covers focused behavior/owner/docs group 4/4, `test_plugin_validate` 45/45,
+PluginValidate discovery 124/124, current-status docs guards 120/120, real `plugin validate --all`
+target_count=39/failed_count=0/diagnostics=0, and structure audit dist_capable_plugin_count=37,
+dist_build_matrix_count=37, key violation counts=0.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_plugin_id_match_gate`, malformed owner metadata
+also fails before export packaging: `plugin_validate_asset_importer_schema.py` reports importer row
+`plugin_id` values that do not match the current `package_id` with `must match package id`, keeping
+asset importer ownership aligned with package source resolution.
+GREEN evidence for this gate now covers focused behavior/owner/docs 3/3, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_source_selector_gate`, importer rows also need
+a matcher before packaging: `plugin_validate_asset_importers.py` reports rows that omit both
+`source_extensions` and `full_suffixes` with `must declare source_extensions or full_suffixes`.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_empty_selector_arrays_gate`, declared matcher
+selector arrays must also contain entries: `plugin_validate_asset_importers.py` reports empty
+`source_extensions` or `full_suffixes` with `must not be empty when declared`, and
+`test_plugin_validate_rejects_empty_asset_importer_selector_arrays` locks the reject path so empty
+selector arrays cannot satisfy the importer matcher requirement.
+GREEN evidence for this gate now covers focused behavior/owner/docs 3/3, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_source_extensions_format_gate`, importer
+extension selectors are normalized at validation time: `source_extensions` accepts only lowercase
+extension names without dots, while `.zui` or any other dotted suffix must be declared through
+`full_suffixes` and invalid casing reports `must be lowercase`.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_full_suffixes_format_gate`, importer full
+suffix selectors are normalized at validation time: `full_suffixes` accepts only lowercase dotted
+suffixes, missing-dot values report `must be a dotted suffix`, and `source_extensions` remains the
+matching field for no-dot extension names.
+GREEN evidence for this gate now covers focused behavior/owner/docs 4/4, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+For `plugins_13_m5_t1_plugin_validate_asset_importer_selector_duplicates_gate`, importer selector
+lists are also deduplicated within each row: repeated `source_extensions` or `full_suffixes`
+entries report `duplicates entry <first-index>` before packaging.
+GREEN evidence for this gate now covers focused behavior/owner/docs 5/5, touched-file
+`py_compile`, `test_plugin_validate` 45/45, PluginValidate discovery 124/124,
+current-status docs guards 120/120, real `plugin validate --all` with target_count=39,
+failed_count=0 and diagnostics=0, plus structure audit with dist_capable_plugin_count=37,
+dist_build_matrix_count=37 and key violation counts at 0. This does not claim Cargo
+build/test/export, real importer execution, real plugin build, Hub/editor E2E, full export
+matrix, or startup-to-first-frame coverage.
+Plugin build package directory materialization is owned by `plugin_build_package.py`, keeping
+package directory cleanup/copy, package report writing, loader manifest writing, and ABI contract
+assembly out of the `plugin_build.py` build orchestration owner.
+`plugin_build_command.py` is the Plugin build Cargo command owner for Cargo command construction/execution semantics. Default target-dir selection, dist feature normalization,
+`cargo build` argv construction, Cargo process execution, and shell command display quoting live
+there, while `plugin_build.py` keeps standalone build orchestration.
+`plugin_build_preflight.py` is the Plugin build preflight owner for distribution scalar validation and signing option normalization. `distribution.dist_crate`, `distribution.abi_version`, optional trimmed strings, signing argument/platform string arrays, and plugin build failure report shape live there, while `plugin_build.py` keeps argument parsing, repo/source/package resolution, command/package handoff, and final success report orchestration.
+Plugin subcommand dispatch is owned by `plugin_command.py`, keeping `plugin build` / `plugin
+validate` argument parser selection and run-entry invocation out of the generic staged export
+`cli.py` owner. The root CLI only asks `dispatch_plugin_command(...)` whether a plugin subcommand
+was handled before falling back to profile-stage export parsing.
+The zircon_export CLI argument owner is `cli_arguments.py`; it owns pipeline CLI argument parsing/defaults, keeping stage/resume/default-out
+constants, staged export argparse declarations, explicit `--stage` / `--resume-from` / `--pack-file` /
+`--delta-pack` / `--host-executable` detection, and the `--resume-from`/`--stage` mutual-exclusion error
+out of the generic staged export `cli.py` owner. The root CLI consumes `parse_args(...)` and keeps root
+command dispatch, plugin pre-dispatch, pipeline/resume orchestration, stage dispatch, and Validate
+process/report handoff behavior.
+Validate stage leaf helpers are owned by `validate_stage.py`, keeping Validate command
+construction, preflight failure report assembly, and Validate-specific path resolution out of the
+generic staged export `cli.py` owner. The root CLI keeps `run_validate(...)` orchestration, stage
+directory creation, process launch, and report handoff behavior, but no longer defines those leaf
+helpers directly.
 The independent plugin structure audit applies the same target value set to every `plugin.toml`
 root `supported_targets` entry and every root or `optional_features.modules` `target_modes` entry,
 so malformed manifests fail the schema gate even before a distribution target is selected.
@@ -3039,6 +5607,13 @@ executable path, and rejects profile mismatches before invoking Cargo. It now al
 `test_compile_host_report_respects_target_dir_override`, which verifies a custom `--target-dir`
 feeds both Cargo execution and the report `host_executable` handoff path. A real Cargo CompileHost
 run is not claimed yet because current runtime/UI compile drift is still being tracked separately.
+`plugins_09_e1_library_embed_compile_host_manifest_path_command_gate` closes the Rust build-plan
+handoff gap: `zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs` now emits
+`--manifest-path` from `manifest_path.clone()` in `LibraryEmbedCompileHostPlan.command`, so the
+Validate `plan_summary.library_embed_compile_host.manifest_path` field and CompileHost command
+evidence both point at `Cargo.toml`. `tools/tests/test_runtime_export_library_embed_command_policy.py`
+guards this command shape. The focused Rust test lane was attempted but timed out before producing a
+target test result, so this tooling note only claims the static guard, py_compile, and scoped rustfmt.
 The behavior-preserving module split keeps the same public CLI dispatch surface while moving the
 CompileHost subprocess and report-write implementation into `compile_host.py`; focused tests still
 import the compatibility exports from `cli.py`, and subprocess mocks now patch
@@ -3466,6 +6041,12 @@ The same gate verifies final bundle files for the report's `host_executable`, `p
 `test_report_stage_rejects_missing_platform_bundle_pack_output`, and
 `test_report_stage_rejects_missing_platform_bundle_delta_output` keep a matching report/manifest
 pair from passing after the actual bundle payload is deleted or was never materialized.
+`plugins_09_e1_platform_bundle_non_empty_payload_file_gate` adds the payload smoke check after
+existence/type and before hash comparison: PlatformBundle materialization rejects zero-byte
+host/pack/delta inputs, and final Report rejects empty `host_executable` / `host_source` / pack /
+delta evidence. `test_stage_rejects_empty_host_executable_input` and
+`test_report_rejects_empty_platform_host_output` keep empty host artifacts from being accepted by
+either the stage runner or hand-authored PlatformBundle reports.
 Those outputs are also compared against their provenance inputs: `host_executable` must match
 `host_source`, `pack` must match `pack_source`, and `delta_pack` must match `delta_pack_source` by
 SHA-256, and the source side must still exist as a file when present. `test_report_rejects_platform_host_output_hash_mismatch`,
@@ -3677,6 +6258,27 @@ Final Report orchestration stays in `tools/zircon_export/pipeline_report.py`; st
 allow-lists and typed schema diagnostics live in
 `tools/zircon_export/pipeline_report_stage_schema.py`, so the aggregation path can stay focused on
 stage selection, handoff loading, and top-level report assembly.
+Pipeline Report CompileHost owner responsibilities live in
+`tools/zircon_export/pipeline_report_compile_host.py`; this owner owns CompileHost final Report
+diagnostics for LibraryEmbed compile-host link-plan reconciliation, CompileHost report Cargo
+command package/bin/target/features/release checks, and host_executable containment/existence,
+profile-directory, and binary-name validation. The main `tools/zircon_export/pipeline_report.py`
+file remains the final Report aggregation owner for stage loading, required/missing/fatal stage
+calculation, export_plan assembly, and dispatch to per-stage diagnostic owners.
+Validate CompileHost semantics owner responsibilities live in
+`tools/zircon_export/pipeline_report_validate_compile_host_semantics.py`; this owner now owns
+Validate CompileHost identity semantics, including cargo profile/release matching and package
+and binary selector policy. Validate CompileHost command semantics owner responsibilities live in
+`tools/zircon_export/pipeline_report_validate_compile_host_command_semantics.py`; this owner owns
+Cargo command identity and policy diagnostics, including `cargo build` identity,
+`--no-default-features`, `--all-features`, and forbidden target/package/profile/wrapper-policy flags.
+Validate CompileHost command value semantics owner responsibilities live in
+`tools/zircon_export/pipeline_report_validate_compile_host_command_value_semantics.py`; this owner owns
+option/alias/features/path/release-profile value matching and command option extraction for both
+Validate report schema checks and CompileHost plan command checks. The schema file
+`tools/zircon_export/pipeline_report_validate_compile_host_schema.py` remains the object field,
+primitive field, string-array, safe-relative-path, linked-crate schema, and semantic-owner dispatch
+entrypoint.
 Basic stage report metadata regressions now live in
 `tools/zircon_export/tests/test_pipeline_report_stage_metadata.py`, keeping
 `test_pipeline_report_stage.py` focused on cross-stage aggregation, strategy selection, and
@@ -3782,9 +6384,48 @@ Validate plan evidence marks `Validate` in `fatal_stages`, instead of relying on
 diagnostics after the stage attribution point has passed. SourceTemplate stage-report schema helpers
 live in `tools/zircon_export/pipeline_report_source_template_stage_schema.py`; Validate-side
 SourceTemplate plan schema helpers live in
-`tools/zircon_export/pipeline_report_source_template_validate_schema.py`; SourceTemplate path,
-content, hash, and build-status semantics stay in
-`tools/zircon_export/pipeline_report_source_template.py`.
+`tools/zircon_export/pipeline_report_source_template_validate_schema.py`.
+SourceTemplate generated files owner responsibilities live in
+`tools/zircon_export/pipeline_report_source_template_generated_files.py`; this owner owns
+generated file diagnostics for final Report validation, including report `generated_files[]`
+schema-clean handoff, generated file existence/type/read checks, size and SHA-256 evidence, and
+Validate `plan_summary.generated_files[]` path reconciliation. SourceTemplate path/string
+semantics shared by the report owner and generated-files owner live in
+`tools/zircon_export/pipeline_report_source_template_path_semantics.py`. The main
+`tools/zircon_export/pipeline_report_source_template.py` file remains the final Report
+orchestration owner for project path, expected stage project, Validate report path, generated-files
+owner dispatch, and fatal-stage attribution.
+`tools/zircon_export/pipeline_report_source_template_build_handoff.py` is the SourceTemplate build
+handoff owner for Validate build-plan/build-validation diagnostics. It owns Validate
+`plan_summary.source_template_build` object/schema/command/manifest/target-dir checks, stage
+`build_validation` command/working_dir/stdout/stderr gates, top-level SourceTemplate command
+manifest/target-dir provenance, command option direct-value diagnostics, and dispatch to the
+status owner.
+`tools/zircon_export/pipeline_report_source_template_build_status.py` is the SourceTemplate
+`build_validation` status/execution owner: `source_template_build_status_diagnostics` owns
+requested/executed/status/exit_code/build_executed consistency, failed/blocked/skipped publishable
+status, passed exit-code/executed semantics, skipped consistency, and executed-must-be-requested
+diagnostics. The `plugins_13_m5_t1_source_template_build_validation_status_owner_split` status
+record keeps `tools/zircon_export/pipeline_report_source_template_build_handoff.py=413`,
+`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py=793`, and
+`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation_status.py=244`;
+`test_source_template_build_validation_status_tests_live_in_status_owner` locks the test split.
+Verification: `python -m unittest tools.zircon_export.tests.test_pipeline_report_source_template_build_validation tools.zircon_export.tests.test_pipeline_report_source_template_build_validation_status tools.tests.test_zircon_export_source_template_build_handoff_owner_boundaries` 32/32; `py_compile` passed.
+SourceTemplate generated project owner responsibilities live in
+`tools/zircon_export/source_template_generated_project.py`; this stage-side owner owns
+generated project materialization diagnostics, including generated file summaries, Validate
+`plan_summary.generated_files[]` schema/duplicate checks, safe generated-project child path
+resolution, project cleanup, file writes, generated `Cargo.toml` dependency path rewrites, and
+post-materialization size/SHA-256 report evidence.
+`tools/zircon_export/source_template_plan_command.py` is the SourceTemplate plan/command owner
+for Validate report/build-plan handoff and command rewriting: Validate report load/metadata/strategy
+gates, SourceTemplate build-plan schema fallback diagnostics, command-array entry gates, manifest and
+target-dir plan evidence, generated project manifest-path rewriting, target-dir injection, and
+`--locked`/`--offline` command completion live there. `tools/zircon_export/source_template_paths.py`
+keeps SourceTemplate repo/default/user path resolution shared by the stage runner and plan owner.
+The main `tools/zircon_export/source_template.py` file remains the SourceTemplate stage runner for
+stage directory/report orchestration, generated project materialization dispatch, optional Cargo build
+execution, cleanup audit fields, and stage report writing.
 The two schema helpers reuse `pipeline_report_schema_primitives.py` only for ordinary
 bool/integer/string/object diagnostics; SourceTemplate-specific non-empty string/string-array,
 sha256, `exit_code` nullable-integer, path, and command-shape rules remain local to the
@@ -3802,8 +6443,10 @@ schema diagnostic instead of producing rewritten Cargo commands or indirect miss
 Coverage lives in `tools/zircon_export/tests/test_pipeline_report_source_template_schema.py` so the
 already-large SourceTemplate behavior test file does not gain another responsibility.
 Final Report also validates SourceTemplate `build_validation`: the field must be an object with
-typed requested/executed/status/exit-code/working-dir/command values, and `failed` or `blocked`
-statuses are not publishable even if the SourceTemplate stage report is otherwise marked non-fatal.
+typed requested/executed/status/exit-code/working-dir/command values. Shape, command, and path
+handoff stay in the build handoff owner; requested/executed/status/exit-code publishability and
+consistency stay in the status owner. `failed`, `blocked`, and `skipped` statuses are not
+publishable even if the SourceTemplate stage report is otherwise marked non-fatal.
 `test_report_rejects_source_template_build_validation_unknown_field` closes this nested object
 schema; only `requested`, `executed`, `status`, `exit_code`, `working_dir`, and `command` are
 accepted.
@@ -3829,11 +6472,12 @@ SourceTemplate `build_validation.stdout_lines[]` and `stderr_lines[]` keep the s
 entry-type contract for captured Cargo logs: non-list fields still report `must be a string array`,
 while non-string log rows report `<field>[index] must be a string` and do not also emit the broad
 whole-field string-array fallback.
-`test_report_rejects_failed_source_template_build_validation` and
-`test_report_rejects_malformed_source_template_build_validation` cover the shape/status gates;
-`test_report_rejects_source_template_build_validation_command_mismatch`,
+`test_report_rejects_malformed_source_template_build_validation` covers the shape gate;
+`test_report_rejects_failed_source_template_build_validation`,
 `test_report_rejects_source_template_build_validation_execution_mismatch`, and
-`test_report_rejects_requested_source_template_build_validation_skip` cover the consistency gates.
+`test_report_rejects_requested_source_template_build_validation_skip` now live in the focused
+status test owner and cover status/publishability consistency gates. The command mismatch test
+stays with command handoff coverage.
 `test_report_rejects_source_template_command_manifest_path_outside_project` covers the top-level
 command manifest provenance gate.
 `test_report_rejects_source_template_command_manifest_path_resolve_error` keeps command
@@ -3897,20 +6541,52 @@ profile/stage selection.
 `test_report_rejects_empty_source_template_build_validation_command`,
 `test_report_rejects_blank_source_template_build_validation_command_entry`,
 `test_report_rejects_blank_source_template_report_command_entry`,
-`test_report_rejects_source_template_build_validation_working_dir_mismatch`,
-`test_report_rejects_source_template_build_validation_working_dir_resolve_error`,
-`test_report_rejects_skipped_source_template_build_validation_exit_code`, and
-`test_report_rejects_unrequested_source_template_build_validation_execution` cover these semantic
-gates.
+`test_report_rejects_source_template_build_validation_working_dir_mismatch`, and
+`test_report_rejects_source_template_build_validation_working_dir_resolve_error` cover command and
+working-directory semantic gates. `test_report_rejects_skipped_source_template_build_validation_exit_code`
+and `test_report_rejects_unrequested_source_template_build_validation_execution` live in the focused
+status test owner.
 These SourceTemplate final Report regressions live in
 `tools/zircon_export/tests/test_pipeline_report_source_template.py`; stage-schema and
 Validate-plan-schema attribution coverage lives in
 `tools/zircon_export/tests/test_pipeline_report_source_template_schema.py`; build-validation-only
 SourceTemplate final Report gates live in
-`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py`.
+`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py`, while
+build-validation status-only gates live in
+`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation_status.py`.
 `tools/zircon_export/tests/test_pipeline_report_source_template_command_schema.py` keeps focused
 top-level and nested SourceTemplate command schema/provenance regressions from growing the
 already-large behavior files.
+`tools/tests/test_zircon_export_source_template_owner_boundaries.py` locks the SourceTemplate
+generated files owner and path semantics owner boundaries so generated file diagnostics cannot
+return to final Report orchestration.
+`tools/tests/test_zircon_export_source_template_build_handoff_owner_boundaries.py` locks the
+SourceTemplate build handoff owner boundary so Validate build-plan/build-validation diagnostics
+cannot return to final Report orchestration.
+`tools/tests/test_zircon_export_source_template_stage_owner_boundaries.py` locks the
+SourceTemplate generated project owner boundary so generated project materialization diagnostics
+cannot return to stage orchestration.
+`tools/tests/test_zircon_export_source_template_plan_command_owner_boundaries.py` locks the
+SourceTemplate plan/command owner boundary so Validate report/build-plan handoff and command rewriting
+cannot return to stage orchestration.
+SourceTemplate plan/command owner split final verification on 2026-06-30: `py_compile` covered
+the SourceTemplate stage runner, `source_template_plan_command.py`, `source_template_paths.py`,
+the CompileHost SourceTemplate test, owner boundary tests, and current-status docs guard; owner
+boundary tests passed 5/5, SourceTemplate command/project-root/plan focused regressions passed
+32/32, and full current-status docs guard passed 84/84. This slice did not run Cargo
+build/test/export and does not claim broader plugin compile/export regression coverage.
+`tools/tests/test_zircon_export_pipeline_report_compile_host_owner_boundaries.py` locks the
+Pipeline Report CompileHost owner boundary so CompileHost final Report diagnostics cannot return
+to final Report aggregation.
+`tools/tests/test_zircon_export_validate_compile_host_semantics_owner_boundaries.py` locks the
+Validate CompileHost identity semantics owner boundary so cargo_profile/release and package/binary
+selector policy cannot return to the schema owner.
+`tools/tests/test_zircon_export_validate_compile_host_command_semantics_owner_boundaries.py` locks the
+Validate CompileHost command semantics owner boundary so Cargo command semantic diagnostics cannot
+return to the identity semantics owner or schema owner.
+`tools/tests/test_zircon_export_validate_compile_host_command_value_semantics_owner_boundaries.py`
+locks the Validate CompileHost command value semantics owner boundary so option/alias/features/path
+and release-profile value matching cannot return to the command identity/policy owner.
 `tools/zircon_export/tests/test_source_template_plan_string_schema.py` keeps standalone
 SourceTemplate pre-materialization string-evidence regressions separate from the larger
 SourceTemplate project materialization suite.
@@ -4222,18 +6898,28 @@ and signing/notarization summaries must keep their string/boolean/integer/string
 before final Report trusts the NativeDynamic payload. Stable audit summaries must also carry
 `enabled`, `allowed_platforms`, `platform_allowed`, `fatal`, and `package_count`; `profile` and
 `target_platform` remain nullable/optional metadata fields. These NativeDynamic payload schema rules
-live in `pipeline_report_native_dynamic_payload_schema.py`; signing/notarization operation-audit
-schema rules live in `pipeline_report_native_dynamic_operation_audit_schema.py`; bundled
+live in `pipeline_report_native_dynamic_payload_schema.py`, with file_manifest row schema diagnostics
+in `pipeline_report_native_dynamic_payload_file_manifest_schema.py`, materialized_packages row schema
+diagnostics in `pipeline_report_native_dynamic_payload_materialized_packages_schema.py`, reusable
+payload scalar/table field helpers in `pipeline_report_native_dynamic_payload_schema_helpers.py`, and object-array string-array helper owner rules in `pipeline_report_native_dynamic_payload_string_array_schema_helpers.py`;
+signing/notarization operation-audit schema rules live in
+`pipeline_report_native_dynamic_operation_audit_schema.py`, with reusable operation-audit field
+helpers in `pipeline_report_native_dynamic_operation_audit_schema_helpers.py`;
+bundled
 `native_dynamic_package.toml` top-level, `[abi]`, `[payload]`, and package-local
 `[[payload.files]]` schema diagnostics live in
-`pipeline_report_native_dynamic_package_report_schema.py`.
+`pipeline_report_native_dynamic_package_report_payload_files_schema.py`.
 `pipeline_report_native_dynamic_payload_stage_report.py` owns current NativeDynamic stage-report
 comparisons used by final PlatformBundle payload diagnostics. `pipeline_report_native_dynamic_payload.py`
 keeps the path containment, hash, package-report, and bundle payload consistency checks and imports
 those focused schema/stage-report modules.
 Shared table/sequence row dispatch and unknown-field attribution live in
-`pipeline_report_schema_table.py`, which imports the common bool/integer/string/string-array/object
+`pipeline_report_schema_table.py`, which imports the common bool/integer/string/object
 and object-array diagnostic primitives from `pipeline_report_schema_primitives.py`.
+`pipeline_report_schema_string_array.py` is the schema string-array owner for string-array
+schema diagnostics: non-empty arrays, blank entries, trimmed non-empty entries,
+unique entries, and duplicate-entry-index diagnostics. Schema/report consumers import
+those helpers directly instead of borrowing them through the table owner.
 `test_report_rejects_native_plugins_payload_content_hash_non_string_without_semantic_fallback`
 locks the handoff between those layers: wrong-typed top-level payload fields stop at dotted schema
 diagnostics such as `native_plugins_payload.content_hash must be a string` and do not continue into
@@ -4269,10 +6955,14 @@ the same gate into operation artifact rows: missing `artifact`, `package_relativ
 `stdout`, `stderr`, or `command` is rejected while nullable hash/exit-code failure evidence remains
 allowed.
 The nested list evidence is also gated this way. `file_manifest[]` and `materialized_packages[]`
-schema helpers stay in `pipeline_report_native_dynamic_payload_schema.py`, while their shared row
-dispatch lives in `pipeline_report_schema_table.py`; bundled
-package-report schema lives in `pipeline_report_native_dynamic_package_report_schema.py` and reuses
-the same file-manifest row contract for package-local payload files. Final Report only calls the
+schema orchestration stays in `pipeline_report_native_dynamic_payload_schema.py`, file_manifest row
+schema diagnostics live in `pipeline_report_native_dynamic_payload_file_manifest_schema.py`,
+materialized_packages row schema diagnostics live in
+`pipeline_report_native_dynamic_payload_materialized_packages_schema.py`, reusable payload field
+helpers live in `pipeline_report_native_dynamic_payload_schema_helpers.py`, object-array string-array helper owner rules live in `pipeline_report_native_dynamic_payload_string_array_schema_helpers.py`, and shared row dispatch lives in `pipeline_report_schema_table.py`; bundled
+package-report top-level/payload/ABI schema lives in `pipeline_report_native_dynamic_package_report_schema.py`,
+and package-local payload file rows live in
+`pipeline_report_native_dynamic_package_report_payload_files_schema.py`. Final Report only calls the
 normalized manifest/package fallback after the matching object-array schema has no shape or
 field-type diagnostics. The file-manifest and materialized-package schema tests now assert
 that object-array and row-field type errors do not also emit `file_manifest is malformed` or
@@ -4501,8 +7191,11 @@ Validate report containing multiple unsupported strategies produces one fatal di
 unsupported strategy, matching final Report output instead of truncating to the first unknown value.
 The strategy identity contract is centralized in `export_strategy_contract.py`: supported strategy
 names, legacy CamelCase aliases, and hyphen/space normalization are shared by Validate schema and
-stage handoffs. `stage_handoff.py` owns empty/non-list checks, unsupported-strategy de-duplication,
-and diagnostic rendering for the final Report stage and standalone stage handoffs.
+stage handoffs. `stage_handoff_strategy.py` is the Stage handoff strategy owner: it owns Validate
+strategy report diagnostics, empty/non-list checks, unsupported-strategy de-duplication,
+normalized strategy projection, NativeDynamic payload allowance, and diagnostic rendering for the
+final Report stage and standalone stage handoffs. `stage_handoff.py` stays the generic stage report
+path/load/metadata handoff owner.
 Pipeline stage selection imports those shared strategy helpers directly; only the ordered stage-key
 projection remains in `pipeline_report.py` because it is also used by final Report aggregation.
 Standalone SourceTemplate, NativeDynamic, CompileHost, and PlatformBundle strategy gates use the
@@ -4664,8 +7357,8 @@ wrapper-specific schema work to that module.
 Shared bool/integer/string/object/object-array primitive diagnostics used by the remaining injected
 NativeDynamic and Pack schema paths live in
 `tools/zircon_export/pipeline_report_schema_primitives.py`, so the stage dispatcher only wires
-those helpers into downstream schema modules. Shared table/sequence string-array diagnostics live
-behind `tools/zircon_export/pipeline_report_schema_table.py` and now reuse the indexed helper from
+those helpers into downstream schema modules. Shared string-array schema diagnostics live behind
+`tools/zircon_export/pipeline_report_schema_string_array.py` and now reuse the indexed helper from
 `tools/zircon_export/pipeline_report_validate_string_array_schema.py`: non-array fields keep
 `<field> must be a string array`, while non-string entries inside a list report
 `<field>[index] must be a string`.
@@ -4751,6 +7444,29 @@ check those linked crate row values in the dedicated CompileHost linkage schema 
 `linked_runtime_crates[].path` as a non-empty, trimmed safe relative path, so the LibraryEmbed
 CompileHost plan cannot publish absolute paths or parent-directory escapes as runtime crate
 provenance.
+`plugins_09_e1_compile_host_linked_crate_identity_gate` adds the next linkage guard:
+schema-clean `provider_package_id` values must line up with `crate_name` as
+`zircon_plugin_<provider_package_id>_runtime`, and `path` must carry the same plugin identity
+tokens. The RED/GREEN tests
+`test_report_stage_rejects_validate_compile_host_linked_crate_identity_mismatch`,
+`test_report_stage_rejects_compile_host_linked_crate_identity_mismatch`, and
+`test_compile_host_rejects_plan_linked_crate_identity_mismatch_before_execution`
+cover Validate final Report evidence, CompileHost `link_plan` evidence, and standalone
+CompileHost pre-launch plan validation.
+`plugins_09_e1_compile_host_only_expected_provider_gate` closes the opposite side of that
+set relation: every schema-clean `linked_runtime_crates[].provider_package_id` must already be
+listed in `expected_runtime_plugins[]`. The RED/GREEN tests
+`test_report_stage_rejects_validate_compile_host_unexpected_linked_crate_provider`,
+`test_report_stage_rejects_compile_host_link_plan_unexpected_linked_crate_provider`, and
+`test_compile_host_rejects_plan_unexpected_linked_crate_provider_before_execution`
+cover Validate final Report evidence, CompileHost `link_plan` evidence, and standalone
+CompileHost pre-launch plan validation before Cargo can run.
+`plugins_09_e1_compile_host_non_empty_host_output_gate` adds the minimum host artifact
+smoke check on top of those linkage gates: a successful CompileHost stage and a non-fatal
+CompileHost final Report evidence row must point to a non-empty `host_executable`. The
+RED/GREEN tests `test_compile_host_rejects_empty_host_output` and
+`test_report_stage_rejects_compile_host_empty_host_executable` cover the stage runner
+and final Report aggregation paths.
 That module is
 `tools/zircon_export/pipeline_report_validate_compile_host_linkage_schema.py`; the final Report
 stage dispatcher only routes the nested linked-crate vector into it. Both CompileHost plan and
@@ -4929,6 +7645,37 @@ evidence from including a CookAssets asset row that would make the real packer r
 `included asset ... is missing source`.
 `test_report_stage_rejects_pack_asset_manifest_drift_from_cook_assets_source` keeps Pack manifest
 `size` and `chunk_hash` tied to the actual CookAssets source bytes for included assets.
+The 2026-06-30 CookAssets report owner split keeps CookAssets-only aggregate diagnostics in
+`tools/zircon_export/pipeline_report_cook_assets.py`, moves manifest path/JSON helpers into
+`tools/zircon_export/pipeline_report_cook_assets_manifest_io.py`, and moves the CookAssets Pack handoff
+owner for `asset_manifest` drift logic into
+`tools/zircon_export/pipeline_report_cook_assets_pack_handoff.py`. This makes the CookAssets Pack handoff owner
+term explicit for the current-status guard.
+The follow-up CookAssets Pack trim closure owner split keeps that handoff owner focused on drift
+checks, while `tools/zircon_export/pipeline_report_cook_assets_pack_trim_closure.py` owns the
+CookAssets Pack trim closure owner surface for trim-closure reconstruction/source-byte diagnostics:
+Pack `trim_report` included/trimmed/missing/duplicate/diagnostics comparison, included-source
+evidence, and Pack manifest source-byte size/hash dispatch.
+`tools/zircon_export/pipeline_report_cook_assets_trim_evidence.py` owns cooked manifest trim evidence
+reconstruction from roots/assets/dependencies/labels/filter. Final Report aggregation imports the
+handoff owner and trim closure owner directly instead of receiving Pack diagnostics through the
+CookAssets report owner.
+The 2026-06-30 CookAssets asset manifest owner split keeps the stage runner in
+`tools/zircon_export/cook_assets.py` focused on command argument handling, stage report assembly,
+project-manifest fallback orchestration, and writing the cooked manifest/report. `tools/zircon_export/cook_assets_manifest.py`
+is the CookAssets asset manifest owner for asset manifest diagnostics: JSON load errors, closed
+schema checks, roots/assets/dependencies/labels string-array gates, safe asset package path
+normalization, duplicate-path checks, reference-closure validation, default asset-filter injection,
+source path resolution, and source file existence checks. The stage runner consumes that owner for
+both explicit manifests and project `default_scene` fallback manifests instead of carrying the
+schema and normalization policy inline.
+The 2026-06-30 CookAssets project fallback owner split keeps the stage runner focused on stage
+orchestration. `tools/zircon_export/cook_assets_project_fallback.py` owns the CookAssets project
+fallback owner surface for project manifest fallback/res:// direct-reference closure: project TOML
+load, `default_scene` validation, project `asset_manifest` safe relative path resolution, `res://`
+direct-reference parsing, recursive referenced asset collection, and fallback manifest assembly.
+`tools/zircon_export/cook_assets.py` now imports only the fallback entrypoint while continuing to
+write the cooked manifest/report and handle explicit manifest normalization.
 `test_report_stage_rejects_native_dynamic_unknown_top_level_field` closes the NativeDynamic stage
 report before PlatformBundle can consume the staged plugins directory and payload audit. A non-fatal
 `native_dynamic` report may only carry stage metadata, validate/plugin-root provenance, target and
@@ -5293,9 +8040,14 @@ string arrays split non-array fields from non-string entries, and
 `test_report_stage_rejects_pack_trim_report_string_array_non_string_entry_before_array_shape`
 keeps those diagnostics pinned to the exact bad array index. These checks live
 across the Pack schema modules: stage wrapper checks stay in `pipeline_report_pack_stage_schema.py`,
-trim-report checks stay in `pipeline_report_pack_trim_schema.py`,
-pack manifest/count/dedup checks stay in `pipeline_report_pack_manifest_schema.py`, and delta
-manifest/count/asset-set/chunk checks stay in `pipeline_report_pack_delta_schema.py`. The shared
+non-fatal and delta-publication required-field diagnostics stay in `pipeline_report_pack_stage_required_fields.py`,
+trim-report top-level checks stay in `pipeline_report_pack_trim_schema.py`,
+Pack trim object-array schema owner checks stay in `pipeline_report_pack_trim_object_array_schema.py`,
+pack manifest/count/dedup checks stay in `pipeline_report_pack_manifest_schema.py`, delta
+manifest field-shape checks stay in `pipeline_report_pack_delta_schema.py`, Pack delta
+publication/count/target semantics stay in `pipeline_report_pack_delta_semantics.py`, and
+Pack delta asset-set semantics owner checks stay in
+`pipeline_report_pack_delta_asset_set_semantics.py`. The shared
 `pipeline_report_stage_schema.py` remains only the cross-stage dispatcher.
 Common Pack manifest, chunk, asset, and delta-manifest fixtures now live in
 `tools/zircon_export/tests/pack_test_support.py`, while Pack schema report staging and assertion
@@ -5306,7 +8058,8 @@ manifest-consistency regressions;
 `test_pipeline_report_pack_delta_top_level_schema.py` owns delta manifest top-level closed-schema,
 required-field, typed-field, and path-array blank-entry regressions; `test_pipeline_report_pack_delta_schema.py`
 owns embedded pack-document, delta asset-set, target-manifest, changed-chunk, and publication-pairing
-semantic regressions. `test_report_stage_rejects_pack_trim_report_blank_diagnostic_entry` keeps
+semantic regressions while the implementation dispatches those asset-set helpers through
+`pipeline_report_pack_delta_asset_set_semantics.py`. `test_report_stage_rejects_pack_trim_report_blank_diagnostic_entry` keeps
 trim-report diagnostic evidence on the Pack schema path instead of letting blank rows fall through
 to later trim consistency diagnostics.
 `test_report_rejects_bundle_manifest_unknown_top_level_field` keeps loaded bundle manifests on the
@@ -5364,33 +8117,71 @@ final Report follows those paths or compares the loaded `bundle.json`.
 optional report strings that become release evidence when present, including bundled delta paths,
 delta source provenance, and the NativeDynamic plugins directory.
 Those PlatformBundle stage-report and loaded `bundle.json` schema rules now live in
-`pipeline_report_platform_bundle_schema.py`; `pipeline_report_platform_bundle.py` keeps the final
-Report orchestration, manifest loading, path containment, hash, and NativeDynamic payload
-consistency checks. Its local primitive checks are imported from
+`pipeline_report_platform_bundle_schema.py`; `pipeline_report_platform_bundle_stage_handoff.py`
+is the PlatformBundle stage handoff report owner for Host/Pack/Delta cross-stage handoff diagnostics.
+`pipeline_report_platform_bundle_file_evidence.py`
+is the PlatformBundle file evidence owner for manifest/path/hash/output file diagnostics:
+bundle-manifest loading, bundle-relative containment checks, report/manifest field path matching,
+output/source SHA-256 comparison, and copied template-file bundle containment. `pipeline_report_platform_bundle.py`
+keeps PlatformBundle final Report manifest orchestration, required-output checks, and NativeDynamic
+payload/template/file-evidence child owner dispatch. Its local primitive checks are imported from
 `pipeline_report_schema_primitives.py`, while nested template/payload schema ownership stays in the
 PlatformBundle-specific helper modules.
 `pipeline_report_platform_bundle_template.py` follows the same split: copied-template file matching,
 path resolution, and on-disk SHA-256 checks stay in the evidence helper, while
-`pipeline_report_platform_bundle_template_schema.py` owns the embedded template report schema,
-copied `template_files[]` row schema, and the field-level hash/format-version gates.
+`pipeline_report_platform_bundle_template_schema.py` owns the embedded template report top-level
+field/table schema, required evidence, diagnostics shape, and child owner dispatch.
+`pipeline_report_platform_bundle_template_bundle_files_schema.py` is the PlatformBundle template
+bundle/files schema owner for embedded template bundle/files row schema diagnostics:
+`template.bundle` field checks, `template.files[]` row field shape, required/trimmed/SHA-256/safe
+relative-path checks, unique path checks, host executable membership, file source hash, and content
+hash dispatch.
+`pipeline_report_platform_bundle_template_path_schema_helpers.py` is the PlatformBundle template
+path/hash schema helper owner for path/hash schema diagnostics: SHA-256 digest table/sequence
+checks, safe relative path checks, bundle path `.` allowance, and normalized relative path duplicate
+checks. The template schema and bundle/files schema owners import this helper owner directly instead
+of borrowing path/hash rules through the generic schema helper module.
+`pipeline_report_platform_bundle_template_copied_files_schema.py` is the PlatformBundle template
+copied-files schema owner for copied template_files[] schema diagnostics: `source`/`destination`
+row fields, unknown/string/required/trimmed checks, and duplicate source/destination pair diagnostics.
+`pipeline_report_platform_bundle_template_report_semantics.py` is the PlatformBundle template report semantics owner
+for template report semantics diagnostics: expected engine/target identity, compatible-profile
+membership, host executable membership, file source SHA-256, and computed content hash checks. The
+template schema owner imports those entrypoints and keeps field/table schema orchestration separate
+from filesystem/hash/profile membership policy.
 `pipeline_report_platform_bundle_template_manifest_schema.py` owns the parsed `template.manifest`
-path, TOML, closed-schema, and manifest/report identity gates, so the main template schema module
-can keep delegating source-template manifest semantics instead of accumulating another long
-diagnostic block. The main template schema imports only
-`template_report_manifest_path_diagnostics(...)` from that module; manifest TOML reads, manifest
-bundle defaults, and manifest/report identity helpers stay out of the embedded template report
-schema file.
+path, TOML, closed-schema, scalar schema, and bundle schema gates, so the main template schema module
+can keep delegating source-template manifest semantics instead of accumulating another long diagnostic
+block. `pipeline_report_platform_bundle_template_manifest_identity.py`
+is the PlatformBundle template manifest identity owner for manifest/report identity diagnostics:
+same-name scalar identity, target-platform normalization, compatible-profile array identity,
+host-executable resolution, bundle layout identity, and `[[files]]` row identity. The main template
+schema imports only `template_report_manifest_path_diagnostics(...)` from the manifest schema
+module; manifest TOML reads and schema gates stay out of the embedded template report schema file,
+while manifest/report identity helpers stay out of the manifest schema owner.
+`pipeline_report_platform_bundle_template_manifest_files_schema.py` is the PlatformBundle template
+manifest files schema owner for [[files]] schema/presence/unique diagnostics: path, SHA-256,
+bundle_path, optional purpose, required file-row presence, duplicate template file path checks, and
+duplicate bundle path checks stay there. The manifest schema owner now imports those file-row gates
+and keeps only manifest read/format/schema orchestration plus scalar/path/bundle validation.
 `pipeline_report_platform_bundle_template_resolution_schema.py` owns the template-root resolution
-field shape, required/null rules, candidate/skipped-candidate row schemas, and the aggregate
-diagnostic entry point. `pipeline_report_platform_bundle_template_resolution_semantics.py` owns the
-selected-candidate, fatal/no-match/root-failure, candidate identity/profile/bundle-format, skipped
-diagnostic, and template-root containment semantics. Shared schema primitives still own the basic
+field shape, required/null rules, diagnostics array gates, semantic owner dispatch, and the aggregate
+diagnostic entry point. `pipeline_report_platform_bundle_template_resolution_row_schema.py` is the
+PlatformBundle template resolution row schema owner for candidate and skipped-candidate row schema
+diagnostics. `pipeline_report_platform_bundle_template_resolution_semantics.py` owns the
+selected-candidate, fatal/non-fatal selection, non-fatal diagnostics/identity, and skipped diagnostic
+semantics. `pipeline_report_platform_bundle_template_resolution_failure_semantics.py` is the
+PlatformBundle template resolution failure semantics owner for fatal no-match/root-failure/multiple-match diagnostics:
+fatal candidate-count and diagnostics evidence, diagnostic-family mutual exclusion, no-match identity/profile/root,
+root-failure row suppression/root identity, and multiple-candidate diagnostic coverage live there.
+Shared schema primitives still own the basic
 bool/integer/string/object/object-array diagnostic text, while the index-aware string-array helper
 is reused for PlatformBundle entry checks.
 `pipeline_report_platform_bundle_template_schema_helpers.py` now carries the local field/table
 diagnostic helpers for that area: unknown-field scans, typed table/sequence checks, non-empty string
-checks, trimmed-string checks, string-array entry checks, SHA-256 shape checks,
-safe-relative path checks, enum checks, and duplicate `template.files[].path` detection.
+checks, trimmed-string checks, string-array entry checks, enum checks, and generic string-array
+uniqueness checks. Path/hash schema diagnostics stay in
+`pipeline_report_platform_bundle_template_path_schema_helpers.py`.
 Its string-array helper now distinguishes non-array fields from non-string entries, so
 `template.diagnostics[]`, `template_resolution.diagnostics[]`,
 `template_resolution.candidates[].compatible_profiles[]`, and
@@ -5977,6 +8768,12 @@ SourceTemplate records the failed build validation attempt with
 process never launched. The same SourceTemplate report keeps `stdout_lines` and `stderr_lines`
 empty in this no-process case, while successful or failed launched builds record the captured Cargo
 streams for final Report and editor-side audit views.
+`test_source_template_rejects_non_cargo_build_plan_before_execution` keeps the SourceTemplate stage
+from executing a Validate plan that is shaped like a command but is not `cargo build`. The
+plan/command owner rejects `cargo check` or a non-Cargo binary before generated-project
+materialization or subprocess launch, writes a fatal SourceTemplate report with
+`SourceTemplate build plan command must run cargo build`, and leaves `command` empty so the final
+Report cannot treat a stage-local dry run or check as build evidence.
 `test_report_rejects_source_template_report_command_missing_target_dir` and
 `test_report_rejects_source_template_build_validation_command_missing_target_dir` keep SourceTemplate
 final Report build evidence bound to the generated stage target directory. Non-fatal SourceTemplate
@@ -5987,6 +8784,27 @@ drift.
 `test_report_command_reports_manifest_and_target_option_errors` keeps that aggregation behavior
 explicit when `--manifest-path` and `--target-dir` are both malformed in the same top-level
 SourceTemplate report command.
+`test_report_rejects_source_template_validate_build_plan_target_triple_override` and
+`test_report_rejects_source_template_command_target_triple_override` keep SourceTemplate target
+triple selection out of command evidence. Validate `plan_summary.source_template_build.command`,
+the top-level SourceTemplate report `command`, and nested `build_validation.command` reject Cargo
+`--target` / `--target=...` with `must not include --target because export target descriptor owns
+platform target selection`, while `--target-dir` remains the stage-owned build output directory
+binding and `--locked` / `--offline` remain SourceTemplate command completion policy.
+`test_source_template_rejects_target_triple_override_before_execution` locks the same policy at
+the SourceTemplate stage boundary: `source_template_plan(...)` rejects Validate build-plan
+commands carrying `--target` before generated project materialization or Cargo subprocess launch,
+and the final Report handoff reuses the shared SourceTemplate command helper instead of carrying a
+separate target-triple rule.
+`test_source_template_rejects_profile_release_mismatch_before_execution`,
+`test_report_rejects_source_template_validate_build_plan_profile_release_mismatch`,
+`test_report_rejects_source_template_command_release_profile_mismatch`, and
+`test_report_rejects_source_template_command_debug_release_flag` keep SourceTemplate build profile
+selection in `cargo_profile` / `release` fields. Stage execution rejects invalid profiles, mismatched
+`release` booleans, release plans missing `--release`, and debug plans carrying `--release` before
+materialization. Final Report handoff reuses the same release-flag helper and checks report
+`command` plus nested `build_validation.command` against the Validate build plan's expected release
+mode.
 `test_report_rejects_source_template_generated_file_read_error` keeps SourceTemplate final Report
 aggregation on the same diagnostic path when a generated file passes existence/type checks but
 fails during content hashing; final Report reports `SourceTemplate generated file ... could not be read`
@@ -5997,6 +8815,8 @@ instead of surfacing the filesystem exception.
 evidence hashing. The host/pack/delta output/source comparisons and template file sha256 checks now
 emit field-specific `PlatformBundle report ... could not be read` diagnostics instead of surfacing
 filesystem exceptions.
+The same PlatformBundle file evidence path reports `... is empty` for zero-byte payloads and
+`... could not be inspected` when size metadata cannot be read before hashing.
 `test_platform_bundle_rejects_host_copy_error` keeps PlatformBundle bundle materialization on the
 same diagnostic path when release files cannot be copied. Template files, host executables, pack
 files, and delta pack files now share `copy_platform_bundle_file(...)`, so copy or destination
@@ -6321,6 +9141,81 @@ package-report, loadable-artifact, and package-export materialized package cover
 `test_pipeline_report_native_dynamic_stage_materialized_packages.py`. Shared stage report and TOML
 fixture helpers live in `native_dynamic_stage_report_test_support.py`, keeping future evidence gates
 from growing the loader-focused module again.
+`test_zircon_export_native_dynamic_owner_boundaries.py` now guards the implementation boundary for
+build execution report diagnostics: `pipeline_report_native_dynamic_build_execution.py` owns the build
+plan/execution field comparison helpers and copied loadable/sidecar artifact checks, and
+package export diagnostics: `pipeline_report_native_dynamic_package_exports.py` owns Validate/stage
+package export rows, materialized package export-path projection, and stale path diagnostics.
+`pipeline_report_native_dynamic_stage_payload.py` must stay under the large-file threshold while
+consuming both owners.
+`pipeline_report_native_dynamic_stage_loader_manifest.py` is the NativeDynamic stage loader manifest owner for loader manifest package diagnostics: it parses the generated `plugins/native_plugins.toml`
+through the shared loader manifest parser, compares plugin ids with materialized package ids, and
+checks loader `path`, `manifest`, `package_report`, and ABI rows against schema-clean
+`package_exports[]` evidence. `pipeline_report_native_dynamic_stage_payload.py` now only orchestrates
+that owner with the stage file-manifest, package-report, package-export, build-execution, and
+operation-audit diagnostics, so loader manifest package/export row policy cannot grow back into the
+stage payload owner.
+`pipeline_report_native_dynamic_stage_package_report.py` is the NativeDynamic stage package report owner for NativeDynamic materialized package source/package-report diagnostics: it validates each materialized package source path, source manifest id, declared package-report path, package-report file existence, and package-report content drift before final Report trusts the NativeDynamic stage wrapper. `pipeline_report_native_dynamic_stage_payload.py` now consumes that owner while retaining stage file-manifest/content-hash orchestration, package export, build execution, and operation-audit coordination.
+`pipeline_report_native_dynamic_stage_payload_operation_audit.py` is the NativeDynamic stage payload operation-audit artifact owner for operation-audit artifact/package-relative diagnostics: it projects materialized package relative artifacts, checks stage `native_signing`/`native_notarization` artifacts[].artifact against `package_relative_artifact`, checks artifact_count against artifacts length, and compares package-relative artifact lists with materialized loadable artifacts. `pipeline_report_native_dynamic_stage_payload.py` keeps stage file-manifest/content-hash orchestration, package count/package id table checks, package export, build execution, operation-audit owner dispatch, and final payload consistency.
+`pipeline_report_native_dynamic_payload_loader_manifest.py` is the NativeDynamic payload loader manifest owner for PlatformBundle NativeDynamic payload loader-manifest diagnostics: it validates the final bundle `loader_manifest` path, loader plugin id ordering, ABI rows, and `package_report` evidence against schema-clean materialized package rows.
+`pipeline_report_native_dynamic_payload_platform_bundle.py` is the NativeDynamic payload PlatformBundle handoff owner for PlatformBundle NativeDynamic payload handoff diagnostics: it orchestrates the final Report `native_plugins_payload` wrapper, current-output/stage report/source handoff, bundle/package paths, file manifest/hash checks, loader-manifest dispatch, package-report dispatch, payload schema dispatch, and stage-report dispatch. `pipeline_report_native_dynamic_payload.py` now keeps only the final Report top-level `native_plugins_payload` projection.
+`pipeline_report_native_dynamic_payload_platform_bundle_stage.py` is the NativeDynamic payload PlatformBundle stage-report handoff owner for stage_report path/source handoff diagnostics: PlatformBundle payload `stage_report` required/missing/mismatch checks, current-output NativeDynamic report path derivation, stage report path resolution, stage-backed payload `source` matching, failed-stage audit suppression, and stage report discovery live there. `pipeline_report_native_dynamic_payload_platform_bundle.py` keeps the final Report payload wrapper, bundle/package path diagnostics, file-manifest/hash checks, and sub-owner dispatch.
+`pipeline_report_native_dynamic_payload_package_path.py` is the NativeDynamic payload package path owner for package path and package_report diagnostics: it validates `materialized_packages[].destination` containment under `native_plugins`, stage-backed package_report requirements, package_report containment/existence/file checks, and dispatches package-report content diagnostics. `pipeline_report_native_dynamic_payload_platform_bundle.py` consumes that owner and keeps final Report payload wrapper orchestration, file-manifest/hash checks, and sub-owner dispatch.
+`pipeline_report_native_dynamic_payload_bundle_evidence.py` is the NativeDynamic payload bundle evidence owner for current bundle file/hash/count and loadable-artifact diagnostics: it validates final payload `bundle_path`, recomputes the current bundle `file_manifest` and `content_hash`, checks file/package counts, and verifies materialized package `loadable_artifacts` membership against the bundle file manifest. `pipeline_report_native_dynamic_payload_platform_bundle.py` consumes that owner and keeps final Report payload wrapper orchestration and sub-owner dispatch.
+`pipeline_report_platform_bundle_template_resolution_path_semantics.py` is the PlatformBundle template resolution path semantics owner for template_dir/template_root path containment diagnostics: it validates `template_dir` uniqueness, direct-child placement, and root containment for `candidates[]` and `skipped_candidates[]`. `pipeline_report_platform_bundle_template_resolution_semantics.py` now consumes that owner while retaining selection/fatal/no-match/root-failure/candidate semantics, and `pipeline_report_platform_bundle_template_resolution_schema.py` imports the path owner directly instead of borrowing path helpers through the resolution semantics owner.
+`pipeline_report_platform_bundle_template_resolution_candidate_semantics.py` is the PlatformBundle template resolution candidate semantics owner for candidate profile/identity/bundle-format semantics: candidate compatible-profile membership, engine/target identity normalization, bundle_format closed-set diagnostics, and host_artifact closed-set diagnostics stay there. `pipeline_report_platform_bundle_template_resolution_semantics.py` retains fatal/non-fatal selection, diagnostic-family, no-match/root-failure, skipped-candidate diagnostics, and path owner dispatch.
+`pipeline_report_platform_bundle_template_resolution_failure_semantics.py` is the PlatformBundle template resolution failure semantics owner for fatal no-match/root-failure/multiple-match diagnostics: fatal candidate-count/diagnostics evidence, failure diagnostic family separation, no-match identity/profile/root checks, root-failure root/candidate suppression, and multiple-match candidate coverage stay there. `pipeline_report_platform_bundle_template_resolution_semantics.py` now keeps selected-candidate, fatal/non-fatal selection, non-fatal diagnostics/identity, skipped-candidate diagnostics, and path owner dispatch.
+`pipeline_report_platform_bundle_template_resolution_row_schema.py` is the PlatformBundle template resolution row schema owner for candidate and skipped-candidate row schema diagnostics: `candidates[]` and `skipped_candidates[]` row object/unknown/required/string/string-array/trimmed/unique checks stay there. `pipeline_report_platform_bundle_template_resolution_schema.py` keeps the `template_resolution` top-level field shape, required/null/string/bool/diagnostics array gates, candidate/path/selection semantic owner dispatch, and aggregate entrypoint.
+`test_zircon_export_native_dynamic_package_report_schema_helper_owner_boundaries.py` locks the
+NativeDynamic package report schema helper owner boundary so package report reusable field diagnostics
+cannot return to the bundled package-report schema orchestration owner.
+`test_zircon_export_native_dynamic_package_report_payload_files_schema_owner_boundaries.py` locks
+the NativeDynamic package report payload.files schema owner boundary so package-local payload file
+row schema diagnostics cannot return to the package-report top-level/payload/ABI owner.
+`test_zircon_export_native_dynamic_build_execution_packages_schema_owner_boundaries.py` locks the
+NativeDynamic build execution packages schema owner boundary. BuildExecution packages row schema diagnostics
+stay with command/sidecar array checks, safe-relative-path normalization, and package-directory scope checks
+in `pipeline_report_native_dynamic_build_execution_packages_schema.py` instead of returning to the
+top-level build-execution schema owner.
+`test_zircon_export_native_dynamic_build_plan_owner_boundaries.py` guards the same owner discipline
+inside build-plan report validation: Cargo command semantics must live in
+`pipeline_report_native_dynamic_build_plan_commands.py`, package header/artifact details must live
+in `pipeline_report_native_dynamic_build_plan_package_details.py`, schema helpers consume the
+command owner, and the top-level build-plan schema owner must remain below its threshold after the
+split.
+`test_zircon_export_native_dynamic_build_plan_schema_helper_owner_boundaries.py` locks the
+NativeDynamic build plan schema helper owner boundary. BuildPlan packages row and reusable field diagnostics
+stay in `pipeline_report_native_dynamic_build_plan_schema_helpers.py`, while the top-level build-plan
+schema owner keeps plan table orchestration, profile/release checks, and package details owner
+dispatch.
+`test_zircon_export_pack_manifest_schema_helper_owner_boundaries.py` locks both Pack manifest schema helper owner boundaries. The earlier helper split moved Pack manifest reusable row/path/hash diagnostics out of document manifest orchestration; the current child split narrows that boundary further. `pipeline_report_pack_manifest_path_hash_schema_helpers.py` is the Pack manifest path/hash schema helper owner for path/hash schema diagnostics: 32-byte chunk hash validation, chunk hash order/uniqueness, safe asset package path normalization, asset path order/uniqueness, and byte-hash predicates. `pipeline_report_pack_manifest_schema_helpers.py` keeps Pack manifest row/chunk/asset row schema orchestration, chunk offset/total-size/version diagnostics, asset chunk reference/size diagnostics, and non-negative integer diagnostics, while `pipeline_report_pack_manifest_schema.py` keeps document manifest orchestration, report asset/chunk count reconciliation, and deduplicated asset report consistency.
+`test_zircon_export_pack_delta_semantics_owner_boundaries.py` locks the Pack delta semantic diagnostics owner boundary. Pack delta report publication/count/target diagnostics stay in `pipeline_report_pack_delta_semantics.py`, while `pipeline_report_pack_delta_schema.py` keeps delta manifest shape, embedded manifest schema dispatch, changed asset/chunk row schema dispatch, and removed asset path schema diagnostics.
+`test_zircon_export_pack_delta_asset_set_semantics_owner_boundaries.py` locks the Pack delta asset-set semantics owner boundary for `plugins_13_m5_t1_pack_delta_asset_set_semantics_owner_split`. Pack delta asset-set semantics owner code stays in `pipeline_report_pack_delta_asset_set_semantics.py`: asset-path list schema-clean helpers, document manifest fingerprints, removed/changed/reused path derivation, changed asset entry matching, changed chunk hash matching, and delta manifest asset/chunk helper accessors must not flow back into `pipeline_report_pack_delta_semantics.py`.
+`test_zircon_export_native_dynamic_payload_file_manifest_owner_boundaries.py` locks the NativeDynamic payload file manifest owner boundary. NativeDynamic payload file manifest/path/hash diagnostics stay in `native_dynamic_payload_file_manifest.py`, while `native_dynamic_payload.py` keeps stage/package summary orchestration, normalized report rows, operation audit checks, and materialized loadable-artifact membership validation.
+`test_zircon_export_native_dynamic_payload_summary_owner_boundaries.py` locks the NativeDynamic payload operation-audit summary owner boundary. NativeDynamic payload operation-audit summary owner rules stay in `native_dynamic_payload_operation_audit.py` for operation-audit summary/consistency, while `native_dynamic_payload.py` keeps stage/package summary orchestration, normalized report rows, directory fallback, and materialized loadable-artifact membership validation.
+`test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py` locks the NativeDynamic payload PlatformBundle handoff owner boundary. PlatformBundle NativeDynamic payload handoff diagnostics stay in `pipeline_report_native_dynamic_payload_platform_bundle.py`, while `pipeline_report_native_dynamic_payload.py` keeps only the final Report top-level `native_plugins_payload` projection and sub-diagnostic owners keep loader-manifest, package-report, file-manifest, stage-report, and payload-schema policy.
+The same owner boundary test now also locks `pipeline_report_native_dynamic_payload_platform_bundle_stage.py` as the NativeDynamic payload PlatformBundle stage-report handoff owner: stage_report path/source handoff diagnostics stay in the stage owner, `pipeline_report_platform_bundle.py` imports `native_dynamic_stage_report_path` from that owner, and path-resolution tests import `current_output_native_dynamic_report_path` from that owner directly.
+`test_zircon_export_native_dynamic_payload_package_path_owner_boundaries.py` locks the NativeDynamic payload package path owner boundary. Package path and package_report diagnostics stay in `pipeline_report_native_dynamic_payload_package_path.py`, while `pipeline_report_native_dynamic_payload_platform_bundle.py` imports that owner and keeps final Report payload wrapper orchestration and dispatch.
+`test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries.py` locks the NativeDynamic payload bundle evidence owner boundary. Current bundle file/hash/count and loadable-artifact diagnostics stay in `pipeline_report_native_dynamic_payload_bundle_evidence.py`, while `pipeline_report_native_dynamic_payload_platform_bundle.py` imports that owner and keeps final Report payload wrapper orchestration and dispatch.
+`test_zircon_export_native_dynamic_stage_payload_finalize_owner_boundaries.py` locks the NativeDynamic stage payload finalization owner boundary. package report/loader manifest/file manifest finalization stays in `native_dynamic_stage_payload_finalize.py`, while `native_dynamic_materialize.py` keeps package source discovery, safe destination resolution, native artifact/resource copy, and partial package cleanup.
+`test_zircon_export_platform_bundle_template_copied_files_owner_boundaries.py` locks the PlatformBundle template copied-files schema owner boundary. copied template_files[] schema diagnostics stay in `pipeline_report_platform_bundle_template_copied_files_schema.py`, while `pipeline_report_platform_bundle_template_schema.py` keeps embedded template report top-level schema, required evidence, diagnostics shape, and child owner dispatch.
+`test_zircon_export_stage_handoff_strategy_owner_boundaries.py` locks the Stage handoff strategy owner boundary. Validate strategy report diagnostics stay in `stage_handoff_strategy.py`, while `stage_handoff.py` keeps generic stage report path/load/metadata handoff, path-field diagnostics, asset-filter handoff, and `dedupe(...)`.
+`test_zircon_export_platform_bundle_template_bundle_files_owner_boundaries.py` locks the PlatformBundle template bundle/files schema owner boundary. embedded template bundle/files row schema diagnostics stay in `pipeline_report_platform_bundle_template_bundle_files_schema.py`, while `pipeline_report_platform_bundle_template_schema.py` keeps embedded template report top-level field/table schema, required evidence, diagnostics shape, and child owner dispatch.
+`test_zircon_export_platform_bundle_template_path_schema_helper_owner_boundaries.py` locks the PlatformBundle template path/hash schema helper owner boundary. path/hash schema diagnostics stay in `pipeline_report_platform_bundle_template_path_schema_helpers.py`, while `pipeline_report_platform_bundle_template_schema_helpers.py` keeps generic unknown/type/string/array/object/enum schema helpers and consumers import the path/hash owner directly.
+`test_zircon_export_platform_bundle_template_manifest_files_owner_boundaries.py` locks the PlatformBundle template manifest files schema owner boundary. [[files]] schema/presence/unique diagnostics stay in `pipeline_report_platform_bundle_template_manifest_files_schema.py`, while `pipeline_report_platform_bundle_template_manifest_schema.py` keeps manifest path/TOML/format-version, closed-schema, scalar, profile, path, bundle, identity dispatch, and file-owner dispatch.
+`test_zircon_export_platform_bundle_template_resolution_candidate_owner_boundaries.py` locks the PlatformBundle template resolution candidate semantics owner boundary. candidate profile/identity/bundle-format semantics stay in `pipeline_report_platform_bundle_template_resolution_candidate_semantics.py`, while `pipeline_report_platform_bundle_template_resolution_semantics.py` keeps fatal/non-fatal selection, diagnostic-family, no-match/root-failure, skipped-candidate diagnostics, and path owner dispatch.
+`test_zircon_export_platform_bundle_template_resolution_failure_semantics_owner_boundaries.py` locks the PlatformBundle template resolution failure semantics owner boundary. fatal no-match/root-failure/multiple-match diagnostics stay in `pipeline_report_platform_bundle_template_resolution_failure_semantics.py`, while `pipeline_report_platform_bundle_template_resolution_semantics.py` keeps selected-candidate, fatal/non-fatal selection, non-fatal diagnostics/identity, skipped-candidate diagnostics, and path owner dispatch.
+`test_zircon_export_platform_bundle_template_resolution_row_schema_owner_boundaries.py` locks the PlatformBundle template resolution row schema owner boundary. candidate and skipped-candidate row schema diagnostics stay in `pipeline_report_platform_bundle_template_resolution_row_schema.py`, while `pipeline_report_platform_bundle_template_resolution_schema.py` keeps top-level field shape, required/null rules, diagnostics array gates, semantic owner dispatch, and aggregate entrypoint.
+`test_zircon_export_template_resolution_owner_boundaries.py` locks the ExportTemplate resolution owner boundary. template root candidate resolution stays in `export_template_resolution.py`, while `export_template.py` keeps single-template validation orchestration, closed-schema/scalar/profile/path/bundle/file/content-hash validation, and fatal report assembly.
+`test_zircon_export_platform_bundle_strategy_handoff_owner_boundaries.py` locks the PlatformBundle strategy handoff owner boundary. Validate strategy/native-dynamic handoff diagnostics stay in `platform_bundle_strategy_handoff.py`, while `platform_bundle.py` keeps stage argument handoff, template root/direct validation orchestration, materialization dispatch, bundle manifest/report assembly, and exit-code orchestration.
+`test_zircon_export_platform_bundle_report_payload_owner_boundaries.py` locks the PlatformBundle report payload owner boundary. bundle manifest and stage report payload assembly stay in `platform_bundle_report_payload.py`, while `platform_bundle.py` keeps stage handoffs, template validation, materialization dispatch, bundle manifest/report writes, cleanup, and exit-code orchestration.
+`test_zircon_export_platform_bundle_template_files_materialize_owner_boundaries.py` locks the PlatformBundle template files materialize owner boundary. template file copy and native plugins overwrite filtering stay in `platform_bundle_template_files_materialize.py`, while `platform_bundle_materialize.py` keeps host/pack/delta bundle copy helpers, native plugins directory copy, template output path resolution, and materialization orchestration.
+`test_zircon_export_platform_bundle_native_plugins_materialize_owner_boundaries.py` locks the PlatformBundle native plugins materialize owner boundary. native plugins directory overwrite and recursive copy stay in `platform_bundle_native_plugins_materialize.py`, while `platform_bundle_materialize.py` keeps host/pack/delta bundle copy helpers, template output path resolution, and materialization orchestration.
+`test_zircon_export_native_dynamic_operation_audit_summary_schema_owner_boundaries.py` locks the NativeDynamic operation-audit summary schema owner boundary for `plugins_13_m5_t1_native_dynamic_operation_audit_summary_schema_owner_split`. PlatformBundle summary constants and `platform_bundle_native_plugins_operation_audit_schema_diagnostics(...)` stay in `pipeline_report_native_dynamic_operation_audit_summary_schema.py`; the stage schema owner must not regain that summary entrypoint.
+`test_zircon_export_native_dynamic_operation_audit_stage_packages_owner_boundaries.py` locks the NativeDynamic operation audit stage packages owner boundary. packages[].artifacts[] schema diagnostics stay in `pipeline_report_native_dynamic_operation_audit_stage_packages_schema.py`, while `pipeline_report_native_dynamic_operation_audit_schema.py` keeps operation-audit wrapper schema, diagnostics array, and signing/notarization dispatch.
+`test_zircon_export_native_build_workspace_owner_boundaries.py` locks the NativeBuild workspace metadata owner boundary. NativeBuild TOML/workspace crate diagnostics stay in `native_build_workspace.py`, while `native_build.py` keeps NativeDynamic build-plan assembly and consumes workspace metadata directly.
+`test_zircon_export_native_build_cargo_command_owner_boundaries.py` locks the NativeBuild Cargo command owner boundary. Cargo profile/features/command/artifact naming stay in `native_build_command.py`, while `native_build.py` keeps NativeDynamic build-plan assembly and consumes Cargo command helpers directly.
+`test_zircon_export_native_build_execution_owner_boundaries.py` locks the NativeBuild execution owner boundary for `plugins_13_m5_t1_native_build_execution_owner_split`. `execute_native_dynamic_build_plan(...)`, Cargo subprocess execution, staged loadable artifact copy, sidecar copy, materialized package directory lookup, and execution report assembly stay in `native_build_execution.py`, while `native_build.py` keeps NativeDynamic build-plan assembly.
 `test_report_stage_rejects_native_dynamic_missing_materialized_package_report` keeps a hash-current
 stage report from silently falling back to an implicit default package report path, while
 `test_report_stage_rejects_native_dynamic_empty_materialized_package_source` and
@@ -6389,12 +9284,13 @@ loadable artifact path to the same target directory, Cargo profile, crate name, 
 so a forged library filename cannot ride along with otherwise valid Cargo command evidence.
 The same final Report build-plan command gate rejects feature overrides (`--all-features`,
 `--no-default-features`), target broadening (`--all-targets`, `--bins`, `--examples`, `--tests`,
-`--benches`, `--lib`), package broadening (`--workspace`, `--all`, `--exclude`), and profile
+`--benches`, `--lib`), target-triple overrides (`--target`), package broadening (`--workspace`, `--all`, `--exclude`), and profile
 override (`--profile`) flags. The
-`native_build_plan.packages[].features`, `crate_name`, and `cargo_profile`/`release` fields own those
-choices, so a command row cannot widen the planned NativeDynamic Cargo build while still matching the
-rest of the package audit. Wrapper policy flags such as `--locked` and `--offline` remain owned by
-the NativeDynamic command generator and are not rejected by this final Report gate.
+`native_build_plan.packages[].features`, `crate_name`, `cargo_profile`/`release`, and export target
+descriptor fields own those choices, so a command row cannot widen the planned NativeDynamic Cargo
+build while still matching the rest of the package audit. Wrapper policy flags such as `--locked` and
+`--offline` remain owned by the NativeDynamic command generator and are not rejected by this final
+Report gate.
 The standalone NativeDynamic stage applies the same schema-first rule before deriving that Cargo
 profile: a present Validate `profile_summary.build_mode` must be a non-empty trimmed known export
 build mode before the stage emits native build package commands. Padded or unknown build-mode
@@ -6423,8 +9319,9 @@ string before `cdylib` membership is considered.
 `test_report_stage_rejects_native_dynamic_build_plan_command_feature_broadening`,
 `test_report_stage_rejects_native_dynamic_build_plan_command_no_default_features_override`,
 `test_report_stage_rejects_native_dynamic_build_plan_command_target_broadening`,
+`test_report_stage_rejects_native_dynamic_build_plan_command_target_triple_override`,
 `test_report_stage_rejects_native_dynamic_build_plan_command_package_broadening`, and
-`test_report_stage_rejects_native_dynamic_build_plan_command_profile_override` cover those four
+`test_report_stage_rejects_native_dynamic_build_plan_command_profile_override` cover those
 command-boundary classes.
 `test_report_stage_rejects_native_dynamic_build_execution_package_mismatch` applies the same
 package-id closure to `native_build_execution.packages[]`; executed build/copy evidence must describe
@@ -6511,6 +9408,20 @@ Validate's `library_embed_compile_host.cargo_profile` is limited to `debug` or `
 The same plan object must explicitly carry the full CompileHost field set; missing package,
 command, release, linkage, feature, or target fields are final Report schema failures instead of
 implicit opt-outs from later consistency checks.
+The 2026-06-30 CompileHost plan owner split keeps the stage runner in
+`tools/zircon_export/compile_host.py` focused on validate-report path selection, stage directory
+creation, Cargo process execution, target-dir rewrite, host executable path projection, and report
+writing. `tools/zircon_export/compile_host_plan.py` is the CompileHost plan owner for plan/evidence
+diagnostics: Validate report loading, profile/strategy gating, `library_embed_compile_host`
+presence, required evidence fields, string and string-array schema gates, linked runtime crate
+schema, command shape preflight, and the final decision to return a schema-clean plan to the stage
+runner. `tools/zircon_export/compile_host_plan_command_semantics.py` is the CompileHost plan command semantics owner
+for plan-side Cargo command semantic diagnostics: `--no-default-features`
+and `--all-features` policy, package/bin/features/manifest/target-dir option matching, forbidden
+target/package/profile/wrapper flags, and release flag schema dispatch.
+In short, CompileHost plan/evidence diagnostics now live in the plan owner, while the stage runner
+only consumes the returned plan and records execution evidence. The plan owner consumes the plan
+command semantics owner instead of importing Validate command helpers directly.
 Its string fields must also be non-empty trimmed strings before later command and link-plan
 provenance checks run, so blank or padded package, binary, manifest, target directory, and profile
 values fail at the Validate plan schema boundary.
@@ -6556,6 +9467,11 @@ profile selection, and the command may only express that choice through the debu
 contract. `test_report_stage_rejects_validate_compile_host_command_profile_override` and
 `test_compile_host_rejects_plan_command_profile_override` cover a custom profile override before it
 can be reported or executed as LibraryEmbed host-build evidence.
+`plugins_09_e1_compile_host_report_forbidden_cargo_flags_gate` extends the same forbidden-flag
+family to non-fatal CompileHost stage report `command` evidence through
+`pipeline_report_compile_host_stage_schema.py`. `test_report_stage_rejects_compile_host_command_forbidden_cargo_flags`
+covers hand-authored report rows that append `--all-features`, target/package/profile broadening, or
+wrapper policy flags after the expected CompileHost command.
 Editor-side stdout consumers treat final Report JSON object/key/string lines as summary payload and
 only promote values inside a `diagnostics` array to stage diagnostics, so plan fields such as
 `export_plan.unsupported_strategies` cannot be mistaken for terminal errors.
@@ -6739,3 +9655,320 @@ python -m tools.zircon_export --profile linux-release --out D:\zircon-export-tem
 It returned `fatal=false`, resolved `linux-x86_64-library_embed-debug`, wrote
 `template_resolution`, and materialized `bundle/linux-release/ZirconRuntime`,
 `bundle/linux-release/data/assets.zrpack`, and `bundle/linux-release/zircon-export.json`.
+
+For `plugins_13_m5_t1_manifest_schema_feature_extension_identity_capability_guard`,
+the structure audit now mirrors the identity and capability semantics already owned by
+`plugin_validate_feature_extensions.py`. `tools/plugin_structure_audits/manifest_schema_feature_extensions.py`
+owns `collect_feature_extension_identity_violations` for `owner_plugin_id` package-token
+shape, feature id namespace, owner namespace, and duplicate feature ids, aligning with
+`validate_plugin_feature_extension_owner_package_token`. It also owns
+`collect_feature_extension_capability_violations`, aligning `capabilities` namespace and
+duplicate diagnostics with `validate_plugin_capability_values`. Representative diagnostics
+are `feature_extensions[0].owner_plugin_id 1Sound__ should start with a lowercase ASCII letter`,
+`feature_extensions[0].id sound..preview should not contain empty namespace segments`,
+`feature_extensions[1].id sound.preview duplicates feature extension id feature_extensions[0]`,
+and `feature_extensions[0].capabilities[3] runtime.feature.sound.preview duplicates capabilities capabilities[2]`.
+The behavior guards are `test_manifest_schema_rejects_feature_extension_identity_semantics`,
+`test_manifest_schema_rejects_feature_extension_id_namespace_segments`,
+`test_manifest_schema_rejects_duplicate_feature_extension_id`, and
+`test_manifest_schema_rejects_feature_extension_capability_semantics`; the latest structure
+audit remains manifest_schema_violations=0.
+
+For `plugins_13_m5_t1_manifest_schema_optional_feature_identity_capability_guard`,
+the structure audit now mirrors the optional feature row semantics already owned by
+`plugin_validate_optional_features.py`. After the owner split,
+`tools/plugin_structure_audits/manifest_schema_optional_features.py` owns
+`OPTIONAL_FEATURE_FIELDS`, `collect_optional_feature_identity_violations`, and
+`collect_optional_feature_capability_violations`, aligning feature id/package namespace
+diagnostics with `validate_plugin_optional_feature_id` and capability namespace/duplicate
+diagnostics with `validate_plugin_capability_values`. Representative diagnostics are
+`optional_features[0].sidecar is not a known optional feature field`,
+`optional_features[0].id Native.Dynamic should contain only lowercase ASCII letters, digits, underscores, and dots`,
+`optional_features[0].id Native.Dynamic should stay under package namespace sound.`,
+`optional_features[1].id sound.preview duplicates optional feature id optional_features[0]`,
+and `optional_features[0].capabilities[3] runtime.feature.sound.preview duplicates capabilities capabilities[2]`.
+The behavior guards are `test_manifest_schema_rejects_optional_feature_identity_semantics`,
+`test_manifest_schema_rejects_optional_feature_id_namespace_segments`,
+`test_manifest_schema_rejects_duplicate_optional_feature_id`, and
+`test_manifest_schema_rejects_optional_feature_capability_semantics`; the latest structure
+audit remains manifest_schema_violations=0.
+
+For `plugins_13_m5_t1_manifest_schema_optional_feature_owner_split`,
+the optional feature structure-audit traversal now lives in
+`tools/plugin_structure_audits/manifest_schema_optional_features.py`, while
+`tools/plugin_structure_audits/manifest_schema.py` only dispatches the root
+`optional_features` field. The new owner keeps `collect_optional_features_schema_violations`,
+`collect_optional_feature_dependencies_schema_violations`, and
+`collect_optional_feature_distribution_schema_violations` with the rest of the optional
+feature row traversal. The boundary guard is
+`tools/tests/test_plugin_structure_audit_manifest_schema_optional_feature_owner_boundaries.py`;
+it covers `test_optional_feature_schema_owner_exists`,
+`test_manifest_schema_dispatches_to_optional_feature_owner`, and
+`test_manifest_schema_and_optional_feature_owner_stay_under_line_budgets`. The current line-budget evidence is
+`manifest_schema.py=593` and `manifest_schema_optional_features.py=424`; focused owner and
+behavior regression passed 63/63, py_compile passed for touched Python files, and the latest
+structure audit remains manifest_schema_violations=0.
+
+For `plugins_09_m4_t1_source_template_build_validation_publish_gate`,
+`tools/zircon_export/pipeline_report_source_template_build_handoff.py` now treats
+SourceTemplate skipped build validation as non-publishable final Report evidence.
+If a SourceTemplate stage report carries `build_validation.status = "skipped"`, the
+final Report emits `SourceTemplate build_validation skipped status is not publishable`;
+callers must run the SourceTemplate stage with `--source-template-build` or provide
+equivalent passed build validation evidence before publishing. The RED/GREEN guard is
+`tools/zircon_export/tests/test_pipeline_report_source_template_build_validation.py::test_report_rejects_unrequested_source_template_build_validation_skip`,
+and `tools/zircon_export/tests/export_test_support.py` now uses passed build validation
+for the normal non-fatal SourceTemplate final-report fixture. Focused validation passed:
+`python -m unittest tools.zircon_export.tests.test_pipeline_report_source_template_build_validation`
+25/25, `python -m unittest tools.zircon_export.tests.test_pipeline_report_source_template`
+27/27, current-status docs guard 1/1, combined SourceTemplate/docs 53/53,
+`py_compile` for the touched SourceTemplate final-report files, structure audit
+`dist_capable_plugin_count=39` / `dist_build_matrix_count=39` / key violations=0,
+and real `plugin validate --all` `target_count=39` / `failed_count=0` /
+`diagnostics=0`. This is a
+publish-gate evidence change only; it does not claim a real SourceTemplate Cargo build,
+LibraryEmbed/NativeDynamic export, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_optional_feature_owner_boundary_file_split`, the optional-feature PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_optional_feature_owner_boundaries.py=543`. That focused boundary file owns optional feature dependencies/distribution, optional_features row schema, feature_extensions row schema, and optional feature dependency capability test ownership plus production owner guard methods, and `test_optional_feature_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_optional_feature_dependencies_lives_in_optional_feature_owner` and `test_feature_extensions_schema_lives_in_feature_extensions_owner` continue to lock the optional feature dependency and feature extension schema leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=621` is now below 1000-line structure budget. Verification passed: `python -m unittest tools.tests.test_plugin_validate_optional_feature_owner_boundaries` 6/6 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_event_component_module_owner_boundary_file_split`, the event/component/module PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_event_component_module_owner_boundaries.py=452`. That focused boundary file owns event catalogs, components/ui components, modules, module workspace crates, and module systems test ownership plus production owner guard methods, and `test_event_component_module_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_event_catalogs_lives_in_event_catalog_owner` and `test_modules_lives_in_modules_owner` continue to lock the event catalog and module row leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=1056` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_event_component_module_owner_boundaries` 9/9 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_capability_owner_boundary_file_split`, the capability PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_capability_owner_boundaries.py=538`. That focused boundary file owns root capabilities, default packaging, capability status/status targets/status references, and dependency capability test ownership plus production owner guard methods, and `test_capability_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_root_capabilities_lives_in_root_capabilities_owner` and `test_capability_status_targets_live_in_capability_status_targets_owner` continue to lock the root capability and capability status target leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=1423` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_capability_owner_boundaries` 10/10 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_interface_owner_boundary_file_split`, the interface PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_interface_owner_boundaries.py=238`. That focused boundary file owns provided/dependency interfaces, interface methods, and interface signatures test ownership plus production owner guard methods, and `test_interface_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_interface_contracts_live_in_interfaces_owner` and `test_interface_signature_contracts_live_in_interface_signatures_owner` continue to lock the interfaces and signatures leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=1869` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_interface_owner_boundaries` 5/5 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_manifest_owner_boundary_file_split`, the manifest PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_manifest_owner_boundaries.py=358`. That focused boundary file owns manifest shape, manifest classification, and package kind test ownership plus production owner guard methods, and `test_manifest_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_manifest_shape_lives_in_manifest_shape_owner` and `test_package_kind_lives_in_package_kind_owner` continue to lock the manifest shape and package kind leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=2047` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_manifest_owner_boundaries` 7/7 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_layout_owner_boundary_file_split`, the layout PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_layout_owner_boundaries.py=321`. That focused boundary file owns layout test ownership, package coordinates, public metadata, target/platform, and root path guard methods, and `test_layout_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_layout_coordinates_live_in_layout_coordinates_owner` and `test_layout_roots_live_in_layout_roots_owner` continue to lock the coordinates and root path leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=2331` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_layout_owner_boundaries` 6/6 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_asset_importer_owner_boundary_file_split`, the asset-importer PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_asset_importer_owner_boundaries.py=635`. That focused boundary file owns full suffix, id, global id, numeric, metadata array, required capability, schema, and ResourceKind guard methods, and `test_asset_importer_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_asset_importer_required_capability_gates_lives_in_gate_owner` and `test_asset_importer_resource_kinds_lives_in_resource_kind_owner` continue to lock the required-capability gate and ResourceKind leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=2587` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_asset_importer_owner_boundaries` 10/10 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_entry_report_owner_boundary_file_split`, the entry/report PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_entry_report_owner_boundaries.py=217`. That focused boundary file owns all-target discovery, report rendering/all-target report, engine version resolution, and single-target validation guard methods, and `test_entry_report_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_single_target_validation_lives_in_single_target_owner` and `test_report_rendering_lives_in_report_owner` continue to lock the single-target and report leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=3138` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_entry_report_owner_boundaries` 6/6 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_distribution_owner_boundary_file_split`, the distribution PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_distribution_owner_boundaries.py=574`. That focused boundary file owns distribution contract, descriptor, entries, packaging, assets, engine compatibility, module target mode, scalar field, and dist-form constant guard methods, and `test_distribution_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_distribution_descriptor_symbol_lives_in_descriptor_owner` and `test_distribution_scalar_fields_live_in_scalars_owner` continue to lock the descriptor and scalar leaf owners. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=3300` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_distribution_owner_boundaries` 10/10 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_dist_crate_owner_boundary_file_split`, the dist-crate PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_dist_crate_owner_boundaries.py=200`. That focused boundary file owns dist crate Cargo preflight, SDK dependency, workspace-member resolution, and dist feature constant guard methods, and `test_dist_crate_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_dist_crate_sdk_dependency_lives_in_dependency_owner` continues to lock the dependency leaf owner. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=3793` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_dist_crate_owner_boundaries` 5/5 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_owner_boundary_file_split`, the feature-provider and package-source PluginValidate owner boundary guards now live in `tools/tests/test_plugin_validate_feature_provider_owner_boundaries.py=694`. That focused boundary file owns `test_plugin_package_source_resolution_lives_in_source_owner`, feature-provider package/template/projection/dependencies/capabilities/distribution/extension owner guard methods, and `test_feature_provider_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. `test_feature_provider_extension_lives_in_extension_owner` continues to lock the feature-provider extension owner. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=3941` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_feature_provider_owner_boundaries` 11/11 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_test_owner_boundary_file_split`, the recent PluginValidate test-owner boundary guards now live in `tools/tests/test_plugin_validate_test_owner_boundaries.py=313`. That focused boundary file owns `test_all_target_tests_live_in_all_target_test_owner`, asset_importer schema/contract, dist crate, options, and dependencies test-owner guard methods, and `test_recent_test_owner_boundaries_leave_general_owner_file` prevents those methods from returning to the general boundary owner. The remaining `tools/tests/test_plugin_validate_owner_boundaries.py=4519` is still remaining large-file debt and should be split further by production owner domain. Verification passed: `python -m unittest tools.tests.test_plugin_validate_test_owner_boundaries` 7/7 and `py_compile` for touched PluginValidate boundary/docs guard files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_all_target_test_owner_split`, PluginValidate all-target aggregate tests are now split out of the retired root test file. `tools/zircon_export/tests/test_plugin_validate_all_targets.py=349` owns `test_plugin_validate_all_reports_malformed_root_distribution`, failed target diagnostics, duplicate option keys, and duplicate asset_importer ids for `plugin validate --all`. The root `tools/zircon_export/tests/test_plugin_validate.py=14` now stays as a retired entry marker and no longer carries behavior tests, and `test_all_target_tests_live_in_all_target_test_owner` locks the migrated cases out of the root file. Verification passed: `python -m unittest tools.zircon_export.tests.test_plugin_validate_all_targets` 4/4, root marker 0/0, focused owner boundary 1/1, and `py_compile` for the touched PluginValidate all-target test owner files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_dependencies_test_owner_split`, PluginValidate dependency behavior tests are now split out of the entry behavior test. `tools/zircon_export/tests/test_plugin_validate_dependencies.py=591` owns top-level `dependencies` and `optional_features.dependencies` semantics, including `test_plugin_validate_rejects_malformed_dependencies`, empty/duplicate rows, declared capability checks, external capability namespace checks, primary dependency validation, and duplicate optional dependency rows. The root `tools/zircon_export/tests/test_plugin_validate.py=349` now keeps only `plugin validate --all` dispatch and aggregate duplicate diagnostics, and `test_dependency_tests_live_in_dependency_test_owner` locks the migrated cases out of the root file. Verification passed: `python -m unittest tools.zircon_export.tests.test_plugin_validate_dependencies` 11/11, root `tools.zircon_export.tests.test_plugin_validate` 4/4, focused owner boundary 1/1, and `py_compile` for the touched PluginValidate dependency test owner files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_asset_importer_contract_test_owner_split`, PluginValidate asset_importer contract test ownership is now split out of the entry behavior test. `tools/zircon_export/tests/test_plugin_validate_asset_importer_contract.py=720` owns `test_plugin_validate_rejects_malformed_source_extensions`, duplicate source/full suffix, metadata/capability/plugin_id/source selector, and empty asset_importers array contract cases. The root `tools/zircon_export/tests/test_plugin_validate.py=922` now stays under the 1000-line structure ceiling, and `test_asset_importer_contract_tests_live_in_asset_importer_contract_owner` locks the migrated behavior out of the root file. Verification passed: `python -m unittest tools.zircon_export.tests.test_plugin_validate_asset_importer_contract` 13/13, root `tools.zircon_export.tests.test_plugin_validate` 15/15, focused owner boundary 1/1, and `py_compile` for the touched PluginValidate asset_importer contract test owner files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_test_owner_split`, PluginValidate test ownership is now split so the entry behavior test no longer carries dist crate and asset_importer schema preflight cases. `tools/zircon_export/tests/test_plugin_validate_dist_crate.py=234` owns dist crate package contract, missing dist crate, dist feature, SDK dependency, and forbidden runtime route cases; `tools/zircon_export/tests/test_plugin_validate_asset_importers.py=413` owns `.zui` suffix acceptance, retired `.ui.toml`/`.v2.ui.toml` rejection, and asset_importer schema/id/numeric/string-array/ResourceKind cases. The root `tools/zircon_export/tests/test_plugin_validate.py=1876` keeps the remaining PluginValidate entry behavior. Owner guards are `test_dist_crate_tests_live_in_dist_crate_test_owner` and `test_asset_importer_schema_tests_live_in_asset_importer_test_owner`. Verification passed: `python -m unittest tools.zircon_export.tests.test_plugin_validate tools.zircon_export.tests.test_plugin_validate_dist_crate tools.zircon_export.tests.test_plugin_validate_asset_importers` 45/45, focused owner boundary 2/2, complete owner boundary 85/85, and `py_compile` for the touched PluginValidate test owner files. Real `plugin validate --all` passed with `target_count=39`, `failed_count=0`, and `diagnostics=0`; structure audit passed with `dist_capable_plugin_count=39`, `dist_build_matrix_count=39`, and `manifest_schema_violations=0`. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_root_test_retirement_status_converged`, current status records that `tools/zircon_export/tests/test_plugin_validate.py=9` is only a retired import marker containing `Retired PluginValidate root behavior tests` and no behavior tests. The root marker 0/0 remains a stable command target for older focused groups. The earlier `plugins_13_m5_t1_plugin_validate_all_target_test_owner_split` (short marker `test_plugin_validate_all_target_test_owner_split`) / `test_all_target_tests_live_in_all_target_test_owner` already moved `plugin validate --all` behavior to the all-target owner, so current status no longer treats `test_plugin_validate.py=1876` as the remaining entry-behavior owner. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export or real plugin build/export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_options_test_owner_split`, the options behavior tests are no longer stored in the root PluginValidate entry test. `tools/zircon_export/tests/test_plugin_validate_options.py=269` owns option required-capability gates, optional-feature capability acceptance, schema validation, and default-value validation, including `test_plugin_validate_rejects_malformed_options_schema`. The root `tools/zircon_export/tests/test_plugin_validate.py=1624` keeps non-options entry behavior, and `test_option_tests_live_in_option_test_owner` locks the split. Verification passed: `python -m unittest tools.zircon_export.tests.test_plugin_validate_options` 4/4, focused owner boundary 1/1, and `py_compile` for touched options test owner files. This does not claim Cargo build/test/export, real plugin build, Hub/editor E2E, full export matrix, or startup-to-first-frame.
+
+For `plugins_13_m5_t1_plugin_validate_component_closed_fields_gate`, PluginValidate component manifests now reject unknown fields before packaging. `tools/zircon_export/plugin_validate_components.py` owns `validate_plugin_component_known_fields`, with `PLUGIN_VALIDATE_COMPONENT_FIELDS`, `PLUGIN_VALIDATE_COMPONENT_PROPERTY_FIELDS`, and `PLUGIN_VALIDATE_UI_COMPONENT_FIELDS` defining the accepted row keys for `components`, `components.properties`, and `ui_components`. `test_plugin_validate_rejects_unknown_component_fields` covers the new diagnostics `is not a known component field`, `is not a known component property field`, and `is not a known ui_component field`; `test_components_lives_in_components_owner` and `test_component_tests_live_in_component_test_owner` keep production/test ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_event_catalog_closed_fields_gate`, PluginValidate event catalog manifests now reject unknown fields before packaging. `tools/zircon_export/plugin_validate_event_catalogs.py` owns `validate_plugin_event_known_fields`, with `PLUGIN_VALIDATE_EVENT_CATALOG_FIELDS` and `PLUGIN_VALIDATE_EVENT_FIELDS` defining the accepted row keys for `event_catalogs` catalog rows and nested event rows. `test_plugin_validate_rejects_unknown_event_catalog_fields` covers the new diagnostics `is not a known event catalog field` and `is not a known event field`; `test_event_catalogs_lives_in_event_catalog_owner` and `test_event_catalog_tests_live_in_event_catalog_test_owner` keep production/test ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_module_closed_fields_gate`, PluginValidate module manifests now reject unknown fields before packaging. `tools/zircon_export/plugin_validate_modules.py` owns `validate_plugin_module_known_fields`, with `PLUGIN_VALIDATE_MODULE_FIELDS` defining the accepted row keys for root `modules` and the shared optional-feature / feature-extension module rows. `test_plugin_validate_rejects_unknown_module_fields` covers the new `is not a known module field` diagnostic; `test_modules_lives_in_modules_owner` and `test_module_tests_live_in_module_test_owner` keep production/test ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_dependency_closed_fields_gate`, PluginValidate top-level dependency manifests now reject unknown fields before packaging. `tools/zircon_export/plugin_validate_dependencies.py` owns `validate_plugin_dependency_known_fields`, with `PLUGIN_VALIDATE_DEPENDENCY_FIELDS` defining accepted row keys for `dependencies`. `test_plugin_validate_rejects_unknown_dependency_fields` covers the new `is not a known dependency field` diagnostic, and `test_dependencies_lives_in_dependencies_owner` keeps production ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_option_closed_fields_gate`, PluginValidate option manifests now reject unknown fields before packaging. `tools/zircon_export/plugin_validate_option_schema.py` owns `validate_plugin_option_known_fields`, with `PLUGIN_VALIDATE_OPTION_FIELDS` defining accepted row keys for `options`, including `required_capability` as a valid field handled by the options capability gate. `test_plugin_validate_rejects_unknown_option_fields` covers the new `is not a known option field` diagnostic, and `test_option_schema_lives_in_schema_owner` keeps schema ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_capability_status_closed_fields_gate`, PluginValidate capability status manifests now reject unknown fields before packaging. `tools/zircon_export/plugin_validate_capability_statuses.py` owns `validate_plugin_capability_status_known_fields`, with `PLUGIN_VALIDATE_CAPABILITY_STATUS_FIELDS` defining accepted row keys for `capability_statuses`. `test_plugin_validate_rejects_unknown_capability_status_fields` covers the new `is not a known capability_status field` diagnostic, while `test_capability_statuses_lives_in_capability_statuses_owner` and `test_capability_status_tests_live_in_capability_status_test_owner` keep production/test ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_asset_importers_zui_suffix_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the PluginValidate
+asset importer `.zui` suffix gate through
+`tools/plugin_structure_audits/manifest_schema_asset_importers.py`.
+`collect_asset_importers_schema_violations` owns the root `asset_importers` row walk,
+and `ASSET_IMPORTER_FIELDS` owns the closed field set. `full_suffixes` entries ending
+in `.ui.toml` or `.v2.ui.toml` now report `declares retired UI asset suffix ...; use
+.zui`; `source_extensions` entries reject dotted or uppercase extensions; missing
+selectors report `must declare source_extensions or full_suffixes`; and malformed
+suffixes report `must be a dotted suffix`.
+`test_manifest_schema_rejects_asset_importer_retired_ui_suffixes`,
+`test_manifest_schema_rejects_asset_importer_selector_and_suffix_format`, and
+`test_manifest_schema_rejects_asset_importer_missing_source_selector` lock the
+structure-audit path. The real structure audit remains `manifest_schema_violations=0`.
+Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo
+build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_distribution_closed_fields_guard`,
+`tools/plugin_structure_audits/dependency_boundary.py` now mirrors the PluginValidate
+distribution closed-fields gate. `DISTRIBUTION_FIELDS` owns the accepted table keys, and
+`collect_distribution_matrix_entry` dispatches
+`collect_distribution_known_field_violations` before distribution build-matrix collection.
+Unknown root `distribution.preview_channel` and
+`feature_extensions[0].distribution.preview_channel` now report
+`preview_channel is not a known distribution field`.
+`test_distribution_section_rejects_unknown_root_distribution_field` and
+`test_distribution_section_rejects_unknown_feature_distribution_field` lock the
+structure-audit path. The real structure audit remains
+`distribution_section_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或
+startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export
+matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_package_kind_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the PluginValidate root
+`package_kind` semantics gate through
+`tools/plugin_structure_audits/manifest_schema_root_metadata.py`.
+`collect_root_metadata_schema_violations` dispatches the root metadata checks, while
+`collect_root_package_kind_violations` and `root_metadata_table_array_count` validate
+`standard` / `feature_extension` values and feature row coherence. Diagnostics include
+`should be standard or feature_extension`, `should not declare feature_extensions rows`,
+`should declare at least one feature_extensions row`, and
+`should not declare optional_features rows`.
+`test_manifest_schema_rejects_unknown_package_kind`,
+`test_manifest_schema_rejects_feature_extension_package_kind_without_rows`, and
+`test_manifest_schema_rejects_package_kind_row_mismatch` lock the structure-audit path.
+The real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或
+startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export
+matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_root_capabilities_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the PluginValidate root
+`capabilities` semantics gate through
+`tools/plugin_structure_audits/manifest_schema_root_metadata.py`.
+`collect_root_metadata_schema_violations` dispatches the root metadata checks, while
+`collect_root_capability_violations` and
+`collect_root_capability_namespace_violations` reject bad namespace depth, empty namespace
+segments, non-lowercase/non-ASCII capability names, and duplicates. Diagnostics include
+`should use at least two dot-separated namespace segments`, `should not contain empty namespace segments`,
+`should contain only lowercase ASCII letters, digits, underscores, and dots`, and
+`duplicates capabilities`. `test_manifest_schema_rejects_root_capability_semantics`
+locks the structure-audit behavior, and the real structure audit remains
+`manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或
+startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export
+matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_default_packaging_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the PluginValidate root
+`default_packaging` metadata gate. Root manifests must declare `default_packaging`, and
+`collect_root_default_packaging_violations` validates the values against `source_template`,
+`library_embed`, and `native_dynamic` while also rejecting duplicates. Missing root metadata reports
+`missing default_packaging`; invalid entries report `is unsupported; expected one of source_template,
+library_embed, native_dynamic`; repeated values report `duplicates default_packaging`.
+`test_manifest_schema_rejects_missing_root_default_packaging` and
+`test_manifest_schema_rejects_malformed_root_default_packaging` lock the behavior, and the real
+structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export
+matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export
+matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_root_closed_fields_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the PluginValidate root manifest
+closed-fields gate. `MANIFEST_ROOT_FIELDS` owns the structure-audit allow-list, and
+`collect_manifest_root_known_field_violations` rejects unknown top-level keys before other
+`collect_manifest_schema_violations` checks run. The allow-list includes legal extension fields such
+as `package_kind`, `geometry_sources`, and `shader_permutation`; unknown root keys report
+`is not a known manifest root field`. `test_manifest_schema_rejects_unknown_root_field` covers the
+guard, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor
+E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or
+full export matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_supported_platform_matrix_guard`,
+`tools/plugin_structure_audits/manifest_schema.py` now mirrors the PluginValidate supported platform
+matrix for manifest structure audits. `SUPPORTED_PLATFORM_VALUES` includes `windows`, `linux`,
+`macos`, `android`, `ios`, `web_gpu`, `wasm`, `headless`, `windows-x86_64`, `linux-x86_64`, and
+`macos-aarch64`; `SUPPORTED_PLATFORM_ALIASES` is consumed by `collect_supported_platform_values` so
+desktop aliases canonicalize to their base platform. Alias pairs such as `windows` plus
+`windows-x86_64` now report `duplicates supported_platforms`, while the expanded platform values pass
+the audit. `test_manifest_schema_accepts_extended_supported_platform_values` and
+`test_manifest_schema_rejects_supported_platform_alias_duplicates` lock the behavior; the real
+structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export
+matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export
+matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_interface_closed_fields_gate`, PluginValidate bridge interface manifests now reject unknown fields before packaging. `plugin_validate_interfaces.py` owns `PLUGIN_VALIDATE_PROVIDED_INTERFACE_FIELDS` and `validate_plugin_provided_interface_known_fields`; `plugin_validate_interface_methods.py` owns `PLUGIN_VALIDATE_INTERFACE_METHOD_FIELDS` and `validate_plugin_interface_method_known_fields`; `plugin_validate_interface_signatures.py` owns `PLUGIN_VALIDATE_INTERFACE_METHOD_PARAMETER_FIELDS`, `PLUGIN_VALIDATE_INTERFACE_METHOD_TYPE_REF_FIELDS`, and `validate_plugin_interface_signature_known_fields`. `test_plugin_validate_rejects_unknown_interface_fields` covers `is not a known provided interface field`, `is not a known provided interface method field`, `is not a known interface method parameter field`, and `is not a known interface method type_ref field`; `test_interface_contracts_live_in_interfaces_owner`, `test_interface_method_contracts_live_in_interface_methods_owner`, and `test_interface_signature_contracts_live_in_interface_signatures_owner` keep production ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_manifest_root_closed_fields_gate`, PluginValidate root manifests now reject unknown top-level keys before packaging. `plugin_validate_manifest_shape.py` owns `PLUGIN_VALIDATE_MANIFEST_ROOT_FIELDS` and `validate_plugin_manifest_known_fields`; unknown keys report `is not a known manifest root field`. The allow-list includes current legal root extension keys such as `package_kind`, `geometry_sources`, and `shader_permutation`, but this gate only closes root key drift and does not add semantic validation for those extension fields. `test_plugin_validate_rejects_unknown_root_manifest_fields` covers the new diagnostic, while `test_manifest_shape_lives_in_manifest_shape_owner` and `test_manifest_shape_tests_live_in_manifest_shape_test_owner` keep production/test ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_asset_importer_closed_fields_gate`, PluginValidate asset importer rows now reject unknown keys before packaging. `plugin_validate_asset_importer_schema.py` owns `PLUGIN_VALIDATE_ASSET_IMPORTER_FIELDS` and `validate_plugin_asset_importer_known_fields`; unknown keys report `is not a known asset_importer field`. The allow-list includes importer selector/metadata fields such as `source_extensions`, `full_suffixes`, `additional_output_kinds`, and `required_capabilities`. `test_plugin_validate_rejects_unknown_asset_importer_fields` covers the new diagnostic, while `test_asset_importer_schema_lives_in_schema_owner` keeps schema ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_distribution_closed_fields_gate`, PluginValidate distribution tables now reject unknown keys before packaging. `plugin_validate_distribution_contract.py` owns `PLUGIN_VALIDATE_DISTRIBUTION_FIELDS` and `validate_plugin_distribution_known_fields`; unknown keys report `is not a known distribution field`. The allow-list covers distribution metadata and native entry fields: `forms`, `default_packaging`, `abi_version`, `engine_compat`, `dist_crate`, `descriptor_symbol`, `runtime_entry`, `editor_entry`, and `assets`. `test_plugin_validate_rejects_unknown_distribution_fields` covers the new diagnostic, while `test_distribution_contract_lives_in_distribution_contract_owner` keeps contract ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_optional_feature_dependency_closed_fields_gate`, PluginValidate optional feature dependency rows now reject unknown keys before packaging. `plugin_validate_optional_feature_dependencies.py` owns `PLUGIN_VALIDATE_OPTIONAL_FEATURE_DEPENDENCY_FIELDS` and `validate_plugin_optional_feature_dependency_known_fields`; unknown keys report `is not a known optional feature dependency field`. The allow-list covers `optional_features.dependencies` and `feature_extensions.dependencies` rows with `plugin_id`, `capability`, and `primary`. `test_plugin_validate_rejects_unknown_feature_dependency_fields` covers both dependency paths, while `test_optional_feature_dependencies_lives_in_optional_feature_owner` keeps dependency ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_dependency_closed_fields_gate`, PluginValidate feature-provider generated package dependency rows now reject unknown keys before packaging. `plugin_validate_feature_provider_dependencies.py` owns `PLUGIN_VALIDATE_FEATURE_PROVIDER_DEPENDENCY_FIELDS` and `plugin_validate_feature_dependency_known_fields`; unknown keys report `is not a known feature provider dependency field`. The allow-list covers `generated feature_extensions[0].dependencies` rows with `plugin_id`, `capability`, and `primary`. `test_plugin_validate_rejects_generated_feature_provider_dependency_fields` covers the generated dependency projection path, while `test_feature_provider_dependencies_lives_in_dependencies_owner` keeps projection ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_distribution_closed_fields_gate`, PluginValidate feature-provider generated package distribution tables now reject unknown keys before packaging. `plugin_validate_feature_provider_distribution.py` owns `PLUGIN_VALIDATE_FEATURE_PROVIDER_DISTRIBUTION_FIELDS` and `plugin_validate_feature_provider_distribution_known_fields`; unknown keys report `is not a known feature provider distribution field`. The allow-list covers `generated distribution` keys with `forms`, `default_packaging`, `abi_version`, `engine_compat`, `dist_crate`, `descriptor_symbol`, `runtime_entry`, `editor_entry`, and `assets`. `test_plugin_validate_rejects_generated_feature_provider_distribution_fields` covers the generated distribution projection path, while `test_feature_provider_distribution_lives_in_distribution_owner` keeps projection ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_distribution_schema_gate`, PluginValidate feature-provider generated package distribution tables now reuse root distribution schema validation through `plugin_validate_feature_provider_distribution_schema.py`. `validate_plugin_feature_provider_distribution_schema` dispatches `plugin_validate_distribution_packaging`, `plugin_validate_distribution_scalars`, `plugin_validate_descriptor_symbol`, `plugin_validate_distribution_entries`, and `plugin_validate_distribution_assets` before owner projection comparisons run. Schema drift reports `generated distribution.forms must include dist`, `generated distribution.default_packaging must include native_dynamic`, `generated distribution.abi_version must be 3`, and `generated distribution.descriptor_symbol must equal zircon_native_plugin_descriptor_v3`. `test_plugin_validate_rejects_generated_feature_provider_distribution_schema_drift` covers the generated distribution schema path, while `test_feature_provider_distribution_schema_stays_in_schema_leaf` keeps schema validation inside the leaf owner. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_asset_importer_test_owner_budget_recovered`, PluginValidate asset_importer test ownership now stays under its line budget again. `tools/zircon_export/tests/test_plugin_validate_asset_importers.py` extracts `_validate_native_dynamic_fixture` so repeated `plugin validate native_dynamic_fixture --json` execution and report parsing does not bloat every schema case; the file moved from 461 to 374 lines while `test_asset_importer_schema_tests_live_in_asset_importer_test_owner` and the asset_importer behavior tests stay GREEN. Scope: test-owner budget recovery only; 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no production schema change, Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_extension_closed_fields_gate`, PluginValidate feature-provider generated package extension rows now reject unknown keys before packaging. `plugin_validate_feature_provider_extension.py` owns `PLUGIN_VALIDATE_FEATURE_PROVIDER_EXTENSION_FIELDS` and `plugin_validate_feature_provider_extension_known_fields`; unknown keys report `is not a known feature provider extension field`. The allow-list covers `generated feature_extensions[0]` keys with `id`, `display_name`, `owner_plugin_id`, `capabilities`, `default_packaging`, `enabled_by_default`, `dependencies`, and `modules`. `test_plugin_validate_rejects_generated_feature_provider_extension_fields` covers the generated feature extension projection path, while `test_feature_provider_extension_lives_in_extension_owner` keeps projection ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_closed_fields_gate`, PluginValidate feature-provider generated package manifests now reject unknown root keys before packaging. `plugin_validate_feature_provider.py` owns `PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_FIELDS` and `plugin_validate_feature_provider_manifest_known_fields`; unknown keys report `is not a known feature provider manifest field`. The allow-list covers `generated manifest` keys with `id`, `version`, `package_kind`, `display_name`, `description`, `sdk_api_version`, `category`, `maturity`, `supported_targets`, `supported_platforms`, `capabilities`, `default_packaging`, `distribution`, and `feature_extensions`. `test_plugin_validate_rejects_generated_feature_provider_manifest_fields` covers the generated manifest root path, while `test_feature_provider_projection_tests_import_projection_owner` keeps projection ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_metadata_schema_gate`, PluginValidate feature-provider generated package manifests now validate present generated manifest metadata before packaging. `plugin_validate_feature_provider_manifest_schema.py` owns `PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_STRING_FIELDS`, `PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_ARRAY_FIELDS`, and `plugin_validate_feature_provider_manifest_metadata_schema`; present string fields report `must be a non-empty trimmed string`, and present array fields report `must be a non-empty string array` or item-level trimmed-string diagnostics. The covered fields are `version`, `display_name`, `description`, `sdk_api_version`, `category`, `maturity`, `supported_targets`, `supported_platforms`, `capabilities`, and `default_packaging`. `test_plugin_validate_rejects_generated_feature_provider_manifest_metadata_schema` covers the malformed metadata path, while `test_feature_provider_projection_tests_import_projection_owner` keeps projection ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_metadata_projection_gate`, PluginValidate feature-provider generated package manifests now check generated manifest metadata projection consistency. `plugin_validate_feature_provider_manifest_schema.py` owns `plugin_validate_feature_provider_manifest_projection_consistency` and `_compare_generated_manifest_array`; top-level `capabilities` must match `generated feature_extensions[0].capabilities`, and top-level `default_packaging` must match `generated distribution.default_packaging`. Drift reports `must match generated feature_extensions[0].capabilities` or `must match generated distribution.default_packaging`. `test_plugin_validate_rejects_generated_feature_provider_manifest_metadata_projection_drift` covers the drift path, while `test_feature_provider_projection_tests_import_projection_owner` keeps projection ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_module_projection_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].modules` through `plugin_validate_feature_provider_modules.py`. The leaf owns `PLUGIN_VALIDATE_FEATURE_PROVIDER_MODULE_FIELDS`, `validate_plugin_feature_provider_modules`, `plugin_validate_feature_provider_single_module`, and `plugin_validate_feature_provider_expected_runtime_module`; generated modules must `must contain exactly one runtime module table`, unknown fields report `is not a known feature provider module field`, module `crate_name` drift reports `must equal generated distribution.dist_crate`, and `target_modes` drift reports `must match owner optional feature runtime module.target_modes`. `test_plugin_validate_rejects_generated_feature_provider_module_projection_drift` covers the drift path, while `test_feature_provider_modules_lives_in_modules_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_module_schema_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].modules[0]` through `plugin_validate_feature_provider_module_schema.py`. `validate_plugin_feature_provider_module_schema` reuses root module row helpers `validate_plugin_module_name`, `validate_plugin_module_kind`, `validate_plugin_module_crate_name`, `validate_plugin_module_target_modes`, and `validate_plugin_module_capabilities`, plus the distribution module target-mode closed set `PLUGIN_VALIDATE_TARGET_MODES`. Schema drift reports `generated feature_extensions[0].modules[0].name Sound.Timeline.Runtime should contain only lowercase ASCII letters, digits, underscores, and dots`, `generated feature_extensions[0].modules[0].kind tooling should be one of runtime, editor, native, vm`, `generated feature_extensions[0].modules[0].crate_name Bad_Crate should use the zircon_plugin_ prefix`, and `generated feature_extensions[0].modules[0].target_modes[0] "nightly_runtime" is unsupported; expected one of client_runtime, server_runtime, editor_host`. `test_plugin_validate_rejects_generated_feature_provider_module_schema_drift` covers the generated module schema path, while `test_feature_provider_module_schema_stays_in_schema_leaf` keeps schema validation inside the leaf owner. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_enabled_default_projection_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].enabled_by_default` in `plugin_validate_feature_provider_extension.py` through `validate_plugin_feature_extension_projection`. The generated field must be a bool and reports `must be a bool` when malformed; it must match the owner optional feature `enabled_by_default` and reports `must match owner optional feature enabled_by_default` on drift. `test_plugin_validate_rejects_generated_feature_provider_enabled_default_type` covers malformed type, `test_plugin_validate_rejects_generated_feature_provider_enabled_default_drift` covers generated/owner default-state drift, and `test_feature_provider_extension_lives_in_extension_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_extension_default_packaging_projection_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].default_packaging` through `plugin_validate_feature_provider_extension_metadata.py`. The leaf owns `validate_plugin_feature_provider_extension_metadata` and `validate_plugin_feature_provider_extension_default_packaging`; generated extension row packaging must match `generated distribution.default_packaging`, and drift reports `must match generated distribution.default_packaging`. `test_plugin_validate_rejects_generated_feature_provider_default_packaging_drift` covers the drift path, while `test_feature_provider_extension_metadata_lives_in_metadata_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_extension_display_name_projection_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].display_name` through `plugin_validate_feature_provider_extension_metadata.py`. The leaf owns `validate_plugin_feature_provider_extension_display_name`; generated extension display names must match the owner optional feature display name, and drift reports `must match owner optional feature display_name`. `tools/zircon_export/tests/test_plugin_validate_feature_provider_extension_metadata.py` owns `test_plugin_validate_rejects_generated_feature_provider_display_name_drift`, while `test_feature_provider_extension_metadata_lives_in_metadata_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_display_name_projection_gate`, PluginValidate feature-provider generated package manifests now validate top-level `generated manifest.display_name` through `plugin_validate_feature_provider_manifest_schema.py`. The schema owner provides `plugin_validate_feature_provider_manifest_display_name_projection`; generated manifest display names must equal `feature_extensions[0].display_name + Provider`, and drift reports `feature_extensions[0].display_name + Provider`. `tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_metadata.py` owns `test_plugin_validate_rejects_generated_feature_provider_manifest_display_name_drift`, while `test_feature_provider_manifest_display_name_projection_stays_in_schema_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_supported_targets_projection_gate`, PluginValidate feature-provider generated package manifests now validate top-level `generated manifest.supported_targets` through `plugin_validate_feature_provider_manifest_schema.py`. The schema owner provides `plugin_validate_feature_provider_manifest_supported_targets_projection`; generated manifest supported targets must equal `feature_extensions[0].modules[0].target_modes`, and drift reports `feature_extensions[0].modules[0].target_modes`. `tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_metadata.py` owns `test_plugin_validate_rejects_generated_feature_provider_manifest_supported_targets_drift`, while `test_feature_provider_manifest_supported_targets_projection_stays_in_schema_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_description_projection_gate`, PluginValidate feature-provider generated package manifests now validate top-level `generated manifest.description` through `plugin_validate_feature_provider_manifest_description.py`, with `plugin_validate_feature_provider_manifest_schema.py` only dispatching that leaf. The leaf provides `plugin_validate_feature_provider_manifest_description_projection`; generated manifest descriptions must equal `Native dynamic provider for optional feature {feature_extensions[0].id}.`, and drift reports `Native dynamic provider for optional feature` plus `feature_extensions[0].id`. `tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_metadata.py` owns `test_plugin_validate_rejects_generated_feature_provider_manifest_description_drift`, while `test_feature_provider_manifest_description_projection_stays_in_description_owner` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_owner_metadata_projection_gate`, PluginValidate feature-provider generated package manifests now validate top-level owner metadata through `plugin_validate_feature_provider_manifest_owner_metadata.py`. The leaf provides `validate_plugin_feature_provider_manifest_owner_metadata`; `generated manifest.version` and `generated manifest.sdk_api_version` must equal `owner manifest.version` and `owner manifest.sdk_api_version`, while `generated manifest.supported_platforms` must match `owner manifest.supported_platforms` and category/maturity are bound to owner manifest values too. `tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_metadata.py` owns `test_plugin_validate_rejects_generated_feature_provider_manifest_owner_metadata_drift`, while `test_feature_provider_manifest_owner_metadata_projection_stays_in_owner_metadata_leaf` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_required_metadata_gate`, PluginValidate feature-provider generated package manifests now require template-owned generated manifest metadata through `plugin_validate_feature_provider_manifest_required_metadata.py`. The leaf provides `validate_plugin_feature_provider_manifest_required_metadata` and `PLUGIN_VALIDATE_FEATURE_PROVIDER_MANIFEST_REQUIRED_FIELDS`; version/display_name/description/sdk_api_version/category/maturity/supported_targets/supported_platforms/capabilities/default_packaging are mandatory, and missing fields report `manifest.version is required`, `manifest.supported_platforms is required`, and similar field-level diagnostics. `tools/zircon_export/tests/test_plugin_validate_feature_provider_manifest_metadata.py` owns `test_plugin_validate_rejects_generated_feature_provider_manifest_missing_metadata`, while `test_feature_provider_manifest_required_metadata_stays_in_required_metadata_leaf` keeps ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_capability_dependency_schema_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].capabilities` through `plugin_validate_feature_provider_capabilities.py` and `generated feature_extensions[0].dependencies` through `plugin_validate_feature_provider_dependencies.py`. The capability leaf reuses `validate_plugin_capability_values`; the dependency leaf reuses `validate_plugin_optional_feature_dependency_rows_at_label` with `validate_capability_targets=False` so generated projection keeps row-shape, duplicate, and primary semantics without requiring every lightweight fixture to include all external plugin manifests. Drift reports `generated feature_extensions[0].capabilities[0] Runtime.Bad should contain only lowercase ASCII letters, digits, underscores, and dots`, `generated feature_extensions[0].capabilities[1] Runtime.Bad duplicates capabilities capabilities[0]`, `generated feature_extensions[0].dependencies[1] duplicates dependency row 0`, and `generated feature_extensions[0].dependencies should declare exactly one primary dependency`. `test_plugin_validate_rejects_generated_feature_provider_capability_schema_drift`, `test_plugin_validate_rejects_generated_feature_provider_dependency_schema_drift`, and `test_feature_provider_capability_dependency_schema_stays_in_leaf_owners` keep behavior and ownership focused. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_extension_schema_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].id` and `generated feature_extensions[0].owner_plugin_id` through `plugin_validate_feature_provider_extension_schema.py`. `validate_plugin_feature_provider_extension_schema` reuses the root feature-extension helpers `validate_plugin_feature_extension_id` and `validate_plugin_feature_extension_owner_package_token`, while `plugin_validate_feature_provider_extension.py` only dispatches the leaf before projection comparison. Drift reports `generated feature_extensions[0].owner_plugin_id Sound__ should contain only lowercase ASCII letters, digits, and underscores`, `generated feature_extensions[0].id Sound..Timeline should not contain empty namespace segments`, and `generated feature_extensions[0].id Sound..Timeline should contain only lowercase ASCII letters, digits, underscores, and dots`. `test_plugin_validate_rejects_generated_feature_provider_extension_schema_drift` covers the generated extension schema path, while `test_feature_provider_extension_schema_stays_in_schema_leaf` keeps schema validation inside the leaf owner. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_extension_metadata_schema_gate`, PluginValidate feature-provider generated package manifests now validate `generated feature_extensions[0].default_packaging` through `plugin_validate_feature_provider_extension_metadata_schema.py`. `validate_plugin_feature_provider_extension_metadata_schema` reuses the root helper `validate_plugin_default_packaging_values`, while `plugin_validate_feature_provider_extension_metadata.py` dispatches it before projection comparison. Drift reports `generated feature_extensions[0].default_packaging[0] "nightly_dynamic" is unsupported; expected one of source_template, library_embed, native_dynamic` and `generated feature_extensions[0].default_packaging[1] nightly_dynamic duplicates default_packaging[0]`. `test_plugin_validate_rejects_generated_feature_provider_default_packaging_schema_drift` covers the generated extension metadata schema path, while `test_feature_provider_extension_metadata_schema_stays_in_schema_leaf` keeps schema validation inside the leaf owner. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_feature_provider_manifest_metadata_value_schema_gate`, PluginValidate feature-provider generated package manifests now validate top-level `generated manifest.capabilities` and `generated manifest.default_packaging` through `plugin_validate_feature_provider_manifest_metadata_values.py`. `plugin_validate_feature_provider_manifest_metadata_values` reuses `validate_plugin_capability_values` and `validate_plugin_default_packaging_values`, while `plugin_validate_feature_provider_manifest_schema.py` only dispatches the leaf after required/present metadata shape checks. Drift reports `generated manifest.capabilities[0] Runtime.Bad should contain only lowercase ASCII letters, digits, underscores, and dots`, `generated manifest.capabilities[1] Runtime.Bad duplicates capabilities capabilities[0]`, `generated manifest.default_packaging[0] "nightly_dynamic" is unsupported; expected one of source_template, library_embed, native_dynamic`, and `generated manifest.default_packaging[1] nightly_dynamic duplicates default_packaging[0]`. `test_plugin_validate_rejects_generated_feature_provider_manifest_metadata_value_schema_drift` covers the generated manifest metadata value schema path, while `test_feature_provider_manifest_metadata_values_stays_in_schema_leaf` keeps schema validation inside the leaf owner. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_global_manifest_identities_guard`, structure audit now mirrors the PluginValidate `--all` global manifest identity pass. `tools/plugin_structure_audits/manifest_schema.py` keeps `loaded_manifests` after TOML parsing, then calls `tools/plugin_structure_audits/manifest_schema_global_identities.py` through `collect_global_manifest_identity_violations`. Duplicate global asset importer ids now report `plugin validate asset_importers id`, and duplicate global option keys now report `plugin validate options key`. `test_manifest_schema_rejects_global_asset_importer_id_duplicates` and `test_manifest_schema_rejects_global_option_key_duplicates` cover the structure-audit behavior, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_feature_provider_target_identity_guard`, structure audit now mirrors PluginValidate `--all` root and feature-provider target discovery identity checks. `tools/plugin_structure_audits/manifest_schema.py` keeps `loaded_manifests` after TOML parsing, then calls `tools/plugin_structure_audits/manifest_schema_feature_provider_targets.py` through `collect_feature_provider_target_identity_violations`. The owner reuses `feature_provider_package_id`, so default provider ids and explicit `provider_package_id` values share the same root 与 feature-provider target id namespace as PluginValidate. Duplicate targets now report `plugin validate target ... is duplicated by ...`. `tools/tests/test_plugin_structure_audit_manifest_schema_feature_provider_targets.py` covers this through `test_manifest_schema_rejects_duplicate_feature_provider_target_ids` and `test_manifest_schema_rejects_feature_provider_target_colliding_with_root_id`, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_module_workspace_crates_guard`, structure audit now mirrors the PluginValidate module workspace crate gate. `tools/plugin_structure_audits/manifest_schema.py` dispatches parsed manifests to `tools/plugin_structure_audits/manifest_schema_module_crates.py`, where `collect_module_workspace_crate_violations`, `collect_module_workspace_crate_violations_from_index`, and `workspace_crate_index` own the `zircon_plugins/Cargo.toml` crate index. Missing module crates report `must be a zircon_plugins workspace member`, and crates outside the plugin root or optional feature root report `must stay under`. `test_manifest_schema_rejects_missing_module_workspace_crate` and `test_manifest_schema_rejects_module_workspace_crate_outside_feature_root` cover the structure-audit behavior, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_asset_importer_required_capability_gate`, structure audit now mirrors the PluginValidate asset importer required-capability target gate. `tools/plugin_structure_audits/manifest_schema.py` dispatches parsed manifests to `tools/plugin_structure_audits/manifest_schema_asset_importer_capability_gates.py`, where `collect_asset_importer_required_capability_gate_violations`, `collect_declared_static_capabilities`, and `required_capability_is_host_owned` own static capability collection and host-owned exemptions. Undeclared importer requirements report `should reference a declared static package/feature capability or an explicitly host-owned capability`. `test_manifest_schema_rejects_undeclared_asset_importer_required_capability` and `test_manifest_schema_accepts_declared_feature_required_capability` cover the structure-audit behavior, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_option_required_capability_gate`, structure audit now mirrors the PluginValidate option required-capability target gate. `tools/plugin_structure_audits/manifest_schema.py` dispatches parsed manifests to `tools/plugin_structure_audits/manifest_schema_option_capability_gates.py`, where `collect_option_required_capability_gate_violations` owns option rows while reusing `collect_declared_static_capabilities` and `required_capability_is_host_owned`. Undeclared option requirements report `should reference a declared static package/feature capability or an explicitly host-owned capability`. `test_manifest_schema_rejects_undeclared_option_required_capability` and `test_manifest_schema_accepts_optional_feature_option_required_capability` cover the structure-audit behavior, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_feature_dependency_closed_fields_guard`, structure audit now mirrors PluginValidate closed-field checks for optional feature and feature extension dependency rows. `tools/plugin_structure_audits/manifest_schema.py` keeps the shared rule in `collect_feature_dependency_schema_violations`, reusing `REQUIRED_FEATURE_DEPENDENCY_FIELDS` while rejecting `optional_features[0].dependencies[0].sidecar` and `feature_extensions[0].dependencies[0].sidecar` with `is not a known optional feature dependency field`. `test_manifest_schema_rejects_unknown_optional_feature_dependency_field` and `test_manifest_schema_rejects_unknown_feature_extension_dependency_field` cover the structure-audit behavior, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_root_manifest_shape_guard`, structure audit now mirrors PluginValidate root manifest shape checks for root `id`, `version`, and `sdk_api_version`. `tools/plugin_structure_audits/manifest_schema_root_metadata.py` owns `collect_root_manifest_identity_violations` and `collect_root_manifest_version_violations`; `MANIFEST_VERSION_FIELDS`, `MANIFEST_SEMVER_COMPONENTS`, and `MANIFEST_U32_MAX` define the semver field surface and numeric bound. Diagnostics include `must start with a lowercase ASCII letter`, `must use MAJOR.MINOR.PATCH form`, `must not use leading zeroes`, and `must fit in u32`. `tools/tests/test_plugin_structure_audit_manifest_schema_root_shape.py` covers this through `test_manifest_schema_rejects_root_id_semantics`, `test_manifest_schema_rejects_root_version_shape`, and `test_manifest_schema_rejects_root_version_numeric_boundaries`, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_root_category_guard`, structure audit now mirrors PluginValidate root manifest classification checks for root `category`. `tools/plugin_structure_audits/manifest_schema_root_metadata.py` owns the allowed set in `CATEGORY_VALUES` and dispatches through `collect_allowed_string_value`; legal values are `asset_importer`, `authoring`, `diagnostics`, `platform`, `rendering`, `runtime`, and `sdk`. Invalid categories report `is unsupported; expected one of asset_importer, authoring, diagnostics, platform, rendering, runtime, sdk`. `tools/tests/test_plugin_structure_audit_manifest_schema_root_classification.py` covers this through `test_manifest_schema_rejects_unknown_root_category`, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_root_distribution_guard`, structure audit now mirrors PluginValidate root distribution static contract checks. `tools/plugin_structure_audits/manifest_schema_root_metadata.py` dispatches `collect_root_distribution_schema_violations` into `tools/plugin_structure_audits/manifest_schema_distribution.py`, where `DISTRIBUTION_FIELDS`, `DISTRIBUTION_FORM_VALUES`, `DISTRIBUTION_DESCRIPTOR_SYMBOL`, and `DISTRIBUTION_ABI_VERSION` own the root distribution schema, form values, descriptor symbol, and ABI v3 gate. Diagnostics include `distribution.forms must include dist`, `distribution.default_packaging must include native_dynamic`, `distribution.descriptor_symbol must equal zircon_native_plugin_descriptor_v3`, and `targets retired UI asset suffix`. `tools/tests/test_plugin_structure_audit_manifest_schema_root_distribution.py` covers this through `test_manifest_schema_rejects_root_distribution_non_table`, `test_manifest_schema_rejects_root_distribution_packaging_contract`, `test_manifest_schema_rejects_root_distribution_v3_contract`, and `test_manifest_schema_rejects_root_distribution_assets_contract`, and the real structure audit remains `manifest_schema_violations=0` with `dist_build_matrix_count=39`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_feature_distribution_contract_guard`, optional feature and feature extension distribution checks now share the structure-audit distribution owner. `tools/plugin_structure_audits/manifest_schema_optional_features.py` keeps `collect_optional_feature_distribution_schema_violations` as the optional-feature dispatch edge, `tools/plugin_structure_audits/manifest_schema_feature_extensions.py` dispatches feature extension rows, and both call `tools/plugin_structure_audits/manifest_schema_distribution.py` through `collect_feature_distribution_schema_violations`. The shared owner uses `DISTRIBUTION_FIELDS`, `DISTRIBUTION_FORM_VALUES`, and `DISTRIBUTION_DESCRIPTOR_SYMBOL` for `distribution.forms must include dist`, `distribution.default_packaging must include native_dynamic`, `distribution.descriptor_symbol must equal zircon_native_plugin_descriptor_v3`, and `targets retired UI asset suffix`. `tools/tests/test_plugin_structure_audit_manifest_schema_feature_distribution_contract.py` covers this through `test_manifest_schema_rejects_optional_feature_distribution_contract` and `test_manifest_schema_rejects_feature_extension_distribution_contract`, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_dependency_capability_targets_gate`, structure audit now mirrors the PluginValidate dependency capability target gate for top-level `dependencies[*].capability`, `optional_features[0].dependencies`, and `feature_extensions[0].dependencies`. `tools/plugin_structure_audits/manifest_schema.py` dispatches parsed manifests to `tools/plugin_structure_audits/manifest_schema_dependency_capability_targets.py`, where `collect_dependency_capability_target_violations`, `collect_feature_dependency_capability_target_violations`, `collect_single_feature_dependency_capability_target_violations`, `dependency_capability_target_index`, and `dependency_capability_is_host_owned` own static package/feature capability indexing and host namespace fallback. Missing static package capability declarations report `should be declared by the referenced static plugin package or one of its feature rows`, and unknown non-host capabilities report `references no static plugin package and should use a runtime.module.* or runtime.capability.* host namespace`. `test_manifest_schema_rejects_dependency_capability_not_declared_by_package`, `test_manifest_schema_rejects_external_dependency_non_host_capability`, `test_manifest_schema_rejects_optional_feature_dependency_capability_target`, and `test_manifest_schema_rejects_feature_extension_external_dependency_capability` cover the structure-audit behavior, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_global_event_catalog_namespace_guard`, structure audit now mirrors the PluginValidate cross-manifest event catalog namespace check. `tools/plugin_structure_audits/manifest_schema.py` keeps `loaded_manifests` after TOML parsing, then calls `tools/plugin_structure_audits/manifest_schema_event_catalog_namespaces.py` through `collect_global_event_catalog_namespace_violations`. Duplicate `event_catalogs[0].namespace` values now report `plugin validate event_catalog namespace ... is duplicated by ...`. `tools/tests/test_plugin_structure_audit_manifest_schema_event_catalog_namespaces.py` covers this through `test_manifest_schema_rejects_global_event_catalog_namespace_duplicates`, and the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_feature_provider_package_projection_guard`, structure audit now mirrors the generated feature-provider package manifest projection pass before export. `tools/plugin_structure_audits/manifest_schema.py` keeps parsed `loaded_manifests`, then calls `tools/plugin_structure_audits/manifest_schema_feature_provider_packages.py` through `collect_feature_provider_package_projection_violations`. The owner reuses `feature_provider_package_manifest_template` to render the generated package manifest text and revalidates it with `validate_plugin_feature_provider_package_projection`, so optional feature dist packages are audited alongside root plugin manifests. `tools/tests/test_plugin_structure_audit_manifest_schema_feature_provider_packages.py` covers this through `test_manifest_schema_audits_feature_provider_generated_package_projection`; `tools/tests/test_audit_plugin_structure_report.py` covers summary and Markdown report output through `test_report_exposes_feature_provider_package_projection_count`; the real structure audit reports `feature_provider_package_projection_count=2` with `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_layout_roots_owner_split`, structure audit now keeps root `asset_roots` and `content_roots` rules in a dedicated owner. `tools/plugin_structure_audits/manifest_schema_layout_roots.py` owns `collect_layout_root_schema_violations`, `collect_layout_root_path_violations`, and `layout_root_has_drive_separator`; `tools/plugin_structure_audits/manifest_schema.py` only dispatches the leaf. `tools/tests/test_plugin_structure_audit_manifest_schema_layout_roots_owner_boundaries.py` covers this through `test_layout_roots_schema_lives_in_layout_roots_owner`, and `test_manifest_schema_rejects_layout_root_drive_separator` remains the behavior guard. The real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_retired_ui_asset_repo_audit_guard`, `tools/audit_plugin_structure.py` now includes a repository-level retired UI asset conformance section. `tools/plugin_structure_audits/retired_ui_assets.py` owns `RETIRED_UI_ASSET_SCAN_ROOTS`, `RETIRED_UI_ASSET_SUFFIXES`, and `audit_retired_ui_asset_conformance`, scanning `zircon_editor`, `zircon_plugins`, and `zircon_runtime` for `.ui.toml` / `.v2.ui.toml` files while allowing `.zui`. The JSON summary and Markdown report expose `retired_ui_asset_files=0` and `zui_only_layout_status=zui-only-clean`; `tools/tests/test_plugin_structure_audit_retired_ui_assets.py` covers `test_retired_ui_asset_audit_reports_legacy_ui_toml_files` and `test_retired_ui_asset_audit_reports_zui_only_clean`, while `test_report_exposes_retired_ui_asset_status` covers report output. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_generated_manifest_header_report_guard`, `tools/audit_plugin_structure.py` now reports generated manifest header status in both JSON summary and Markdown. The schema layer still diagnoses `missing generated manifest header`; the report layer now exposes `generated_manifest_header_violations=0`, `generated_manifest_header_violation_paths=[]`, and `Generated manifest header violations`, while the real report remains `m1_gate_status=classified-and-clear`. `tools/tests/test_audit_plugin_structure_report.py` covers this through `test_report_exposes_generated_manifest_header_status`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_structure_audit_manifest_schema_root_test_owner_budget_recovered`, structure-audit test ownership is back under budget: `tools/tests/test_plugin_structure_audit_manifest_schema.py=324`. Module descriptor projection tests now live in `tools/tests/test_plugin_structure_audit_manifest_schema_modules.py` as `test_manifest_schema_accepts_module_descriptor_projection_fields` and `test_manifest_schema_rejects_module_descriptor_projection_drift`; layout roots behavior stays in `tools/tests/test_plugin_structure_audit_manifest_schema_layout_roots_owner_boundaries.py` as `test_manifest_schema_rejects_layout_root_drive_separator`. `test_manifest_schema_optional_feature_test_owners_stay_under_line_budgets` is green again. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_retired_ui_asset_repo_guard`, `plugin validate --all` now runs a repository-level retired UI asset file check before reporting all targets. `tools/zircon_export/plugin_validate_retired_ui_assets.py` owns `PLUGIN_VALIDATE_RETIRED_UI_ASSET_SCAN_ROOTS` and `validate_plugin_retired_ui_asset_files`, scans `zircon_editor`, `zircon_plugins`, and `zircon_runtime`, and reuses `PLUGIN_VALIDATE_RETIRED_UI_ASSET_SUFFIXES` so `.ui.toml` / `.v2.ui.toml` files report `retired UI asset file ... uses retired UI asset suffix ...; use .zui`. `tools/zircon_export/tests/test_plugin_validate_retired_ui_assets.py` covers this through `test_plugin_validate_retired_ui_asset_files_reports_legacy_ui_toml_files` and `test_plugin_validate_all_reports_retired_ui_asset_files`; the real validation anchor remains `target_count=39`, `failed_count=0`, and `diagnostics=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_plugin_validate_single_retired_ui_asset_guard`, single-target `plugin validate` now runs the same retired UI asset policy on the target plugin directory. `validate_plugin_target_retired_ui_asset_files` reports plugin-relative `.ui.toml` / `.v2.ui.toml` paths for commands such as `plugin validate native_dynamic_fixture`, while `plugin validate --all` disables item-level repeat scans so `all-target validation should report repo-level retired UI assets once`. `tools/zircon_export/tests/test_plugin_validate_retired_ui_assets.py` covers this through `test_plugin_validate_single_reports_retired_ui_asset_files` and `test_plugin_validate_target_retired_ui_asset_files_reports_plugin_relative_paths`; the real validation anchor remains `target_count=39`, `failed_count=0`, and `diagnostics=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.
+
+For `plugins_13_m5_t1_manifest_schema_optional_feature_test_owner_budget_recovered`, structure-audit optional feature behavior tests now stay under focused owner budgets. Shared fixtures live in `tools/tests/plugin_structure_audit_optional_feature_support.py`; row schema remains in `tools/tests/test_plugin_structure_audit_manifest_schema_optional_features.py`; modules, dependencies, and distribution behavior live in `tools/tests/test_plugin_structure_audit_manifest_schema_optional_feature_modules.py`, `tools/tests/test_plugin_structure_audit_manifest_schema_optional_feature_dependencies.py`, and `tools/tests/test_plugin_structure_audit_manifest_schema_optional_feature_distribution.py`. `tools/tests/test_plugin_structure_audit_manifest_schema_optional_feature_test_owner_boundaries.py` locks `test_optional_feature_schema_tests_live_in_focused_owners` and `test_manifest_schema_optional_feature_test_owners_stay_under_line_budgets`, including `test_manifest_schema_rejects_empty_optional_features_array` and `test_manifest_schema_rejects_optional_feature_distribution_missing_entry` ownership. Current counts are `test_plugin_structure_audit_manifest_schema.py=324`, `test_plugin_structure_audit_manifest_schema_optional_features.py=253`, `test_plugin_structure_audit_manifest_schema_optional_feature_dependencies.py=289`, `test_plugin_structure_audit_manifest_schema_optional_feature_modules.py=82`, and `test_plugin_structure_audit_manifest_schema_optional_feature_distribution.py=98`; focused owner/behavior 32/32 and py_compile pass, while the real structure audit remains `manifest_schema_violations=0`. Scope: 不声明 Hub/editor E2E、完整 export matrix 或 startup-to-first-frame; no Cargo build/test/export, real plugin build, or full export matrix is claimed.

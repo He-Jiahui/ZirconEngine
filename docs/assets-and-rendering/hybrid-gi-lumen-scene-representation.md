@@ -178,6 +178,8 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/hybrid_gi_completion_params.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/new/bind_group_layout/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/decode/read_buffer_u32s.rs
+  - tools/tests/test_plugin_render_layer_schema_v1_mask_callers.py
+  - tools/tests/test_plugin_docs_current_status_hybrid_gi_render_layer_schema_v1_mask_callers.py
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/gpu_readback.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/gpu_readback_accessors.rs
@@ -1281,3 +1283,26 @@ Hybrid GI post-process 的 hierarchy irradiance/RT encode 都已开始拆成插�
 - Boundary-hardening acceptance for the final fixture/privacy cleanup used `D:\cargo-targets\zircon-render-boundary-hardening`: refined raw construction grep found no `HybridGiResolveRuntime { ... }` fixture construction outside the owner declaration context, targeted `rustfmt --check` covered the touched resolve-runtime and renderer boundary files, `cargo check -p zircon_runtime --lib --locked --jobs 1 --color never`, `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --color never`, `cargo check -p zircon_runtime --tests --locked --jobs 1 --color never`, and `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --color never` all passed. After the user continued the test gate, focused tests also passed: `hybrid_gi_runtime` 63/63, `hybrid_gi_resolve_history` 20/20, `render_framework_bridge` 29/29, and the two VG/HGI runtime plugin package tests plus doctests completed with 0 failures.
 - Focused V1 dynamic-light final-resolve acceptance now includes `cargo test -p zircon_runtime --locked --lib hybrid_gi_resolve_uses_runtime_scene_voxel_spot_light_seed_when_layout_and_tint_stay_fixed --target-dir target/codex-hybrid-gi-v1-dynamic-light -- --nocapture`, which passed with 1 passed / 0 failed / 1214 filtered, `cargo test -p zircon_runtime --locked --lib hybrid_gi_resolve_uses_scene_card_capture_emissive_seed_when_voxel_owner_and_layout_stay_fixed --target-dir target/codex-hybrid-gi-v1-emissive-resolve -- --nocapture`, which passed with 1 passed / 0 failed / 1215 filtered after removing a test helper reference to a private readback type, and `cargo test -p zircon_runtime --locked --lib hybrid_gi_resolve_uses_runtime_scene_voxel_directional_light_seed_when_layout_and_tint_stay_fixed --target-dir target/codex-hybrid-gi-v1-directional-resolve -- --nocapture`, which passed with 1 passed / 0 failed / 1218 filtered after the active VG importer slice was unblocked by the user-approved `Vec<MeshVertex>` inference fix. The final runs emitted only the unrelated `NativePluginOwnedByteBufferV2::new_for_test` dead-code warning.
 - Rendering/plugin closeout validation on `E:\cargo-targets\zircon-rendering-plugin-runtime-check` caught and fixed the runtime-provider `HybridGiGpuCompletion::from_readback_outputs(...)` cache-entry collection inference gap by making the neutral readback conversion target `Vec<(u32, u32)>` explicit. The fix was covered by `cargo test -p zircon_runtime --lib --locked source_template_links_runtime_backed_authoring_and_excludes_editor_only_authoring --jobs 1`, `cargo test -p zircon_runtime --lib --locked plugin_extensions --jobs 1`, `cargo test -p zircon_runtime --lib --locked graphics::tests::pipeline_compile --jobs 1`, and the full `cargo test --manifest-path zircon_plugins\Cargo.toml --workspace --locked --jobs 1` plugin workspace gate.
+- Plugin build convergence follow-up `plugins_13_m5_t1_hybrid_gi_render_layer_schema_v1_mask_callers` keeps this module aligned with the runtime render camera contract: `zircon_plugin_hybrid_gi_runtime` production placeholders, `voxel_clipmap_debug`, scene-representation fixtures, runtime fixtures, and render-framework stats fixtures now call `RenderLayerSet::from_scene_schema_v1_mask(u32::MAX)` instead of the retired `from_extract_mask`. Guard coverage is `tools/tests/test_plugin_render_layer_schema_v1_mask_callers.py` plus `tools/tests/test_plugin_docs_current_status_hybrid_gi_render_layer_schema_v1_mask_callers.py`; focused validation used `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --all-targets` and passed with only existing warnings. This is a plugin runtime compile-seam fix, not a new Hybrid GI render feature claim or full plugin workspace build completion.
+
+## Frameworks 02 M3 Async Compute Workload Descriptor Contract
+
+`frameworks_02_m3_hybrid_gi_async_compute_workload_contract_focused_test_passed_workspace_test_pending`
+keeps the Hybrid GI trace schedule pass on the current render graph contract. The plugin workspace
+test rerun exposed that the production `render_feature_descriptor()` declared
+`hybrid-gi-trace-schedule` on `QueueLane::AsyncCompute` without planned compute workload metadata.
+The descriptor now declares fixed workload metadata for `zircon-hybrid-gi-trace-schedule` with
+workgroup size `[8, 8, 1]` and dispatch groups `[1, 1, 1]`, matching the existing render framework
+fixture contract and the pipeline compiler's current validation rule.
+
+The change is intentionally not a compatibility path: no renderer facade, legacy alias, queue
+downgrade, async-compute validation relaxation, or old graph scheduling branch was added. The
+runtime descriptor test now locks the queue and workload metadata for the trace schedule pass.
+Scoped `rustfmt --edition 2021 --check` passed for the touched Hybrid GI files. The focused Cargo
+rerun passed `render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts`
+1/1 with status file `E:\cargo-targets\zircon-hybrid-gi-focused-0703-codex-rerun1.status.json`
+reporting ExitCode 0. Follow-up segmented plugin workspace validation also covered the Hybrid GI
+runtime/dist/editor packages: `segment1-critical-fixes-rerun2.status.json` passed the HGI runtime
+package with ExitCode 0, `segment6-remaining-dist-editor-native.status.json` passed the HGI
+dist/editor package group with ExitCode 0, and the six segment status files together cover all 120
+`zircon_plugins` default workspace members with `MissingCount=0` and `ExtraCount=0`.

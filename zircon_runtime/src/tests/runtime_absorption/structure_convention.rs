@@ -36,7 +36,7 @@ mod render_post_process_volume_component;
 mod render_prepared_mesh_queue;
 #[path = "structure_convention/rhi_wgpu_lock_poison.rs"]
 mod rhi_wgpu_lock_poison;
-#[path = "structure_convention/runtime_dead_code.rs"]
+#[path = "structure_convention/runtime_dead_code/mod.rs"]
 mod runtime_dead_code;
 #[path = "structure_convention/script_vm_lock_poison.rs"]
 mod script_vm_lock_poison;

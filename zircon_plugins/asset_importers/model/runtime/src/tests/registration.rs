@@ -22,8 +22,12 @@ fn package_declares_model_importer_capabilities() {
     assert!(manifest
         .capabilities
         .contains(&CAD_IMPORTER_CAPABILITY.to_string()));
-    assert_eq!(manifest.modules.len(), 1);
-    assert_eq!(manifest.modules[0].crate_name, crate::RUNTIME_CRATE_NAME);
+    let runtime_module = manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "asset_importer.model.runtime")
+        .expect("model importer package includes runtime module");
+    assert_eq!(runtime_module.crate_name, crate::RUNTIME_CRATE_NAME);
 }
 
 #[test]

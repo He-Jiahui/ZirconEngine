@@ -1,6 +1,17 @@
+use std::path::Path;
+use std::sync::Arc;
+
+use crate::core::framework::render::{
+    CompositeFontDescriptor, FontFaceDescriptor, FontFamilyName, FontQuery, FontScript,
+    FontStretch, FontStyle, FontWeight, SubFontRange,
+};
+use crate::graphics::text::font::FontDatabase;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
-use super::shape_horizontal_line;
+use super::{
+    font_id::{annotate_fallback_font_ids, font_query_for_style},
+    shape_horizontal_line,
+};
 
 #[test]
 fn text_shape_clusters_map_source_ranges_monotonic() {
@@ -228,6 +239,73 @@ fn text_script_segmentation_keeps_emoji_zwj_sequence_as_emoji_script() {
             && glyph.source_range.end <= text.len() - 1
             && glyph.script.iso15924 == "Zsye"
     }));
+}
+
+#[test]
+fn text_fallback_glyph_carries_resolved_font_id() {
+    let source_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let mut database = FontDatabase::default();
+    let primary = database
+        .register_font_file(&source_path, Some("Inter"), 0)
+        .unwrap();
+    let cjk = database
+        .register_test_face(
+            FontFaceDescriptor::regular("Noto Sans CJK SC"),
+            Arc::from([4_u8, 5, 6].as_slice()),
+        )
+        .unwrap();
+    let query = FontQuery::single_family("Inter");
+    let composite = CompositeFontDescriptor {
+        default_family: FontFamilyName::from("Inter"),
+        sub_fonts: vec![SubFontRange {
+            family: FontFamilyName::from("Noto Sans CJK SC"),
+            scripts: vec![FontScript::Han],
+            ranges: vec![(0x4E00, 0x9FFF)],
+        }],
+    };
+    let style = UiResolvedStyle {
+        font_family: Some("Inter".to_string()),
+        ..test_style()
+    };
+    let text = "界";
+    let mut shaped = shape_horizontal_line(
+        text,
+        &style,
+        UiTextDirection::LeftToRight,
+        UiTextRange {
+            start: 0,
+            end: text.len(),
+        },
+    );
+
+    annotate_fallback_font_ids(&mut shaped, primary, &query, &database, Some(&composite));
+
+    let line = shaped.lines.first().expect("shaped line");
+    assert!(!line.glyphs.is_empty());
+    assert!(
+        line.glyphs.iter().all(|glyph| glyph.font_id == Some(cjk)),
+        "all glyphs for the CJK cluster must carry the composite fallback face"
+    );
+}
+
+#[test]
+fn text_font_query_for_style_preserves_requested_font_weight() {
+    let style = UiResolvedStyle {
+        font_family: Some("Inter".to_string()),
+        font_weight: 650,
+        ..test_style()
+    };
+
+    assert_eq!(
+        font_query_for_style(&style),
+        FontQuery {
+            families: vec![FontFamilyName::from("Inter")],
+            weight: FontWeight::clamped(650),
+            style: FontStyle::Normal,
+            stretch: FontStretch::NORMAL,
+        }
+    );
 }
 
 fn test_style() -> UiResolvedStyle {

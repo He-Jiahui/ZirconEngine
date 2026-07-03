@@ -162,15 +162,15 @@ const GRAPHICS_SCENE_DIAGNOSTIC_SOURCE_ANCHORS: &[(&str, &str)] = &[
 const SCENE_ASSET_PROJECT_IO_DIAGNOSTIC_SOURCE_ANCHORS: &[(&str, &str)] = &[
     (
         "fn scene_asset_toml_roundtrip_preserves_entities_and_bindings()",
-        include_str!("../../../asset/tests/assets/scene.rs"),
+        include_str!("../../../asset/tests/assets/scene/foundation.rs"),
     ),
     (
         "fn scene_assets_roundtrip_primitive_mesh_material_bindings()",
-        include_str!("../../../scene/tests/asset_scene.rs"),
+        include_str!("../../../scene/tests/asset_scene/mesh_bindings.rs"),
     ),
     (
         "fn scene_project_serialization_sources_do_not_store_editor_authoring_state()",
-        include_str!("../../../scene/tests/component_structure.rs"),
+        include_str!("../../../scene/tests/component_structure/project_serialization.rs"),
     ),
 ];
 
@@ -185,14 +185,14 @@ const ECS_SCENE_DIAGNOSTIC_SOURCE_ANCHORS: &[(&str, &str)] = &[
     ),
     (
         "fn render_extract_prepare_flushes_parent_reorder_and_active_changes()",
-        include_str!("../../../scene/tests/ecs_schedule.rs"),
+        include_str!("../../../scene/tests/ecs_schedule/render_extract.rs"),
     ),
     (
         "fn world_bootstraps_with_renderable_defaults()",
-        include_str!("../../../scene/tests/world_basics.rs"),
+        include_str!("../../../scene/tests/world_basics/world_state.rs"),
     ),
     (
         "fn world_resolves_entity_paths_and_mutates_component_properties()",
-        include_str!("../../../scene/tests/property_paths.rs"),
+        include_str!("../../../scene/tests/property_paths/runtime_mutation.rs"),
     ),
 ];

@@ -596,14 +596,14 @@ The right state panel is retained projection, not handwritten host business UI. 
 
 ## Global Material Surface Conformance
 
-Global UI Material Milestone 3 moves Material conformance from a Component Showcase-only concern to a repository-wide `.ui.toml` asset rule. `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` enumerates editor, host, window, and runtime surfaces and checks that normal UI assets import the Material theme directly or through another imported asset, interactive native controls either expand through Material meta components or carry Material classes/layout metrics, fixed dimensions have a chrome/dialog/intrinsic reason, and collection-heavy surfaces declare a scrollable or bounded viewport region.
+Global UI Material Milestone 3 now uses a 41-file global `.zui` view surface inventory. `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` enumerates editor, host, and window `.zui` view surfaces and checks that normal UI assets import the Material theme directly or through another imported asset, interactive native controls either expand through Material component assets or carry Material classes/layout metrics, fixed dimensions have a chrome/dialog/intrinsic reason, and collection-heavy surfaces declare a scrollable or bounded viewport region. The global Material surface guard now collects `.zui` view documents by `asset.kind = "view"`; component `.zui` libraries and theme/style/token `.zui` documents remain import-graph inputs instead of becoming responsive surface targets.
 
 The current asset changes are deliberately small and contract-oriented:
 
-- `console.ui.toml` and the host `console_body.ui.toml` expose vertical scroll metadata for log/body overflow
-- `module_plugins_body.ui.toml` marks the plugin-list slot as stretched and vertically scrollable
-- `runtime_diagnostics_body.ui.toml` adds explicit UI Debug Reflector diagnostic rows plus a stretched/scrollable node list viewport
-- `welcome.ui.toml` imports Material meta components and theme tokens for its project-name/location fields and action buttons, then marks the main content stack scrollable
+- `console.zui` and the host `console_body.zui` expose vertical scroll metadata for log/body overflow
+- `module_plugins_body.zui` marks the plugin-list slot as stretched and vertically scrollable
+- `runtime_diagnostics_body.zui` adds explicit UI Debug Reflector diagnostic rows plus a stretched/scrollable node list viewport
+- `welcome.zui` imports Material component assets and theme tokens for its project-name/location fields and action buttons, then marks the main content stack scrollable
 
 This conformance harness is an editor asset boundary test, not a painter fallback. It makes the same Material/viewport intent visible to template compilation, shared layout, host projection, and native drawing. A pre-portability-fix run of `global_material_surface_assets` passed with 1 test; after adding an import-graph normalization regression for slash-separated `res://ui/...` paths, one Cargo rerun exited before producing a test summary. The final scoped Milestone 3 rerun on `E:\zircon-build\targets\global-ui` passed with 2 tests, including the import-graph normalization case, after the low-disk target cleanup recorded in the acceptance file.
 

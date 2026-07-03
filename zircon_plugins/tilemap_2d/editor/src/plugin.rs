@@ -88,11 +88,11 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
-    let import_tiled = operation("Tilemap2d.Authoring.ImportTiled");
-    let create_tilemap = operation("Tilemap2d.Authoring.CreateTilemap");
-    let create_tileset = operation("Tilemap2d.Authoring.CreateTileset");
-    let open = operation("Tilemap2d.Authoring.Open");
-    let paint = operation("Tilemap2d.Authoring.Paint");
+    let import_tiled = operation("tilemap_2d.authoring.import_tiled");
+    let create_tilemap = operation("tilemap_2d.authoring.create_tilemap");
+    let create_tileset = operation("tilemap_2d.authoring.create_tileset");
+    let open = operation("tilemap_2d.authoring.open");
+    let paint = operation("tilemap_2d.authoring.paint");
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(import_tiled.clone(), "Import Tiled Tilemap")

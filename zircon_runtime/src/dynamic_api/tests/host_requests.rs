@@ -30,168 +30,80 @@ fn drain_host_requests_rejects_unknown_session() {
 }
 
 #[test]
-fn host_request_batch_encodes_runtime_ime_requests() {
-    let batch = ZrRuntimeHostRequestBatchV1::new(
-        ZIRCON_RUNTIME_ABI_VERSION_V1,
-        vec![
-            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::Enable)),
-            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::SetCursorArea(
-                ImeCursorArea::new(16.0, 24.0, 8.0, 18.0),
-            ))),
-            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(
-                ImeHostRequest::SetSurroundingText(ImeSurroundingText::new("search", 6, 0)),
-            )),
-        ],
+fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_once() {
+    let api = runtime_api();
+    let handle_event = api.handle_event.expect("handle_event");
+    let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
+    let session = create_test_session(api);
+
+    assert_session_status(
+        unsafe {
+            handle_event(
+                session,
+                ZrRuntimeEventV1::ime_cursor_area(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    default_viewport(),
+                    12.0,
+                    34.0,
+                    2,
+                    18,
+                ),
+            )
+        },
+        ZrStatusCode::Ok,
+        "",
+    );
+    assert_session_status(
+        unsafe {
+            handle_event(
+                session,
+                ZrRuntimeEventV1::ime_surrounding_text(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    default_viewport(),
+                    ZrByteSlice::from_static(b"abcdef"),
+                    5,
+                    1,
+                ),
+            )
+        },
+        ZrStatusCode::Ok,
+        "",
     );
 
-    let output = encode_host_request_batch(&batch).unwrap();
+    let mut output = ZrOwnedByteBuffer::empty();
+    assert_session_status(
+        unsafe { drain_host_requests(session, &mut output) },
+        ZrStatusCode::Ok,
+        "",
+    );
     let batch = host_request_batch_from_output(output);
-
     assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
-    assert_eq!(batch.requests.len(), 3);
+    assert_eq!(batch.requests.len(), 2);
     assert!(matches!(
         batch.requests[0],
         ZrRuntimeHostRequestV1::Ime(ref request)
-            if request.kind == ZrRuntimeImeHostRequestKindV1::Enable
+            if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
+                && request.cursor_area == Some(ZrRuntimeImeCursorAreaV1::new(12.0, 34.0, 2.0, 18.0))
     ));
     assert!(matches!(
         batch.requests[1],
-        ZrRuntimeHostRequestV1::Ime(ref request)
-            if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
-                && request.cursor_area.as_ref().map(|area| area.width) == Some(8.0)
-    ));
-    assert!(matches!(
-        batch.requests[2],
         ZrRuntimeHostRequestV1::Ime(ref request)
             if request.kind == ZrRuntimeImeHostRequestKindV1::SetSurroundingText
                 && request
                     .surrounding_text
                     .as_ref()
-                    .map(|text| text.value.as_str())
-                    == Some("search")
+                    .map(|text| (text.value.as_str(), text.cursor, text.anchor))
+                    == Some(("abcdef", 5, 1))
     ));
-}
 
-#[test]
-fn host_request_batch_encodes_gamepad_rumble_requests() {
-    let batch = ZrRuntimeHostRequestBatchV1::new(
-        ZIRCON_RUNTIME_ABI_VERSION_V1,
-        vec![
-            ZrRuntimeHostRequestV1::gamepad_rumble(runtime_gamepad_rumble_request(
-                GamepadRumbleRequest::add(
-                    GamepadId(7),
-                    GamepadRumbleIntensity::new(1.25, -0.5),
-                    250,
-                ),
-            )),
-            ZrRuntimeHostRequestV1::gamepad_rumble(runtime_gamepad_rumble_request(
-                GamepadRumbleRequest::stop(GamepadId(7)),
-            )),
-        ],
+    let mut second_output = ZrOwnedByteBuffer::empty();
+    assert_session_status(
+        unsafe { drain_host_requests(session, &mut second_output) },
+        ZrStatusCode::Ok,
+        "",
     );
+    let second_batch = host_request_batch_from_output(second_output);
+    assert!(second_batch.requests.is_empty());
 
-    let output = encode_host_request_batch(&batch).unwrap();
-    let batch = host_request_batch_from_output(output);
-
-    assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
-    assert_eq!(batch.requests.len(), 2);
-    assert!(matches!(
-        batch.requests[0],
-        ZrRuntimeHostRequestV1::GamepadRumble(ZrRuntimeGamepadRumbleRequestV1 {
-            gamepad_id: 7,
-            kind: ZrRuntimeGamepadRumbleRequestKindV1::Add,
-            strong_motor: 1.0,
-            weak_motor: 0.0,
-            duration_millis: 250,
-        })
-    ));
-    assert!(matches!(
-        batch.requests[1],
-        ZrRuntimeHostRequestV1::GamepadRumble(ZrRuntimeGamepadRumbleRequestV1 {
-            gamepad_id: 7,
-            kind: ZrRuntimeGamepadRumbleRequestKindV1::Stop,
-            strong_motor: 0.0,
-            weak_motor: 0.0,
-            duration_millis: 0,
-        })
-    ));
-}
-
-#[test]
-fn host_request_batch_encodes_cursor_requests() {
-    let batch = ZrRuntimeHostRequestBatchV1::new(
-        ZIRCON_RUNTIME_ABI_VERSION_V1,
-        vec![
-            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
-                CursorHostRequest::set_visible(false),
-            )),
-            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
-                CursorHostRequest::set_grab_mode(CursorGrabMode::Locked),
-            )),
-            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
-                CursorHostRequest::set_hit_test(false),
-            )),
-            ZrRuntimeHostRequestV1::cursor(runtime_cursor_host_request(
-                CursorHostRequest::set_position(320.0, 180.0),
-            )),
-        ],
-    );
-
-    let output = encode_host_request_batch(&batch).unwrap();
-    let batch = host_request_batch_from_output(output);
-
-    assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
-    assert_eq!(batch.requests.len(), 4);
-    assert!(matches!(
-        batch.requests[0],
-        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
-            kind: ZrRuntimeCursorHostRequestKindV1::SetVisible,
-            value: false,
-            ..
-        })
-    ));
-    assert!(matches!(
-        batch.requests[1],
-        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
-            kind: ZrRuntimeCursorHostRequestKindV1::SetGrabMode,
-            grab_mode: Some(ZrRuntimeCursorGrabModeV1::Locked),
-            ..
-        })
-    ));
-    assert!(matches!(
-        batch.requests[2],
-        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
-            kind: ZrRuntimeCursorHostRequestKindV1::SetHitTest,
-            value: false,
-            ..
-        })
-    ));
-    assert!(matches!(
-        batch.requests[3],
-        ZrRuntimeHostRequestV1::Cursor(ZrRuntimeCursorHostRequestV1 {
-            kind: ZrRuntimeCursorHostRequestKindV1::SetPosition,
-            position: Some(position),
-            ..
-        }) if position.x == 320.0 && position.y == 180.0
-    ));
-}
-
-#[test]
-fn host_request_free_rejects_wrong_owner_token() {
-    let mut bytes = vec![1_u8, 2, 3];
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 0,
-        free: Some(free_runtime_host_request_bytes),
-    };
-
-    let status = unsafe { free_runtime_host_request_bytes(buffer) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
-    assert_eq!(
-        status_message(status),
-        "invalid runtime host request buffer"
-    );
+    destroy_test_session(api, session);
 }

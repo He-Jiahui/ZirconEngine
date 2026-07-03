@@ -314,6 +314,9 @@ fn many_point_light_product_material() -> MaterialAsset {
     MaterialAsset {
         name: Some("ManyPointLightsProduct".to_string()),
         shader: AssetReference::from_locator(AssetUri::parse("builtin://shader/pbr.wgsl").unwrap()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [0.32, 0.34, 0.36, 1.0],
         base_color_texture: None,
         normal_texture: None,

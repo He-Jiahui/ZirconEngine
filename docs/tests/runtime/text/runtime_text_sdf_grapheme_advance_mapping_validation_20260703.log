@@ -1,0 +1,28 @@
+runtime_text_sdf_grapheme_advance_mapping_validation_20260703
+
+Scope:
+- Added SDF advance projection for resolved layout advances that are defined per grapheme cluster.
+- The current SDF path still bakes one glyph per Unicode scalar; this slice maps a grapheme cluster advance onto that char run as zero advances for cluster continuations and the sanitized cluster advance at the cluster end.
+- Mixed native overlay fallback now accepts resolved grapheme advances and expands a failed SDF char to the full grapheme byte range before creating the native overlay batch.
+
+Touched implementation:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
+
+Regression coverage added:
+- maps_grapheme_advances_to_sdf_character_advances
+- keeps_legacy_character_advances_when_counts_match
+- rejects_empty_or_all_zero_advances
+- sdf_draw_plan_maps_resolved_grapheme_advances_to_sdf_char_run
+- sdf_atlas_fallback_overlays_whole_grapheme_from_resolved_advances
+
+Verification performed:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs : PASS
+- Cargo focused test deferred in this slice because existing cargo/rustc lanes were actively compiling zircon_runtime and zircon_plugin_tilemap_2d_editor in E:/cargo-targets and D:/cargo-targets.
+- Same-name target scan for *sdf*grapheme*advances* under repo target, E:/cargo-targets, and D:/cargo-targets returned no files.
+
+Visual proof:
+- docs/tests/runtime/text/runtime_text_sdf_grapheme_advance_mapping_preview_20260703.png
+- SHA256 095FE45AFE9BCBAA673902C42938D838B73848D92D52986C320BFB9DC1BEE315

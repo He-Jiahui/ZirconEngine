@@ -1,0 +1,41 @@
+Runtime text editor retained layout tests owner split validation
+status: runtime_text_editor_retained_layout_tests_owner_split_rustfmt_visual_cargo_deferred
+date: 2026-07-03
+layout_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+tests_file: zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+layout_lines: 423
+layout_test_attrs: 0
+layout_mod_tests_entries: 1
+tests_lines: 236
+tests_test_attrs: 8
+test_names:
+  - runtime_positioned_glyphs_use_runtime_grapheme_advances_when_widths_match
+  - runtime_positioned_glyphs_fall_back_to_host_spacing_when_runtime_advances_mismatch
+  - runtime_positioned_glyphs_rejects_per_grapheme_jitter_even_when_total_width_matches
+  - runtime_positioned_glyphs_rejects_subpixel_tab_label_jitter
+  - runtime_positioned_glyphs_rejects_quarter_pixel_tab_label_jitter
+  - runtime_positioned_glyphs_keep_pen_origin_for_subpixel_phase
+  - retained_text_run_carries_runtime_projected_spacing
+  - runtime_single_line_text_uses_runtime_shaped_glyph_advances
+target_same_name_matches: 0
+target_match_paths:
+  - none
+cargo_validation: deferred; external cargo/rustc lanes active, so this slice is proven by rustfmt/static checks and visual proof only.
+active_cargo_rustc_processes:
+  - cargo 4272
+  - cargo 34520
+  - cargo 40072
+  - cargo 42276
+  - cargo 42924
+  - cargo 43144
+  - cargo 43812
+  - cargo 44380
+  - cargo 45716
+  - cargo 48840
+  - rustc 10516
+  - rustc 32560
+  - rustc 36080
+  - rustc 36748
+  - rustc 45140
+png_sha256: 70ADD3267361666D95A716636E4550035E88018BE658527B5A65BF296083CF85
+log_sha256_before_hash_line: 7E7CE00108060F4593801D8A5C0746A19D0B2D971640DA9B054290F45DCD6BF7

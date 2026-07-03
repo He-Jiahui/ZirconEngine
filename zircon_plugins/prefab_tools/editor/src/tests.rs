@@ -10,8 +10,8 @@ fn prefab_authoring_registration_exposes_menu_items_and_payload_schemas() {
     editor_plugin()
         .register_editor_extensions(&mut registry)
         .expect("prefab authoring registration");
-    let operation =
-        EditorOperationPath::parse("PrefabTools.Authoring.ApplyOverrides").expect("operation path");
+    let operation = EditorOperationPath::parse("prefab_tools.authoring.apply_overrides")
+        .expect("operation path");
     let descriptor = registry
         .operations()
         .descriptor(&operation)

@@ -19,7 +19,7 @@ version = 1
 display_name = "Theme Dedupe"
 
 [imports]
-styles = ["res://ui/theme/shared_theme.ui.toml"]
+styles = ["res://ui/theme/shared_theme.zui"]
 
 [tokens]
 accent = "#223344"
@@ -69,7 +69,7 @@ version = 1
 display_name = "Theme Summary"
 
 [imports]
-styles = ["res://ui/theme/shared_theme.ui.toml"]
+styles = ["res://ui/theme/shared_theme.zui"]
 
 [tokens]
 accent = "#4488ff"
@@ -175,12 +175,12 @@ pub(crate) fn setup_theme_project(
         .join("assets")
         .join("ui")
         .join("layouts")
-        .join("editor.ui.toml");
+        .join("editor.zui");
     let imported_theme_path = project_root
         .join("assets")
         .join("ui")
         .join("theme")
-        .join("shared_theme.ui.toml");
+        .join("shared_theme.zui");
     fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
     fs::create_dir_all(imported_theme_path.parent().unwrap()).unwrap();
     write_ui_asset(&layout_path, layout_source);

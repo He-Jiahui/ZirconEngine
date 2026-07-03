@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     UiEditableTextState, UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRunKind, UiTextWrap,
+    UiTextWritingMode,
 };
 use crate::ui::layout::UiFrame;
 
@@ -16,6 +17,8 @@ pub struct UiResolvedTextLayout {
     pub text_align: UiTextAlign,
     pub wrap: UiTextWrap,
     pub direction: UiTextDirection,
+    #[serde(default)]
+    pub writing_mode: UiTextWritingMode,
     pub overflow: UiTextOverflow,
     pub font_size: f32,
     pub line_height: f32,

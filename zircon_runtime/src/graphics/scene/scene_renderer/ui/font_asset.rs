@@ -163,7 +163,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_render_mode_takes_priority_over_strategy_default_mode() {
+    fn schema_v1_render_mode_takes_priority_over_strategy_default_mode() {
         let manifest = font_manifest(
             Some(UiTextRenderMode::Native),
             FontAssetRenderStrategy {
@@ -202,7 +202,7 @@ mod tests {
     ) -> FontAsset {
         FontAsset {
             source: "FiraMono-subset.ttf".to_string(),
-            family: Some("Fira Mono".to_string()),
+            family: Some("Studio Mono".to_string()),
             render_mode,
             face_index: 0,
             family_members: Vec::new(),

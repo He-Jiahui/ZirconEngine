@@ -135,10 +135,16 @@ pub fn virtual_geometry_source_descriptor() -> GeometrySourceDescriptor {
             GeometrySourceVertexAttribute::Tangent,
             GeometrySourceVertexAttribute::Uv0,
         ],
-        required_bindings: vec![GeometrySourceBindingRequirement::new(
-            GeometrySourceBindingKind::VirtualGeometryPages,
-            "virtual_geometry.pages",
-        )],
+        required_bindings: vec![
+            GeometrySourceBindingRequirement::new(
+                GeometrySourceBindingKind::VirtualGeometryPages,
+                "virtual_geometry.pages",
+            ),
+            GeometrySourceBindingRequirement::new(
+                GeometrySourceBindingKind::VirtualGeometryClusters,
+                "virtual_geometry.clusters",
+            ),
+        ],
         shader_defines: vec![RenderShaderDefinitionValue::bool(
             "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY",
             true,

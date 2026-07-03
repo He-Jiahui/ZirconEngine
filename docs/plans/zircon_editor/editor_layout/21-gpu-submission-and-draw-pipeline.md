@@ -10,6 +10,8 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
   - docs/plans/zircon_editor/editor_layout/16-relative-layout-and-resolution-adaptation.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
+  - docs/plans/zircon_runtime/render/14-2d-stack.md  # 2D 栈勾稽(2026-07-02 评审收口)
+  - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md  # 文本图集共享服务(2026-07-02 评审收口)
 status: planned
 ---
 # 21 GPU 提交与绘制管线(批次合并 / 裁剪栈 / 图集 / 顶点 / 上屏)
@@ -38,6 +40,19 @@ status: planned
 
 规范:每命令带 `layer_id`(z 序),提取按 `draw_order` + layer 排序;合批只在**排序后相邻且 key 一致**的命令间发生(保持视觉叠放正确),对标 UE `FSlateBatchData::MergeRenderBatches`(`ElementBatcher.h:192`)。上层(浮层/弹窗/焦点环)用更高 layer,自然压在内容之上,与 18 命中 z 序一致。
 
+**layer_id 分配表(2026-07-02 评审收口)**:作者侧 V1 **不提供 z-index 词汇**;层级由"Overlay family + 提取序"决定,本表是 `layer_id` 的唯一权威分配(`13`/`18` 引用此表):
+
+| 段位 | 内容 |
+| --- | --- |
+| 0 段 | 常规内容(dock 区、面板、控件) |
+| 100 段 | dock 浮层(拖拽预览停靠指示等 dock chrome 浮层) |
+| 200 段 | popup / menu |
+| 300 段 | tooltip |
+| 400 段 | 拖拽幽灵 / 焦点环 |
+| 900 段 | 调试叠加 |
+
+段内按**提取序递增**(后提取者压前者);跨段不因提取序穿越。
+
 ### 3.3 裁剪栈(scissor vs stencil)
 
 规范:容器(`overflow:hidden/scroll`、圆角裁剪)push 裁剪区、子绘制完 pop,栈式管理,对标 UE `FSlateClippingManager` push/pop + `FSlateClippingState`/`FSlateClippingZone`(`Clipping.h:60`):
@@ -45,6 +60,7 @@ status: planned
 - **轴对齐矩形裁剪 → 硬件 scissor**(廉价);**旋转/非矩形/圆角 → stencil**(较贵)。规范默认轴对齐走 scissor,仅必要时 stencil(对标 UE 按 `bIsAxisAligned` 选 scissor/stencil)。
 - 裁剪状态去重缓存,命令持裁剪句柄(对标 UE `FClipStateHandle`);裁剪句柄进批次键(§3.1)。
 - 嵌套裁剪取交集(对标 UE `FSlateClippingZone::Intersect` `Clipping.h:128`)。
+- **圆角廉价路径(2026-07-02 评审收口)**:低圆角 chrome 容器优先**矩形 scissor + 圆角仅作用于自身填充**(圆角画在填充画刷里,裁剪仍是轴对齐矩形);仅当内容**真正溢出圆角区**(子内容侵入圆角切角像素)时才升级 stencil。避免编辑器 chrome 大面积走 stencil。
 
 ### 3.4 纹理图集(字形 / 图标 / 9-slice)
 
@@ -52,10 +68,23 @@ status: planned
 
 - 字形按 `font_size_logical × scale_factor` 栅格进图集(接 17 §3.2 / 16 DPI);atlas key 含 scale(治 17 G2 同源缺陷)。
 - 同图集 + 同 shader + 同裁剪 → 单批(§3.1)。图集满则开新页(新纹理 = 新批边界)。
+- **9-slice 原语规范(2026-07-02 评审收口)**:9-slice 命令按 UV 三段分片装配(横纵各三段共 9 区):**四角不缩放**(原尺寸贴),**四边单轴拉伸**(上下边横向拉伸、左右边纵向拉伸),**中心双轴拉伸**;边距(margin)以逻辑单位声明、顶点装配时乘 scale;9 区共享同一纹理页,合批不因 9-slice 断批。
+
+**与 `zircon_runtime` render/14(2D 栈)的勾稽表(2026-07-02 评审收口)**:
+
+| 职责 | 权威 |
+| --- | --- |
+| UI `UiBatchPlan` 顶点装配 / UI 批次(本文 §3.1-§3.5) | 本计划(21) |
+| glyph quad → 场景 2D sprite 批(world-space 文本进场景 2D 管线) | `zircon_runtime/render/14-2d-stack.md` |
+| 文本图集(字形栅格页)供给 | runtime `text/04` 共享服务(UI 批与场景 sprite 批共用) |
 
 ### 3.5 顶点 / 索引装配
 
 规范:每命令展开为顶点(位置/UV/色/SDF 像素尺寸)+ 索引,装入共享顶点/索引缓冲,对标 UE `FSlateVertex`(`RenderingCommon.h`)。**像素吸附归这层或合成层,不归 Taffy**(Taffy 已 `disable_rounding`,接 13/16):顶点位置在装配时按 `scale_factor` 决定是否吸附整像素(文本/1px 边框吸附,自由内容不吸附),对标 UE `ESlateVertexRounding`。
+
+**换算单点条款(2026-07-02 评审收口)**:全管线(SOURCE→STYLE→LAYOUT→COMMAND)一律逻辑坐标;逻辑→物理换算**单点发生在本节顶点装配阶段**(乘 `scale_factor` + 像素吸附),上游任何段不得预乘 scale。唯一例外:文本字形栅格按物理像素,由 runtime `text/04` `GlyphRasterKey { px_size_bucket }` 承担。与 `10` §3.1、`16` §3.4 同条款互为引用。
+
+**组透明与多窗口条款(2026-07-02 评审收口,与 `10` §3.1 同款互引)**:透明度为逐命令 α 直乘(顶点色 alpha);子树组透明 V1 禁止(离屏合成登记 V2),弹层淡入淡出仅允许"整棵子树同一 α 且子元素不重叠"的受限形态。多窗口:批次计划以渲染根(窗口)为单位装配与提交,每窗口独立 `scale_factor` 与顶点缓冲,跨窗口不合批。
 
 ### 3.6 render-thread 提交与帧节奏
 

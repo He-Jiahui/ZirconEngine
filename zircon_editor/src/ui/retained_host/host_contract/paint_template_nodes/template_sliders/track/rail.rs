@@ -1,7 +1,7 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
-use super::super::super::template_slider_geometry::{slider_fill_span, SLIDER_TRACK_RADIUS};
+use super::super::super::template_slider_geometry::{slider_fill_span, workbench_slider_metrics};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_track(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,6 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
     range_min_percent: Option<f32>,
     opacity: f32,
 ) {
+    let metrics = workbench_slider_metrics();
     commands.push(HostPaintCommand::quad(
         track_rect.clone(),
         Some(clip.clone()),
@@ -20,7 +21,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
         Some(style.track),
         None,
         0.0,
-        SLIDER_TRACK_RADIUS,
+        metrics.track_radius,
         opacity,
     ));
 
@@ -41,7 +42,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
         Some(style.fill),
         None,
         0.0,
-        SLIDER_TRACK_RADIUS,
+        metrics.track_radius,
         opacity,
     ));
 }

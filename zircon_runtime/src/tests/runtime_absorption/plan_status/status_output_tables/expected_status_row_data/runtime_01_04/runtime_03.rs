@@ -47,6 +47,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         ],
     ),
     (
+        "Runtime 03 Schedule/frame-loop 2026-07-01 current audit recheck",
+        &[
+            "schedule_frame_loop_20260701_current_audit_static_passed_cargo_deferred",
+            "source files 19/19",
+            "behavior-test anchors 13/13",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
+        ],
+    ),
+    (
         "Runtime 03 Schedule/frame-loop inventory split",
         &[
             "schedule_frame_loop_inventory_split_static_passed_cargo_deferred_tests_deferred",
@@ -62,6 +71,16 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "schedule_frame_loop_markdown.py",
             "schedule_frame_loop_boundary.py` now owns only audit read/missing-anchor/risk aggregation at 368 lines",
             "standalone `plan_status.rs` 33/33",
+        ],
+    ),
+    (
+        "Runtime 03 Schedule/frame-loop session profile owner audit sync",
+        &[
+            "schedule_frame_loop_session_profile_owner_audit_sync_static_passed_cargo_deferred",
+            "dynamic_api/session/profile.rs",
+            "source files 19/19",
+            "missing_session_tick_anchors=[]",
+            "standalone `schedule_frame_loop.rs` 1/1",
         ],
     ),
 ];

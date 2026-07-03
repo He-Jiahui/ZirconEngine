@@ -10,6 +10,9 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
     );
     let shader_source =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs");
+    let shader_source_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs",
+    );
     let ensure_depth_prepass = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs",
     );
@@ -36,7 +39,7 @@ fn runtime_15_depth_prepass_pure_depth_product_migration_is_wired() {
     );
     assert_contains_all(
         "runtime depth prepass source uses the depth-only template pass",
-        &shader_source,
+        &format!("{shader_source}{shader_source_tests}"),
         &[
             "pub(crate) fn mesh_pipeline_depth_prepass_template_source_for_geometry",
             "ShaderPassType::DepthPrepass",

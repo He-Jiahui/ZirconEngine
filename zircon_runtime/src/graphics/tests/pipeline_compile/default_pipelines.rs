@@ -72,7 +72,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
-        "depth-prepass",
+        "gbuffer-mesh",
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         RenderGraphResourceAccessKind::Write,
     );

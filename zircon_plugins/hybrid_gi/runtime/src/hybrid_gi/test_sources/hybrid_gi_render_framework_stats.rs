@@ -150,7 +150,7 @@ fn mesh(
         tint: Vec4::ONE,
         mobility: Mobility::Static,
         static_state: RenderMeshStaticState::from_transform_static(true),
-        render_layer_mask: RenderLayerSet::from_extract_mask(u32::MAX),
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
     }
 }
 

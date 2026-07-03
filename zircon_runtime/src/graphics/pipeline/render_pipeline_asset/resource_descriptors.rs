@@ -107,6 +107,7 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
         PostProcessGraphResourceNames::DEPTH_OF_FIELDED
         | PostProcessGraphResourceNames::MOTION_BLURRED
         | PostProcessGraphResourceNames::BLURRED
+        | PostProcessGraphResourceNames::BLOOM
         | PostProcessGraphResourceNames::SCENE_COMPOSITED => {
             Some(post_process_intermediate_hdr_format())
         }
@@ -203,10 +204,6 @@ fn half_extent(value: u32) -> u32 {
 fn is_scene_color_resource(name: &str) -> bool {
     matches!(
         name,
-        "scene-color"
-            | "final-color"
-            | "postprocess.terminal-aa-input"
-            | "bloom-texture"
-            | "ambient-occlusion"
+        "scene-color" | "final-color" | "postprocess.terminal-aa-input" | "ambient-occlusion"
     ) || name.starts_with("gbuffer-")
 }

@@ -3,7 +3,9 @@ use std::sync::Arc;
 use crate::core::framework::render::{RenderMeshLodSelection, RenderMeshStaticState};
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::graphics::scene::gpu_scene::GpuScene;
-use crate::graphics::scene::resources::{GpuMaterialUniformResource, GpuMeshResource, PipelineKey};
+use crate::graphics::scene::resources::{
+    GpuMaterialUniformResource, GpuMeshResource, MaterialDisabledPasses, PipelineKey,
+};
 
 use super::super::mesh_draw::{
     MaterialTextureSet, MeshDraw, MeshDrawGeometrySource, VirtualGeometrySubmissionDetail,
@@ -25,6 +27,7 @@ pub(super) fn create_mesh_draw(
     standard_material_uniform: Arc<GpuMaterialUniformResource>,
     pipeline_key: PipelineKey,
     cast_shadows: bool,
+    disabled_passes: MaterialDisabledPasses,
     taa_reactive_mask_strength: f32,
     has_previous_velocity_transform: bool,
     mesh_lod: Option<RenderMeshLodSelection>,
@@ -88,6 +91,7 @@ pub(super) fn create_mesh_draw(
         standard_material_uniform,
         pipeline_key,
         cast_shadows,
+        disabled_passes,
         taa_reactive_mask_strength,
         gpu_scene_bind_group,
         has_previous_velocity_transform,
@@ -115,51 +119,51 @@ fn create_material_bind_group(
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::TextureView(material_textures.base_color.view()),
+                resource: material_uniform.binding_resource(),
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: wgpu::BindingResource::Sampler(material_textures.base_color.sampler()),
+                resource: wgpu::BindingResource::TextureView(material_textures.base_color.view()),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
-                resource: wgpu::BindingResource::TextureView(material_textures.normal.view()),
+                resource: wgpu::BindingResource::Sampler(material_textures.base_color.sampler()),
             },
             wgpu::BindGroupEntry {
                 binding: 3,
-                resource: wgpu::BindingResource::Sampler(material_textures.normal.sampler()),
+                resource: wgpu::BindingResource::TextureView(material_textures.normal.view()),
             },
             wgpu::BindGroupEntry {
                 binding: 4,
+                resource: wgpu::BindingResource::Sampler(material_textures.normal.sampler()),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
                 resource: wgpu::BindingResource::TextureView(
                     material_textures.metallic_roughness.view(),
                 ),
             },
             wgpu::BindGroupEntry {
-                binding: 5,
+                binding: 6,
                 resource: wgpu::BindingResource::Sampler(
                     material_textures.metallic_roughness.sampler(),
                 ),
             },
             wgpu::BindGroupEntry {
-                binding: 6,
+                binding: 7,
                 resource: wgpu::BindingResource::TextureView(material_textures.occlusion.view()),
             },
             wgpu::BindGroupEntry {
-                binding: 7,
+                binding: 8,
                 resource: wgpu::BindingResource::Sampler(material_textures.occlusion.sampler()),
             },
             wgpu::BindGroupEntry {
-                binding: 8,
+                binding: 9,
                 resource: wgpu::BindingResource::TextureView(material_textures.emissive.view()),
             },
             wgpu::BindGroupEntry {
-                binding: 9,
-                resource: wgpu::BindingResource::Sampler(material_textures.emissive.sampler()),
-            },
-            wgpu::BindGroupEntry {
                 binding: 10,
-                resource: material_uniform.binding_resource(),
+                resource: wgpu::BindingResource::Sampler(material_textures.emissive.sampler()),
             },
         ],
     })

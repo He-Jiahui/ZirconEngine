@@ -1,5 +1,7 @@
-use crate::core::ModuleDescriptor;
+use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::engine_module::EngineModule;
+
+use super::diagnostics::DIAGNOSTICS_CORE_MODULE_NAME;
 
 pub const LOG_MODULE_NAME: &str = "LogModule";
 pub const LOG_DIAGNOSTICS_MODULE_NAME: &str = "LogDiagnosticsModule";
@@ -18,6 +20,7 @@ impl EngineModule for LogModule {
 
     fn descriptor(&self) -> ModuleDescriptor {
         ModuleDescriptor::new(LOG_MODULE_NAME, self.module_description())
+            .with_init_level(InitLevel::Kernel)
     }
 }
 
@@ -35,5 +38,8 @@ impl EngineModule for LogDiagnosticsModule {
 
     fn descriptor(&self) -> ModuleDescriptor {
         ModuleDescriptor::new(LOG_DIAGNOSTICS_MODULE_NAME, self.module_description())
+            .with_init_level(InitLevel::Kernel)
+            .with_module_dependency(ModuleDependencySpec::named(LOG_MODULE_NAME))
+            .with_module_dependency(ModuleDependencySpec::named(DIAGNOSTICS_CORE_MODULE_NAME))
     }
 }

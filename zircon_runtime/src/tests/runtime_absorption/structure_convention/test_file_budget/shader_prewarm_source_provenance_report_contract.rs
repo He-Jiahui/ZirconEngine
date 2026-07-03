@@ -4,10 +4,15 @@ const STATUS: &str =
     "render_plan08_build_tool_source_provenance_report_contract_python_passed_cargo_deferred";
 const COUNT_TOTALS_STATUS: &str =
     "render_plan08_build_tool_source_provenance_totals_match_python_passed_cargo_deferred";
+const SOURCE_LABEL_NONBLANK_STATUS: &str =
+    "render_plan08_build_tool_source_label_nonblank_contract_python_passed_cargo_deferred";
+const SOURCE_LABEL_TRIM_STATUS: &str =
+    "render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
     let build = read_repo("tools/zircon_build.py");
+    let acceptance_helper = read_repo("tools/zircon_build_shader_prewarm_acceptance.py");
     let report_contract = read_repo("tools/zircon_build_shader_prewarm_report_contract.py");
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let source_provenance_tests =
@@ -29,6 +34,11 @@ fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
             "shader prewarm report did not confirm shader source provenance",
             "_count_value(provenance, \"source\")",
             "_count_value(provenance, \"variant\")",
+            "def _is_nonblank_string(",
+            "value == value.strip()",
+            "not _is_nonblank_string(source_label)",
+            "not _is_nonblank_string(source_hash)",
+            "not _is_nonblank_string(template_revision)",
             "source_entries={entry_requested_count}",
             "source provenance counts did not match report totals",
             "entry_written_count",
@@ -37,7 +47,7 @@ fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
     );
     assert_contains_all(
         "staged build requires provenance after a successful prewarm run",
-        &build,
+        &(build + &acceptance_helper),
         &[
             "validate_shader_prewarm_report_contract",
             "if result.returncode == 0:",
@@ -52,6 +62,8 @@ fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
             "test_validate_report_contract_requires_source_provenance_when_requested",
             "test_validate_report_contract_accepts_source_provenance_counts",
             "test_validate_report_contract_rejects_source_provenance_count_mismatch",
+            "test_validate_report_contract_rejects_blank_source_provenance_strings",
+            "test_validate_report_contract_rejects_untrimmed_source_provenance_strings",
             "require_source_provenance",
         ],
     );
@@ -103,11 +115,18 @@ fn runtime_15_shader_prewarm_source_provenance_report_contract_is_wired() {
                 STATUS,
                 "Build-tool source provenance totals match contract",
                 COUNT_TOTALS_STATUS,
+                "Build-tool source-label nonblank contract",
+                SOURCE_LABEL_NONBLANK_STATUS,
+                "Build-tool source-label trim contract",
+                SOURCE_LABEL_TRIM_STATUS,
                 "test_zircon_build_shader_prewarm_source_provenance_contract.py",
                 "test_validate_report_contract_requires_source_provenance_when_requested",
                 "test_validate_report_contract_rejects_source_provenance_count_mismatch",
+                "test_validate_report_contract_rejects_blank_source_provenance_strings",
+                "test_validate_report_contract_rejects_untrimmed_source_provenance_strings",
+                "test_acceptance_contract_rejects_blank_written_variant_source_label",
+                "test_acceptance_contract_rejects_untrimmed_written_variant_source_label",
                 "runtime_15_shader_prewarm_source_provenance_report_contract_is_wired",
-                "66/66",
             ],
         );
     }

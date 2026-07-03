@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from .native_dynamic_contract import NATIVE_DYNAMIC_ABI_STRING_FIELDS
-from .native_dynamic_payload import native_dynamic_content_hash
+from .native_dynamic_payload_file_manifest import native_dynamic_content_hash
 
 
 def native_plugin_load_manifest_template(package_exports: list[dict[str, Any]]) -> str:

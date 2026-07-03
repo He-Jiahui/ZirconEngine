@@ -199,6 +199,10 @@ fn build_frame_submission_context_from_source(
         .as_ref()
         .map(|output| output.bvh_visualization_instances().to_vec())
         .unwrap_or_default();
+    let virtual_geometry_resident_page_payloads = automatic_virtual_geometry_output
+        .as_ref()
+        .map(|output| output.resident_page_payloads().to_vec())
+        .unwrap_or_default();
     let visibility_context =
         VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads(
             effective_extract,
@@ -352,6 +356,7 @@ fn build_frame_submission_context_from_source(
         virtual_geometry_payload_source,
         virtual_geometry_cpu_reference_instances,
         virtual_geometry_bvh_visualization_instances,
+        virtual_geometry_resident_page_payloads,
         virtual_geometry_page_upload_plan,
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),

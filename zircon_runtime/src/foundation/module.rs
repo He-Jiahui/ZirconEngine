@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::core::manager::{ConfigManagerHandle, EventManagerHandle};
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
 };
 use crate::engine_module::{factory, qualified_name, EngineModule};
 
@@ -18,6 +18,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         FOUNDATION_MODULE_NAME,
         "Built-in runtime foundation services",
     )
+    .with_init_level(InitLevel::Kernel)
     .with_driver(DriverDescriptor::new(
         qualified_name(FOUNDATION_MODULE_NAME, ServiceKind::Driver, "ConfigDriver"),
         StartupMode::Immediate,

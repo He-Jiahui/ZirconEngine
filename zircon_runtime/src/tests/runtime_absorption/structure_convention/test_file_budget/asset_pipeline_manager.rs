@@ -74,8 +74,8 @@ fn runtime_15_asset_pipeline_manager_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        10,
-        "asset pipeline manager child modules should preserve the original 10 parent tests"
+        11,
+        "asset pipeline manager child modules should preserve the current 11 parent tests"
     );
 
     assert_contains_all(

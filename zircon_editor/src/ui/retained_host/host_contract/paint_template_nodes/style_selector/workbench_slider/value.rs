@@ -1,24 +1,22 @@
-use super::palette::{SLIDER_VALUE_BORDER, SLIDER_VALUE_SURFACE};
+use super::palette::WorkbenchSliderPalette;
 use super::state::is_unavailable_slider_state;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_value_surface(
-    unavailable: bool,
-) -> [u8; 4] {
+pub(super) fn slider_value_surface(unavailable: bool, palette: &WorkbenchSliderPalette) -> [u8; 4] {
     if unavailable {
-        PALETTE.surface_disabled
+        palette.surface_disabled
     } else {
-        SLIDER_VALUE_SURFACE
+        palette.value_surface
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_value_border(
+pub(super) fn slider_value_border(
     state: UiPainterResolvedState,
     fill: [u8; 4],
+    palette: &WorkbenchSliderPalette,
 ) -> [u8; 4] {
     if is_unavailable_slider_state(state) {
-        return PALETTE.border_disabled;
+        return palette.border_disabled;
     }
     if matches!(
         state,
@@ -26,16 +24,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_
     ) {
         fill
     } else {
-        SLIDER_VALUE_BORDER
+        palette.value_border
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn slider_range_value_border(
+pub(super) fn slider_range_value_border(
     state: UiPainterResolvedState,
+    palette: &WorkbenchSliderPalette,
 ) -> [u8; 4] {
     if is_unavailable_slider_state(state) {
-        PALETTE.border_disabled
+        palette.border_disabled
     } else {
-        SLIDER_VALUE_BORDER
+        palette.value_border
     }
 }

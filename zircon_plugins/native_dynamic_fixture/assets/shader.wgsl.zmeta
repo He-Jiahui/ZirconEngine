@@ -1,0 +1,11 @@
+format_version = 6
+uuid = "00000000-0000-0000-0000-000000000061"
+url = "package://native_dynamic_fixture/shaders/shader"
+asset_kind = "Shader"
+unit = "single"
+source_hash = "8269800411942cc72d0a20c5bddc4ce19fcaeca1642bbda00c4801cce04b1ed4"
+preview_state = "ready"
+importer_id = "zircon.native_dynamic_fixture.shader"
+importer_version = 1
+config_hash = "native-dynamic-fixture-shader"
+dependencies = []

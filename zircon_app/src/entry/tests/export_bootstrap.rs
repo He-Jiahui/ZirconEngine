@@ -100,7 +100,7 @@ impl RuntimePlugin for LinkedSoundPlugin {
         static DESCRIPTOR: std::sync::OnceLock<RuntimePluginDescriptor> =
             std::sync::OnceLock::new();
         DESCRIPTOR.get_or_init(|| {
-            RuntimePluginDescriptor::new(
+            RuntimePluginDescriptor::builder(
                 "sound",
                 "Sound",
                 RuntimePluginId::Sound,
@@ -108,6 +108,7 @@ impl RuntimePlugin for LinkedSoundPlugin {
             )
             .with_target_modes([RuntimeTargetMode::ClientRuntime])
             .with_capability("runtime.plugin.sound")
+            .build()
         })
     }
 

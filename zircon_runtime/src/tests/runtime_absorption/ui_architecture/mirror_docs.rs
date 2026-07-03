@@ -52,8 +52,8 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
 
     for audit_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 52",
-        "EXPECTED_UI_ENTRY_COUNT = 18",
-        "EXPECTED_SURFACE_ENTRY_COUNT = 20",
+        "EXPECTED_UI_ENTRY_COUNT = 19",
+        "EXPECTED_SURFACE_ENTRY_COUNT = 21",
         "EXPECTED_LEGACY_FULL_HITS = 54",
         "EXPECTED_LEGACY_PRODUCTION_HITS = 0",
         "EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0",
@@ -81,8 +81,8 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
         for expected_anchor in [
             "ui_architecture_boundary",
             "expected_source_file_count = 52",
-            "expected_ui_entry_count = 18",
-            "expected_surface_entry_count = 20",
+            "expected_ui_entry_count = 19",
+            "expected_surface_entry_count = 21",
             "legacy_full_hits = 54",
             "expected_legacy_full_hits = 54",
             "legacy_production_hits = 0",

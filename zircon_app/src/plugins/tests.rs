@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::ModuleDescriptor;
+use zircon_runtime::core::{sort_module_activation_order, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 
 use super::{
@@ -219,4 +219,23 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
     assert!(!headless
         .module_keys()
         .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+}
+
+#[test]
+fn builtin_plugin_groups_finish_in_descriptor_activation_order() {
+    for group in [
+        MinimalPlugins.build().unwrap().finish(),
+        DefaultPlugins::default().build().unwrap().finish(),
+        DevPlugins::default().build().unwrap().finish(),
+        HeadlessPlugins::default().build().unwrap().finish(),
+    ] {
+        let descriptors = group.module_descriptors();
+        let sorted_names = sort_module_activation_order(&descriptors).unwrap();
+        assert_eq!(
+            group.module_keys(),
+            sorted_names.iter().map(String::as_str).collect::<Vec<_>>(),
+            "{} should be ordered by module descriptors",
+            group.name()
+        );
+    }
 }

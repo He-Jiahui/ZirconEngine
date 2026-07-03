@@ -36,7 +36,13 @@ fn model_primitive_converts_to_mesh_asset_with_builtin_attributes() {
         mesh.attributes[MESH_ATTRIBUTE_UV1],
         MeshAttributeValues::Float32x2(vec![[0.5, 0.25], [0.0, 0.0], [0.0, 0.0]])
     );
-    assert_eq!(mesh.to_model_primitive().unwrap(), primitive);
+    assert_eq!(
+        mesh.attributes[MESH_ATTRIBUTE_JOINT_INDEX],
+        MeshAttributeValues::Uint16x4(vec![[0, 0, 0, 0], [1, 0, 0, 0], [2, 0, 0, 0]])
+    );
+    let mut expected = primitive.clone();
+    expected.assign_virtual_geometry_vertex_ordinals();
+    assert_eq!(mesh.to_model_primitive().unwrap(), expected);
 }
 
 #[test]

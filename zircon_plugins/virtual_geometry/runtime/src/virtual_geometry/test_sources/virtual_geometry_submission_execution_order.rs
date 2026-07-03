@@ -1826,6 +1826,9 @@ fn write_material(
     let material = MaterialAsset {
         name: Some(name.to_string()),
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color,
         base_color_texture: Some(asset_reference(texture_uri)),
         normal_texture: None,

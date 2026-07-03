@@ -9,6 +9,7 @@ mod tests;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::{
     WorkbenchSelectionControlKind, WorkbenchSelectionControlStyle,
 };
+#[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::{
     WORKBENCH_CHECKBOX_CHECKED_FILL, WORKBENCH_RADIO_CHECKED_BORDER, WORKBENCH_RADIO_CHECKED_FILL,
     WORKBENCH_SELECTION_LABEL_MUTED, WORKBENCH_SELECTION_MARK_IDLE_BORDER,

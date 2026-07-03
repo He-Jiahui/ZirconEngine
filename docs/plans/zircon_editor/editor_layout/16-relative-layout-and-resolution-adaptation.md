@@ -167,9 +167,9 @@ if (bIsHorizontalStretch) {
 Zircon 规范(对标上述):
 
 1. **根注入**:autolayout 输入携带 `scale_factor`(来自 `resolution.rs::scale_factor()`),在视口根一次性持有,向下传播,全树共享——而不是各 owner 自己读。
-2. **逻辑↔物理换算**:布局全程用**逻辑单位**;上屏前 `physical = logical × scale_factor`。token(§3.2 第 2 档)在解析点保持逻辑值,渲染契约(`10`)负责乘 scale。
+2. **逻辑↔物理换算**:布局全程用**逻辑单位**;上屏前 `physical = logical × scale_factor`。token(§3.2 第 2 档)在解析点保持逻辑值;逻辑→物理换算**单点在 `21` 顶点装配阶段**(乘 scale + 像素吸附,`10` §3.1 已立条款),管线其余各段不得预乘 scale。(2026-07-02 评审收口)
 3. **断点用逻辑宽度**:tier 判定用 `logical_width = physical_width / scale_factor`(修 R3)。保证 1920×1080@1.0 与 3840×2160@2.0 落同一 tier、同一观感——这正是"适配分辨率/DPI"的关键。
-4. **输入命中逆缩放**:指针命中、splitter 拖拽把物理坐标 `÷ scale_factor` 回到逻辑空间再比较(对标 `GetMousePositionScaledByDPI`)。
+4. **输入命中逆缩放**:指针命中、splitter 拖拽把物理坐标 `÷ scale_factor` 回到逻辑空间再比较(对标 `GetMousePositionScaledByDPI`)。`18` 已同步此条款:hit_test 输入为逻辑坐标,物理→逻辑换算在输入边界一次完成。(2026-07-02 评审收口)
 5. **closes R4**:`scale_factor` 从"仅 `window_pump.rs` 存着"升级为 autolayout 的一等输入。
 
 > **文本延伸(见 `17`)**:本节的根缩放对**字体光栅化**同样适用——字形须按物理像素 `font_size_logical × scale_factor` 重栅格,而非固定字号拉伸。当前 `sdf_font_bake.rs` 的 atlas key 不含 scale,是 R4 在文本上的同源缺陷,详见 `17` §3.2。
@@ -186,7 +186,7 @@ Zircon 规范(对标上述):
 
 Zircon 规范(在 §3.4 根缩放之上):
 
-1. **scale 模式是 panel/根属性**:每个渲染根(主窗口、浮动窗口、视口)声明 scale 模式 + 参考分辨率,`effective_scale` = 模式 × 系统 DPI;chrome 默认 `constant-physical`,与 §3.4 一致。
+1. **scale 模式是 panel/根属性**:每个渲染根(主窗口、浮动窗口、视口)声明 scale 模式 + 参考分辨率,`effective_scale` = 模式 × 系统 DPI;chrome 默认 `constant-physical`,与 §3.4 一致。**(2026-07-02 评审收口)现状登记:本条为"后续扩展"——`ResolutionContext`(§4)暂无 scale mode 字段,当前仅 root `scale_factor` 一档(等价 `constant-physical`);落地时补切片并扩 `ResolutionContext`,在此之前 `constant-pixel`/`scale-with-resolution` 两档不可声明。**
 2. **每显示器 DPI**:窗口跨显示器迁移时 `scale_factor` 随目标显示器更新(对标 Win32 per-monitor-V2 DPI、UE `SetDPIScaleFactor`),触发受影响子树重算(接 09/10),不重载资产。
 3. **分数缩放吸附**:1.25×/1.5× 等分数 scale 下,逻辑→物理换算产生分数像素;**像素吸附归渲染/合成层**(顶点装配,见 `21` §3.5),Taffy 侧 `disable_rounding` 保留分数(见 `13`),由 21 在装配顶点时对文本/1px 边框整像素吸附,自由内容不吸附——避免 Taffy 取整与渲染取整双重误差。
 4. **安全区 / 工作区**:布局根扣除系统保留区(任务栏、刘海、窗口装饰)得可用工作区,chrome 在工作区内布局(对标 Unity `safe-area`、移动端 safe area inset)。
@@ -235,7 +235,7 @@ taffy 已支持但壳层未用满的特性,本文要求优先采用:
 
 当前未用满(已知 taffy 桥限制,记录待 `editor_ui/02` 评估,不在本文实现):
 
-- 主轴对齐只支持 `Start/Fill`(`compute.rs::main_axis_alignment_supported`),`Center/End` 主轴对齐走不了 taffy。
+- 主轴对齐只支持 `Start/Fill`(`compute.rs::main_axis_alignment_supported`),`Center/End` 主轴对齐走不了 taffy。**脚注(2026-07-02 评审收口,与 `13` §3.1 互注)**:此限制仅指**容器投影路径**;DTO 路径(`taffy_style_from_ui_layout_style`)对 `justify-content` 完整支持——两条路径的支持面不同,勿混读。
 - `Overlay/Canvas/Scroll/VirtualList` 不进 taffy(Zircon-owned),其相对定位走 `free_child_frame`(§2.1 已同构 anchor)。
 - 子节点非零约束优先级不被 taffy 接受(`compute.rs::taffy_supports_axis_constraint_priority` 要求 `priority == 0`),高优先级约束回落 Zircon 求解。
 

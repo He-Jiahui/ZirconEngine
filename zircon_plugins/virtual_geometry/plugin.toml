@@ -16,7 +16,10 @@ id = 4
 token = "custom:virtual_geometry"
 wgsl_include = "zr_geometry_virtual_geometry.wgsl"
 vertex_attributes = ["position", "normal", "tangent", "uv0"]
-required_bindings = [{ kind = "virtual_geometry_pages", slot_token = "virtual_geometry.pages" }]
+required_bindings = [
+    { kind = "virtual_geometry_pages", slot_token = "virtual_geometry.pages" },
+    { kind = "virtual_geometry_clusters", slot_token = "virtual_geometry.clusters" },
+]
 shader_defines = [{ kind = "bool", name = "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY", value = true }]
 
 [shader_permutation]

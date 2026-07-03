@@ -1,11 +1,12 @@
 use super::*;
 use crate::core::math::UVec2;
+use crate::ui::text::layout_text;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::surface::{
     UiEditableTextState, UiRenderExtract, UiRenderList, UiResolvedStyle, UiResolvedTextLayout,
     UiResolvedTextLine, UiResolvedTextRun, UiTextAlign, UiTextCaret, UiTextCaretAffinity,
     UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
-    UiTextRunKind, UiTextSelection, UiTextWrap,
+    UiTextRunKind, UiTextSelection, UiTextWrap, UiTextWritingMode,
 };
 
 #[test]
@@ -23,6 +24,7 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
                     style: UiResolvedStyle {
                         background_color: Some("#112233".to_string()),
                         foreground_color: Some("#ddeeff".to_string()),
+                        font_weight: 650,
                         font_size: 18.0,
                         line_height: 22.0,
                         text_align: UiTextAlign::Center,
@@ -42,6 +44,7 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
 
     assert_eq!(plan.draws.len(), 1);
     assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].font_weight, 650);
     assert!(plan.sdf_texts.is_empty());
 }
 
@@ -132,6 +135,7 @@ fn screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches() {
                     style: UiResolvedStyle {
                         foreground_color: Some("#ffffff".to_string()),
                         font_size: 10.0,
+                        font_weight: 500,
                         line_height: 12.0,
                         text_align: UiTextAlign::Center,
                         wrap: UiTextWrap::Word,
@@ -142,6 +146,7 @@ fn screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches() {
                         text_align: UiTextAlign::Center,
                         wrap: UiTextWrap::Word,
                         direction: UiTextDirection::LeftToRight,
+                        writing_mode: UiTextWritingMode::HorizontalTb,
                         overflow: UiTextOverflow::Clip,
                         font_size: 10.0,
                         line_height: 12.0,
@@ -213,6 +218,58 @@ fn screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches() {
         plan.native_texts[0].clip_frame,
         Some(UiFrame::new(0.0, 0.0, 120.0, 48.0))
     );
+    assert_eq!(
+        plan.native_texts[0].source_range,
+        Some(UiTextRange { start: 0, end: 10 })
+    );
+    assert_eq!(plan.native_texts[0].wrap, UiTextWrap::None);
+    assert_eq!(plan.native_texts[0].text_align, UiTextAlign::Left);
+}
+
+#[test]
+fn text_paragraph_parity_native_vs_sdf_bbox_advance_linebreak() {
+    let text = "Alpha世界Beta Gamma";
+    let frame = UiFrame::new(12.0, 18.0, 46.0, 144.0);
+    let style = UiResolvedStyle {
+        foreground_color: Some("#f5f7fb".to_string()),
+        font_size: 14.0,
+        line_height: 18.0,
+        wrap: UiTextWrap::Glyph,
+        text_align: UiTextAlign::Left,
+        text_render_mode: UiTextRenderMode::Native,
+        ..UiResolvedStyle::default()
+    };
+    let layout = layout_text(text, &style, frame, None);
+    assert!(
+        layout.lines.len() > 1,
+        "parity fixture must exercise real line breaking"
+    );
+    assert!(
+        layout
+            .lines
+            .iter()
+            .all(|line| !line.glyph_advances.is_empty()),
+        "shared layout must provide per-glyph advances for parity"
+    );
+
+    let native = text_batches_for_render_mode(text, &style, &layout, UiTextRenderMode::Native);
+    let sdf = text_batches_for_render_mode(text, &style, &layout, UiTextRenderMode::Sdf);
+
+    assert_eq!(native.len(), layout.lines.len());
+    assert_eq!(sdf.len(), layout.lines.len());
+    for ((native_line, sdf_line), layout_line) in native.iter().zip(sdf.iter()).zip(&layout.lines) {
+        assert_eq!(native_line.text, sdf_line.text);
+        assert_eq!(native_line.text, layout_line.text);
+        assert_eq!(native_line.source_range, Some(layout_line.source_range));
+        assert_eq!(sdf_line.source_range, Some(layout_line.source_range));
+        assert_eq!(native_line.wrap, UiTextWrap::None);
+        assert_eq!(sdf_line.wrap, UiTextWrap::None);
+        assert_frame_close(native_line.frame, layout_line.frame);
+        assert_frame_close(sdf_line.frame, layout_line.frame);
+        assert_advance_rows_close(&native_line.glyph_advances, &layout_line.glyph_advances);
+        assert_advance_rows_close(&sdf_line.glyph_advances, &layout_line.glyph_advances);
+        assert_advance_rows_close(&native_line.glyph_advances, &sdf_line.glyph_advances);
+    }
 }
 
 #[test]
@@ -230,6 +287,7 @@ fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
                     style: UiResolvedStyle {
                         foreground_color: Some("#ffffff".to_string()),
                         font_size: 10.0,
+                        font_weight: 500,
                         line_height: 12.0,
                         text_render_mode: UiTextRenderMode::Native,
                         rich_text: true,
@@ -239,6 +297,7 @@ fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
                         text_align: UiTextAlign::Left,
                         wrap: UiTextWrap::None,
                         direction: UiTextDirection::LeftToRight,
+                        writing_mode: UiTextWritingMode::HorizontalTb,
                         overflow: UiTextOverflow::Clip,
                         font_size: 10.0,
                         line_height: 12.0,
@@ -305,6 +364,63 @@ fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
     );
     assert!(plan.native_texts[1].style.strong);
     assert!(plan.native_texts[2].style.code);
+    assert!(plan.native_texts.iter().all(|text| text.font_weight == 500));
+}
+
+fn text_batches_for_render_mode(
+    text: &str,
+    style: &UiResolvedStyle,
+    layout: &UiResolvedTextLayout,
+    render_mode: UiTextRenderMode,
+) -> Vec<ScreenSpaceUiTextBatch> {
+    let mut style = style.clone();
+    style.text_render_mode = render_mode;
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.text.parity"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(7),
+                    kind: UiRenderCommandKind::Text,
+                    frame: UiFrame::new(12.0, 18.0, 46.0, 144.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style,
+                    text_layout: Some(layout.clone()),
+                    text: Some(text.to_string()),
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+        },
+        UVec2::new(180, 180),
+    );
+
+    match render_mode {
+        UiTextRenderMode::Native => plan.native_texts,
+        UiTextRenderMode::Sdf => plan.sdf_texts,
+        UiTextRenderMode::Auto => plan.auto_texts,
+    }
+}
+
+fn assert_frame_close(actual: UiFrame, expected: UiFrame) {
+    assert!(
+        (actual.x - expected.x).abs() < 0.01
+            && (actual.y - expected.y).abs() < 0.01
+            && (actual.width - expected.width).abs() < 0.01
+            && (actual.height - expected.height).abs() < 0.01,
+        "frame mismatch: actual={actual:?} expected={expected:?}"
+    );
+}
+
+fn assert_advance_rows_close(actual: &[f32], expected: &[f32]) {
+    assert_eq!(actual.len(), expected.len());
+    for (index, (actual, expected)) in actual.iter().zip(expected).enumerate() {
+        assert!(
+            (*actual - *expected).abs() < 0.01,
+            "advance[{index}] mismatch: actual={actual} expected={expected}"
+        );
+    }
 }
 
 #[test]
@@ -328,6 +444,7 @@ fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws(
                     },
                     text_layout: Some(UiResolvedTextLayout {
                         direction: UiTextDirection::LeftToRight,
+                        writing_mode: UiTextWritingMode::HorizontalTb,
                         overflow: UiTextOverflow::Clip,
                         font_size: 10.0,
                         line_height: 12.0,

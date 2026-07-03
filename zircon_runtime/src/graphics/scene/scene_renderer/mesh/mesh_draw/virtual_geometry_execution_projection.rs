@@ -67,7 +67,7 @@ impl MeshDraw {
             cluster_total_count: detail
                 .map(|detail| detail.cluster_total_count())
                 .unwrap_or(1),
-            submission_slot: detail.and_then(|detail| detail.submission_slot()),
+            submission_slot: detail.and_then(|detail| detail.payload_slot()),
             state: detail
                 .map(|detail| detail.state())
                 .unwrap_or(RenderVirtualGeometryExecutionState::Resident),

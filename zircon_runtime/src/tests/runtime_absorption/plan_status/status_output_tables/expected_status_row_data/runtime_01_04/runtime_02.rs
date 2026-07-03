@@ -35,6 +35,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "generated export templates 10/10",
             "0 migration debt",
             "stale 9/9 scan",
+            "Runtime 02 generated/export/app/editor/plugin Cargo gates",
         ],
     ),
     (
@@ -98,6 +99,15 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "core root entries 6/6",
             "standalone `generated_code_guard.rs` 7/7",
             "core/root/generated/export_build_plan/app/editor/plugin Cargo gates pending",
+        ],
+    ),
+    (
+        "Runtime 02 core/root/generated 2026-07-01 current audit recheck",
+        &[
+            "core_root_generated_20260701_current_audit_static_passed_cargo_deferred",
+            "runtime root public modules 19/19",
+            "guard_test_anchor_count = 26",
+            "full `audit_runtime_structure.py --json` 风险汇总为 `{}`",
         ],
     ),
     (

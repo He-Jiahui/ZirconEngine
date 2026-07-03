@@ -1,3 +1,4 @@
+use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
@@ -15,12 +16,15 @@ impl DeferredSceneResources {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         gbuffer_albedo_view: &wgpu::TextureView,
+        gbuffer_normal_view: &wgpu::TextureView,
         gbuffer_material_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
+        streamer: &ResourceStreamer,
         mesh_pipelines: &mut MeshPipelineCache,
         albedo_attachment_ops: RenderGraphAttachmentOps,
+        normal_attachment_ops: RenderGraphAttachmentOps,
         material_attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
         mesh_draw_commands: I,
@@ -41,6 +45,12 @@ impl DeferredSceneResources {
                         albedo_attachment_ops,
                         wgpu::Color::TRANSPARENT,
                     ),
+                }),
+                Some(wgpu::RenderPassColorAttachment {
+                    view: gbuffer_normal_view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: color_attachment_operations(normal_attachment_ops, wgpu::Color::BLACK),
                 }),
                 Some(wgpu::RenderPassColorAttachment {
                     view: gbuffer_material_view,
@@ -73,7 +83,7 @@ impl DeferredSceneResources {
                     .expect("deferred GBuffer command must map to a cache-backed variant");
                 if replayer.should_set_pipeline(MeshPassPipelineKind::GBuffer, gbuffer_variant_id) {
                     let pipeline = mesh_pipelines
-                        .ensure_gbuffer_pipeline_for_variant(device, gbuffer_variant_id)
+                        .ensure_gbuffer_pipeline_for_variant(device, streamer, gbuffer_variant_id)
                         .expect("deferred GBuffer command must resolve a mesh pipeline");
                     pass.set_pipeline(pipeline);
                 }

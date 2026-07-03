@@ -4,9 +4,9 @@ use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::super::{
-    build_mesh_phase_queue, CorePipelineKind, MeshPhaseInput, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
-    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
+    build_mesh_phase_queue, CorePipelineKind, MaterialPropertyOverrideBlock, MeshPhaseInput,
+    RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderPhaseQueue,
+    RenderPhaseQueueSummary, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
 };
 use super::resolved_phase_queue;
 
@@ -72,6 +72,7 @@ impl GeometryPhaseInput {
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct GeometryExtract {
     pub meshes: Vec<RenderMeshSnapshot>,
+    pub material_property_overrides: BTreeMap<EntityId, MaterialPropertyOverrideBlock>,
     pub phase_inputs: Vec<GeometryPhaseInput>,
     pub phase_queue: RenderPhaseQueue,
     pub static_batches: Vec<StaticMeshBatchExtract>,
@@ -137,16 +138,28 @@ impl GeometryExtract {
             }),
         );
 
-        let static_batches = build_static_mesh_batches(&meshes);
+        let material_property_overrides = BTreeMap::new();
+        let static_batches = build_static_mesh_batches(&meshes, &material_property_overrides);
 
         Self {
             meshes,
+            material_property_overrides,
             phase_inputs,
             phase_queue,
             static_batches,
             virtual_geometry: None,
             virtual_geometry_debug: None,
         }
+    }
+
+    pub fn with_material_property_overrides(
+        mut self,
+        overrides: BTreeMap<EntityId, MaterialPropertyOverrideBlock>,
+    ) -> Self {
+        self.material_property_overrides = overrides;
+        self.static_batches =
+            build_static_mesh_batches(&self.meshes, &self.material_property_overrides);
+        self
     }
 
     pub fn rebuild_phase_queue(&mut self, core_pipeline: CorePipelineKind) {
@@ -185,10 +198,16 @@ struct StaticMeshBatchKey {
     render_layers: Vec<u32>,
 }
 
-fn build_static_mesh_batches(meshes: &[RenderMeshSnapshot]) -> Vec<StaticMeshBatchExtract> {
+fn build_static_mesh_batches(
+    meshes: &[RenderMeshSnapshot],
+    material_property_overrides: &BTreeMap<EntityId, MaterialPropertyOverrideBlock>,
+) -> Vec<StaticMeshBatchExtract> {
     let mut batch_indices_by_key: BTreeMap<StaticMeshBatchKey, Vec<usize>> = BTreeMap::new();
     for (mesh_index, mesh) in meshes.iter().enumerate() {
         if mesh.mobility != Mobility::Static {
+            continue;
+        }
+        if material_property_overrides.contains_key(&mesh.node_id) {
             continue;
         }
         batch_indices_by_key
@@ -220,4 +239,55 @@ fn build_static_mesh_batches(meshes: &[RenderMeshSnapshot]) -> Vec<StaticMeshBat
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::render::{
+        render_mesh_stable_instance_key, RenderMaterialPropertyValue, RenderMeshStaticState,
+    };
+    use crate::core::math::{Transform, Vec4};
+
+    #[test]
+    fn geometry_extract_excludes_material_override_entities_from_static_batches() {
+        let material = ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+            "material:override-batch",
+        ));
+        let meshes = vec![test_static_mesh(1, material), test_static_mesh(2, material)];
+        let geometry = GeometryExtract::from_meshes(CorePipelineKind::Core3d, meshes);
+        assert_eq!(geometry.static_batches.len(), 1);
+
+        let overrides = BTreeMap::from([(
+            1,
+            MaterialPropertyOverrideBlock::new()
+                .with_value("gain", RenderMaterialPropertyValue::Float { value: 2.0 }),
+        )]);
+        let geometry = geometry.with_material_property_overrides(overrides);
+
+        assert!(geometry.static_batches.is_empty());
+    }
+
+    fn test_static_mesh(
+        node_id: EntityId,
+        material: ResourceHandle<MaterialMarker>,
+    ) -> RenderMeshSnapshot {
+        RenderMeshSnapshot {
+            node_id,
+            stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
+            transform_revision: 1,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "model:override-batch",
+            )),
+            mesh: None,
+            material,
+            mesh_lod: None,
+            morph_weights: Vec::new(),
+            tint: Vec4::ONE,
+            mobility: Mobility::Static,
+            static_state: RenderMeshStaticState::new(true, 1, 1),
+            render_layer_mask: RenderLayerSet::default(),
+        }
+    }
 }

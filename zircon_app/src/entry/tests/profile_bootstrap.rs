@@ -481,7 +481,7 @@ fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contrib
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
     let report = RuntimePluginRegistrationReport::from_plugin(&LinkedVirtualGeometryPlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "virtual_geometry",
             "Virtual Geometry",
             RuntimePluginId::VirtualGeometry,
@@ -489,7 +489,8 @@ fn bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contrib
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
         .with_capability("runtime.plugin.virtual_geometry")
-        .with_capability("runtime.render.advanced.virtual_geometry"),
+        .with_capability("runtime.render.advanced.virtual_geometry")
+        .build(),
     });
 
     let entry = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(&config, [report])
@@ -506,14 +507,15 @@ fn runtime_plugin_bootstrap_installs_bridge_lifecycle_state() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::Physics]);
     let report = RuntimePluginRegistrationReport::from_plugin(&LinkedPhysicsBridgePlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "physics",
             "Physics",
             RuntimePluginId::Physics,
             "zircon_plugin_physics_runtime",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
-        .with_capability("runtime.plugin.physics"),
+        .with_capability("runtime.plugin.physics")
+        .build(),
     });
 
     let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
@@ -549,7 +551,7 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
     let report = RuntimePluginRegistrationReport::from_plugin(&LinkedVirtualGeometryPlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "virtual_geometry",
             "Virtual Geometry",
             RuntimePluginId::VirtualGeometry,
@@ -557,7 +559,8 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
         )
         .with_target_modes([RuntimeTargetMode::EditorHost])
         .with_capability("runtime.plugin.virtual_geometry")
-        .with_capability("runtime.render.advanced.virtual_geometry"),
+        .with_capability("runtime.render.advanced.virtual_geometry")
+        .build(),
     });
 
     let error = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
@@ -586,7 +589,7 @@ fn runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightwe
                 .with_hybrid_global_illumination(true)
                 .with_screen_space_ambient_occlusion(false)
                 .with_clustered_lighting(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .expect("base renderer should accept the profile without activating an absent plugin");
     render_framework
@@ -731,7 +734,7 @@ fn quality_profile_capability_gates_do_not_reopen_legacy_builtin_render_features
                 .with_hybrid_global_illumination(true)
                 .with_screen_space_ambient_occlusion(false)
                 .with_clustered_lighting(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .expect("base renderer should accept advanced capability profile");
     render_framework
@@ -762,7 +765,7 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
     let config = EntryConfig::new(EntryProfile::Runtime)
         .with_required_runtime_plugins([RuntimePluginId::VirtualGeometry]);
     let report = RuntimePluginRegistrationReport::from_plugin(&LinkedVirtualGeometryPlugin {
-        descriptor: RuntimePluginDescriptor::new(
+        descriptor: RuntimePluginDescriptor::builder(
             "virtual_geometry",
             "Virtual Geometry",
             RuntimePluginId::VirtualGeometry,
@@ -770,7 +773,8 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
         .with_capability("runtime.plugin.virtual_geometry")
-        .with_capability("runtime.render.advanced.virtual_geometry"),
+        .with_capability("runtime.render.advanced.virtual_geometry")
+        .build(),
     });
     let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
         .expect("linked render feature plugin should bootstrap");
@@ -788,7 +792,7 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
                 .with_virtual_geometry(true)
                 .with_screen_space_ambient_occlusion(false)
                 .with_clustered_lighting(false)
-                .with_history_resolve(false),
+                .with_temporal_history(false),
         )
         .expect("linked virtual geometry profile should be supported by headless renderer");
     render_framework

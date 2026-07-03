@@ -4,11 +4,11 @@ use toml::Value;
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
 #[test]
-fn view_template_projection_rejects_non_v2_asset_paths() {
+fn view_template_projection_rejects_non_zui_asset_paths() {
     let text_overrides = BTreeMap::new();
     let error = build_view_template_nodes(
         "view.archived.project_overview",
-        "/assets/ui/editor/project_overview.ui.toml",
+        "/assets/ui/editor/project_overview.toml",
         &[],
         UiSize::new(640.0, 480.0),
         &text_overrides,
@@ -18,7 +18,7 @@ fn view_template_projection_rejects_non_v2_asset_paths() {
     assert!(matches!(
         error,
         ViewTemplateProjectionError::NonV2AssetPath(path)
-            if path == "/assets/ui/editor/project_overview.ui.toml"
+            if path == "/assets/ui/editor/project_overview.toml"
     ));
 }
 

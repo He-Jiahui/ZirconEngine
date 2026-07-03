@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::core::framework::render::{AdvancedProviderAvailability, ShadingModelDescriptor};
+use crate::core::framework::render::{
+    AdvancedProviderAvailability, GeometrySourceDescriptor, ShadingModelDescriptor,
+};
 use crate::core::{TaskPool, TaskPoolDescriptor};
 use crate::graphics::pipeline::CompiledGraphCache;
 use crate::graphics::{GraphicsError, SceneRenderer};
@@ -59,6 +61,7 @@ impl WgpuRenderFramework {
             render_pass_executors,
             runtime_prepare_collectors,
             Vec::new(),
+            Vec::new(),
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
         )
@@ -69,6 +72,7 @@ impl WgpuRenderFramework {
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
         virtual_geometry_runtime_providers: impl IntoIterator<
@@ -83,6 +87,7 @@ impl WgpuRenderFramework {
             hybrid_gi_runtime_providers,
             Vec::new(),
             virtual_geometry_runtime_providers,
+            plugin_geometry_sources,
             plugin_shading_models,
         )
     }
@@ -108,6 +113,7 @@ impl WgpuRenderFramework {
             solari_runtime_providers,
             virtual_geometry_runtime_providers,
             Vec::new(),
+            Vec::new(),
             compute_task_pool,
         )
     }
@@ -122,6 +128,7 @@ impl WgpuRenderFramework {
         virtual_geometry_runtime_providers: impl IntoIterator<
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     ) -> Result<Self, GraphicsError> {
         let compute_task_pool = TaskPool::new(TaskPoolDescriptor::compute());
@@ -133,6 +140,7 @@ impl WgpuRenderFramework {
             hybrid_gi_runtime_providers,
             solari_runtime_providers,
             virtual_geometry_runtime_providers,
+            plugin_geometry_sources,
             plugin_shading_models,
             compute_task_pool,
         )
@@ -148,6 +156,7 @@ impl WgpuRenderFramework {
         virtual_geometry_runtime_providers: impl IntoIterator<
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         compute_task_pool: TaskPool,
     ) -> Result<Self, GraphicsError> {
@@ -160,6 +169,7 @@ impl WgpuRenderFramework {
         let virtual_geometry_runtime_providers = virtual_geometry_runtime_providers
             .into_iter()
             .collect::<Vec<_>>();
+        let plugin_geometry_sources = plugin_geometry_sources.into_iter().collect::<Vec<_>>();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let selected_hybrid_gi_runtime_provider =
             select_hybrid_gi_runtime_provider(hybrid_gi_runtime_providers)?;
@@ -176,6 +186,7 @@ impl WgpuRenderFramework {
             render_features.clone(),
             render_pass_executors,
             runtime_prepare_collectors,
+            plugin_geometry_sources,
             plugin_shading_models,
         )?;
         let render_capabilities = capability_summary(&renderer.backend_caps());

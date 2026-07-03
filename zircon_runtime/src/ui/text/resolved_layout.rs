@@ -21,26 +21,58 @@ pub(crate) struct UiTextLayoutResolution {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextStyleKey {
     pub font_family: Option<String>,
+    pub font_weight: u16,
     pub font_size_bits: u32,
     pub line_height_bits: u32,
+    pub tab_size_bits: u32,
     pub text_align: UiTextAlign,
     pub wrap: UiTextWrap,
     pub text_direction: UiTextDirection,
-    pub text_overflow: UiTextOverflow,
+    pub text_overflow: UiTextOverflowKey,
     pub rich_text: bool,
     pub text_render_mode: UiTextRenderMode,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum UiTextOverflowKey {
+    Clip,
+    Ellipsis,
+    EllipsisWord,
+    EllipsisStart,
+    EllipsisMiddle,
+    ShrinkToFit,
+    ClampFontSize { min_px_bits: u32, max_px_bits: u32 },
+}
+
+impl From<UiTextOverflow> for UiTextOverflowKey {
+    fn from(overflow: UiTextOverflow) -> Self {
+        match overflow {
+            UiTextOverflow::Clip => Self::Clip,
+            UiTextOverflow::Ellipsis => Self::Ellipsis,
+            UiTextOverflow::EllipsisWord => Self::EllipsisWord,
+            UiTextOverflow::EllipsisStart => Self::EllipsisStart,
+            UiTextOverflow::EllipsisMiddle => Self::EllipsisMiddle,
+            UiTextOverflow::ShrinkToFit => Self::ShrinkToFit,
+            UiTextOverflow::ClampFontSize { min_px, max_px } => Self::ClampFontSize {
+                min_px_bits: min_px.to_bits(),
+                max_px_bits: max_px.to_bits(),
+            },
+        }
+    }
 }
 
 impl UiTextStyleKey {
     pub(crate) fn from_style(style: &UiResolvedStyle) -> Self {
         Self {
             font_family: style.font_family.clone().or_else(|| style.font.clone()),
+            font_weight: style.font_weight,
             font_size_bits: style.font_size.to_bits(),
             line_height_bits: style.line_height.to_bits(),
+            tab_size_bits: style.tab_size.to_bits(),
             text_align: style.text_align,
             wrap: style.wrap,
             text_direction: style.text_direction,
-            text_overflow: style.text_overflow,
+            text_overflow: UiTextOverflowKey::from(style.text_overflow),
             rich_text: style.rich_text,
             text_render_mode: style.text_render_mode,
         }
@@ -133,5 +165,56 @@ pub(crate) fn resolve_text_layout(request: &UiTextLayoutRequest<'_>) -> UiTextLa
         size,
         first_baseline,
         source_hash: request.source_hash(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn style_key_encodes_clamp_overflow_float_bits() {
+        let mut style = UiResolvedStyle {
+            text_overflow: UiTextOverflow::ClampFontSize {
+                min_px: 8.0,
+                max_px: 18.0,
+            },
+            ..UiResolvedStyle::default()
+        };
+        let key = UiTextStyleKey::from_style(&style);
+
+        assert_eq!(key, UiTextStyleKey::from_style(&style));
+
+        style.text_overflow = UiTextOverflow::ClampFontSize {
+            min_px: 8.0,
+            max_px: 19.0,
+        };
+        assert_ne!(key, UiTextStyleKey::from_style(&style));
+    }
+
+    #[test]
+    fn style_key_encodes_tab_size_bits() {
+        let mut style = UiResolvedStyle {
+            tab_size: 4.0,
+            ..UiResolvedStyle::default()
+        };
+        let key = UiTextStyleKey::from_style(&style);
+
+        style.tab_size = 6.0;
+
+        assert_ne!(key, UiTextStyleKey::from_style(&style));
+    }
+
+    #[test]
+    fn style_key_encodes_font_weight() {
+        let mut style = UiResolvedStyle {
+            font_weight: 400,
+            ..UiResolvedStyle::default()
+        };
+        let key = UiTextStyleKey::from_style(&style);
+
+        style.font_weight = 600;
+
+        assert_ne!(key, UiTextStyleKey::from_style(&style));
     }
 }

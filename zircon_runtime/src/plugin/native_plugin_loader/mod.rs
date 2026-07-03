@@ -49,6 +49,7 @@ pub use native_plugin_live_host::{
     NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,
     NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome, NativePluginRuntimeBehaviorCall,
     NativePluginRuntimeBehaviorDescriptor, NativePluginRuntimeCommandDispatchReport,
+    NativePluginRuntimeDeltaHotUpdateReport, NativePluginRuntimeDeltaHotUpdateRequest,
     NativePluginRuntimeHotUpdateReport, NativePluginRuntimePlayModeExitReport,
     NativePluginRuntimePlayModeSnapshot, NativePluginRuntimePluginState,
     NativePluginRuntimeRegistrationReplayReport, NativePluginRuntimeRegistrationSystemReplay,

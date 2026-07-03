@@ -5,10 +5,11 @@ use crate::asset::{
     ShaderMaterialPropertyAsset, ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialManagementIssueKind,
+    MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialManagementIssueKind,
     RenderMaterialManagementPageRequest, RenderMaterialManagementQuery,
     RenderMaterialManagementSortDirection, RenderMaterialManagementSortKey,
     RenderMaterialManagementSortOrder, RenderMaterialPropertyValue, RenderMaterialReadinessStatus,
+    ShaderAssetKind,
 };
 use crate::core::resource::{
     MaterialMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -46,10 +47,6 @@ fn render_product_material_properties_prepare_uniform_payload() {
     material
         .property_values
         .insert("use_rim".to_string(), toml::Value::Boolean(true));
-    material.property_values.insert(
-        "debug_label".to_string(),
-        toml::Value::String("author-only".to_string()),
-    );
     asset_manager
         .assets::<MaterialAsset>()
         .insert(
@@ -85,15 +82,14 @@ fn render_product_material_properties_prepare_uniform_payload() {
     assert_eq!(payload.layout[2].offset, 32);
     assert_eq!(u32_at(&payload.bytes, 32), 1);
     assert_eq!(payload.bytes.len(), 48);
-    assert_eq!(payload.unsupported.len(), 1);
-    assert_eq!(payload.unsupported[0].name, "debug_label");
+    assert!(payload.unsupported.is_empty());
     assert_eq!(
         streamer.material_uniform_payload_byte_len(&material_id),
         Some(48)
     );
     assert_eq!(
         streamer.material_uniform_buffer_byte_len(&material_id),
-        Some(128)
+        Some(144)
     );
 }
 
@@ -299,6 +295,9 @@ fn material_with_shader(shader_uri: &str) -> MaterialAsset {
     MaterialAsset {
         name: None,
         shader: asset_reference(shader_uri),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,
@@ -331,21 +330,19 @@ fn shader_with_property_schema(uri: &str) -> ShaderAsset {
             ])),
         ),
         shader_property("use_rim", "bool", None),
-        shader_property("debug_label", "string", None),
     ];
+    shader.regenerate_material_artifact();
     shader
 }
 
 fn shader_with_string_default_schema(uri: &str) -> ShaderAsset {
     let mut shader = wgsl_shader(uri);
-    shader.property_schema = vec![
-        shader_property("custom_gain", "float", Some(toml::Value::Float(1.0))),
-        shader_property(
-            "debug_label",
-            "string",
-            Some(toml::Value::String("schema-default".to_string())),
-        ),
-    ];
+    shader.property_schema = vec![shader_property(
+        "custom_gain",
+        "float",
+        Some(toml::Value::Float(1.0)),
+    )];
+    shader.regenerate_material_artifact();
     shader
 }
 
@@ -356,7 +353,7 @@ fn shader_property(
 ) -> ShaderMaterialPropertyAsset {
     ShaderMaterialPropertyAsset {
         name: name.to_string(),
-        kind: kind.to_string(),
+        kind: MaterialPropertyKind::parse_token(kind).expect("test property kind is supported"),
         required: default.is_none(),
         default,
         editor: Default::default(),
@@ -366,6 +363,7 @@ fn shader_property(
 fn wgsl_shader(uri: &str) -> ShaderAsset {
     ShaderAsset {
         uri: locator(uri),
+        kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
         source: "@fragment fn fs_main() -> @location(0) vec4f { return vec4f(1.0); }".to_string(),
         wgsl_source: "".to_string(),
@@ -376,7 +374,16 @@ fn wgsl_shader(uri: &str) -> ShaderAsset {
         imports: Vec::new(),
         shader_defs: Vec::new(),
         property_schema: Vec::new(),
+        options: Vec::new(),
         texture_slots: Vec::new(),
+        shading_model: None,
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),

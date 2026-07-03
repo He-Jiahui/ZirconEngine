@@ -275,6 +275,9 @@ fn write_default_material(path: PathBuf) {
     let material = MaterialAsset {
         name: Some("Grid".to_string()),
         shader: asset_reference("res://shaders/pbr.wgsl"),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [0.8, 0.8, 0.8, 1.0],
         base_color_texture: Some(asset_reference("res://textures/checker.png")),
         normal_texture: None,

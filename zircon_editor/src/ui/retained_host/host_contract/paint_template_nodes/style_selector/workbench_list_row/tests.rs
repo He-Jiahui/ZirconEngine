@@ -24,3 +24,20 @@ fn list_row_loading_state_uses_unavailable_visuals() {
     assert_eq!(style.text, PALETTE.text_disabled);
     assert_eq!(style.adornment, PALETTE.text_disabled);
 }
+
+#[test]
+fn selected_list_row_uses_muted_selected_fill_and_neutral_outline() {
+    let mut node = TemplatePaneNodeData::default();
+    node.selected = true;
+    node.focused = true;
+
+    let style = select_workbench_list_row_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.surface_pressed));
+    assert_ne!(style.background, Some(PALETTE.surface_selected));
+    assert_eq!(style.border, Some(PALETTE.border));
+    assert_ne!(style.border, Some(PALETTE.accent));
+    assert_ne!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.border_width, 1.0);
+}

@@ -34,6 +34,8 @@ status: planned
 - 命中路径 = `Vec<UiNodeId>`(deepest→root),对标 UE `FHittestGrid::GetBubblePath()`(`HittestGrid.h:37`)与 DOM `composedPath()`、Unity UI Toolkit `panel.Pick()`。
 - 命中加速可用网格分桶(对标 `FHittestGrid::AddWidget` `HittestGrid.h:82`),但 MVP 可直接逆 `draw_order` 命中(对标 Godot `Viewport::_gui_find_control_at_pos` `viewport.cpp:1853`、Bevy `UiStack` 逆序)。
 - 命中复用渲染的 z/layer 序(接 21):上层先命中。
+- **裁剪与滚动感知(2026-07-02 评审收口)**:hit_test 输入包含**裁剪栈**(与 `21` `UiClipStack` 同语义)与**滚动偏移**——被 `overflow:hidden` 裁掉的子节点区域**不命中**(命中区 = 节点 frame ∩ 祖先裁剪交集);滚动容器内子节点命中坐标先加滚动偏移再比较。测试补 `clipped_child_not_hit`、`scrolled_content_hit_at_offset`。
+- **坐标空间(2026-07-02 评审收口,对应 `16` §3.4-4)**:hit_test 输入为**逻辑坐标**;物理→逻辑换算(`÷ scale_factor`)在**输入边界一次完成**,命中与后续派发全程逻辑空间。
 
 ### 3.2 pointer-events / 命中可见性(节点位)
 
@@ -62,6 +64,24 @@ status: planned
 - 父预拦截:对标 Slint `InputEventFilterResult::Intercept`(`input.rs:239`)/`ForwardAndIgnore`(`input.rs:233`)、UE `FEventRouter::FTunnelPolicy`(SlateApplication.cpp 路由)。
 - 全链权威次序(单实现,封 `editor_ui/01`):`capture(grab) → popup/overlay → preview → 命中路径 capture → target → bubble → focus-path(键盘)`。外点关闭(popup dismiss)在此次序内判定。
 
+### 3.3a 滚轮与滚动事件(2026-07-02 评审收口)
+
+wheel 是编辑器最高频输入之一(滚动区/树/日志/可缩放视口),此前未进相位模型,在此补齐:
+
+- **wheel 进相位模型**:wheel 事件沿命中路径走同一 capture → target → bubble 三相;默认消费者=命中路径上**最近的可滚动祖先**(`overflow: scroll` 且对应轴有可滚余量)。
+- **按轴部分消费**:消费按 x/y 轴独立判定——内层横向可滚但纵向到底时,wheel 的 y 分量继续冒泡给外层滚动容器,x 分量被内层消费。
+- **修饰键升级**:`Ctrl+wheel`(缩放)不走滚动默认消费,由声明了缩放能力的视口组件在 target 阶段显式消费;未消费则冒泡(不触发滚动)。
+- **滚动只触发 paint/提取,不触发 relayout**:滚动偏移不进 taffy 求解(遵 `13` §3.7-4 滚动线 owner 注记);滚动偏移参与命中换算见 §3.1。
+- 滚动条视觉规范归 `20`(伪状态)+ `15`(组件);虚拟化契约归 `editor_ui/02` M3。
+
+### 3.3b 双击/tooltip 计时与多指针(2026-07-02 评审收口)
+
+§2 点名的"双击/tooltip 计时无统一 owner"在此定归属:
+
+- **click-count 判定**:单 owner = `ui/dispatch/input_manager` 的 timers(已在码);双击=同节点同键在阈值时间与阈值距离内的连续 press,阈值 token 化(时间/距离走 01 design token,不硬编码)。三击(整行选择)同机制。
+- **tooltip 计时**:hover 驻留计时归同一 timers owner;进入节点起表、离开/press 取消、显示后跟随命中路径;延时 token 化。
+- **多指针实例表**:登记为后续扩展(触摸/笔),V1 仅单指针,不阻塞本计划切片。
+
 ### 3.4 指针捕获(grab)
 
 规范:节点可在 target/bubble 阶段请求**捕获指针**,后续指针事件直送捕获者直至释放,对标 UE `FReply::CaptureMouse`(`Reply.h:28-32`)/DOM `setPointerCapture`/Slint `GrabMouse`(`input.rs:216`)/Unity `MouseCaptureController`。捕获路径用弱引用(对标 UE `FWeakWidgetPath`),节点销毁自动释放。拖动分隔条、滑块、画布平移必须走捕获,不得轮询全局指针。
@@ -77,6 +97,8 @@ status: planned
 ### 3.7 与 Reply/状态的衔接
 
 命中/相位/捕获产出的是**语义状态**(hover/press/active/focus-within),喂给 20 的样式系统(`:hover`/`:active` 伪状态)与 19 的焦点模型;输入层不直接改视觉(单向受控,接 11)。
+
+**文本命中交接(2026-07-02 评审收口)**:本计划的命中单源只到**节点级**。命中进入文本节点后,二级字形级 hit-test **委托 runtime text**(cluster 反查光标位,`zircon_runtime/src/ui/text/hit_test.rs`,契约见 `docs/plans/zircon_runtime/text/03`,以 UE `GetGlyphAtOffset` 为样板):点击定位光标、拖拽选区、双击选词(UAX#29 word 边界)、三击整行由文本编辑链承接,本计划只保证把命中点(逻辑坐标、已扣除滚动偏移与节点原点)交给文本节点的 target 处理。
 
 ## 4. 接口与数据结构草案(Rust,规范形态)
 
@@ -118,6 +140,11 @@ pub struct UiPointerCaptureRequest { pub node: UiNodeId }
 - 指针捕获后移出节点仍收事件;捕获者销毁自动释放。
 - 拖拽:位移 < 阈值不触发 drag-start;阈值随 scale 变化(接 16)。
 - cursor 由命中路径最近声明者决定。
+- `clipped_child_not_hit`:被祖先 `overflow:hidden` 裁掉的子节点区域不命中(2026-07-02 评审收口)。
+- `scrolled_content_hit_at_offset`:滚动容器内子节点按滚动偏移换算后正确命中(2026-07-02 评审收口)。
+- wheel:最近可滚动祖先消费;内层纵向到底时 y 分量冒泡外层(按轴部分消费);`Ctrl+wheel` 不触发滚动、由缩放视口消费(2026-07-02 评审收口)。
+- 双击:阈值时间/距离内同节点连续 press 判定 click-count=2;超阈值重新计数(2026-07-02 评审收口)。
+- 文本节点命中:命中点交接到字形级 hit-test(runtime text),点击定位光标 offset 正确(2026-07-02 评审收口)。
 
 ## 8. 风险与对策
 

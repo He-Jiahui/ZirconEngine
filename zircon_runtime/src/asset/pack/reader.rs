@@ -65,14 +65,12 @@ fn read_manifest(bytes: &[u8]) -> Result<ZrPackDocumentManifest, ZrPackError> {
     if bytes[0..4] != ZRPACK_MAGIC {
         return Err(ZrPackError::InvalidMagic);
     }
-    let version = u32::from_le_bytes(bytes[4..8].try_into().expect("header version bytes"));
+    let version = read_header_u32(bytes, 4)?;
     if version != ZRPACK_FORMAT_VERSION {
         return Err(ZrPackError::UnsupportedVersion(version));
     }
-    let manifest_offset =
-        u64::from_le_bytes(bytes[8..16].try_into().expect("header offset bytes")) as usize;
-    let manifest_size =
-        u64::from_le_bytes(bytes[16..24].try_into().expect("header size bytes")) as usize;
+    let manifest_offset = read_header_u64(bytes, 8)? as usize;
+    let manifest_size = read_header_u64(bytes, 16)? as usize;
     let manifest_end = manifest_offset
         .checked_add(manifest_size)
         .ok_or(ZrPackError::ManifestOutOfBounds)?;
@@ -102,10 +100,7 @@ fn manifest_offset(bytes: &[u8]) -> Result<usize, ZrPackError> {
     if bytes.len() < header_size() {
         return Err(ZrPackError::HeaderTooSmall);
     }
-    usize::try_from(u64::from_le_bytes(
-        bytes[8..16].try_into().expect("header offset bytes"),
-    ))
-    .map_err(|_| ZrPackError::ManifestOutOfBounds)
+    usize::try_from(read_header_u64(bytes, 8)?).map_err(|_| ZrPackError::ManifestOutOfBounds)
 }
 
 fn chunk_payload_end(chunks: &[ZrChunkEntry]) -> Result<usize, ZrPackError> {
@@ -175,4 +170,22 @@ fn read_chunk_range_bytes(
         return Err(ZrPackError::ChunkHashMismatch(path.to_string()));
     }
     Ok(chunk_bytes)
+}
+
+pub(crate) fn read_header_u32(bytes: &[u8], offset: usize) -> Result<u32, ZrPackError> {
+    Ok(u32::from_le_bytes(read_header_bytes::<4>(bytes, offset)?))
+}
+
+pub(crate) fn read_header_u64(bytes: &[u8], offset: usize) -> Result<u64, ZrPackError> {
+    Ok(u64::from_le_bytes(read_header_bytes::<8>(bytes, offset)?))
+}
+
+fn read_header_bytes<const N: usize>(bytes: &[u8], offset: usize) -> Result<[u8; N], ZrPackError> {
+    let end = offset.checked_add(N).ok_or(ZrPackError::HeaderTooSmall)?;
+    let range = bytes.get(offset..end).ok_or(ZrPackError::HeaderTooSmall)?;
+    let mut value = [0; N];
+    for (output, input) in value.iter_mut().zip(range.iter().copied()) {
+        *output = input;
+    }
+    Ok(value)
 }

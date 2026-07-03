@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use crate::core::runtime::ServiceObject;
-use crate::core::{ModuleDescriptor, StartupMode};
+use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor, StartupMode};
 use crate::engine_module::{dependency_on, factory, plugin_factory, qualified_name};
 
+use crate::scene::SCENE_MODULE_NAME;
 use crate::script::{
     PluginHostDriver, VmPluginManager, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME,
     VM_PLUGIN_RUNTIME_NAME,
@@ -11,6 +12,8 @@ use crate::script::{
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(SCRIPT_MODULE_NAME, "VM plugin hosting and hot reload")
+        .with_init_level(InitLevel::Post)
+        .with_module_dependency(ModuleDependencySpec::named(SCENE_MODULE_NAME))
         .with_driver(crate::core::DriverDescriptor::new(
             qualified_name(
                 SCRIPT_MODULE_NAME,

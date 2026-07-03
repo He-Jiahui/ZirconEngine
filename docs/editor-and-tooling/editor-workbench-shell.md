@@ -90,10 +90,8 @@ related_code:
   - zircon_editor/src/ui/template_runtime/builtin/workbench_window_template_bindings.rs
   - zircon_runtime_interface/src/ui/component/category.rs
   - zircon_runtime_interface/src/ui/component/descriptor/component_model.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
-  - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
+  - zircon_editor/assets/ui/editor/host/floating_window_source.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
   - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_component_property_row.zui
@@ -307,7 +305,7 @@ tests:
   - 2026-06-02 Workbench selection controls native painter: focused Cargo validation deferred while zircon_editor, zircon_runtime, and zircon_hub Cargo lanes were active
   - 2026-06-02 Workbench checkbox/radio mark metrics: template_selection_controls.rs now paints 16 px marks, 9 px mark-label gap, #828c93 labels, #141a1e/#424e56 idle marks, #209fa8 checked checkbox fill/border, #1b272d/#4c5b63 checked radio shell, and a 7 px radio dot; editor_workbench_strict.zui exposes matching selection tokens
   - 2026-06-02 Workbench checkbox/radio mark metrics: rustfmt --edition 2021 --check over template_selection_controls.rs and Python tomllib parse of workbench_checkbox.zui, workbench_radio.zui, and editor_workbench_strict.zui (passed; focused Cargo deferred while active workspace cargo/rustc lanes were compiling)
-  - 2026-06-02 Workbench selection-control declared metrics projection: WorkbenchCheckboxOn/Off and WorkbenchRadioOn/Off now explicitly project layout_icon_size = 16.0, layout_spacing = 9.0, label_color = #828c93, and the 7 px/#43d8e2 radio dot; WorkbenchToggleOn projects track_width = 34.0, track_height = 18.0, thumb_size = 14.0, and layout_spacing = 10.0; workbench_projection.rs asserts the retained leaf values and strict-theme mark colors; pane_component_projection/tests.rs locks runtime_component_projection_maps_workbench_metric_aliases; and template_selection_controls.rs consumes declared mark, track, thumb, label, and mark-label gap metrics before fallback constants
+  - 2026-06-02 Workbench selection-control declared metrics projection, updated 2026-06-30: WorkbenchCheckboxOn/Off and WorkbenchRadioOn/Off explicitly project layout_icon_size = 16.0, layout_spacing = 9.0, and label_color = #828c93; radio now defaults to a 5 px accent dot, while WorkbenchToggleOn projects track_width = 34.0, track_height = 18.0, thumb_size = 12.0, and layout_spacing = 10.0. workbench_projection.rs asserts the retained leaf values and strict-theme mark colors; pane_component_projection/tests.rs locks runtime_component_projection_maps_workbench_metric_aliases; and template_selection_controls.rs consumes declared mark, track, thumb, label, and mark-label gap metrics before fallback constants
   - 2026-06-02 Workbench selection-control declared metrics projection: rustfmt --edition 2021 --check over workbench_window_projection.rs, pane_component_projection/mod.rs, pane_component_projection/tests.rs, template_selection_controls.rs, and workbench_projection.rs; Python tomllib parse of workbench_component_drawer.zui/workbench_checkbox.zui/workbench_radio.zui/workbench_toggle.zui/editor_workbench_strict.zui passed; focused Cargo stayed deferred while active cargo/rustc lanes were compiling
   - 2026-06-02 Workbench Checkboxes & Radios native tone/gap parity: workbench_checkbox.zui, workbench_radio.zui, workbench_component_drawer.zui, editor_workbench_strict.zui, template_selection_controls.rs, and workbench_projection.rs now mirror the accepted HTML/CSS tone pass: 9 px mark-label gap, #828c93 labels, #424e56 idle borders, #209fa8 checked checkbox fill, #1b272d/#4c5b63 checked radio shell, and a 7 px #43d8e2 radio dot. rustfmt --edition 2021 --check, Python tomllib parsing, and touched-file git diff --check passed; focused Cargo stayed deferred because active cargo/rustc lanes were still compiling.
   - 2026-06-03 Workbench Toggle tone native sync: editor_workbench_strict.zui now exposes idle track/border/thumb and checked track/border/thumb tokens for .workbench-toggle; template_selection_controls.rs consumes declared background/foreground/border for toggle track, thumb, and edge tones before fallback constants; workbench_projection.rs asserts the checked projected colors
@@ -510,7 +508,7 @@ doc_type: module-detail
 
 ## Purpose
 
-This document describes the current Rust-owned retained editor workbench shell. The active editor shell is owned by `zircon_editor::ui::retained_host`, consumes `.ui.toml` host assets, and projects editor state into Rust host-contract DTOs. It is not a compatibility layer for deleted generated UI sources.
+This document describes the current Rust-owned retained editor workbench shell. The active editor shell is owned by `zircon_editor::ui::retained_host`, consumes `.zui` host assets, and projects editor state into Rust host-contract DTOs. It is not a compatibility layer for deleted generated UI sources.
 
 ## Ownership
 
@@ -529,23 +527,31 @@ The recompute path builds a `WorkbenchViewModel`, computes workbench geometry, r
 
 ## Template Authority
 
-The current shell structure comes from source-controlled `.ui.toml` assets, not from generated UI files. Important host assets include:
+The current shell structure comes from source-controlled `.zui` assets, not from generated UI files. Important host assets include:
 
-- `zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml`
-- `zircon_editor/assets/ui/editor/host/workbench_shell.zui`
-- `zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml`
-- `zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml`
-- `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml`
-- `zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml`
-- `zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml`
+- `zircon_editor/assets/ui/editor/host/activity_drawer_window.zui`
+- `zircon_editor/assets/ui/editor/host/animation_graph_body.zui`
+- `zircon_editor/assets/ui/editor/host/animation_sequence_body.zui`
+- `zircon_editor/assets/ui/editor/host/asset_surface_controls.zui`
+- `zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui`
+- `zircon_editor/assets/ui/editor/host/console_body.zui`
+- `zircon_editor/assets/ui/editor/host/editor_main_frame.zui`
+- `zircon_editor/assets/ui/editor/host/floating_window_source.zui`
+- `zircon_editor/assets/ui/editor/host/generated_bottom_body.zui`
+- `zircon_editor/assets/ui/editor/host/hierarchy_body.zui`
+- `zircon_editor/assets/ui/editor/host/inspector_body.zui`
 - `zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui`
-- `zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml`
-- `zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml`
+- `zircon_editor/assets/ui/editor/host/module_plugins_body.zui`
+- `zircon_editor/assets/ui/editor/host/pane_surface_controls.zui`
+- `zircon_editor/assets/ui/editor/host/performance_timeline_body.zui`
+- `zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui`
+- `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui`
 - `zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui`
+- `zircon_editor/assets/ui/editor/host/workbench_shell.zui`
 
 `EditorUiHostRuntime` loads these assets, builds shared UI surfaces, registers stable bindings, and exposes retained host projections. `RetainedUiHostAdapter` maps generic host models into retained host node models with component kind, frame, clip, z, style, state, validation, popup, selection, drag/drop, and route metadata.
 
-Current root-shell frame authority is the host `.ui.toml` geometry, not old workbench metrics. `workbench_shell.ui.toml` gives the menu bar `24px`, the page strip `32px`, the separator `1px`, the status bar `24px`, and the activity rail `44px`. That makes the body and document top boundary `57px`; at 1280x720 the document host frame is `44,57,1236,639`, and at 960x540 it is `44,57,916,459`.
+Current root-shell frame authority is the host `.zui` geometry, not old workbench metrics. `workbench_shell.zui` gives the menu bar `24px`, the page strip `32px`, the separator `1px`, the status bar `24px`, and the activity rail `44px`. That makes the body and document top boundary `57px`; at 1280x720 the document host frame is `44,57,1236,639`, and at 960x540 it is `44,57,916,459`.
 
 The 2026-05-15 Material visual slice keeps that geometry authority unchanged while strengthening first-look editor controls. `workbench_shell.zui` marks representative menu and activity-rail icon buttons with inset surfaces, 1px borders, and 10px rounded corners. `inspector_surface_controls.zui` applies the same rounded inset treatment to fields and uses pill-rounded primary/danger actions. `startup_welcome_controls.zui` does the same for welcome fields and actions. These values are visual metadata consumed by the retained painter and command stream; action routes, binding ids, drawer ownership, and workbench business state stay unchanged.
 
@@ -581,7 +587,7 @@ Viewport gizmo X/Y/Z labels remain text-like declarative nodes, but their author
 
 Viewport axis lines now treat `workbench_viewport_panel.zui` as the color authority as well as the layout authority. The native axis painter still has X/Y/Z fallback constants, but it first consumes the authored `background_color` from the retained node style so local color tuning in the `.zui` asset is reflected without changing Rust constants.
 
-The Workbench component-drawer selection controls now have a dedicated native painter path. `template_selection_controls.rs` recognizes checkbox, radio, and toggle nodes before the generic surface pass, draws the control mark/track/thumb plus label directly, and avoids treating `checked`/`selected` selection primitives as full-row highlighted list items. Checkbox/radio marks now use the measured 16 px mark, 9 px mark-label gap, muted `#828c93` label tone, `#13191d` / `#374148` unchecked mark surface, current strict-theme checked checkbox/radio shell tokens, and the 7 px `#43d8e2` radio dot mirrored by leaf declarations. The reusable checkbox/radio components and the concrete `WorkbenchCheckboxOn/Off` plus `WorkbenchRadioOn/Off` showcase instances now carry `layout_icon_size = 16.0`; the concrete showcase instances carry `layout_spacing = 9.0`, and `WorkbenchCheckboxOff` / `WorkbenchRadioOff` declare the audited unchecked fill and border directly. `WorkbenchToggleRoot` and `WorkbenchToggleOn` carry `track_width = 34.0`, `track_height = 18.0`, `thumb_size = 14.0`, and `layout_spacing = 10.0`; the strict theme also owns idle `#0f1417` / `#354047` / `#7c878e` track, edge, and thumb tones plus checked `#35c7d0` / `#31bfc9` / `#ffffff` tones. Retained projection maps `layout_spacing` into `TemplatePaneNodeData.layout_content_offset_x`, `track_height` into `layout_content_offset_y`, `thumb_size` into `layout_icon_size`, and `track_width` into `value_number`, and the native painter consumes those declared values and style colors before falling back to Rust defaults. The retained bridge still owns state mutation and binding dispatch; this slice only changes the final native visual primitive.
+The Workbench component-drawer selection controls now have a dedicated native painter path. `template_selection_controls.rs` recognizes checkbox, radio, and toggle nodes before the generic surface pass, draws the control mark/track/thumb plus label directly, and avoids treating `checked`/`selected` selection primitives as full-row highlighted list items. Checkbox/radio marks use the measured 16 px mark, 9 px mark-label gap, muted `#828c93` label tone, `#13191d` / `#374148` unchecked mark surface, current strict-theme checked checkbox/radio shell tokens, and the current 5 px radio dot default from `template_selection_control_geometry/metrics.rs`. The reusable checkbox/radio components and the concrete `WorkbenchCheckboxOn/Off` plus `WorkbenchRadioOn/Off` showcase instances carry `layout_icon_size = 16.0`; the concrete showcase instances carry `layout_spacing = 9.0`, and `WorkbenchCheckboxOff` / `WorkbenchRadioOff` declare the audited unchecked fill and border directly. `WorkbenchToggleRoot` and `WorkbenchToggleOn` carry `track_width = 34.0`, `track_height = 18.0`, `thumb_size = 12.0`, and `layout_spacing = 10.0`; the strict theme owns idle track/edge/thumb tones plus the low-emphasis checked `#173942` track, `#414b54` border, and `#a4aeb4` thumb. Retained projection maps `layout_spacing` into `TemplatePaneNodeData.layout_content_offset_x`, `track_height` into `layout_content_offset_y`, `thumb_size` into `layout_icon_size`, and `track_width` into `value_number`, and the native painter consumes those declared values and style colors before falling back to Rust defaults. The retained bridge still owns state mutation and binding dispatch; this slice only changes the final native visual primitive.
 
 Tabs and segmented controls now follow the same bottom-up painter route. `template_segmented_controls.rs` recognizes the Workbench drawer tabs, Labs tabs, and segmented input, draws active tabs as text plus an accent underline instead of a filled selected button, and paints declared segmented `options` into stable equal-width cells with a selected middle segment. `TemplatePaneNodeData` also projects `label_text`, `label_color`, `label_brightness`, `layout_offset_x`, and `layout_offset_y`, so `WorkbenchInputSegmented` can draw the softer `Segmented Control` label above a 30 px body inside one 48 px authored node, and the new `WorkbenchLabsTabOne/Two/Three` strip can consume the accepted 3 px / 2 px tabs offset from the HTML audit. `WorkbenchLabsTabs` now also declares the audited `#1c2226` container background; retained projection exposes it as resolved button-style metadata, and the tab painter consumes declared idle backgrounds before state colors. The selected segment contract now carries optional `selected_segment_border_width`, `selected_segment_underline_height`, and `selected_segment_underline_color` style metadata through both retained projection paths; `WorkbenchIconToggleSegmented` uses that declaration to suppress the selected outer border while keeping the darker selected fill and a 1 px semi-transparent cyan underline. The idle segmented body shell now uses the same audited `#1d2327` tone in both `template_segmented_controls.rs` and `editor_workbench_strict.zui`, while hover/pressed/disabled states still use the shared state palette. `WorkbenchInputSegmented` and `WorkbenchToggleOn` are now laid out under `WorkbenchComponentLabs`, matching the HTML reference's Labs stack while preserving their existing control ids and preview routes; the Inputs and Checkboxes/Radios columns no longer own those Labs-only samples. Labs tab clicks route through ComponentLabPreview selection state, keeping the component drawer visually and interactively closer to the reference without turning showcase-only controls into production editor commands.
 
@@ -603,7 +609,7 @@ The bottom status bar now uses the same native primitive route. `template_status
 
 Component-drawer feedback rows, the feedback tooltip, and the notification toast now have the same Workbench-specific painter route. `template_alerts.rs` recognizes `WorkbenchInfoAlert`, `WorkbenchSuccessAlert`, `WorkbenchWarningAlert`, `WorkbenchErrorAlert`, and the standalone `WorkbenchToastRoot` before the generic Material Alert fallback. It draws compact tinted alert rows, deterministic severity glyphs, the teal toast status mark, `UNDO` action, close affordance, and the audited toast surface/border pair from the HTML/CSS prototype: `rgba(21, 48, 53, 0.97)` surface with an `rgba(53, 199, 208, 0.08)` border. `template_tooltips.rs` recognizes `WorkbenchTooltipRoot` before the generic Material fallback and draws the 96 px dark bubble, 8 px declared arrow, title/body text, shadow, and cyan info mark. `workbench_component_drawer.zui`, `workbench_toast.zui`, and `workbench_tooltip.zui` remain the layout and text authority, with the latest tooltip tones declared as `#171c20` bubble/arrow fill, `#252d32` border, `#d0d9dd` title, `#a8b3b8` body, and `#259ca7` info mark. The toast root projects its declared `status_mark_size`, `status_mark_color`, and `action_color`; the tooltip root projects `arrow_size` and `arrow_color`; both paths keep geometry and action/arrow tones editable from `.zui` rather than hardcoded in the painter. The drawer structure now separates the feedback region into `WorkbenchFeedbackAlerts`, `WorkbenchTooltipRoot`, and `WorkbenchFeedbackToastColumn`; the standalone `feedback_toast` instance deliberately leaves its instance `control_id` empty so component expansion exposes exactly one `WorkbenchToastRoot`, while the four alert samples retain their own IDs.
 
-Dedicated source assets must match that root-shell authority unless they are deliberately exercising a standalone fallback. `floating_window_source.ui.toml` therefore uses a `57px` top spacer and `44px` rail so floating-window default/clamp frames line up with the document host. `workbench_drawer_source.ui.toml` still supports its metric-only fallback, but `BuiltinHostWindowTemplateBridge` passes `WorkbenchBody` and `StatusBarRoot` anchors into `workbench_drawer_source/layout.rs` for real workbench projections so visible drawer frames are recomputed from the current root shell.
+Dedicated source assets must match that root-shell authority unless they are deliberately exercising a standalone fallback. `floating_window_source.zui` therefore uses a `57px` top spacer and `44px` rail so floating-window default/clamp frames line up with the document host. The drawer source frame recompute remains owned by `workbench_drawer_source/layout.rs`; `BuiltinHostWindowTemplateBridge` passes `WorkbenchBody` and `StatusBarRoot` anchors into that owner for real workbench projections so visible drawer frames are recomputed from the current root shell without naming a retired standalone drawer-source UI asset.
 
 The source bridges keep their shared surfaces alive across layout recompute. Drawer-source construction still builds the initial surface from `EditorUiHostRuntime`, but subsequent standalone, workbench-model, and anchored recomputes mutate the existing `UiSurface`, mark root layout dirty when shell size is an input, and call `UiSurface::rebuild_dirty(...)`. Floating-window source recompute follows the same retained-surface pattern. This keeps node ids, render-cache state, and bridge-local surface state stable while still letting runtime layout/render rebuild only the dirty domains.
 
@@ -627,7 +633,7 @@ Decorative Workbench scene nodes are part of the render/layout surface, not the 
 
 `retained_host::host_contract` is the Rust-owned DTO and native-window seam. It contains the presentation data, pane/context globals, input translation, surface hit testing, native pointer dispatch, redraw decisions, presenter, and painter modules.
 
-The painter consumes host-contract data and shared template render commands. It is allowed to provide native fallback pixels for shell chrome, text, icons, viewport images, diagnostics overlays, close prompts, and retained template nodes. It must not introduce a second layout or business-state authority; arranged frames and stable action ids come from `.ui.toml`, shared surface projection, and editor workbench data.
+The painter consumes host-contract data and shared template render commands. It is allowed to provide native fallback pixels for shell chrome, text, icons, viewport images, diagnostics overlays, close prompts, and retained template nodes. It must not introduce a second layout or business-state authority; arranged frames and stable action ids come from `.zui`, shared surface projection, and editor workbench data.
 
 The host contract also carries shared component classification tokens. `TemplatePaneNodeData` exposes `component_category` and `component_layout_role`, populated from the runtime component descriptor registry through `component_contract_metadata.rs` for both generic pane projection and the componentized Workbench window projection. Native painters and diagnostics should use these tokens for broad families such as input, selection, collection, container, flex, grid, popup, and virtual-list before adding control-id-specific detail.
 
@@ -661,7 +667,7 @@ Visual asset pixels stay inside that host-contract seam. `painter/visual_assets.
 
 The old owner path was `zircon_editor::ui::slint_host` and the old source tree included `zircon_editor/ui/**/*.slint`. Those paths are historical only. They must not be restored as a compatibility module, shim, facade, re-export, generated include, build dependency, or active documentation owner.
 
-Remaining references to Slint are allowed only as historical cutover context, no-Slint guard wording, or dependency-deletion evidence. Current code, tests, docs, and validation commands should use `retained_host`, `.ui.toml`, and Rust-owned `host_contract` names.
+Remaining references to Slint are allowed only as historical cutover context, no-Slint guard wording, or dependency-deletion evidence. Current code, tests, docs, and validation commands should use `retained_host`, `.zui`, and Rust-owned `host_contract` names.
 
 ## Validation
 
@@ -672,7 +678,7 @@ The retained shell is guarded by:
 - retained pointer tests under `zircon_editor/src/tests/host/retained_*`
 - template-runtime tests under `zircon_editor/src/tests/host/template_runtime`
 - integration-contract readers for `workbench_retained*`
-- editor boundary tests for `.ui.toml` host assets and workbench projection cutover
+- editor boundary tests for `.zui` host assets and workbench projection cutover
 
 The milestone validation target remains `cargo check -p zircon_editor --lib --locked --message-format=short`, `cargo check -p zircon_editor --lib --tests --locked --message-format=short`, and then the repository validator when unrelated active-workstream blockers are clear or classified.
 

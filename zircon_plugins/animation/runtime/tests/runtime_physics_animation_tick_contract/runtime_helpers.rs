@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_plugin_sdk::{TestRuntime, WeakBridge};
 use zircon_runtime::asset::{self, ProjectAssetManager};
 use zircon_runtime::core::CoreHandle;

@@ -39,10 +39,10 @@ fn animation_editor_plugin_contributes_authoring_extensions() {
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.animation.authoring.Open"));
+        .any(|menu| menu.operation().as_str() == "view.animation.authoring.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.animation.authoring.Open"));
+        .any(|operation| operation.path().as_str() == "view.animation.authoring.open"));
 }

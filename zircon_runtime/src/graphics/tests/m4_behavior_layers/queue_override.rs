@@ -131,6 +131,9 @@ fn insert_queue_product_material(
             MaterialAsset {
                 name: Some("QueueOverrideProduct".to_string()),
                 shader: super::asset_reference("res://shaders/flat_color.wgsl"),
+                parent: None,
+                options: Default::default(),
+                queue: None,
                 base_color: [1.0, 1.0, 1.0, 1.0],
                 base_color_texture: Some(super::asset_reference("res://textures/white.png")),
                 normal_texture: None,

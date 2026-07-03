@@ -35,6 +35,7 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
         "tests/plugin_extensions/static_manifest_contracts/manifest_schema/nested.rs",
     );
     let build_tool = read_repo("tools/zircon_build.py");
+    let build_shader_descriptors = read_repo("tools/zircon_build_plugin_shader_descriptors.py");
     let build_plugin_tests = read_repo("tools/tests/test_zircon_build_plugin_carriers.py");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -109,11 +110,11 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
         ],
     );
     assert_contains_all(
-        "build tool derives selected plugin prewarm geometry ids from descriptors",
-        &build_tool,
+        "build tool derives selected plugin prewarm geometry ids through the shader-descriptor owner",
+        &(build_tool + &build_shader_descriptors),
         &[
             "collect_geometry_source_descriptor_id_specs",
-            "data.get(\"geometry_sources\", [])",
+            "_collect_descriptor_rows(manifest_path, data, \"geometry_sources\")",
             "shader_geometry_source_ids = tuple",
         ],
     );
@@ -122,6 +123,10 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
         (
             "plugin/extension_registry/register/metadata.rs",
             extension_register_metadata.as_str(),
+        ),
+        (
+            "tools/zircon_build_plugin_shader_descriptors.py",
+            build_shader_descriptors.as_str(),
         ),
         (
             "tools/tests/test_zircon_build_plugin_carriers.py",

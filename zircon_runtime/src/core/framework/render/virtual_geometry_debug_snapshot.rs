@@ -4,6 +4,7 @@ mod cull_input;
 mod encoding;
 mod execution;
 mod node_and_cluster_cull;
+mod page_payload;
 mod snapshot;
 mod sources;
 
@@ -39,6 +40,7 @@ pub use node_and_cluster_cull::{
     RenderVirtualGeometryNodeAndClusterCullTraversalOp,
     RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
 };
+pub use page_payload::{RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex};
 pub use snapshot::RenderVirtualGeometryDebugSnapshot;
 pub use sources::{
     RenderVirtualGeometryClusterSelectionInputSource,

@@ -1,6 +1,7 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
+use super::super::super::template_slider_geometry::workbench_slider_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_ticks(
     commands: &mut Vec<HostPaintCommand>,
@@ -14,15 +15,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
     if tick_count < 2 {
         return;
     }
+    let metrics = workbench_slider_metrics();
     let last = tick_count - 1;
     for index in 0..tick_count {
         let fraction = index as f32 / last as f32;
         commands.push(HostPaintCommand::quad(
             FrameRect {
-                x: track_rect.x + track_rect.width * fraction - 0.5,
-                y: track_rect.y + 8.0,
-                width: 1.0,
-                height: 4.0,
+                x: track_rect.x + track_rect.width * fraction - metrics.tick_width * 0.5,
+                y: track_rect.y + metrics.tick_offset_y,
+                width: metrics.tick_width,
+                height: metrics.tick_height,
             },
             Some(clip.clone()),
             order,

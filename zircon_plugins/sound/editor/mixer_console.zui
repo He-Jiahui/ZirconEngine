@@ -25,7 +25,7 @@ component = "Button"
 control_id = "SoundOutputRefreshButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Refresh", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Sound/Output/Refresh", event = "Click", route = "Sound.Output.Device.Refresh" }]
+events = [{ id = "Sound/Output/Refresh", event = "Click", route = "sound.output.device.refresh" }]
 layout = { width = { min = 78.0, preferred = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.sound_output_start_button]
@@ -33,7 +33,7 @@ component = "Button"
 control_id = "SoundOutputStartButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Start", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Sound/Output/Start", event = "Click", route = "Sound.Output.Device.Start" }]
+events = [{ id = "Sound/Output/Start", event = "Click", route = "sound.output.device.start" }]
 layout = { width = { min = 64.0, preferred = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.sound_output_stop_button]
@@ -41,7 +41,7 @@ component = "Button"
 control_id = "SoundOutputStopButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
 props = { text = "Stop", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
-events = [{ id = "Sound/Output/Stop", event = "Click", route = "Sound.Output.Device.Stop" }]
+events = [{ id = "Sound/Output/Stop", event = "Click", route = "sound.output.device.stop" }]
 layout = { width = { min = 64.0, preferred = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.sound_output_status_panel]

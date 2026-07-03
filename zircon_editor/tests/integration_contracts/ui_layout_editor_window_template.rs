@@ -12,8 +12,8 @@ fn ui_layout_editor_window_source() -> String {
 #[test]
 fn ui_layout_editor_window_uses_activity_drawer_window_with_editor_content() {
     let source = ui_layout_editor_window_source();
-    let document = UiV2AssetLoader::load_toml_str(&source)
-        .expect("ui layout editor window v2 asset should parse");
+    let document =
+        UiV2AssetLoader::load_toml_str(&source).expect("ui_layout_editor_window.zui should parse");
 
     assert_eq!(document.asset.id, "editor.window.ui_layout_editor");
     assert!(source.contains("editor.host.activity_drawer_window#ActivityDrawerWindow"));

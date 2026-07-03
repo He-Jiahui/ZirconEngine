@@ -1,5 +1,5 @@
 use crate::plugin::{
-    PluginFeatureBundleManifest, PluginFinishContext, PluginRuntimeContext,
+    PluginFeatureBundleManifest, PluginFinishContext, PluginReadyContext, PluginRuntimeContext,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 
@@ -11,6 +11,13 @@ pub trait RuntimePluginFeature {
         _registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         Ok(())
+    }
+
+    fn ready(
+        &self,
+        _context: &PluginReadyContext<'_>,
+    ) -> Result<bool, RuntimeExtensionRegistryError> {
+        Ok(true)
     }
 
     fn finish(

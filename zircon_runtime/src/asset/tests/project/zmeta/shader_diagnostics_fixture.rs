@@ -1,7 +1,5 @@
 use super::*;
 
-use crate::asset::ZShaderDefinitionError;
-
 #[test]
 fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
     let root = unique_temp_project_root("project_manager_zshader_capture_diagnostics");
@@ -30,12 +28,10 @@ fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
     fs::write(
         shader_dir.join("capture.zshader"),
         r#"
-version = 1
+kind = "surface"
+version = 2
+shading_model = "unlit"
 wgsl_files = ["capture.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
 
 [[properties]]
 name = "base_color"
@@ -96,86 +92,59 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
 }
 
 #[test]
-fn zshader_typed_shader_definition_rows_validate_kind_and_value() {
-    let document = ZShaderDocument::from_toml_str(
+fn zshader_v2_options_replace_legacy_user_shader_definition_rows() {
+    let document = ZShaderDocumentV2::from_toml_str(
         r#"
-version = 1
-shader_defs = ["LEGACY_FLAG"]
+kind = "surface"
+version = 2
+shading_model = "unlit"
 
-[[shader_def_values]]
+[[options]]
 name = "ENABLE_FOG"
 kind = "bool"
-value = false
+default = false
 
-[[shader_def_values]]
+[[options]]
 name = "BINDING_INDEX"
 kind = "uint"
-value = 4
+default = 4
 
-[[shader_def_values]]
+[[options]]
 name = "DEBUG_MODE"
 kind = "int"
-value = -1
+default = -1
 "#,
     )
     .unwrap();
 
+    assert_eq!(document.kind(), ShaderAssetKind::Surface);
+    assert_eq!(document.options().len(), 3);
+    assert_eq!(document.options()[0].name, "ENABLE_FOG");
     assert_eq!(
-        document.shader_definition_values().unwrap(),
-        vec![
-            RenderShaderDefinitionValue::from("LEGACY_FLAG"),
-            RenderShaderDefinitionValue::bool("ENABLE_FOG", false),
-            RenderShaderDefinitionValue::uint("BINDING_INDEX", 4),
-            RenderShaderDefinitionValue::int("DEBUG_MODE", -1),
-        ]
+        document.options()[0].default,
+        Some(toml::Value::Boolean(false))
+    );
+    assert_eq!(document.options()[1].name, "BINDING_INDEX");
+    assert_eq!(document.options()[1].default, Some(toml::Value::Integer(4)));
+    assert_eq!(document.options()[2].name, "DEBUG_MODE");
+    assert_eq!(
+        document.options()[2].default,
+        Some(toml::Value::Integer(-1))
     );
 
-    let unknown_kind = ZShaderDocument::from_toml_str(
+    let legacy_shader_defs = ZShaderDocumentV2::from_toml_str(
         r#"
-[[shader_def_values]]
-name = "BAD_KIND"
-kind = "float"
-value = 1.0
+kind = "surface"
+version = 2
+shading_model = "unlit"
+shader_defs = ["LEGACY_FLAG"]
 "#,
-    )
-    .unwrap();
-    assert_eq!(
-        unknown_kind.shader_definition_values().unwrap_err(),
-        ZShaderDefinitionError::UnsupportedKind {
-            name: "BAD_KIND".to_string(),
-            kind: "float".to_string(),
-        }
     );
-
-    let non_bool = ZShaderDocument::from_toml_str(
-        r#"
-[[shader_def_values]]
-name = "ENABLE_FOG"
-kind = "bool"
-value = 1
-"#,
-    )
-    .unwrap();
     assert_eq!(
-        non_bool.shader_definition_values().unwrap_err(),
-        ZShaderDefinitionError::BoolValue {
-            name: "ENABLE_FOG".to_string(),
-        }
-    );
-
-    let negative_uint = ZShaderDocument::from_toml_str(
-        r#"
-[[shader_def_values]]
-name = "BINDING_INDEX"
-kind = "uint"
-value = -1
-"#,
-    )
-    .unwrap();
-    assert_eq!(
-        negative_uint.shader_definition_values().unwrap_err(),
-        ZShaderDefinitionError::UintValue {
-            name: "BINDING_INDEX".to_string(),
+        legacy_shader_defs.unwrap_err(),
+        ZShaderV2Error::ForbiddenField {
+            kind: "surface".to_string(),
+            field: "shader_defs".to_string(),
         }
     );
 }
@@ -210,7 +179,7 @@ fn documented_zmeta_shader_material_fixture_parses() {
         .iter()
         .any(|entry| entry.url == wgsl_uri && entry.asset_kind == AssetKind::Data));
 
-    let zshader = ZShaderDocument::from_toml_str(
+    let zshader = ZShaderDocumentV2::from_toml_str(
         &fs::read_to_string(
             fixture_root
                 .join("shaders")
@@ -220,15 +189,12 @@ fn documented_zmeta_shader_material_fixture_parses() {
         .unwrap(),
     )
     .unwrap();
-    assert_eq!(zshader.wgsl_files, vec!["unlit.wgsl"]);
-    assert_eq!(zshader.import_path.as_deref(), Some("zircon::unlit"));
-    assert_eq!(zshader.shader_defs, vec!["USE_UNLIT"]);
-    assert_eq!(
-        zshader.shader_definition_values().unwrap(),
-        vec![RenderShaderDefinitionValue::from("USE_UNLIT")]
-    );
-    assert_eq!(zshader.entry_points.len(), 2);
-    assert_eq!(zshader.properties[0].name, "base_color");
+    assert_eq!(zshader.kind(), ShaderAssetKind::Surface);
+    assert_eq!(zshader.wgsl_files(), &["unlit.wgsl".to_string()]);
+    assert_eq!(zshader.import_path(), None);
+    assert_eq!(zshader.shading_model(), Some("unlit"));
+    assert_eq!(zshader.entry_points().len(), 0);
+    assert_eq!(zshader.properties()[0].name, "base_color");
     let fixture_wgsl = fs::read_to_string(
         fixture_root
             .join("shaders")
@@ -238,10 +204,11 @@ fn documented_zmeta_shader_material_fixture_parses() {
     .unwrap();
     let shader_asset = ShaderAsset {
         uri: shader_uri.clone(),
+        kind: zshader.kind(),
         source_language: ShaderSourceLanguage::Wgsl,
         source: fixture_wgsl.clone(),
         wgsl_source: fixture_wgsl,
-        import_path: zshader.import_path.clone(),
+        import_path: zshader.import_path().map(str::to_string),
         entry_points: Vec::new(),
         dependencies: Vec::new(),
         source_files: vec![ShaderSourceFileAsset {
@@ -249,15 +216,28 @@ fn documented_zmeta_shader_material_fixture_parses() {
             url: AssetUri::parse("res://shaders/unlit_shader/unlit.wgsl").unwrap(),
         }],
         imports: Vec::new(),
-        shader_defs: zshader.shader_definition_values().unwrap(),
-        property_schema: zshader.properties.clone(),
+        shader_defs: Vec::new(),
+        property_schema: zshader.properties().to_vec(),
+        options: zshader
+            .options()
+            .iter()
+            .map(ShaderOptionAsset::from)
+            .collect(),
         texture_slots: zshader
-            .texture_slots
+            .texture_slots()
             .iter()
             .map(ShaderTextureSlotAsset::from)
             .collect(),
-        editor: zshader.editor.clone(),
-        pipeline_layout: zshader.pipeline_layout.clone(),
+        shading_model: zshader.shading_model().map(str::to_string),
+        render_state: zshader.render_state(),
+        queue: zshader.queue(),
+        disabled_passes: zshader.disabled_passes().to_vec(),
+        resources: zshader.resources().to_vec(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
+        editor: zshader.editor().clone(),
+        pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     };
     assert!(

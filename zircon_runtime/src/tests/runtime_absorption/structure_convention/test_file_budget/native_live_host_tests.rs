@@ -90,8 +90,8 @@ fn runtime_15_native_live_host_tests_are_folder_backed() {
     .sum::<usize>();
     assert_eq!(
         parent.matches("#[test]").count() + moved_test_count,
-        27,
-        "native live-host parent plus split children should preserve the original 27 tests"
+        36,
+        "native live-host parent plus split children should preserve the current 36 tests"
     );
 
     for (path, source) in [

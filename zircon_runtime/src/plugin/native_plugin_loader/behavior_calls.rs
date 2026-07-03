@@ -8,6 +8,26 @@ use super::abi_declarations::{
 };
 use super::native_strings::read_optional_c_string;
 
+pub(super) type NativePluginBehaviorResult<T> = std::result::Result<T, NativePluginBehaviorError>;
+
+#[derive(Debug)]
+pub(super) enum NativePluginBehaviorError {
+    UnsupportedAbiVersion { actual: u32, expected: u32 },
+}
+
+impl std::fmt::Display for NativePluginBehaviorError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnsupportedAbiVersion { actual, expected } => write!(
+                formatter,
+                "unsupported native plugin behavior ABI version {actual}; expected {expected}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginBehaviorError {}
+
 #[derive(Debug)]
 pub(super) struct NativePluginBehavior {
     pub(super) is_stateless: bool,
@@ -32,12 +52,14 @@ pub struct NativePluginBehaviorCallReport {
 }
 
 impl NativePluginBehavior {
-    pub(super) unsafe fn from_abi_v3(abi: &NativePluginBehaviorV3) -> Result<Self, String> {
+    pub(super) unsafe fn from_abi_v3(
+        abi: &NativePluginBehaviorV3,
+    ) -> NativePluginBehaviorResult<Self> {
         if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
-            return Err(format!(
-                "unsupported native plugin behavior ABI version {}; expected {}",
-                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
-            ));
+            return Err(NativePluginBehaviorError::UnsupportedAbiVersion {
+                actual: abi.abi_version,
+                expected: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            });
         }
         Ok(Self {
             is_stateless: abi.is_stateless != 0,
@@ -133,6 +155,63 @@ impl NativePluginBehavior {
 
     pub(super) fn has_unload(&self) -> bool {
         self.unload.is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::abi_declarations::NativePluginSchemaVersionsV3;
+    use super::*;
+
+    fn minimal_behavior(abi_version: u32) -> NativePluginBehaviorV3 {
+        NativePluginBehaviorV3 {
+            abi_version,
+            is_stateless: 1,
+            schema_versions: NativePluginSchemaVersionsV3 {
+                state_schema_version: 0,
+                command_manifest_schema: std::ptr::null(),
+                event_manifest_schema: std::ptr::null(),
+                registration_manifest_schema: std::ptr::null(),
+            },
+            command_manifest: std::ptr::null(),
+            event_manifest: std::ptr::null(),
+            registration_manifest: std::ptr::null(),
+            invoke_command: None,
+            save_state: None,
+            restore_state: None,
+            unload: None,
+        }
+    }
+
+    #[test]
+    fn native_behavior_reports_unsupported_abi_version_with_typed_error() {
+        let behavior = minimal_behavior(ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 1);
+        let error = unsafe { NativePluginBehavior::from_abi_v3(&behavior) }
+            .expect_err("unsupported behavior ABI should report typed error");
+
+        assert!(matches!(
+            error,
+            NativePluginBehaviorError::UnsupportedAbiVersion { actual, expected }
+                if actual == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 1
+                    && expected == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+        ));
+    }
+
+    #[test]
+    fn native_behavior_typed_error_preserves_unsupported_abi_message() {
+        let error = NativePluginBehaviorError::UnsupportedAbiVersion {
+            actual: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 2,
+            expected: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+        };
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "unsupported native plugin behavior ABI version {}; expected {}",
+                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 + 2,
+                ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+            )
+        );
     }
 }
 

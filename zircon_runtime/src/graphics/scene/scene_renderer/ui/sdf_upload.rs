@@ -1,4 +1,11 @@
-use super::sdf_atlas::{SdfAtlasCacheReport, SdfAtlasPlan};
+use crate::graphics::text::atlas::{
+    glyph_atlas_upload_command, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
+    GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+};
+
+use super::sdf_atlas::{
+    sdf_atlas_layer_count, SdfAtlasCacheReport, SdfAtlasDirtyPageReport, SdfAtlasPlan, SdfAtlasRect,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) enum SdfAtlasUploadMode {
@@ -8,16 +15,25 @@ pub(super) enum SdfAtlasUploadMode {
     DirtySlots,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct SdfAtlasUploadReport {
     pub(super) mode: SdfAtlasUploadMode,
     pub(super) byte_len: usize,
     pub(super) full_texture: bool,
-    // Dirty slot fields model the future partial-upload boundary while the current GPU path
-    // still uploads the full texture for correctness.
     pub(super) dirty_slot_count: usize,
+    pub(super) dirty_rect: Option<SdfAtlasRect>,
     pub(super) dirty_byte_len: usize,
+    pub(super) dirty_pages: Vec<SdfAtlasUploadPageReport>,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct SdfAtlasUploadPageReport {
+    pub(super) page_key: GlyphAtlasPageKey,
+    pub(super) dirty_rect: SdfAtlasRect,
+    pub(super) byte_len: usize,
+}
+
+pub(super) type SdfAtlasUploadCommand = GlyphAtlasUploadCommand;
 
 pub(super) fn sdf_atlas_upload_report(
     atlas_plan: &SdfAtlasPlan,
@@ -33,133 +49,157 @@ pub(super) fn sdf_atlas_upload_report(
             .added_slot_count
             .saturating_add(atlas_cache.relocated_slot_count)
     };
-    let slot_byte_len = atlas_plan
-        .slots
-        .first()
-        .map(|slot| slot.rect.width as usize * slot.rect.height as usize)
-        .unwrap_or(0);
-    let dirty_byte_len = if atlas_resized {
-        atlas_upload_byte_len
+    let dirty_pages = sdf_upload_dirty_pages(
+        atlas_plan,
+        &atlas_cache,
+        atlas_resized,
+        atlas_upload_byte_len,
+    );
+    let dirty_rect = dirty_pages
+        .iter()
+        .find(|page| page.page_key == GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0))
+        .map(|page| page.dirty_rect);
+    let dirty_byte_len = dirty_pages
+        .iter()
+        .map(|page| page.byte_len)
+        .sum::<usize>()
+        .min(atlas_upload_byte_len);
+    let mode = if atlas_upload_byte_len == 0 {
+        SdfAtlasUploadMode::None
+    } else if atlas_upload_full_texture {
+        SdfAtlasUploadMode::FullTexture
+    } else if !dirty_pages.is_empty() {
+        SdfAtlasUploadMode::DirtySlots
     } else {
-        dirty_slot_count
-            .saturating_mul(slot_byte_len)
-            .min(atlas_upload_byte_len)
+        SdfAtlasUploadMode::None
+    };
+    let byte_len = match mode {
+        SdfAtlasUploadMode::None => 0,
+        SdfAtlasUploadMode::FullTexture => atlas_upload_byte_len,
+        SdfAtlasUploadMode::DirtySlots => dirty_byte_len,
     };
 
     SdfAtlasUploadReport {
-        mode: if atlas_upload_byte_len == 0 {
-            SdfAtlasUploadMode::None
-        } else if atlas_upload_full_texture {
-            SdfAtlasUploadMode::FullTexture
-        } else {
-            SdfAtlasUploadMode::DirtySlots
-        },
-        byte_len: atlas_upload_byte_len,
-        full_texture: atlas_upload_full_texture,
+        mode,
+        byte_len,
+        full_texture: matches!(mode, SdfAtlasUploadMode::FullTexture),
         dirty_slot_count,
+        dirty_rect,
         dirty_byte_len,
+        dirty_pages,
+    }
+}
+
+pub(super) fn sdf_atlas_upload_commands(
+    atlas_plan: &SdfAtlasPlan,
+    upload: SdfAtlasUploadReport,
+    source_byte_len: usize,
+) -> Vec<SdfAtlasUploadCommand> {
+    let mode = match upload.mode {
+        SdfAtlasUploadMode::None => return Vec::new(),
+        SdfAtlasUploadMode::FullTexture => GlyphAtlasUploadMode::FullPage,
+        SdfAtlasUploadMode::DirtySlots => GlyphAtlasUploadMode::PartialRect,
+    };
+    upload
+        .dirty_pages
+        .into_iter()
+        .filter_map(|dirty_page| {
+            let page = sdf_atlas_page_spec_for_key(atlas_plan, dirty_page.page_key);
+            let page_source_byte_len = sdf_page_source_byte_len(&page)?;
+            let mut command = glyph_atlas_upload_command(
+                &page,
+                mode,
+                Some(dirty_page.dirty_rect.into()),
+                page_source_byte_len,
+            )?;
+            offset_upload_command_for_source_layer(
+                &mut command,
+                page_source_byte_len,
+                source_byte_len,
+            )?;
+            Some(command)
+        })
+        .collect()
+}
+
+fn sdf_atlas_page_spec_for_key(
+    atlas_plan: &SdfAtlasPlan,
+    page_key: GlyphAtlasPageKey,
+) -> GlyphAtlasPageSpec {
+    atlas_plan
+        .atlas_set
+        .page(page_key.format, page_key.page_index)
+        .cloned()
+        .unwrap_or_else(|| GlyphAtlasPageSpec::new(page_key, atlas_plan.atlas_size))
+}
+
+fn sdf_page_source_byte_len(page: &GlyphAtlasPageSpec) -> Option<usize> {
+    let byte_len = page
+        .size
+        .x
+        .max(1)
+        .saturating_mul(page.size.y.max(1))
+        .saturating_mul(page.storage_format.bytes_per_pixel());
+    usize::try_from(byte_len).ok()
+}
+
+fn offset_upload_command_for_source_layer(
+    command: &mut SdfAtlasUploadCommand,
+    page_source_byte_len: usize,
+    source_byte_len: usize,
+) -> Option<()> {
+    let layer_offset =
+        u64::from(command.page_key.page_index).checked_mul(page_source_byte_len as u64)?;
+    let page_end = layer_offset.checked_add(page_source_byte_len as u64)?;
+    if page_end > source_byte_len as u64 {
+        return None;
+    }
+    command.source_offset = command.source_offset.checked_add(layer_offset)?;
+    Some(())
+}
+
+fn sdf_upload_dirty_pages(
+    atlas_plan: &SdfAtlasPlan,
+    atlas_cache: &SdfAtlasCacheReport,
+    atlas_resized: bool,
+    atlas_upload_byte_len: usize,
+) -> Vec<SdfAtlasUploadPageReport> {
+    if atlas_upload_byte_len == 0 {
+        return Vec::new();
+    }
+    if atlas_resized {
+        return (0..sdf_atlas_layer_count(atlas_plan))
+            .map(|page_index| {
+                let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, page_index);
+                let page = sdf_atlas_page_spec_for_key(atlas_plan, page_key);
+                SdfAtlasUploadPageReport {
+                    page_key,
+                    dirty_rect: SdfAtlasRect {
+                        x: 0,
+                        y: 0,
+                        width: page.size.x.max(1),
+                        height: page.size.y.max(1),
+                    },
+                    byte_len: sdf_page_source_byte_len(&page).unwrap_or(0),
+                }
+            })
+            .collect();
+    }
+
+    atlas_cache
+        .dirty_pages
+        .iter()
+        .map(sdf_upload_page_report)
+        .collect()
+}
+
+fn sdf_upload_page_report(page: &SdfAtlasDirtyPageReport) -> SdfAtlasUploadPageReport {
+    SdfAtlasUploadPageReport {
+        page_key: page.page_key,
+        dirty_rect: page.dirty_rect,
+        byte_len: page.dirty_rect.width as usize * page.dirty_rect.height as usize,
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::math::UVec2;
-    use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
-        SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot,
-    };
-
-    #[test]
-    fn sdf_upload_report_uses_full_texture_when_atlas_resizes() {
-        let report = sdf_atlas_upload_report(
-            &atlas_plan(2),
-            SdfAtlasCacheReport {
-                previous_slot_count: 0,
-                current_slot_count: 2,
-                retained_slot_count: 0,
-                stable_slot_count: 0,
-                relocated_slot_count: 0,
-                added_slot_count: 2,
-                evicted_slot_count: 0,
-                atlas_resized: true,
-            },
-            true,
-            512 * 512,
-            true,
-        );
-
-        assert_eq!(report.mode, SdfAtlasUploadMode::FullTexture);
-        assert!(report.full_texture);
-        assert_eq!(report.byte_len, 512 * 512);
-        assert_eq!(report.dirty_slot_count, 2);
-        assert_eq!(report.dirty_byte_len, 512 * 512);
-    }
-
-    #[test]
-    fn sdf_upload_report_tracks_future_partial_dirty_slots() {
-        let stable = sdf_atlas_upload_report(
-            &atlas_plan(2),
-            SdfAtlasCacheReport {
-                previous_slot_count: 2,
-                current_slot_count: 2,
-                retained_slot_count: 2,
-                stable_slot_count: 2,
-                relocated_slot_count: 0,
-                added_slot_count: 0,
-                evicted_slot_count: 0,
-                atlas_resized: false,
-            },
-            false,
-            512 * 512,
-            true,
-        );
-
-        assert_eq!(stable.mode, SdfAtlasUploadMode::FullTexture);
-        assert_eq!(stable.dirty_slot_count, 0);
-        assert_eq!(stable.dirty_byte_len, 0);
-
-        let relocated = sdf_atlas_upload_report(
-            &atlas_plan(2),
-            SdfAtlasCacheReport {
-                previous_slot_count: 3,
-                current_slot_count: 3,
-                retained_slot_count: 2,
-                stable_slot_count: 1,
-                relocated_slot_count: 1,
-                added_slot_count: 1,
-                evicted_slot_count: 1,
-                atlas_resized: false,
-            },
-            false,
-            512 * 512,
-            true,
-        );
-
-        assert_eq!(relocated.dirty_slot_count, 2);
-        assert_eq!(relocated.dirty_byte_len, 2 * 64 * 64);
-    }
-
-    fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
-        let slots = (0..slot_count)
-            .map(|index| SdfAtlasSlot {
-                key: SdfAtlasGlyphKey {
-                    glyph: char::from_u32('A' as u32 + index as u32).unwrap_or('A'),
-                    font: Some("res://fonts/default.font.toml".to_string()),
-                    font_family: Some("Zircon Sans".to_string()),
-                    font_size_milli: 16_000,
-                },
-                rect: SdfAtlasRect {
-                    x: index as u32 * 64,
-                    y: 0,
-                    width: 64,
-                    height: 64,
-                },
-            })
-            .collect();
-        SdfAtlasPlan {
-            atlas_size: UVec2::splat(512),
-            slots,
-            runs: Vec::new(),
-        }
-    }
-}
+mod tests;

@@ -1,0 +1,12 @@
+runtime_text_word_smart_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+slice=LB-M2 WordSmart tests owner split
+changed_files=zircon_runtime/src/graphics/text/layout/line_break/smart.rs; zircon_runtime/src/graphics/text/layout/line_break/smart/tests.rs
+behavior=structure-only; apply_word_smart_rules and helper logic unchanged in parent owner
+line_counts=smart.rs: 506->176; smart/tests.rs: 329
+test_counts=28 moved tests preserved in smart/tests.rs
+rustfmt=passed: rustfmt --edition 2021 --check smart.rs smart/tests.rs
+trailing_whitespace_scan=passed
+panic_dead_code_scan=passed
+cargo=deferred: external cargo/rustc lanes active at validation time
+target_artifacts=deferred scan follows in shell output; proof files intentionally under docs/tests/runtime/text

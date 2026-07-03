@@ -6,10 +6,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.zircon_export.export_template import (
-    resolve_export_template_from_root,
-    validate_export_template,
-)
+from tools.zircon_export.export_template import validate_export_template
+from tools.zircon_export.export_template_resolution import resolve_export_template_from_root
 from tools.zircon_export.tests.export_test_support import VALID_TEMPLATE
 
 

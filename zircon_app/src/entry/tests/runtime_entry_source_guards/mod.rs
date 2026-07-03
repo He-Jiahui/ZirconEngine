@@ -4,6 +4,7 @@ mod converters;
 mod entry_tree;
 mod event_loop_policy;
 mod frame_loop;
+mod host_requests;
 mod runtime_session;
 mod sources;
 mod viewport;

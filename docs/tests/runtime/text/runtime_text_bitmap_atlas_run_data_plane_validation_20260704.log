@@ -1,0 +1,22 @@
+runtime_text_bitmap_atlas_run_data_plane_rustfmt_static_visual_cargo_deferred
+date=2026-07-04 +08:00
+png=runtime_text_bitmap_atlas_run_data_plane_preview_20260704.png
+png_sha256=AB2C7FABFA1A7A78CCC4EFD1FD7718393FD7E2E5AB00EC0ADCC962D596275669
+visual_inspection=passed: atlas data-plane diagram is readable and stored under docs/tests/runtime/text
+rustfmt_check=passed: rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/dirty.rs zircon_runtime/src/graphics/text/atlas/mod.rs
+diff_check=passed: git diff --check for touched atlas files returned exit 0
+focused_cargo=deferred: external cargo/rustc lanes were active; no new focused Cargo lane started for this slice
+same_name_target_png_count=0
+same_name_target_log_count_before_write=0
+covered_contracts=AlphaMask/SubpixelMask/Color bitmap sources reserve distinct pages; shelf overflow reserves page[1]; invalid sources report typed failures; draw glyphs feed render-contract batches without RGBA semantic merge
+remaining_open=production bitmap atlas renderer, glyphon TextAtlas cutover, persistent glyph cache eviction, focused Cargo green, live editor-window typography QA, LCD/gamma/background policy
+active_compile_lanes:
+cargo#22052 CPU=4.89 Start=07/04/2026 04:01:20
+cargo#22624 CPU=3.8 Start=07/04/2026 04:03:23
+cargo#37656 CPU=0.05 Start=07/04/2026 04:03:09
+cargo#42944 CPU=0.03 Start=07/04/2026 04:01:20
+cargo#44896 CPU=6.06 Start=07/04/2026 04:03:09
+cargo#48680 CPU=0.05 Start=07/04/2026 04:03:23
+rustc#9848 CPU=237.27 Start=07/04/2026 04:03:27
+rustc#40732 CPU=303.91 Start=07/04/2026 04:01:26
+rustc#41176 CPU=7.03 Start=07/04/2026 04:07:31

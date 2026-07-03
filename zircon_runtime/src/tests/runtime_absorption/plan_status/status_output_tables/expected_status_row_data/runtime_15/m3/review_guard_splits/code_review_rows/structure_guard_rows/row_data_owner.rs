@@ -1,0 +1,53 @@
+use super::Slice;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[(
+    "Runtime 15 M3 code-review structure-guard row-data folder-backed split",
+    &[
+        "runtime_15_code_review_structure_guard_row_data_folder_backed_static_passed_cargo_deferred",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/folder_backed_summary.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/typed_error.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/row_data_owner.rs",
+        "runtime_15_code_review_structure_guard_row_data_is_folder_backed",
+        "Cargo gate deferred",
+    ],
+),
+(
+    "Runtime 15 M3 code review findings status-row source child-tree sync",
+    &[
+        "runtime_15_code_review_findings_status_row_source_child_tree_sync_static_passed_cargo_deferred",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/sync.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/delegation.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors/status_mirrors.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/status_mirrors.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory/delegation.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/budgets.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/folder_backed_summary/status_mirrors.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/folder_backed_summary.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/typed_error.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/row_data_owner.rs",
+        "runtime_15_code_review_findings_status_row_source_reads_structure_guard_children",
+        "Cargo gate deferred",
+    ],
+),
+(
+    "Runtime 15 M3 code-review structure-guard root-and-children row-data child split",
+    &[
+        "runtime_15_code_review_structure_guard_root_and_children_row_data_child_split_static_passed_cargo_deferred",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/code_review_findings.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/p0_robustness.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/plugin_importer_dx.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/p0_native_fixture.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/f8_child_owner.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/late_api_cleanup.rs",
+        "runtime_15_code_review_structure_guard_root_and_children_row_data_is_child_backed",
+        "Cargo gate deferred",
+    ],
+)];

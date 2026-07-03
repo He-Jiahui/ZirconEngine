@@ -11,14 +11,24 @@ from .pipeline_report_schema_primitives import (
     validate_object_schema_diagnostics,
     validate_string_schema_diagnostics,
 )
-from .pipeline_report_schema_table import (
+from .pipeline_report_schema_string_array import (
     non_empty_string_array_schema_diagnostics,
     string_array_duplicate_entry_index_schema_diagnostics,
     string_array_no_blank_entries_schema_diagnostics,
     string_array_trimmed_non_empty_entries_schema_diagnostics,
 )
 from .pipeline_report_validate_compile_host_linkage_schema import (
+    linked_runtime_crates_cover_expected_plugins_diagnostics,
+    linked_runtime_crates_only_expected_plugins_diagnostics,
     validate_linked_runtime_crate_schema_diagnostics,
+)
+from .pipeline_report_validate_compile_host_command_semantics import (
+    command_forbidden_flag_diagnostics,
+    compile_host_command_forbidden_package_diagnostics,
+    compile_host_command_forbidden_profile_diagnostics,
+    compile_host_command_forbidden_target_diagnostics,
+    compile_host_command_forbidden_target_triple_diagnostics,
+    compile_host_command_forbidden_wrapper_policy_diagnostics,
 )
 from .pipeline_report_validate_identifier_schema import (
     validate_project_plugin_package_id_array_schema_diagnostics,
@@ -202,6 +212,44 @@ def compile_host_report_command_schema_diagnostics(command: list[str]) -> list[s
         command_flag_diagnostics(command, "--no-default-features", label=label)
     )
     diagnostics.extend(
+        command_forbidden_flag_diagnostics(
+            command,
+            "--all-features",
+            label=label,
+            reason="because CompileHost plan app_features owns feature selection",
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_target_diagnostics(
+            command,
+            label=label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_target_triple_diagnostics(
+            command,
+            label=label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_package_diagnostics(
+            command,
+            label=label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_profile_diagnostics(
+            command,
+            label=label,
+        )
+    )
+    diagnostics.extend(
+        compile_host_command_forbidden_wrapper_policy_diagnostics(
+            command,
+            label=label,
+        )
+    )
+    diagnostics.extend(
         command_option_value_diagnostics(command, "--features", label=label)
     )
     diagnostics.extend(
@@ -347,4 +395,18 @@ def compile_host_link_plan_schema_diagnostics(value: Any) -> list[str]:
                 label=f"{label}.linked_runtime_crates",
             )
         )
+    diagnostics.extend(
+        linked_runtime_crates_cover_expected_plugins_diagnostics(
+            value.get("expected_runtime_plugins"),
+            linked_runtime_crates,
+            label=label,
+        )
+    )
+    diagnostics.extend(
+        linked_runtime_crates_only_expected_plugins_diagnostics(
+            value.get("expected_runtime_plugins"),
+            linked_runtime_crates,
+            label=label,
+        )
+    )
     return diagnostics

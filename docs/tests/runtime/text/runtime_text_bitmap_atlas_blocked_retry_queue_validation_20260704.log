@@ -1,0 +1,26 @@
+Zircon runtime text bitmap atlas blocked retry queue validation
+Date: 2026-07-04
+Scope: zircon_runtime::graphics::text::atlas::{bitmap_run,render_submission}
+
+Scenario:
+- Frame index 43 submits two AlphaMask 12x12 bitmap glyph sources to a 16x16 atlas page with padding 2.
+- max_pages_per_format is 1, so the first source allocates and the second source cannot reserve a new page in the same frame.
+
+Expected run-plan evidence:
+- glyphs.len() = 1
+- allocation_failures.len() = 1
+- allocation_failures[0].reason = PageReservationBlocked
+- blocked_glyphs.len() = 1
+- blocked_glyphs[0].source_index = 1
+- blocked_glyphs[0].retry_frame_index = 44
+
+Expected submission-report evidence:
+- blocked_retry_count = 1
+- next_retry_frame_index = Some(44)
+- upload_command_count remains 1 for the allocated glyph
+- draw_command_count remains 1 for the allocated glyph
+
+Acceptance notes:
+- Blocked glyphs now have a data-plane retry queue instead of only a failure total.
+- The queue preserves the source payload needed for next-frame retry or placeholder rendering.
+- Preview artifact is stored outside Cargo target directories.

@@ -27,10 +27,10 @@ fn virtual_geometry_editor_plugin_contributes_authoring_extensions() {
         .extensions
         .menu_items()
         .iter()
-        .any(|menu| menu.operation().as_str() == "View.virtual_geometry.authoring.Open"));
+        .any(|menu| menu.operation().as_str() == "view.virtual_geometry.authoring.open"));
     assert!(registration
         .extensions
         .operations()
         .descriptors()
-        .any(|operation| operation.path().as_str() == "View.virtual_geometry.authoring.Open"));
+        .any(|operation| operation.path().as_str() == "view.virtual_geometry.authoring.open"));
 }

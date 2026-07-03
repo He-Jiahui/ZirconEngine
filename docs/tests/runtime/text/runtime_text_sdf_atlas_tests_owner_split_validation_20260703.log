@@ -1,0 +1,12 @@
+status=runtime_text_sm_m1_sdf_atlas_tests_owner_split_rustfmt_visual_cargo_deferred
+date=2026-07-03
+scope=SM-M1 SDF atlas tests owner split
+removed_file=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests.rs
+added_files=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs
+behavior=structure-only; no atlas allocation, cache report, upload, render, shader, or editor behavior changed in this slice
+rustfmt=passed for sdf_atlas/tests folder files before proof generation
+cargo=deferred; active_external_lanes_count=10; active_external_lanes=cargo:744, cargo:5412, cargo:8484, cargo:18164, cargo:31384, cargo:39040, cargo:43244, cargo:46620, rustc:27064, rustc:44344
+line_counts=
+allocation.rs:218/6test, cache_report.rs:52/2test, mod.rs:121/0test, owner.rs:179/6test, plan.rs:177/7test
+proof_png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_sdf_atlas_tests_owner_split_preview_20260703.png
+proof_log=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_sdf_atlas_tests_owner_split_validation_20260703.log

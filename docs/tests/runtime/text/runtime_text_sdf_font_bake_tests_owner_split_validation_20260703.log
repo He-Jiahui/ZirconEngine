@@ -1,0 +1,15 @@
+Runtime Text SDF font bake tests owner split validation - 2026-07-03
+status=runtime_text_sm_m1_sdf_font_bake_tests_owner_split_rustfmt_visual_cargo_deferred
+production_file=E:\Git\ZirconEngine\zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_font_bake.rs
+production_lines=363
+production_inline_tests=0
+test_file=E:\Git\ZirconEngine\zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_font_bake\tests.rs
+test_lines=370
+test_blocks=8
+behavior_delta=none; moved existing inline tests into folder-backed owner file only
+rustfmt=passed before proof generation for sdf_font_bake.rs and sdf_font_bake/tests.rs
+target_scan_matches_for_sdf_font_bake_tests_owner_split=0
+active_cargo_rustc_snapshot=cargo 4272, cargo 18192, cargo 34520, cargo 43800, cargo 45320, cargo 46780, rustc 8124, rustc 10412, rustc 43500
+cargo_status=deferred because external cargo/rustc lanes are active
+preview_png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_sdf_font_bake_tests_owner_split_preview_20260703.png
+preview_png_sha256=00A7C9FC2067B6F244B86E4F7ED120F705B9C782B7C606CE3A04BEAA2E7C5DD0

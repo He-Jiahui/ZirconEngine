@@ -10,6 +10,8 @@ use super::super::fallback_shader_uri;
 pub(crate) struct PipelineKey {
     pub(crate) shader_id: ResourceId,
     pub(crate) shader_revision: u64,
+    pub(crate) material_layout_hash: u64,
+    pub(crate) material_option_bits: u32,
     pub(crate) double_sided: bool,
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_mask: bool,
@@ -58,6 +60,8 @@ impl PipelineKey {
         ShaderVariantKey {
             material_shader: self.shader_id,
             material_revision: self.shader_revision,
+            material_layout_hash: self.material_layout_hash,
+            material_option_bits: self.material_option_bits,
             geometry_source,
             shading_model: self.shading_model_id,
             pass_type,

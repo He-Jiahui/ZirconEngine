@@ -27,6 +27,7 @@ related_code:
   - zircon_plugins/animation/runtime/src/scene_hook/tick.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_runtime/src/core/framework/physics/query_interface.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
   - zircon_plugins/animation/editor/Cargo.toml
@@ -98,6 +99,7 @@ tests:
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
+  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - runtime_physics_animation_tick_contract::level_tick_emits_animation_clip_event_tracks_crossed_by_player_time
   - runtime_physics_animation_tick_contract::clip_event_sampling_reports_loop_boundary_occurrences_in_playback_order
   - runtime_physics_animation_tick_contract::graph_player_emits_clip_events_using_graph_clip_playback_speed
@@ -209,4 +211,4 @@ The plugin can evolve graph blending, state-machine semantics, and importer-driv
 
 状态：`d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred`。
 
-The animation/physics contract test now uses `zircon_plugin_sdk::TestRuntime` instead of rebuilding CoreRuntime, foundation/asset/scene modules, fixed-step clocks, scene hooks, and world runtime extensions inside the test. `runtime_physics_animation_tick_contract/runtime_helpers.rs` owns `TestRuntime::builder()` setup for the physics and animation plugins plus manager lookup helpers; `runtime_physics_animation_tick_contract/animation_assets.rs` owns the large animation asset fixtures. The main test file stays focused on behavior and calls `runtime.create_default_level()` / `runtime.tick_level_seconds(...)`. Guard `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` locks this migration; Cargo is deferred for this status slice.
+The animation/physics contract test now uses `zircon_plugin_sdk::TestRuntime` instead of rebuilding CoreRuntime, foundation/asset/scene modules, fixed-step clocks, scene hooks, and world runtime extensions inside the test. `runtime_physics_animation_tick_contract/runtime_helpers.rs` owns `TestRuntime::builder()` setup for the physics and animation plugins plus manager lookup helpers; `runtime_physics_animation_tick_contract/animation_assets.rs` owns the large animation asset fixtures; `runtime_physics_animation_tick_contract/target_resolution.rs` owns the clip/sequence target-id fallback contracts. The main test file stays focused on behavior and calls `runtime.create_default_level()` / `runtime.tick_level_seconds(...)`. Guard `review_d11_animation_physics_tests_use_sdk_test_runtime_fixture` locks this migration; Cargo is deferred for this status slice.

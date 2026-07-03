@@ -6,9 +6,8 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::select_workbench_status_chip_style;
 use super::super::template_node_labels::template_node_label;
 use super::super::template_status_control_geometry::{
-    status_chip_radius, status_control_offset_rect,
+    status_chip_radius, status_control_offset_rect, workbench_status_metrics,
 };
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_status_chip(
     commands: &mut Vec<HostPaintCommand>,
@@ -66,7 +65,7 @@ fn push_status_chip_surface(
         return;
     }
     let border_width = if border.is_some() {
-        METRICS.border_width
+        workbench_status_metrics().border_width
     } else {
         0.0
     };

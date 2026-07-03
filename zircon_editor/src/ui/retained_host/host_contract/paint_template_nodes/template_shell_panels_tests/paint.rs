@@ -2,9 +2,10 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 use super::super::super::style_selector::{
-    WORKBENCH_CHROME_DRAWER_BG as DRAWER_BG, WORKBENCH_CHROME_PANEL_BG as PANEL_BG,
-    WORKBENCH_CHROME_SOFT_SEPARATOR as SOFT_SEPARATOR, WORKBENCH_CHROME_STATUS_BG as STATUS_BG,
-    WORKBENCH_CHROME_STRONG_SEPARATOR as STRONG_SEPARATOR, WORKBENCH_CHROME_TOPBAR_BG as TOPBAR_BG,
+    WORKBENCH_CHROME_CONTENT_BG as CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG as DRAWER_BG,
+    WORKBENCH_CHROME_PANEL_BG as PANEL_BG, WORKBENCH_CHROME_SOFT_SEPARATOR as SOFT_SEPARATOR,
+    WORKBENCH_CHROME_STATUS_BG as STATUS_BG, WORKBENCH_CHROME_STRONG_SEPARATOR as STRONG_SEPARATOR,
+    WORKBENCH_CHROME_TOPBAR_BG as TOPBAR_BG,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::support::{panel_node, pixel_at};
@@ -80,7 +81,7 @@ fn drawer_column_paints_gap_separator_without_surface_fill() {
 }
 
 #[test]
-fn module_content_panel_paints_rounded_bordered_surface() {
+fn module_content_panel_paints_rounded_bordered_recessed_surface() {
     let bytes = paint_template_nodes_for_test(
         150,
         90,
@@ -93,8 +94,22 @@ fn module_content_panel_paints_rounded_bordered_surface() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 150, 30, 30), PANEL_BG);
+    assert_eq!(pixel_at(&bytes, 150, 30, 30), CONTENT_BG);
     assert_eq!(pixel_at(&bytes, 150, 24, 10), PALETTE.border);
     assert_eq!(pixel_at(&bytes, 150, 12, 24), PALETTE.border);
     assert_eq!(pixel_at(&bytes, 150, 12, 10), [0, 0, 0, 255]);
+}
+
+#[test]
+fn active_module_content_panel_keeps_recessed_surface() {
+    let mut node = panel_node("WorkbenchAssetsCenterPanel", 12.0, 10.0, 96.0, 54.0);
+    node.focused = true;
+    node.hovered = true;
+    node.selected = true;
+
+    let bytes = paint_template_nodes_for_test(150, 90, model_rc(vec![node]));
+
+    assert_eq!(pixel_at(&bytes, 150, 30, 30), CONTENT_BG);
+    assert_ne!(pixel_at(&bytes, 150, 30, 30), PALETTE.surface_selected);
+    assert_eq!(pixel_at(&bytes, 150, 24, 10), PALETTE.border);
 }

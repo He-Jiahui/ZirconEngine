@@ -9,9 +9,12 @@ use super::compute_workload::{
     EXPOSURE_HISTOGRAM_PIPELINE_LABEL, EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
     EXPOSURE_RESOLVE_PIPELINE_LABEL, EXPOSURE_RESOLVE_WORKGROUP_SIZE,
 };
+use super::fullscreen_pass::motion_vector_tile_max_pass_plan;
 
 pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descriptor(
 ) -> RenderFeatureDescriptor {
+    let motion_vector_tile_max_plan = motion_vector_tile_max_pass_plan();
+
     RenderFeatureDescriptor::new(
         "post_process",
         vec!["view".to_string(), "post_process".to_string()],
@@ -23,7 +26,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::Graphics,
             )
             .with_executor_id("post.motion-vector-tile-max")
-            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
+            .with_fullscreen_pass_plan(&motion_vector_tile_max_plan)
             .write_texture_with_ops(
                 PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
                 RenderGraphAttachmentOps::clear_store(),

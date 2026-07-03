@@ -125,6 +125,27 @@ pub(super) fn changed_pixel_count(
     changed
 }
 
+pub(super) fn matching_pixel_count(
+    bytes: &[u8],
+    frame_width: u32,
+    color: [u8; 4],
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+) -> usize {
+    let mut matched = 0;
+    for py in y..(y + height) {
+        for px in x..(x + width) {
+            let index = ((py as usize * frame_width as usize) + px as usize) * 4;
+            if bytes[index..index + 4] == color {
+                matched += 1;
+            }
+        }
+    }
+    matched
+}
+
 pub(super) fn pixel_at(bytes: &[u8], frame_width: u32, x: u32, y: u32) -> [u8; 4] {
     let index = ((y as usize * frame_width as usize) + x as usize) * 4;
     [

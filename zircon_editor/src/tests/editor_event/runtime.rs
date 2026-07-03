@@ -2695,39 +2695,39 @@ fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata(
 }
 
 #[test]
-fn editor_extension_registry_rejects_legacy_ui_template_documents() {
+fn editor_extension_registry_rejects_non_zui_ui_template_documents() {
     use crate::core::editor_extension::{EditorExtensionRegistry, EditorUiTemplateDescriptor};
 
     let mut extension = EditorExtensionRegistry::default();
     let error = extension
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "weather.cloud_layer.inspector",
-            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.toml",
         ))
         .unwrap_err();
 
     assert_eq!(
         error.to_string(),
-        "editor ui template document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a supported editor UI asset"
+        "editor ui template document `asset://weather/editor/cloud_layer.inspector.toml` must reference a supported editor UI asset"
     );
 }
 
 #[test]
-fn editor_extension_registry_rejects_legacy_component_drawer_documents() {
+fn editor_extension_registry_rejects_non_zui_component_drawer_documents() {
     use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
 
     let mut extension = EditorExtensionRegistry::default();
     let error = extension
         .register_component_drawer(ComponentDrawerDescriptor::new(
             "weather.Component.CloudLayer",
-            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.toml",
             "weather.editor.CloudLayerInspectorController",
         ))
         .unwrap_err();
 
     assert_eq!(
         error.to_string(),
-        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a supported editor UI asset"
+        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.toml` must reference a supported editor UI asset"
     );
 }
 
@@ -3277,20 +3277,19 @@ props = { text = "Runtime" }
 }
 
 #[test]
-fn asset_open_event_does_not_open_ui_asset_editor_for_legacy_ui_toml_source() {
+fn asset_open_event_does_not_open_ui_asset_editor_for_non_zui_source() {
     let _guard = env_lock().lock().unwrap();
 
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_legacy_ui_asset_open");
-    let ui_asset_path =
-        std::env::temp_dir().join("zircon_editor_event_legacy_ui_asset_open.ui.toml");
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_non_zui_asset_open");
+    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_non_zui_asset_open.toml");
     fs::write(
         &ui_asset_path,
         r#"
 [asset]
 kind = "layout"
-id = "editor.tests.legacy_runtime_ui_asset"
+id = "editor.tests.non_zui_runtime_ui_asset"
 version = 1
-display_name = "Legacy Runtime UI Asset"
+display_name = "Non-ZUI Runtime UI Asset"
 
 [root]
 node = "root"
@@ -3298,7 +3297,7 @@ node = "root"
 [nodes.root]
 kind = "native"
 type = "Label"
-props = { text = "Legacy" }
+props = { text = "Non-ZUI" }
 "#,
     )
     .unwrap();
@@ -3311,7 +3310,7 @@ props = { text = "Legacy" }
                 asset_path: ui_asset_path.to_string_lossy().into_owned(),
             }),
         )
-        .expect("legacy ui asset event should stay a generic open request");
+        .expect("non-zui asset event should stay a generic open request");
 
     assert_eq!(
         record.event,

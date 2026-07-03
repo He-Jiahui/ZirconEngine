@@ -21,6 +21,24 @@ pub(super) fn asset_scan_revision_from_content_hashes(include_content_hashes: &[
     non_zero_revision_from_hash(hasher.finalize())
 }
 
+pub(super) fn asset_scan_revision_from_base_revision_and_content_hashes(
+    base_revision: u64,
+    include_content_hashes: &[String],
+) -> u64 {
+    if include_content_hashes.is_empty() {
+        return base_revision;
+    }
+
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(&base_revision.to_le_bytes());
+    hasher.update(&[0]);
+    for hash in include_content_hashes {
+        hasher.update(hash.as_bytes());
+        hasher.update(&[0]);
+    }
+    non_zero_revision_from_hash(hasher.finalize())
+}
+
 fn non_zero_revision_from_bytes(bytes: &[u8]) -> u64 {
     non_zero_revision_from_hash(blake3::hash(bytes))
 }

@@ -32,6 +32,7 @@ pub(in crate::ui::workbench::project) fn default_material_asset(
     Ok(MaterialAsset {
         name: Some("Default".to_string()),
         shader: AssetReference::from_locator(shader_uri),
+        parent: None,
         base_color: [0.85, 0.85, 0.85, 1.0],
         base_color_texture: None,
         normal_texture: None,
@@ -45,6 +46,8 @@ pub(in crate::ui::workbench::project) fn default_material_asset(
         double_sided: false,
         property_values: Default::default(),
         texture_slots: Default::default(),
+        options: Default::default(),
+        queue: None,
         validation_diagnostics: Vec::new(),
     })
 }

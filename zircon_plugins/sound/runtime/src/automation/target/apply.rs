@@ -1,5 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundAutomationTarget, SoundError, SoundParameterId};
 
+use crate::automation::values::ensure_finite_value;
 use crate::descriptor_validation::listener::validate_listener_descriptor;
 use crate::descriptor_validation::source::validate_source_descriptor;
 use crate::descriptor_validation::volume::validate_volume_descriptor;
@@ -89,6 +90,7 @@ pub(crate) fn apply_automation_target(
                     parameter,
                 ));
             }
+            ensure_finite_value("synth automation value", value)?;
             state.parameters.insert(target_parameter, value);
             Ok(())
         }

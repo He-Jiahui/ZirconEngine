@@ -1,15 +1,14 @@
-use std::fs;
-use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::{
-    AlphaMode, AssetMetaDocument, AssetReference, AssetSourceUnit, AssetUri, AssetUuid,
-    ImportedAsset, MaterialAsset, ProjectAssetManager, ProjectManager, ProjectManifest,
-    ProjectPaths, ShaderAsset,
+    AlphaMode, AssetReference, AssetUri, MaterialAsset, ProjectAssetManager, ShaderAsset,
+    ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialValidationError, RenderShaderBindingResourceType,
+    RenderMaterialDiagnosticSource, RenderMaterialValidationError,
+    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
+    RenderShaderBindingResourceType, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
+    ShaderAssetKind,
 };
 use crate::core::resource::{
     MaterialMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -19,17 +18,9 @@ use crate::graphics::backend::RenderBackend;
 use super::resources::ResourceStreamer;
 
 #[test]
-fn render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics() {
-    let root = unique_temp_project_root("render_product_imported_zshader_layout_abi");
+fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
     let shader_uri = AssetUri::parse("res://shaders/imported_layout_shader").unwrap();
-    write_imported_layout_shader_project(&root, &shader_uri);
-
-    let mut manager = ProjectManager::open(&root).unwrap();
-    manager.scan_and_import().unwrap();
-    let shader = match manager.load_artifact(&shader_uri).unwrap() {
-        ImportedAsset::Shader(shader) => shader,
-        other => panic!("unexpected imported shader artifact: {other:?}"),
-    };
+    let shader = shader_with_incompatible_material_layout(&shader_uri);
     assert_eq!(
         shader.pipeline_layout.bind_groups[0].bindings[0].resource_type,
         RenderShaderBindingResourceType::Texture
@@ -95,74 +86,71 @@ fn render_product_streamer_reports_imported_zshader_material_layout_abi_diagnost
             && path == "pipeline_layout.group3.binding1"
             && diagnostic.contains("supports only group 3 binding 0")
     )));
-
-    let _ = fs::remove_dir_all(root);
 }
 
-fn write_imported_layout_shader_project(root: &PathBuf, shader_uri: &AssetUri) {
-    let paths = ProjectPaths::from_root(root).unwrap();
-    paths.ensure_layout().unwrap();
-    ProjectManifest::new("ImportedLayoutShaderSandbox", shader_uri.clone(), 1)
-        .save(paths.manifest_path())
-        .unwrap();
-
-    let shader_meta_path = paths
-        .assets_root()
-        .join("shaders")
-        .join("imported_layout_shader.zmeta");
-    let mut shader_meta =
-        AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), ResourceKind::Shader);
-    shader_meta.unit = AssetSourceUnit::Compound;
-    shader_meta.save(&shader_meta_path).unwrap();
-
-    let shader_dir = paths
-        .assets_root()
-        .join("shaders")
-        .join("imported_layout_shader");
-    fs::create_dir_all(&shader_dir).unwrap();
-    fs::write(
-        shader_dir.join("imported.zshader"),
-        r#"
-version = 1
-wgsl_files = ["imported.wgsl"]
-
-[pipeline_layout]
-push_constant_ranges = []
-
-[[pipeline_layout.bind_groups]]
-group = 3
-label = "material"
-
-[[pipeline_layout.bind_groups.bindings]]
-binding = 0
-label = "material_texture"
-resource_type = "texture"
-visibility = ["fragment"]
-
-[[pipeline_layout.bind_groups.bindings]]
-binding = 1
-label = "material_sampler"
-resource_type = "sampler"
-visibility = ["fragment"]
-"#,
-    )
-    .unwrap();
-    fs::write(
-        shader_dir.join("imported.wgsl"),
-        r#"
+fn shader_with_incompatible_material_layout(shader_uri: &AssetUri) -> ShaderAsset {
+    ShaderAsset {
+        uri: shader_uri.clone(),
+        kind: ShaderAssetKind::Surface,
+        source_language: ShaderSourceLanguage::Wgsl,
+        source: r#"
 @fragment
 fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0);
 }
-"#,
-    )
-    .unwrap();
+"#
+        .to_string(),
+        wgsl_source: String::new(),
+        import_path: None,
+        entry_points: Vec::new(),
+        dependencies: Vec::new(),
+        source_files: Vec::new(),
+        imports: Vec::new(),
+        shader_defs: Vec::new(),
+        property_schema: Vec::new(),
+        options: Vec::new(),
+        texture_slots: Vec::new(),
+        shading_model: Some("unlit".to_string()),
+        render_state: Default::default(),
+        queue: None,
+        disabled_passes: Vec::new(),
+        resources: Vec::new(),
+        material_property_layout: Default::default(),
+        material_option_table: Default::default(),
+        generated_material_wgsl: String::new(),
+        editor: Default::default(),
+        pipeline_layout: RenderShaderPipelineLayoutDescriptor {
+            push_constant_ranges: Vec::new(),
+            bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
+                group: 3,
+                label: Some("material".to_string()),
+                bindings: vec![
+                    RenderShaderBindingDescriptor {
+                        binding: 0,
+                        label: Some("material_texture".to_string()),
+                        resource_type: RenderShaderBindingResourceType::Texture,
+                        visibility: vec![RenderShaderStage::Fragment],
+                    },
+                    RenderShaderBindingDescriptor {
+                        binding: 1,
+                        label: Some("material_sampler".to_string()),
+                        resource_type: RenderShaderBindingResourceType::Sampler,
+                        visibility: vec![RenderShaderStage::Fragment],
+                    },
+                ],
+            }],
+        },
+        validation_diagnostics: Vec::new(),
+    }
 }
 
 fn material_for_shader(shader_uri: &AssetUri) -> MaterialAsset {
     MaterialAsset {
         name: Some("ImportedLayoutMaterial".to_string()),
         shader: AssetReference::from_locator(shader_uri.clone()),
+        parent: None,
+        options: Default::default(),
+        queue: None,
         base_color: [1.0, 1.0, 1.0, 1.0],
         base_color_texture: None,
         normal_texture: None,
@@ -202,12 +190,4 @@ fn texture_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
             },
         ],
     })
-}
-
-fn unique_temp_project_root(label: &str) -> PathBuf {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    std::env::temp_dir().join(format!("zircon_{label}_{unique}"))
 }

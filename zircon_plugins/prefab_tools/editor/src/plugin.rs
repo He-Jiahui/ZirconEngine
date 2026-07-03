@@ -86,11 +86,11 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
 }
 
 fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
-    let create = operation("PrefabTools.Authoring.CreateFromSelection");
-    let open = operation("PrefabTools.Authoring.Open");
-    let apply = operation("PrefabTools.Authoring.ApplyOverrides");
-    let revert = operation("PrefabTools.Authoring.RevertOverrides");
-    let break_instance = operation("PrefabTools.Authoring.BreakInstance");
+    let create = operation("prefab_tools.authoring.create_from_selection");
+    let open = operation("prefab_tools.authoring.open");
+    let apply = operation("prefab_tools.authoring.apply_overrides");
+    let revert = operation("prefab_tools.authoring.revert_overrides");
+    let break_instance = operation("prefab_tools.authoring.break_instance");
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(create.clone(), "Create Prefab From Selection")

@@ -12,20 +12,21 @@ const THUMBNAIL_CARD_MAX_HEIGHT: f32 = 150.0;
 const THUMBNAIL_VISUAL_MIN_HEIGHT: f32 = 72.0;
 const THUMBNAIL_VISUAL_MAX_HEIGHT: f32 = 88.0;
 const THUMBNAIL_CARD_INSET: f32 = 8.0;
-const THUMBNAIL_INFO_BAND_HEIGHT: f32 = 52.0;
-const THUMBNAIL_INFO_TEXT_INSET_X: f32 = 4.0;
-const THUMBNAIL_SELECTION_MARKER_HEIGHT: f32 = 2.0;
+const THUMBNAIL_INFO_BAND_SINGLE_LINE_HEIGHT: f32 = 42.0;
+const THUMBNAIL_INFO_BAND_STACKED_HEIGHT: f32 = 54.0;
+const THUMBNAIL_INFO_TEXT_INSET_X: f32 = 5.0;
+const THUMBNAIL_SELECTION_MARKER_WIDTH: f32 = 0.0;
 const THUMBNAIL_NAME_PRIMARY_OFFSET_Y: f32 = 5.0;
-const THUMBNAIL_NAME_CONTINUATION_OFFSET_Y: f32 = 17.0;
-const THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT: f32 = 12.0;
-const THUMBNAIL_NAME_CONTINUATION_LINE_HEIGHT: f32 = 10.0;
-const THUMBNAIL_META_ROW_SINGLE_OFFSET_Y: f32 = 22.0;
-const THUMBNAIL_META_ROW_STACKED_OFFSET_Y: f32 = 32.0;
-const THUMBNAIL_TYPE_BADGE_MIN_WIDTH: f32 = 28.0;
-const THUMBNAIL_TYPE_BADGE_MAX_WIDTH: f32 = 46.0;
-const THUMBNAIL_TYPE_BADGE_HEIGHT: f32 = 12.0;
-const THUMBNAIL_TYPE_BADGE_TEXT_INSET_X: f32 = 4.0;
-const THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.0;
+const THUMBNAIL_NAME_CONTINUATION_OFFSET_Y: f32 = 18.0;
+const THUMBNAIL_NAME_PRIMARY_LINE_HEIGHT: f32 = 13.0;
+const THUMBNAIL_NAME_CONTINUATION_LINE_HEIGHT: f32 = 11.0;
+const THUMBNAIL_META_ROW_SINGLE_OFFSET_Y: f32 = 25.0;
+const THUMBNAIL_META_ROW_STACKED_OFFSET_Y: f32 = 36.0;
+const THUMBNAIL_TYPE_BADGE_MIN_WIDTH: f32 = 42.0;
+const THUMBNAIL_TYPE_BADGE_MAX_WIDTH: f32 = 48.0;
+const THUMBNAIL_TYPE_BADGE_HEIGHT: f32 = 13.0;
+const THUMBNAIL_TYPE_BADGE_TEXT_INSET_X: f32 = 5.0;
+const THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.5;
 const THUMBNAIL_TYPE_BADGE_TEXT_WIDTH_RATIO: f32 = 0.56;
 const THUMBNAIL_TYPE_BADGE_PADDING_X: f32 = 6.0;
 const THUMBNAIL_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.55;
@@ -100,15 +101,15 @@ fn layout_thumbnail_card(
 ) {
     let inner_x = x + THUMBNAIL_CARD_INSET;
     let inner_width = (width - THUMBNAIL_CARD_INSET * 2.0).max(24.0);
-    let band_height =
-        THUMBNAIL_INFO_BAND_HEIGHT.min((height - THUMBNAIL_CARD_INSET * 2.0).max(0.0));
+    let continuation_height = thumbnail_name_continuation_height(nodes, index);
+    let band_height = thumbnail_info_band_height(continuation_height)
+        .min((height - THUMBNAIL_CARD_INSET * 2.0).max(0.0));
     let band_y = y + height - THUMBNAIL_CARD_INSET - band_height;
     let visual_y = y + THUMBNAIL_CARD_INSET;
-    let visual_height = (band_y - visual_y - THUMBNAIL_SELECTION_MARKER_HEIGHT)
-        .clamp(THUMBNAIL_VISUAL_MIN_HEIGHT, THUMBNAIL_VISUAL_MAX_HEIGHT);
+    let visual_height =
+        (band_y - visual_y).clamp(THUMBNAIL_VISUAL_MIN_HEIGHT, THUMBNAIL_VISUAL_MAX_HEIGHT);
     let text_x = inner_x + THUMBNAIL_INFO_TEXT_INSET_X;
     let text_width = (inner_width - THUMBNAIL_INFO_TEXT_INSET_X * 2.0).max(16.0);
-    let continuation_height = thumbnail_name_continuation_height(nodes, index);
     let meta_row_y = band_y + thumbnail_meta_row_offset_y(continuation_height);
     let type_badge_width = thumbnail_type_badge_width(nodes, index, text_width);
     let type_text_x = text_x + THUMBNAIL_TYPE_BADGE_TEXT_INSET_X;
@@ -145,8 +146,8 @@ fn layout_thumbnail_card(
         &thumbnail_control_id("SelectionMarker", index),
         inner_x,
         band_y,
-        inner_width,
-        THUMBNAIL_SELECTION_MARKER_HEIGHT,
+        THUMBNAIL_SELECTION_MARKER_WIDTH,
+        band_height,
     );
     set_node_frame(
         nodes,
@@ -225,6 +226,14 @@ fn thumbnail_meta_row_offset_y(continuation_height: f32) -> f32 {
         THUMBNAIL_META_ROW_STACKED_OFFSET_Y
     } else {
         THUMBNAIL_META_ROW_SINGLE_OFFSET_Y
+    }
+}
+
+fn thumbnail_info_band_height(continuation_height: f32) -> f32 {
+    if continuation_height > 0.0 {
+        THUMBNAIL_INFO_BAND_STACKED_HEIGHT
+    } else {
+        THUMBNAIL_INFO_BAND_SINGLE_LINE_HEIGHT
     }
 }
 

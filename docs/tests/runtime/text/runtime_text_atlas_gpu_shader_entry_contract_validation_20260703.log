@@ -1,0 +1,37 @@
+Runtime Text Atlas GPU Shader Entry Contract Validation
+Date: 2026-07-03
+Status key: runtime_text_at_m2_at_m3_atlas_gpu_shader_entry_contract_rustfmt_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/text/atlas/render_contract.rs
+- zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs
+- zircon_runtime/src/graphics/text/atlas/shaders/glyph_atlas_sampling.wgsl
+- zircon_runtime/src/graphics/text/atlas/shaders/glyph_atlas_pipeline.wgsl
+
+Contract checks:
+- GLYPH_ATLAS_TEXT_SHADER concatenates sampling helpers with the atlas pipeline entry WGSL.
+- GlyphAtlasShaderDecode now maps every decode contract to an explicit fragment entry point.
+- GlyphAtlasRenderContract::shader_entry_points returns vs_main plus the decode-specific fragment entry.
+- GlyphAtlasGpuPipelineContract now carries shader_entry_points beside pipeline key, vertex layout, and bind-group layout.
+- glyph_atlas_pipeline.wgsl declares @group(0) @binding(0) texture_2d_array<f32> and @group(0) @binding(1) sampler.
+- glyph_atlas_pipeline.wgsl consumes shader locations 0..4 to match GlyphAtlasGpuVertexBufferLayout.
+- Alpha, subpixel RGB, signed-distance, MSDF, and color RGBA fragment entry names are present in the shader contract.
+
+Verification performed:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/render_contract.rs zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs: passed.
+- Static token scan confirmed GLYPH_ATLAS_TEXT_SHADER, GlyphAtlasShaderEntryPoints, shader_entry_points, render_text_atlas_full_pipeline_shader_wgsl_parses, texture_2d_array<f32>, page_index location, fs_subpixel_rgb_coverage, and fs_multi_channel_signed_distance_coverage.
+- Visual proof inspected: docs/tests/runtime/text/runtime_text_atlas_gpu_shader_entry_contract_preview_20260703.png.
+
+Proof image:
+- docs/tests/runtime/text/runtime_text_atlas_gpu_shader_entry_contract_preview_20260703.png
+- SHA256: 1C338500A853F96D4BC2D89930E88D2DF5D65C19692FBAD7091071777BD54CA4
+
+Cargo:
+- Focused Cargo was deferred because external cargo/rustc lanes were already active.
+- This slice does not claim Cargo green.
+
+Open follow-up:
+- Real wgpu shader module creation and pipeline creation from GLYPH_ATLAS_TEXT_SHADER.
+- Real atlas texture upload/resource ownership for alpha bitmap glyphs.
+- Real draw submission that consumes GlyphAtlasGpuDrawPlan draw_commands.
+- glyphon TextAtlas cutover and live editor typography screenshot QA.

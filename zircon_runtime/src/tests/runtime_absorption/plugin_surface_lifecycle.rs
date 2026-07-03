@@ -87,7 +87,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-06-21"),
+        plan_doc.contains("last_refined: 2026-07-01"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 
@@ -104,7 +104,7 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     let native_namespace_symbols = native_plugin_namespace_reexport_symbols();
     assert_eq!(
         native_namespace_symbols.len(),
-        60,
+        64,
         "native plugin namespace re-export count changed; update native_plugin_public_surface and Runtime 06 mirror docs"
     );
     for required_symbol in [
@@ -193,9 +193,9 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
             "expected_doc_file_count = 5",
             "fallback lifecycle failure tests 4/4",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 60",
+            "native_namespace_reexport_count = 64",
             "native root re-export 0/0",
-            "native namespace re-export 60/60",
+            "native namespace re-export 64/64",
             "M4 gate `classified-and-clear`",
             "debt groups 0/0",
             "native namespace symbol groups 5/5",
@@ -209,8 +209,8 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
             "export_build_plan V1/V2 usage 0/0",
             "unknown ABI rejection",
             "hot reload failure injection",
-            "native loader test files 3/3",
-            "native test namespace import files 2/2",
+            "native loader test files 4/4",
+            "native test namespace import files 3/3",
             "native test root import leaks 0/0",
             "runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed",
             "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace",
@@ -268,10 +268,13 @@ fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
     let native_loader_test_files =
         files_containing(&plugin_extension_tests, NATIVE_LOADER_TEST_PATTERNS);
     let expected_native_loader_test_files = BTreeSet::from([
-        "zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs".to_string(),
+        "zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs"
+            .to_string(),
         "zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs"
             .to_string(),
         "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs".to_string(),
+        "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs"
+            .to_string(),
     ]);
     assert_eq!(
         native_loader_test_files, expected_native_loader_test_files,
@@ -289,6 +292,8 @@ fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
         "zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs"
             .to_string(),
         "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs".to_string(),
+        "zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs"
+            .to_string(),
     ]);
     assert_eq!(
         namespace_import_files, expected_namespace_import_files,

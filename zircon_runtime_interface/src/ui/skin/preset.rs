@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::design_tokens::EditorTypographyTokens;
+
 pub const MATERIAL_DARK_SKIN_ID: &str = "material_dark";
 pub const FYROX_PANEL_PRESET_ID: &str = "fyrox_panel";
 pub const JETBRAINS_SHELL_PRESET_ID: &str = "jetbrains_shell";
@@ -240,7 +242,7 @@ fn material_dark_tokens() -> Vec<UiSemanticToken> {
         UiSemanticToken::new(
             "typography.font_family",
             Typography,
-            "Inter, Roboto, Segoe UI",
+            EditorTypographyTokens::DEFAULT_UI_FAMILY,
         ),
         UiSemanticToken::new("typography.body.size", Typography, "13"),
         UiSemanticToken::new("typography.caption.size", Typography, "11"),

@@ -23,24 +23,37 @@ use super::{
 #[cfg(test)]
 use crate::plugin::PluginModuleKind;
 #[cfg(test)]
-use diagnostics::diagnostics_from_behavior_report;
+use bridge_lifecycle::NativePluginBridgeLifecycleError;
 #[cfg(test)]
-use hot_reload::{restore_runtime_snapshot, NativePluginHotReloadState};
+use bridge_methods::NativePluginBridgeMethodError;
+#[cfg(test)]
+use diagnostics::{diagnostics_from_behavior_report, NativePluginBehaviorDiagnosticError};
+#[cfg(test)]
+use hot_reload::{
+    restore_runtime_snapshot, NativePluginHotReloadError, NativePluginHotReloadState,
+};
 #[cfg(test)]
 use keys::live_key;
 #[cfg(test)]
-use loading::lock_loaded_native_plugins;
+use lifecycle::{load_for_module_kind, NativePluginLiveHostLifecycleError};
+#[cfg(test)]
+use loading::{lock_loaded_native_plugins, NativePluginLiveHostLoadingError};
+#[cfg(test)]
+use registration_replay::NativePluginRegistrationReplayError;
 pub use reports::{
     NativePluginLiveHostBridgeLifecycleReport, NativePluginLiveHostBridgeReloadReport,
     NativePluginLiveHostCommand, NativePluginLiveHostLoadReport, NativePluginLiveHostOutcome,
     NativePluginRuntimeBehaviorCall, NativePluginRuntimeBehaviorDescriptor,
-    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeHotUpdateReport,
+    NativePluginRuntimeCommandDispatchReport, NativePluginRuntimeDeltaHotUpdateReport,
+    NativePluginRuntimeDeltaHotUpdateRequest, NativePluginRuntimeHotUpdateReport,
     NativePluginRuntimePlayModeExitReport, NativePluginRuntimePlayModeSnapshot,
     NativePluginRuntimePluginState, NativePluginRuntimeRegistrationReplayReport,
     NativePluginRuntimeRegistrationSystemReplay, NativePluginRuntimeStateRestoreReport,
     NativePluginRuntimeStateSnapshot, NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND,
     NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND,
 };
+#[cfg(test)]
+use runtime_behavior::NativePluginRuntimeBehaviorError;
 #[cfg(test)]
 use runtime_behavior::{allow_missing_unload_callback_to_drop_handle, unload_behavior};
 

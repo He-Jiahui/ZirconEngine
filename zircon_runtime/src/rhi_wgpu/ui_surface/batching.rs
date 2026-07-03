@@ -197,6 +197,7 @@ mod tests {
         UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
         UiSurfaceImageUvRect, UiSurfaceRect, UiSurfaceTextStyle,
     };
+    use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
     use super::*;
 
@@ -690,6 +691,8 @@ mod tests {
             kind: UiSurfaceCommandKind::Text {
                 text: value.to_string(),
                 color: [255, 255, 255, 255],
+                font_family: None,
+                font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
                 font_size: 12.0,
                 line_height: 14.0,
                 style: UiSurfaceTextStyle::Regular,

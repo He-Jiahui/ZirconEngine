@@ -13,8 +13,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     let adornment_marked = node.checked;
     WorkbenchListRowStyle {
         background: list_row_background(node, state, row_marked),
-        border: list_row_border(state),
-        border_width: list_row_border_width(state),
+        border: list_row_border(state, row_marked),
+        border_width: list_row_border_width(state, row_marked),
         text: list_row_text_color(node, state, row_marked),
         adornment: list_row_adornment_color(node, state, adornment_marked),
         state,

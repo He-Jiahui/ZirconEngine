@@ -1,4 +1,5 @@
 use zircon_runtime::builtin::RuntimeTargetMode;
+use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
 use zircon_runtime::plugin::{PluginModuleKind, PluginModuleManifest};
 
 #[derive(Clone, Debug)]
@@ -45,17 +46,44 @@ impl PluginModuleBuilder {
         kind: PluginModuleKind,
         crate_name: impl Into<String>,
     ) -> Self {
+        let name = name.into();
         Self {
             module: PluginModuleManifest {
-                name: name.into(),
+                description: format!("Plugin module {name}"),
+                name,
                 kind,
                 crate_name: crate_name.into(),
+                init_level: InitLevel::Post,
+                module_dependencies: Vec::new(),
                 target_modes: Vec::new(),
                 capabilities: Vec::new(),
                 system_sets: Vec::new(),
                 system_anchors: Vec::new(),
             },
         }
+    }
+
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.module.description = description.into();
+        self
+    }
+
+    pub fn with_init_level(mut self, init_level: InitLevel) -> Self {
+        self.module.init_level = init_level;
+        self
+    }
+
+    pub fn with_module_dependency(mut self, dependency: ModuleDependencySpec) -> Self {
+        self.module.module_dependencies.push(dependency);
+        self
+    }
+
+    pub fn with_module_dependencies(
+        mut self,
+        dependencies: impl IntoIterator<Item = ModuleDependencySpec>,
+    ) -> Self {
+        self.module.module_dependencies = dependencies.into_iter().collect();
+        self
     }
 
     pub fn with_target_modes(
