@@ -422,6 +422,7 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
             }],
         },
         overlays: RenderOverlayExtract::default(),
+        environment: crate::core::framework::render::EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: true,
@@ -474,6 +475,7 @@ fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_cont
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,

@@ -10,4 +10,4 @@ pub(super) use plugin_event_catalog::validate_plugin_event_catalog_manifest;
 pub(super) use plugin_option::validate_plugin_option_manifest;
 pub(super) use runtime_core::{validate_manager_plugin_id, validate_module_descriptor};
 pub(super) use scene_hook::validate_scene_hook_registration;
-use token::is_lowercase_plugin_token;
+use token::{is_lowercase_plugin_package_id, is_lowercase_plugin_token};

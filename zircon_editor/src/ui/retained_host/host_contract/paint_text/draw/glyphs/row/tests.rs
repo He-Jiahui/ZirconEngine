@@ -33,6 +33,14 @@ fn sampled_coverage_applies_fallback_subpixel_phase() {
 }
 
 #[test]
+fn sampled_coverage_keeps_combined_origin_and_bearing_phase_over_one_pixel() {
+    let bitmap = [255, 255, 0, 0];
+
+    assert_eq!(sampled_coverage(&bitmap, 4, 1, 0, 0, 4.0, 1.5), 0);
+    assert_eq!(sampled_coverage(&bitmap, 4, 1, 1, 0, 4.0, 1.5), 255);
+}
+
+#[test]
 fn sampled_subpixel_coverage_averages_rgb_channels_independently() {
     let bitmap = [
         0, 30, 60, 0, 120, 150, 180, 0, 60, 90, 120, 0, 180, 210, 240, 0,

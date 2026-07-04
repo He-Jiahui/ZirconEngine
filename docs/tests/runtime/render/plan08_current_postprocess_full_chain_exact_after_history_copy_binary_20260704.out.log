@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on' (33216) panicked at zircon_runtime\src\graphics\tests\render_product_post_process_full_chain.rs:418:5:
+expected post-process node `bloom` to execute; executed=["depth-of-field", "exposure-histogram", "motion-blur", "exposure-resolve", "color-lut-bake", "screen-space-reflection-reflection-pyramid", "screen-space-reflection-specular-occlusion", "screen-space-reflection-reflection-pyramid-coarse", "screen-space-reflection-resolve", "scene-composite", "blur", "uber", "upscale", "output-transfer", "smaa"]; executors=["sky.preview-scene-color", "mesh.depth-prepass", "temporal.velocity-object", "temporal.velocity-camera", "shadow.atlas", "visibility.hzb-build", "mesh.opaque", "mesh.alpha-mask", "mesh.transparent", "particle.velocity", "particle.transparent", "post.motion-vector-tile-max", "post.motion-vector-tile-max-coarse", "post.motion-vector-neighbor-max", "post.depth-of-field-prepare", "post.depth-of-field", "post.motion-blur", "post.exposure.histogram", "post.exposure.resolve", "post.screen-space-reflection-reflection-pyramid", "post.screen-space-reflection-reflection-pyramid-coarse", "post.screen-space-reflection-specular-occlusion", "post.screen-space-reflection-resolve", "post.scene-composite", "post.blur", "post.color-lut-bake", "post.bloom-extract", "post.uber", "post.upscale", "post.output-transfer", "post.smaa", "overlay.gizmo", "ui.screen-space"]; effect_stack_report=RenderPostProcessEffectStackReport { enabled: true, active_family_count: 11, active_families: ["tonemap", "lut", "blur", "depth-of-field", "motion-blur", "screen-space-reflection", "vignette", "film-grain", "dither", "chromatic-aberration", "fog"], approximated_family_count: 3, approximated_families: ["depth-of-field", "motion-blur", "screen-space-reflection"], missing_resource_count: 0, missing_resources: [] }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6453 filtered out; finished in 8.30s
+

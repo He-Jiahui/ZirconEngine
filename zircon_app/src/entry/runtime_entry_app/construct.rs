@@ -20,6 +20,7 @@ impl RuntimeEntryApp {
             surface_present_enabled: false,
             surface_present_failed: false,
             surface_present_attempted: false,
+            exit_after_first_presented_frame: config.exit_after_first_presented_frame,
             session,
             viewport: ZrRuntimeViewportHandle::new(1),
             viewport_size: ZrRuntimeViewportSizeV1::new(window_size.x, window_size.y),

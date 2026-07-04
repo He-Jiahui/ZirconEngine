@@ -1,0 +1,52 @@
+{
+  "slice": "runtime_text_editor_retained_grayscale_layout_guard",
+  "policy": "layout guard uses retained_glyph_placement_for_smoothing so grayscale matches draw-time nearest-pixel placement and subpixel keeps 8-bin placement",
+  "records": [
+    {
+      "name": "Case A: same grayscale device pixel",
+      "host": 20.12,
+      "projected": 20.2,
+      "subpixel_host": [
+        20,
+        0.125
+      ],
+      "subpixel_projected": [
+        20,
+        0.25
+      ],
+      "subpixel_share_bin": false,
+      "grayscale_host": [
+        20,
+        0.0
+      ],
+      "grayscale_projected": [
+        20,
+        0.0
+      ],
+      "grayscale_share_bin": true
+    },
+    {
+      "name": "Case B: crosses grayscale rounding boundary",
+      "host": 20.49,
+      "projected": 20.51,
+      "subpixel_host": [
+        20,
+        0.5
+      ],
+      "subpixel_projected": [
+        20,
+        0.5
+      ],
+      "subpixel_share_bin": true,
+      "grayscale_host": [
+        20,
+        0.0
+      ],
+      "grayscale_projected": [
+        21,
+        0.0
+      ],
+      "grayscale_share_bin": false
+    }
+  ]
+}

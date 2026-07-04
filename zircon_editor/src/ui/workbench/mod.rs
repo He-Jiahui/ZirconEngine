@@ -8,6 +8,7 @@ pub mod fixture;
 mod floating_window;
 pub mod layout;
 mod layout_preset;
+pub(crate) mod menu_bar;
 pub mod model;
 mod page_layout_template;
 pub(crate) mod page_tabs;

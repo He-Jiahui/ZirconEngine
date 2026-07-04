@@ -1,0 +1,4 @@
+
+thread 'graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on' (21348) panicked at zircon_runtime\src\graphics\tests\render_product_post_process_full_chain.rs:408:55:
+called `Result::unwrap()` on an `Err` value: Backend("render graph pass `particle-velocity` loads transient attachment `scene-velocity` before any producer writes it")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

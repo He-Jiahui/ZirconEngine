@@ -1,7 +1,4 @@
-use super::super::palette::{
-    WORKBENCH_DROPDOWN_DISABLED_SURFACE, WORKBENCH_DROPDOWN_HOVER_SURFACE,
-    WORKBENCH_DROPDOWN_OPEN_SURFACE, WORKBENCH_DROPDOWN_SURFACE,
-};
+use super::super::palette::workbench_dropdown_palette;
 use super::super::state::is_unavailable_dropdown_state;
 use super::declared::declared_style_color;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
@@ -11,19 +8,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdow
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_dropdown_palette();
     let color = match state {
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
-        | UiPainterResolvedState::Open => WORKBENCH_DROPDOWN_OPEN_SURFACE,
+        | UiPainterResolvedState::Open => palette.open_surface,
         UiPainterResolvedState::Hovered
         | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => WORKBENCH_DROPDOWN_HOVER_SURFACE,
+        | UiPainterResolvedState::DropHovered => palette.hover_surface,
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            WORKBENCH_DROPDOWN_DISABLED_SURFACE
+            palette.disabled_surface
         }
         UiPainterResolvedState::Checked
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Normal => WORKBENCH_DROPDOWN_SURFACE,
+        | UiPainterResolvedState::Normal => palette.surface,
     };
     if is_unavailable_dropdown_state(state) {
         color

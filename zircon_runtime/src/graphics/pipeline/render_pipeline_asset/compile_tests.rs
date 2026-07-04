@@ -1,11 +1,12 @@
 use crate::core::framework::render::{
     AntiAliasSettings, CameraRenderDescriptor, PostProcessGraphResourceNames,
     PostProcessStackDescriptor, RenderBloomSettings, RenderBlurSettings,
-    RenderDepthOfFieldSettings, RenderFrameExtract, RenderLayerSet, RenderMotionBlurSettings,
-    RenderParticleSpriteSnapshot, RenderPhase, RenderPipelineHandle,
-    RenderPostProcessEffectStackSettings, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderDepthOfFieldSettings, RenderExposureSettings, RenderFrameExtract, RenderLayerSet,
+    RenderMotionBlurSettings, RenderParticleSpriteSnapshot, RenderPhase, RenderPipelineHandle,
+    RenderPostProcessEffectStackSettings, RenderScreenSpaceReflectionSettings,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::core::math::{Vec3, Vec4};
+use crate::core::math::{Vec2, Vec3, Vec4};
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
 };
@@ -13,8 +14,9 @@ use crate::graphics::pipeline::{
     RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererAsset,
 };
 use crate::render_graph::{
-    QueueLane, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-    RenderGraphExternalResourceBinding, RenderGraphResourceAccessKind, RenderGraphResourceKind,
+    QueueLane, RenderGraphAttachmentOps, RenderGraphComputeDispatchExtent,
+    RenderGraphComputeWorkload, RenderGraphExternalResourceBinding, RenderGraphResourceAccessKind,
+    RenderGraphResourceKind,
 };
 use crate::scene::world::World;
 

@@ -1,22 +1,20 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::identity::is_component_property_row;
-use super::metrics::{
-    COMPONENT_PROPERTY_LABEL_WIDTH, PROPERTY_LABEL_MAX_WIDTH_RATIO, PROPERTY_LABEL_MIN_WIDTH,
-    PROPERTY_LABEL_WIDTH, PROPERTY_TEXT_INSET_X, PROPERTY_TEXT_INSET_Y,
-};
+use super::metrics::property_row_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn property_label_width(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> f32 {
+    let metrics = property_row_metrics();
     let preferred = if is_component_property_row(node) {
-        COMPONENT_PROPERTY_LABEL_WIDTH
+        metrics.component_property_label_width
     } else {
-        PROPERTY_LABEL_WIDTH
+        metrics.property_label_width
     };
     preferred
-        .max(PROPERTY_LABEL_MIN_WIDTH)
-        .min(rect.width * PROPERTY_LABEL_MAX_WIDTH_RATIO)
+        .max(metrics.property_label_min_width)
+        .min(rect.width * metrics.property_label_max_width_ratio)
         .max(1.0)
 }
 
@@ -24,10 +22,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn label_t
     rect: &FrameRect,
     label_width: f32,
 ) -> FrameRect {
+    let metrics = property_row_metrics();
     FrameRect {
-        x: rect.x + PROPERTY_TEXT_INSET_X,
-        y: rect.y + PROPERTY_TEXT_INSET_Y,
-        width: (label_width - PROPERTY_TEXT_INSET_X * 1.5).max(1.0),
-        height: (rect.height - PROPERTY_TEXT_INSET_Y * 2.0).max(1.0),
+        x: rect.x + metrics.property_text_inset_x,
+        y: rect.y + metrics.property_text_inset_y,
+        width: (label_width - metrics.property_text_inset_x * 1.5).max(1.0),
+        height: (rect.height - metrics.property_text_inset_y * 2.0).max(1.0),
     }
 }

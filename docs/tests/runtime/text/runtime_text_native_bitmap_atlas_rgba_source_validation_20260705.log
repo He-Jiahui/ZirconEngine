@@ -1,0 +1,29 @@
+runtime_text_native_bitmap_atlas_rgba_source_validation_20260705
+scope=AT-M1/AT-M3 native bitmap atlas Color/Subpixel source handoff
+result=static_visual_passed_cargo_deferred
+source_color=SwashContent::Color -> GlyphAtlasFormat::Color -> Rgba8Unorm
+rgba_crop_expected=[4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23]
+rgba_crop_actual=[4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 23]
+color_foreground_multiplier=[1.0, 1.0, 1.0, 1.0]
+single_color_storage_replaces_glyphon=true
+subpixel_source=SwashContent::SubpixelMask -> GlyphAtlasFormat::SubpixelMask -> Rgba8Unorm
+subpixel_requires_background_composite=true
+subpixel_replaces_glyphon=false
+native_bitmap_atlas_rs_lines=421
+native_bitmap_atlas_tests_rs_lines=398
+text_tests_rs_lines=309
+rustfmt_check=passed before artifact generation for native_bitmap_atlas.rs native_bitmap_atlas/tests.rs text/tests.rs
+conflict_and_trailing_whitespace_scan=passed
+focused_cargo=deferred_external_cargo_rustc_lanes_active
+active_compile_processes:
+"ProcessName","Id"
+"cargo","10808"
+"cargo","26424"
+"cargo","33828"
+"cargo","34228"
+"cargo","35496"
+"cargo","37804"
+"rustc","7748"
+"rustc","19628"
+"rustc","38760"
+target_same_name_scan_count=0

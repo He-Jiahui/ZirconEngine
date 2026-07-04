@@ -1,0 +1,39 @@
+use super::*;
+
+pub(super) const MOVED_ROW_GUARD_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "delegation",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/delegation.rs",
+        FOLDER_BACKED_GUARD_NAME,
+    ),
+    (
+        "lock_poison_rows",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/lock_poison_rows.rs",
+        "runtime_15_m3_child_group_moved_lock_poison_rows_are_child_owned",
+    ),
+    (
+        "module_convention_rows",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/module_convention_rows.rs",
+        "runtime_15_m3_child_group_moved_module_convention_rows_are_child_owned",
+    ),
+    (
+        "review_top_rows",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/review_top_rows.rs",
+        "runtime_15_m3_child_group_moved_review_top_rows_are_child_owned",
+    ),
+    (
+        "status_mirrors",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/status_mirrors.rs",
+        "runtime_15_m3_child_group_moved_row_status_mirror_children_are_child_owned",
+    ),
+    (
+        "root_inventory",
+        ROOT_INVENTORY_GUARD_PATH,
+        ROOT_INVENTORY_CHILD_SPLIT_GUARD_NAME,
+    ),
+    (
+        "budgets",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/budgets.rs",
+        "runtime_15_m3_child_group_moved_row_child_budgets_stay_focused",
+    ),
+];

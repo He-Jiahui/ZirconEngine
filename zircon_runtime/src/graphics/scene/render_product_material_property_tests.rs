@@ -271,7 +271,15 @@ fn render_product_streamer_reports_material_uniform_diagnostics_for_shader_strin
         .expect("shader property default readiness prepare");
 
     let material = streamer.material(&material_id).expect("runtime material");
-    assert_eq!(material.shader_property_uniform_payload.layout.len(), 1);
+    assert_eq!(material.shader_property_uniform_payload.layout.len(), 2);
+    assert_eq!(
+        material.shader_property_uniform_payload.layout[0].name,
+        "custom_gain"
+    );
+    assert_eq!(
+        material.shader_property_uniform_payload.layout[1].name,
+        "debug_label"
+    );
     assert_eq!(
         material.shader_property_uniform_payload.unsupported[0].name,
         "debug_label"
@@ -337,11 +345,14 @@ fn shader_with_property_schema(uri: &str) -> ShaderAsset {
 
 fn shader_with_string_default_schema(uri: &str) -> ShaderAsset {
     let mut shader = wgsl_shader(uri);
-    shader.property_schema = vec![shader_property(
-        "custom_gain",
-        "float",
-        Some(toml::Value::Float(1.0)),
-    )];
+    shader.property_schema = vec![
+        shader_property("custom_gain", "float", Some(toml::Value::Float(1.0))),
+        shader_property(
+            "debug_label",
+            "float",
+            Some(toml::Value::String("author-only".to_string())),
+        ),
+    ];
     shader.regenerate_material_artifact();
     shader
 }

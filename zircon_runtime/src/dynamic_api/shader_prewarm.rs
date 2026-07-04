@@ -18,6 +18,7 @@ use crate::graphics::scene::{
 use crate::graphics::shader::{
     assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
     assemble_taa_reactive_mask_shader_template, prewarm_shader_variants_to_disk,
+    prewarm_shader_variants_to_disk_with_module_and_pipeline_validation,
     prewarm_shader_variants_to_disk_with_module_validation,
     prewarm_shader_variants_to_disk_with_pipeline_validation,
     standard_material_surface_source_for_features, DeferredGBufferShaderTemplateRequest,
@@ -60,15 +61,7 @@ pub fn prewarm_shader_variants_with_wgpu_module_validation(
     };
     let device = &backend.device;
     prewarm_shader_variants_to_disk_with_module_validation(manifest, cache_dir, |request| {
-        let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let _shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("zircon-shader-prewarm-validation-module"),
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(request.wgsl_source.as_str())),
-        });
-        match pollster::block_on(error_scope.pop()) {
-            Some(error) => Err(error.to_string()),
-            None => Ok(()),
-        }
+        validate_mesh_prewarm_request_shader_module(device, request)
     })
 }
 
@@ -90,6 +83,44 @@ pub fn prewarm_shader_variants_with_wgpu_pipeline_validation(
     prewarm_shader_variants_to_disk_with_pipeline_validation(manifest, cache_dir, |request| {
         validate_mesh_prewarm_request_render_pipeline(device, &pipeline_layout, request)
     })
+}
+
+pub fn prewarm_shader_variants_with_wgpu_module_and_pipeline_validation(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_dir: impl AsRef<Path>,
+) -> ShaderVariantPrewarmReport {
+    let backend = match crate::graphics::backend::RenderBackend::new_offscreen() {
+        Ok(backend) => backend,
+        Err(error) => {
+            return wgpu_module_and_pipeline_validation_setup_failure_report(
+                manifest,
+                format!("failed to create offscreen WGPU backend: {error:?}"),
+            );
+        }
+    };
+    let device = &backend.device;
+    let pipeline_layout = create_mesh_prewarm_validation_pipeline_layout(device);
+    prewarm_shader_variants_to_disk_with_module_and_pipeline_validation(
+        manifest,
+        cache_dir,
+        |request| validate_mesh_prewarm_request_shader_module(device, request),
+        |request| validate_mesh_prewarm_request_render_pipeline(device, &pipeline_layout, request),
+    )
+}
+
+fn validate_mesh_prewarm_request_shader_module(
+    device: &wgpu::Device,
+    request: &ShaderVariantPrewarmRequest,
+) -> Result<(), String> {
+    let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
+    let _shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-shader-prewarm-validation-module"),
+        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(request.wgsl_source.as_str())),
+    });
+    match pollster::block_on(error_scope.pop()) {
+        Some(error) => Err(error.to_string()),
+        None => Ok(()),
+    }
 }
 
 fn wgpu_module_validation_setup_failure_report(
@@ -123,6 +154,26 @@ fn wgpu_pipeline_validation_setup_failure_report(
             request,
             format!("WGPU render pipeline validation setup failed: {error}"),
         );
+        report.record_wgpu_pipeline_validation_failed();
+    }
+    report
+}
+
+fn wgpu_module_and_pipeline_validation_setup_failure_report(
+    manifest: &ShaderVariantPrewarmManifest,
+    error: impl Into<String>,
+) -> ShaderVariantPrewarmReport {
+    let error = error.into();
+    let mut report = ShaderVariantPrewarmReport::default();
+    report.enable_wgpu_module_validation(manifest.variants.len());
+    report.enable_wgpu_pipeline_validation(manifest.variants.len());
+    for (variant_index, request) in manifest.variants.iter().enumerate() {
+        report.record_failure_request(
+            variant_index,
+            request,
+            format!("WGPU shader module and render pipeline validation setup failed: {error}"),
+        );
+        report.record_wgpu_module_validation_failed();
         report.record_wgpu_pipeline_validation_failed();
     }
     report
@@ -207,6 +258,108 @@ pub fn builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor
         Some(geometry_source),
         quality_tiers,
     )
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShaderPrewarmTemplateSource {
+    pub wgsl_source: String,
+    pub include_content_hashes: Vec<String>,
+    pub template_revision: String,
+}
+
+impl ShaderPrewarmTemplateSource {
+    fn from_template(
+        assembly: MaterialShaderTemplateAssembly,
+        source_content_hashes: &[String],
+    ) -> Self {
+        let mut include_content_hashes = source_content_hashes.to_vec();
+        include_content_hashes.extend(assembly.include_content_hashes);
+        include_content_hashes.push(shader_prewarm_source_hash(&assembly.wgsl_source));
+        Self {
+            wgsl_source: assembly.wgsl_source,
+            include_content_hashes,
+            template_revision: assembly.template_revision,
+        }
+    }
+}
+
+pub fn material_surface_shader_prewarm_template_source(
+    material_surface_source: &str,
+    pass_type: ShaderPassType,
+    geometry_source: GeometrySourceId,
+    geometry_source_descriptor: Option<&GeometrySourceDescriptor>,
+    features: ShaderFeatureBits,
+    alpha_cutoff: Option<f32>,
+    source_content_hashes: &[String],
+) -> Result<ShaderPrewarmTemplateSource, String> {
+    let geometry_source = geometry_source_descriptor
+        .cloned()
+        .or_else(|| builtin_geometry_source_descriptor(geometry_source))
+        .ok_or_else(|| format!("unknown geometry source {}", geometry_source.value()))?;
+    let prepared_surface = material_surface_source_for_prewarm_template(
+        material_surface_source,
+        features,
+        alpha_cutoff,
+    );
+
+    let assembly = match pass_type {
+        ShaderPassType::GBuffer => assemble_deferred_gbuffer_shader_template(
+            DeferredGBufferShaderTemplateRequest::new(
+                geometry_source,
+                prepared_surface.source.as_ref(),
+                prepared_surface.entry_point,
+            )
+            .with_features(features),
+        ),
+        ShaderPassType::TaaReactiveMask => assemble_taa_reactive_mask_shader_template(
+            TaaReactiveMaskShaderTemplateRequest::new(
+                geometry_source,
+                prepared_surface.source.as_ref(),
+                prepared_surface.entry_point,
+            )
+            .with_features(features),
+        ),
+        _ => assemble_material_shader_template(
+            MaterialShaderTemplateRequest::new(
+                geometry_source,
+                pass_type,
+                prepared_surface.source.as_ref(),
+                prepared_surface.entry_point,
+            )
+            .with_features(features),
+        ),
+    }
+    .map_err(|error| format!("{error:?}"))?;
+
+    Ok(ShaderPrewarmTemplateSource::from_template(
+        assembly,
+        source_content_hashes,
+    ))
+}
+
+struct PreparedMaterialSurfaceSource<'a> {
+    source: Cow<'a, str>,
+    entry_point: &'static str,
+}
+
+fn material_surface_source_for_prewarm_template(
+    source: &str,
+    features: ShaderFeatureBits,
+    alpha_cutoff: Option<f32>,
+) -> PreparedMaterialSurfaceSource<'_> {
+    if source.contains("fn zr_material_surface(") {
+        return PreparedMaterialSurfaceSource {
+            source: Cow::Borrowed(source),
+            entry_point: "zr_material_surface",
+        };
+    }
+
+    let fallback =
+        standard_material_surface_source_for_features(features, alpha_cutoff.unwrap_or(0.0));
+    PreparedMaterialSurfaceSource {
+        source: Cow::Owned(format!("{source}\n\n{}", fallback.source)),
+        entry_point: fallback.entry_point,
+    }
 }
 
 pub(crate) fn builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models(

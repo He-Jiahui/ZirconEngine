@@ -4,10 +4,11 @@ use super::super::super::style_selector::{
     WORKBENCH_TEXT_FIELD_DISABLED_SURFACE as FIELD_DISABLED_SURFACE,
     WORKBENCH_TEXT_FIELD_DISABLED_TEXT as FIELD_DISABLED_TEXT,
     WORKBENCH_TEXT_FIELD_FOCUSED_BORDER as FIELD_FOCUSED_BORDER,
+    WORKBENCH_TEXT_FIELD_STEPPER_DIVIDER as FIELD_STEPPER_DIVIDER,
     WORKBENCH_TEXT_FIELD_SURFACE as FIELD_SURFACE,
 };
-use super::super::super::template_field_stepper::STEPPER_DIVIDER;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
+use super::super::metrics::workbench_field_metrics;
 use super::super::push_field_commands;
 use super::super::style::field_style;
 use super::support::{changed_pixel_count, pixel_at, positioned_field_node};
@@ -68,20 +69,12 @@ fn disabled_workbench_field_paints_placeholder_tone() {
 
 #[test]
 fn stepper_workbench_field_paints_right_arrows() {
-    let bytes = paint_template_nodes_for_test(
-        112,
-        48,
-        model_rc(vec![positioned_field_node(
-            "WorkbenchInputStepper",
-            "42",
-            12.0,
-            8.0,
-            67.0,
-            32.0,
-        )]),
-    );
+    let node = positioned_field_node("WorkbenchInputStepper", "42", 12.0, 8.0, 67.0, 32.0);
+    let stepper_divider = field_style(&node).stepper_divider;
+    let bytes = paint_template_nodes_for_test(112, 48, model_rc(vec![node]));
 
-    assert_eq!(pixel_at(&bytes, 112, 61, 16), STEPPER_DIVIDER);
+    assert_eq!(stepper_divider, FIELD_STEPPER_DIVIDER);
+    assert_eq!(pixel_at(&bytes, 112, 61, 16), stepper_divider);
     assert!(changed_pixel_count(&bytes, 112, 64, 15, 12, 20) > 0);
 }
 
@@ -92,7 +85,17 @@ fn stepper_workbench_field_honors_declared_layout_offset() {
     node.layout_offset_y = 6.0;
     let bytes = paint_template_nodes_for_test(128, 72, model_rc(vec![node]));
 
-    assert_eq!(pixel_at(&bytes, 128, 66, 20), STEPPER_DIVIDER);
+    let stepper_divider = field_style(&positioned_field_node(
+        "WorkbenchInputStepper",
+        "42",
+        12.0,
+        8.0,
+        67.0,
+        32.0,
+    ))
+    .stepper_divider;
+
+    assert_eq!(pixel_at(&bytes, 128, 66, 20), stepper_divider);
     assert_eq!(pixel_at(&bytes, 128, 14, 24), [0, 0, 0, 255]);
 }
 
@@ -138,8 +141,9 @@ fn search_workbench_field_prefers_shell_search_asset_pixels() {
         "search fields should render the glass glyph through the shared shell SVG asset"
     );
     let icon = icon_commands[0];
-    assert_eq!(icon.frame.width, 16.0);
-    assert_eq!(icon.frame.height, 16.0);
+    let metrics = workbench_field_metrics();
+    assert_eq!(icon.frame.width, metrics.search_icon_size);
+    assert_eq!(icon.frame.height, metrics.search_icon_size);
     assert!(icon
         .image_pixels
         .as_ref()

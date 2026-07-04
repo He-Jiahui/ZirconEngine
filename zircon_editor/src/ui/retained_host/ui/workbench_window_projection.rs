@@ -20,7 +20,7 @@ use super::pane_data_conversion::{
 use super::template_layout_context::apply_table_layout_context_variant;
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
-const WORKBENCH_STATUS_RIGHT_TEXT_COLOR: host_contract::primitives::Color =
+const WORKBENCH_STATUS_RIGHT_LABEL_COLOR: host_contract::primitives::Color =
     host_contract::primitives::Color::from_rgb_u8(125, 137, 144);
 const WORKBENCH_SELECTION_SELECTED_SURFACE: &str = "#173942";
 const WORKBENCH_SELECTION_ACCENT: &str = "#2aa6b8";
@@ -189,6 +189,9 @@ fn to_host_contract_workbench_window_node(
     let label_color = color_property(&node.properties, "label_color")
         .or_else(|| color_property(&node.properties, "icon_fill"))
         .or_else(|| color_property(&node.properties, "status_mark_color"))
+        .or_else(|| {
+            inherited_status_right_color_property(node, nodes_by_id, "status_right_label_color")
+        })
         .unwrap_or_default();
     let icon_color = color_property(&node.properties, "icon_color")
         .or_else(|| color_property(&node.properties, "thumb_color"))
@@ -281,9 +284,6 @@ fn to_host_contract_workbench_window_node(
             .or_else(|| color_property(&node.properties, "dot_color"))
             .or_else(|| color_property(&node.properties, "fourth_cell_text_color"))
             .or_else(|| color_property(&node.properties, "track_fill_color"))
-            .or_else(|| {
-                inherited_status_right_color_property(node, nodes_by_id, "status_right_text_color")
-            })
             .or_else(|| color_property(&node.properties, "text_color"))
             .or_else(|| color_property(&node.properties, "foreground_color"))
             .or_else(|| color_property(&node.properties, "color"))
@@ -397,8 +397,8 @@ fn inherited_status_right_color_property(
     inherited_status_right_parent(node, nodes_by_id)
         .and_then(|parent| color_property(&parent.properties, property))
         .or_else(|| {
-            (property == "status_right_text_color" && is_status_right_control(node))
-                .then_some(WORKBENCH_STATUS_RIGHT_TEXT_COLOR)
+            (property == "status_right_label_color" && is_status_right_control(node))
+                .then_some(WORKBENCH_STATUS_RIGHT_LABEL_COLOR)
         })
 }
 

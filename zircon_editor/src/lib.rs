@@ -56,7 +56,9 @@ pub use ui::host::{
     EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING, EXPORT_WIZARD_BINDING_SYMBOL,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
 };
-pub use ui::retained_host::{run_editor, run_editor_with_startup_request};
+pub use ui::retained_host::{
+    run_editor, run_editor_with_config, run_editor_with_startup_request, EditorHostRunConfig,
+};
 
 #[cfg(test)]
 mod tests;

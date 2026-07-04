@@ -6,6 +6,11 @@ struct SceneUniform {
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
+    sky_horizon_color: vec4<f32>,
+    sky_zenith_color: vec4<f32>,
+    sky_ground_color: vec4<f32>,
+    environment_params: vec4<f32>,
+    environment_sample_params: vec4<f32>,
 };
 struct MaterialPropertyUniform {
     data0: vec4<f32>,
@@ -503,7 +508,17 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let ambient = scene.ambient_color.rgb * material.occlusion;
     let diffuse_color = material_diffuse_color(material);
     let direct_lights = gpu_light_lighting(input.clip_position.xy, input.world_position, world_normal, material, diffuse_color, input.shadow_params);
-    let lit = diffuse_color * ambient + direct_lights;
+    let environment_lights = zr_environment_pbr_indirect(
+        world_normal,
+        vec3<f32>(0.0, 0.0, 1.0),
+        material.roughness,
+        material.metallic,
+        diffuse_color,
+        material.albedo.rgb,
+        material.occlusion,
+        material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
+    );
+    let lit = diffuse_color * ambient + direct_lights + environment_lights;
     let shaded = lit + material.emissive;
     return vec4<f32>(shaded, material.albedo.a);
 }

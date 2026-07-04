@@ -8,13 +8,16 @@ use super::{GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasShelfAllocator};
 mod allocation;
 mod failure;
 mod placeholder;
+mod retry;
+mod staged_upload;
+mod staging;
 mod types;
 mod upload;
 mod validation;
 
 use allocation::{allocate_bitmap_source, mark_bitmap_dirty};
 use failure::record_bitmap_allocation_failure;
-use upload::bitmap_upload_commands;
+use upload::{bitmap_upload_commands, bitmap_upload_copy};
 use validation::validate_bitmap_source;
 
 pub(crate) use failure::{
@@ -22,7 +25,29 @@ pub(crate) use failure::{
     GlyphAtlasBitmapQueuedGlyph,
 };
 pub(crate) use placeholder::{GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPlaceholderMode};
-pub(crate) use types::{GlyphAtlasBitmapGlyph, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource};
+pub(crate) use retry::{
+    glyph_atlas_bitmap_retry_frame_input, glyph_atlas_bitmap_retry_frame_input_with_backpressure,
+    glyph_atlas_bitmap_retry_frame_outcome, glyph_atlas_bitmap_retry_plan,
+    glyph_atlas_bitmap_retry_plan_with_backpressure, GlyphAtlasBitmapRetryBackpressurePolicy,
+    GlyphAtlasBitmapRetryFrameInput, GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapRetryPlan,
+    GlyphAtlasBitmapRetrySourceOrigin,
+};
+pub(crate) use staged_upload::{
+    glyph_atlas_bitmap_prepared_upload_plan, glyph_atlas_bitmap_staged_upload_plan,
+    glyph_atlas_bitmap_texture_upload_request_plan, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapStagedUpload, GlyphAtlasBitmapStagedUploadFailure,
+    GlyphAtlasBitmapStagedUploadFailureReason, GlyphAtlasBitmapStagedUploadPlan,
+    GlyphAtlasBitmapTextureUploadRequest, GlyphAtlasBitmapTextureUploadRequestPlan,
+};
+pub(crate) use staging::{
+    glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
+    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasBitmapUploadStagingFailure,
+    GlyphAtlasBitmapUploadStagingFailureReason, GlyphAtlasBitmapUploadStagingPlan,
+};
+pub(crate) use types::{
+    GlyphAtlasBitmapGlyph, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource,
+    GlyphAtlasBitmapUploadCopy,
+};
 
 pub(crate) const GLYPH_BITMAP_ATLAS_PADDING_PX: u32 = 2;
 
@@ -89,6 +114,12 @@ where
 
         plan.atlas.mark_page_used(allocation.page_key, frame_index);
         mark_bitmap_dirty(&mut plan.dirty_pages, allocation.page_key, allocation.rect);
+        plan.upload_copies.push(bitmap_upload_copy(
+            source_index,
+            source,
+            allocation,
+            page_size,
+        ));
 
         let draw_glyph = GlyphAtlasDrawGlyph {
             page_key: allocation.page_key,

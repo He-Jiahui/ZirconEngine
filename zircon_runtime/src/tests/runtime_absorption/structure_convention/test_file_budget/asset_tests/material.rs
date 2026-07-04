@@ -62,8 +62,8 @@ fn runtime_15_asset_material_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        23,
-        "asset material child modules should preserve the original 23 tests"
+        24,
+        "asset material child modules should preserve the current 24 tests"
     );
 
     assert_contains_all(

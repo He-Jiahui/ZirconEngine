@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::retained_host::primitives::{ModelRc, SharedString};
+use crate::ui::retained_host::{
+    measure_runtime_text_width,
+    primitives::{ModelRc, SharedString},
+};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::layouts::common::model_rc;
@@ -8,9 +11,10 @@ use crate::ui::layouts::views::{
     build_view_template_nodes, load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData,
 };
 use crate::ui::workbench::page_tabs::{
-    main_page_project_path_width, main_page_tab_preferred_width,
+    main_page_project_path_width, main_page_tab_preferred_width_from_title_width,
     main_page_tab_visible_cap_for_width, MAIN_PAGE_TAB_CHROME_SIDE_INSET, MAIN_PAGE_TAB_GAP,
     MAIN_PAGE_TAB_MAX_WIDTH, MAIN_PAGE_TAB_MIN_WIDTH, MAIN_PAGE_TAB_OVERFLOW_WIDTH,
+    MAIN_PAGE_TAB_TITLE_FONT_SIZE,
 };
 
 use super::{
@@ -419,7 +423,7 @@ fn fallback_page_chrome_nodes(
             role: "Button".into(),
             text: tab.title.clone(),
             text_tone: text_tone.into(),
-            font_size: CHROME_TEXT_FONT_SIZE_PX,
+            font_size: MAIN_PAGE_TAB_TITLE_FONT_SIZE,
             font_weight,
             surface_variant: if tab.active { "inset" } else { "" }.into(),
             button_variant: "ghost".into(),
@@ -536,7 +540,8 @@ fn visible_page_tab_indices(tabs: &ModelRc<TabData>, width: f32) -> Vec<usize> {
 }
 
 fn page_tab_width(tab: &TabData) -> f32 {
-    main_page_tab_preferred_width(tab.title.as_str())
+    let title_width = measure_runtime_text_width(tab.title.as_str(), MAIN_PAGE_TAB_TITLE_FONT_SIZE);
+    main_page_tab_preferred_width_from_title_width(title_width)
 }
 
 fn active_tab_row(tabs: &ModelRc<TabData>) -> Option<usize> {

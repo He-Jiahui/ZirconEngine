@@ -1,0 +1,18 @@
+{
+  "slice": "runtime_text_editor_retained_invalid_origin_smoothing_fallback",
+  "input": {
+    "glyph_x": 20.51,
+    "origin_x": "NaN",
+    "raster_metrics_x_offset_ignored_for_invalid_origin": -1
+  },
+  "old_invalid_origin_pixel": 20,
+  "grayscale_placement": {
+    "pixel_x": 21,
+    "subpixel_offset": 0.0
+  },
+  "subpixel_placement": {
+    "pixel_x": 20,
+    "subpixel_offset": 0.5
+  },
+  "policy": "invalid-origin glyph.x remains a bitmap-left fallback, but the fallback pixel comes from retained_glyph_placement_for_smoothing(...) just like the normal draw path"
+}

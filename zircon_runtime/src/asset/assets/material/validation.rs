@@ -69,11 +69,14 @@ pub fn validate_shader_contract(
                     },
                 ),
             Some(_) => {}
-            None => errors.push(RenderMaterialValidationError::UnknownPropertyOverride {
-                source: RenderMaterialDiagnosticSource::MaterialOverride,
-                path: format!("overrides.{name}"),
-                name: name.clone(),
-            }),
+            None if value.as_str().is_some() => {}
+            None => {
+                errors.push(RenderMaterialValidationError::UnknownPropertyOverride {
+                    source: RenderMaterialDiagnosticSource::MaterialOverride,
+                    path: format!("overrides.{name}"),
+                    name: name.clone(),
+                });
+            }
         }
     }
     for schema in &shader.property_schema {

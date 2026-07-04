@@ -73,6 +73,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "net.http.runtime"
+description = "Runtime plugin module net.http.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_http_runtime"
 target_modes = ["server_runtime", "client_runtime"]
@@ -93,6 +94,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "net.websocket.runtime"
+description = "Runtime plugin module net.websocket.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_websocket_runtime"
 target_modes = ["server_runtime", "client_runtime"]
@@ -113,6 +115,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "net.rpc.runtime"
+description = "Runtime plugin module net.rpc.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_rpc_runtime"
 target_modes = ["server_runtime", "client_runtime"]
@@ -133,6 +136,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "net.replication.runtime"
+description = "Runtime plugin module net.replication.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_replication_runtime"
 target_modes = ["server_runtime", "client_runtime"]
@@ -153,6 +157,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "net.reliable_udp.runtime"
+description = "Runtime plugin module net.reliable_udp.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_reliable_udp_runtime"
 target_modes = ["server_runtime", "client_runtime"]
@@ -178,6 +183,7 @@ primary = false
 
 [[optional_features.modules]]
 name = "net.content_download.runtime"
+description = "Runtime plugin module net.content_download.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_net_content_download_runtime"
 target_modes = ["client_runtime"]

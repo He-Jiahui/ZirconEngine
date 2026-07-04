@@ -192,16 +192,14 @@ fn stable_entity_registration_uses_append_row_without_entity_scan() {
     assert!(
         registration.contains("let row = self.entities.len();")
             && registration_compact.contains(
-                "letinternal=matchself.entity_registry.spawn(entity,EntityLocation::new(ArchetypeId::EMPTY,row))"
+                "letinternal=self.entity_registry.spawn(entity,EntityLocation::new(ArchetypeId::EMPTY,row))?;"
             )
-            && registration_compact.contains("Ok(internal)=>internal")
-            && registration_compact.contains("Err(error)=>returnErr(error.to_string())")
             && registration_compact.contains("Ok(internal)")
             && !registration.contains(".iter()")
             && !registration.contains(".position(|candidate| *candidate == entity)")
             && !registration.contains("unwrap_or(self.entities.len())")
             && !registration.contains(".map_err("),
-        "stable entity registration must use the append row and direct registry-spawn result branches"
+        "stable entity registration must use the append row and typed registry-spawn propagation"
     );
     assert!(
         !source.contains("fn entity_registry_error_to_string"),

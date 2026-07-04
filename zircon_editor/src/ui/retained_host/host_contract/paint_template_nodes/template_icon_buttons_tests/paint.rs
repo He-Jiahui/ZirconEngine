@@ -38,6 +38,8 @@ fn normal_toolbar_icon_button_keeps_outer_background_clean_and_draws_glyph() {
     );
 
     assert_eq!(pixel_at(&bytes, 48, 4, 4), [0, 0, 0, 255]);
+    assert_eq!(pixel_at(&bytes, 48, 24, 24), PALETTE.surface);
+    assert_eq!(pixel_at(&bytes, 48, 24, 6), PALETTE.border);
     assert!(changed_pixel_count(&bytes, 48, 12, 12, 18, 18) > 0);
 }
 

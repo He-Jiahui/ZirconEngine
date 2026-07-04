@@ -1,101 +1,131 @@
 use super::super::super::*;
 
-const PLUGIN_IMPORTER_DX_STRUCTURE_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners.rs";
-const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory.rs";
-const PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET: usize = 800;
+#[path = "source_inventory/budgets.rs"]
+mod budgets;
+#[path = "source_inventory/delegation.rs"]
+mod delegation;
+#[path = "source_inventory/paths.rs"]
+mod paths;
+#[path = "source_inventory/reads.rs"]
+mod reads;
+#[path = "source_inventory/status_mirrors.rs"]
+mod status_mirrors;
 
-const PLUGIN_IMPORTER_DX_SOURCE_PATHS: &[&str] = &[
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d11_test_runtime_fixture.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d12_runtime_exports.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/manifest_parity.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/runtime_crates.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/runtime_exports.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/runtime_manifests.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d5_editor_authoring.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d6_runtime_plugin_id.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d8_registration_builder.rs",
-    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d9_editor_runtime_mirror.rs",
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_PATHS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory/paths.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_READS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory/reads.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_BUDGETS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory/budgets.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_DELEGATION_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory/delegation.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_MIRRORS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory/status_mirrors.rs";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_SLICE: &str =
+    "Runtime 15 M3 plugin-importer DX source inventory guard folder-backed split";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_STATUS: &str =
+    "runtime_15_plugin_importer_dx_source_inventory_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_DATE: &str = "2026-07-04";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_GUARD: &str =
+    "runtime_15_plugin_importer_dx_source_inventory_guard_is_folder_backed";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_GUARD: &str =
+    "runtime_15_plugin_importer_dx_source_inventory_guard_folder_backed_status_is_current";
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_BUDGET_GUARD: &str =
+    "runtime_15_plugin_importer_dx_source_inventory_children_line_budgets_are_current";
+pub(super) const PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET: usize = 800;
+
+const REVIEW_GUARD_STATUS_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs";
+const REVIEW_GUARD_STATUS_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
+const REVIEW_GUARD_DATE_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
+
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "paths",
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_PATHS_CHILD,
+        "const PLUGIN_IMPORTER_DX_SOURCE_PATHS",
+    ),
+    (
+        "reads",
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_READS_CHILD,
+        "pub(super) fn plugin_importer_dx_sources",
+    ),
+    (
+        "budgets",
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_BUDGETS_CHILD,
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_BUDGET_GUARD,
+    ),
+    (
+        "delegation",
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_DELEGATION_CHILD,
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_FOLDER_BACKED_GUARD,
+    ),
+    (
+        "status_mirrors",
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_MIRRORS_CHILD,
+        PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_GUARD,
+    ),
 ];
 
-fn plugin_importer_dx_sources() -> Vec<(&'static str, String)> {
-    PLUGIN_IMPORTER_DX_SOURCE_PATHS
-        .iter()
-        .map(|path| (*path, read_runtime_src(path)))
-        .collect()
+pub(super) struct PluginImporterDxSourceInventorySources {
+    pub(super) structure_child: String,
+    pub(super) source_inventory_child: String,
+    pub(super) paths_child: String,
+    pub(super) reads_child: String,
+    pub(super) budgets_child: String,
+    pub(super) delegation_child: String,
+    pub(super) status_mirrors_child: String,
 }
 
 pub(super) fn assert_plugin_importer_dx_line_budgets() {
-    for (path, source) in plugin_importer_dx_sources() {
-        let line_count = source.lines().count();
-        assert!(
-            line_count < PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET,
-            "{path} should stay below the plugin-importer DX child-owner budget; got {line_count} lines"
-        );
-    }
+    budgets::assert_plugin_importer_dx_line_budgets();
 }
 
 pub(super) fn plugin_importer_dx_review_guard_count() -> usize {
-    plugin_importer_dx_sources()
-        .iter()
-        .map(|(_, source)| source.matches("#[test]").count())
-        .sum()
+    reads::plugin_importer_dx_review_guard_count()
 }
 
 #[test]
 fn runtime_15_plugin_importer_dx_source_inventory_is_child_owner() {
-    let parent = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD);
-    let child = read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD);
+    let sources = plugin_importer_dx_source_inventory_sources();
 
-    assert_contains_all(
-        "plugin-importer DX structure guard delegates source inventory to child owner",
-        &parent,
-        &[
-            "#[path = \"plugin_importer_dx_child_owners/source_inventory.rs\"]",
-            "mod source_inventory;",
-            "source_inventory::assert_plugin_importer_dx_line_budgets",
-            "source_inventory::plugin_importer_dx_review_guard_count",
-        ],
-    );
-    assert!(
-        !parent.contains("const PLUGIN_IMPORTER_DX_SOURCE_PATHS"),
-        "plugin_importer_dx_child_owners.rs should not retain the plugin-importer DX source inventory"
-    );
-    assert!(
-        !parent.contains("fn plugin_importer_dx_sources()"),
-        "plugin_importer_dx_child_owners.rs should delegate plugin-importer DX source reads to source_inventory.rs"
-    );
-    assert_contains_all(
-        "plugin-importer DX source inventory child owns source paths and count helpers",
-        &child,
-        &[
-            "const PLUGIN_IMPORTER_DX_SOURCE_PATHS",
-            "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs",
-            "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/runtime_exports.rs",
-            "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d9_editor_runtime_mirror.rs",
-            "pub(super) fn assert_plugin_importer_dx_line_budgets",
-            "pub(super) fn plugin_importer_dx_review_guard_count",
-        ],
-    );
-    assert_eq!(
-        plugin_importer_dx_review_guard_count(),
-        11,
-        "plugin-importer DX source inventory should preserve all current D1/D5/D6/D8/D9/D10/D11/D12/D13 review guards"
-    );
+    delegation::assert_plugin_importer_dx_source_inventory_is_child_owner(&sources);
+    budgets::assert_plugin_importer_dx_source_inventory_children_line_budgets_are_current(&sources);
+}
 
-    for (path, source) in [
-        (PLUGIN_IMPORTER_DX_STRUCTURE_CHILD, parent.as_str()),
-        (PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD, child.as_str()),
-    ] {
-        let line_count = source.lines().count();
-        assert!(
-            line_count < PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET,
-            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
+pub(super) fn plugin_importer_dx_source_inventory_sources() -> PluginImporterDxSourceInventorySources
+{
+    PluginImporterDxSourceInventorySources {
+        structure_child: read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD),
+        source_inventory_child: read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD),
+        paths_child: read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_PATHS_CHILD),
+        reads_child: read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_READS_CHILD),
+        budgets_child: read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_BUDGETS_CHILD),
+        delegation_child: read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_DELEGATION_CHILD),
+        status_mirrors_child: read_runtime_src(
+            PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_STATUS_MIRRORS_CHILD,
+        ),
     }
+}
+
+pub(super) fn plugin_importer_dx_source_inventory_child_sources() -> Vec<(&'static str, String)> {
+    PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILDREN
+        .iter()
+        .map(|(_, path, _)| (*path, read_runtime_src(path)))
+        .collect()
+}
+
+pub(super) fn plugin_importer_dx_source_inventory_child_source_blob() -> String {
+    let mut blob = String::new();
+    for (_, source) in plugin_importer_dx_source_inventory_child_sources() {
+        blob.push_str(&source);
+        blob.push('\n');
+    }
+    blob
 }

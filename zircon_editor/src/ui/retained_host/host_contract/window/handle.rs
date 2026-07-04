@@ -30,6 +30,16 @@ impl HostWindowHandle {
         self.state.borrow().window_size.clone()
     }
 
+    pub(crate) fn set_scale_factor(&self, scale_factor: f32) {
+        self.state
+            .borrow_mut()
+            .set_window_scale_factor(scale_factor);
+    }
+
+    pub(crate) fn scale_factor(&self) -> f32 {
+        self.state.borrow().window_scale_factor()
+    }
+
     pub(crate) fn is_visible(&self) -> bool {
         self.state.borrow().window_visible
     }

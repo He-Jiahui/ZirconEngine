@@ -1,0 +1,18 @@
+Runtime Text Swash Bitmap Upload Staging Integration Validation - 2026-07-04
+
+Slice: swash GlyphBitmap.data now has a regression that feeds the bitmap atlas source bridge, bitmap run plan, and upload staging plan.
+Code files:
+  zircon_runtime/src/graphics/text/raster/swash/tests.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/staging.rs
+
+Assertions added:
+  GlyphBitmap.data length is preserved by glyph_atlas_bitmap_source_from_glyph_bitmap(...).
+  glyph_atlas_bitmap_run_plan_with_padding(...) emits the upload copy for the bridged source.
+  glyph_atlas_bitmap_upload_staging_plan(...) copies the real bitmap data into page staging bytes.
+
+Local checks:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/raster/swash/tests.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/staging.rs zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/mod.rs : PASS
+  cargo/unit validation: DEFERRED because independent cargo/rustc validation lanes were already active in this workspace.
+
+Preview PNG: docs\tests\runtime\text\runtime_text_swash_bitmap_upload_staging_integration_preview_20260704.png
+Preview SHA256: 1B7D189EED558C1BC0EC97FE254FF2ACF01C875DEAB4F479B28593BDCE6D815B

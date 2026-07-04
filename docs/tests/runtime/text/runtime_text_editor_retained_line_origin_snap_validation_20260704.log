@@ -1,0 +1,8 @@
+runtime_text_editor_retained_line_origin_snap_validation_20260704
+font_path=C:\Windows\Fonts\Deng.ttf
+png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_line_origin_snap_preview_20260704.png
+png_sha256=6565E9B05417343C2B43DB3E7235A6401F2C6869840EE6D51BA9FC370560A58C
+code_change=retained-host text line origin snaps once before glyph positioning; glyph advances and shaped origins remain fractional.
+sample='editor base.zui' before_origin=8.875 after_origin=9.000 removed_fractional_offset_px=0.125
+sample='folder-op...line.svg' before_origin=8.875 after_origin=9.000 removed_fractional_offset_px=0.125
+target_policy=proof image/log written under docs/tests/runtime/text only

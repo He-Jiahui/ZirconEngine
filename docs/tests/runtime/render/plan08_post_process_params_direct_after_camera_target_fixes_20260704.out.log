@@ -1,0 +1,6 @@
+
+running 1 test
+test graphics::scene::scene_renderer::post_process::resources::execute_post_process::execute::build_post_process_params::build::tests::post_process_params_pack_physical_viewport_and_local_scene_source_origins_separately ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6529 filtered out; finished in 0.01s
+

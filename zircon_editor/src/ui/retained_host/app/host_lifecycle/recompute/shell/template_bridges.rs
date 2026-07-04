@@ -28,7 +28,12 @@ impl RetainedEditorHost {
             );
             let _ = self
                 .workbench_window_bridge
-                .recompute_layout_with_workbench_model(shell_size, model, &self.chrome_metrics);
+                .recompute_layout_with_workbench_model_at_scale(
+                    shell_size,
+                    self.shell_scale_factor,
+                    model,
+                    &self.chrome_metrics,
+                );
         }
         self.workbench_window_bridge.layout_frames()
     }

@@ -2,12 +2,21 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_row_data_status_doc_child_budgets_stay_focused() {
-    for path in [REVIEW_GUARD_ROW_DATA_GUARD_PATH, STATUS_DOCS_GUARD_PATH] {
+    for (path, budget) in [
+        (REVIEW_GUARD_ROW_DATA_GUARD_PATH, 220),
+        (STATUS_DOCS_GUARD_PATH, 70),
+        (ROOT_PATHS_PATH, 90),
+        (ROOT_STATUSES_PATH, 90),
+        (ROOT_CHILD_ROWS_PATH, 120),
+        (ROOT_SOURCE_BLOBS_PATH, 80),
+        (ROOT_INVENTORY_GUARD_PATH, 100),
+        (STATUS_SUPPORT_REVIEW_GUARD_ROWS_PATH, 260),
+    ] {
         let source = read_runtime_src(path);
         let line_count = source.lines().count();
         assert!(
-            line_count < 220,
-            "{path} should stay below the focused Runtime 15 review row-data status-doc guard budget; got {line_count} lines"
+            line_count < budget,
+            "{path} should stay below the focused Runtime 15 review row-data status-doc guard budget of {budget} lines; got {line_count}"
         );
     }
 

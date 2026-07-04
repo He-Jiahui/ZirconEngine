@@ -410,9 +410,12 @@ fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
     assert!(plugin.runtime_behavior_is_stateless().is_none());
     assert!(plugin.runtime_state_schema_version().is_none());
     assert!(plugin.runtime_command_manifest_schema().is_none());
-    assert!(report
-        .diagnostics_for_runtime_plugin("native_dynamic_fixture")
-        .is_empty());
+    let runtime_diagnostics = report.diagnostics_for_runtime_plugin("native_dynamic_fixture");
+    assert!(runtime_diagnostics.iter().any(|message| message
+        .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));
+    assert!(runtime_diagnostics
+        .iter()
+        .any(|message| message.contains("unsupported native plugin ABI version 99; expected 3")));
 
     let _ = fs::remove_dir_all(fixture_target);
     let _ = fs::remove_dir_all(package_root);

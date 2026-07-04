@@ -1,0 +1,96 @@
+use super::*;
+
+pub(super) fn assert_line_budgets(sources: &TopLevelMapSources) {
+    for (path, source) in [
+        (
+            "plan_status/status_output_tables/expected_slices/status.rs",
+            sources.status_parent.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
+            sources.status_runtime_15.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
+            sources.status_runtime_15_foundation.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
+            sources.status_runtime_15_naming_boundary.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
+            sources.status_runtime_15_m4_surface_cleanup.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
+            sources.status_runtime_15_m3_structure_support.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/pre_runtime_15.rs",
+            sources.status_pre_runtime_15.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/pre_runtime_15/runtime_01_05.rs",
+            sources.status_pre_runtime_15_runtime_01_05.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/pre_runtime_15/runtime_06_10.rs",
+            sources.status_pre_runtime_15_runtime_06_10.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/status/pre_runtime_15/runtime_11_14.rs",
+            sources.status_pre_runtime_15_runtime_11_14.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date.rs",
+            sources.date_parent.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
+            sources.date_runtime_15.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
+            sources.date_runtime_15_foundation.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
+            sources.date_runtime_15_naming_boundary.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
+            sources.date_runtime_15_m4_surface_cleanup.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
+            sources.date_runtime_15_m3_structure_support.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/pre_runtime_15.rs",
+            sources.date_pre_runtime_15.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/pre_runtime_15/runtime_01_05.rs",
+            sources.date_pre_runtime_15_runtime_01_05.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/pre_runtime_15/runtime_06_10.rs",
+            sources.date_pre_runtime_15_runtime_06_10.as_str(),
+        ),
+        (
+            "plan_status/status_output_tables/expected_slices/date/pre_runtime_15/runtime_11_14.rs",
+            sources.date_pre_runtime_15_runtime_11_14.as_str(),
+        ),
+        (
+            "structure_convention/test_file_budget/status_output_expected_slices.rs",
+            sources.status_output_expected_slices_guard.as_str(),
+        ),
+    ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
+        );
+    }
+}

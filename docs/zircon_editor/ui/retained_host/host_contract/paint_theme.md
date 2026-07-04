@@ -18,6 +18,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
+  - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
 implementation_files:
   - zircon_editor/src/ui/preferences.rs
   - zircon_editor/src/ui/retained_host/app.rs
@@ -30,6 +31,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
@@ -102,6 +104,9 @@ tests:
   - cargo test -p zircon_editor --lib appearance_preferences --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-appearance-prefs-0703 --message-format short --color never -- --nocapture --test-threads=1 with CARGO_INCREMENTAL=0 (2026-07-03 passed 11/11 after startup appearance load path)
   - D:\cargo-targets\zircon-editor-appearance-prefs-0703\debug\deps\zircon_editor-34f3a39d0731014c.exe tests::host::retained_menu_pointer::visual_screenshot::capture_m3_gui_acceptance_visual_artifacts --ignored --exact --nocapture --test-threads=1 (2026-07-03 passed 1/1, refreshed docs/tests/editor M3 PNGs at 08:17)
   - preferences/app concrete font/code-style scan (2026-07-03 no Deng/Segoe/Fira/Cascadia/Consolas/Microsoft YaHei/Arial/Helvetica/font-family/UiTextRunPaintStyle::code matches)
+  - cargo check -p zircon_editor --tests --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-04 passed with existing warnings)
+  - cargo test -p zircon_editor tests::host::retained_menu_pointer::appearance_visual_screenshot::capture_global_appearance_preferences_component_visual_artifact --lib --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never -- --ignored --exact --test-threads=1 --nocapture with CARGO_INCREMENTAL=0 (2026-07-04 passed 1/1, refreshed docs/tests/editor/editor-components-global-appearance-preferences-900x360.png)
+  - cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-appearance-global-0704 --message-format short --color never with CARGO_INCREMENTAL=0 (2026-07-04 passed with existing warnings)
 doc_type: module-detail
 ---
 
@@ -126,6 +131,8 @@ The 2026-07-03 Asset Browser utility-tab follow-up keeps that same global route 
 The 2026-07-03 preference persistence foundation keeps that route global instead of binding fonts in controls. `EditorAppearancePreferencesDocument` is the versioned TOML shape for the active appearance profile plus the full `EditorDesignTokens` payload, and `EditorAppearancePreferenceStore` owns string/path load and save. The default document still uses only logical font families from `EditorTypographyTokens` (`system-ui` and `monospace`); a user-selected concrete font can be stored later as a global token value without touching button, table, tab, or label owners. Unsupported document versions parse and then fall back to the current default tokens rather than partially applying an unknown style payload.
 
 The follow-up startup path consumes that persisted shape without introducing a component-local font policy. `editor_startup_appearance_preferences()` reads the optional `ZIRCON_EDITOR_APPEARANCE_PREFERENCES` path and `run_editor_with_startup_request(...)` installs the loaded tokens before constructing the retained host window. Missing, empty, invalid, or unreadable preference files fall back to the default logical-family token set and emit a warning, so a bad user preference cannot strand editor startup. This mirrors the UE `FAppStyle` application-wide style entry: the startup path chooses the active style document, while controls keep reading the current host text, palette, and metric projections.
+
+The 2026-07-04 S15.4el follow-up adds `apply_host_appearance_from_tokens(...)` as the single retained-host appearance application route. Startup and visual tests now install host metrics, palette, and `HostTextPreferences` through that helper instead of calling each projection separately. `HostTextPreferences` continues to carry logical/requested font-family values; concrete user-selected fonts belong in the global preferences payload, not in component defaults. Component-level screenshot evidence was refreshed at `docs/tests/editor/editor-components-global-appearance-preferences-900x360.png`, modified `2026-07-04 14:41:56 +08:00`,38596 bytes,SHA256 `F2A997A1922828220F3197E8B918D4F7BCF38DE731585C4AF042F0CF28E3BE0F`;repo target and external target same-name scans found no matching screenshot, and the external target contained no PNG artifacts.
 
 The 2026-06-26 S15.6d/S15.6e command-button passes keep prominent Workbench command styling in `style_selector/workbench_button/command.rs`. Compile and asset import controls retain accent text and glyph color, but their surface and border come from the muted Workbench palette ladder instead of authored accent fill. This keeps command emphasis available without reintroducing a second color table or large cyan blocks in the module toolbar and Asset Browser command row.
 

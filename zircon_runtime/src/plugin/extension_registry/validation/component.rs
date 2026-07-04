@@ -3,7 +3,7 @@ use crate::plugin::{
 };
 use std::collections::BTreeSet;
 
-use super::is_lowercase_plugin_token;
+use super::is_lowercase_plugin_package_id;
 
 pub(in crate::plugin::extension_registry) fn validate_component_type_descriptor(
     descriptor: &ComponentTypeDescriptor,
@@ -74,9 +74,9 @@ fn validate_component_type_field(
 }
 
 fn validate_component_type_plugin_id(plugin_id: &str) -> Result<(), RuntimeExtensionRegistryError> {
-    if !is_lowercase_plugin_token(plugin_id) {
+    if !is_lowercase_plugin_package_id(plugin_id) {
         return Err(RuntimeExtensionRegistryError::InvalidComponentType(format!(
-            "plugin_id `{plugin_id}` must contain only lowercase ASCII letters, digits, and underscores"
+            "plugin_id `{plugin_id}` must start with a lowercase ASCII letter and contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments without trailing or repeated underscores"
         )));
     }
     Ok(())
@@ -95,9 +95,9 @@ fn validate_ui_component_field(
 }
 
 fn validate_ui_component_plugin_id(plugin_id: &str) -> Result<(), RuntimeExtensionRegistryError> {
-    if !is_lowercase_plugin_token(plugin_id) {
+    if !is_lowercase_plugin_package_id(plugin_id) {
         return Err(RuntimeExtensionRegistryError::InvalidUiComponent(format!(
-            "plugin_id `{plugin_id}` must contain only lowercase ASCII letters, digits, and underscores"
+            "plugin_id `{plugin_id}` must start with a lowercase ASCII letter and contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments without trailing or repeated underscores"
         )));
     }
     Ok(())

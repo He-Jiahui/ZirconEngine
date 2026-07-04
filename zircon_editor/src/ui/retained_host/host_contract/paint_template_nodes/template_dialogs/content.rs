@@ -1,13 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::DialogKind;
-use super::{layout, style};
+use super::{layout, metrics::dialog_metrics, style};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
-
-const DIALOG_TITLE_FONT_SIZE: f32 = 15.0;
-const DIALOG_TITLE_LINE_HEIGHT: f32 = 18.0;
-const DIALOG_BODY_FONT_SIZE: f32 = 12.5;
-const DIALOG_BODY_LINE_HEIGHT: f32 = 16.0;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dialog_content(
     commands: &mut Vec<HostPaintCommand>,
@@ -19,6 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     unavailable: bool,
     opacity: f32,
 ) {
+    let metrics = dialog_metrics();
     let title = title_text(node);
     if let Some(title) = title {
         commands.push(HostPaintCommand::text(
@@ -27,8 +23,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
             order + 2,
             title.to_string(),
             style::dialog_title_color(node, kind, unavailable),
-            DIALOG_TITLE_FONT_SIZE,
-            DIALOG_TITLE_LINE_HEIGHT,
+            metrics.title_font_size,
+            metrics.title_line_height,
             UiTextRunPaintStyle::default(),
             opacity,
         ));
@@ -41,8 +37,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
             order + 3,
             message.to_string(),
             style::dialog_body_color(unavailable),
-            DIALOG_BODY_FONT_SIZE,
-            DIALOG_BODY_LINE_HEIGHT,
+            metrics.body_font_size,
+            metrics.body_line_height,
             UiTextRunPaintStyle::default(),
             opacity,
         ));

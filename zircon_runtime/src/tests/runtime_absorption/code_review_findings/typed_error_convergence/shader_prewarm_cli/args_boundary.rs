@@ -4,6 +4,9 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let args = include_str!("../../../../../bin/zircon_shader_prewarm/args.rs");
     let error_owner = include_str!("../../../../../bin/zircon_shader_prewarm/error.rs");
     let manifest = include_str!("../../../../../bin/zircon_shader_prewarm/manifest.rs");
+    let manifest_material_sources =
+        include_str!("../../../../../bin/zircon_shader_prewarm/manifest/material_sources.rs");
+    let manifest_paths = include_str!("../../../../../bin/zircon_shader_prewarm/manifest/paths.rs");
     let manifest_tests = include_str!("../../../../../bin/zircon_shader_prewarm/manifest/tests.rs");
     let manifest_asset_scan_tests = include_str!(
         "../../../../../bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs"
@@ -234,6 +237,8 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     ] {
         assert!(
             manifest.contains(required)
+                || manifest_material_sources.contains(required)
+                || manifest_paths.contains(required)
                 || manifest_tests.contains(required)
                 || manifest_asset_scan_tests.contains(required)
                 || error_owner.contains(required),

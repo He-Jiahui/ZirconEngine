@@ -1,0 +1,36 @@
+Runtime text bitmap atlas texture upload frame plan validation
+Date: 2026-07-04
+
+Scope:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+
+Implementation evidence:
+- Added GlyphAtlasBitmapTextureUploadFrameReport and GlyphAtlasBitmapTextureUploadFramePlan.
+- Added glyph_atlas_bitmap_texture_upload_frame_plan(...), which composes prepared upload staging pages, texture upload requests, staging-byte bindings, and upload readiness diagnostics.
+- Added write_glyph_atlas_bitmap_texture_upload_frame_plan(...), which only forwards bindings to the shared WGPU texture writer when the frame report is ready_to_write_texture.
+- Added tests for a ready prepared upload, a binding failure, and staging/staged-upload failure reporting.
+
+Commands run:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+  Result: passed after formatting the touched files.
+- git diff --check -- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+  Result: passed.
+- Select-String conflict/trailing whitespace scan over touched files
+  Result: no matches.
+- Target same-name scan across repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets
+  Result: 0 matches for the preview PNG and validation log.
+
+Visual evidence:
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_plan_preview_20260704.png
+  SHA256: F453B4FAE8A6158D1F4657376C6BC16E365F0ED6D70D6CD082BCD0BA130CAB2D
+
+Deferred validation:
+- Focused Cargo remains deferred because external cargo/rustc lanes were active during this slice.
+
+Remaining open work:
+- Real frame-loop source production and texture-array resource integration.
+- glyphon TextAtlas cutover.
+- LCD/gamma/background policy.
+- Focused Cargo green run.
+- Live editor typography QA.

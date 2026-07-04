@@ -3,7 +3,10 @@ use super::super::super::super::paint_geometry::{
     frame_from_template, is_visible_frame, translated,
 };
 
-pub(super) fn hierarchy_viewport_frame(pane: &PaneData, body: &FrameRect) -> FrameRect {
+pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::native_panes) fn hierarchy_viewport_frame(
+    pane: &PaneData,
+    body: &FrameRect,
+) -> FrameRect {
     (0..pane.hierarchy.nodes.row_count())
         .filter_map(|row| pane.hierarchy.nodes.row_data(row))
         .find_map(|node| {

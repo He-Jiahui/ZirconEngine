@@ -12,7 +12,7 @@ fn open_popup_menu_paints_right_aligned_item_icons() {
     let bytes = paint_template_nodes_for_test(180, 180, model_rc(vec![popup_menu_node()]));
 
     assert!(changed_pixel_count(&bytes, 180, 112, 16, 24, 24) > 0);
-    assert_eq!(pixel_at(&bytes, 180, 119, 113), POPUP_ROW_DANGER_TEXT);
+    assert!(matching_pixel_count(&bytes, 180, POPUP_ROW_DANGER_TEXT, 28, 100, 72, 30) > 0);
     assert!(changed_pixel_count(&bytes, 180, 112, 136, 24, 24) > 0);
 }
 

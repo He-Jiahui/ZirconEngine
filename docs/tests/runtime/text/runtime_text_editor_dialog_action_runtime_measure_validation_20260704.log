@@ -1,0 +1,14 @@
+runtime_text_editor_dialog_action_runtime_measure_validation_20260704
+preview=docs\tests\runtime\text\runtime_text_editor_dialog_action_runtime_measure_preview_20260704.png
+preview_sha256=29901DEA7AC5C964DB719FC53814928D2FF16117A085D2F04815F654CEE11321
+font_path=C:\Windows\Fonts\Deng.ttf
+code_files=
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/metrics.rs
+change=Dialog action button slots now use measure_runtime_text_width plus explicit action padding and host text clip guard; stale DIALOG_ACTION_CHAR_WIDTH removed.
+rustfmt_check=passed for template_dialogs/actions labels.rs and metrics.rs
+git_diff_check=passed with LF/CRLF warnings only for template_dialogs/actions labels.rs and metrics.rs
+cargo_test=deferred because other cargo/rustc processes were already active on this workstation
+measurement[text="WWWiiiWWWiii"]=old_char_width=104.000, measured_text=93.000, runtime_slot=119.000, delta=15.000
+measurement[text="folder-open.svg"]=old_char_width=125.000, measured_text=93.000, runtime_slot=119.000, delta=-6.000
+measurement[text="OK"]=old_char_width=56.000, measured_text=22.000, runtime_slot=56.000, delta=0.000

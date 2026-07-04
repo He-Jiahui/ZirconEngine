@@ -1,168 +1,132 @@
 use super::super::super::super::*;
 
-pub(super) fn assert_plugin_importer_dx_review_mounts_are_folder_backed() {
-    let plugin_importer_dx =
-        read_runtime_src("tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs");
-    let plugin_importer_dx_d10 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs",
-    );
-    let plugin_importer_dx_d1 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs",
-    );
-    let plugin_importer_dx_d11 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d11_test_runtime_fixture.rs",
-    );
-    let plugin_importer_dx_d12 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d12_runtime_exports.rs",
-    );
-    let plugin_importer_dx_d5 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d5_editor_authoring.rs",
-    );
-    let plugin_importer_dx_d6 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d6_runtime_plugin_id.rs",
-    );
-    let plugin_importer_dx_d8 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d8_registration_builder.rs",
-    );
-    let plugin_importer_dx_d9 = read_runtime_src(
-        "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d9_editor_runtime_mirror.rs",
-    );
+#[path = "review_mounts/budgets.rs"]
+mod budgets;
+#[path = "review_mounts/parent_mounts.rs"]
+mod parent_mounts;
+#[path = "review_mounts/paths.rs"]
+mod paths;
+#[path = "review_mounts/review_children.rs"]
+mod review_children;
+#[path = "review_mounts/sources.rs"]
+mod sources;
+#[path = "review_mounts/status_mirrors.rs"]
+mod status_mirrors;
 
-    assert_contains_all(
-        "plugin importer DX parent mounts importer review guard children",
-        &plugin_importer_dx,
-        &[
-            "#[path = \"plugin_importer_dx/d10_bridge_call.rs\"]",
-            "mod d10_bridge_call;",
-            "#[path = \"plugin_importer_dx/d1_capability_single_source.rs\"]",
-            "mod d1_capability_single_source;",
-            "#[path = \"plugin_importer_dx/d11_test_runtime_fixture.rs\"]",
-            "mod d11_test_runtime_fixture;",
-            "#[path = \"plugin_importer_dx/d12_runtime_exports.rs\"]",
-            "mod d12_runtime_exports;",
-            "#[path = \"plugin_importer_dx/d13_importer_sdk.rs\"]",
-            "mod d13_importer_sdk;",
-            "#[path = \"plugin_importer_dx/d6_runtime_plugin_id.rs\"]",
-            "mod d6_runtime_plugin_id;",
-            "#[path = \"plugin_importer_dx/d5_editor_authoring.rs\"]",
-            "mod d5_editor_authoring;",
-            "#[path = \"plugin_importer_dx/d8_registration_builder.rs\"]",
-            "mod d8_registration_builder;",
-            "#[path = \"plugin_importer_dx/d9_editor_runtime_mirror.rs\"]",
-            "mod d9_editor_runtime_mirror;",
-        ],
-    );
-    assert_eq!(
-        plugin_importer_dx.matches("#[test]").count(),
-        0,
-        "plugin_importer_dx.rs should only mount child review guard owners"
-    );
-    for child_owned_test in [
-        "fn review_d10_animation_physics_tests_use_sdk_bridge_call",
-        "fn review_d6_runtime_plugin_id_accepts_external_string_keys",
-        "fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder",
-        "fn review_d5_editor_authoring_plugins_use_sdk_macro",
-        "fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration",
-    ] {
-        assert!(
-            !plugin_importer_dx.contains(child_owned_test),
-            "child-owned plugin-importer DX review guard `{child_owned_test}` should not return to plugin_importer_dx.rs"
-        );
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PATHS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/paths.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_SOURCES_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/sources.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PARENT_MOUNTS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/parent_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_REVIEW_CHILDREN_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/review_children.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/budgets.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_MIRRORS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/status_mirrors.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_SLICE: &str =
+    "Runtime 15 M3 plugin-importer DX review mounts guard folder-backed split";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_STATUS: &str =
+    "runtime_15_plugin_importer_dx_review_mounts_guard_folder_backed_static_passed_cargo_deferred";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_DATE: &str = "2026-07-04";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_GUARD: &str =
+    "runtime_15_plugin_importer_dx_review_mounts_guard_is_folder_backed";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_GUARD: &str =
+    "runtime_15_plugin_importer_dx_review_mounts_guard_folder_backed_status_is_current";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGET_GUARD: &str =
+    "runtime_15_plugin_importer_dx_review_mounts_children_line_budgets_are_current";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_CHILDREN_GUARD: &str =
+    "assert_plugin_importer_dx_review_children_are_mounted";
+pub(super) const PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET: usize = 800;
+
+const REVIEW_GUARD_STATUS_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs";
+const REVIEW_GUARD_STATUS_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
+const REVIEW_GUARD_DATE_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
+
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "paths",
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PATHS_CHILD,
+        "pub(super) const PLUGIN_IMPORTER_DX_REVIEW_SOURCE_PATH",
+    ),
+    (
+        "sources",
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_SOURCES_CHILD,
+        "pub(super) fn plugin_importer_dx_review_mount_sources",
+    ),
+    (
+        "parent_mounts",
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PARENT_MOUNTS_CHILD,
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_GUARD,
+    ),
+    (
+        "review_children",
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_REVIEW_CHILDREN_CHILD,
+        PLUGIN_IMPORTER_DX_REVIEW_CHILDREN_GUARD,
+    ),
+    (
+        "budgets",
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD,
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGET_GUARD,
+    ),
+    (
+        "status_mirrors",
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_MIRRORS_CHILD,
+        PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_STATUS_GUARD,
+    ),
+];
+
+pub(super) struct PluginImporterDxReviewMountSources {
+    pub(super) structure_assertions_child: String,
+    pub(super) review_mounts_child: String,
+    pub(super) paths_child: String,
+    pub(super) sources_child: String,
+    pub(super) parent_mounts_child: String,
+    pub(super) review_children_child: String,
+    pub(super) budgets_child: String,
+    pub(super) status_mirrors_child: String,
+    pub(super) plugin_importer_dx: String,
+    pub(super) plugin_importer_dx_d10: String,
+    pub(super) plugin_importer_dx_d1: String,
+    pub(super) plugin_importer_dx_d11: String,
+    pub(super) plugin_importer_dx_d12: String,
+    pub(super) plugin_importer_dx_d5: String,
+    pub(super) plugin_importer_dx_d6: String,
+    pub(super) plugin_importer_dx_d8: String,
+    pub(super) plugin_importer_dx_d9: String,
+}
+
+pub(super) fn assert_plugin_importer_dx_review_mounts_are_folder_backed() {
+    let sources = plugin_importer_dx_review_mount_sources();
+
+    parent_mounts::assert_plugin_importer_dx_parent_mounts_review_children(&sources);
+    review_children::assert_plugin_importer_dx_review_children_are_mounted(&sources);
+}
+
+pub(super) fn plugin_importer_dx_review_mount_sources() -> PluginImporterDxReviewMountSources {
+    sources::plugin_importer_dx_review_mount_sources()
+}
+
+pub(super) fn plugin_importer_dx_review_mount_child_sources() -> Vec<(&'static str, String)> {
+    PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILDREN
+        .iter()
+        .map(|(_, path, _)| (*path, read_runtime_src(path)))
+        .collect()
+}
+
+pub(super) fn plugin_importer_dx_review_mount_child_source_blob() -> String {
+    let mut blob = String::new();
+    for (_, source) in plugin_importer_dx_review_mount_child_sources() {
+        blob.push_str(&source);
+        blob.push('\n');
     }
-    assert_contains_all(
-        "plugin importer DX D10 child owns animation/physics bridge-call migration review guard",
-        &plugin_importer_dx_d10,
-        &[
-            "fn review_d10_animation_physics_tests_use_sdk_bridge_call",
-            "PhysicsQueryInterface",
-            "WeakBridge<dyn PhysicsQueryInterface>",
-            "physics.query.v1",
-            "d10_animation_physics_bridge_call_static_passed_cargo_deferred",
-            "zircon_plugins/physics/runtime/src/plugin.rs",
-            "zircon_plugins/plugin_sdk/src/registration.rs",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D1 child owns capability single-source and SDK builder mirror review guard",
-        &plugin_importer_dx_d1,
-        &[
-            "fn review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror",
-            "D1_RUNTIME_CAPABILITY_ROOTS",
-            "plugins_12_runtime_capability_single_source_guard_passed",
-            "plugins_12_capability_single_source_conformance",
-            "m4_runtime_capability_gate_status = runtime-capability-single-source-clean",
-            "m4_t2_builder_mirror_gate_status = sdk-builder-mirror-clean",
-            "PluginFeatureBundleBuilder",
-            "d1_capability_single_source_review_synced_static_passed_cargo_deferred",
-            "15 个 trait-backed first-party runtime roots",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D11 child owns animation/physics TestRuntime fixture migration review guard",
-        &plugin_importer_dx_d11,
-        &[
-            "fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture",
-            "runtime_physics_animation_tick_contract.rs",
-            "runtime_physics_animation_tick_contract/animation_assets.rs",
-            "runtime_physics_animation_tick_contract/runtime_helpers.rs",
-            "TestRuntime::builder()",
-            "d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D6 child owns RuntimePluginId open string-newtype review guard",
-        &plugin_importer_dx_d6,
-        &[
-            "fn review_d6_runtime_plugin_id_accepts_external_string_keys",
-            "RuntimePluginId",
-            "enum RuntimePluginId",
-            "runtime_plugin_id_accepts_external_keys_without_core_variant",
-            "d6_runtime_plugin_id_open_string_newtype_review_static_passed_cargo_deferred",
-            "第三方合法 key 不需 core enum 分支",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D8 child owns runtime registration builder review guard",
-        &plugin_importer_dx_d8,
-        &[
-            "fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder",
-            "D8_RUNTIME_REGISTRATION_CRATES",
-            "d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred",
-            "RuntimePluginRegistrationBuilder",
-            "RuntimePluginModuleRegistration::event",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D5 child owns editor authoring macro review guard",
-        &plugin_importer_dx_d5,
-        &[
-            "fn review_d5_editor_authoring_plugins_use_sdk_macro",
-            "D5_EDITOR_AUTHORING_MACRO_CRATES",
-            "d5_editor_authoring_macro_consumers_static_passed_cargo_deferred",
-            "zircon_plugin_sdk::authoring_plugin!",
-            "plugin.declaration().registration_report(&plugin)",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D9 child owns editor/runtime mirror review guard",
-        &plugin_importer_dx_d9,
-        &[
-            "fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration",
-            "D9_EDITOR_RUNTIME_MIRROR_CRATES",
-            "d9_editor_runtime_mirror_consumers_static_passed_cargo_deferred",
-            "EditorPluginDeclaration::mirrors_runtime_manifest",
-            "d9_editor_runtime_mirror_gate_status",
-        ],
-    );
-    assert_contains_all(
-        "plugin importer DX D12 child owns runtime export macro review guard",
-        &plugin_importer_dx_d12,
-        &[
-            "fn review_d12_runtime_helper_exports_use_sdk_macro",
-            "D12_TRAIT_BACKED_RUNTIME_CRATES",
-            "plugins_12_runtime_export_macro_rollout_check_passed",
-            "zircon_plugin_sdk::runtime_plugin_exports!",
-            "15 个 first-party trait-backed runtime roots",
-        ],
-    );
+    blob
 }

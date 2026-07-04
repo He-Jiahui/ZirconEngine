@@ -1,0 +1,10 @@
+runtime_text_atlas_texture_upload_owner_split_validation_20260704
+date=2026-07-04
+scope=scene_renderer/ui/atlas_texture_upload owner split
+changed_files=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs;zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs;zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs;zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs;zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+behavior=preserve GlyphAtlasUploadCommand WGPU projection, bitmap request staging binding, and prepared upload frame readiness report while moving each responsibility to a focused leaf owner
+proof_image=docs/tests/runtime/text/runtime_text_atlas_texture_upload_owner_split_preview_20260704.png
+proof_image_sha256=
+AD1E060ECF788BF925FD40E017DD42890335E5503BFAEC9DD09ECDC189EF127A
+target_policy=proof image/log stored under docs/tests/runtime/text and must not appear in target directories
+cargo_status=deferred because external cargo/rustc lanes are active; this slice uses rustfmt/diff/static validation only

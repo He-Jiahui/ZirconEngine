@@ -3,6 +3,8 @@ use super::*;
 #[test]
 fn runtime_15_plugin_importer_dx_structure_guard_is_folder_backed() {
     let parent = read_runtime_src(PLUGIN_IMPORTER_DX_STRUCTURE_CHILD);
+    let child_inventory = read_runtime_src(PLUGIN_IMPORTER_DX_ROOT_CHILD_ROWS_CHILD);
+    let status_inventory = read_runtime_src(PLUGIN_IMPORTER_DX_ROOT_STATUSES_CHILD);
     let child_blob = folder_backed_child_source_blob();
 
     assert_contains_all(
@@ -23,14 +25,27 @@ fn runtime_15_plugin_importer_dx_structure_guard_is_folder_backed() {
             "mod status_mirrors;",
             "#[path = \"plugin_importer_dx_child_owners/structure_assertions.rs\"]",
             "mod structure_assertions;",
-            FOLDER_BACKED_SLICE,
-            FOLDER_BACKED_STATUS,
+            "#[path = \"plugin_importer_dx_child_owners/root_paths.rs\"]",
+            "mod root_paths;",
+            "#[path = \"plugin_importer_dx_child_owners/root_statuses.rs\"]",
+            "mod root_statuses;",
+            "#[path = \"plugin_importer_dx_child_owners/root_child_rows.rs\"]",
+            "mod root_child_rows;",
+            "#[path = \"plugin_importer_dx_child_owners/root_sources.rs\"]",
+            "mod root_sources;",
+            "#[path = \"plugin_importer_dx_child_owners/root_inventory.rs\"]",
+            "mod root_inventory;",
         ],
+    );
+    assert_contains_all(
+        "plugin-importer DX root status child preserves folder-backed status anchors",
+        &status_inventory,
+        &[FOLDER_BACKED_SLICE, FOLDER_BACKED_STATUS],
     );
     for (_, child_path, child_guard) in FOLDER_BACKED_CHILDREN {
         assert!(
-            parent.contains(child_path),
-            "plugin-importer DX structure guard parent should inventory child path {child_path}"
+            child_inventory.contains(child_path),
+            "plugin-importer DX root child inventory should include child path {child_path}"
         );
         assert!(
             child_blob.contains(child_guard),

@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on' (47144) panicked at zircon_runtime\src\graphics\tests\render_product_post_process_full_chain.rs:536:13:
+missing buffer alias for `history.current.exposure`; aliases=[RenderGraphExecutionAliasRecord { logical_name: "light-grid-params", backing_name: "light-grid-params:light-grid-execution-fallback" }, RenderGraphExecutionAliasRecord { logical_name: "light-tile-masks", backing_name: "light-tile-masks:light-grid-execution-fallback" }, RenderGraphExecutionAliasRecord { logical_name: "light-zbins", backing_name: "light-zbins:light-grid-execution-fallback" }, RenderGraphExecutionAliasRecord { logical_name: "postprocess.exposure.histogram", backing_name: "rg-transient-buffer-bucket-e739801872fb1cf5-slot-0" }]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6462 filtered out; finished in 5.33s
+

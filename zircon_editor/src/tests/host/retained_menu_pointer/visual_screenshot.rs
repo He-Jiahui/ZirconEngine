@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use crate::ui::retained_host::primitives::{PhysicalSize, SharedString};
+use crate::ui::retained_host::primitives::{Color, PhysicalSize, SharedString};
 use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
@@ -79,6 +79,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
         &fixture.layout,
         &fixture.descriptors,
         shell_size,
+        1.0,
         &metrics,
         None,
     );
@@ -167,6 +168,7 @@ fn capture_close_prompt_visual_artifact() {
         &fixture.layout,
         &fixture.descriptors,
         shell_size,
+        1.0,
         &metrics,
         None,
     );
@@ -679,6 +681,17 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
             30.0,
             false,
         ),
+        atlas_label(
+            "AtlasProgressLabel",
+            "Progress",
+            34.0,
+            492.0,
+            70.0,
+            16.0,
+            10.0,
+            "muted",
+        ),
+        atlas_progress("WorkbenchProgressAtlas", 0.64, 112.0, 496.0, 292.0, 12.0),
     ]);
 
     nodes.extend([
@@ -692,26 +705,26 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
             11.0,
             "",
         ),
-        atlas_surface("AtlasImageCard", "inset", 470.0, 338.0, 132.0, 128.0),
+        atlas_surface("AtlasImageCard", "inset", 470.0, 338.0, 132.0, 96.0),
         atlas_surface(
             "AtlasImagePreview",
             "asset-preview-visual",
             486.0,
             354.0,
             100.0,
-            72.0,
+            48.0,
         ),
         atlas_label(
             "AtlasImageLabel",
             "Image preview",
             492.0,
-            434.0,
+            414.0,
             94.0,
             18.0,
             10.0,
             "muted",
         ),
-        atlas_surface("AtlasPopup", "popup", 624.0, 338.0, 220.0, 128.0),
+        atlas_surface("AtlasPopup", "popup", 624.0, 338.0, 220.0, 96.0),
         atlas_label(
             "AtlasPopupTitle",
             "Popup / Picker",
@@ -726,7 +739,7 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
             "WorkbenchInputPopupFilter",
             "Filter rows...",
             640.0,
-            384.0,
+            380.0,
             184.0,
             28.0,
             "",
@@ -735,78 +748,191 @@ fn workbench_component_atlas_nodes() -> Vec<TemplatePaneNodeData> {
             "WorkbenchListPopupSelected",
             "Interactive option",
             640.0,
-            426.0,
+            414.0,
             184.0,
             28.0,
             "selected",
         ),
-        atlas_workbench_content_panel("WorkbenchAtlasLeftPanel", 470.0, 480.0, 374.0, 54.0),
-        atlas_label(
-            "WorkbenchAtlasContentPanelLabel",
-            "Workbench content panel",
-            486.0,
-            488.0,
-            180.0,
-            16.0,
-            10.0,
-            "muted",
+        atlas_tooltip(
+            "WorkbenchTooltipAtlas",
+            "Tooltip",
+            "Host route",
+            470.0,
+            448.0,
+            132.0,
+            70.0,
         ),
-        atlas_label(
-            "WorkbenchAtlasContentPanelBody",
-            "Recessed surface, 1px border, token gap",
-            486.0,
-            508.0,
-            280.0,
-            16.0,
-            10.0,
-            "",
+        atlas_dialog(
+            "WorkbenchDialogAtlas",
+            "Unsaved asset",
+            "Apply material changes?",
+            624.0,
+            446.0,
+            220.0,
+            104.0,
+            "warning",
         ),
     ]);
 
     nodes.extend([
-        atlas_label(
-            "AtlasStatusReady",
-            "Ready",
-            26.0,
-            592.0,
-            80.0,
-            18.0,
-            10.0,
-            "",
-        ),
-        atlas_label(
-            "AtlasStatusWarn",
+        atlas_status_signal("WorkbenchStatusReady", "Ready", 2.0, 578.0, 104.0, 42.0),
+        atlas_status_signal(
+            "WorkbenchStatusWarnings",
             "2 Warnings",
-            122.0,
-            592.0,
-            96.0,
-            18.0,
-            10.0,
-            "warning",
+            110.0,
+            578.0,
+            128.0,
+            42.0,
         ),
-        atlas_label(
-            "AtlasStatusMsg",
+        atlas_status_signal(
+            "WorkbenchStatusMessages",
             "0 Messages",
-            236.0,
-            592.0,
-            100.0,
-            18.0,
-            10.0,
-            "muted",
+            238.0,
+            578.0,
+            132.0,
+            42.0,
         ),
-        atlas_label(
-            "AtlasStatusGrid",
-            "Grid: 10 cm    Snap: On    100%",
-            682.0,
-            592.0,
-            190.0,
-            18.0,
-            10.0,
-            "muted",
+        atlas_status_chip(
+            "WorkbenchStatusGrid",
+            "Grid: 10 cm",
+            634.0,
+            585.0,
+            92.0,
+            28.0,
         ),
+        atlas_status_chip("WorkbenchStatusSnap", "Snap: On", 734.0, 585.0, 82.0, 28.0),
+        atlas_status_chip("WorkbenchStatusZoom", "100%", 824.0, 585.0, 52.0, 28.0),
     ]);
 
     nodes
+}
+
+fn atlas_status_signal(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Label".into(),
+        text: text.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_progress(
+    control_id: &str,
+    value_percent: f32,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Progress".into(),
+        component_role: "progress-bar".into(),
+        value_percent,
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_tooltip(
+    control_id: &str,
+    text: &str,
+    label_text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Tooltip".into(),
+        component_role: "tooltip".into(),
+        surface_variant: "workbench-tooltip".into(),
+        text: text.into(),
+        label_text: label_text.into(),
+        value_number: 8.0,
+        value_color: Color::from_rgb_u8(23, 28, 32),
+        label_color: Color::from_rgb_u8(168, 179, 184),
+        icon_color: Color::from_rgb_u8(37, 156, 167),
+        layout_icon_size: 16.0,
+        layout_content_offset_y: 48.0,
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_dialog(
+    control_id: &str,
+    title: &str,
+    message: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    severity: &str,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "ConfirmDialog".into(),
+        component_role: "confirm-dialog".into(),
+        component_variant: severity.into(),
+        surface_variant: "workbench-dialog".into(),
+        text: title.into(),
+        value_text: message.into(),
+        popup_open: true,
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn atlas_status_chip(
+    control_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        role: "Label".into(),
+        text: text.into(),
+        frame: TemplateNodeFrameData {
+            x,
+            y,
+            width,
+            height,
+        },
+        ..TemplatePaneNodeData::default()
+    }
 }
 
 fn atlas_surface(
@@ -821,29 +947,6 @@ fn atlas_surface(
         control_id: control_id.into(),
         role: "Panel".into(),
         surface_variant: surface_variant.into(),
-        border_width: 1.0,
-        corner_radius: 4.0,
-        frame: TemplateNodeFrameData {
-            x,
-            y,
-            width,
-            height,
-        },
-        ..TemplatePaneNodeData::default()
-    }
-}
-
-fn atlas_workbench_content_panel(
-    control_id: &str,
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) -> TemplatePaneNodeData {
-    TemplatePaneNodeData {
-        control_id: control_id.into(),
-        role: "VerticalGroup".into(),
-        surface_variant: "content-panel".into(),
         border_width: 1.0,
         corner_radius: 4.0,
         frame: TemplateNodeFrameData {
@@ -1543,6 +1646,7 @@ fn presented_window_from_chrome(
         layout,
         descriptors,
         shell_size,
+        1.0,
         &metrics,
         None,
     );

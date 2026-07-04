@@ -5,6 +5,7 @@ use crate::core::math::{Real, UVec2};
 pub struct ViewportRenderRegion {
     physical_position: UVec2,
     physical_size: UVec2,
+    local_size: UVec2,
     depth_min: Real,
     depth_max: Real,
 }
@@ -23,6 +24,7 @@ impl ViewportRenderRegion {
         Self {
             physical_position: rect.physical_position,
             physical_size: rect.physical_size,
+            local_size: rect.physical_size,
             depth_min: rect.depth_min.clamp(0.0, 1.0),
             depth_max: rect.depth_max.clamp(0.0, 1.0),
         }
@@ -41,7 +43,7 @@ impl ViewportRenderRegion {
     }
 
     pub(crate) fn local_size(self) -> UVec2 {
-        self.physical_size
+        self.local_size
     }
 
     pub(crate) fn physical_origin(self) -> [u32; 2] {
@@ -49,18 +51,43 @@ impl ViewportRenderRegion {
     }
 
     pub(crate) fn local_to_physical_coord(self, local_coord: UVec2) -> UVec2 {
-        let max_local = UVec2::new(
-            self.physical_size.x.saturating_sub(1),
-            self.physical_size.y.saturating_sub(1),
-        );
+        let scale_axis = |coord: u32, local: u32, physical: u32| -> u32 {
+            if local <= 1 {
+                0
+            } else {
+                ((u64::from(coord.min(local - 1)) * u64::from(physical.saturating_sub(1)))
+                    / u64::from(local - 1)) as u32
+            }
+        };
+        let local_size = UVec2::new(self.local_size.x.max(1), self.local_size.y.max(1));
         UVec2::new(
-            self.physical_position
-                .x
-                .saturating_add(local_coord.x.min(max_local.x)),
-            self.physical_position
-                .y
-                .saturating_add(local_coord.y.min(max_local.y)),
+            self.physical_position.x.saturating_add(scale_axis(
+                local_coord.x,
+                local_size.x,
+                self.physical_size.x,
+            )),
+            self.physical_position.y.saturating_add(scale_axis(
+                local_coord.y,
+                local_size.y,
+                self.physical_size.y,
+            )),
         )
+    }
+
+    pub(crate) fn with_local_size(self, local_size: UVec2) -> Self {
+        Self {
+            local_size: UVec2::new(local_size.x.max(1), local_size.y.max(1)),
+            ..self
+        }
+    }
+
+    pub(crate) fn local_render_region(self) -> Self {
+        Self {
+            physical_position: UVec2::ZERO,
+            physical_size: self.local_size,
+            local_size: self.local_size,
+            ..self
+        }
     }
 
     pub fn is_empty(self) -> bool {
@@ -123,6 +150,7 @@ impl Default for ViewportRenderRegion {
         Self {
             physical_position: UVec2::ZERO,
             physical_size: UVec2::new(1, 1),
+            local_size: UVec2::new(1, 1),
             depth_min: 0.0,
             depth_max: 1.0,
         }
@@ -221,5 +249,45 @@ mod tests {
         assert_eq!(region.local_position(), UVec2::ZERO);
         assert_eq!(region.local_size(), UVec2::new(320, 180));
         assert_eq!(region.physical_position(), UVec2::new(320, 0));
+    }
+
+    #[test]
+    fn viewport_region_preserves_output_rect_when_local_render_size_changes() {
+        let mut camera =
+            CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+        camera.viewport_rect = Some(RenderViewportRect::new(
+            UVec2::new(80, 40),
+            UVec2::new(160, 120),
+        ));
+
+        let region = ViewportRenderRegion::from_camera(Some(&camera), UVec2::new(320, 240))
+            .with_local_size(UVec2::new(80, 60));
+
+        assert_eq!(region.physical_position(), UVec2::new(80, 40));
+        assert_eq!(region.physical_size(), UVec2::new(160, 120));
+        assert_eq!(region.local_position(), UVec2::ZERO);
+        assert_eq!(region.local_size(), UVec2::new(80, 60));
+        assert_eq!(
+            region.local_to_physical_coord(UVec2::new(79, 59)),
+            UVec2::new(239, 159)
+        );
+    }
+
+    #[test]
+    fn viewport_region_derives_origin_zero_region_for_graph_owned_targets() {
+        let mut camera =
+            CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+        camera.viewport_rect = Some(RenderViewportRect::new(
+            UVec2::new(80, 40),
+            UVec2::new(160, 120),
+        ));
+
+        let region = ViewportRenderRegion::from_camera(Some(&camera), UVec2::new(320, 240))
+            .with_local_size(UVec2::new(80, 60))
+            .local_render_region();
+
+        assert_eq!(region.physical_position(), UVec2::ZERO);
+        assert_eq!(region.physical_size(), UVec2::new(80, 60));
+        assert_eq!(region.local_size(), UVec2::new(80, 60));
     }
 }

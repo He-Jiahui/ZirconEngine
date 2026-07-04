@@ -184,5 +184,15 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     let ambient = scene.ambient_color.rgb * surface.occlusion;
     let diffuse_color = zr_standard_pbr_diffuse_color(surface);
     let direct_lights = zr_standard_pbr_gpu_light_lighting(surface, diffuse_color, ctx);
-    return diffuse_color * ambient + direct_lights + surface.emissive;
+    let environment_lights = zr_environment_pbr_indirect(
+        surface.normal_ws,
+        vec3<f32>(0.0, 0.0, 1.0),
+        surface.roughness,
+        surface.metallic,
+        diffuse_color,
+        surface.base_color.rgb,
+        surface.occlusion,
+        surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
+    );
+    return diffuse_color * ambient + direct_lights + environment_lights + surface.emissive;
 }

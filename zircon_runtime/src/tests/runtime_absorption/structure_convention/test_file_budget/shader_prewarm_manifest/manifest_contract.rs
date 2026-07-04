@@ -10,6 +10,8 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
     let asset_scan_error_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/asset_scan_errors.rs");
     let io_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/io.rs");
+    let raw_revision_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs");
     let registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs");
     let runtime_15_plan =
@@ -58,7 +60,7 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
     );
     assert_contains_all(
         "shader prewarm manifest test child owns asset-root manifest contract",
-        &tests,
+        &(tests.clone() + &raw_revision_tests),
         &[
             "mod io;",
             "mod asset_scan_errors;",
@@ -79,7 +81,7 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
         ],
     );
     assert_eq!(
-        tests.matches("#[test]").count(),
+        tests.matches("#[test]").count() + raw_revision_tests.matches("#[test]").count(),
         10,
         "shader prewarm manifest child should own builtin-fallback, asset-root, sparse-option, builtin-template, custom-shading, revision, and geometry-source tests"
     );
@@ -153,6 +155,10 @@ fn runtime_15_shader_prewarm_manifest_tests_are_folder_backed() {
         (
             "bin/zircon_shader_prewarm/manifest/tests/io.rs",
             io_tests.as_str(),
+        ),
+        (
+            "bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs",
+            raw_revision_tests.as_str(),
         ),
         (
             "bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",

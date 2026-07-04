@@ -10,6 +10,7 @@ pub(super) fn attach_extra_capabilities(
             .with_capability("runtime.feature.ai.blackboard")
             .with_capability("runtime.feature.ai.perception"),
         "animation" => descriptor.with_capability("runtime.feature.animation.timeline_event_track"),
+        "navigation" => descriptor.with_capability("runtime.plugin.navigation.recast"),
         "zr_vm_language" => descriptor.with_capability("runtime.script.backend.zr_vm_project"),
         "physics" => descriptor
             .with_capability("runtime.capability.physics.raycast")

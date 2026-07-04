@@ -1237,7 +1237,7 @@ fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_mult
                 .with_hybrid_global_illumination(false)
                 .with_clustered_lighting(false)
                 .with_screen_space_ambient_occlusion(false)
-                .with_history_resolve(false)
+                .with_temporal_history(false)
                 .with_bloom(false)
                 .with_color_grading(false)
                 .with_reflection_probes(false)

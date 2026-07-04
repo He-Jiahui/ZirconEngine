@@ -29,3 +29,16 @@ pub(super) const STRUCTURE_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
     "runtime_15_plugin_importer_dx_structure_guard_budgets_are_focused",
     "Cargo gate deferred",
 ];
+
+pub(super) const STRUCTURE_GUARD_ROOT_INVENTORY_CHILD_SPLIT: &[&str] = &[
+    "runtime_15_plugin_importer_dx_structure_guard_root_inventory_child_split_target_server_direct_binary_passed",
+    "Runtime 15 M3 plugin-importer DX structure guard root inventory child split",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_statuses.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_child_rows.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_inventory.rs",
+    "runtime_15_plugin_importer_dx_structure_guard_root_inventory_is_child_owned",
+    "target-server direct binary passed",
+];

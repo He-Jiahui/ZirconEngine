@@ -19,7 +19,7 @@ pub(super) fn viewport_frame(layout: &AssetFolderTreePointerLayout) -> UiFrame {
     )
 }
 
-pub(super) fn content_height(item_count: usize) -> f32 {
+pub(in crate::ui::retained_host) fn content_height(item_count: usize) -> f32 {
     if item_count == 0 {
         0.0
     } else {
@@ -31,6 +31,6 @@ pub(super) fn row_width(layout: &AssetFolderTreePointerLayout) -> f32 {
     (layout.pane_size.width - ROW_WIDTH_INSET).max(0.0)
 }
 
-pub(super) fn viewport_y() -> f32 {
+pub(in crate::ui::retained_host) fn viewport_y() -> f32 {
     VIEWPORT_Y
 }

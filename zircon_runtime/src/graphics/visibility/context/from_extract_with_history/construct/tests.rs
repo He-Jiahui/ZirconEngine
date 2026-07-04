@@ -1,11 +1,11 @@
 use crate::core::framework::render::{
     sort_render_cameras, CameraRenderDescriptor, CorePipelineKind, DebugOverlayExtract,
-    GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract, ParticleExtract,
-    PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget, RenderDirectionalLightSnapshot,
-    RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot, RenderSpotLightSnapshot,
-    RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier,
-    SpriteExtract, ViewportCameraSnapshot,
+    EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightShadowSettings, LightingExtract,
+    ParticleExtract, PostProcessExtract, RenderCameraOrderInput, RenderCameraTarget,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderLayerSet, RenderMaterialAlphaMode,
+    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderPointLightSnapshot,
+    RenderSpotLightSnapshot, RenderViewExtract, RenderWorldSnapshotHandle, ShadowPcfQuality,
+    ShadowResolutionTier, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, Vec3, Vec4};
@@ -33,6 +33,7 @@ fn visibility_context_records_relevance_and_filters_main_view_layers() {
         ),
         animation_poses: Vec::new(),
         lighting: LightingExtract::default(),
+        environment: EnvironmentExtract::default(),
         post_process: PostProcessExtract::default(),
         debug: DebugOverlayExtract {
             overlays: RenderOverlayExtract::default(),
@@ -150,6 +151,7 @@ fn visibility_context_builds_shadow_view_independent_from_main_layers() {
             }],
             ..LightingExtract::default()
         },
+        environment: EnvironmentExtract::default(),
         post_process: PostProcessExtract::default(),
         debug: DebugOverlayExtract {
             overlays: RenderOverlayExtract::default(),
@@ -237,6 +239,7 @@ fn visibility_context_builds_shadow_views_for_atlas_light_slots() {
             }],
             ..LightingExtract::default()
         },
+        environment: EnvironmentExtract::default(),
         post_process: PostProcessExtract::default(),
         debug: DebugOverlayExtract {
             overlays: RenderOverlayExtract::default(),
@@ -320,6 +323,7 @@ fn visibility_context_builds_custom_target_view_from_camera_descriptors() {
         ),
         animation_poses: Vec::new(),
         lighting: LightingExtract::default(),
+        environment: EnvironmentExtract::default(),
         post_process: PostProcessExtract::default(),
         debug: DebugOverlayExtract {
             overlays: RenderOverlayExtract::default(),
@@ -446,6 +450,7 @@ fn frame_from_meshes(meshes: Vec<RenderMeshSnapshot>) -> RenderFrameExtract {
         ),
         animation_poses: Vec::new(),
         lighting: LightingExtract::default(),
+        environment: EnvironmentExtract::default(),
         post_process: PostProcessExtract::default(),
         debug: DebugOverlayExtract {
             overlays: RenderOverlayExtract::default(),

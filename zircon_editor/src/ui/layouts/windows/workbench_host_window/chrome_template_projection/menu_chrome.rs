@@ -1,4 +1,8 @@
 use super::*;
+use crate::ui::retained_host::measure_runtime_text_width;
+use crate::ui::workbench::menu_bar::{
+    workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
+};
 
 pub(super) fn menu_chrome_nodes(
     menus: &ModelRc<super::super::HostMenuChromeMenuData>,
@@ -71,7 +75,7 @@ fn fallback_menu_chrome_nodes(
             role: "Button".into(),
             text: label,
             text_tone: "default".into(),
-            font_size: 12.0,
+            font_size: WORKBENCH_MENU_SLOT_FONT_SIZE,
             font_weight: 500,
             surface_variant: "".into(),
             button_variant: "ghost".into(),
@@ -109,7 +113,10 @@ fn expand_menu_chrome_slot_nodes(
 
     let slot_count = menus.row_count().max(MENU_SLOT_COUNT);
     let gap = menu_slot_gap(&slot_templates).unwrap_or(2.0);
-    let mut projected_slots: Vec<ViewTemplateNodeData> = Vec::with_capacity(slot_count);
+    let mut next_x = slot_templates
+        .get(&0)
+        .map(|node| node.frame.x)
+        .unwrap_or(8.0);
     for row in 0..slot_count {
         let template_index = row.min(MENU_SLOT_COUNT - 1);
         let Some(mut node) = slot_templates.get(&template_index).cloned() else {
@@ -122,13 +129,10 @@ fn expand_menu_chrome_slot_nodes(
         node.node_id = format!("{MENU_SLOT_PREFIX}{row}").into();
         node.control_id = format!("{MENU_SLOT_PREFIX}{row}").into();
         node.text = label.clone().into();
-        if row >= MENU_SLOT_COUNT {
-            if let Some(previous) = projected_slots.last() {
-                node.frame.x = previous.frame.x + previous.frame.width + gap;
-            }
-            node.frame.width = menu_slot_width(&label);
-        }
-        projected_slots.push(node.clone());
+        node.font_size = WORKBENCH_MENU_SLOT_FONT_SIZE;
+        node.frame.x = next_x;
+        node.frame.width = menu_slot_width(&label);
+        next_x = node.frame.x + node.frame.width + gap;
         output_nodes.push(node);
     }
     output_nodes
@@ -141,7 +145,8 @@ fn model_nodes(nodes: &ModelRc<ViewTemplateNodeData>) -> Vec<ViewTemplateNodeDat
 }
 
 fn menu_slot_width(label: &str) -> f32 {
-    ((label.chars().count() as f32 * 7.0) + 24.0).clamp(40.0, 128.0)
+    let label_width = measure_runtime_text_width(label, WORKBENCH_MENU_SLOT_FONT_SIZE);
+    workbench_menu_slot_width_from_label_width(label_width)
 }
 
 fn menu_slot_gap(templates: &BTreeMap<usize, ViewTemplateNodeData>) -> Option<f32> {

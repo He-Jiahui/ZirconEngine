@@ -216,6 +216,7 @@ primary = false
 
 [[optional_features.modules]]
 name = "sound.timeline_animation_track.runtime"
+description = "Runtime plugin module sound.timeline_animation_track.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_sound_timeline_animation_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -223,6 +224,7 @@ capabilities = ["runtime.feature.sound.timeline_animation_track"]
 
 [[optional_features.modules]]
 name = "sound.timeline_animation_track.editor"
+description = "Editor plugin module sound.timeline_animation_track.editor"
 kind = "editor"
 crate_name = "zircon_plugin_sound_timeline_animation_editor"
 target_modes = ["editor_host"]
@@ -230,6 +232,7 @@ capabilities = ["editor.feature.sound.timeline_animation_track"]
 
 [[optional_features.modules]]
 name = "sound.timeline_animation_track.dist"
+description = "Native plugin module sound.timeline_animation_track.dist"
 kind = "native"
 crate_name = "zircon_plugin_sound_timeline_animation_dist"
 target_modes = ["client_runtime", "editor_host"]
@@ -270,6 +273,7 @@ primary = false
 
 [[optional_features.modules]]
 name = "sound.ray_traced_convolution_reverb.runtime"
+description = "Runtime plugin module sound.ray_traced_convolution_reverb.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_sound_ray_traced_convolution_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -277,6 +281,7 @@ capabilities = ["runtime.feature.sound.ray_traced_convolution_reverb"]
 
 [[optional_features.modules]]
 name = "sound.ray_traced_convolution_reverb.editor"
+description = "Editor plugin module sound.ray_traced_convolution_reverb.editor"
 kind = "editor"
 crate_name = "zircon_plugin_sound_ray_traced_convolution_editor"
 target_modes = ["editor_host"]
@@ -284,6 +289,7 @@ capabilities = ["editor.feature.sound.ray_traced_convolution_reverb"]
 
 [[optional_features.modules]]
 name = "sound.ray_traced_convolution_reverb.dist"
+description = "Native plugin module sound.ray_traced_convolution_reverb.dist"
 kind = "native"
 crate_name = "zircon_plugin_sound_ray_traced_convolution_dist"
 target_modes = ["client_runtime", "editor_host"]

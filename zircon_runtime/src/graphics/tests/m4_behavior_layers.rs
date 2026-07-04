@@ -351,6 +351,7 @@ fn build_snapshot(
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()
         },
+        environment: crate::core::framework::render::EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,

@@ -1,0 +1,24 @@
+Runtime text bitmap atlas retry queue consumer validation - 2026-07-04
+
+Slice: runtime_text_at_m1_at_m3_bitmap_atlas_retry_queue_consumer_rustfmt_static_visual_cargo_deferred
+
+Implementation:
+- Added zircon_runtime/src/graphics/text/atlas/bitmap_run/retry.rs.
+- Added GlyphAtlasBitmapRetryPlan and glyph_atlas_bitmap_retry_plan(...).
+- The retry plan splits blocked glyphs into retry_glyphs when retry_frame_index <= current frame and deferred_glyphs otherwise.
+- retry_sources() exposes due GlyphAtlasBitmapSource values for the next atlas run while retry_glyphs preserve source_index for diagnostics.
+- Exported the retry plan through bitmap_run.rs and atlas/mod.rs.
+- Added bitmap_run tests for mixed due/deferred queues and equal-frame retry eligibility.
+
+Validation performed:
+- rustfmt --edition 2021 passed on touched Rust files.
+- rustfmt --edition 2021 --check passed on touched Rust files.
+- scoped git diff --check passed with LF/CRLF working-tree warnings only.
+- Target artifact scan must remain 0 for this PNG/log.
+
+Cargo status:
+- Focused Cargo validation deferred because external cargo/rustc lanes were active during this implementation slice.
+
+Artifacts:
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_queue_consumer_preview_20260704.png
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_queue_consumer_validation_20260704.log

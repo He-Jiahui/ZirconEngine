@@ -1,0 +1,14 @@
+runtime_text_native_bitmap_atlas_prepare_report_validation_20260705
+status=rustfmt_static_visual_cargo_deferred
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+behavior=NativeBitmapAtlasPrepareReport records visible/source/unsupported/clipped counts, submission counters, single atlas storage format, mixed-storage guard, and glyphon replacement decision.
+behavior=ScreenSpaceUiTextPrepareReport now carries native_bitmap_atlas diagnostics beside native_font_ids and renderer reports.
+guard=Native bitmap atlas replacement now requires a single atlas storage format; mixed R8/RGBA submissions stay on glyphon instead of entering the single texture-array renderer.
+validation=rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs passed.
+validation=conflict marker scan passed for touched Rust files.
+validation=trailing whitespace scan passed for touched Rust files.
+validation=focused Cargo deferred because external cargo/rustc lanes were active at validation time.
+artifact=docs/tests/runtime/text/runtime_text_native_bitmap_atlas_prepare_report_preview_20260705.png
+artifact=docs/tests/runtime/text/runtime_text_native_bitmap_atlas_prepare_report_validation_20260705.log

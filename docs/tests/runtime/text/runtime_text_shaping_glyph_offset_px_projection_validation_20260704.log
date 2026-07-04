@@ -1,0 +1,33 @@
+Runtime text shaping glyph offset px projection validation
+timestamp: 2026-07-04 18:02:15 +08:00
+status: runtime_text_shaping_glyph_offset_px_projection_rustfmt_static_visual_cargo_deferred
+
+implementation:
+- zircon_runtime/src/graphics/text/shaping/cosmic.rs projects glyphon/cosmic LayoutGlyph x_offset/y_offset through glyph.font_size before writing ShapedGlyph.offset_x/y.
+- ShapedGlyph.offset_x/y remains the pixel-space contract consumed by retained-host glyph placement.
+- Non-finite backend offsets clamp to 0.0 before reaching layout consumers.
+
+regressions:
+- glyph_layout_offsets_are_projected_to_pixels: 13.0px * 0.25em = 3.25px and 13.0px * -0.125em = -1.625px.
+- glyph_layout_offsets_drop_non_finite_values: NaN/Infinity offsets become 0.0.
+
+static validation:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/shaping/cosmic.rs: passed.
+- stale direct projection scan for offset_x: glyph.x_offset / offset_y: glyph.y_offset: 0 matches.
+- helper/test scan found glyph_layout_offset_px, finite_offset_px, and both regression tests.
+- git diff --check -- zircon_runtime/src/graphics/text/shaping/cosmic.rs: passed with LF-to-CRLF working-tree warning only.
+
+visual artifact:
+- docs/tests/runtime/text/runtime_text_shaping_glyph_offset_px_projection_preview_20260704.png
+- preview sha256: B02A40BFD579BC241E499656B8D02ECF8345F64475168EB7D6A2D59B643CF251
+- visual note: schematic preview, not a live editor-window capture.
+
+target placement scan:
+target :: preview/log :: 0/0
+E:\cargo-targets :: preview/log :: 0/0
+D:\cargo-targets :: preview/log :: 0/0
+F:\cargo-targets :: preview/log :: 0/0
+
+cargo:
+- focused Cargo not started because external cargo/rustc lanes are active.
+- active processes: cargo:24116, cargo:24564, cargo:37008, cargo:37928, cargo:49308, cargo:50040, cargo:50504, cargo:50696, rustc:39852, rustc:41768, rustc:44020, rustc:48212

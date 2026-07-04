@@ -4,7 +4,7 @@ use super::*;
 fn runtime_15_foundation_row_data_status_doc_maps_are_child_owned() {
     let expected_status_map = read_runtime_src(STATUS_SUPPORT_STATUS_MAP_PATH);
     let expected_date_map = read_runtime_src(STATUS_SUPPORT_DATE_MAP_PATH);
-    let production_guard_status_rows = read_runtime_src(PRODUCTION_GUARD_SUPPORT_PATH);
+    let production_guard_status_rows = read_runtime_src(PRODUCTION_GUARD_SUPPORT_STATUS_DOCS_PATH);
 
     assert_contains_all(
         "Runtime 15 expected status map records foundation row-data status-doc splits",

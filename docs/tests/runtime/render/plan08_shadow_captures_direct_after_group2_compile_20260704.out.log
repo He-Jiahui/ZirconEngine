@@ -1,0 +1,12 @@
+
+running 7 tests
+test graphics::tests::render_product_shadow_captures::directional::render_product_csm_directional_remains_stable_under_subtexel_camera_shift ... ok
+test graphics::tests::render_product_shadow_captures::directional::render_product_directional_shadow_atlas_capture_records_receiver_path ... ok
+test graphics::tests::render_product_shadow_captures::directional::render_product_directional_shadow_atlas_darkens_receiver_capture ... ok
+test graphics::tests::render_product_shadow_captures::directional::render_product_directional_shadow_atlas_forward_deferred_darkening_parity ... ok
+test graphics::tests::render_product_shadow_captures::render_product_multi_spot_shadow_atlas_darkens_receivers_capture ... ok
+test graphics::tests::render_product_shadow_captures::render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::render_product_shadow_captures_directional_tests::runtime_15_render_product_shadow_captures_directional_tests_are_child_owner ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 6536 filtered out; finished in 17.02s
+

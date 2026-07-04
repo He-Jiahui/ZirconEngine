@@ -7,6 +7,9 @@ fn runtime_15_status_output_foundation_row_data_status_docs_are_child_owner() {
     );
     let foundation_row_data_guard = read_runtime_src(FOUNDATION_ROW_DATA_GUARD_PATH);
     let status_docs_guard = read_runtime_src(STATUS_DOCS_PARENT_PATH);
+    let root_paths = read_runtime_src(ROOT_PATHS_PATH);
+    let child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = status_doc_child_source_blob();
 
     assert_contains_all(
@@ -45,8 +48,8 @@ fn runtime_15_status_output_foundation_row_data_status_docs_are_child_owner() {
             "runtime_15_foundation_row_data.rs should delegate status-doc source {moved_doc_source}"
         );
         assert!(
-            status_docs_guard.contains(moved_doc_source),
-            "runtime_15_foundation_row_data_status_docs parent should inventory status-doc source {moved_doc_source}"
+            root_paths.contains(moved_doc_source),
+            "runtime_15_foundation_row_data_status_docs root paths should inventory status-doc source {moved_doc_source}"
         );
         assert!(
             child_sources.contains(child_owned_anchor),
@@ -55,7 +58,7 @@ fn runtime_15_status_output_foundation_row_data_status_docs_are_child_owner() {
     }
     assert_contains_all(
         "foundation row-data status-doc parent records split anchors",
-        &status_docs_guard,
+        &status_inventory,
         STATUS_DOC_STATUS_ANCHORS,
     );
     assert_contains_all(
@@ -64,6 +67,11 @@ fn runtime_15_status_output_foundation_row_data_status_docs_are_child_owner() {
         &[
             "mod delegation;",
             "mod doc_mirrors;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
             "mod row_count;",
             "mod status_maps;",
         ],
@@ -71,8 +79,8 @@ fn runtime_15_status_output_foundation_row_data_status_docs_are_child_owner() {
 
     for (_, child_path, guard_name) in STATUS_DOC_CHILDREN {
         assert!(
-            status_docs_guard.contains(child_path),
-            "foundation row-data status-doc parent should mount child path {child_path}"
+            child_inventory.contains(child_path),
+            "foundation row-data status-doc child inventory should list child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

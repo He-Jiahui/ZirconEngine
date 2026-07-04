@@ -3,16 +3,19 @@ use super::*;
 #[test]
 fn world_property_writes_use_direct_optional_state_branches() {
     let write_source = include_str!("../../world/property_access/write.rs");
+    let physics_write_source = include_str!("../../world/property_access/write/physics.rs");
 
     assert!(write_source.contains("let next = if next.is_empty() {"));
     assert!(write_source.contains("None"));
     assert!(write_source.contains("} else {"));
     assert!(write_source.contains("Some(next)"));
-    assert!(write_source.contains("if let Some(material) = collider.material.as_ref()"));
-    assert!(write_source.contains("if material.id() == next"));
-    assert!(write_source.contains("return Ok(false);"));
+    assert!(write_source.contains("\"collider\" => self.set_collider_property"));
+    assert!(physics_write_source.contains("pub(super) fn set_collider_property"));
+    assert!(physics_write_source.contains("if let Some(material) = collider.material.as_ref()"));
+    assert!(physics_write_source.contains("if material.id() == next"));
+    assert!(physics_write_source.contains("return Ok(false);"));
     assert!(!write_source.contains("(!next.is_empty()).then_some(next)"));
-    assert!(!write_source.contains(".is_some_and(|handle| handle.id() == next)"));
+    assert!(!physics_write_source.contains(".is_some_and(|handle| handle.id() == next)"));
 }
 
 #[test]
@@ -34,8 +37,8 @@ fn world_property_writes_pre_size_normalized_segment_vector() {
 
 #[test]
 fn world_collider_shape_kind_write_matches_normalized_values_without_allocation() {
-    let write_source = include_str!("../../world/property_access/write.rs");
-    let shape_kind_source = write_source
+    let physics_write_source = include_str!("../../world/property_access/write/physics.rs");
+    let shape_kind_source = physics_write_source
         .split("(shape, \"kind\") => {")
         .nth(1)
         .and_then(|text| text.split("if *shape == replacement").next())
@@ -90,9 +93,12 @@ fn world_property_numeric_array_validation_uses_direct_finite_loop() {
 
     assert!(validate_finite_array_source.contains("for component in value"));
     assert!(validate_finite_array_source.contains("if !component.is_finite()"));
-    assert!(validate_finite_array_source.contains("return Err(format!("));
+    assert!(validate_finite_array_source.contains("return Err(SceneError::NonFinitePropertyValue"));
+    assert!(validate_finite_array_source.contains("property_path: property_path.to_string()"));
+    assert!(validate_finite_array_source.contains("expected,"));
     assert!(validate_finite_array_source.contains("Ok(())"));
     assert!(!validate_finite_array_source.contains(".iter().all("));
+    assert!(!validate_finite_array_source.contains("Err(format!("));
 }
 
 #[test]
@@ -176,12 +182,14 @@ fn world_property_value_conversion_errors_use_direct_result_branches() {
     assert!(expect_i32_source
         .contains("ScenePropertyValue::Unsigned(value) => match i32::try_from(value)"));
     assert!(expect_i32_source.contains("Ok(value) => Ok(value)"));
-    assert!(expect_i32_source
-        .contains("Err(_) => Err(format!(\"property `{property_path}` expected i32 integer\"))"));
+    assert!(expect_i32_source.contains("Err(_) => Err(SceneError::PropertyTypeMismatch"));
+    assert!(expect_i32_source.contains("expected: \"i32 integer\".to_string()"));
     assert!(resource_id_source.contains("match ResourceId::from_str(&value)"));
     assert!(resource_id_source.contains("Ok(resource_id) => Ok(resource_id)"));
-    assert!(resource_id_source
-        .contains("\"property `{property_path}` has invalid resource id: {error}\""));
+    assert!(resource_id_source.contains("Err(error) => Err(SceneError::InvalidPropertyResourceId"));
+    assert!(resource_id_source.contains("source_message: error.to_string()"));
+    assert!(!expect_i32_source.contains("Err(format!("));
+    assert!(!resource_id_source.contains("Err(format!("));
     assert!(!expect_i32_source.contains(".map_err("));
     assert!(!resource_id_source.contains(".map_err("));
 }

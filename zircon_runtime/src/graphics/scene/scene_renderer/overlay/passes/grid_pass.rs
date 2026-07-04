@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::overlay::begin_line_pass_for_region;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 
 pub(crate) struct GridPass;
 
@@ -14,6 +14,7 @@ impl GridPass {
         grid_buffer: &wgpu::Buffer,
         grid_count: u32,
         frame: &ViewportRenderFrame,
+        render_region: ViewportRenderRegion,
     ) {
         if !frame
             .scene
@@ -24,13 +25,9 @@ impl GridPass {
         {
             return;
         }
-        let Some(mut pass) = begin_line_pass_for_region(
-            encoder,
-            "GridPass",
-            color_view,
-            depth_view,
-            frame.render_region(),
-        ) else {
+        let Some(mut pass) =
+            begin_line_pass_for_region(encoder, "GridPass", color_view, depth_view, render_region)
+        else {
             return;
         };
         pass.set_bind_group(0, scene_bind_group, &[]);

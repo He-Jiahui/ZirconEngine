@@ -2,7 +2,8 @@ use super::*;
 
 #[test]
 fn runtime_15_module_layout_child_summary_status_doc_status_mirror_status_rows_are_current() {
-    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_ROWS_PATH);
+    let production_guard_support =
+        read_runtime_src(PRODUCTION_GUARD_SUPPORT_MODULE_LAYOUT_ROWS_PATH);
     let expected_status_map = read_runtime_src(EXPECTED_STATUS_MAP_PATH);
     let expected_date_map = read_runtime_src(EXPECTED_DATE_MAP_PATH);
     let runtime_15_plan =

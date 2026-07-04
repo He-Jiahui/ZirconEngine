@@ -52,6 +52,49 @@ fn text_input_ime_preedit_refreshes_context_with_committed_surrounding_text() {
 }
 
 #[test]
+fn text_input_ime_preedit_refreshes_render_extract_before_cursor_update() {
+    let mut surface = text_input_surface_with_selection_and_attributes(
+        "ab",
+        1,
+        1,
+        1,
+        [
+            ("layout_padding_left", toml::Value::Float(0.0)),
+            ("layout_padding_right", toml::Value::Float(0.0)),
+            ("layout_padding_top", toml::Value::Float(0.0)),
+            ("layout_padding_bottom", toml::Value::Float(0.0)),
+            ("font_size", toml::Value::Float(10.0)),
+            ("line_height", toml::Value::Float(12.0)),
+        ],
+    );
+    surface.input.input_method_owner = Some(UiNodeId::new(2));
+
+    let result = dispatch_ime(&mut surface, UiImeInputEventKind::Preedit, "W", None);
+
+    assert_eq!(text_attr(&surface, "content"), "aWb");
+    assert!(
+        surface
+            .render_extract
+            .list
+            .commands
+            .iter()
+            .all(|command| command.text.as_deref() != Some("ab")),
+        "IME preedit should refresh render extract before cursor geometry is requested"
+    );
+    let layout = actual_text_layout_for_node(&surface, "aWb");
+    let expected = caret_frame_for_text_layout(
+        &layout,
+        &UiTextCaret {
+            offset: "aW".len(),
+            affinity: UiTextCaretAffinity::Downstream,
+        },
+    )
+    .expect("caret frame from refreshed render layout");
+    let request = assert_input_method_request(&result, UiInputMethodRequestKind::UpdateCursor);
+    assert_eq!(request.cursor_rect, Some(expected));
+}
+
+#[test]
 fn text_input_ime_preedit_rects_follow_soft_wrapped_composition_range() {
     let mut surface = text_input_surface_with_selection_and_attributes(
         "abcdef",

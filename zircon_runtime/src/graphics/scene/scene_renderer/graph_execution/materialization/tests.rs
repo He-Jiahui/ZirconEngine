@@ -147,7 +147,9 @@ fn materialization_aliases_compatible_transient_texture_slots() {
     builder.write_texture(second_write, second).unwrap();
     builder.read_texture(second_read, second).unwrap();
     builder.write_external(second_read, output).unwrap();
+    builder.add_dependency(first_write, first_read).unwrap();
     builder.add_dependency(first_read, second_write).unwrap();
+    builder.add_dependency(second_write, second_read).unwrap();
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
@@ -205,7 +207,9 @@ fn materialization_receives_incompatible_texture_resources_in_separate_graph_slo
     builder.write_texture(small_write, small).unwrap();
     builder.read_texture(small_read, small).unwrap();
     builder.write_external(small_read, output).unwrap();
+    builder.add_dependency(large_write, large_read).unwrap();
     builder.add_dependency(large_read, small_write).unwrap();
+    builder.add_dependency(small_write, small_read).unwrap();
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
@@ -322,7 +326,9 @@ fn materialization_aliases_transient_buffer_slots() {
     builder.write_buffer(second_write, second).unwrap();
     builder.read_buffer(second_read, second).unwrap();
     builder.write_external(second_read, output).unwrap();
+    builder.add_dependency(first_write, first_read).unwrap();
     builder.add_dependency(first_read, second_write).unwrap();
+    builder.add_dependency(second_write, second_read).unwrap();
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 
@@ -366,6 +372,15 @@ fn materialization_exposes_owned_texture_mip_views() {
     );
     let pass = builder.add_pass("write-mip-zero", QueueLane::Graphics);
     builder.write_texture(pass, pyramid).unwrap();
+    builder
+        .set_pass_flags(
+            pass,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
     let graph = builder.compile().unwrap();
     let mut resources = RenderGraphExecutionResources::new();
 

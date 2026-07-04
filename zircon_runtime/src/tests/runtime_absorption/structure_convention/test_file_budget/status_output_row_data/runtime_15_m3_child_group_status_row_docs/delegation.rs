@@ -4,6 +4,8 @@ use super::*;
 fn runtime_15_m3_child_group_status_row_docs_guard_is_folder_backed() {
     let status_output_row_data_parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let guard_parent = read_runtime_src(STATUS_ROW_DOCS_GUARD_PATH);
+    let guard_child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let guard_status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = status_row_doc_child_source_blob();
 
     assert_contains_all(
@@ -20,9 +22,20 @@ fn runtime_15_m3_child_group_status_row_docs_guard_is_folder_backed() {
         &[
             "mod budgets;",
             "mod delegation;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
             "mod row_sources;",
             "mod status_maps;",
             "mod status_mirrors;",
+        ],
+    );
+    assert_contains_all(
+        "M3 child-group status-row-doc guard records folder-backed split anchors",
+        &guard_status_inventory,
+        &[
             CHILD_OWNER_STATUS_NAME,
             CHILD_OWNER_STATUS_ID,
             CHILD_OWNER_GUARD_NAME,
@@ -33,8 +46,8 @@ fn runtime_15_m3_child_group_status_row_docs_guard_is_folder_backed() {
     );
     for (_, child_path, guard_name) in STATUS_ROW_DOCS_GUARD_CHILDREN {
         assert!(
-            guard_parent.contains(child_path),
-            "M3 child-group status-row-doc guard should mount child path {child_path}"
+            guard_child_inventory.contains(child_path),
+            "M3 child-group status-row-doc child inventory should list child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

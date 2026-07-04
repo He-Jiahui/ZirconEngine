@@ -1,0 +1,25 @@
+Runtime text bitmap atlas submission prepared-upload handoff validation
+Date: 2026-07-04
+Slice: runtime_text_bitmap_atlas_submission_prepared_upload_handoff_rustfmt_static_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/text/atlas/render_submission.rs
+- zircon_runtime/src/graphics/text/atlas/render_submission/plan.rs
+- zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs
+
+Behavior/architecture validated:
+- GlyphAtlasBitmapRenderSubmissionPlan now exposes prepared_upload(source_bytes), joining the submission run upload copies with external source bytes.
+- The helper returns GlyphAtlasBitmapPreparedUploadPlan by delegating to the bitmap_run prepared upload owner, so render_submission does not duplicate staging, staged-upload, stride, range, or failure logic.
+- Tests cover a successful AlphaMask + SubpixelMask handoff into page-keyed staging buffers and staged upload commands.
+- Tests also cover missing source bytes: the handoff reports a staging failure and emits no staged uploads.
+
+Fresh checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/render_submission.rs zircon_runtime/src/graphics/text/atlas/render_submission/plan.rs zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs: passed.
+- git diff --check over touched render_submission files: passed with LF/CRLF working-tree warnings only.
+- Explicit trailing-whitespace/conflict-marker scan over touched render_submission files: passed.
+- Focused Cargo validation remains deferred because external cargo/rustc lanes were active during this slice.
+- Proof image inspected: docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_prepared_upload_handoff_preview_20260704.png.
+- Proof image SHA256: D2C246EA65734B7FC157C39333644C5A562B3DC739318DF06D2B659D659A5789.
+
+Deferred:
+- Focused Cargo validation for render_text_atlas_bitmap_submission_prepares_upload_from_source_bytes remains deferred while external cargo/rustc lanes are active.

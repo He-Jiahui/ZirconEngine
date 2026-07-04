@@ -48,7 +48,9 @@ use super::selection_controls::{
 };
 use super::sliders::{slider_render_commands, slider_suppresses_owner_text};
 use super::text_fields::{text_field_render_commands, text_field_suppresses_owner_text};
-use crate::ui::text::{resolve_text_layout, UiTextLayoutRequest};
+use crate::ui::text::{
+    resolve_text_layout, UiTextLayoutRequest, UiTextLayoutResolution, UiTextMeasureCache,
+};
 
 pub fn extract_ui_render_tree(tree: &UiTree) -> UiRenderExtract {
     let arranged_tree = build_arranged_tree(tree);
@@ -66,6 +68,20 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
     tree: &UiTree,
     arranged_tree: &UiArrangedTree,
     component_states: Option<&UiSurfaceComponentStateStore>,
+) -> UiRenderExtract {
+    extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
+        tree,
+        arranged_tree,
+        component_states,
+        None,
+    )
+}
+
+pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
+    tree: &UiTree,
+    arranged_tree: &UiArrangedTree,
+    component_states: Option<&UiSurfaceComponentStateStore>,
+    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiRenderExtract {
     let commands = arranged_tree
         .draw_order
@@ -145,7 +161,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                     arranged_node.frame,
                     Some(arranged_node.clip_frame),
                 );
-                let mut layout = resolve_text_layout(&request).layout;
+                let mut layout =
+                    resolve_text_layout_with_cache(&request, text_measure_cache.as_deref_mut())
+                        .layout;
                 layout.editable = visual.editable.clone();
                 layout
             });
@@ -224,6 +242,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
                 &visual.style,
                 visual.text.as_deref(),
                 visual.editable.as_ref(),
+                text_measure_cache.as_deref_mut(),
             ));
             commands.extend(collection_row_render_commands(
                 node_id,
@@ -318,5 +337,15 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states(
     UiRenderExtract {
         tree_id: tree.tree_id.clone(),
         list: UiRenderList { commands },
+    }
+}
+
+pub(super) fn resolve_text_layout_with_cache(
+    request: &UiTextLayoutRequest<'_>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
+) -> UiTextLayoutResolution {
+    match text_measure_cache {
+        Some(cache) => cache.resolve_or_shape(request).clone(),
+        None => resolve_text_layout(request),
     }
 }

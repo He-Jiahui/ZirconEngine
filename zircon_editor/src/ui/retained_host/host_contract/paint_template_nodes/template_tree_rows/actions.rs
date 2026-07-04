@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::paint_theme::{METRICS, PALETTE};
 use super::super::render_commands::HostPaintCommand;
+use super::super::template_row_metrics::{workbench_row_metrics, workbench_row_palette};
 use super::super::template_tree_row_geometry::{tree_action_button_rect, tree_action_icon_rect};
 use super::super::template_tree_row_glyphs::{
     push_tree_eye_action_glyph, push_tree_kebab_action_glyph, push_tree_lock_action_glyph,
@@ -59,14 +59,16 @@ fn push_tree_action_button_slot(
     order: i32,
     opacity: f32,
 ) {
+    let metrics = workbench_row_metrics();
+    let palette = workbench_row_palette();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(PALETTE.surface_hover),
-        Some(PALETTE.border),
-        METRICS.border_width,
-        METRICS.radius_control,
+        Some(palette.tree_action_slot_surface),
+        Some(palette.tree_action_slot_border),
+        metrics.border_width,
+        metrics.surface_radius,
         opacity,
     ));
 }

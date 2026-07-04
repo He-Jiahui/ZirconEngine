@@ -27,8 +27,14 @@ fn runtime_15_status_output_expected_slice_guard_maps_are_child_owners() {
     let top_level_maps = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs",
     );
+    let top_level_map_support_layout = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/support_layout.rs",
+    );
     let runtime_15_topics = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs",
+    );
+    let runtime_15_topic_expected_maps = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/runtime_15_expected_slice_maps.rs",
     );
     let runtime_15_topic_review_maps = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs",
@@ -54,15 +60,40 @@ fn runtime_15_status_output_expected_slice_guard_maps_are_child_owners() {
             "runtime_15_status_output_expected_slice_guard_maps_are_child_owners",
         ],
     );
+    assert_contains_all(
+        "Runtime 15 expected-slice topic parent mounts child owners",
+        &runtime_15_topics,
+        &[
+            "#[path = \"runtime_15_topics/review_guard_maps.rs\"]",
+            "mod review_guard_maps;",
+            "#[path = \"runtime_15_topics/runtime_15_expected_slice_maps.rs\"]",
+            "mod runtime_15_expected_slice_maps;",
+        ],
+    );
     for moved_guard in [TOP_LEVEL_MAP_GUARD, RUNTIME_15_TOPIC_MAP_GUARD] {
         assert!(
             !parent.contains(moved_guard),
             "status_output_expected_slices/maps.rs should mount child owners instead of defining {moved_guard}"
         );
     }
+    for moved_anchor in [
+        RUNTIME_15_TOPIC_MAP_GUARD,
+        concat!("let status_runtime_15 = ", "read_runtime_src("),
+        concat!(
+            "Runtime 15 status expected-slice children ",
+            "own topic literals"
+        ),
+    ] {
+        assert!(
+            !runtime_15_topics.contains(moved_anchor),
+            "maps/runtime_15_topics.rs should mount child owners instead of keeping {moved_anchor}"
+        );
+    }
     assert_contains_all(
         "status-output expected-slice map children preserve guards",
-        &format!("{top_level_maps}\n{runtime_15_topics}\n{runtime_15_topic_review_maps}"),
+        &format!(
+            "{top_level_maps}\n{top_level_map_support_layout}\n{runtime_15_topics}\n{runtime_15_topic_expected_maps}\n{runtime_15_topic_review_maps}"
+        ),
         &[
             TOP_LEVEL_MAP_GUARD,
             RUNTIME_15_TOPIC_MAP_GUARD,
@@ -73,7 +104,11 @@ fn runtime_15_status_output_expected_slice_guard_maps_are_child_owners() {
 
     let test_count = parent.matches(TEST_ATTRIBUTE).count()
         + top_level_maps.matches(TEST_ATTRIBUTE).count()
+        + top_level_map_support_layout.matches(TEST_ATTRIBUTE).count()
         + runtime_15_topics.matches(TEST_ATTRIBUTE).count()
+        + runtime_15_topic_expected_maps
+            .matches(TEST_ATTRIBUTE)
+            .count()
         + runtime_15_topic_review_maps.matches(TEST_ATTRIBUTE).count();
     assert_eq!(
         test_count, 5,
@@ -90,8 +125,16 @@ fn runtime_15_status_output_expected_slice_guard_maps_are_child_owners() {
             top_level_maps.as_str(),
         ),
         (
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/support_layout.rs",
+            top_level_map_support_layout.as_str(),
+        ),
+        (
             "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs",
             runtime_15_topics.as_str(),
+        ),
+        (
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/runtime_15_expected_slice_maps.rs",
+            runtime_15_topic_expected_maps.as_str(),
         ),
         (
             "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs",
@@ -123,6 +166,20 @@ fn runtime_15_status_output_expected_slice_guard_maps_are_child_owners() {
                 "structure_convention/test_file_budget/status_output_expected_slices/maps.rs",
                 "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs",
                 "runtime_15_status_output_expected_slice_guard_maps_are_child_owners",
+            ],
+        );
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "Runtime 15 M3 runtime-15 expected-slice topic guard child-module split",
+                "runtime_15_runtime_15_expected_slice_topic_guard_child_module_split_static_passed_cargo_deferred",
+                "structure_convention/test_file_budget/status_output_expected_slices/maps.rs",
+                "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs",
+                "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/runtime_15_expected_slice_maps.rs",
+                "runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners",
+                "runtime_15_status_output_expected_slice_guard_maps_are_child_owners",
+                "Cargo gate deferred active Render Plan08 lane",
             ],
         );
     }

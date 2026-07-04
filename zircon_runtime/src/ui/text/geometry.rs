@@ -286,16 +286,24 @@ fn measured_source_prefix_width(
         return None;
     }
 
-    let offset = grapheme_floor(line.text.as_str(), visual_offset.min(line.text.len()));
-    let width = measure_text_source_range_width(
-        line.text.as_str(),
-        measure_context.style,
-        UiTextRange {
-            start: 0,
-            end: offset,
-        },
-    );
+    let range = source_prefix_range_for_visual_offset(line, visual_offset);
+    let width = measure_text_source_range_width(measure_context.text, measure_context.style, range);
     width.is_finite().then_some(width.max(0.0))
+}
+
+fn source_prefix_range_for_visual_offset(
+    line: &UiResolvedTextLine,
+    visual_offset: usize,
+) -> UiTextRange {
+    let local_end = grapheme_floor(line.text.as_str(), visual_offset.min(line.text.len()));
+    UiTextRange {
+        start: line.source_range.start,
+        end: line
+            .source_range
+            .start
+            .saturating_add(local_end)
+            .min(line.source_range.end),
+    }
 }
 
 fn line_accepts_source_measure(
@@ -304,10 +312,9 @@ fn line_accepts_source_measure(
     source_text: &str,
 ) -> bool {
     if matches!(layout.text_align, UiTextAlign::Justify)
-        || !matches!(
-            line.direction,
-            UiTextDirection::LeftToRight | UiTextDirection::Auto
-        )
+        || !matches!(layout.writing_mode, UiTextWritingMode::HorizontalTb)
+        || !matches!(layout.direction, UiTextDirection::LeftToRight)
+        || !matches!(line.direction, UiTextDirection::LeftToRight)
         || line.ellipsized
         || line.text.contains('\t')
     {
@@ -327,10 +334,7 @@ fn line_accepts_source_measure(
     run.source_range == line.source_range
         && run.visual_range == line.visual_range
         && run.text == line.text
-        && matches!(
-            run.direction,
-            UiTextDirection::LeftToRight | UiTextDirection::Auto
-        )
+        && matches!(run.direction, UiTextDirection::LeftToRight)
 }
 
 fn is_vertical_rl(layout: &UiResolvedTextLayout) -> bool {
@@ -482,6 +486,174 @@ mod tests {
         assert_eq!(measured, UiFrame::new(34.0, 20.0, 1.0, 12.0));
     }
 
+    #[test]
+    fn source_geometry_with_source_metrics_keeps_vertical_advances() {
+        let style = UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        };
+        let text = "Wi";
+        let mut layout = layout_with_advances(text, vec![2.0, 20.0]);
+        layout.writing_mode = zircon_runtime_interface::ui::surface::UiTextWritingMode::VerticalRl;
+        let line = layout.lines.first_mut().expect("line");
+        line.frame = UiFrame::new(20.0, 10.0, 10.0, 30.0);
+        let caret = UiTextCaret {
+            offset: "W".len(),
+            affinity: UiTextCaretAffinity::Downstream,
+        };
+        let horizontal_source_width = measure_text_source_range_width(
+            text,
+            &style,
+            UiTextRange {
+                start: 0,
+                end: "W".len(),
+            },
+        );
+
+        let fallback = caret_frame_for_text_layout(&layout, &caret).expect("fallback caret");
+        let measured =
+            caret_frame_for_text_layout_with_source_metrics(&layout, &caret, text, &style)
+                .expect("measured caret");
+
+        assert_eq!(fallback, UiFrame::new(20.0, 12.0, 10.0, 1.0));
+        assert_eq!(measured, fallback);
+        assert!(
+            (horizontal_source_width - 2.0).abs() > 0.5,
+            "test must prove the vertical path did not consume horizontal source width"
+        );
+    }
+
+    #[test]
+    fn source_geometry_with_source_metrics_rejects_unresolved_auto_direction() {
+        let style = UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        };
+        let text = "Wi";
+        let mut layout = layout_with_advances(text, vec![2.0, 20.0]);
+        layout.direction = UiTextDirection::Auto;
+        let caret = UiTextCaret {
+            offset: "W".len(),
+            affinity: UiTextCaretAffinity::Downstream,
+        };
+        let horizontal_source_width = measure_text_source_range_width(
+            text,
+            &style,
+            UiTextRange {
+                start: 0,
+                end: "W".len(),
+            },
+        );
+
+        let fallback = caret_frame_for_text_layout(&layout, &caret).expect("fallback caret");
+        let measured =
+            caret_frame_for_text_layout_with_source_metrics(&layout, &caret, text, &style)
+                .expect("measured caret");
+
+        assert_eq!(fallback, UiFrame::new(12.0, 20.0, 1.0, 12.0));
+        assert_eq!(measured, fallback);
+        assert!(!line_accepts_source_measure(
+            &layout,
+            layout.lines.first().expect("line"),
+            text
+        ));
+        assert!(
+            (horizontal_source_width - 2.0).abs() > 0.5,
+            "test must prove unresolved Auto did not consume horizontal source width"
+        );
+    }
+
+    #[test]
+    fn source_geometry_with_source_metrics_requires_ltr_line_and_run_direction() {
+        let style = UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        };
+        let text = "Wi";
+        let mut layout = layout_with_advances(text, vec![2.0, 20.0]);
+        assert!(line_accepts_source_measure(
+            &layout,
+            layout.lines.first().expect("line"),
+            text
+        ));
+
+        layout.lines[0].direction = UiTextDirection::Auto;
+        assert!(!line_accepts_source_measure(
+            &layout,
+            layout.lines.first().expect("line"),
+            text
+        ));
+
+        layout.lines[0].direction = UiTextDirection::LeftToRight;
+        layout.lines[0].runs[0].direction = UiTextDirection::Auto;
+        assert!(!line_accepts_source_measure(
+            &layout,
+            layout.lines.first().expect("line"),
+            text
+        ));
+
+        let measured = caret_frame_for_text_layout_with_source_metrics(
+            &layout,
+            &UiTextCaret {
+                offset: "W".len(),
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+            text,
+            &style,
+        )
+        .expect("measured caret");
+
+        assert_eq!(measured, UiFrame::new(12.0, 20.0, 1.0, 12.0));
+    }
+
+    #[test]
+    fn source_geometry_with_source_metrics_uses_absolute_source_prefix_ranges() {
+        let style = UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        };
+        let source = "editor base.zui";
+        let line_text = "base.zui";
+        let line_start = "editor ".len();
+        let caret_offset = line_start + "base".len();
+        let mut layout = layout_with_advances(line_text, vec![1.0; line_text.len()]);
+        {
+            let line = layout.lines.first_mut().expect("line");
+            line.source_range = UiTextRange {
+                start: line_start,
+                end: source.len(),
+            };
+            line.runs[0].source_range = line.source_range;
+        }
+
+        let measured = caret_frame_for_text_layout_with_source_metrics(
+            &layout,
+            &UiTextCaret {
+                offset: caret_offset,
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+            source,
+            &style,
+        )
+        .expect("measured caret");
+        let expected_prefix = UiTextRange {
+            start: line_start,
+            end: caret_offset,
+        };
+        let expected_width = measure_text_source_range_width(source, &style, expected_prefix);
+        let line = layout.lines.first().expect("line");
+
+        assert_eq!(
+            source_prefix_range_for_visual_offset(line, "base".len()),
+            expected_prefix
+        );
+        assert!((measured.x - (10.0 + expected_width)).abs() < 0.1);
+    }
+
     fn layout_with_advances(text: &str, glyph_advances: Vec<f32>) -> UiResolvedTextLayout {
         UiResolvedTextLayout {
             font_size: 10.0,
@@ -490,6 +662,7 @@ mod tests {
                 start: 0,
                 end: text.len(),
             },
+            direction: UiTextDirection::LeftToRight,
             lines: vec![UiResolvedTextLine {
                 text: text.to_string(),
                 frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),

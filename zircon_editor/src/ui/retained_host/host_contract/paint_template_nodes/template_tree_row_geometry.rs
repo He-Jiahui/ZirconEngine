@@ -8,7 +8,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use action
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use labels::tree_label_rect;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    tree_line_height, TREE_FONT_SIZE, TREE_GUIDE_COLOR, TREE_ROW_RADIUS,
+    tree_font_size, tree_guide_color, tree_line_height, tree_metrics, tree_row_radius,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use rows::{
     tree_disclosure_rect, tree_guide_x, tree_icon_rect,

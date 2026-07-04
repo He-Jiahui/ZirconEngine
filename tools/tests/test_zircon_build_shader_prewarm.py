@@ -15,6 +15,10 @@ from tools.zircon_build_shader_prewarm import (
     shader_prewarm_dimension_summary_lines,
     write_generated_shader_permutation_registry,
 )
+from tools.tests.shader_prewarm_test_support import (
+    FakePluginPackage as _FakePluginPackage,
+    FakePrewarmConfig as _FakePrewarmConfig,
+)
 
 
 class ZirconBuildShaderPrewarmTests(unittest.TestCase):
@@ -345,6 +349,7 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                 "geometry_source_descriptors": [],
                 "shading_model_ids": [{"token": "custom:toon", "id": 16}],
                 "shading_model_descriptors": [],
+                "shader_modules": [],
             },
             generated_shader_permutation_registry_document(config),
         )
@@ -366,6 +371,7 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                 "geometry_source_descriptors": [],
                 "shading_model_ids": [{"token": "custom:toon", "id": 16}],
                 "shading_model_descriptors": [],
+                "shader_modules": [],
             },
             generated_shader_permutation_registry_document(config),
         )
@@ -410,6 +416,7 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                 "geometry_source_descriptors": [descriptor],
                 "shading_model_ids": [],
                 "shading_model_descriptors": [],
+                "shader_modules": [],
             },
             generated_shader_permutation_registry_document(config),
         )
@@ -437,6 +444,38 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                 "geometry_source_descriptors": [],
                 "shading_model_ids": [{"token": "custom:toon", "id": 16}],
                 "shading_model_descriptors": [descriptor],
+                "shader_modules": [],
+            },
+            generated_shader_permutation_registry_document(config),
+        )
+
+    def test_generated_shader_permutation_registry_document_exports_selected_plugin_shader_modules(self):
+        config = _FakePrewarmConfig()
+        config.plugins = (
+            _FakePluginPackage(
+                shader_modules=(
+                    {
+                        "import_path": "custom::toon::noise",
+                        "source": "assets/shaders/noise.zshader",
+                        "content_hash": "a" * 64,
+                    },
+                ),
+            ),
+        )
+
+        self.assertEqual(
+            {
+                "geometry_source_ids": [],
+                "geometry_source_descriptors": [],
+                "shading_model_ids": [],
+                "shading_model_descriptors": [],
+                "shader_modules": [
+                    {
+                        "import_path": "custom::toon::noise",
+                        "content_hash": "a" * 64,
+                        "source": "assets/shaders/noise.zshader",
+                    }
+                ],
             },
             generated_shader_permutation_registry_document(config),
         )
@@ -455,6 +494,27 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
             command[registry_index + 1],
         )
         self.assertNotIn("custom:virtual_geometry=4", command)
+
+    def test_build_command_uses_generated_shader_permutation_registry_for_selected_plugin_modules(self):
+        config = _FakePrewarmConfig()
+        config.plugins = (
+            _FakePluginPackage(
+                shader_modules=(
+                    {
+                        "import_path": "custom::toon::noise",
+                        "content_hash": "a" * 64,
+                    },
+                ),
+            ),
+        )
+
+        command = build_shader_prewarm_command(config)
+
+        registry_index = command.index("--shader-permutation-registry")
+        self.assertEqual(
+            str(config.shader_prewarm_permutation_registry_path),
+            command[registry_index + 1],
+        )
 
     def test_build_command_includes_selected_plugin_asset_roots(self):
         config = _FakePrewarmConfig()
@@ -726,66 +786,10 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                     "geometry_source_descriptors": [],
                     "shading_model_ids": [],
                     "shading_model_descriptors": [],
+                    "shader_modules": [],
                 },
                 json.loads(written_path.read_text(encoding="utf-8")),
             )
-
-class _FakePrewarmConfig:
-    cargo = "cargo"
-    dry_run = False
-    engine_root = Path("stage") / "ZirconEngine"
-    jobs = "1"
-    locked = True
-    mode = "debug"
-    plugins: tuple[object, ...] = ()
-    repo_root = Path(".")
-    shader_geometry_source_ids: tuple[str, ...] = ()
-    shader_geometry_sources = ("static",)
-    shader_asset_roots: tuple[Path, ...] = ()
-    shader_permutation_registries: tuple[Path, ...] = ()
-    shader_quality_tiers = ("medium",)
-    shader_resource_registry = None
-    shader_shading_model_ids: tuple[str, ...] = ()
-    targets_root = Path("target") / "prewarm-summary-test"
-    validate_wgpu_shaders = False
-    validate_wgpu_pipelines = False
-
-    @property
-    def shader_prewarm_cache_root(self) -> Path:
-        return self.engine_root / "cache" / "shader_variants"
-
-    @property
-    def shader_prewarm_report_path(self) -> Path:
-        return self.engine_root / "cache" / "shader_variants_report.json"
-
-    @property
-    def shader_prewarm_resource_registry_path(self) -> Path:
-        return self.engine_root / "cache" / "shader_resource_records.json"
-
-    @property
-    def shader_prewarm_permutation_registry_path(self) -> Path:
-        return self.engine_root / "cache" / "shader_permutation_registry.json"
-
-    def feature_arg_for_target(self, target: str) -> str:
-        self._target = target
-        return "target-server"
-
-
-class _FakePluginPackage:
-    def __init__(
-        self,
-        asset_roots: tuple[Path, ...] = (),
-        shader_geometry_source_ids: tuple[str, ...] = (),
-        shader_geometry_source_descriptors: tuple[dict[str, object], ...] = (),
-        shader_shading_model_ids: tuple[str, ...] = (),
-        shader_shading_model_descriptors: tuple[dict[str, object], ...] = (),
-    ):
-        self.asset_roots = asset_roots
-        self.shader_geometry_source_ids = shader_geometry_source_ids
-        self.shader_geometry_source_descriptors = shader_geometry_source_descriptors
-        self.shader_shading_model_ids = shader_shading_model_ids
-        self.shader_shading_model_descriptors = shader_shading_model_descriptors
-
 
 if __name__ == "__main__":
     unittest.main()

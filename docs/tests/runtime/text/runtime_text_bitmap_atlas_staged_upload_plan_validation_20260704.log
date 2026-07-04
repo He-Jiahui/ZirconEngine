@@ -1,0 +1,24 @@
+Runtime Text Bitmap Atlas Staged Upload Plan Validation - 2026-07-04
+
+Slice: bitmap_run/staged_upload.rs binds page staging buffers to renderer-ready GlyphAtlasUploadCommand records.
+Code files:
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs
+  zircon_runtime/src/graphics/text/atlas/mod.rs
+
+Assertions added:
+  staged uploads carry staging_page_index, GlyphAtlasUploadCommand, and staging_page_byte_len for renderer consumption.
+  missing staging pages produce typed staged upload failures.
+  short or shape-incomplete page bytes produce SourceRangeOutOfBounds staged upload failures.
+
+Local checks:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs : PASS
+  git diff --check -- zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs : PASS (line-ending warnings only)
+  trailing whitespace scan: PASS
+  conflict marker scan: PASS
+  target artifact scan: PASS; no runtime_text_bitmap_atlas_staged_upload_plan artifacts under target directories.
+  cargo/unit validation: DEFERRED because independent cargo/rustc validation lanes were already active in this workspace.
+
+Preview PNG: docs\tests\runtime\text\runtime_text_bitmap_atlas_staged_upload_plan_preview_20260704.png
+Preview SHA256: C95247DC77834AA9F52D21256BD985832E7CEEF6740FE4269A1EF313542D87B5

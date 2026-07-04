@@ -73,8 +73,8 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             path,
             diagnostic,
         } if *source == RenderMaterialDiagnosticSource::RendererMaterialAbi
-            && path == "pipeline_layout.group3.binding0"
-            && diagnostic.contains("uniform buffer")
+            && path == "pipeline_layout.group2.binding0"
+            && diagnostic.contains("UniformBuffer")
     )));
     assert!(report.validation_errors.iter().any(|error| matches!(
         error,
@@ -83,8 +83,8 @@ fn render_product_streamer_reports_shader_material_layout_abi_diagnostics() {
             path,
             diagnostic,
         } if *source == RenderMaterialDiagnosticSource::RendererMaterialAbi
-            && path == "pipeline_layout.group3.binding1"
-            && diagnostic.contains("supports only group 3 binding 0")
+            && path == "pipeline_layout.group2.binding11"
+            && diagnostic.contains("supports only group 2 bindings")
     )));
 }
 
@@ -122,7 +122,7 @@ fn fs_main() -> @location(0) vec4f {
         pipeline_layout: RenderShaderPipelineLayoutDescriptor {
             push_constant_ranges: Vec::new(),
             bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
-                group: 3,
+                group: 2,
                 label: Some("material".to_string()),
                 bindings: vec![
                     RenderShaderBindingDescriptor {
@@ -132,8 +132,8 @@ fn fs_main() -> @location(0) vec4f {
                         visibility: vec![RenderShaderStage::Fragment],
                     },
                     RenderShaderBindingDescriptor {
-                        binding: 1,
-                        label: Some("material_sampler".to_string()),
+                        binding: 11,
+                        label: Some("unsupported_material_sampler".to_string()),
                         resource_type: RenderShaderBindingResourceType::Sampler,
                         visibility: vec![RenderShaderStage::Fragment],
                     },

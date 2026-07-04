@@ -1,0 +1,15 @@
+runtime_text_editor_retained_shaped_origin_spacing
+date=2026-07-04
+preview=docs/tests/runtime/text/runtime_text_editor_retained_shaped_origin_spacing_preview_20260704.png
+preview_sha256=E9E7EB0681D05FFA4BD24C1410A49F9A580D0255565A6FF04ACD143951A26119
+code_owner=zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+code_owner=zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
+code_owner=zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+tests=zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+tests=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs
+tests=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
+static=rustfmt --edition 2021 --check passed for touched retained/SDF spacing files
+static=old shaped-position raster-bin veto, old SDF rounding names, and .snapped_x.round scans returned 0 in touched code
+cargo=deferred because external cargo/rustc lanes were active during final validation
+target_scan=repo target plus E:/cargo-targets, D:/cargo-targets, and F:/cargo-targets same-name scans returned 0
+target_policy=proof image/log written under docs/tests/runtime/text only

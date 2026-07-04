@@ -90,6 +90,11 @@ pub struct ShapedGlyphRun {
     pub direction: UiTextDirection,
     pub orientation: TextOrientation,
     pub vertical_mode: VerticalMode,
+    #[serde(
+        default = "default_include_kerning",
+        skip_serializing_if = "is_default_include_kerning"
+    )]
+    pub include_kerning: bool,
     pub measured_width: f32,
     pub measured_height: f32,
     pub lines: Vec<ShapedTextLine>,
@@ -103,6 +108,7 @@ pub struct TextShapeRequest<'a> {
     pub source_range: UiTextRange,
     pub orientation: TextOrientation,
     pub vertical_mode: VerticalMode,
+    pub include_kerning: bool,
 }
 
 impl<'a> TextShapeRequest<'a> {
@@ -112,6 +118,16 @@ impl<'a> TextShapeRequest<'a> {
         base_direction: UiTextDirection,
         source_range: UiTextRange,
     ) -> Self {
+        Self::horizontal_with_kerning(text, style, base_direction, source_range, true)
+    }
+
+    pub fn horizontal_with_kerning(
+        text: &'a str,
+        style: &'a UiResolvedStyle,
+        base_direction: UiTextDirection,
+        source_range: UiTextRange,
+        include_kerning: bool,
+    ) -> Self {
         Self {
             text,
             style,
@@ -119,6 +135,15 @@ impl<'a> TextShapeRequest<'a> {
             source_range,
             orientation: TextOrientation::Horizontal,
             vertical_mode: VerticalMode::Mixed,
+            include_kerning,
         }
     }
+}
+
+const fn default_include_kerning() -> bool {
+    true
+}
+
+fn is_default_include_kerning(value: &bool) -> bool {
+    *value
 }

@@ -248,6 +248,7 @@ fn mixed_shadow_extract(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,

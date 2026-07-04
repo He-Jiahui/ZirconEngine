@@ -21,7 +21,7 @@ impl SceneRenderer {
         )?;
 
         let size = viewport_size(frame);
-        ensure_offscreen_target(&self.backend.device, &mut self.target, size);
+        ensure_offscreen_target(&self.backend.device, &mut self.target, size, size);
         let target = self.target.as_ref().expect("offscreen target");
 
         self.core.render_scene(

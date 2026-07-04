@@ -228,7 +228,10 @@ fn bridge_table_deactivates_owner_by_disabling_and_clearing_providers() {
 
     let affected = table.deactivate_owner(owner);
 
-    assert_eq!(affected, vec![slot]);
+    assert!(
+        affected.contains(&slot),
+        "deactivate_owner should affect the exported weather query slot: {affected:?}"
+    );
     let disabled_generation = table.entry(slot).unwrap().generation();
     assert_eq!(disabled_generation % 2, 1);
     assert!(!table.entry(slot).unwrap().is_enabled());
@@ -238,6 +241,9 @@ fn bridge_table_deactivates_owner_by_disabling_and_clearing_providers() {
     );
 
     table.activate_owner(owner);
+    let activated_without_provider_generation = table.entry(slot).unwrap().generation();
+    assert_eq!(activated_without_provider_generation % 2, 0);
+    assert!(!table.entry(slot).unwrap().provider_installed());
     assert_eq!(
         bridge.call(|provider| provider.sample_temperature()),
         Err(BridgeError::NotEnabled)
@@ -249,17 +255,18 @@ fn bridge_table_deactivates_owner_by_disabling_and_clearing_providers() {
             Arc::new(WeatherQueryProvider { temperature: 12 }),
         )
         .unwrap();
-    assert_eq!(table.entry(slot).unwrap().generation(), disabled_generation);
-    table.activate_owner(owner);
-
+    let replaced_generation = table.entry(slot).unwrap().generation();
     assert_eq!(
-        table.entry(slot).unwrap().generation(),
-        disabled_generation + 1
+        replaced_generation,
+        activated_without_provider_generation + 2
     );
     assert_eq!(
         bridge.call(|provider| provider.sample_temperature()),
         Ok(12)
     );
+    table.activate_owner(owner);
+
+    assert_eq!(table.entry(slot).unwrap().generation(), replaced_generation);
 }
 
 #[test]

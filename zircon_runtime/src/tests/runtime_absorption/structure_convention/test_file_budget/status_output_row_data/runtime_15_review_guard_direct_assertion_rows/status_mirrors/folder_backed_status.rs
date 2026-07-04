@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_direct_assertion_folder_backed_status_is_current() {
-    let production_guard_support_rows = read_runtime_src(PRODUCTION_GUARD_SUPPORT_ROWS_PATH);
+    let review_guard_rows = read_runtime_src(STATUS_SUPPORT_REVIEW_GUARD_ROWS_PATH);
     let status_support_expected_status_map = read_runtime_src(STATUS_SUPPORT_STATUS_MAP_PATH);
     let status_support_expected_date_map = read_runtime_src(STATUS_SUPPORT_DATE_MAP_PATH);
 
@@ -49,7 +49,7 @@ fn runtime_15_review_guard_direct_assertion_folder_backed_status_is_current() {
     }
     assert_contains_all(
         "production guard support rows record direct-assertion folder-backed split",
-        &production_guard_support_rows,
+        &review_guard_rows,
         &folder_backed_status_anchors,
     );
     assert_contains_all(

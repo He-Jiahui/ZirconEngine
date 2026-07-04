@@ -4,6 +4,8 @@ use super::*;
 fn runtime_15_review_guard_code_review_rows_guard_is_folder_backed() {
     let status_output_row_data_parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let guard_parent = read_runtime_src(CODE_REVIEW_ROWS_GUARD_PATH);
+    let guard_child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let guard_status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = code_review_rows_guard_child_source_blob();
 
     assert_contains_all(
@@ -21,6 +23,11 @@ fn runtime_15_review_guard_code_review_rows_guard_is_folder_backed() {
             "mod budgets;",
             "mod delegation;",
             "mod export_chain;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
             "mod row_ownership;",
             "mod root_and_children;",
             "mod status_mirrors;",
@@ -28,7 +35,7 @@ fn runtime_15_review_guard_code_review_rows_guard_is_folder_backed() {
     );
     assert_contains_all(
         "review-guard code-review row guard records folder-backed split anchors",
-        &guard_parent,
+        &guard_status_inventory,
         &[
             FOLDER_BACKED_STATUS_NAME,
             FOLDER_BACKED_STATUS_ID,
@@ -38,8 +45,8 @@ fn runtime_15_review_guard_code_review_rows_guard_is_folder_backed() {
 
     for (_, child_path, guard_name) in CODE_REVIEW_ROWS_GUARD_CHILDREN {
         assert!(
-            guard_parent.contains(child_path),
-            "review-guard code-review row guard should mount child path {child_path}"
+            guard_child_inventory.contains(child_path),
+            "review-guard code-review row child inventory should list child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

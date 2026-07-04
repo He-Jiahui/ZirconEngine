@@ -271,7 +271,7 @@ fn register_custom_toon_shading_model_includes(asset_manager: &ProjectAssetManag
     );
 }
 
-fn assert_custom_toon_deferred_lighting_readback(frame: &CapturedFrame) {
+pub(super) fn assert_custom_toon_deferred_lighting_readback(frame: &CapturedFrame) {
     let dominant_green_pixels = frame
         .rgba
         .chunks_exact(4)

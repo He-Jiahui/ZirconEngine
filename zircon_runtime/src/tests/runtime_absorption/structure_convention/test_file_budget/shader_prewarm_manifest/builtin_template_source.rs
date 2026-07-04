@@ -7,6 +7,8 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
     let dynamic_mod = read_runtime_src("dynamic_api/mod.rs");
     let scene_mod = read_runtime_src("graphics/scene/mod.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
+    let material_sources =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/material_sources.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -57,7 +59,7 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
     );
     assert_contains_all(
         "asset-root manifest uses dynamic template source only for builtin standard materials",
-        &manifest,
+        &(manifest.clone() + &material_sources),
         &[
             "BUILTIN_STANDARD_MATERIAL_SHADER_URI",
             "builtin_standard_material_shader_prewarm_manifest_for_geometry",
@@ -89,6 +91,10 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
         ("dynamic_api/mod.rs", dynamic_mod.as_str()),
         ("graphics/scene/mod.rs", scene_mod.as_str()),
         ("bin/zircon_shader_prewarm/manifest.rs", manifest.as_str()),
+        (
+            "bin/zircon_shader_prewarm/manifest/material_sources.rs",
+            material_sources.as_str(),
+        ),
         (
             "bin/zircon_shader_prewarm/manifest/tests.rs",
             tests.as_str(),

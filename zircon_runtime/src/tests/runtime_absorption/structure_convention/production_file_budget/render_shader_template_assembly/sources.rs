@@ -11,6 +11,7 @@ pub(super) struct RenderShaderTemplateAssemblySources {
     pub(super) validation: String,
     pub(super) tests: String,
     pub(super) template_surface_module_tests: String,
+    pub(super) template_standard_material_surface_tests: String,
     pub(super) variant_cache_prewarm: String,
     pub(super) pipeline_key: String,
     pub(super) mesh_cache_mod: String,
@@ -32,6 +33,7 @@ pub(super) struct RenderShaderTemplateAssemblySources {
     pub(super) shadow_renderer: String,
     pub(super) shadow_mod: String,
     pub(super) graph_gpu_context: String,
+    pub(super) graph_gpu_reports: String,
     pub(super) graph_stage_execution: String,
 }
 
@@ -49,6 +51,9 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         tests: read_runtime_src("graphics/shader/template/tests.rs"),
         template_surface_module_tests: read_runtime_src(
             "graphics/shader/template/tests/surface_modules.rs",
+        ),
+        template_standard_material_surface_tests: read_runtime_src(
+            "graphics/shader/template/tests/standard_material_surface_template.rs",
         ),
         variant_cache_prewarm: read_runtime_src("graphics/shader/variant_cache/prewarm.rs"),
         pipeline_key: read_runtime_src("graphics/scene/resources/pipeline/pipeline_key.rs"),
@@ -102,6 +107,9 @@ pub(super) fn read_render_shader_template_assembly_sources() -> RenderShaderTemp
         shadow_mod: read_runtime_src("graphics/scene/scene_renderer/shadow/mod.rs"),
         graph_gpu_context: read_runtime_src(
             "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs",
+        ),
+        graph_gpu_reports: read_runtime_src(
+            "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs",
         ),
         graph_stage_execution: read_runtime_src(
             "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs",

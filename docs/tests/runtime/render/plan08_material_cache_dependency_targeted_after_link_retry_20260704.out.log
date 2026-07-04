@@ -1,0 +1,6 @@
+
+running 1 test
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_dependency_readiness_change_invalidates_material_cache ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6539 filtered out; finished in 1.01s
+

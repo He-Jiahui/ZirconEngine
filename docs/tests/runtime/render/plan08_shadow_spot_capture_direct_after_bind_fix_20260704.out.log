@@ -1,0 +1,11 @@
+
+running 1 test
+test graphics::tests::render_product_shadow_captures::render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_shadow_captures::render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6539 filtered out; finished in 3.09s
+

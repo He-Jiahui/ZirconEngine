@@ -12,6 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_inset: f32,
     pub text_value_gap: f32,
     pub text_clip_guard: f32,
+    pub icon_glyph_size: f32,
     pub signal_icon_left: f32,
     pub signal_text_gap: f32,
     pub signal_marker_size: f32,
@@ -34,6 +35,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         text_inset: metrics.gap_s,
         text_value_gap: metrics.gap_s,
         text_clip_guard: metrics.text_clip_guard,
+        icon_glyph_size: (metrics.font_large + metrics.border_width * 2.0)
+            .min(metrics.row_height)
+            .max(1.0),
         signal_icon_left: metrics.gap_l * 2.0,
         signal_text_gap: metrics.gap_m,
         signal_marker_size: metrics.gap_m,
@@ -54,6 +58,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     workbench_status_metrics().radius
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_glyph_size(
+) -> f32 {
+    workbench_status_metrics().icon_glyph_size
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_line_height() -> f32
 {
     workbench_status_metrics().line_height
@@ -68,6 +77,7 @@ mod tests {
     fn workbench_status_metrics_project_from_host_control_metrics() {
         let mut host = METRICS;
         host.font_body = 11.0;
+        host.font_large = 15.0;
         host.line_height_ratio = 1.25;
         host.radius_control = 3.0;
         host.border_width = 1.5;
@@ -85,6 +95,7 @@ mod tests {
         assert_eq!(metrics.text_inset, 5.0);
         assert_eq!(metrics.text_value_gap, 5.0);
         assert_eq!(metrics.text_clip_guard, 7.0);
+        assert_eq!(metrics.icon_glyph_size, 18.0);
         assert_eq!(metrics.signal_icon_left, 26.0);
         assert_eq!(metrics.signal_text_gap, 9.0);
         assert_eq!(metrics.signal_marker_size, 9.0);

@@ -30,6 +30,20 @@ pub(crate) fn prewarm_shader_variants_to_disk_with_pipeline_validation(
     prewarm_shader_variants_to_disk_inner(manifest, cache_root, None, Some(&validate_pipeline))
 }
 
+pub(crate) fn prewarm_shader_variants_to_disk_with_module_and_pipeline_validation(
+    manifest: &ShaderVariantPrewarmManifest,
+    cache_root: impl AsRef<Path>,
+    validate_module: impl Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>,
+    validate_pipeline: impl Fn(&ShaderVariantPrewarmRequest) -> Result<(), String>,
+) -> ShaderVariantPrewarmReport {
+    prewarm_shader_variants_to_disk_inner(
+        manifest,
+        cache_root,
+        Some(&validate_module),
+        Some(&validate_pipeline),
+    )
+}
+
 fn prewarm_shader_variants_to_disk_inner(
     manifest: &ShaderVariantPrewarmManifest,
     cache_root: impl AsRef<Path>,
@@ -82,6 +96,9 @@ fn prewarm_shader_variants_to_disk_inner(
                     format!("WGPU shader module validation failed: {error}"),
                 );
                 report.record_wgpu_module_validation_failed();
+                if wgpu_pipeline_validation_enabled {
+                    report.record_wgpu_pipeline_validation_skipped();
+                }
                 continue;
             }
             report.record_wgpu_module_validation_passed();
@@ -139,6 +156,8 @@ mod tests {
         prewarm_shader_variants_to_disk, prewarm_shader_variants_to_disk_with_module_validation,
         prewarm_shader_variants_to_disk_with_pipeline_validation,
     };
+
+    mod combined_validation_tests;
 
     const VALID_WGSL: &str = "fn main() {}";
 

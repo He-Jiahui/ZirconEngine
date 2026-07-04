@@ -48,6 +48,7 @@ fn command_entry_from_table(
             .unwrap_or_else(|| id.clone()),
         disabled: values.get("disabled").and_then(bool_value).unwrap_or(false)
             || values.get("enabled").and_then(bool_value) == Some(false),
+        filter_matched: false,
         id,
     })
 }

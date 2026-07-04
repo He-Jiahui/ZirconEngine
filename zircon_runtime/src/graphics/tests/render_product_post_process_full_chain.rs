@@ -291,8 +291,6 @@ fn render_product_post_full_chain_all_effects_on() {
 
     for resource_name in [
         PostProcessGraphResourceNames::BLOOM,
-        PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM,
-        PostProcessGraphResourceNames::EXPOSURE_CURRENT,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_COC,
         PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH,
         PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
@@ -307,13 +305,16 @@ fn render_product_post_full_chain_all_effects_on() {
         PostProcessGraphResourceNames::SCENE_COMPOSITED,
         PostProcessGraphResourceNames::BLURRED,
         PostProcessGraphResourceNames::COLOR_LUT,
-        PostProcessGraphResourceNames::EFFECT_STACKED,
         PostProcessGraphResourceNames::TONEMAPPED,
         PostProcessGraphResourceNames::UPSCALED,
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
     ] {
         assert_texture_backing_exists(&stats, resource_name);
     }
+    for resource_name in [PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM] {
+        assert_buffer_backing_exists(&stats, resource_name);
+    }
+    assert!(stats.last_frame_history_copy_report.exposure_copied);
     assert_texture_backings_are_distinct(
         &stats,
         PostProcessGraphResourceNames::SCENE_COMPOSITED,
@@ -503,6 +504,10 @@ fn assert_texture_backing_exists(stats: &RenderStats, resource_name: &str) {
     let _ = texture_backing_for(stats, resource_name);
 }
 
+fn assert_buffer_backing_exists(stats: &RenderStats, resource_name: &str) {
+    let _ = buffer_backing_for(stats, resource_name);
+}
+
 fn texture_backing_for<'a>(stats: &'a RenderStats, resource_name: &str) -> &'a str {
     stats
         .last_graph_execution_alias_report
@@ -514,6 +519,21 @@ fn texture_backing_for<'a>(stats: &'a RenderStats, resource_name: &str) -> &'a s
             panic!(
                 "missing texture alias for `{resource_name}`; aliases={:?}",
                 stats.last_graph_execution_alias_report.texture_aliases
+            )
+        })
+}
+
+fn buffer_backing_for<'a>(stats: &'a RenderStats, resource_name: &str) -> &'a str {
+    stats
+        .last_graph_execution_alias_report
+        .buffer_aliases
+        .iter()
+        .find(|alias| alias.logical_name == resource_name)
+        .map(|alias| alias.backing_name.as_str())
+        .unwrap_or_else(|| {
+            panic!(
+                "missing buffer alias for `{resource_name}`; aliases={:?}",
+                stats.last_graph_execution_alias_report.buffer_aliases
             )
         })
 }

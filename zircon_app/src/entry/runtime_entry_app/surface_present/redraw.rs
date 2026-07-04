@@ -8,6 +8,7 @@ impl RuntimeEntryApp {
         &mut self,
         event_loop: &dyn ActiveEventLoop,
     ) {
+        let exit_after_first_presented_frame = self.exit_after_first_presented_frame;
         zircon_runtime::profile_frame!("app", "runtime_redraw");
         zircon_runtime::profile_scope!("app", "runtime_entry", "redraw_requested");
         if self.surface_present_enabled && !self.surface_present_failed {
@@ -15,7 +16,10 @@ impl RuntimeEntryApp {
                 .session
                 .present_viewport(self.viewport, self.viewport_size)
             {
-                Ok(true) => return,
+                Ok(true) => {
+                    exit_after_presented_frame(exit_after_first_presented_frame, event_loop);
+                    return;
+                }
                 Ok(false) => {
                     write_warn(
                         "runtime_surface_present",
@@ -60,6 +64,8 @@ impl RuntimeEntryApp {
                             ),
                         );
                         event_loop.exit();
+                    } else {
+                        exit_after_presented_frame(exit_after_first_presented_frame, event_loop);
                     }
                 }
                 Err(error) => {
@@ -74,5 +80,11 @@ impl RuntimeEntryApp {
                 }
             }
         }
+    }
+}
+
+fn exit_after_presented_frame(enabled: bool, event_loop: &dyn ActiveEventLoop) {
+    if enabled {
+        event_loop.exit();
     }
 }

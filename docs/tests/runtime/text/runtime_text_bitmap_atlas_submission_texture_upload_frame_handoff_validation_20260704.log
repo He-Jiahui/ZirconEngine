@@ -1,0 +1,25 @@
+Runtime text bitmap atlas submission texture-upload frame handoff validation
+Date: 2026-07-04
+Slice: runtime_text_bitmap_atlas_submission_texture_upload_frame_handoff_rustfmt_static_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+
+Behavior/architecture validated:
+- The renderer-local atlas texture upload owner now composes GlyphAtlasBitmapRenderSubmissionPlan + source bytes into a texture upload frame report.
+- The composition delegates source-byte staging to submission.prepared_upload(...), delegates request/binding readiness to glyph_atlas_bitmap_texture_upload_frame_plan(...), and delegates resource writes to write_glyph_atlas_bitmap_texture_upload_frame_resources(...).
+- Tests cover a successful submission-source handoff that produces one request, one binding, 32 uploaded bytes, and ready_to_write_texture=true.
+- Tests cover missing submission source bytes and verify the frame report is fail-closed with staging_failure_count=1 and ready_to_write_texture=false.
+
+Fresh checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs: passed.
+- Explicit trailing-whitespace/conflict-marker scan over the untracked atlas_texture_upload owners: passed.
+- Test owner line count after additions: 402.
+- Focused Cargo validation remains deferred because external cargo/rustc lanes were active during this slice.
+- Proof image inspected: docs/tests/runtime/text/runtime_text_bitmap_atlas_submission_texture_upload_frame_handoff_preview_20260704.png.
+- Proof image SHA256: B817CA2D4B8F55635CD9BE1B0F732FD4BD6D29B8E52A03AE2E84C7EB181D7912.
+
+Deferred:
+- Focused Cargo validation for bitmap_texture_upload_frame_report_prepares_render_submission_source_bytes remains deferred while external cargo/rustc lanes are active.

@@ -1,0 +1,11 @@
+runtime_text_bitmap_atlas_upload_binding_owner_rustfmt_static_visual_cargo_deferred
+date=2026-07-04
+scope=zircon_runtime graphics scene UI atlas texture upload binding owner
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+change=renderer owner binds GlyphAtlasBitmapTextureUploadRequest records to page staging bytes
+change=binding plan validates staging page index, page key, row stride, page byte length, and request byte range
+check=rustfmt --edition 2021 --check atlas_texture_upload.rs atlas_texture_upload/tests.rs passed
+check=focused Cargo deferred because external cargo/rustc processes remained active
+image=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_bitmap_atlas_upload_binding_owner_preview_20260704.png
+image_sha256=65C1BD26635D0FA2CD4BACAAA636E2EBAEE626AE6479910ADA56086B27EF4153

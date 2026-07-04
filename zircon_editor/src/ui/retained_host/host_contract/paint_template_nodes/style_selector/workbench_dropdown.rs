@@ -9,8 +9,5 @@ mod state;
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::WorkbenchDropdownStyle;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::{
-    WORKBENCH_DROPDOWN_BORDER, WORKBENCH_DROPDOWN_FOCUS_BORDER, WORKBENCH_DROPDOWN_OPEN_SURFACE,
-    WORKBENCH_DROPDOWN_PLACEHOLDER, WORKBENCH_DROPDOWN_SURFACE,
-};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::workbench_dropdown_palette;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::select_workbench_dropdown_style;

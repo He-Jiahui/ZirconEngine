@@ -89,7 +89,7 @@ fn unavailable_host_font_preserves_runtime_family_without_embedded_panic() {
 }
 
 #[test]
-fn runtime_text_style_for_face_projects_the_same_font_request() {
+fn runtime_text_style_for_face_projects_resolved_font_family() {
     let style = runtime_text_style_for_face(
         HostTextFontFace::UiStrong,
         11.0,
@@ -99,7 +99,10 @@ fn runtime_text_style_for_face_projects_the_same_font_request() {
     );
     let request = font_request_for_face(HostTextFontFace::UiStrong);
 
-    assert_eq!(style.font_family.as_deref(), Some(request.family.as_str()));
+    assert_eq!(
+        style.font_family.as_deref(),
+        Some(runtime_font_family_for_face(HostTextFontFace::UiStrong))
+    );
     assert_eq!(style.font_weight, request.weight);
     assert_eq!(style.font_size, 11.0);
     assert_eq!(style.line_height, 14.0);

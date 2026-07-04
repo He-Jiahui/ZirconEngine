@@ -31,6 +31,9 @@ pub(super) fn present_redraw(
             event_loop_state
                 .host
                 .set_host_refresh_diagnostics_overlay(diagnostics);
+            if event_loop_state.host.exit_after_first_presented_frame() {
+                event_loop.exit();
+            }
         }
         Err(error) => {
             write_error(

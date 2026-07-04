@@ -13,6 +13,7 @@ use super::font::{font_bytes_for_face, font_cache_key_for_face, font_for_face, H
 use super::sync::lock_recovering_poison;
 
 const MIN_NATIVE_SCALE_SWASH_MAX_COVERAGE: u8 = 128;
+const MAX_FALLBACK_SAMPLE_OFFSET_X: f32 = 1.999;
 
 #[derive(Clone)]
 pub(in crate::ui::retained_host::host_contract) struct CachedGlyphRaster {
@@ -148,6 +149,24 @@ fn normalized_subpixel_offset(offset: f32) -> f32 {
     } else {
         0.0
     }
+}
+
+fn normalized_fallback_sample_offset_x(offset: f32) -> f32 {
+    if offset.is_finite() {
+        offset.clamp(0.0, MAX_FALLBACK_SAMPLE_OFFSET_X)
+    } else {
+        0.0
+    }
+}
+
+fn fontdue_fallback_sample_offset_x(
+    origin_subpixel_offset: f32,
+    raster_left_px: f32,
+    x_offset: i32,
+) -> f32 {
+    normalized_fallback_sample_offset_x(
+        normalized_subpixel_offset(origin_subpixel_offset) + raster_left_px - x_offset as f32,
+    )
 }
 
 fn rasterize_swash_glyph(
@@ -307,19 +326,24 @@ fn rasterize_fontdue_glyph(
     };
     let raster_px = fallback_raster_font_size(logical_px, raster_scale);
     let (metrics, bitmap) = font.rasterize_indexed(glyph_index, raster_px);
-    let logical_metrics = font.metrics_indexed(glyph_index, logical_px);
+    let raster_left_px = metrics.xmin as f32 / raster_scale;
+    let x_offset = raster_left_px.floor() as i32;
     CachedGlyphRaster {
         metrics: CachedGlyphMetrics {
             width: metrics.width,
             height: metrics.height,
-            x_offset: logical_metrics.bounds.xmin.floor() as i32,
+            x_offset,
             y_offset: 0,
         },
         bitmap: Arc::from(bitmap),
         source: CachedGlyphRasterSource::FontdueFallback,
         format: CachedGlyphRasterFormat::AlphaMask,
         raster_scale,
-        sample_offset_x: normalized_subpixel_offset(subpixel_offset),
+        sample_offset_x: fontdue_fallback_sample_offset_x(
+            subpixel_offset,
+            raster_left_px,
+            x_offset,
+        ),
     }
 }
 

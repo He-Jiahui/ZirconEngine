@@ -1,0 +1,9 @@
+runtime_text_bitmap_atlas_retry_frame_submission_validation_20260704
+png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_bitmap_atlas_retry_frame_submission_preview_20260704.png
+png_sha256=D20A8F29D0901958E6E9E20BF816D3804F0ACF8A413E053ED42BD529C0C4EBCE
+code_change=render_submission/retry.rs combines retry frame input, bitmap render submission, and retry frame outcome.
+test=render_text_atlas_bitmap_retry_frame_submission_merges_due_retries_and_new_sources
+expected=frame_input retry=1 new=1 deferred=1; submission glyphs=2 uploads=2 gpu_draw_commands=2; outcome completed retry/new=1/1 next_retry_frame=93
+test=render_text_atlas_bitmap_retry_frame_submission_remaps_blocked_sources_for_next_frame
+expected=run-local blocked sources [0,1] remap to retry src 14 and new src 0; blocked retry/new=1/1; unmapped=0; next_retry_frame=102
+log_sha256_pre_append=BE8A423DE112B37A23FFD560696D673A48EBC38E2965B6C56D73AB92044BE28F

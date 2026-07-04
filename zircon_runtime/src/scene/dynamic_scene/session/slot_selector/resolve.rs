@@ -7,7 +7,7 @@ use super::selector::RuntimeSessionSlotSelector;
 impl RuntimeSessionSlotSelector {
     pub fn slot_id(slot_id: impl Into<String>) -> Self {
         Self::SlotId {
-            slot_id: slot_id.into(),
+            slot_id: slot_id.into().trim().to_string(),
         }
     }
 

@@ -15,9 +15,11 @@ pub use shader_prewarm::{
     builtin_standard_material_shader_prewarm_manifest_for_geometry,
     builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor,
     default_shader_variant_cache_root_for_project,
-    default_staged_shader_variant_cache_root_for_project, prewarm_shader_variants,
+    default_staged_shader_variant_cache_root_for_project,
+    material_surface_shader_prewarm_template_source, prewarm_shader_variants,
+    prewarm_shader_variants_with_wgpu_module_and_pipeline_validation,
     prewarm_shader_variants_with_wgpu_module_validation,
-    prewarm_shader_variants_with_wgpu_pipeline_validation,
+    prewarm_shader_variants_with_wgpu_pipeline_validation, ShaderPrewarmTemplateSource,
 };
 
 #[cfg(test)]

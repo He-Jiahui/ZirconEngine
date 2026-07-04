@@ -1,6 +1,6 @@
 use super::super::super::super::core::DEPTH_FORMAT;
 
-const SKY_SHADER: &str = include_str!("../../shaders/sky.wgsl");
+const SKY_SHADER: &str = include_str!("../../../environment/shaders/skybox_procedural.wgsl");
 
 pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) fn create_sky_pipeline(
     device: &wgpu::Device,

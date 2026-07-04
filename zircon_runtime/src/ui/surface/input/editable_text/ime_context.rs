@@ -5,15 +5,17 @@ use zircon_runtime_interface::ui::{
     },
     event_ui::UiNodeId,
     layout::UiFrame,
-    surface::{UiEditableTextState, UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
+    surface::{
+        UiEditableTextState, UiRenderCommand, UiResolvedStyle, UiResolvedTextLayout, UiTextRange,
+    },
     tree::UiTemplateNodeMetadata,
 };
 
-use super::super::super::{render::resolve_style, surface::UiSurface};
+use super::super::super::surface::UiSurface;
 use super::super::text_state::clamp_text_boundary;
 use crate::ui::text::{
-    caret_frame_for_text_layout_with_source_metrics, resolve_text_layout,
-    text_range_frames_for_text_layout_with_source_metrics, UiTextLayoutRequest,
+    caret_frame_for_text_layout_with_source_metrics,
+    text_range_frames_for_text_layout_with_source_metrics,
 };
 
 const DEFAULT_PADDING_X: f32 = 10.0;
@@ -27,7 +29,7 @@ struct InputMethodTextLayout {
 }
 
 pub(super) fn input_method_update_for_text_state(
-    surface: &UiSurface,
+    surface: &mut UiSurface,
     event: &UiInputEvent,
     target: UiNodeId,
     state: &UiEditableTextState,
@@ -36,6 +38,7 @@ pub(super) fn input_method_update_for_text_state(
         return None;
     }
 
+    surface.refresh_render_extract_for_current_tree();
     let text_layout = resolved_text_layout_for_state(surface, target, state);
     Some(UiDispatchEffect::RequestInputMethod {
         request: UiInputMethodRequest {
@@ -144,13 +147,40 @@ fn resolved_text_layout_for_state(
     target: UiNodeId,
     state: &UiEditableTextState,
 ) -> Option<InputMethodTextLayout> {
-    let text_frame = text_frame_for_node(surface, target)?;
-    let style = text_style_for_input_method(surface, target);
-    let request = UiTextLayoutRequest::new(&state.text, &style, text_frame, Some(text_frame));
+    surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find_map(|command| rendered_text_layout_for_command(command, target, state))
+}
+
+fn rendered_text_layout_for_command(
+    command: &UiRenderCommand,
+    target: UiNodeId,
+    state: &UiEditableTextState,
+) -> Option<InputMethodTextLayout> {
+    if command.node_id != target || command.text.as_deref() != Some(state.text.as_str()) {
+        return None;
+    }
+    let layout = command.text_layout.as_ref()?;
+    if !rendered_text_layout_matches_state(layout, state) {
+        return None;
+    }
     Some(InputMethodTextLayout {
-        layout: resolve_text_layout(&request).layout,
-        style,
+        layout: layout.clone(),
+        style: command.style.clone(),
     })
+}
+
+fn rendered_text_layout_matches_state(
+    layout: &UiResolvedTextLayout,
+    state: &UiEditableTextState,
+) -> bool {
+    match layout.editable.as_ref() {
+        Some(editable) => editable == state,
+        None => true,
+    }
 }
 
 fn surrounding_text_for_state(state: &UiEditableTextState) -> Option<UiInputMethodSurroundingText> {
@@ -220,30 +250,6 @@ fn font_metrics_for_node(surface: &UiSurface, target: UiNodeId) -> FontMetrics {
             .unwrap_or(font_size * 1.2)
             .max(font_size),
     }
-}
-
-fn text_style_for_input_method(surface: &UiSurface, target: UiNodeId) -> UiResolvedStyle {
-    let metadata = surface
-        .tree
-        .nodes
-        .get(&target)
-        .and_then(|node| node.template_metadata.as_ref());
-    let mut style = resolve_style(metadata);
-    let font_size = number_attribute(metadata, "font_size")
-        .or_else(|| {
-            (style.font_size != UiResolvedStyle::DEFAULT_FONT_SIZE).then_some(style.font_size)
-        })
-        .unwrap_or(DEFAULT_FONT_SIZE);
-    style.font_size = font_size;
-    style.line_height = number_attribute(metadata, "line_height")
-        .or_else(|| {
-            (style.line_height
-                != UiResolvedStyle::default_line_height(UiResolvedStyle::DEFAULT_FONT_SIZE))
-            .then_some(style.line_height)
-        })
-        .unwrap_or_else(|| UiResolvedStyle::default_line_height(font_size))
-        .max(font_size);
-    style
 }
 
 fn text_frame_for_node(surface: &UiSurface, target: UiNodeId) -> Option<UiFrame> {

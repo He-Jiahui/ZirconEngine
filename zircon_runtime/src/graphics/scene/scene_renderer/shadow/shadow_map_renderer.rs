@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use bytemuck::bytes_of;
 
+use crate::core::framework::render::SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT;
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{is_finite_mat4, Mat4};
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -20,6 +21,7 @@ use super::plan::ShadowAtlasSlotPass;
 
 pub(crate) struct ShadowMapRenderer {
     scene_uniform_buffer: wgpu::Buffer,
+    _environment_sample_buffer: wgpu::Buffer,
     scene_bind_group: wgpu::BindGroup,
 }
 
@@ -31,17 +33,31 @@ impl ShadowMapRenderer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+        let environment_sample_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-shadow-map-scene-environment-samples"),
+            size: (SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT * std::mem::size_of::<[f32; 4]>())
+                as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
         let scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-shadow-map-scene-bind-group"),
             layout: scene_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: scene_uniform_buffer.as_entire_binding(),
-            }],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: scene_uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: environment_sample_buffer.as_entire_binding(),
+                },
+            ],
         });
 
         Self {
             scene_uniform_buffer,
+            _environment_sample_buffer: environment_sample_buffer,
             scene_bind_group,
         }
     }
@@ -66,6 +82,8 @@ impl ShadowMapRenderer {
             return MeshDrawReplayStats::default();
         }
 
+        let forward_shadow_receiver_bind_group = mesh_pipelines
+            .create_forward_shadow_receiver_bind_group(device, None, None, None, None);
         let mut wrote_first_slot = false;
         let mut combined = MeshDrawReplayStats::default();
         for slot_pass in slot_passes {
@@ -109,6 +127,7 @@ impl ShadowMapRenderer {
                 slot_pass.rect.height,
             );
             pass.set_bind_group(0, &self.scene_bind_group, &[]);
+            pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
             let visible_entities = slot_pass
                 .view_key
                 .and_then(|view_key| visible_shadow_entities_for_view(frame, &view_key));
@@ -164,7 +183,6 @@ impl ShadowMapRenderer {
                             );
                         pass.set_pipeline(pipeline);
                     }
-                    replayer.bind_standard_material_if_needed(pass, command);
                 }
                 MeshPassPipelineKind::ShadowDepth => {
                     if replayer.should_set_pipeline(
@@ -185,6 +203,7 @@ impl ShadowMapRenderer {
                 }
                 _ => return false,
             }
+            replayer.bind_standard_material_if_needed(pass, command);
             replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
             replayer.bind_geometry_if_needed(pass, command);
             true
@@ -225,6 +244,11 @@ fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
         previous_view_proj_unjittered: view_proj_cols,
         motion_params: [0.0, 0.0, 0.0, 0.0],
         jitter_params: [0.0, 0.0, 0.0, 0.0],
+        sky_horizon_color: [0.0, 0.0, 0.0, 1.0],
+        sky_zenith_color: [0.0, 0.0, 0.0, 1.0],
+        sky_ground_color: [0.0, 0.0, 0.0, 1.0],
+        environment_params: [0.0, 0.0, 0.0, 0.0],
+        environment_sample_params: [0.0, 0.0, 0.0, 0.0],
     }
 }
 
@@ -290,6 +314,15 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![22, 33]
         );
+    }
+
+    #[test]
+    fn shadow_atlas_binds_forward_shadow_receiver_layout_slot() {
+        let source = include_str!("shadow_map_renderer.rs");
+
+        assert!(source.contains("create_forward_shadow_receiver_bind_group"));
+        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
+        assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
     }
 
     fn test_command(source_entity: u64) -> MeshDrawCommand {

@@ -22,7 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
 {
     pub background: [u8; 4],
     pub border: [u8; 4],
-    pub text: [u8; 4],
+    pub label_text: [u8; 4],
+    pub value_text: [u8; 4],
     pub state: UiPainterResolvedState,
 }
 

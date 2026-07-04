@@ -386,7 +386,10 @@ fn runtime_session_archive_selected_restore_apply_and_diff_use_resolved_slots() 
     assert_eq!(restore_report.entity_count, 1);
     assert_eq!(level.metadata().display_name.as_deref(), Some("Old Manual"));
     level.with_world(|world| {
-        assert!(world.find_node(stale_entity).is_none());
+        assert!(world
+            .node_records()
+            .iter()
+            .all(|record| record.name != "Stale Light"));
         assert_eq!(
             world
                 .find_node(old_entity)

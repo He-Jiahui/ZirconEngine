@@ -4,8 +4,10 @@ use super::super::render_batch::{glyph_atlas_draw_batch_plan, GlyphAtlasDrawBatc
 use super::super::render_gpu_plan::{glyph_atlas_gpu_draw_plan, GlyphAtlasGpuDrawPlan};
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    glyph_atlas_bitmap_run_plan, glyph_atlas_bitmap_run_plan_with_padding, GlyphAtlasBitmapRunPlan,
-    GlyphAtlasBitmapSource, GlyphAtlasUploadCommand,
+    glyph_atlas_bitmap_prepared_upload_plan, glyph_atlas_bitmap_run_plan,
+    glyph_atlas_bitmap_run_plan_with_padding, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasUploadCommand,
 };
 use super::placeholder::{
     glyph_atlas_bitmap_placeholder_draw_plan, GlyphAtlasBitmapPlaceholderDrawPlan,
@@ -37,6 +39,16 @@ impl GlyphAtlasBitmapRenderSubmissionPlan {
 
     pub(crate) fn submission_report(&self) -> GlyphAtlasBitmapRenderSubmissionReport {
         glyph_atlas_bitmap_render_submission_report(self)
+    }
+
+    pub(crate) fn prepared_upload<'a, I>(
+        &self,
+        source_bytes: I,
+    ) -> GlyphAtlasBitmapPreparedUploadPlan
+    where
+        I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
+    {
+        glyph_atlas_bitmap_prepared_upload_plan(&self.run, source_bytes)
     }
 }
 

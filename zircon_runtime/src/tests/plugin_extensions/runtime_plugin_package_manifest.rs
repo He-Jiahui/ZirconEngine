@@ -216,7 +216,7 @@ fn linked_runtime_plugin_registration_report_rejects_declared_but_unexported_int
     assert!(!registration.is_success());
     assert!(registration.diagnostics.iter().any(|diagnostic| {
         diagnostic.contains("declares interface `weather.query.v1`")
-            && diagnostic.contains("did not export it")
+            && diagnostic.contains("no runtime module exported it")
     }));
 }
 

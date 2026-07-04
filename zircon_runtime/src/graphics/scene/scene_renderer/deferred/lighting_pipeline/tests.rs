@@ -41,6 +41,11 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
         scene_uniform.find("previous_view_proj_unjittered").unwrap();
     let motion_params = scene_uniform.find("motion_params").unwrap();
     let jitter_params = scene_uniform.find("jitter_params").unwrap();
+    let sky_horizon_color = scene_uniform.find("sky_horizon_color").unwrap();
+    let sky_zenith_color = scene_uniform.find("sky_zenith_color").unwrap();
+    let sky_ground_color = scene_uniform.find("sky_ground_color").unwrap();
+    let environment_params = scene_uniform.find("environment_params").unwrap();
+    let environment_sample_params = scene_uniform.find("environment_sample_params").unwrap();
 
     assert!(
         view_proj < view_proj_unjittered
@@ -48,8 +53,13 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
             && inverse_view_proj < ambient_color
             && ambient_color < previous_view_proj_unjittered
             && previous_view_proj_unjittered < motion_params
-            && motion_params < jitter_params,
-        "deferred lighting shader must match the Rust SceneUniform matrix, ambient, motion, and jitter layout"
+            && motion_params < jitter_params
+            && jitter_params < sky_horizon_color
+            && sky_horizon_color < sky_zenith_color
+            && sky_zenith_color < sky_ground_color
+            && sky_ground_color < environment_params
+            && environment_params < environment_sample_params,
+        "deferred lighting shader must match the Rust SceneUniform matrix, motion, jitter, and environment layout"
     );
     assert!(!scene_uniform.contains("previous_view_proj:"));
     assert!(!scene_uniform.contains("light_dir"));
@@ -81,6 +91,30 @@ fn deferred_lighting_shader_receives_gpu_light_buffer() {
     }
     assert!(!DEFERRED_LIGHTING_SHADER.contains("point_light_position_range"));
     assert!(!DEFERRED_LIGHTING_SHADER.contains("scene.light_color"));
+}
+
+#[test]
+fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
+    for expected in [
+        "// include: zr_environment.wgsl",
+        "fn zr_environment_pbr_indirect",
+        "scene.sky_horizon_color.rgb",
+        "scene.sky_zenith_color.rgb",
+        "scene.sky_ground_color.rgb",
+        "scene.environment_params.w > 0.5",
+        "scene.environment_sample_params.x",
+        "zr_environment_samples.samples[index].rgb",
+        "fn zr_environment_mip_from_roughness",
+        "fn zr_environment_env_brdf_approx",
+        "let environment_lights = zr_environment_pbr_indirect(",
+        "shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
+        "let color = diffuse_color * ambient + direct_lights + environment_lights;",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred lighting shader should use `{expected}` for PBR environment reflection"
+        );
+    }
 }
 
 #[test]

@@ -1,0 +1,18 @@
+runtime_text_raster_swash_bitmap_atlas_source_bridge_validation_20260704
+Generated: 2026-07-04
+Preview: docs/tests/runtime/text/runtime_text_raster_swash_bitmap_atlas_source_bridge_preview_20260704.png
+Preview SHA256: 5F4FDB0B68E4F96809F6B330444C6DF595BB6648FCB85F4A428A2BA782F5C89D
+
+Scope:
+- Added swash atlas_source owner for GlyphBitmap -> GlyphAtlasBitmapSource mapping.
+- Preserves atlas format, content size, screen rect, foreground/background colors, and actual source data length.
+- Added regressions for AlphaMask, SubpixelMask, Color, and bitmap run plan acceptance.
+
+Checks recorded for this slice:
+- rustfmt --edition 2021 --check on touched runtime raster/swash files: passed after formatting.
+- git diff --check on touched runtime raster/swash files: passed with LF/CRLF worktree warnings only.
+- Focused Cargo was deferred because active cargo/rustc processes were already running on this machine.
+
+Target placement:
+- Validation artifacts intentionally written under docs/tests/runtime/text.
+- No artifact for this slice should exist under target, E:/cargo-targets, or D:/cargo-targets.

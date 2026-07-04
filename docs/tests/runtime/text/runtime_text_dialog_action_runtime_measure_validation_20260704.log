@@ -1,0 +1,49 @@
+runtime_text_dialog_action_runtime_measure_rustfmt_static_visual_cargo_deferred
+Date: 2026-07-04 slice, validation completed from Asia/Shanghai session after midnight rollover
+
+Scope:
+- zircon_runtime/src/ui/surface/render/dialog.rs
+- zircon_runtime/src/ui/tests/render_dialog.rs
+- docs/tests/runtime/text/runtime_text_dialog_action_runtime_measure_preview_20260704.png
+
+Implementation summary:
+- Dialog action slot width no longer uses text.chars().count() * DIALOG_ACTION_CHAR_WIDTH + 20.
+- The dialog renderer now measures action text through runtime measure_text_size(...) with DIALOG_ACTION_FONT_SIZE and DIALOG_ACTION_LINE_HEIGHT.
+- Explicit DIALOG_ACTION_TEXT_PADDING_X preserves the old 20px horizontal padding semantics without using character count.
+- Existing min-width behavior is preserved through DIALOG_ACTION_MIN_WIDTH.
+
+Focused regression added:
+- render_extract_dialog_action_width_uses_runtime_text_measurement
+- Scenario: same-character-count labels "iiiiiiiiiiii" and "WWWWWWWWWWWW" are rendered as Dialog action commands.
+- Assertion: the wide label action frame is more than 8px wider than the narrow label frame, proving the slot width follows runtime glyph measurement rather than character count.
+
+Validation commands and results:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/render/dialog.rs zircon_runtime/src/ui/tests/render_dialog.rs: passed.
+- stale heuristic scan for DIALOG_ACTION_CHAR_WIDTH and action char-count width formulas: 0 stale hits; only the new measure_text_size(...) call remains.
+- git diff --check on touched Rust/proof image: no whitespace errors; LF/CRLF warnings only.
+- conflict marker scan on touched Rust files: 0.
+- proof image inspection: docs/tests/runtime/text/runtime_text_dialog_action_runtime_measure_preview_20260704.png inspected and readable.
+- same-name target scans for preview/log under repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets: 0.
+
+Cargo status:
+- Focused Cargo test was not started because external cargo/rustc lanes were active during validation.
+- Active cargo/rustc lanes observed:
+  - cargo PID 2280, CPU 0.05, StartTime 07/05/2026 00:08:50
+  - cargo PID 15584, CPU 0.92, StartTime 07/05/2026 00:14:05
+  - cargo PID 19716, CPU 0.05, StartTime 07/05/2026 00:01:50
+  - cargo PID 33612, CPU 0.05, StartTime 07/05/2026 00:14:04
+  - cargo PID 35488, CPU 0.03, StartTime 07/05/2026 00:14:04
+  - cargo PID 38672, CPU 3.23, StartTime 07/05/2026 00:08:50
+  - cargo PID 38768, CPU 3.41, StartTime 07/05/2026 00:14:05
+  - cargo PID 42420, CPU 8.39, StartTime 07/05/2026 00:01:50
+  - cargo PID 48100, CPU 0.98, StartTime 07/05/2026 00:14:05
+  - cargo PID 49156, CPU 0.05, StartTime 07/05/2026 00:14:04
+  - rustc PID 18416, CPU 51.94, StartTime 07/05/2026 00:14:15
+  - rustc PID 28072, CPU 354.94, StartTime 07/05/2026 00:09:00
+  - rustc PID 50528, CPU 309.98, StartTime 07/05/2026 00:09:51
+- Deferred focused command when lanes are clear:
+  cargo test -p zircon_runtime render_extract_dialog_action_width_uses_runtime_text_measurement --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0704-dialog-action-measure --message-format short --color never -- --nocapture --test-threads=1
+
+Boundaries:
+- This slice closes runtime surface Dialog action width char-count estimation.
+- It does not claim full editor live-window typography QA, all runtime component text sizing, complex BIDI or vertical source-range geometry, GPU/native paragraph parity, or bitmap atlas cutover completion.

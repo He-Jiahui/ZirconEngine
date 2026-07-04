@@ -1,111 +1,83 @@
 use super::*;
 
+#[path = "route_ownership/child_ownership.rs"]
+mod child_ownership;
+#[path = "route_ownership/leaf_owners.rs"]
+mod leaf_owners;
+#[path = "route_ownership/parent_routes.rs"]
+mod parent_routes;
+#[path = "route_ownership/status_mirrors.rs"]
+mod status_mirrors;
+
+pub(super) const P0_ROUTE_PARENT_ROUTES_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/route_ownership/parent_routes.rs";
+pub(super) const P0_ROUTE_LEAF_OWNERS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/route_ownership/leaf_owners.rs";
+pub(super) const P0_ROUTE_CHILD_OWNERSHIP_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/route_ownership/child_ownership.rs";
+pub(super) const P0_ROUTE_STATUS_MIRRORS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/route_ownership/status_mirrors.rs";
+
+pub(super) const P0_ROUTE_OWNERSHIP_CHILD_SPLIT_SLICE: &str =
+    "Runtime 15 M3 P0 route ownership guard child split";
+pub(super) const P0_ROUTE_OWNERSHIP_CHILD_SPLIT_STATUS: &str =
+    "runtime_15_p0_route_ownership_guard_child_split_static_passed_cargo_deferred";
+pub(super) const P0_ROUTE_OWNERSHIP_CHILD_SPLIT_DATE: &str = "2026-07-05";
+pub(super) const P0_ROUTE_OWNERSHIP_CHILD_SPLIT_GUARD: &str =
+    "runtime_15_p0_route_ownership_guard_is_child_backed";
+pub(super) const P0_ROUTE_STATUS_MIRROR_GUARD: &str =
+    "runtime_15_p0_route_ownership_status_mirrors_are_current";
+
+pub(super) const P0_ROUTE_OWNERSHIP_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "parent_routes",
+        P0_ROUTE_PARENT_ROUTES_CHILD,
+        "assert_p0_parent_routes_are_child_owned",
+    ),
+    (
+        "leaf_owners",
+        P0_ROUTE_LEAF_OWNERS_CHILD,
+        "assert_p0_review_leaf_owners_are_child_owned",
+    ),
+    (
+        "child_ownership",
+        P0_ROUTE_CHILD_OWNERSHIP_CHILD,
+        "assert_p0_route_ownership_guard_is_child_backed",
+    ),
+    (
+        "status_mirrors",
+        P0_ROUTE_STATUS_MIRRORS_CHILD,
+        "assert_p0_route_ownership_status_mirrors_are_current",
+    ),
+];
+
+pub(super) fn p0_route_ownership_child_source_blob() -> String {
+    let mut blob = String::new();
+    for (_, child_path, _) in P0_ROUTE_OWNERSHIP_CHILDREN {
+        blob.push_str(&read_runtime_src(child_path));
+        blob.push('\n');
+    }
+    blob
+}
+
 pub(super) fn assert_p0_robustness_child_owners_are_folder_backed() {
     let sources = read_p0_robustness_sources();
 
-    assert_contains_all(
-        "P0 robustness parent mounts focused child owners",
-        &sources.parent,
-        &[
-            "#[path = \"p0_robustness/native_host_callbacks.rs\"]",
-            "mod native_host_callbacks;",
-            "#[path = \"p0_robustness/lock_poison.rs\"]",
-            "mod lock_poison;",
-            "#[path = \"p0_robustness/render_submit.rs\"]",
-            "mod render_submit;",
-            "#[path = \"p0_robustness/native_fixture.rs\"]",
-            "mod native_fixture;",
-            "#[path = \"p0_robustness/priority_recommendation.rs\"]",
-            "mod priority_recommendation;",
-        ],
-    );
-    assert_eq!(
-        sources.parent.matches("#[test]").count(),
-        0,
-        "p0_robustness.rs should only mount child review guard owners"
-    );
-    for child_owned_test in REVIEW_GUARDS {
-        assert!(
-            !sources.parent.contains(&format!("fn {child_owned_test}")),
-            "child-owned P0 review guard `{child_owned_test}` should not return to p0_robustness.rs"
-        );
-    }
-    assert_contains_all(
-        "native host callback child owns F1 panic-boundary review guard",
-        &sources.native_host_callbacks,
-        &[
-            REVIEW_GUARDS[0],
-            "catch_native_host_api_panic",
-            "ZIRCON_NATIVE_PLUGIN_STATUS_PANIC",
-            "p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "lock poison child owns F2 scene/EventBus review guard",
-        &sources.lock_poison,
-        &[
-            REVIEW_GUARDS[1],
-            "runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending",
-            "level_system_accessors_recover_poisoned_state_locks",
-            "scene/EventBus poison-safe lock recovery complete",
-        ],
-    );
-    assert_contains_all(
-        "render submit child owns F4 viewport/provider typed-error review guard",
-        &sources.render_submit,
-        &[
-            REVIEW_GUARDS[2],
-            "RenderFrameworkError::UnsupportedCapability",
-            "viewport_record_mut_after_generation_check",
-            "review_f4_render_submit_capability_gaps_return_typed_errors",
-        ],
-    );
-    assert_contains_all(
-        "native fixture child owns fixture review sync guards",
-        &sources.native_fixture,
-        &[
-            "#[path = \"native_fixture/importer_manifest.rs\"]",
-            "mod importer_manifest;",
-            "#[path = \"native_fixture/sdk_macro_manifest.rs\"]",
-            "mod sdk_macro_manifest;",
-        ],
-    );
-    assert_eq!(
-        sources.native_fixture.matches("#[test]").count(),
-        0,
-        "native_fixture.rs should only mount native fixture review guard leaf owners"
-    );
-    assert_contains_all(
-        "native fixture SDK macro leaf owns D-S8/D3 review sync guard",
-        &sources.native_fixture_sdk_macro,
-        &[
-            REVIEW_GUARDS[3],
-            "zircon_plugin_sdk::native_dist_plugin_v3!",
-            "ds8_d3_native_fixture_top_row_closed_status_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "native fixture importer leaf owns D13 manifest self-description guard",
-        &sources.native_fixture_importer,
-        &[
-            REVIEW_GUARDS[4],
-            "native_dynamic_fixture_importer_manifest_self_description_static_passed_cargo_deferred",
-            "runtime.asset.importer.native_dynamic_fixture.data_json",
-        ],
-    );
-    assert_contains_all(
-        "priority recommendation child owns cross-review priority sync",
-        &sources.priority_recommendation,
-        &[
-            REVIEW_GUARDS[5],
-            "review_priority_recommendation_d13_parity_sync_static_passed_cargo_deferred",
-            "d7_core_workspace_dependency_inheritance_guard_static_passed_cargo_deferred",
-            "d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred",
-        ],
-    );
+    parent_routes::assert_p0_parent_routes_are_child_owned(&sources);
+    leaf_owners::assert_p0_review_leaf_owners_are_child_owned(&sources);
 }
 
 #[test]
 fn runtime_15_p0_robustness_review_guards_are_child_owners() {
     assert_p0_robustness_child_owners_are_folder_backed();
+}
+
+#[test]
+fn runtime_15_p0_route_ownership_guard_is_child_backed() {
+    child_ownership::assert_p0_route_ownership_guard_is_child_backed();
+}
+
+#[test]
+fn runtime_15_p0_route_ownership_status_mirrors_are_current() {
+    status_mirrors::assert_p0_route_ownership_status_mirrors_are_current();
 }

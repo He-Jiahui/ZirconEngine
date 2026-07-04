@@ -12,6 +12,8 @@ mod welcome;
 pub(in crate::ui::retained_host::host_contract) use host_window::{
     draw_host_workbench_window, draw_host_workbench_window_profiled,
 };
+#[cfg(test)]
+pub(crate) use native_panes::paint_scrollbar_component_for_test;
 pub(in crate::ui::retained_host::host_contract) use scene_layers::{
     draw_componentized_workbench_window, draws_componentized_workbench_window,
 };

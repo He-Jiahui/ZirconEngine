@@ -1,0 +1,8 @@
+runtime_text_bitmap_atlas_retry_frame_state_validation_20260704
+slice=AT-M1/AT-M3 bitmap atlas retry frame state
+owner=zircon_runtime/src/graphics/text/atlas/render_submission/frame_state.rs
+tests=render_text_atlas_bitmap_retry_frame_state_starts_empty_and_drains_successful_retries; render_text_atlas_bitmap_retry_frame_state_persists_deferred_and_backpressured_retries; render_text_atlas_bitmap_retry_frame_state_commits_new_blocked_sources
+rustfmt=passed for atlas/mod.rs, render_submission.rs, render_submission/frame_state.rs, render_submission/tests.rs
+cargo=deferred because external cargo/rustc lanes were active during this slice
+proof_image=docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_state_preview_20260704.png
+proof_image_kind=validation diagram, not live editor capture

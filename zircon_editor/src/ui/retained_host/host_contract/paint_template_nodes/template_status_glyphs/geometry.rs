@@ -1,7 +1,6 @@
 use super::super::super::data::FrameRect;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const STATUS_ICON_GLYPH_SIZE: f32 =
-    16.0;
+const STATUS_ICON_CANVAS_SIZE: f32 = 16.0;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centered_rect(
     rect: &FrameRect,
@@ -22,10 +21,59 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn local_r
     width: f32,
     height: f32,
 ) -> FrameRect {
+    let scale_x = origin.width.max(1.0) / STATUS_ICON_CANVAS_SIZE;
+    let scale_y = origin.height.max(1.0) / STATUS_ICON_CANVAS_SIZE;
     FrameRect {
-        x: origin.x + x,
-        y: origin.y + y,
-        width,
-        height,
+        x: origin.x + x * scale_x,
+        y: origin.y + y * scale_y,
+        width: width * scale_x,
+        height: height * scale_y,
+    }
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn centered_canvas_rect(
+    rect: &FrameRect,
+    size: f32,
+) -> FrameRect {
+    let scale = rect.width.min(rect.height).max(1.0) / STATUS_ICON_CANVAS_SIZE;
+    centered_rect(rect, size * scale)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn status_icon_local_rect_scales_from_canonical_canvas() {
+        let origin = FrameRect {
+            x: 2.0,
+            y: 4.0,
+            width: 20.0,
+            height: 24.0,
+        };
+
+        let rect = local_rect(&origin, 4.0, 8.0, 2.0, 4.0);
+
+        assert!((rect.x - 7.0).abs() < 0.001);
+        assert!((rect.y - 16.0).abs() < 0.001);
+        assert!((rect.width - 2.5).abs() < 0.001);
+        assert!((rect.height - 6.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn status_icon_centered_canvas_rect_scales_canonical_size() {
+        let origin = FrameRect {
+            x: 1.0,
+            y: 3.0,
+            width: 20.0,
+            height: 24.0,
+        };
+
+        let rect = centered_canvas_rect(&origin, 4.0);
+
+        assert!((rect.x - 8.5).abs() < 0.001);
+        assert!((rect.y - 12.5).abs() < 0.001);
+        assert!((rect.width - 5.0).abs() < 0.001);
+        assert!((rect.height - 5.0).abs() < 0.001);
     }
 }

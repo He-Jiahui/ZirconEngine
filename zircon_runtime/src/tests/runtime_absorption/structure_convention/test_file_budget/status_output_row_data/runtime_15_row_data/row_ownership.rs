@@ -1,144 +1,100 @@
 use super::*;
 
+#[path = "row_ownership/foundation_rows.rs"]
+mod foundation_rows;
+#[path = "row_ownership/group_exports.rs"]
+mod group_exports;
+#[path = "row_ownership/owner_budgets.rs"]
+mod owner_budgets;
+#[path = "row_ownership/status_support.rs"]
+mod status_support;
+
+const ROW_OWNERSHIP_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "foundation_rows",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/foundation_rows.rs",
+        "runtime_15_row_data_foundation_rows_are_child_owned",
+    ),
+    (
+        "group_exports",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/group_exports.rs",
+        "runtime_15_row_data_group_exports_are_child_owned",
+    ),
+    (
+        "owner_budgets",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/owner_budgets.rs",
+        "runtime_15_row_data_owner_budgets_are_child_owned",
+    ),
+    (
+        "status_support",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/status_support.rs",
+        "runtime_15_row_data_status_support_rows_are_child_owned",
+    ),
+];
+
 #[test]
 fn runtime_15_status_output_runtime_15_row_data_is_child_owner() {
-    let parent = read_runtime_src(TOP_LEVEL_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15 = read_runtime_src(RUNTIME_15_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15_foundation =
-        read_runtime_src(RUNTIME_15_FOUNDATION_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15_m2 = read_runtime_src(RUNTIME_15_M2_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15_m3 = read_runtime_src(RUNTIME_15_M3_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15_m3_status_support = read_runtime_src(RUNTIME_15_M3_STATUS_SUPPORT_ROW_DATA_PATH);
-    let runtime_15_m4 = read_runtime_src(RUNTIME_15_M4_EXPECTED_STATUS_ROW_DATA_PATH);
-
-    assert_contains_all(
-        "status row data parent keeps only group aggregation",
-        &parent,
-        &[
-            "#[path = \"expected_status_row_data/runtime_15.rs\"]",
-            "mod runtime_15;",
-            "pub(super) const EXPECTED_STATUS_OUTPUT_SLICE_GROUPS",
-            "runtime_15::RUNTIME_15_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M2_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M4_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_F12_RESOURCE_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-        ],
+    let route = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership.rs",
     );
-    for moved_owner in [
-        "Runtime 15 F9 runtime prelude required type coverage",
-        "Runtime 15 M4 scene world project I/O mesh owner split",
-        "runtime_15_scene_world_project_io_mesh_owner_split_static_passed_cargo_timeout_no_result",
-    ] {
+
+    for (module, path, guard) in ROW_OWNERSHIP_CHILDREN {
         assert!(
-            !parent.contains(moved_owner),
-            "expected_status_row_data.rs should delegate Runtime 15 row literals instead of keeping {moved_owner}"
+            route.contains(&format!("#[path = \"row_ownership/{module}.rs\"]")),
+            "row_ownership.rs should route {module} to its child file"
+        );
+        assert!(
+            route.contains(&format!("mod {module};")),
+            "row_ownership.rs should mount {module}"
+        );
+
+        let child = read_runtime_src(path);
+        assert!(
+            child.contains(guard),
+            "{path} should own the {guard} assertion"
+        );
+        assert!(
+            child.lines().count() < 90,
+            "{path} should stay focused after row_ownership split"
         );
     }
+}
+
+#[test]
+fn runtime_15_runtime_15_row_data_row_ownership_children_are_child_owned() {
+    let route = read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership.rs",
+    );
+    let row_data = read_runtime_src(RUNTIME_15_M3_STATUS_SUPPORT_ROW_DATA_AND_BUDGET_PATH);
+    let status_map = read_runtime_src(STATUS_SUPPORT_STATUS_MAP_PATH);
+    let date_map = read_runtime_src(STATUS_SUPPORT_DATE_MAP_PATH);
 
     assert_contains_all(
-        "Runtime 15 status row child owns Runtime 15 row groups",
-        &runtime_15,
+        "Runtime 15 row-ownership split is recorded in status rows",
+        &row_data,
         &[
-            "#[path = \"runtime_15/foundation.rs\"]",
-            "mod foundation;",
-            "#[path = \"runtime_15/m2.rs\"]",
-            "mod m2;",
-            "#[path = \"runtime_15/m3.rs\"]",
-            "mod m3;",
-            "#[path = \"runtime_15/m4.rs\"]",
-            "mod m4;",
-            "pub(super) const RUNTIME_15_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES",
-            "foundation::FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M2_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m2::EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M4_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_F12_RESOURCE_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-            "Runtime 15 F12 offscreen target texture owner cleanup",
+            ROW_OWNERSHIP_CHILD_SPLIT_STATUS_NAME,
+            ROW_OWNERSHIP_CHILD_SPLIT_STATUS_ID,
+            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership.rs",
+            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/group_exports.rs",
+            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/foundation_rows.rs",
+            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/status_support.rs",
+            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership/owner_budgets.rs",
+            ROW_OWNERSHIP_CHILD_SPLIT_GUARD_NAME,
+            "Cargo gate deferred",
         ],
     );
-    for moved_row in [
-        "Runtime 15 F9 runtime prelude required type coverage",
-        "Runtime 15 M3 graphics dead-code guard module split",
-        ROW_DATA_SPLIT_STATUS_NAME,
-        "Runtime 15 M3 status output expected-slice maps split",
-        "Runtime 15 M4 scene world project I/O mesh owner split",
-        "runtime_15_scene_world_project_io_mesh_owner_split_static_passed_cargo_timeout_no_result",
-        "runtime_15_scene_world_project_io_mesh_is_child_owner",
-    ] {
-        assert!(
-            !runtime_15.contains(moved_row),
-            "expected_status_row_data/runtime_15.rs should delegate moved row literals instead of keeping {moved_row}"
-        );
-    }
-
     assert_contains_all(
-        "Runtime 15 foundation row-data child delegates foundation row literals",
-        &runtime_15_foundation,
+        "Runtime 15 row-ownership split is mirrored in status/date maps",
+        &(status_map + &date_map),
         &[
-            "#[path = \"foundation/core_rows.rs\"]",
-            "mod core_rows;",
-            "#[path = \"foundation/typed_error_runtime_rows.rs\"]",
-            "mod typed_error_runtime_rows;",
-            "#[path = \"foundation/typed_error_plugin_rows.rs\"]",
-            "mod typed_error_plugin_rows;",
-            "#[path = \"foundation/typed_error_scene_asset_rows.rs\"]",
-            "mod typed_error_scene_asset_rows;",
-            "pub(super) const FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const FOUNDATION_TYPED_ERROR_RUNTIME_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const FOUNDATION_TYPED_ERROR_PLUGIN_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const FOUNDATION_TYPED_ERROR_SCENE_ASSET_EXPECTED_STATUS_OUTPUT_SLICES",
+            ROW_OWNERSHIP_CHILD_SPLIT_STATUS_NAME,
+            ROW_OWNERSHIP_CHILD_SPLIT_STATUS_ID,
+            "2026-07-04",
         ],
     );
-
-    assert_contains_all(
-        "Runtime 15 M3 status support rows keep historical Runtime 15 row-data split",
-        &runtime_15_m3_status_support,
-        &[
-            ROW_DATA_SPLIT_STATUS_NAME,
-            ROW_DATA_SPLIT_STATUS_ID,
-            "plan_status/status_output_tables/expected_status_row_data.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
-            ROW_DATA_SPLIT_GUARD_NAME,
-        ],
+    assert!(
+        route.lines().count() < 110,
+        "row_ownership.rs should remain a routing/status guard after child split"
     );
-
-    for (label, source) in [
-        (
-            "plan_status/status_output_tables/expected_status_row_data.rs",
-            parent.as_str(),
-        ),
-        (
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15.rs",
-            runtime_15.as_str(),
-        ),
-        (
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-            runtime_15_foundation.as_str(),
-        ),
-        (
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m2.rs",
-            runtime_15_m2.as_str(),
-        ),
-        (
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
-            runtime_15_m3.as_str(),
-        ),
-        (
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
-            runtime_15_m3_status_support.as_str(),
-        ),
-        (
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs",
-            runtime_15_m4.as_str(),
-        ),
-    ] {
-        let line_count = source.lines().count();
-        assert!(
-            line_count < 800,
-            "{label} should stay below the Runtime 15 test-file budget; got {line_count} lines"
-        );
-    }
 }

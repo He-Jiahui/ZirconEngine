@@ -15,6 +15,12 @@ const HISTORICAL_STATUS_PATH: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_lock_poison_status_row_data_children/status_mirrors/historical_status.rs";
 const FOLDER_BACKED_STATUS_PATH: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_lock_poison_status_row_data_children/status_mirrors/folder_backed_status.rs";
+const M3_STRUCTURE_SUPPORT_STATUS_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs";
+const M3_STRUCTURE_SUPPORT_DATE_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs";
+const PRODUCTION_GUARD_SUPPORT_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs";
 
 const STATUS_MIRROR_CHILD_SPLIT_NAME: &str =
     "Runtime 15 M3 lock-poison status row-data status-mirror child split";
@@ -28,19 +34,22 @@ const STATUS_MIRROR_CHILDREN: &[(&str, &str, &str, &[&str])] = &[
         "child_split_status",
         CHILD_SPLIT_STATUS_PATH,
         "runtime_15_lock_poison_status_row_data_status_mirror_status_rows_are_current",
-        &[STATUS_MIRROR_CHILD_SPLIT_NAME, STATUS_MIRROR_CHILD_SPLIT_ID],
+        &[
+            "STATUS_MIRROR_CHILD_SPLIT_NAME",
+            "STATUS_MIRROR_CHILD_SPLIT_ID",
+        ],
     ),
     (
         "historical_status",
         HISTORICAL_STATUS_PATH,
         "runtime_15_lock_poison_status_row_data_historical_status_is_current",
-        &[CHILD_OWNER_STATUS_NAME, CHILD_OWNER_STATUS_ID],
+        &["CHILD_OWNER_STATUS_NAME", "CHILD_OWNER_STATUS_ID"],
     ),
     (
         "folder_backed_status",
         FOLDER_BACKED_STATUS_PATH,
         "runtime_15_lock_poison_status_row_data_folder_backed_status_mirrors_are_current",
-        &[FOLDER_BACKED_STATUS_NAME, FOLDER_BACKED_STATUS_ID],
+        &["FOLDER_BACKED_STATUS_NAME", "FOLDER_BACKED_STATUS_ID"],
     ),
 ];
 

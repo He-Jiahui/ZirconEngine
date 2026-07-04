@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    MotionVectorCameraStatus, RenderFrameExtract, RenderPluginRendererOutputs,
+    MotionVectorCameraStatus, PostProcessGraphResourceNames, RenderFrameExtract,
+    RenderPluginRendererOutputs,
 };
 use crate::core::math::UVec2;
 use crate::graphics::pipeline::RenderPassStage;
@@ -39,6 +40,7 @@ mod hzb_occlusion;
 mod mesh_command_lists;
 mod particle;
 mod post_process;
+mod reports;
 mod resource_lookup;
 mod surface;
 
@@ -189,6 +191,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.frame.render_region()
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn render_region_for_write_resource(
+        &self,
+        resource_name: &str,
+    ) -> ViewportRenderRegion {
+        if writes_physical_output_resource(resource_name) {
+            self.render_region()
+        } else {
+            self.render_region().local_render_region()
+        }
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn camera_stack_attachment_policy(
         &self,
     ) -> ViewportCameraStackAttachmentPolicy {
@@ -205,50 +218,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn depth_format(&self) -> wgpu::TextureFormat {
         self.depth_format
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn take_compute_dispatches(
-        &mut self,
-    ) -> Vec<RenderGraphComputeDispatchRecord> {
-        std::mem::take(&mut self.compute_dispatches)
-    }
-
-    pub fn record_compute_dispatch(
-        &mut self,
-        pass_name: impl Into<String>,
-        executor_id: impl Into<String>,
-        pipeline_label: impl Into<String>,
-        workgroup_size: [u32; 3],
-        dispatch_groups: [u32; 3],
-        storage_write_resources: Vec<String>,
-    ) {
-        self.compute_dispatches
-            .push(RenderGraphComputeDispatchRecord::new(
-                pass_name,
-                executor_id,
-                pipeline_label,
-                workgroup_size,
-                dispatch_groups,
-                storage_write_resources,
-            ));
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn take_hzb_occlusion_cull_report(
-        &mut self,
-    ) -> Option<HzbOcclusionCullReport> {
-        self.hzb_occlusion_cull_report.take()
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn take_light_grid_report(
-        &mut self,
-    ) -> Option<RenderGraphLightGridReport> {
-        self.light_grid_report.take()
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn motion_vector_camera_status(
-        &self,
-    ) -> MotionVectorCameraStatus {
-        self.motion_vector_camera_status
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn resource_resolver(
@@ -430,6 +399,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if !self
             .frame
             .render_region()
+            .local_render_region()
             .apply_physical_to_render_pass(&mut pass)
         {
             return Ok(());
@@ -560,6 +530,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let render_region = self.render_region_for_write_resource(color_resource_name);
         let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
             format!("mesh graph executor for stage `{stage:?}` requires mesh draw context")
         })?;
@@ -613,7 +584,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 sprite_renderer,
                 self.frame,
                 self.shadow_atlas_resources,
-                self.frame.render_region(),
+                render_region,
                 light_grid_params_buffer,
                 light_zbins_buffer,
                 light_tile_masks_buffer,
@@ -633,7 +604,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 streamer,
                 self.frame,
                 self.shadow_atlas_resources,
-                self.frame.render_region(),
+                render_region,
                 light_grid_params_buffer,
                 light_zbins_buffer,
                 light_tile_masks_buffer,
@@ -661,7 +632,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         if stream.is_empty() {
             return Ok(());
         }
-        let render_region = self.render_region();
+        let render_region = self
+            .render_region_for_write_resource(taa_reactive_mask_resource_name)
+            .local_render_region();
         let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
             format!(
                 "TAA reactive mask mesh graph executor for pass `{pass_name}` requires mesh pipeline context"
@@ -743,6 +716,19 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         mesh_draw_lists.replay_stats.record(replayer.stats());
         Ok(())
     }
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn writes_physical_output_resource(
+    resource_name: &str,
+) -> bool {
+    matches!(
+        resource_name,
+        PostProcessGraphResourceNames::FINAL_COLOR
+            | PostProcessGraphResourceNames::VIEWPORT_OUTPUT
+            | PostProcessGraphResourceNames::FINAL_COMPOSITED
+            | PostProcessGraphResourceNames::COLOR_GRADED
+            | PostProcessGraphResourceNames::EFFECT_STACKED
+    )
 }
 
 fn mesh_stage_attachment_ops(

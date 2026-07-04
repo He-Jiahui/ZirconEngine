@@ -8,6 +8,8 @@ fn runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired(
     let run = read_repo("zircon_runtime/src/bin/zircon_shader_prewarm/run.rs");
     let registry =
         read_repo("zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs");
+    let project_record_export =
+        read_repo("zircon_runtime/src/asset/project/shader_resource_records.rs");
     let manifest_registry_tests = read_repo(
         "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
     );
@@ -32,8 +34,17 @@ fn runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired(
         ],
     );
     assert_contains_all(
-        "registry owner merges multiple asset roots into ready shader records",
+        "registry owner delegates live asset-root export to asset/project",
         &registry,
+        &[
+            "project_shader_resource_records_from_asset_roots",
+            "ShaderResourceRecordExportError",
+            "impl From<ShaderResourceRecordExportError> for ShaderPrewarmResourceRegistryError",
+        ],
+    );
+    assert_contains_all(
+        "asset/project owner merges multiple asset roots into ready shader records",
+        &project_record_export,
         &[
             "shader_resource_records_from_asset_roots",
             "deduplicate_shader_resource_records",
@@ -69,6 +80,10 @@ fn runtime_15_shader_prewarm_project_plugin_registry_live_asset_roots_are_wired(
         (
             "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs",
             manifest_registry_tests.as_str(),
+        ),
+        (
+            "zircon_runtime/src/asset/project/shader_resource_records.rs",
+            project_record_export.as_str(),
         ),
         (
             "zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",

@@ -8,7 +8,11 @@ fn runtime_15_status_output_m3_child_group_status_docs_are_child_owner() {
         status_docs_child_source_blob()
     );
     let status_row_docs_source = status_row_docs_guard_source();
-    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_ROWS_PATH);
+    let status_rows = format!(
+        "{}\n{}",
+        read_runtime_src(STATUS_SUPPORT_CORE_AND_EVIDENCE_ROWS_PATH),
+        read_runtime_src(STATUS_SUPPORT_STATUS_DOCS_ROWS_PATH)
+    );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -52,8 +56,8 @@ fn runtime_15_status_output_m3_child_group_status_docs_are_child_owner() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         (
-            "status-output Runtime 15 M3 production support row data",
-            production_guard_support.as_str(),
+            "status-output Runtime 15 M3 production support status-doc rows",
+            status_rows.as_str(),
         ),
     ] {
         assert_contains_all(label, source, &historical_status_anchors);

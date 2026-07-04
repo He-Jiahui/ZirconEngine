@@ -1,0 +1,21 @@
+
+running 1 test
+
+thread 'graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on' (33260) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    Copy of X 0..160 would end up overrunning the bounds of the Source texture of X size 80
+
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6451 filtered out; finished in 5.35s
+

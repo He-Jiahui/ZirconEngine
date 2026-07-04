@@ -1,11 +1,5 @@
 use super::super::super::data::FrameRect;
-
-const DIALOG_PADDING_X: f32 = 20.0;
-const DIALOG_TITLE_TOP: f32 = 18.0;
-const DIALOG_BODY_TOP: f32 = 48.0;
-const DIALOG_TITLE_LINE_HEIGHT: f32 = 18.0;
-const DIALOG_BODY_LINE_HEIGHT: f32 = 16.0;
-const CONFIRM_SEVERITY_MARK_WIDTH: f32 = 4.0;
+use super::metrics::dialog_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
     rect: &FrameRect,
@@ -27,32 +21,35 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn title_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let metrics = dialog_metrics();
     FrameRect {
-        x: content_left(rect),
-        y: rect.y + DIALOG_TITLE_TOP,
-        width: content_width(rect),
-        height: DIALOG_TITLE_LINE_HEIGHT,
+        x: content_left(rect, metrics.padding_x),
+        y: rect.y + metrics.title_top,
+        width: content_width(rect, metrics.padding_x),
+        height: metrics.title_line_height,
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn body_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let metrics = dialog_metrics();
     FrameRect {
-        x: content_left(rect),
-        y: rect.y + DIALOG_BODY_TOP,
-        width: content_width(rect),
-        height: DIALOG_BODY_LINE_HEIGHT,
+        x: content_left(rect, metrics.padding_x),
+        y: rect.y + metrics.body_top,
+        width: content_width(rect, metrics.padding_x),
+        height: metrics.body_line_height,
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severity_mark_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let metrics = dialog_metrics();
     FrameRect {
         x: rect.x,
         y: rect.y,
-        width: CONFIRM_SEVERITY_MARK_WIDTH,
+        width: metrics.severity_mark_width,
         height: rect.height,
     }
 }
@@ -60,13 +57,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severit
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn action_right(
     rect: &FrameRect,
 ) -> f32 {
-    rect.x + rect.width - DIALOG_PADDING_X
+    rect.x + rect.width - dialog_metrics().padding_x
 }
 
-fn content_left(rect: &FrameRect) -> f32 {
-    rect.x + DIALOG_PADDING_X
+fn content_left(rect: &FrameRect, padding_x: f32) -> f32 {
+    rect.x + padding_x
 }
 
-fn content_width(rect: &FrameRect) -> f32 {
-    (rect.width - DIALOG_PADDING_X * 2.0).max(1.0)
+fn content_width(rect: &FrameRect, padding_x: f32) -> f32 {
+    (rect.width - padding_x * 2.0).max(1.0)
 }

@@ -56,18 +56,18 @@ impl SceneRendererCore {
                 encoder.copy_texture_to_texture(
                     target.ambient_occlusion.as_image_copy(),
                     history.ambient_occlusion.as_image_copy(),
-                    texture_extent(target.size),
+                    texture_extent(target.render_size),
                 );
                 ambient_occlusion_copied = true;
             }
             if screen_space_reflection_history_enabled {
-                if let Some(screen_space_reflection_history) = graph_resources
-                    .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
+                if let Some((screen_space_reflection_history, extent)) =
+                    screen_space_reflection_history_copy_extent(graph_resources, target.render_size)
                 {
                     encoder.copy_texture_to_texture(
                         screen_space_reflection_history.as_image_copy(),
                         history.screen_space_reflection.as_image_copy(),
-                        texture_extent(target.size),
+                        extent,
                     );
                     screen_space_reflection_copied = true;
                 }
@@ -125,9 +125,22 @@ fn copy_global_illumination_history(
     encoder.copy_texture_to_texture(
         target.global_illumination.as_image_copy(),
         history.global_illumination.as_image_copy(),
-        texture_extent(target.size),
+        texture_extent(target.render_size),
     );
     true
+}
+
+fn screen_space_reflection_history_copy_extent(
+    graph_resources: &RenderGraphExecutionResources,
+    fallback_size: UVec2,
+) -> Option<(&wgpu::Texture, wgpu::Extent3d)> {
+    let texture = graph_resources
+        .owned_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)?;
+    let size = graph_resources
+        .owned_texture_desc(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
+        .map(|desc| UVec2::new(desc.width, desc.height))
+        .unwrap_or(fallback_size);
+    Some((texture, texture_extent(size)))
 }
 
 fn history_region_copy_extent(
@@ -137,13 +150,14 @@ fn history_region_copy_extent(
 ) -> Option<wgpu::Extent3d> {
     let origin = render_region.physical_position();
     let region_size = render_region.physical_size();
+    let local_size = render_region.local_size();
     let available_size = UVec2::new(
         target_size.x.saturating_sub(origin.x).min(region_size.x),
         target_size.y.saturating_sub(origin.y).min(region_size.y),
     );
     let copy_size = UVec2::new(
-        source_size.x.min(available_size.x),
-        source_size.y.min(available_size.y),
+        source_size.x.min(local_size.x).min(available_size.x),
+        source_size.y.min(local_size.y).min(available_size.y),
     );
     if copy_size.x == 0 || copy_size.y == 0 {
         return None;
@@ -249,6 +263,26 @@ mod tests {
 
         assert_eq!(extent.width, 320);
         assert_eq!(extent.height, 180);
+    }
+
+    #[test]
+    fn history_region_copy_uses_local_extent_and_physical_destination() {
+        let viewport_region = selected_camera_region(
+            UVec2::new(1280, 720),
+            UVec2::new(960, 540),
+            UVec2::new(512, 512),
+        );
+        let render_region = viewport_region.with_local_size(UVec2::new(160, 90));
+
+        let extent =
+            history_region_copy_extent(UVec2::new(256, 256), UVec2::new(1280, 720), render_region)
+                .expect("selected camera copy should retain local internal area");
+        let origin = history_region_copy_origin(render_region);
+
+        assert_eq!(extent.width, 160);
+        assert_eq!(extent.height, 90);
+        assert_eq!(origin.x, 960);
+        assert_eq!(origin.y, 540);
     }
 
     fn selected_camera_region(

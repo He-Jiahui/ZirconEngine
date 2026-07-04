@@ -14,6 +14,12 @@ const SECOND_LAUNCH_DEFAULT_FEATURE_STATUS: &str =
     "render_plan08_project_plugin_registry_material_passes_second_launch_default_features_wgpu_passed_renderdoc_deferred";
 const CUSTOM_PRODUCT_GROUP_DEFAULT_FEATURE_REFRESH_STATUS: &str =
     "render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred";
+const LIVE_REGISTRY_SOURCE_LABEL_PRODUCT_STATUS: &str =
+    "render_plan08_project_plugin_registry_material_passes_live_registry_source_label_product_wgpu_passed_renderdoc_deferred";
+const LIVE_REGISTRY_RECORD_PRODUCT_STATUS: &str =
+    "render_plan08_project_plugin_registry_material_passes_asset_root_records_wgpu_passed_renderdoc_deferred";
+const SHARED_RESOURCE_RECORD_EXPORT_PRODUCT_STATUS: &str =
+    "render_plan08_project_plugin_registry_shared_resource_record_export_product_wgpu_passed_renderdoc_deferred";
 
 #[test]
 fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired() {
@@ -32,6 +38,8 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
         "assertions.rs",
         "custom_shading_model.rs",
         "custom_second_launch.rs",
+        "live_registry_bridge.rs",
+        "live_registry_records.rs",
         "second_launch.rs",
     ]
     .into_iter()
@@ -46,10 +54,14 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
     let product_assertions = read_repo(&format!("{product_dir}/assertions.rs"));
     let product_custom = read_repo(&format!("{product_dir}/custom_shading_model.rs"));
     let product_custom_second_launch = read_repo(&format!("{product_dir}/custom_second_launch.rs"));
+    let product_live_registry = read_repo(&format!("{product_dir}/live_registry_bridge.rs"));
+    let product_live_records = read_repo(&format!("{product_dir}/live_registry_records.rs"));
     let product_second_launch = read_repo(&format!("{product_dir}/second_launch.rs"));
     let prewarm_pipeline_validation = read_repo(
         "zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/prewarm_pipeline_validation.rs",
     );
+    let project_record_export =
+        read_repo("zircon_runtime/src/asset/project/shader_resource_records.rs");
     let parent_mod = read_repo("zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
@@ -98,7 +110,30 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
             "render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss",
             "render_product_custom_shading_model_deferred_lighting_readback_uses_project_include",
             "render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss",
+            "render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache",
+            "registry_material_pass_live_source_label_prewarm_manifest",
+            "request.source_label = case.locator.to_string()",
+            "variant.canonical_string == request.key.canonical_string()",
+            "live registry source-label product launch should stay read-only against staged cache",
+            "render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache",
+            "registry_shader_cases_from_live_records",
+            "shader_resource_records_from_asset_roots",
+            "native_dynamic_fixture_asset_root",
+            "project/plugin asset-root shader resource records",
+            "asset-root record product launch should stay read-only against staged cache",
             "report={prewarm_report:#?}",
+        ],
+    );
+    assert_contains_all(
+        "asset/project record export owns the live ResourceRecord scan rules",
+        &project_record_export,
+        &[
+            "shader_resource_records_from_asset_roots",
+            "deduplicate_shader_resource_records",
+            "AssetMetaDocument::load",
+            "asset_scan_revision_from_source_hash",
+            "ResourceKind::Shader",
+            "ResourceState::Ready",
         ],
     );
     assert_contains_all(
@@ -156,8 +191,20 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
             product_custom_second_launch.as_str(),
         ),
         (
+            "zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/live_registry_bridge.rs",
+            product_live_registry.as_str(),
+        ),
+        (
+            "zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/live_registry_records.rs",
+            product_live_records.as_str(),
+        ),
+        (
             "zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/second_launch.rs",
             product_second_launch.as_str(),
+        ),
+        (
+            "zircon_runtime/src/asset/project/shader_resource_records.rs",
+            project_record_export.as_str(),
         ),
         (
             "zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_material_passes_staged_cache.rs",
@@ -224,6 +271,26 @@ fn runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cach
                 "6187 filtered",
                 "6191 filtered",
                 "6195 filtered",
+                "Project/plugin registry material-pass live registry source-label product bridge",
+                LIVE_REGISTRY_SOURCE_LABEL_PRODUCT_STATUS,
+                "render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache",
+                "live registry source label should not depend on test-only pass suffixes",
+                "`PluginShaderModuleManifest` root export",
+                "zircon_runtime/src/plugin/mod.rs",
+                "6358 filtered",
+                "10.44s",
+                "RenderDoc/product capture",
+                "Project/plugin registry material-pass asset-root ResourceRecord product bridge",
+                LIVE_REGISTRY_RECORD_PRODUCT_STATUS,
+                "render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache",
+                "registry_shader_cases_from_live_records",
+                "native_dynamic_fixture/assets/shader.wgsl.zmeta",
+                "6373 filtered",
+                "10.71s",
+                "Project/plugin registry shared ResourceRecord export product bridge",
+                SHARED_RESOURCE_RECORD_EXPORT_PRODUCT_STATUS,
+                "asset/project/shader_resource_records.rs",
+                "project_shader_resource_records_from_asset_roots",
             ],
         );
     }

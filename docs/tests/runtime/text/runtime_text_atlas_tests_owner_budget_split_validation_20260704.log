@@ -1,0 +1,26 @@
+runtime_text_atlas_tests_owner_budget_split_validation_20260704
+date: 2026-07-04
+scope: zircon_runtime graphics/text/atlas bitmap_run and render_submission test owner split
+
+changes:
+  - moved bitmap_run retry tests into zircon_runtime/src/graphics/text/atlas/bitmap_run/tests/retry.rs
+  - moved render_submission retry-frame tests into zircon_runtime/src/graphics/text/atlas/render_submission/tests/retry_frame.rs
+  - parent tests.rs files now only retain non-retry coverage plus shared fixtures and child module mounts
+
+line budgets:
+  - bitmap_run/tests.rs: 940 -> 702 lines; child bitmap_run/tests/retry.rs: 241 lines
+  - render_submission/tests.rs: 809 -> 440 lines; child render_submission/tests/retry_frame.rs: 372 lines
+  - ALL_TEXT_ATLAS_TEST_OWNERS_UNDER_800_LINES
+
+validation:
+  - rustfmt --edition 2021 --check bitmap_run/tests.rs bitmap_run/tests/retry.rs render_submission/tests.rs render_submission/tests/retry_frame.rs: passed
+  - trailing whitespace/conflict marker scan over the four touched test owners: passed
+  - git diff --check over tracked parent files: passed with LF-to-CRLF working-tree warnings only
+  - target/cargo-target same-name scan for preview/log artifacts: NO_MATCHING_ATLAS_TEST_OWNER_SPLIT_ARTIFACTS_IN_TARGETS
+  - focused Cargo: deferred because external cargo/rustc lanes were active
+  - active cargo/rustc lanes snapshot: cargo 19484 CPU=0.03125; cargo 20920 CPU=0.046875; cargo 29560 CPU=2.984375; cargo 35692 CPU=7.03125; cargo 38760 CPU=0.03125; cargo 45864 CPU=5.046875; rustc 34516 CPU=96.1875; rustc 38984 CPU=0.65625; rustc 44292 CPU=365.953125
+
+artifacts:
+  - preview: docs/tests/runtime/text/runtime_text_atlas_tests_owner_budget_split_preview_20260704.png
+  - preview_sha256: B6C45C53FD3A41525FC414A6C998CCC60DD7B15A511CB3AF3ECD566762093B20
+  - log: docs/tests/runtime/text/runtime_text_atlas_tests_owner_budget_split_validation_20260704.log

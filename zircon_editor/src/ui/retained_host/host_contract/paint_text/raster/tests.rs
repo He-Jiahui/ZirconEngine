@@ -100,15 +100,27 @@ fn swash_metrics_x_offset_is_relative_to_pen_origin() {
 fn fontdue_fallback_metrics_x_offset_is_relative_to_pen_origin() {
     let font = font_for_face(HostTextFontFace::Ui).expect("ui retained-host font");
     let glyph_index = font.lookup_glyph_index('j');
-    let logical_metrics = font.metrics_indexed(glyph_index, 13.0);
+    let raster_scale = 3.0;
+    let (raster_metrics, _) =
+        font.rasterize_indexed(glyph_index, fallback_raster_font_size(13.0, raster_scale));
+    let raster_left_px = raster_metrics.xmin as f32 / raster_scale;
+    let expected_x_offset = raster_left_px.floor() as i32;
 
-    let raster = rasterize_fontdue_glyph(HostTextFontFace::Ui, glyph_index, 13.0, 3.0, 0.5);
+    let raster =
+        rasterize_fontdue_glyph(HostTextFontFace::Ui, glyph_index, 13.0, raster_scale, 0.5);
 
+    assert_eq!(raster.metrics.x_offset, expected_x_offset);
     assert_eq!(
-        raster.metrics.x_offset,
-        logical_metrics.bounds.xmin.floor() as i32
+        raster.sample_offset_x,
+        fontdue_fallback_sample_offset_x(0.5, raster_left_px, expected_x_offset),
+        "fontdue fallback must preserve both pen-origin phase and fractional bitmap-left bearing"
     );
-    assert_eq!(raster.sample_offset_x, 0.5);
+}
+
+#[test]
+fn fontdue_fallback_sample_offset_keeps_bitmap_left_fraction() {
+    assert_eq!(fontdue_fallback_sample_offset_x(0.5, -0.375, -1), 1.125);
+    assert_eq!(fontdue_fallback_sample_offset_x(0.25, 1.75, 1), 1.0);
 }
 
 #[test]

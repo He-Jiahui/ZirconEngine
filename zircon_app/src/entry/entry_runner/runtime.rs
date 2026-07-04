@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{env, error::Error};
 
 use winit::event_loop::EventLoop;
 use zircon_runtime::core::framework::window::{
@@ -13,6 +13,8 @@ use super::runtime_session_args::{
     parse_runtime_session_startup_args, RuntimeSessionProfile, RUNTIME_SESSION_STARTUP_HELP,
 };
 use super::EntryRunner;
+
+const RUNTIME_EXIT_AFTER_FIRST_FRAME_ENV: &str = "ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME";
 
 impl EntryRunner {
     pub fn run_runtime() -> Result<(), Box<dyn Error>> {
@@ -57,8 +59,10 @@ impl EntryRunner {
             runtime_session_args.project_root.as_deref(),
         )?;
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_done");
-        let host_config =
-            runtime_entry_app_config_for_session_profile(runtime_session_args.profile);
+        let host_config = runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+            runtime_session_args.profile,
+            runtime_exit_after_first_frame_enabled(),
+        );
         let event_loop = EventLoop::new()?;
         let app = RuntimeEntryApp::new(session, host_config);
         let result = event_loop.run_app(app);
@@ -78,7 +82,17 @@ impl EntryRunner {
 fn runtime_entry_app_config_for_session_profile(
     profile: RuntimeSessionProfile,
 ) -> RuntimeEntryAppConfig {
-    match profile {
+    runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+        profile,
+        runtime_exit_after_first_frame_enabled(),
+    )
+}
+
+fn runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+    profile: RuntimeSessionProfile,
+    exit_after_first_frame: bool,
+) -> RuntimeEntryAppConfig {
+    let config = match profile {
         RuntimeSessionProfile::Runtime => RuntimeEntryAppConfig::default(),
         RuntimeSessionProfile::Editor | RuntimeSessionProfile::Dev => {
             RuntimeEntryAppConfig::default().with_event_loop_policy(EventLoopPolicy::DesktopApp)
@@ -92,7 +106,16 @@ fn runtime_entry_app_config_for_session_profile(
                         .with_exit_condition(WindowExitCondition::DontExit),
                 )
         }
+    };
+    if exit_after_first_frame {
+        config.with_exit_after_first_presented_frame(true)
+    } else {
+        config
     }
+}
+
+fn runtime_exit_after_first_frame_enabled() -> bool {
+    env::var_os(RUNTIME_EXIT_AFTER_FIRST_FRAME_ENV).is_some()
 }
 
 #[cfg(test)]
@@ -135,5 +158,15 @@ mod tests {
                 WindowExitCondition::DontExit
             );
         }
+    }
+
+    #[test]
+    fn first_frame_exit_flag_projects_into_runtime_host_config() {
+        let config = runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+            RuntimeSessionProfile::Runtime,
+            true,
+        );
+
+        assert!(config.exit_after_first_presented_frame());
     }
 }

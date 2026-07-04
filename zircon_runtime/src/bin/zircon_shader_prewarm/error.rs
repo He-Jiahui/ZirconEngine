@@ -174,6 +174,14 @@ pub enum ShaderPrewarmPermutationRegistryError {
         "custom shading model descriptor id {id} was registered with incompatible descriptors"
     )]
     IncompatibleShadingModelDescriptor { id: u8 },
+    #[error(
+        "shader module {import_path} was registered with content hash {existing_content_hash} and {new_content_hash}"
+    )]
+    DuplicateShaderModuleContentHash {
+        import_path: String,
+        existing_content_hash: String,
+        new_content_hash: String,
+    },
 }
 
 #[derive(Debug, Error)]

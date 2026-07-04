@@ -1,8 +1,5 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::style_selector::{
-    WORKBENCH_DROPDOWN_FOCUS_BORDER as DROPDOWN_FOCUS_BORDER,
-    WORKBENCH_DROPDOWN_OPEN_SURFACE as DROPDOWN_OPEN_SURFACE,
-};
+use super::super::super::style_selector::workbench_dropdown_palette;
 use super::super::style::dropdown_style;
 use super::support::{dropdown_node, resolved_background_and_border};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -22,6 +19,7 @@ fn workbench_dropdown_uses_declared_style_text_and_chevron_colors() {
 
 #[test]
 fn workbench_dropdown_selector_uses_shared_state_priority() {
+    let palette = workbench_dropdown_palette();
     let pressed_open = TemplatePaneNodeData {
         popup_open: true,
         focused: true,
@@ -38,8 +36,8 @@ fn workbench_dropdown_selector_uses_shared_state_priority() {
         dropdown_visual_state(&pressed_open),
         UiPainterResolvedState::Pressed
     );
-    assert_eq!(dropdown_surface(&pressed_open), DROPDOWN_OPEN_SURFACE);
-    assert_eq!(dropdown_border(&pressed_open), DROPDOWN_FOCUS_BORDER);
+    assert_eq!(dropdown_surface(&pressed_open), palette.open_surface);
+    assert_eq!(dropdown_border(&pressed_open), palette.focus_border);
     assert_eq!(
         dropdown_visual_state(&disabled_pressed),
         UiPainterResolvedState::Disabled

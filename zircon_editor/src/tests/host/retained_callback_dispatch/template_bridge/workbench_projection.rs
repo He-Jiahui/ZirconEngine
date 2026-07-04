@@ -1122,14 +1122,22 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     let status_grid = template_contract_node(&nodes, "WorkbenchStatusGrid");
     assert!((status_grid.layout_offset_y + 0.5).abs() < 0.001);
     assert_eq!(
-        status_grid.value_color,
+        status_grid.label_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(125, 137, 144)
+    );
+    assert_eq!(
+        status_grid.value_color,
+        crate::ui::retained_host::primitives::Color::from_rgb_u8(216, 227, 231)
     );
     let status_snap = template_contract_node(&nodes, "WorkbenchStatusSnap");
     assert!((status_snap.layout_offset_y + 0.5).abs() < 0.001);
     assert_eq!(
-        status_snap.value_color,
+        status_snap.label_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(125, 137, 144)
+    );
+    assert_eq!(
+        status_snap.value_color,
+        crate::ui::retained_host::primitives::Color::from_rgb_u8(216, 227, 231)
     );
     let status_snap_toggle = template_contract_node(&nodes, "WorkbenchStatusSnapToggle");
     let status_world = template_contract_node(&nodes, "WorkbenchStatusWorld");
@@ -1139,6 +1147,14 @@ fn componentized_workbench_window_template_bridge_exports_surface_projection_fra
     assert!((status_world.layout_offset_y + 0.5).abs() < 0.001);
     assert!((status_target.layout_offset_y + 0.5).abs() < 0.001);
     assert!((status_zoom.layout_offset_y + 0.5).abs() < 0.001);
+    assert_eq!(
+        status_zoom.label_color,
+        crate::ui::retained_host::primitives::Color::from_rgb_u8(125, 137, 144)
+    );
+    assert_eq!(
+        status_zoom.value_color,
+        crate::ui::retained_host::primitives::Color::from_rgb_u8(216, 227, 231)
+    );
     let inspector_material_row = template_contract_node(&nodes, "WorkbenchMaterialRow");
     assert_eq!(inspector_material_row.text.as_str(), "Materials");
     assert_eq!(

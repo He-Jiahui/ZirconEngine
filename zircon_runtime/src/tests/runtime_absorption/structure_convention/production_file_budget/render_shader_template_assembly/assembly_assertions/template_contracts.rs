@@ -12,10 +12,12 @@ pub(super) fn assert_shader_template_contracts(sources: &RenderShaderTemplateAss
         validation,
         tests,
         template_surface_module_tests,
+        template_standard_material_surface_tests,
         variant_cache_prewarm,
         pipeline_key,
         ..
     } = sources;
+    let template_unit_tests = format!("{tests}\n{template_standard_material_surface_tests}");
 
     assert_contains_all(
         "graphics shader module mounts template owner",
@@ -227,9 +229,10 @@ pub(super) fn assert_shader_template_contracts(sources: &RenderShaderTemplateAss
 
     assert_contains_all(
         "template unit tests cover geometry and pass dimensions",
-        &tests,
+        &template_unit_tests,
         &[
             "render_shader_template_assembles_static_and_skinned_geometry_sources",
+            "mod standard_material_surface_template;",
             "mod surface_modules;",
             "render_shader_template_assembles_standard_material_surface_source",
             "standard_material_surface_source_can_be_built_from_runtime_features",

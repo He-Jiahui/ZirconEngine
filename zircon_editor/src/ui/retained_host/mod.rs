@@ -16,6 +16,7 @@ pub(crate) mod menu_pointer;
 pub(crate) mod popup_anchor_metrics;
 pub(crate) mod primitives;
 pub(crate) mod route_intent;
+mod run_config;
 pub(crate) mod scroll_surface_host;
 pub(crate) mod shell_pointer;
 pub mod tab_drag;
@@ -38,7 +39,8 @@ pub(crate) use app::{
     collect_native_floating_window_targets, configure_native_floating_window_presentation,
     NativeFloatingWindowTarget, NativeWindowPresenterStore,
 };
-pub use app::{run_editor, run_editor_with_startup_request};
+pub use app::{run_editor, run_editor_with_config, run_editor_with_startup_request};
+pub use run_config::EditorHostRunConfig;
 #[cfg(test)]
 pub(crate) use ui::apply_presentation;
 #[cfg(test)]

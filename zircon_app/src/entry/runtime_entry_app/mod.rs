@@ -41,6 +41,7 @@ pub(super) struct RuntimeEntryApp {
     surface_present_enabled: bool,
     surface_present_failed: bool,
     surface_present_attempted: bool,
+    exit_after_first_presented_frame: bool,
     session: RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
     viewport_size: ZrRuntimeViewportSizeV1,

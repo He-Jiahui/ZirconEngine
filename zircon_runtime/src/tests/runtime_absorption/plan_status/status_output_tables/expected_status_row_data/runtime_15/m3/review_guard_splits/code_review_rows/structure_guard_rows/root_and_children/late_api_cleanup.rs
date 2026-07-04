@@ -25,3 +25,16 @@ pub(super) const STRUCTURE_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
     "runtime_15_late_api_cleanup_structure_guard_budgets_are_focused",
     "Cargo gate deferred",
 ];
+
+pub(super) const LATE_API_CLEANUP_ROOT_INVENTORY_CHILD_SPLIT: &[&str] = &[
+    "runtime_15_late_api_cleanup_root_inventory_child_split_static_passed_cargo_deferred",
+    "Runtime 15 M3 late API cleanup root inventory child split",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_statuses.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_child_rows.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_inventory.rs",
+    "runtime_15_late_api_cleanup_root_inventory_is_child_owned",
+    "Cargo gate deferred",
+];

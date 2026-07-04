@@ -1,0 +1,8 @@
+runtime_text_editor_retained_glyph_left_offset_quantization_validation_20260704
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_glyph_left_offset_quantization_preview_20260704.png
+sha256=B58983A3DDADA240CCFF70CFC6E2BA34EEFAB90A16336C33F038EA900D4B980D
+font=C:\Windows\Fonts\Deng.ttf
+case=editor retained-host tab labels: editor base.zui / folder-open.svg
+old_rule=floor(bounds.xmin) used by retained-host glyph_left_offset
+new_rule=round(bounds.xmin * 8) / 8 via retained_glyph_left_offset_px
+target_scan=NO_MATCHING_LEFT_OFFSET_QUANTIZATION_ARTIFACTS_IN_TARGETS

@@ -1,8 +1,9 @@
 use super::*;
+use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::document_tabs::{
-    document_tab_close_x, document_tab_preferred_width, DOCUMENT_TAB_CLOSE_EXTENT,
+    document_tab_close_x, document_tab_preferred_width_from_title_width, DOCUMENT_TAB_CLOSE_EXTENT,
     DOCUMENT_TAB_CLOSE_TOP_INSET, DOCUMENT_TAB_GAP, DOCUMENT_TAB_HEIGHT, DOCUMENT_TAB_STRIP_X,
-    DOCUMENT_TAB_STRIP_Y,
+    DOCUMENT_TAB_STRIP_Y, DOCUMENT_TAB_TITLE_FONT_SIZE,
 };
 
 pub(super) fn side_dock_header_nodes(
@@ -120,7 +121,9 @@ pub(super) fn fallback_dock_header_nodes(
         let Some(tab) = tabs.row_data(row) else {
             continue;
         };
-        let tab_width = document_tab_preferred_width(tab.title.as_str(), tab.closeable);
+        let title_width =
+            measure_runtime_text_width(tab.title.as_str(), DOCUMENT_TAB_TITLE_FONT_SIZE);
+        let tab_width = document_tab_preferred_width_from_title_width(title_width, tab.closeable);
         let text_tone = if tab.active { "default" } else { "subtle" };
         let font_weight = if tab.active { 600 } else { 400 };
         let icon_name = chrome_tab_icon_name(&tab);
@@ -130,7 +133,7 @@ pub(super) fn fallback_dock_header_nodes(
             role: "Button".into(),
             text: tab.title.clone(),
             text_tone: text_tone.into(),
-            font_size: CHROME_TEXT_FONT_SIZE_PX,
+            font_size: DOCUMENT_TAB_TITLE_FONT_SIZE,
             font_weight,
             surface_variant: if tab.active { "inset" } else { "" }.into(),
             button_variant: "ghost".into(),

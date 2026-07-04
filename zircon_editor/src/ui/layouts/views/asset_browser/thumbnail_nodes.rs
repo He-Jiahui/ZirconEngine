@@ -5,16 +5,17 @@ use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWork
 use zircon_runtime_interface::resource::ResourceKind;
 
 use super::labels::{asset_state_label, resource_kind_badge_code};
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 
 const THUMBNAIL_GRID_MAX_ITEMS: usize = 8;
 const THUMBNAIL_NAME_SINGLE_LINE_LIMIT: usize = 20;
 const THUMBNAIL_NAME_MIN_LINE_CHARS: usize = 6;
 const THUMBNAIL_NAME_TARGET_MIN_CHARS: usize = 12;
 const THUMBNAIL_NAME_TARGET_MAX_CHARS: usize = 18;
-const THUMBNAIL_FILE_NAME_VISIBLE_CHAR_LIMIT: usize = 20;
-const THUMBNAIL_FILE_NAME_MAX_PREFIX_CHARS: usize = 9;
+const THUMBNAIL_FILE_NAME_MAX_WIDTH: f32 = 96.0;
+const THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS: usize = 4;
+const THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 3;
 const THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 4;
-const THUMBNAIL_FILE_NAME_ELLIPSIS: &str = "...";
 const THUMBNAIL_NAME_PRIMARY_FONT_SIZE: f32 = 10.0;
 const THUMBNAIL_NAME_CONTINUATION_FONT_SIZE: f32 = 9.0;
 const THUMBNAIL_NAME_PRIMARY_FONT_WEIGHT: i32 = 500;
@@ -256,47 +257,17 @@ fn is_file_like_thumbnail_name(display_name: &str, extension: &str) -> bool {
 }
 
 fn thumbnail_file_like_display_title(display_name: &str, extension: &str) -> String {
-    if display_name.chars().count() <= THUMBNAIL_FILE_NAME_VISIBLE_CHAR_LIMIT {
-        return display_name.to_string();
-    }
-
-    let Some((stem, suffix)) = display_name.rsplit_once('.') else {
-        return display_name.to_string();
-    };
-    let extension = extension.trim().trim_start_matches('.');
-    if !suffix.eq_ignore_ascii_case(extension) {
-        return display_name.to_string();
-    }
-
-    let suffix_char_count = suffix.chars().count();
-    let ellipsis_char_count = THUMBNAIL_FILE_NAME_ELLIPSIS.chars().count();
-    let available_stem_chars = THUMBNAIL_FILE_NAME_VISIBLE_CHAR_LIMIT
-        .saturating_sub(ellipsis_char_count + 1 + suffix_char_count);
-    if available_stem_chars < 2 {
-        return display_name.to_string();
-    }
-
-    let tail_chars = THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS.min(available_stem_chars / 2);
-    let prefix_chars =
-        THUMBNAIL_FILE_NAME_MAX_PREFIX_CHARS.min(available_stem_chars.saturating_sub(tail_chars));
-    let stem_char_count = stem.chars().count();
-    if prefix_chars == 0 || tail_chars == 0 || stem_char_count <= prefix_chars + tail_chars {
-        return display_name.to_string();
-    }
-
-    let prefix = first_n_chars(stem, prefix_chars);
-    let tail = last_n_chars(stem, tail_chars);
-    format!("{prefix}{THUMBNAIL_FILE_NAME_ELLIPSIS}{tail}.{suffix}")
-}
-
-fn first_n_chars(text: &str, count: usize) -> String {
-    text.chars().take(count).collect()
-}
-
-fn last_n_chars(text: &str, count: usize) -> String {
-    let chars = text.chars().collect::<Vec<_>>();
-    let start = chars.len().saturating_sub(count);
-    chars[start..].iter().copied().collect()
+    compact_file_like_display_name(
+        display_name,
+        extension,
+        RuntimeFileNameCompaction {
+            max_width: THUMBNAIL_FILE_NAME_MAX_WIDTH,
+            font_size: THUMBNAIL_NAME_PRIMARY_FONT_SIZE,
+            min_prefix_chars: THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS,
+            min_tail_stem_chars: THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS,
+            preferred_tail_stem_chars: THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS,
+        },
+    )
 }
 
 pub(super) fn asset_display_name_lines(display_name: &str) -> (String, String) {
@@ -399,6 +370,7 @@ pub(super) fn thumbnail_control_id(kind: &str, index: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::retained_host::measure_runtime_text_width;
     use crate::ui::workbench::snapshot::AssetWorkspaceSnapshot;
     use zircon_runtime_interface::resource::ResourceKind;
 
@@ -529,7 +501,13 @@ mod tests {
             .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
             .expect("missing thumbnail continuation name");
 
-        assert_eq!(name.text.as_str(), "workbench...ndow.zui");
+        assert!(name.text.as_str().ends_with(".zui"));
+        assert!(
+            measure_runtime_text_width(name.text.as_str(), THUMBNAIL_NAME_PRIMARY_FONT_SIZE)
+                <= THUMBNAIL_FILE_NAME_MAX_WIDTH + 0.01,
+            "thumbnail file-like name should fit measured width: {}",
+            name.text
+        );
         assert!(continuation.text.is_empty());
         assert_eq!(name.overflow.as_str(), "elide");
         assert_eq!(continuation.overflow.as_str(), "elide");
@@ -573,8 +551,32 @@ mod tests {
             .find(|node| node.control_id == "AssetBrowserThumbNameContinuation01")
             .expect("missing thumbnail continuation name");
 
-        assert_eq!(name.text.as_str(), "editor...view.zscene");
+        assert!(name.text.as_str().ends_with(".zscene"));
+        assert!(
+            measure_runtime_text_width(name.text.as_str(), THUMBNAIL_NAME_PRIMARY_FONT_SIZE)
+                <= THUMBNAIL_FILE_NAME_MAX_WIDTH + 0.01,
+            "thumbnail long-extension title should fit measured width: {}",
+            name.text
+        );
         assert!(continuation.text.is_empty());
+    }
+
+    #[test]
+    fn thumbnail_file_like_title_uses_runtime_width_not_character_count() {
+        let narrow = format!("{}.zui", "i".repeat(24));
+        let wide = format!("{}.zui", "W".repeat(24));
+        assert_eq!(narrow.chars().count(), wide.chars().count());
+
+        assert_eq!(thumbnail_file_like_display_title(&narrow, "zui"), narrow);
+        let compact_wide = thumbnail_file_like_display_title(&wide, "zui");
+
+        assert_ne!(compact_wide, wide);
+        assert!(compact_wide.ends_with(".zui"));
+        assert!(
+            measure_runtime_text_width(&compact_wide, THUMBNAIL_NAME_PRIMARY_FONT_SIZE)
+                <= THUMBNAIL_FILE_NAME_MAX_WIDTH + 0.01,
+            "thumbnail file-like title should fit measured width: {compact_wide}"
+        );
     }
 
     #[test]

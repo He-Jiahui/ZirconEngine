@@ -270,6 +270,34 @@ fn sdf_draw_plan_maps_resolved_grapheme_advances_to_sdf_char_run() {
 }
 
 #[test]
+fn sdf_draw_plan_preserves_subpixel_glyph_advance_spacing() {
+    let line_frame = text_frame_device_origin(UiFrame::new(4.49, 8.51, 96.0, 20.0));
+    let glyph = RunGlyph {
+        slot_index: Some(0),
+        metrics: SdfGlyphMetrics {
+            bitmap_width: 8,
+            bitmap_height: 12,
+            bitmap_left: 0.25,
+            bitmap_bottom: 1.5,
+            advance: 7.5,
+            ascent: 11.0,
+        },
+        atlas_bitmap_width: 8,
+        atlas_bitmap_height: 12,
+        visible: true,
+        screen_px_range: sdf_screen_px_range(12.0, SdfBakeParams::default()),
+    };
+    let first = horizontal_sdf_glyph_frame(line_frame.x + 0.2, 20.75, &glyph);
+    let second = horizontal_sdf_glyph_frame(line_frame.x + 7.7, 20.75, &glyph);
+
+    assert_eq!(line_frame.x, 4.0);
+    assert_eq!(line_frame.y, 9.0);
+    assert!((first.x - 4.45).abs() < 0.0001);
+    assert!((second.x - first.x - glyph.metrics.advance).abs() < 0.0001);
+    assert!((first.y - 7.25).abs() < 0.0001);
+}
+
+#[test]
 fn sdf_draw_plan_trims_edge_spaces_for_justify() {
     let mut justified = text_batch(" A B ", UiFrame::new(8.0, 12.0, 112.0, 20.0));
     justified.text_align = UiTextAlign::Justify;

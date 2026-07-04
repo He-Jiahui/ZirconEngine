@@ -8,8 +8,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use chips:
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use common::status_control_offset_rect;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use icons::status_icon_button_glyph_rect;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    status_chip_radius, status_font_size, status_icon_button_radius, status_line_height,
-    workbench_status_metrics,
+    status_chip_radius, status_font_size, status_icon_button_radius, status_icon_glyph_size,
+    status_line_height, workbench_status_metrics,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use signals::status_signal_text_gap;

@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on' (42144) panicked at zircon_runtime\src\graphics\tests\render_product_post_process_full_chain.rs:455:5:
+expected graph executor `post.bloom-extract` before `post.exposure.histogram`; executed=["sky.preview-scene-color", "mesh.depth-prepass", "temporal.velocity-object", "temporal.velocity-camera", "shadow.atlas", "visibility.hzb-build", "mesh.opaque", "mesh.alpha-mask", "mesh.transparent", "particle.velocity", "particle.transparent", "post.motion-vector-tile-max", "post.motion-vector-tile-max-coarse", "post.motion-vector-neighbor-max", "post.depth-of-field-prepare", "post.depth-of-field", "post.motion-blur", "post.exposure.histogram", "post.exposure.resolve", "post.screen-space-reflection-reflection-pyramid", "post.screen-space-reflection-reflection-pyramid-coarse", "post.screen-space-reflection-specular-occlusion", "post.screen-space-reflection-resolve", "post.scene-composite", "post.blur", "post.color-lut-bake", "post.bloom-extract", "post.uber", "post.upscale", "post.output-transfer", "post.smaa", "overlay.gizmo", "ui.screen-space"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6456 filtered out; finished in 5.35s
+

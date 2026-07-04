@@ -1,11 +1,15 @@
 use super::super::render_contract::GlyphAtlasBlendMode;
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasBitmapSource, GlyphAtlasFormat,
-    GlyphAtlasPageKey, GlyphAtlasRect, GlyphAtlasUploadMode,
+    GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasBitmapQueuedGlyph,
+    GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapRetrySourceOrigin,
+    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasPageKey,
+    GlyphAtlasRect, GlyphAtlasUploadMode,
 };
 use super::*;
 use crate::core::math::UVec2;
+
+mod retry_frame;
 
 #[test]
 fn render_text_atlas_bitmap_submission_carries_uploads_batches_and_gpu_commands() {
@@ -206,6 +210,8 @@ fn render_text_atlas_bitmap_submission_report_summarizes_upload_and_gpu_work() {
     assert_eq!(report.full_page_upload_count, 0);
     assert_eq!(report.partial_upload_count, 2);
     assert_eq!(report.upload_byte_len, 128);
+    assert_eq!(report.upload_copy_count, 2);
+    assert_eq!(report.upload_copy_byte_len, 128);
     assert_eq!(report.draw_batch_count, 2);
     assert_eq!(report.pipeline_count, 2);
     assert_eq!(report.gpu_batch_count, 2);
@@ -213,6 +219,7 @@ fn render_text_atlas_bitmap_submission_report_summarizes_upload_and_gpu_work() {
     assert_eq!(report.vertex_count, 12);
     assert!(report.requires_background_composite);
     assert!(report.has_upload_work());
+    assert!(report.has_upload_copy_work());
     assert!(report.has_gpu_work());
     assert!(!report.has_failures());
     assert!(!report.has_placeholder_work());
@@ -244,9 +251,12 @@ fn render_text_atlas_bitmap_submission_report_keeps_upload_only_culled_glyphs() 
     assert_eq!(report.upload_command_count, 1);
     assert_eq!(report.partial_upload_count, 1);
     assert_eq!(report.upload_byte_len, 32);
+    assert_eq!(report.upload_copy_count, 1);
+    assert_eq!(report.upload_copy_byte_len, 32);
     assert_eq!(report.draw_batch_count, 0);
     assert_eq!(report.draw_command_count, 0);
     assert!(report.has_upload_work());
+    assert!(report.has_upload_copy_work());
     assert!(!report.has_gpu_work());
 }
 
@@ -274,9 +284,12 @@ fn render_text_atlas_bitmap_submission_report_counts_full_page_uploads() {
     assert_eq!(report.full_page_upload_count, 1);
     assert_eq!(report.partial_upload_count, 0);
     assert_eq!(report.upload_byte_len, 256);
+    assert_eq!(report.upload_copy_count, 1);
+    assert_eq!(report.upload_copy_byte_len, 256);
     assert_eq!(report.dirty_page_count, 1);
     assert_eq!(report.visible_glyph_count, 1);
     assert!(report.has_upload_work());
+    assert!(report.has_upload_copy_work());
     assert!(report.has_gpu_work());
 }
 
@@ -313,10 +326,13 @@ fn render_text_atlas_bitmap_submission_report_preserves_failure_totals() {
     assert_eq!(report.source_validation_failure_count(), 1);
     assert_eq!(report.atlas_capacity_failure_count(), 1);
     assert_eq!(report.upload_command_count, 0);
+    assert_eq!(report.upload_copy_count, 0);
+    assert_eq!(report.upload_copy_byte_len, 0);
     assert_eq!(report.draw_command_count, 0);
     assert_eq!(report.vertex_count, 0);
     assert!(report.has_failures());
     assert!(!report.has_upload_work());
+    assert!(!report.has_upload_copy_work());
     assert!(!report.has_gpu_work());
 }
 
@@ -356,11 +372,86 @@ fn render_text_atlas_bitmap_submission_report_breaks_down_failure_reasons() {
     assert_eq!(report.atlas_capacity_failure_count(), 1);
     assert_eq!(report.upload_command_count, 1);
     assert_eq!(report.partial_upload_count, 1);
+    assert_eq!(report.upload_copy_count, 1);
+    assert_eq!(report.upload_copy_byte_len, 144);
     assert_eq!(report.draw_command_count, 1);
     assert!(report.has_failures());
     assert!(report.has_upload_work());
+    assert!(report.has_upload_copy_work());
     assert!(report.has_gpu_work());
     assert!(report.has_placeholder_work());
+}
+
+#[test]
+fn render_text_atlas_bitmap_submission_prepares_upload_from_source_bytes() {
+    let plan = glyph_atlas_bitmap_render_submission_plan_with_padding(
+        [
+            source(GlyphAtlasFormat::AlphaMask, UVec2::new(8, 4), 8.0, 32),
+            source(GlyphAtlasFormat::SubpixelMask, UVec2::new(6, 4), 24.0, 96),
+        ],
+        UVec2::new(32, 32),
+        71,
+        1,
+        2,
+        UVec2::new(80, 32),
+        GlyphAtlasScreenRect::new(0.0, 0.0, 80.0, 32.0),
+    );
+    let alpha_bytes = vec![7; 32];
+    let subpixel_bytes = vec![11; 96];
+
+    let prepared = plan.prepared_upload([
+        GlyphAtlasBitmapUploadSourceBytes::new(0, alpha_bytes.as_slice()),
+        GlyphAtlasBitmapUploadSourceBytes::new(1, subpixel_bytes.as_slice()),
+    ]);
+
+    assert!(!prepared.has_failures());
+    assert_eq!(prepared.staging.pages.len(), 2);
+    assert_eq!(prepared.staged_uploads.uploads.len(), 2);
+    assert_eq!(
+        prepared
+            .staged_uploads
+            .uploads
+            .iter()
+            .map(|upload| upload.command.upload_byte_len)
+            .sum::<usize>(),
+        128
+    );
+    assert!(prepared.staging.pages.iter().any(|page| {
+        page.page_key == GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0)
+            && page.bytes_per_row == 32
+            && page.bytes.contains(&7)
+    }));
+    assert!(prepared.staging.pages.iter().any(|page| {
+        page.page_key == GlyphAtlasPageKey::new(GlyphAtlasFormat::SubpixelMask, 0)
+            && page.bytes_per_row == 128
+            && page.bytes.contains(&11)
+    }));
+}
+
+#[test]
+fn render_text_atlas_bitmap_submission_prepare_upload_blocks_missing_source_bytes() {
+    let plan = glyph_atlas_bitmap_render_submission_plan_with_padding(
+        [source(
+            GlyphAtlasFormat::AlphaMask,
+            UVec2::new(8, 4),
+            8.0,
+            32,
+        )],
+        UVec2::new(32, 32),
+        73,
+        1,
+        2,
+        UVec2::new(80, 32),
+        GlyphAtlasScreenRect::new(0.0, 0.0, 80.0, 32.0),
+    );
+
+    let prepared =
+        plan.prepared_upload(std::iter::empty::<GlyphAtlasBitmapUploadSourceBytes<'_>>());
+
+    assert!(prepared.has_failures());
+    assert_eq!(prepared.staging.failures.len(), 1);
+    assert_eq!(prepared.staged_uploads.uploads.len(), 0);
+    assert_eq!(prepared.staged_uploads.failures.len(), 0);
 }
 
 fn source(
@@ -384,11 +475,38 @@ fn source(
     }
 }
 
+fn queued_glyph(
+    source_index: usize,
+    source: GlyphAtlasBitmapSource,
+    retry_frame_index: u64,
+) -> GlyphAtlasBitmapQueuedGlyph {
+    GlyphAtlasBitmapQueuedGlyph {
+        source_index,
+        source,
+        retry_frame_index,
+    }
+}
+
 fn atlas_rect(x: u32, y: u32, width: u32, height: u32) -> GlyphAtlasRect {
     GlyphAtlasRect {
         x,
         y,
         width,
         height,
+    }
+}
+
+fn frame_driver_config(
+    page_size: UVec2,
+    max_pages_per_format: usize,
+    padding_px: u32,
+) -> GlyphAtlasBitmapRetryFrameDriverConfig {
+    GlyphAtlasBitmapRetryFrameDriverConfig {
+        page_size,
+        max_pages_per_format,
+        padding_px,
+        backpressure_policy: GlyphAtlasBitmapRetryBackpressurePolicy::unlimited(),
+        viewport_size: UVec2::new(96, 32),
+        clip_rect: GlyphAtlasScreenRect::new(0.0, 0.0, 96.0, 32.0),
     }
 }

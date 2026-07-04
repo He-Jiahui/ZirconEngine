@@ -1,6 +1,9 @@
 use std::cell::RefCell;
 
-use glyphon::{Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Weight, Wrap};
+use glyphon::{
+    cosmic_text::{FeatureTag, FontFeatures},
+    Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
+};
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
@@ -67,6 +70,7 @@ fn shape_with_cosmic(request: TextShapeRequest<'_>) -> Option<ShapedGlyphRun> {
             direction: request.base_direction,
             orientation: request.orientation,
             vertical_mode: request.vertical_mode,
+            include_kerning: request.include_kerning,
             measured_width,
             measured_height,
             lines,
@@ -161,6 +165,8 @@ fn glyph_from_layout_glyph(
     };
     let script = shaped_script_for_cluster(cluster_text, script_for_range(scripts, local_range));
 
+    let (offset_x, offset_y) =
+        glyph_layout_offset_px(glyph.font_size, glyph.x_offset, glyph.y_offset);
     ShapedGlyph {
         glyph_id: glyph.glyph_id as u32,
         font_id: None,
@@ -172,12 +178,28 @@ fn glyph_from_layout_glyph(
         advance: glyph.w.max(0.0),
         x: glyph.x,
         y: glyph.y,
-        offset_x: glyph.x_offset,
-        offset_y: glyph.y_offset,
+        offset_x,
+        offset_y,
         direction,
         cluster_flags: cluster_flags(cluster_text, direction, cluster_start, cluster_line_breaks),
         rotation: rotation_for_request(request),
         script,
+    }
+}
+
+fn glyph_layout_offset_px(font_size: f32, x_offset: f32, y_offset: f32) -> (f32, f32) {
+    let font_size = font_size.max(1.0);
+    (
+        finite_offset_px(font_size, x_offset),
+        finite_offset_px(font_size, y_offset),
+    )
+}
+
+fn finite_offset_px(font_size: f32, offset: f32) -> f32 {
+    if offset.is_finite() {
+        font_size * offset
+    } else {
+        0.0
     }
 }
 
@@ -200,6 +222,7 @@ fn empty_run(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
         direction: request.base_direction,
         orientation: request.orientation,
         vertical_mode: request.vertical_mode,
+        include_kerning: request.include_kerning,
         measured_width: 0.0,
         measured_height: line_height,
         lines: vec![ShapedTextLine {
@@ -271,6 +294,7 @@ fn fallback_shape(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
         direction: request.base_direction,
         orientation: request.orientation,
         vertical_mode: request.vertical_mode,
+        include_kerning: request.include_kerning,
         measured_width: x,
         measured_height: line_height,
         lines: vec![ShapedTextLine {
@@ -322,9 +346,16 @@ fn attrs_for_style<'a>(request: TextShapeRequest<'a>) -> Attrs<'a> {
         Some(family) => Attrs::new().family(Family::Name(family)),
         None => Attrs::new(),
     };
-    attrs.weight(Weight(UiResolvedStyle::normalized_font_weight(
+    let attrs = attrs.weight(Weight(UiResolvedStyle::normalized_font_weight(
         request.style.font_weight,
-    )))
+    )));
+    if request.include_kerning {
+        return attrs;
+    }
+
+    let mut features = FontFeatures::new();
+    features.disable(FeatureTag::KERNING);
+    attrs.font_features(features)
 }
 
 fn resolved_line_height(request: TextShapeRequest<'_>) -> f32 {
@@ -390,4 +421,47 @@ fn synthetic_glyph_id(grapheme: &str) -> u32 {
         hash = hash.wrapping_mul(16_777_619);
     }
     hash.max(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use glyphon::cosmic_text::FeatureTag;
+    use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
+
+    use super::{attrs_for_style, glyph_layout_offset_px};
+    use crate::core::framework::render::TextShapeRequest;
+
+    #[test]
+    fn glyph_layout_offsets_are_projected_to_pixels() {
+        let (x, y) = glyph_layout_offset_px(13.0, 0.25, -0.125);
+
+        assert!((x - 3.25).abs() < 0.001);
+        assert!((y + 1.625).abs() < 0.001);
+    }
+
+    #[test]
+    fn glyph_layout_offsets_drop_non_finite_values() {
+        let (x, y) = glyph_layout_offset_px(13.0, f32::NAN, f32::INFINITY);
+
+        assert_eq!(x, 0.0);
+        assert_eq!(y, 0.0);
+    }
+
+    #[test]
+    fn attrs_disable_kerning_when_requested() {
+        let style = UiResolvedStyle::default();
+        let attrs = attrs_for_style(TextShapeRequest::horizontal_with_kerning(
+            "AV",
+            &style,
+            UiTextDirection::LeftToRight,
+            UiTextRange { start: 0, end: 2 },
+            false,
+        ));
+
+        assert!(attrs
+            .font_features
+            .features
+            .iter()
+            .any(|feature| feature.tag == FeatureTag::KERNING && feature.value == 0));
+    }
 }

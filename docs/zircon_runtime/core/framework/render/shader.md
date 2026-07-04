@@ -7,6 +7,9 @@ related_code:
   - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
   - dev/bevy/crates/bevy_render/src/render_resource/bind_group_layout.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/environment/mod.rs
+  - zircon_runtime/src/core/framework/render/environment/extract.rs
+  - zircon_runtime/src/core/framework/render/environment/skybox.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/snapshot.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/page_payload.rs
@@ -47,11 +50,16 @@ related_code:
   - zircon_runtime/src/asset/assets/shader/zshader.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
+  - zircon_runtime/src/asset/project/shader_resource_records.rs
   - zircon_runtime/src/asset/tests/project/zmeta/compound_shader.rs
+  - zircon_runtime/tests/shader_import_dependency_contract.rs
+  - zircon_runtime/tests/material_shader_redirect_dependency_contract.rs
   - zircon_runtime/src/asset/assets/shader/entry_point.rs
   - zircon_runtime/src/asset/assets/shader/dependency.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics/shader_redirect.rs
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/shader_runtime.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_shader.rs
@@ -73,6 +81,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/procedural_environment.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
@@ -134,6 +145,7 @@ related_code:
   - zircon_runtime/src/graphics/shader/variant_cache/disk.rs
   - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
+  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
   - zircon_runtime/src/graphics/shader/template/mod.rs
   - zircon_runtime/src/graphics/shader/template/assemble.rs
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
@@ -153,6 +165,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_surface_types.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_static.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_morphed.wgsl
@@ -180,6 +193,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
@@ -203,6 +217,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/second_launch.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_shading_model.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_second_launch.rs
+  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_product_png.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/product_png.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_staged_cache.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
@@ -216,12 +231,16 @@ related_code:
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/material_sources.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/module_dependencies.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/error.rs
@@ -285,6 +304,7 @@ related_code:
   - tools/zircon_build_shader_prewarm_acceptance.py
   - tools/zircon_build_shader_prewarm_written_variants.py
   - tools/tests/test_zircon_build_shader_prewarm.py
+  - tools/tests/shader_prewarm_test_support.py
   - tools/tests/test_zircon_build_shader_prewarm_wrapper_orchestration.py
   - tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py
   - tools/tests/test_zircon_build_shader_prewarm_command_contract.py
@@ -296,6 +316,10 @@ related_code:
   - tools/tests/test_zircon_build_plugin_carriers.py
 implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/environment/mod.rs
+  - zircon_runtime/src/core/framework/render/environment/extract.rs
+  - zircon_runtime/src/core/framework/render/environment/skybox.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/shader/ide_env.rs
   - zircon_runtime/src/bin/zircon_shader_ide_env/args.rs
@@ -304,6 +328,9 @@ implementation_files:
   - zircon_runtime/src/graphics/shader/ide_env_generation.rs
   - zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs
   - zircon_runtime/src/graphics/shader/ide_preview.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
+  - zircon_runtime/src/asset/project/shader_resource_records.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
   - zircon_runtime/src/core/framework/render/shader/asset_kind.rs
   - zircon_runtime/src/core/framework/render/shader/render_state.rs
@@ -349,6 +376,12 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/procedural_environment.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/preview_sky_pass.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
@@ -399,6 +432,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_surface_types.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl
+  - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_static.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_morphed.wgsl
@@ -426,6 +460,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/tests/project_render.rs
+  - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
@@ -440,12 +477,14 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
+  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/module_dependencies.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/core/resource/manager/registry_export.rs
@@ -515,8 +554,28 @@ plan_sources:
   - docs/superpowers/plans/2026-05-25-typed-shader-definitions.md
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
   - docs/plans/zircon_runtime/shader/01-shader-asset-kinds-and-zshader-v2.md
+  - docs/plans/zircon_runtime/shader/03-module-imports-and-cross-references.md
+  - docs/plans/zircon_runtime/shader/04-material-binding-and-renderer-contract.md
   - docs/plans/zircon_runtime/shader/05-ide-and-authoring-dx.md
+  - docs/plans/zircon_runtime/render/11-environment-lighting.md
+  - docs/superpowers/specs/2026-07-04-skybox-ibl-pbr-matrix-design.md
+  - docs/superpowers/plans/2026-07-04-skybox-ibl-pbr-matrix.md
+  - docs/superpowers/plans/2026-07-04-real-hdri-pbr-reflection.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::deferred::lighting_pipeline --locked --jobs 1 --target-dir E:\cargo-targets\zircon-env-m3-pbr-0704 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 Plan 11 PBR environment reflection: passed, 13/13)
+  - cargo test -p zircon_runtime --lib scene_renderer::mesh::mesh_pipeline::fallback_mesh_shader_source --locked --jobs 1 --target-dir E:\cargo-targets\zircon-env-m3-pbr-0704 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 Plan 11 fallback mesh environment include/source coverage: passed, 14/14)
+  - cargo test -p zircon_runtime --lib graphics::shader::template --locked --jobs 1 --target-dir E:\cargo-targets\zircon-env-m3-pbr-0704 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 Plan 11 shader template environment include coverage: passed, 21/21)
+  - cargo test -p zircon_runtime --lib graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_metallic_smoothness_matrix_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-env-m4-pbr-matrix-0704 --message-format short --color never -- --ignored --exact --nocapture --test-threads=1 (2026-07-04 Plan 11 8x8 PBR metallic/smoothness matrix export: passed, 1/1; wrote docs/tests/runtime/shader/runtime_shader_pbr_metallic_smoothness_matrix_skybox_20260704.png, 1280x960, 109556 bytes, SHA256 E883A3BDF657025EAD16A7F39B1F8BE5D7FFCDA1FDEF0243A8636A05C217030D; same-name repo target and E/F/D cargo-target root scan returned 0)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-real-hdri-reflection-0704 --message-format short --color never (2026-07-04 Plan 11 real HDRI sampled environment reflection: passed with existing warnings)
+  - E:\cargo-targets\zircon-real-hdri-reflection-0704-server\debug\deps\zircon_runtime-0a7825d39d44b0c4.exe graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_real_hdri_reflection_png --ignored --exact --nocapture --test-threads=1 (2026-07-04 Plan 11 real HDRI reflection export: passed, 1/1; wrote docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_reflection_20260704.png, 1280x960, 132232 bytes, SHA256 958E3B200EC56BCA16BF9596B1F05D872179F51CEB9A64925E10FC2D41792DEE; source HDR docs/tests/runtime/shader/assets/polyhaven_lakes_1k.hdr size 1464859, MD5 B615491D315A3D4E23BB09C2C96C9E03, SHA256 FAF3ECE79216E568A29F0D8FC176A795C66EB9C312C3CF3EE18D9AC04A71DECB; same-name repo target and E/F/D cargo-target root scan returned 0)
+  - cargo test -p zircon_runtime --lib --no-run --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-combined-validation-0704 --message-format short --color never (2026-07-04 shader prewarm combined WGPU module+pipeline validation owner split: passed with existing warnings)
+  - E:\cargo-targets\zircon-shader-combined-validation-0704\debug\deps\zircon_runtime-6bef7a696c15c9a5.exe shader --nocapture (2026-07-04 shader/material focused lib filter after combined validation split: passed, 366 passed / 0 failed / 1 ignored / 6065 filtered)
+  - python -m unittest tools.tests.test_zircon_build_shader_prewarm_wrapper_orchestration.ZirconBuildShaderPrewarmWrapperOrchestrationTests.test_public_runtime_wrapper_exports_project_plugin_registry_with_live_wgpu_pipelines (2026-07-04 public wrapper live WGPU prewarm: passed; report requested/written/failed 18/18/0, WGPU module validation 18/18, WGPU pipeline validation 18/18)
+  - cargo build -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-wrapper-pipeline-0704 --message-format short --color never (2026-07-04 combined validation CLI wrapper rebuild: passed with existing warnings)
+  - python -m unittest -v tools.tests.test_zircon_build_shader_prewarm_wrapper_orchestration.ZirconBuildShaderPrewarmWrapperOrchestrationTests.test_public_runtime_wrapper_exports_project_plugin_registry_with_live_wgpu_pipelines (2026-07-04 final recheck after docs sync: skipped because `ZR_TEST_SHADER_PREWARM_EXE` was unset and no `zircon_shader_prewarm.exe` was present; not counted as additional live-WGPU evidence)
+  - cargo build -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-wrapper-pipeline-0704 --message-format short --color never (2026-07-04 final recheck after docs sync: timed out after 244s while other cargo/rustc lanes were active; not counted as additional rebuild evidence)
   - rustfmt --edition 2021 zircon_runtime/src/asset/mod.rs zircon_runtime/src/asset/assets/mod.rs zircon_runtime/src/asset/assets/shader/mod.rs zircon_runtime/src/asset/assets/shader/zshader.rs zircon_runtime/src/asset/tests/assets/shader_readiness.rs zircon_runtime/src/core/framework/render/mod.rs zircon_runtime/src/core/framework/render/shader/mod.rs zircon_runtime/src/core/framework/render/shader/asset_kind.rs zircon_runtime/src/core/framework/render/shader/queue.rs zircon_runtime/src/core/framework/render/shader/render_state.rs zircon_runtime/src/core/framework/render/shader/resource.rs (2026-07-02 SH01-M1 zshader v2 contract parse: passed)
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/mod.rs (2026-07-03 Frameworks 02 M3 plugin workspace ShaderIdeModuleSource facade backfill: passed)
   - wsl.exe bash -lc "cd /mnt/e/Git/ZirconEngine && cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --jobs 1 --target-dir /home/hejiahui/zircon-targets/frameworks-plugins-workspace-build-0703 --message-format short --color never" (2026-07-03 Frameworks 02 M3 plugin workspace ShaderIdeModuleSource facade backfill: first rerun exposed missing facade export; final rerun passed in 23m04s with existing warnings)
@@ -537,6 +596,11 @@ tests:
   - cargo test -p zircon_runtime --lib shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M2 post-split library generator tests: passed 6/6, covering generator output, incremental diff, validation context, and invalid-stub diagnostics)
   - cargo test -p zircon_runtime --lib shader_template_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-m4-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05 shared surface/GBuffer contract regression: passed 20/20 after moving `ZrDeferredGBufferOutput` and deferred material flag helpers into `zr_surface_types.wgsl`)
   - cargo test -p zircon_runtime --lib shader_module --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-shader-module --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH05-M1/SH03 focused shader_module gate: passed 6/6, covering module import directive parsing/stripping, builtin token classification, and module registry transitive resolution/cycle/include stripping regressions)
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime\src\asset\project\manager\scan_and_import.rs zircon_runtime\src\asset\project\manager\scan_and_import\shader_import_dependencies.rs zircon_runtime\tests\shader_import_dependency_contract.rs (2026-07-04 SH03 source-only import dependency propagation: passed)
+  - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-live-import-deps-check --message-format short --color never (2026-07-04 SH03 source-only import dependency propagation: passed with existing warnings)
+  - cargo test -p zircon_runtime --test shader_import_dependency_contract --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-live-import-deps-check --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 SH03 source-only import dependency propagation: passed 1/1)
+  - cargo test -p zircon_runtime --test material_shader_redirect_dependency_contract --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-redirect-diagnostics-check --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04 SH03 redirect shader import dependency readiness diagnostics: passed 2/2, including ProjectManager scan/import artifact coverage)
+  - E:\cargo-targets\zircon-shader-redirect-product-streamer\debug\deps\zircon_runtime-6bef7a696c15c9a5.exe shader_redirect --nocapture --test-threads=1 (2026-07-04 SH03 product ResourceStreamer redirect shader import diagnostics: passed 2/2; Cargo wrapper timed out after 1204s and is not counted)
   - cargo test -p zircon_runtime --lib property_layout --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH02 property layout and generated-material Naga focused gate: passed 4/4)
   - cargo test -p zircon_runtime --lib render_shader_template --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 SH02/SH05 template focused gate: first run exposed a status-support mirror gap, final rerun passed 18/18 after restoring the render shader template assembly support anchors)
   - cargo check -p zircon_runtime --lib --no-default-features --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-text-tabs-0701 --message-format short --color never (2026-07-01 shader prewarm source-hash helper support fix: passed with existing warnings)
@@ -563,6 +627,7 @@ tests:
   - cargo test -p zircon_runtime --lib custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-deferred-lighting-custom-pipeline-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Deferred lighting custom include WGPU pipeline validation: passed 1/1 with repository warnings only)
   - cargo test -p zircon_runtime --lib render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-custom-shading-product-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Custom shading-model product material-pass staged cache WGPU validation: passed 1/1 with repository warnings only)
   - cargo test -p zircon_runtime --lib render_product_custom_shading_model --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-02 Custom shading-model product group Cargo-wrapper WGPU backfill: passed 3/3 with 5850 filtered and repository warnings only)
+  - E:\cargo-targets\zircon-plan08-custom-product-png-0704\debug\deps\zircon_runtime-0a7825d39d44b0c4.exe graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_product_png::export_custom_shading_model_deferred_lighting_product_png --ignored --exact --nocapture --test-threads=1 (2026-07-04 Custom shading-model deferred-lighting product readback PNG: passed 1/1 with 6309 filtered, 9.66s; PNG 641x240, 3871 bytes, SHA256 21188825B3FCEC7089BC198CDF89B53527332583FFAF5B3755317BF11EAD66F2, 4794 non-black pixels, 4554 dominant green pixels)
   - cargo test -p zircon_runtime --lib render_product_project_plugin_registry_material_passes_use_staged_prewarm_without_compile_miss --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-custom-shading-product-0701 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-01 Standard registry material-pass staged-cache regression after custom shading-model product path: passed 1/1 with repository warnings only)
   - python -m unittest tools.tests.test_zircon_build_shader_prewarm.ZirconBuildShaderPrewarmTests.test_generated_shader_permutation_registry_document_exports_selected_plugin_shading_model_descriptors (2026-07-01 Plugin shading-model descriptor registry export: RED then passed)
   - python -m unittest tools.tests.test_zircon_build_plugin_carriers tools.tests.test_zircon_build_shader_prewarm (2026-07-01 Plugin shading-model descriptor registry export: passed, 41 tests)
@@ -1715,9 +1780,9 @@ The SH02 contract is now represented in `core/framework/render/shader/material_p
 
 The SH03 import contract is represented in `core/framework/render/shader/module_import.rs`. It scans line-leading `#include <...>` directives, strips authored include directives before final template assembly, and classifies `self::` generated modules versus built-in `zr_*` modules. `graphics/shader/template/module_registry.rs` is the implementation owner for built-in and request-local module resolution; it topologically orders transitive module dependencies, injects each token once, reports cycles/unknown modules, and contributes content hashes to template output.
 
-The SH04 material contract has the material renderer path closed through L2, the asset-root sparse prewarm path wired, and the first compute/fullscreen neutral contracts represented in code. `.zmaterial` is hard-switched to v2 with `parent`, `options`, and `queue`; material loading folds parent chains, validates property/texture/option/queue values against the shader artifact, and computes material option bits for `ShaderVariantKey`. `ShaderVariantKey` and `PipelineKey` now include `material_layout_hash`, and renderer-side material pass source assembly receives generated material WGSL, module include sources, and option defines from `ResourceStreamer`. The renderer material ABI now matches generated material WGSL: group 2 binding 0 is the material uniform and bindings 1..10 are the standard texture/sampler pairs. `MaterialPropertyOverrideBlock` now flows from `MeshRenderer` through `GeometryExtract.material_property_overrides` into per-draw binding0 uniform payloads, while static batches and static command-cache extraction skip override draws. `zircon_shader_prewarm` now derives the same material layout hash and option table from `.zshader` documents and writes only `.zmaterial` actual option selections into `ShaderVariantKey.material_option_bits`; duplicate material option selections dedupe by canonical key. `ComputeDispatchBuilder` emits the SH04 compute ABI group0 binding0 params plus binding1.. named resources, validates shader kind/kernel/resource binding mismatches, produces a neutral compute pipeline cache key, and can feed `RenderGraphComputeWorkload`. `FullscreenPassBuilder` emits the fullscreen ABI group0 frame, group1 pass inputs, group2 params, validates fragment entry/resource mismatches, and feeds `RenderFeaturePassDescriptor`. Clustered lighting now consumes a compute dispatch plan, motion-vector tile max consumes a fullscreen pass plan, and streamed builtin fallback shaders stay on the standard material template instead of entering the generated surface-material path. Broader L2 render_product parity, HZB/particles/more postprocess executor migration, real compute pipeline disk cache, product miss=0, and perf counters remain open.
+The SH04 material contract has the material renderer path closed through L2, the asset-root sparse prewarm path wired, and the first compute/fullscreen neutral contracts represented in code. `.zmaterial` is hard-switched to v2 with `parent`, `options`, and `queue`; material loading folds parent chains, validates property/texture/option/queue values against the shader artifact, and computes material option bits for `ShaderVariantKey`. `ShaderVariantKey` and `PipelineKey` now include `material_layout_hash`, and renderer-side material pass source assembly receives generated material WGSL, module include sources, and option defines from `ResourceStreamer`. The renderer material ABI now matches generated material WGSL: group 2 binding 0 is the material uniform and bindings 1..10 are the standard texture/sampler pairs. `MaterialPropertyOverrideBlock` now flows from `MeshRenderer` through `GeometryExtract.material_property_overrides` into per-draw binding0 uniform payloads, while static batches and static command-cache extraction skip override draws. `zircon_shader_prewarm` now derives the same material layout hash and option table from `.zshader` documents and writes only `.zmaterial` actual option selections into `ShaderVariantKey.material_option_bits`; duplicate material option selections dedupe by canonical key. `ComputeDispatchBuilder` emits the SH04 compute ABI group0 binding0 params plus binding1.. named resources, validates shader kind/kernel/resource binding mismatches, produces a neutral compute pipeline cache key, and can feed `RenderGraphComputeWorkload`. `FullscreenPassBuilder` emits the fullscreen ABI group0 frame, group1 pass inputs, group2 params, validates fragment entry/resource mismatches, and feeds `RenderFeaturePassDescriptor`. Clustered lighting now consumes a compute dispatch plan, motion-vector tile max consumes a fullscreen pass plan, and streamed builtin fallback shaders stay on the standard material template instead of entering the generated surface-material path. The focused project/plugin material-pass second-launch staged-prewarm gate now has fresh `compile_miss_count == 0` product evidence; broader L2 render_product parity, HZB/particles/more postprocess executor migration, real compute pipeline disk cache, wider product/perf sweeps, and RenderDoc/product capture remain open.
 
-Validation status: `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` passed on 2026-07-03 after the module registry hard cutover, renderer pass source wiring, material ABI migration, and SH04-M3 contract wiring. `cargo check -p zircon_runtime --bin zircon_shader_prewarm --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` passed after sparse prewarm wiring. The generated bin-test binary passed `manifest::tests::shader_prewarm_asset_root_manifest_uses_sparse_material_option_keys`, two adjacent V2 fixture tests, and the full `manifest::tests` group 21/21. The generated lib-test binary passed the broad `compute` filter 36/36, the `fullscreen` filter 3/3, `runtime_base_mesh_pipeline_keeps_builtin_fallback_on_standard_template_after_shader_stream` 1/1, and `runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_without_compile_miss` 1/1. The Cargo-wrapper bridge regression `graphics::tests::render_framework_bridge::pipeline_profiles::headless_wgpu_server_falls_back_async_compute_passes_to_graphics` passed 1/1 with graph-derived compute workload expectations. `cargo test -p zircon_runtime --lib graphics::tests::project_render::project_scenes::export_example_vampire_scene_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never -- --ignored --exact --nocapture --test-threads=1` passed 1/1 and the accepted image is `docs/tests/runtime/shader/runtime_shader_material_vampire_offscreen_20260703.png` (1280x720, 54403 bytes, SHA256 `1526BE245965025596FA6098C495D85DCCBDA90E295C1B80489F4649740B5CE0`), with same-name target/cargo-targets scans returning no matches. The short-name Cargo exact prewarm run filtered 0 tests and is not counted. Older focused template/layout unit tests timed out during the Windows lib-test harness compile and are not counted as passed.
+Validation status: `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` passed on 2026-07-03 after the module registry hard cutover, renderer pass source wiring, material ABI migration, and SH04-M3 contract wiring. `cargo check -p zircon_runtime --bin zircon_shader_prewarm --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never` passed after sparse prewarm wiring. The generated bin-test binary passed `manifest::tests::shader_prewarm_asset_root_manifest_uses_sparse_material_option_keys`, two adjacent V2 fixture tests, and the full `manifest::tests` group 21/21. The generated lib-test binary passed the broad `compute` filter 36/36, the `fullscreen` filter 3/3, `runtime_base_mesh_pipeline_keeps_builtin_fallback_on_standard_template_after_shader_stream` 1/1, and `runtime_custom_geometry_descriptor_non_base_pipelines_use_staged_prewarm_without_compile_miss` 1/1. The Cargo-wrapper bridge regression `graphics::tests::render_framework_bridge::pipeline_profiles::headless_wgpu_server_falls_back_async_compute_passes_to_graphics` passed 1/1 with graph-derived compute workload expectations. `cargo test -p zircon_runtime --lib graphics::tests::project_render::project_scenes::export_example_vampire_scene_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh02-m2 --message-format short --color never -- --ignored --exact --nocapture --test-threads=1` passed 1/1 and the accepted image is `docs/tests/runtime/shader/runtime_shader_material_vampire_offscreen_20260703.png` (1280x720, 54403 bytes, SHA256 `1526BE245965025596FA6098C495D85DCCBDA90E295C1B80489F4649740B5CE0`), with same-name target/cargo-targets scans returning no matches. Direct generated lib-test binary `E:\cargo-targets\zircon-runtime-03-gates-0704\debug\deps\zircon_runtime-33095b46939b64fc.exe` passed the exact `render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss` product test 1/1 with 6400 filtered in 10.59s. The short-name Cargo exact prewarm run filtered 0 tests and is not counted. Older focused template/layout unit tests timed out during the Windows lib-test harness compile and are not counted as passed.
 
 ## Test Coverage
 
@@ -2539,16 +2604,18 @@ check, `shader_ide_env_writes_non_default_preview_variants_with_option_bits`,
 visual evidence remains outside target in
 `docs/tests/runtime/shader/runtime_shader_material_sphere_offscreen_20260703.png`
 and `docs/tests/runtime/shader/runtime_shader_material_vampire_offscreen_20260703.png`.
-Product-level preview matrix coverage, broader product/RenderDoc gates, and
-product miss=0 remain open.
+Product-level preview matrix coverage is now closed by the 2026-07-04 focused
+filter, and focused material-pass second-launch product miss=0 is closed by the
+SH04 direct-binary rerun. Broader product/RenderDoc gates and wider product/perf
+sweeps remain open.
 The 2026-07-04 preview-matrix backfill adds
 `shader_ide_env_batches_preview_matrix_for_all_surface_shaders`, covering two
 surface shaders across default, GBuffer option bits, DepthPrepass, Shadow,
 Velocity, and TAA reactive-mask preview variants, plus stale preview cleanup
 when the request shrinks back to default-only. The test code compiles under
 `cargo check -p zircon_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-preview-matrix-check --message-format short --color never`;
-the exact lib-test execution timed out after 904s during compile/link and is
-not counted as passed yet.
+the later exact lib-test execution passed 1/1 under
+`F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b`.
 The same follow-up lane also closed the SH02 focused property/template checks:
 `cargo test -p zircon_runtime --lib property_layout` passed 4/4 and
 `cargo test -p zircon_runtime --lib render_shader_template` passed 18/18 on
@@ -2564,17 +2631,61 @@ The IDE preview generator validates generated material dependencies by shader sc
 
 The TAA reactive material-mask template keeps the existing `fs_taa_reactive_material_mask` entry point for the mesh pipeline cache, but the body now calls `zr_material_surface(input)` and reads `surface.custom0.x`. Custom surface previews no longer require the old `standard_material_properties` binding just to parse and validate a TAA preview. Standard material still projects its authored TAA strength into `surface.custom0` through the standard material surface owner.
 
-Evidence: `cargo test -p zircon_runtime --lib shader_ide_env_batches_preview_matrix_for_all_surface_shaders --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1, covering two surface shaders across default, GBuffer option bits, DepthPrepass, Shadow, Velocity, TAA preview variants, and stale cleanup. `cargo test -p zircon_runtime --lib taa_reactive_mask --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 13/13. Both runs emitted only existing warnings. RenderDoc/product capture and product miss=0 remain separate acceptance gates.
+Evidence: `cargo test -p zircon_runtime --lib shader_ide_env_batches_preview_matrix_for_all_surface_shaders --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1, covering two surface shaders across default, GBuffer option bits, DepthPrepass, Shadow, Velocity, TAA preview variants, and stale cleanup. `cargo test -p zircon_runtime --lib taa_reactive_mask --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 13/13. Both runs emitted only existing warnings. RenderDoc/product capture and wider product/perf sweeps remain separate acceptance gates; focused material-pass second-launch miss=0 is covered by the SH04 2026-07-04 direct-binary rerun.
 
 The broader `render_product_assets` filter and `cargo check -p zircon_runtime --lib --tests --locked` remain the milestone-level compile/test gates for this surface.
 
 ## 2026-07-04 SH03 Asset-Root Include Module Revision Propagation
 
-Related code: `zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs`, and `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs`.
+Related code: `zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs`, and `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests/module_dependencies.rs`.
 
-Asset-root prewarm scanning now keeps shader kind, `import_path`, and declared imports on each scanned `.zshader` source. Before variants are emitted, the manifest owner builds a same-root include-module map and resolves imported include modules transitively. Referencing surface shaders receive the include modules' content hashes in `include_content_hashes`, and `manifest/revision.rs` mixes those dependency hashes into the surface shader `material_revision`. Sources without include dependencies keep their previous revision behavior, so unrelated shaders do not churn when a module they never import changes.
+Asset-root prewarm scanning now keeps shader kind, `import_path`, and declared imports on each scanned `.zshader` source. Before variants are emitted, `manifest/module_dependencies.rs` builds a same-root include-module map and resolves imported include modules transitively. Referencing surface shaders receive the include modules' content hashes in `include_content_hashes`, and `manifest/revision.rs` mixes those dependency hashes into the surface shader `material_revision`. Sources without include dependencies keep their previous revision behavior, so unrelated shaders do not churn when a module they never import changes.
 
-Evidence: `cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest_tracks_imported_include_module_revisions --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1. The broader asset-root prewarm filter `cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 10/10 with existing warnings only. Plugin manifest module registration, live editor hot-reload propagation, RenderDoc/product capture, and product miss=0 remain open gates.
+Evidence: `cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest_tracks_imported_include_module_revisions --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 1/1. The broader asset-root prewarm filter `cargo test -p zircon_runtime --bin zircon_shader_prewarm shader_prewarm_asset_root_manifest --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-shader-sh03-readiness-0704b --message-format short --color never -- --nocapture --test-threads=1` passed 10/10 with existing warnings only. Static structure equivalence passed for the new child-owner split: `manifest.rs` 762 lines, `manifest/tests.rs` 738 lines, `manifest/module_dependencies.rs` 77 lines, `manifest/tests/module_dependencies.rs` 97 lines, parent manifest test count 10, and docs/status mirrors include both new child owners. The direct Runtime 15 lib-test guard `runtime_15_shader_prewarm_manifest_tests_are_folder_backed` did not produce countable Cargo evidence in this session because Windows lib-test compilation timed out and the later log-file wrapper stopped making progress without a rustc/test child. Plugin manifest module registration and source-only live import dependency propagation are now focused-test closed; editor project-sync refresh has source-level regression coverage but its exact editor Cargo run is still waiting on a counted result. RenderDoc/product capture and broader product/perf sweeps remain open.
+
+## 2026-07-04 SH03 Plugin Shader Module Registry Export
+
+Related code: `zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs`, `zircon_runtime/src/plugin/package_manifest/constructors.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs`, `zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs`, `tools/zircon_build_plugin_shader_descriptors.py`, `tools/zircon_build_shader_prewarm.py`, and `tools/plugin_structure_audits/manifest_schema_geometry_sources.py`.
+
+Plugin manifests can now declare shader modules with `[[shader_permutation.shader_modules]]` rows. Each row uses an `import_path` plus a package-relative `source` ending in `.zshader` or `.wgsl`. The Rust package manifest exposes the same contract as `PluginShaderModuleManifest` and `PluginPackageManifest::with_shader_module(...)`, so generated manifests and hand-written fixture manifests roundtrip through the same API.
+
+The Python build path collects selected plugin modules into `PluginPackage.shader_modules`, hashes the source bytes, and emits registry records under `shader_modules`. The generated registry is now created when selected plugins contribute shader modules even if they do not contribute custom geometry-source or shading-model ids. The export contract validates selected plugin module import paths and hashes, and the plugin structure audit rejects unknown fields, non-namespace import paths, non-package-relative sources, backslash paths, unsupported suffixes, and duplicate import paths.
+
+`zircon_shader_prewarm` now merges registry `shader_modules` into an external include-module hash table. Asset-root scanning still prefers a local include module with the same `import_path`, but a project shader can reference a plugin module exported through the registry and receive that external module hash in its `include_content_hashes` and mixed `material_revision`. This closes the cross-asset-root prewarm dependency gap without forcing project and plugin assets into one scan batch.
+
+Evidence: Python regression coverage passed 52/52 with `python -m unittest tools.tests.test_zircon_build_plugin_carriers tools.tests.test_zircon_build_shader_prewarm tools.tests.test_zircon_build_shader_permutation_registry_contract tools.tests.test_plugin_structure_audit_manifest_schema_geometry_sources`; `python -m py_compile` passed for the touched build/audit modules; Rust formatting passed for the touched prewarm files; and `cargo check -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir E:\cargo-targets\zircon-shader-plugin-modules-check --jobs 1 --message-format short --color never` passed with existing warnings. The direct generated test binary under `E:\cargo-targets\zircon-shader-plugin-modules-check\debug\deps\` passed `manifest::permutation_registry::tests::shader_prewarm_permutation_registry_merges_shader_modules` 1/1 and `manifest::tests::module_dependencies::shader_prewarm_asset_root_manifest_tracks_registry_shader_module_revisions` 1/1 after `--list` confirmed both exact tests were present. The accepted material sphere and vampire screenshots remain under `docs/tests/runtime/shader`, and same-name scans under target/cargo-target roots returned no matches.
+
+## 2026-07-04 SH03 Source-Only Import Reload Dependencies
+
+Related code: `zircon_runtime/src/asset/project/manager/scan_and_import.rs`, `zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs`, and `zircon_runtime/tests/shader_import_dependency_contract.rs`.
+
+Project import now has a runtime-facing dependency path for source-only shader module imports. After scan/import has written artifact records, `shader_import_dependencies.rs` indexes unique project include shaders by `ShaderAsset.import_path`, then appends matching include module locators to the referencing shader `ResourceRecord.dependency_ids`. Redirect imports keep the existing explicit dependency path, built-in `zr_*` and generated `self::*` tokens are skipped, and duplicate include import paths are not auto-bound because the scanner's duplicate diagnostics must resolve that ambiguity first.
+
+Evidence: rustfmt passed for the touched scan/import files and the integration contract; scoped diff-check passed with only existing LF/CRLF warnings; `cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-live-import-deps-check --message-format short --color never` passed with existing warnings; and `cargo test -p zircon_runtime --test shader_import_dependency_contract --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-live-import-deps-check --message-format short --color never -- --nocapture --test-threads=1` passed 1/1. The broader lib-test lane for the same behavior is not counted because unrelated test-only drift blocked compilation in render-product and Runtime 15 status-support tests.
+
+## 2026-07-04 SH03 Redirect Import Readiness Diagnostics
+
+Related code: `zircon_runtime/src/asset/assets/material/material_asset.rs`, `zircon_runtime/src/asset/tests/assets/material/shader_readiness.rs`, and `zircon_runtime/tests/material_shader_redirect_dependency_contract.rs`.
+
+Material readiness now checks the shader contract's redirect import dependencies as shader dependencies. When a surface shader imports an include module through a redirect and that redirected module cannot be resolved, `MaterialAsset::readiness_report_with_shader_contract(...)` adds `RenderMaterialValidationError::UnresolvedShaderReference` and a shader fallback usage to the material readiness report. This makes the redirect chain visible at the material/runtime diagnostic boundary instead of waiting for module template assembly or pipeline creation to fail later.
+
+Evidence: rustfmt passed for the touched material readiness files and integration test; `cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-redirect-diagnostics-check --message-format short --color never` passed with existing warnings; and `cargo test -p zircon_runtime --test material_shader_redirect_dependency_contract --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-redirect-diagnostics-check --message-format short --color never -- --nocapture --test-threads=1` passed 2/2, covering both the synthetic dependency report and a `ProjectManager::scan_and_import` project that loads real imported shader/material artifacts before resolving the redirect dependency diagnostic. The equivalent lib-test wrapper is not counted because compiling the full runtime lib-test harness timed out in this Windows lane. RenderDoc/product capture and broader product miss=0 sweeps remain separate acceptance gates.
+
+## 2026-07-04 SH03 Product Redirect Import Diagnostics
+
+Related code: `zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs` and `zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics/shader_redirect.rs`.
+
+The product ResourceStreamer boundary now has focused redirect-import diagnostics coverage. The resolved case prepares the redirected include shader recursively and verifies `shader_module_include_sources(...)` exposes the include token and WGSL source for template assembly. The missing case verifies `ensure_material(...)` stores a non-ready material report with `UnresolvedShaderReference` and shader fallback usage for the missing redirected include without blocking the product diagnostic path. The parent readiness diagnostics test owner remains at 651 lines; the redirect child owner holds the new 148-line coverage.
+
+Evidence: touched-file rustfmt passed for the parent and child readiness diagnostics files. The Cargo wrapper `cargo test -p zircon_runtime --lib render_product_streamer_ --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-redirect-product-streamer --message-format short --color never -- --nocapture --test-threads=1` exceeded the 1204s tool window and is not counted, but it produced `E:\cargo-targets\zircon-shader-redirect-product-streamer\debug\deps\zircon_runtime-6bef7a696c15c9a5.exe`; direct execution with `shader_redirect --nocapture --test-threads=1` passed 2/2 with 6399 filtered in 2.46s. RenderDoc/product capture and broader product/perf sweeps remain separate acceptance gates.
+
+## 2026-07-04 SH04 Material-Pass Second-Launch Miss=0 Refresh
+
+Related code: `zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/second_launch.rs` and `zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/assertions.rs`.
+
+The focused product material-pass staged-prewarm gate now has current direct-binary evidence for second-launch cache behavior. The test writes the staged material-pass manifest once, runs two fresh product launches per registry shader through the same staged fallback root, and asserts first-frame and Velocity-frame requests stay on staged/cache hit paths with `compile_miss_count == 0`, zero runtime cache writes/errors, and an empty runtime shader cache root.
+
+Evidence: `E:\cargo-targets\zircon-runtime-03-gates-0704\debug\deps\zircon_runtime-33095b46939b64fc.exe graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::second_launch::render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss --exact --nocapture --test-threads=1` passed 1/1 with 6400 filtered in 10.59s. This closes the focused material-pass second-launch miss=0 proof for the current shader/material slice only; broader staged-prewarm/product/perf sweeps and RenderDoc/product capture remain separate gates.
 
 ## 2026-07-03 Deferred Project-Shader GBuffer Default-Feature WGPU Refresh
 
@@ -2582,11 +2693,35 @@ Plan 08 three shading-model forward/deferred product parity now includes a defau
 
 The runtime shader contract now distinguishes Surface metadata from runtime material-surface source. A project `.wgsl` with `vs_main` / `fs_main` may still be a Surface asset for material/pass participation, but the mesh template path only wraps it when `shader_uses_material_surface_source` finds `fn zr_material_surface`. `runtime_surface_shader_with_full_pass_entry_points_uses_raw_wgsl_source` guards the raw full-pass branch so the Base pass resolves cache-backed pipeline variants instead of treating full-pass WGSL as a material function. Evidence: the default-feature parity backfill remains 5876 filtered and 11.81s; this probe passed 1/1 with 6202 filtered and 3.56s. Remaining gates: RenderDoc/product capture, workspace/full CI, and broader product coverage outside focused filters.
 
+## 2026-07-04 Custom Shading-Model Deferred-Lighting Product Readback PNG
+
+Custom shading-model deferred-lighting product readback PNG now includes focused product artifact evidence under `render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred`. The ignored export `export_custom_shading_model_deferred_lighting_product_png` reuses the `custom:toon` registry material-pass manifest, WGPU pipeline validation, staged-cache first-frame/Velocity-frame hit assertions, read-only runtime cache checks, and `render_product_custom_shading_model_deferred_lighting_readback_uses_project_include`, then writes `docs/tests/runtime/render/runtime_render_plan08_custom_shading_model_deferred_lighting_20260704.png` through `project_plugin_registry_material_passes_staged_cache/custom_product_png.rs`.
+
+The code path remains test-only and folder-backed: `custom_product_png.rs` owns the ignored export, `custom_shading_model.rs` exposes the existing dominant-green `max(0.65, ...)` assertion to its sibling, and `product_png.rs` owns only generic visible-frame and side-by-side PNG helpers. Evidence: the first Cargo-wrapper command exceeded the 908s tool window and is not counted; direct generated-binary execution passed 1/1 with 6309 filtered and 9.66s, producing a 641x240 PNG, 3871 bytes, SHA256 `21188825B3FCEC7089BC198CDF89B53527332583FFAF5B3755317BF11EAD66F2`, with 4794 non-black pixels, 4554 dominant green pixels, and 240 magenta separator pixels. RenderDoc/product capture, workspace/full CI, full live project/plugin registry export beyond focused fixtures, and broader product miss=0 remain open.
+
 ## 2026-07-04 Project/Plugin Registry Material-Pass Product Readback PNG
 
-Plan 08 project/plugin registry material-pass staged-prewarm now includes focused product readback PNG evidence under `render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred`. The ignored export `export_project_plugin_registry_material_passes_product_png` reuses the existing registry material-pass manifest, staged-cache first-frame/Velocity-frame hit assertions, and read-only runtime cache root checks, then writes `docs/tests/runtime/render/runtime_render_plan08_project_plugin_registry_material_passes_20260703.png` through `project_plugin_registry_material_passes_staged_cache/product_png.rs`.
+Plan 08 project/plugin registry material-pass product readback PNG now includes focused product readback PNG evidence under `render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred`. The ignored export `export_project_plugin_registry_material_passes_product_png` reuses the existing registry material-pass manifest, staged-cache first-frame/Velocity-frame hit assertions, and read-only runtime cache root checks, then writes `docs/tests/runtime/render/runtime_render_plan08_project_plugin_registry_material_passes_20260703.png` through `project_plugin_registry_material_passes_staged_cache/product_png.rs`.
 
 The code path remains test-only and folder-backed: `fixture.rs::submit_registry_material_passes_with_staged_cache_capture(...)` only forwards the existing capture flag, while `product_png.rs` owns visible-frame checks, side-by-side RGBA copy, separator pixels, and PNG writing. Evidence: the first Cargo-wrapper command exceeded the 904.5s tool window and is not counted; direct generated-binary execution passed 1/1 with 6290 filtered and 6.58s, producing a 641x240 PNG, 3871 bytes, SHA256 `2FF919F50FDFFBAEB1544CAD9C14B7748FA8234C784175195AF3E550FB6151BB`, with 4794 non-black pixels. RenderDoc/product capture, workspace/full CI, full live project/plugin registry export beyond the focused fixture, and broader product miss=0 remain open.
+
+## 2026-07-04 Project/Plugin Registry Material-Pass Live Registry Source-Label Product Bridge
+
+Project/plugin registry material-pass live registry source-label product bridge now records `render_plan08_project_plugin_registry_material_passes_live_registry_source_label_product_wgpu_passed_renderdoc_deferred`. `render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache` lives in `project_plugin_registry_material_passes_staged_cache/live_registry_bridge.rs`, rewrites project/plugin prewarm `source_label` values to live registry locators, and guards that `live registry source label should not depend on test-only pass suffixes` while pass identity remains in `ShaderVariantKey`.
+
+Evidence: the `PluginShaderModuleManifest` root export was added in `zircon_runtime/src/plugin/mod.rs`, unblocking the `package_manifest_declarations.rs` import shape. `rustfmt --edition 2021 --check zircon_runtime/src/plugin/mod.rs` and the static root-export scan passed. After an initial timeout and unlaunchable generated binary on `E:\cargo-targets\zircon-plan08-live-registry-label-0704`, the focused no-default/target-server Cargo rerun passed 1/1 with 6358 filtered, test body 10.44s, after a 9m55s build. RenderDoc/product capture and broader validation remain open.
+
+## 2026-07-04 Project/Plugin Registry Material-Pass Asset-Root ResourceRecord Product Bridge
+
+Project/plugin registry material-pass asset-root ResourceRecord product bridge now records `render_plan08_project_plugin_registry_material_passes_asset_root_records_wgpu_passed_renderdoc_deferred`. `render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache` lives in `project_plugin_registry_material_passes_staged_cache/live_registry_records.rs` and proves shader identity can be derived from Ready Shader `ResourceRecord`s scanned from asset roots rather than fixture-only revisions.
+
+The bridge writes a temporary project shader `.wgsl/.zmeta`, reads the selected plugin record from `native_dynamic_fixture/assets/shader.wgsl.zmeta`, applies the asset-scan source-hash revision rule, and converts those records into product registry cases through `registry_shader_cases_from_live_records`. The product path then uses the shared live-source-label prewarm helper and submits first-frame plus Velocity-frame WGPU product passes against staged fallback roots. Evidence: touched-file rustfmt passed, and the focused no-default/target-server Cargo command passed 1/1 with 6373 filtered and 10.71s on `E:\cargo-targets\zircon-plan08-live-registry-label-0704`. RenderDoc/product capture, workspace/full CI, and broader live project/plugin registry export acceptance remain open.
+
+## 2026-07-04 Project/Plugin Registry Shared ResourceRecord Export Product Bridge
+
+Project/plugin registry shared ResourceRecord export product bridge records `render_plan08_project_plugin_registry_shared_resource_record_export_product_wgpu_passed_renderdoc_deferred`. The shared scanner now lives in `zircon_runtime/src/asset/project/shader_resource_records.rs` and is re-exported from `asset/project/mod.rs`; `bin/zircon_shader_prewarm/manifest/resource_registry.rs` delegates to it, maps `ShaderResourceRecordExportError` back into the prewarm tool's typed registry error surface, and mirrors the shared multi-root export as `project_shader_resource_records_from_asset_roots`. The material-pass product bridge now calls `shader_resource_records_from_asset_roots(...)`, so the WGPU staged-cache product proof consumes the same Ready Shader record export path as the prewarm CLI.
+
+The shared owner covers `.zmeta` shader discovery, root and subasset shader records, duplicate id/locator rejection, stable ordering, Ready state, and source-hash revision projection. Evidence so far: touched-file rustfmt passed for the shared owner, prewarm wrapper/tests, product bridge, and Runtime 15 guards; the focused `zircon_shader_prewarm` Cargo check passed after 4m48s; `runtime_15_lock_poison_status_row_data_status_mirror_children_are_child_owned` passed 1/1 with 6394 filtered after the lower status-output support fix; the focused WGPU product rerun passed 1/1 with 6395 filtered, test body 10.29s, after an 8m40s build; the refreshed structure guard passed 1/1 with 6402 filtered; and the shader-prewarm bin duplicate-id/locator regression passed 1/1 with 54 filtered. RenderDoc/product capture, workspace/full CI, and broader live registry export acceptance remain open.
 
 ## 2026-07-03 Three Shading-Model Product Readback PNG
 
@@ -2599,6 +2734,24 @@ Evidence: the first Cargo-wrapper attempt failed at MSVC `link.exe` exit `0xc000
 Plan 08 morph velocity now includes focused scene-velocity PNG evidence under `render_plan08_morph_weight_velocity_product_png_passed_renderdoc_deferred`. The ignored exports `export_direct_morph_weight_velocity_product_png` and `export_skinned_morph_weight_velocity_product_png` reuse the existing direct/skinned 0.0 -> 1.0 morph velocity product paths, then encode test-only `scene-velocity` RG16Float readback bytes through `graphics/tests/render_product_mesh_cache/morph/velocity_png.rs` as sign-masked half-float payload visualization.
 
 The readback bytes remain a test-only diagnostic route: `RenderGraphExecutionRecord` keeps them behind `#[cfg(test)]`, and `WgpuRenderFramework::last_scene_velocity_readback_rg16_float_bytes_for_tests` exposes them only to crate tests. The shared `RenderSceneVelocityReadbackReport` now ignores signed-zero RG16Float pixels, covered by `scene_velocity_readback_ignores_signed_zero_half_float_pixels`, so stats and debug output agree on real nonzero payloads. Evidence: the first Cargo-wrapper attempt exceeded the 1213.4s tool window and is not counted; generated binary `zircon_runtime-0a7825d39d44b0c4.exe` passed the regular direct/skinned product tests 1/1 each with 6207 filtered (3.84s direct, 3.60s skinned), the signed-zero regression 1/1 with 6207 filtered, direct/skinned exports 1/1 each with 6207 filtered (3.36s direct, 3.42s skinned), and the fully qualified `runtime_15_render_product_mesh_cache_morph_tests_are_child_owners` 1/1 with 6207 filtered and 0.25s. Both output PNGs are 128x128, 723 bytes, SHA256 `7B40FA8BA6EA60F7F24F3C5465F3C802B4119E26A8965DACECA08187FF665DE7`, with 508 non-black pixels. RenderDoc/product capture, workspace/full CI, and broader product miss=0/second-launch acceptance remain open.
+
+## 2026-07-04 Procedural Skybox PBR Environment Matrix
+
+Plan 11 EL-M1 now has a formal environment extract path and a shader-visible procedural skybox source for the standard material path. `core/framework/render/environment` owns `EnvironmentExtract`, `SkyboxSettings`, `ProceduralSkyParams`, and `IblBakeKey`; render-frame and viewport packets carry that extract, and preview sky settings project into the same contract instead of leaving sky policy in the overlay pass.
+
+The renderer side adds `graphics/scene/scene_renderer/environment` and `skybox_procedural.wgsl` for the visible procedural skybox. `SceneUniform` now publishes sky colors and environment flags, while `graphics/shader/wgsl/zr_environment.wgsl` provides the shared `zr_environment_pbr_indirect(...)` helper. Forward standard PBR, fallback mesh shading, and deferred lighting all consume that helper so metallic and smoothness change the reflected procedural environment in the same material contract.
+
+The product evidence is the ignored export `graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_metallic_smoothness_matrix_png`. It builds a temporary project with 64 standard PBR `.zmaterial` spheres: columns sweep metallic `0.0..1.0`, rows sweep smoothness `0.0..1.0`, and the camera frames them inside the procedural skybox. The accepted artifact is `docs/tests/runtime/shader/runtime_shader_pbr_metallic_smoothness_matrix_skybox_20260704.png`, 1280x960, 109556 bytes, SHA256 `E883A3BDF657025EAD16A7F39B1F8BE5D7FFCDA1FDEF0243A8636A05C217030D`; the same-name scan under repo `target`, `E:\cargo-targets`, `F:\cargo-targets`, and `D:\cargo-targets` returned zero hits.
+
+This section does not mark cubemap import/prefiltering, reflection probe capture/blending, lightmaps, light probe grids, analytic fog, RenderDoc capture, or a broad product/perf sweep complete. Those remain Plan 11 later milestones.
+
+## 2026-07-04 Real HDRI Sampled Environment Reflection
+
+Plan 11 now also has a real HDRI validation path for PBR environment reflection. The source asset is Poly Haven `lakes` 1K HDR, stored as `docs/tests/runtime/shader/assets/polyhaven_lakes_1k.hdr` with MD5 `B615491D315A3D4E23BB09C2C96C9E03` and SHA256 `FAF3ECE79216E568A29F0D8FC176A795C66EB9C312C3CF3EE18D9AC04A71DECB`. The test/export path decodes that HDR, reduces it to a fixed 16x8 equirectangular sample table, and sends it through `EnvironmentExtract`, `SceneUniform`, `zr_environment.wgsl`, and `skybox_procedural.wgsl`.
+
+The accepted product evidence is `graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_real_hdri_reflection_png`. It builds the same 8x8 standard PBR metallic/smoothness matrix, but uses `SkyboxMode::SampledEquirectangular` so the skybox and PBR indirect reflection read the real HDR-derived table. The accepted artifact is `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_reflection_20260704.png`, 1280x960, 132232 bytes, SHA256 `958E3B200EC56BCA16BF9596B1F05D872179F51CEB9A64925E10FC2D41792DEE`; the same-name scan under repo `target`, `E:\cargo-targets`, `F:\cargo-targets`, and `D:\cargo-targets` returned zero hits.
+
+This is intentionally a sampled equirectangular environment proof, not the final cubemap pipeline. It does not close Plan 13 cubemap asset import, GPU `texture_cube` binding, GGX prefilter mip generation, reflection probe capture/blending, or SH irradiance bake.
 
 ## Runtime 15 / Plan 08 Anchor Mirrors
 

@@ -172,6 +172,7 @@ M2 验证:
 - `rustfmt --edition 2021 --check --config skip_children=true` 覆盖 `ShaderIdePreviewVariant` DTO、IDE preview generator/child tests、CLI args/run、graphics 导出与 editor refresh hook:通过。
 - `cargo check -p zircon_runtime --bin zircon_shader_ide_env --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never`:通过,仅既有 warning。
 - `cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-editor-refresh --message-format short --color never`:通过,仅既有 warning。
+- `cargo test -p zircon_editor --lib sync_from_project_refreshes_shader_ide_environment_after_import --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-editor-refresh --message-format short --color never -- --nocapture --test-threads=1`(2026-07-04 编辑器导入后刷新精确回归):源码测试已覆盖 `module_map.json`、默认 preview WGSL 与 `.segments.json` 写出;本次 Windows Cargo 运行在 904s 工具窗口内超时且未留下可直接运行的 editor test binary,未产生可计数结果。
 - `cargo test -p zircon_runtime --lib shader_ide_env_writes_non_default_preview_variants_with_option_bits --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1`:通过 1/1,覆盖 GBuffer preview、`material_option_bits=1`、`ZR_OPT_*` true define、`.segments.json` 变体名/路径与 Naga validate。
 - `cargo test -p zircon_runtime --lib shader_ide_env_rejects_duplicate_preview_variant_names --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1`:通过 1/1,覆盖同名 preview variant 拒绝。
 - `cargo test -p zircon_runtime --bin zircon_shader_ide_env parse_accepts_non_default_preview_variant_specs --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-shader-sh05-nondefault-preview --message-format short --color never -- --nocapture --test-threads=1`:通过 1/1,覆盖 `--variant gbuffer:options=0x1` 与非默认 pass 解析。
@@ -185,7 +186,7 @@ M2 验证:
 M2 已关闭项:CLI 主路径、library generator 行为测试、map/stub 一致性、默认 preview
 拼接文件、段表 JSON、模块一字节增量 diff 门禁、全 stub Naga parse 写入前 gate、默认
 preview Naga validate、编辑器导入后增量刷新钩子接线与 editor lib typecheck、focused
-`shader_module` Cargo filter 6/6、显式非默认组合 preview 扩展及其聚焦语义 Naga 门禁、两个 surface shader 的产品级批量 preview matrix 执行门禁。M2 未完成项:RenderDoc/product capture 与 product miss=0 仍未关闭。
+`shader_module` Cargo filter 6/6、显式非默认组合 preview 扩展及其聚焦语义 Naga 门禁、两个 surface shader 的产品级批量 preview matrix 执行门禁。M2 未完成项:RenderDoc/product capture 与更广 product/perf sweep 仍未关闭; product material-pass 二次启动 miss=0 已由 SH04 聚焦用例补跑关闭。编辑器导入后刷新精确 Cargo 回归已有源码覆盖,但本轮 Windows 构建窗口尚未给出可计数结果。
 2026-07-04 已补入并执行通过产品级批量矩阵回归,同时补齐多 shader generated `self::material` scope 与 TAA material-mask 新 ABI 预览验证缺口。
 
 ### SH05-M3 段表与诊断行号回映

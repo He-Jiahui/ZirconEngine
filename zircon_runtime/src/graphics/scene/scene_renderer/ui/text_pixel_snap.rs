@@ -19,11 +19,19 @@ pub(super) fn text_frame_device_origin(frame: UiFrame) -> UiFrame {
 
 pub(super) fn text_glyph_device_frame(frame: UiFrame) -> UiFrame {
     UiFrame::new(
-        text_origin_device_px(frame.x),
-        text_origin_device_px(frame.y),
+        text_glyph_position_px(frame.x),
+        text_glyph_position_px(frame.y),
         frame.width,
         frame.height,
     )
+}
+
+fn text_glyph_position_px(value: f32) -> f32 {
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -50,9 +58,16 @@ mod tests {
     }
 
     #[test]
-    fn text_glyph_device_frame_snaps_bitmap_origin_only() {
+    fn text_glyph_device_frame_preserves_subpixel_origin_for_advance_spacing() {
         let frame = text_glyph_device_frame(UiFrame::new(10.58, 18.49, 9.5, 13.25));
 
-        assert_eq!(frame, UiFrame::new(11.0, 18.0, 9.5, 13.25));
+        assert_eq!(frame, UiFrame::new(10.58, 18.49, 9.5, 13.25));
+    }
+
+    #[test]
+    fn text_glyph_device_frame_drops_non_finite_origin_values() {
+        let frame = text_glyph_device_frame(UiFrame::new(f32::NAN, f32::INFINITY, 9.5, 13.25));
+
+        assert_eq!(frame, UiFrame::new(0.0, 0.0, 9.5, 13.25));
     }
 }

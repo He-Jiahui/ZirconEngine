@@ -146,6 +146,7 @@ def validate_shader_permutation_registry_export_contract(
         "selected shader shading model ids",
         shader_shading_model_id_specs(config),
     )
+    _validate_expected_shader_modules(registry, shader_modules(config))
 
 
 def _validate_expected_shader_id_specs(
@@ -193,6 +194,40 @@ def _shader_id_record_set(records: list[object]) -> set[tuple[str, int]]:
         ):
             ids.add((token, id_value))
     return ids
+
+
+def _validate_expected_shader_modules(
+    registry: Mapping[str, object],
+    expected_modules: Sequence[Mapping[str, object]],
+) -> None:
+    if not expected_modules:
+        return
+    records = registry.get("shader_modules")
+    found: set[tuple[str, str]] = set()
+    if isinstance(records, list):
+        for record in records:
+            if not isinstance(record, Mapping):
+                continue
+            import_path = record.get("import_path")
+            content_hash = record.get("content_hash")
+            if isinstance(import_path, str) and isinstance(content_hash, str):
+                found.add((import_path, content_hash))
+    expected: set[tuple[str, str]] = set()
+    for module in expected_modules:
+        import_path = module.get("import_path")
+        content_hash = module.get("content_hash")
+        if isinstance(import_path, str) and isinstance(content_hash, str):
+            expected.add((import_path, content_hash))
+    missing = [
+        import_path
+        for import_path, content_hash in sorted(expected)
+        if (import_path, content_hash) not in found
+    ]
+    if missing:
+        raise RuntimeError(
+            "shader prewarm permutation registry export is missing "
+            f"selected shader modules: {', '.join(missing)}"
+        )
 
 
 def build_shader_prewarm_command(config) -> list[str]:
@@ -385,7 +420,11 @@ def shader_permutation_registry_paths_for_prewarm(config) -> tuple[Path, ...]:
 def generated_shader_permutation_registry_path(config) -> Path | None:
     if config.shader_permutation_registries:
         return None
-    if not (shader_geometry_source_id_specs(config) or shader_shading_model_id_specs(config)):
+    if not (
+        shader_geometry_source_id_specs(config)
+        or shader_shading_model_id_specs(config)
+        or shader_modules(config)
+    ):
         return None
     return Path(config.shader_prewarm_permutation_registry_path)
 
@@ -418,6 +457,7 @@ def generated_shader_permutation_registry_document(config) -> dict[str, list[dic
             "shader shading model id",
         ),
         "shading_model_descriptors": shader_shading_model_descriptors(config),
+        "shader_modules": shader_modules(config),
     }
 
 
@@ -473,6 +513,37 @@ def shader_shading_model_descriptors(config) -> list[dict[str, object]]:
             seen.add(key)
             descriptors.append(dict(descriptor))
     return descriptors
+
+
+def shader_modules(config) -> list[dict[str, object]]:
+    modules: list[dict[str, object]] = []
+    seen_hashes: dict[str, str] = {}
+    for plugin in getattr(config, "plugins", ()):
+        for module in getattr(plugin, "shader_modules", ()):
+            if not isinstance(module, Mapping):
+                continue
+            import_path = module.get("import_path")
+            content_hash = module.get("content_hash")
+            source = module.get("source")
+            if not isinstance(import_path, str) or not isinstance(content_hash, str):
+                continue
+            existing_hash = seen_hashes.get(import_path)
+            if existing_hash is not None:
+                if existing_hash != content_hash:
+                    raise ValueError(
+                        "shader module import path "
+                        f"{import_path} has multiple content hashes"
+                    )
+                continue
+            seen_hashes[import_path] = content_hash
+            record: dict[str, object] = {
+                "import_path": import_path,
+                "content_hash": content_hash,
+            }
+            if isinstance(source, str):
+                record["source"] = source
+            modules.append(record)
+    return modules
 
 
 def _shader_id_records(raw_values: Sequence[str], label: str) -> list[dict[str, object]]:

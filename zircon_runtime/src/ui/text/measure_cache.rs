@@ -1,4 +1,5 @@
 use crate::graphics::text::layout::measure_line_width;
+use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWrap;
 
 use super::resolved_layout::{
@@ -32,6 +33,8 @@ impl UiWidthBucket {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextMeasureKey {
     pub content_hash: u64,
+    pub frame: UiFrameKey,
+    pub clip_frame: Option<UiFrameKey>,
     pub width_bucket: UiWidthBucket,
     pub style: UiTextStyleKey,
 }
@@ -40,19 +43,48 @@ impl UiTextMeasureKey {
     pub(crate) fn from_request(request: &UiTextLayoutRequest<'_>) -> Self {
         Self {
             content_hash: request.source_hash(),
+            frame: UiFrameKey::from_frame(request.frame),
+            clip_frame: request.clip_frame.map(UiFrameKey::from_frame),
             width_bucket: UiWidthBucket::from_request(request),
             style: request.style_key(),
         }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct UiFrameKey {
+    x_bits: u32,
+    y_bits: u32,
+    width_bits: u32,
+    height_bits: u32,
+}
+
+impl UiFrameKey {
+    fn from_frame(frame: UiFrame) -> Self {
+        Self {
+            x_bits: normalized_bits(frame.x),
+            y_bits: normalized_bits(frame.y),
+            width_bits: normalized_bits(frame.width),
+            height_bits: normalized_bits(frame.height),
+        }
+    }
+}
+
+fn normalized_bits(value: f32) -> u32 {
+    if value == 0.0 {
+        0.0_f32.to_bits()
+    } else {
+        value.to_bits()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 struct UiTextMeasureEntry {
     key: UiTextMeasureKey,
     resolution: UiTextLayoutResolution,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct UiTextMeasureCache {
     entries: Vec<UiTextMeasureEntry>,
     frame_shape_count: u64,

@@ -9,9 +9,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
     OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT, PRIMARY_SURFACE,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_dropdown::{
-    select_workbench_dropdown_style, WorkbenchDropdownStyle, WORKBENCH_DROPDOWN_BORDER,
-    WORKBENCH_DROPDOWN_FOCUS_BORDER, WORKBENCH_DROPDOWN_OPEN_SURFACE,
-    WORKBENCH_DROPDOWN_PLACEHOLDER, WORKBENCH_DROPDOWN_SURFACE,
+    select_workbench_dropdown_style, workbench_dropdown_palette, WorkbenchDropdownStyle,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_icon_button::{
     select_workbench_icon_button_style, WorkbenchIconButtonContext, WorkbenchIconButtonStyle,
@@ -46,5 +44,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
     WORKBENCH_TEXT_FIELD_BORDER, WORKBENCH_TEXT_FIELD_DISABLED_BORDER,
     WORKBENCH_TEXT_FIELD_DISABLED_SURFACE, WORKBENCH_TEXT_FIELD_DISABLED_TEXT,
     WORKBENCH_TEXT_FIELD_FOCUSED_BORDER, WORKBENCH_TEXT_FIELD_FOCUSED_SURFACE,
-    WORKBENCH_TEXT_FIELD_PLACEHOLDER, WORKBENCH_TEXT_FIELD_SURFACE,
+    WORKBENCH_TEXT_FIELD_PLACEHOLDER, WORKBENCH_TEXT_FIELD_STEPPER_DIVIDER,
+    WORKBENCH_TEXT_FIELD_SURFACE,
 };

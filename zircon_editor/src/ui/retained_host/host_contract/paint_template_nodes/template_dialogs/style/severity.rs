@@ -1,7 +1,4 @@
-use super::tokens::{
-    DIALOG_ERROR, DIALOG_ERROR_BORDER, DIALOG_INFO, DIALOG_INFO_BORDER, DIALOG_WARNING,
-    DIALOG_WARNING_BORDER,
-};
+use super::palette::dialog_palette;
 use super::variants::variant_contains_any;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
@@ -27,19 +24,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severit
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severity_mark_color(
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {
+    let palette = dialog_palette();
     match severity(node) {
-        DialogSeverity::Info => DIALOG_INFO,
-        DialogSeverity::Warning => DIALOG_WARNING,
-        DialogSeverity::Error => DIALOG_ERROR,
+        DialogSeverity::Info => palette.info,
+        DialogSeverity::Warning => palette.warning,
+        DialogSeverity::Error => palette.error,
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severity_border_color(
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {
+    let palette = dialog_palette();
     match severity(node) {
-        DialogSeverity::Info => DIALOG_INFO_BORDER,
-        DialogSeverity::Warning => DIALOG_WARNING_BORDER,
-        DialogSeverity::Error => DIALOG_ERROR_BORDER,
+        DialogSeverity::Info => palette.info_border,
+        DialogSeverity::Warning => palette.warning_border,
+        DialogSeverity::Error => palette.error_border,
     }
 }

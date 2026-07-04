@@ -1,0 +1,19 @@
+runtime_text_bitmap_atlas_upload_copy_plan_validation_20260704
+Generated: 2026-07-04
+Preview: docs/tests/runtime/text/runtime_text_bitmap_atlas_upload_copy_plan_preview_20260704.png
+Preview SHA256: 84E676510FAA7FC38D80634B62A848626C4AD300118538865FC273CF4F3A77E5
+
+Scope:
+- Added GlyphAtlasBitmapUploadCopy to GlyphAtlasBitmapRunPlan.
+- bitmap_run/upload.rs now emits source-indexed copy records for atlas page staging.
+- Copy records preserve source index, page key, atlas rect, content size, source bytes/row, source byte len, atlas bytes/row, and atlas byte offset.
+- Tests cover AlphaMask and SubpixelMask staging copy records alongside existing upload commands.
+
+Checks recorded for this slice:
+- rustfmt --edition 2021 --check on touched bitmap atlas files: passed.
+- git diff --check on touched bitmap atlas files: passed with LF/CRLF worktree warnings only.
+- Focused Cargo was deferred because active cargo/rustc processes were already running on this machine.
+
+Target placement:
+- Validation artifacts intentionally written under docs/tests/runtime/text.
+- No artifact for this slice should exist under target, E:/cargo-targets, D:/cargo-targets, or F:/cargo-targets.

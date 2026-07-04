@@ -86,7 +86,8 @@ mod tests {
         assert!(DEPTH_OF_FIELD_PREPARE_SHADER.contains("clamp_prepare_coord(coord_i32"));
         assert!(DEPTH_OF_FIELD_PREPARE_SHADER
             .contains("load_scene_color(sample_coord) * sample_weight"));
-        assert!(DEPTH_OF_FIELD_PREPARE_SHADER.contains("output.coc = vec4<f32>(far_coc"));
+        assert!(DEPTH_OF_FIELD_PREPARE_SHADER.contains("output.coc = vec4<f32>("));
+        assert!(DEPTH_OF_FIELD_PREPARE_SHADER.contains("far_coc,\n        near_coc"));
         assert!(DEPTH_OF_FIELD_PREPARE_SHADER
             .contains("let bokeh_seed = prefiltered_bokeh_seed(coord)"));
         assert!(DEPTH_OF_FIELD_PREPARE_SHADER.contains("output.bokeh = bokeh_seed"));

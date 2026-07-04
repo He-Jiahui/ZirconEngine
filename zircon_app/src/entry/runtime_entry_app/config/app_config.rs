@@ -6,6 +6,7 @@ pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) window_descriptor: WindowDescriptor,
     pub(in crate::entry::runtime_entry_app) event_loop_policy: EventLoopPolicy,
     pub(in crate::entry::runtime_entry_app) window_lifecycle_policy: WindowLifecyclePolicy,
+    pub(in crate::entry::runtime_entry_app) exit_after_first_presented_frame: bool,
 }
 
 impl RuntimeEntryAppConfig {
@@ -43,6 +44,11 @@ impl RuntimeEntryAppConfig {
         self
     }
 
+    pub(in crate::entry) fn with_exit_after_first_presented_frame(mut self, exit: bool) -> Self {
+        self.exit_after_first_presented_frame = exit;
+        self
+    }
+
     pub(in crate::entry) fn window_descriptor(&self) -> &WindowDescriptor {
         &self.window_descriptor
     }
@@ -58,6 +64,10 @@ impl RuntimeEntryAppConfig {
     pub(in crate::entry) fn window_lifecycle_policy(&self) -> WindowLifecyclePolicy {
         self.window_lifecycle_policy
     }
+
+    pub(in crate::entry) fn exit_after_first_presented_frame(&self) -> bool {
+        self.exit_after_first_presented_frame
+    }
 }
 
 impl Default for RuntimeEntryAppConfig {
@@ -66,6 +76,7 @@ impl Default for RuntimeEntryAppConfig {
             window_descriptor: WindowDescriptor::default(),
             event_loop_policy: EventLoopPolicy::Game,
             window_lifecycle_policy: WindowLifecyclePolicy::default(),
+            exit_after_first_presented_frame: false,
         }
     }
 }
@@ -85,6 +96,7 @@ mod tests {
         assert!(config
             .window_lifecycle_policy
             .should_exit_after_primary_close());
+        assert!(!config.exit_after_first_presented_frame());
     }
 
     #[test]
@@ -114,5 +126,12 @@ mod tests {
         let config = RuntimeEntryAppConfig::default().with_window_lifecycle_policy(policy);
 
         assert_eq!(config.window_lifecycle_policy(), policy);
+    }
+
+    #[test]
+    fn runtime_entry_app_config_can_exit_after_first_presented_frame() {
+        let config = RuntimeEntryAppConfig::default().with_exit_after_first_presented_frame(true);
+
+        assert!(config.exit_after_first_presented_frame());
     }
 }

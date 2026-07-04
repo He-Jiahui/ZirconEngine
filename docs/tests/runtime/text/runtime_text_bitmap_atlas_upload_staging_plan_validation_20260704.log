@@ -1,0 +1,20 @@
+Runtime Text Bitmap Upload Staging Plan Validation - 2026-07-04
+
+Slice: bitmap_run/staging.rs converts GlyphAtlasBitmapUploadCopy records plus real source bytes into page-sized staging buffers.
+Code files:
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/staging.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs
+  zircon_runtime/src/graphics/text/atlas/mod.rs
+
+Assertions added:
+  AlphaMask sources copy into one page buffer with correct row placement.
+  SubpixelMask sources preserve RGBA page stride.
+  missing or length-mismatched source bytes produce typed staging failures.
+
+Local checks:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/staging.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs : PASS
+  cargo/unit validation: DEFERRED because independent cargo/rustc validation lanes were already active in this workspace.
+
+Preview PNG: docs\tests\runtime\text\runtime_text_bitmap_atlas_upload_staging_plan_preview_20260704.png
+Preview SHA256: C30F6C2012452AAE52A500AA9AE606DB6C3629E33B0095CB742481CBF348CB65

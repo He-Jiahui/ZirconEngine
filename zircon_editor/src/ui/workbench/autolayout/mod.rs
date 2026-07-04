@@ -30,9 +30,11 @@ pub(crate) use geometry::{compact_bottom_height_limit, compact_side_width_limit}
 #[cfg(test)]
 pub(crate) use layout_tier::workbench_layout_defaults;
 pub(crate) use layout_tier::{
-    compact_bottom_defaults, compact_side_defaults, right_drawer_should_collapse_for_width,
-    window_min_height_limit_for_height, window_min_width_limit_for_width,
-    workbench_layout_tier_for_width, WorkbenchLayoutTier,
+    compact_bottom_defaults, compact_side_defaults,
+    right_drawer_should_collapse_for_physical_width, window_min_height_limit_for_height,
+    window_min_width_limit_for_physical_width, workbench_layout_tier_for_logical_width,
+    workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale,
+    WorkbenchLayoutTier,
 };
 pub use pane_constraint_override::PaneConstraintOverride;
 pub use region_binding::{

@@ -5,6 +5,8 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let revision = read_runtime_src("bin/zircon_shader_prewarm/manifest/revision.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
+    let raw_revision_tests =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs");
     let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
     let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
@@ -39,7 +41,7 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
     );
     assert_contains_all(
         "asset-root revision tests",
-        &tests,
+        &(tests.clone() + &raw_revision_tests),
         &[
             "shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision",
             "shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision",
@@ -61,6 +63,10 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
         (
             "bin/zircon_shader_prewarm/manifest/tests.rs",
             tests.as_str(),
+        ),
+        (
+            "bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs",
+            raw_revision_tests.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

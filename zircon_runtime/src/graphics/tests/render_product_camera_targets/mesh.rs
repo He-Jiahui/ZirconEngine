@@ -7,6 +7,11 @@ use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::scene::components::{default_render_layer_mask, Mobility};
 
+const TEST_VIEWPORT_ASPECT_RATIO: f32 = 160.0 / 120.0;
+const TEST_CAMERA_DISTANCE_TO_QUAD: f32 = 4.0;
+const TEST_CAMERA_FOV_Y_RADIANS: f32 = 60.0_f32.to_radians();
+const FULLSCREEN_QUAD_OVERSCAN: f32 = 1.01;
+
 pub(super) fn overlay_mesh(
     node_id: u64,
     model: ResourceHandle<ModelMarker>,
@@ -46,7 +51,7 @@ pub(super) fn sampled_mesh(
         transform_revision: 0,
         transform: Transform {
             translation,
-            scale: Vec3::new(0.56, 0.72, 1.0),
+            scale: Vec3::new(0.9, 1.02, 1.0),
             ..Transform::default()
         },
         model,
@@ -118,12 +123,13 @@ fn sampled_fullscreen_mesh_with_mask(
     material: ResourceHandle<MaterialMarker>,
     render_layer_mask: RenderLayerSet,
 ) -> RenderMeshSnapshot {
+    let fullscreen_scale = sampled_fullscreen_mesh_scale();
     RenderMeshSnapshot {
         node_id,
         stable_instance_key: node_id << 16,
         transform_revision: 0,
         transform: Transform {
-            scale: Vec3::new(1.8, 1.8, 1.0),
+            scale: fullscreen_scale,
             ..Transform::default()
         },
         model,
@@ -136,6 +142,15 @@ fn sampled_fullscreen_mesh_with_mask(
         static_state: Default::default(),
         render_layer_mask,
     }
+}
+
+fn sampled_fullscreen_mesh_scale() -> Vec3 {
+    let half_height = (TEST_CAMERA_FOV_Y_RADIANS * 0.5).tan() * TEST_CAMERA_DISTANCE_TO_QUAD;
+    Vec3::new(
+        half_height * TEST_VIEWPORT_ASPECT_RATIO * FULLSCREEN_QUAD_OVERSCAN,
+        half_height * FULLSCREEN_QUAD_OVERSCAN,
+        1.0,
+    )
 }
 
 pub(super) fn build_snapshot(
@@ -163,6 +178,7 @@ pub(super) fn build_snapshot(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: crate::core::framework::render::EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,

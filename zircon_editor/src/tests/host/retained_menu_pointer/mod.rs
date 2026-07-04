@@ -1,6 +1,9 @@
+mod appearance_visual_screenshot;
+mod command_palette_visual_screenshot;
 mod dispatcher;
 mod layout;
 mod pointer_bridge;
+mod scrollbar_visual_screenshot;
 mod support;
 mod surface_contract;
 mod visual_screenshot;

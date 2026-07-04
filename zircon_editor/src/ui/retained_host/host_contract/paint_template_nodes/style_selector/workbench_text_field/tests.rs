@@ -24,6 +24,7 @@ fn text_field_loading_state_uses_unavailable_visuals() {
     assert_eq!(style.border, WORKBENCH_TEXT_FIELD_DISABLED_BORDER);
     assert_eq!(style.text, WORKBENCH_TEXT_FIELD_DISABLED_TEXT);
     assert_eq!(style.stepper, PALETTE.text_disabled);
+    assert_eq!(style.stepper_divider, PALETTE.border_disabled);
 }
 
 #[test]
@@ -46,6 +47,7 @@ fn text_field_palette_projects_from_global_appearance_palette() {
     tokens.palette.surface_recessed = UiRgbaColor::from_u8(11, 15, 18, 255);
     tokens.palette.surface[2] = UiRgbaColor::from_u8(31, 37, 42, 255);
     tokens.palette.border = UiRgbaColor::from_u8(72, 82, 90, 255);
+    tokens.palette.separator_soft = UiRgbaColor::from_u8(42, 48, 54, 255);
     tokens.palette.text_secondary = UiRgbaColor::from_u8(150, 160, 168, 255);
 
     let palette =
@@ -56,6 +58,7 @@ fn text_field_palette_projects_from_global_appearance_palette() {
     assert_eq!(palette.hover_surface, [31, 37, 42, 255]);
     assert_eq!(palette.focused_border, [72, 82, 90, 255]);
     assert_eq!(palette.placeholder, [150, 160, 168, 255]);
+    assert_eq!(palette.stepper_divider, [42, 48, 54, 255]);
 }
 
 #[test]

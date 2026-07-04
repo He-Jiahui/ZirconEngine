@@ -26,6 +26,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
+        let render_region = self.render_region_for_write_resource(color_resource_name);
         let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
             format!("sprite graph executor for stage `{stage:?}` requires sprite renderer context")
         })?;
@@ -43,7 +44,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             streamer,
             self.frame,
             stage,
-            self.render_region(),
+            render_region,
             attachment_ops,
             depth_attachment_ops,
         );
@@ -100,6 +101,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
+        let render_region = self.render_region_for_write_resource(color_resource_name);
         let overlay_renderer = self
             .overlay_renderer
             .as_deref_mut()
@@ -110,6 +112,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_view,
             self.scene_bind_group,
             self.frame,
+            render_region,
             color_attachment_ops,
             depth_attachment_ops,
         );
@@ -136,6 +139,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let render_region = self.render_region_for_write_resource(color_resource_name);
         let overlay_renderer = self.overlay_renderer.as_deref_mut().ok_or_else(|| {
             format!(
                 "overlay graph executor for pass `{pass_name}` requires overlay renderer context"
@@ -153,6 +157,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.scene_bind_group,
             self.frame,
             prepared_overlays,
+            render_region,
         );
         Ok(())
     }

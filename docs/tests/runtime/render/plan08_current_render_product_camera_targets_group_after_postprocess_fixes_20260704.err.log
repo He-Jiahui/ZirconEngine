@@ -1,0 +1,19 @@
+
+thread 'graphics::tests::render_product_camera_targets::custom_target::composite::custom_target_two_viewport_stacks_preserve_independent_composites_before_primary_sample' (39176) panicked at zircon_runtime\src\graphics\tests\render_product_camera_targets\custom_target\composite.rs:148:5:
+left stack should composite the green overlay inside its viewport; green=0, total=2560
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'graphics::tests::render_product_camera_targets::custom_target::material_sampling::custom_target_chain_feeds_later_texture_and_primary_surface_samples' (48528) panicked at zircon_runtime\src\graphics\tests\render_product_camera_targets\custom_target\material_sampling.rs:350:5:
+later PrimarySurface should sample the intermediate custom target that already sampled the source; red=3584, blue=512, total=4096
+
+thread 'graphics::tests::render_product_camera_targets::custom_target::material_sampling::custom_target_stacks_feed_later_primary_surface_materials_independently' (25116) panicked at zircon_runtime\src\graphics\tests\render_product_camera_targets\assertions.rs:157:52:
+attempt to add with overflow
+
+thread 'graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_overlay_inherits_base_viewport_region_before_primary_sample' (40328) panicked at zircon_runtime\src\graphics\tests\render_product_camera_targets\custom_target\viewport.rs:226:5:
+left overlay should draw green inside the Base viewport; green=190, total=2560
+
+thread 'graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_viewport_regions_feed_later_primary_surface_sample' (20472) panicked at zircon_runtime\src\graphics\tests\render_product_camera_targets\custom_target\viewport.rs:85:5:
+left custom target viewport center should stay red; pixel=[0, 0, 0, 255]
+
+thread 'graphics::tests::render_product_camera_targets::primary_surface::render_product_split_screen_viewports' (48256) panicked at zircon_runtime\src\graphics\tests\render_product_camera_targets\primary_surface.rs:231:5:
+left Base camera should clear only the left viewport red; left_red=0, left_green=3328, right_red=0, right_green=0, total=6656

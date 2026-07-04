@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 
+use crate::asset::assets::generate_material_artifact;
 use crate::asset::{
     AssetReference, AssetUri, AssetUuid, MaterialAsset, ShaderAsset, ShaderEntryPointAsset,
     ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset,
@@ -604,6 +605,7 @@ fn test_extract() -> RenderFrameExtract {
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,
@@ -622,7 +624,7 @@ fn shader_with_validation_diagnostic(diagnostic: &str) -> ShaderAsset {
 }
 
 fn shader_contract() -> ShaderAsset {
-    ShaderAsset {
+    let mut shader = ShaderAsset {
         uri: AssetUri::parse("res://shaders/feature.zshader").unwrap(),
         kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
@@ -679,13 +681,22 @@ fn shader_contract() -> ShaderAsset {
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
-    }
+    };
+    let artifact = generate_material_artifact(
+        &shader.property_schema,
+        &shader.options,
+        &shader.texture_slots,
+    );
+    shader.material_property_layout = artifact.property_layout;
+    shader.material_option_table = artifact.option_table;
+    shader.generated_material_wgsl = artifact.wgsl_source;
+    shader
 }
 
 fn material_with_contract_gaps(shader: AssetReference) -> MaterialAsset {
     let mut material = MaterialAsset::from_toml_str(
         r#"
-version = 1
+version = 2
 name = "Mismatch"
 
 [shader]

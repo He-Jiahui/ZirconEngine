@@ -30,6 +30,7 @@ use super::{
     reflector_snapshot,
     render::UiSurfaceRenderCache,
 };
+use crate::ui::text::UiTextMeasureCache;
 
 mod default_interactions;
 mod event_routing;
@@ -57,6 +58,8 @@ pub struct UiSurface {
     pub window_state: UiSurfaceWindowState,
     #[serde(default)]
     pub render_cache: UiSurfaceRenderCache,
+    #[serde(default, skip)]
+    pub(crate) text_measure_cache: UiTextMeasureCache,
     #[serde(default)]
     pub node_pool: UiSurfaceNodePool,
     pub last_rebuild_report: UiSurfaceRebuildReport,
@@ -86,6 +89,7 @@ impl UiSurface {
             },
             window_state: UiSurfaceWindowState::default(),
             render_cache: UiSurfaceRenderCache::default(),
+            text_measure_cache: UiTextMeasureCache::default(),
             node_pool: UiSurfaceNodePool::default(),
             last_rebuild_report: UiSurfaceRebuildReport::default(),
             layout_engine_report: UiLayoutEngineSelectionReport::default(),

@@ -6,7 +6,9 @@ mod prepared_post_process_lut_texture;
 mod prepared_shader;
 mod prepared_texture;
 
-pub(in crate::graphics::scene::resources) use prepared_material::PreparedMaterial;
+pub(in crate::graphics::scene::resources) use prepared_material::{
+    PreparedMaterial, PreparedMaterialTextureDependency,
+};
 pub(in crate::graphics::scene::resources) use prepared_mesh::PreparedMesh;
 pub(in crate::graphics::scene::resources) use prepared_model::PreparedModel;
 pub(in crate::graphics::scene::resources) use prepared_output_target_texture::PreparedOutputTargetTexture;

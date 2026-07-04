@@ -2,9 +2,7 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_moved_row_status_mirror_children_are_child_owned() {
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs",
-    );
+    let status_rows = read_runtime_src(STATUS_SUPPORT_REVIEW_GUARD_ROWS_PATH);
     let status_support_expected_status_map = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
     );

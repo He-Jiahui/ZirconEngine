@@ -2,8 +2,13 @@ use wgpu::util::DeviceExt;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
+use crate::graphics::text::atlas::GlyphAtlasStorageFormat;
 use crate::graphics::text::font::FontDatabase;
 
+use super::atlas_texture_upload::{
+    create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
+    write_glyph_atlas_texture_upload_command,
+};
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::sdf_atlas::{
@@ -18,7 +23,8 @@ mod vertices;
 use self::vertices::{build_sdf_vertices, ScreenSpaceUiSdfVertex};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/sdf_text.wgsl");
-const SDF_ATLAS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
+const SDF_ATLAS_TEXTURE_LABEL: &str = "zircon-screen-space-ui-sdf-atlas";
+const SDF_ATLAS_VIEW_LABEL: &str = "zircon-screen-space-ui-sdf-atlas-view";
 
 pub(super) struct ScreenSpaceUiSdfRenderer {
     font_bake: SdfFontBakeCache,
@@ -328,29 +334,7 @@ fn write_sdf_atlas_texture(
         return;
     }
     for command in sdf_atlas_upload_commands(atlas_plan, upload.clone(), pixels.len()) {
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d {
-                    x: command.rect.x,
-                    y: command.rect.y,
-                    z: command.page_key.page_index,
-                },
-                aspect: wgpu::TextureAspect::All,
-            },
-            pixels,
-            wgpu::TexelCopyBufferLayout {
-                offset: command.source_offset,
-                bytes_per_row: Some(command.bytes_per_row),
-                rows_per_image: Some(command.rows_per_image),
-            },
-            wgpu::Extent3d {
-                width: command.rect.width,
-                height: command.rect.height,
-                depth_or_array_layers: 1,
-            },
-        );
+        write_glyph_atlas_texture_upload_command(queue, texture, pixels, command);
     }
 }
 
@@ -361,32 +345,21 @@ fn create_atlas_resources(
     atlas_size: UVec2,
     atlas_page_count: u32,
 ) -> (wgpu::Texture, wgpu::TextureView, wgpu::BindGroup) {
-    let texture = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("zircon-screen-space-ui-sdf-atlas"),
-        size: wgpu::Extent3d {
-            width: atlas_size.x.max(1),
-            height: atlas_size.y.max(1),
-            depth_or_array_layers: atlas_page_count.max(1),
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: SDF_ATLAS_FORMAT,
-        usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
-        view_formats: &[],
-    });
-    let view = texture.create_view(&wgpu::TextureViewDescriptor {
-        label: Some("zircon-screen-space-ui-sdf-atlas-view"),
-        dimension: Some(wgpu::TextureViewDimension::D2Array),
-        ..Default::default()
-    });
+    let spec = glyph_atlas_texture_array_spec(
+        SDF_ATLAS_TEXTURE_LABEL,
+        SDF_ATLAS_VIEW_LABEL,
+        GlyphAtlasStorageFormat::R8Unorm,
+        atlas_size,
+        atlas_page_count,
+    );
+    let resources = create_glyph_atlas_texture_array_resources(device, spec);
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-screen-space-ui-sdf-bind-group"),
         layout: bind_group_layout,
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::TextureView(&view),
+                resource: wgpu::BindingResource::TextureView(&resources.view),
             },
             wgpu::BindGroupEntry {
                 binding: 1,
@@ -394,7 +367,7 @@ fn create_atlas_resources(
             },
         ],
     });
-    (texture, view, bind_group)
+    (resources.texture, resources.view, bind_group)
 }
 
 #[cfg(test)]

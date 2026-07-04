@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_row_data_status_doc_status_doc_status_is_current() {
-    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_ROWS_PATH);
+    let review_guard_rows = read_runtime_src(STATUS_SUPPORT_REVIEW_GUARD_ROWS_PATH);
 
     assert_contains_all(
         "Runtime 15 M3 production-support row data records review-guard status-doc split",
-        &production_guard_support,
+        &review_guard_rows,
         &[
             REVIEW_GUARD_CHILD_OWNER_STATUS_NAME,
             REVIEW_GUARD_CHILD_OWNER_STATUS_ID,

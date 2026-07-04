@@ -46,7 +46,7 @@ pub(in crate::ui::retained_host::ui) fn projected_command_palette_structured_opt
             .into_iter()
             .enumerate()
             .map(|(index, entry)| host_contract::TemplatePaneOptionData {
-                matched: entry.matches_query(query.as_deref()),
+                matched: entry.filter_matched || entry.matches_query(query.as_deref()),
                 selected: !selected_id.is_empty() && entry.id == selected_id,
                 disabled: entry.disabled || disabled_ids.contains(&entry.id),
                 special: recent_ids.contains(&entry.id),

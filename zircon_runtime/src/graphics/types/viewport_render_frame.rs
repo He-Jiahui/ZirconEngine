@@ -125,4 +125,8 @@ impl ViewportRenderFrame {
     pub(crate) fn preview(&self) -> &crate::core::framework::render::PreviewEnvironmentExtract {
         &self.extract.post_process.preview
     }
+
+    pub(crate) fn environment(&self) -> &crate::core::framework::render::EnvironmentExtract {
+        &self.extract.environment
+    }
 }

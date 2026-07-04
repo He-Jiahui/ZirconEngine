@@ -2,7 +2,9 @@
 related_code:
   - zircon_editor/src/ui/retained_host/host_page_pointer/error.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/constants.rs
+  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_item.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/tab_strip_geometry.rs
+  - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/dispatch_event.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/handle_overflow_click.rs
@@ -11,7 +13,9 @@ related_code:
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_page_pointer/error.rs
+  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_item.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/tab_strip_geometry.rs
+  - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/dispatch_event.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs
   - zircon_editor/src/ui/retained_host/host_page_pointer/handle_overflow_click.rs
@@ -23,8 +27,10 @@ tests:
   - cargo test -p zircon_editor --lib root_host_page_pointer_click_uses_shared_projection_tab_slot --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
   - cargo test -p zircon_editor --lib narrow_tier_caps_visible_tabs_before_overflow --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor overflow --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo fmt --check --
+  - static scan: host page-tab width touched paths no longer contain `TITLE_WIDTH_PER_CHAR`, `main_page_tab_preferred_width(`, or title character-count width formulas
 doc_type: module-detail
-status: implemented-focused-passed
+status: implemented-rustfmt-static-visual-cargo-deferred
 ---
 
 # Host Page Pointer Typed Dispatch
@@ -41,9 +47,11 @@ Hidden popup rows do not have visible tab frames. `handle_click.rs` therefore ma
 
 ## Responsive Geometry
 
-`tab_strip_geometry.rs` consumes `ui/workbench/page_tabs/metrics.rs` for the project-path reserve and visible-tab cap. This keeps native pointer hit targets aligned with the fallback chrome projection when the Workbench enters the 640 px Narrow tier.
+`tab_strip_geometry.rs` consumes `ui/workbench/page_tabs/metrics.rs` for the project-path reserve, visible-tab cap, title font size, and measured-width clamp. `HostPagePointerItem` carries both `page_id` and `title`, letting the pointer bridge measure the same page title that fallback chrome paints. This keeps native pointer hit targets aligned with the fallback chrome projection when the Workbench enters the 640 px Narrow tier and when file-like host-page labels need DengXian/等线 runtime measurement instead of character-count width guesses.
 
 In Narrow tier, the host page pointer layout reserves the right-side project path width, caps visible page tabs to two, and emits an overflow slot when more pages exist. The active page is still kept visible by the same replacement rule used by the chrome projection, so hidden-row popup selection and visible-tab clicking share the same page index model.
+
+The 2026-07-04 runtime text follow-up changed tab allocation from equal-width/min-width distribution to per-page measured preferred widths. Wide labels and narrow labels now produce different hitbox widths through `measure_runtime_text_width(..., MAIN_PAGE_TAB_TITLE_FONT_SIZE)`, while overflow still reserves the same popup sentinel slot and keeps the active page visible.
 
 ## Boundary
 

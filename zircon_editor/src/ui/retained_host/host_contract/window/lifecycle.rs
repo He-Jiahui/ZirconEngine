@@ -69,6 +69,16 @@ impl UiHostWindow {
         state.exit_requested = true;
     }
 
+    pub(crate) fn set_exit_after_first_presented_frame(&self, exit: bool) {
+        self.state.borrow_mut().exit_after_first_presented_frame = exit;
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn exit_after_first_presented_frame(
+        &self,
+    ) -> bool {
+        self.state.borrow().exit_after_first_presented_frame
+    }
+
     #[cfg(test)]
     pub(crate) fn exit_requested_for_test(&self) -> bool {
         self.state.borrow().exit_requested

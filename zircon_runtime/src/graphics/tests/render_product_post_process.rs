@@ -371,6 +371,7 @@ fn post_process_product_extract(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

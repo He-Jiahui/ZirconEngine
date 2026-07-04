@@ -85,8 +85,11 @@ fn event_store_send_by_id_uses_registered_channel_guard_source() {
 #[test]
 fn first_stage_event_update_all_uses_builtin_source_path() {
     let registry_source = scene_system_registry_source();
-    let builtin_systems =
-        event_store_section(registry_source, "fn builtin_scene_systems", "impl Default");
+    let builtin_systems = event_store_section(
+        registry_source,
+        "fn builtin_scene_systems",
+        "fn validate_system_descriptor",
+    );
     assert!(builtin_systems.contains("\"zircon.scene.events_update_all\""));
     assert!(builtin_systems.contains("SystemStage::First"));
     assert!(builtin_systems.contains("InternalSceneSystem::UpdateEvents"));
@@ -113,11 +116,7 @@ fn first_stage_event_update_all_uses_builtin_source_path() {
 
 #[test]
 fn event_subscription_source_keeps_dormant_reader_boundaries() {
-    let source = event_store_section(
-        event_store_source(),
-        "pub struct EventSubscription<T>",
-        "pub struct EventReadIter",
-    );
+    let source = event_subscription_source();
     let new_dormant = event_store_section(source, "pub fn new_dormant", "pub fn event_type_id");
     assert!(new_dormant.contains("event_type_id: store.register::<T>()"));
     assert!(new_dormant.contains("status: EventSubscriptionStatus::Dormant"));
@@ -281,6 +280,10 @@ fn world_derived_state_source() -> &'static str {
 
 fn world_events_source() -> &'static str {
     include_str!("../world/events.rs")
+}
+
+fn event_subscription_source() -> &'static str {
+    include_str!("../ecs/events/subscription.rs")
 }
 
 fn event_store_section<'a>(source: &'a str, start: &str, end: &str) -> &'a str {

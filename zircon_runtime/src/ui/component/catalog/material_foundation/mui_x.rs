@@ -31,6 +31,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
                 .with_prop(array_prop("expandedItems"))
                 .with_prop(array_prop("defaultExpandedItems"))
                 .with_prop(array_prop("selectedItems"))
+                .with_prop(array_prop("items"))
                 .with_prop(float_prop("itemChildrenIndentation", 16.0))
                 .slot(UiSlotSchema::new("items").multiple(true))
                 .slot(UiSlotSchema::new("item").multiple(true))

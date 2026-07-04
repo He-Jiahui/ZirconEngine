@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Any
 
 from .native_build_workspace import read_toml
-from .plugin_validate_common import plugin_validate_string_array, plugin_validate_trimmed_string
+from .plugin_validate_common import (
+    plugin_validate_optional_trimmed_string,
+    plugin_validate_string_array,
+    plugin_validate_trimmed_string,
+)
 from .plugin_validate_module_crates import plugin_validate_optional_feature_root, validate_plugin_module_workspace_crate
 from .plugin_validate_module_systems import validate_plugin_module_system_contracts
 
@@ -15,7 +19,18 @@ Manifest = dict[str, Any]
 ModuleRowContext = tuple[Path | None, dict[str, dict[str, Any]], set[str], dict[str, str], Diagnostics]
 
 PLUGIN_VALIDATE_MODULE_KINDS = ("runtime", "editor", "native", "vm")
-PLUGIN_VALIDATE_MODULE_FIELDS = frozenset(("name", "kind", "crate_name", "target_modes", "capabilities", "system_sets", "system_anchors"))
+PLUGIN_VALIDATE_MODULE_FIELDS = frozenset(
+    (
+        "name",
+        "description",
+        "kind",
+        "crate_name",
+        "target_modes",
+        "capabilities",
+        "system_sets",
+        "system_anchors",
+    )
+)
 
 
 def validate_plugin_modules(
@@ -119,6 +134,9 @@ def validate_plugin_module_row(
     module_kind = validate_plugin_module_kind(module, f"{row_label}.kind", diagnostics)
     crate_name = validate_plugin_module_crate_name(
         module, f"{row_label}.crate_name", diagnostics
+    )
+    plugin_validate_optional_trimmed_string(
+        module, "description", f"{row_label}.description", diagnostics
     )
     target_modes = plugin_validate_string_array(
         module, "target_modes", f"{row_label}.target_modes", diagnostics

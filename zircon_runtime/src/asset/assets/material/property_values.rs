@@ -19,6 +19,19 @@ pub fn shader_property_values_for_shader(
             values.insert(property.name.clone(), value);
         }
     }
+    for (name, value) in material.shader_property_overrides() {
+        if values.contains_key(name)
+            || shader
+                .property_schema
+                .iter()
+                .any(|property| property.name == *name)
+        {
+            continue;
+        }
+        if let Some(value) = string_property_value(value) {
+            values.insert(name.clone(), value);
+        }
+    }
     values
 }
 
@@ -26,6 +39,9 @@ fn render_property_value(
     property: &ShaderMaterialPropertyAsset,
     value: &toml::Value,
 ) -> Option<RenderMaterialPropertyValue> {
+    if let Some(value) = string_property_value(value) {
+        return Some(value);
+    }
     match property.kind {
         MaterialPropertyKind::Bool => value
             .as_bool()
@@ -51,6 +67,14 @@ fn render_property_value(
             numeric_array::<4>(value).map(|value| RenderMaterialPropertyValue::Vec4 { value })
         }
     }
+}
+
+fn string_property_value(value: &toml::Value) -> Option<RenderMaterialPropertyValue> {
+    value
+        .as_str()
+        .map(|value| RenderMaterialPropertyValue::String {
+            value: value.to_string(),
+        })
 }
 
 fn numeric_array<const N: usize>(value: &toml::Value) -> Option<[f32; N]> {

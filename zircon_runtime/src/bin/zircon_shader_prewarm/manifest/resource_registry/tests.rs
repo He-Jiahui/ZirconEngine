@@ -135,12 +135,25 @@ fn shader_resource_records_from_project_and_plugin_asset_roots_export_distinct_s
 #[test]
 fn shader_resource_records_from_asset_roots_rejects_id_locator_conflicts() {
     let id = ResourceId::from_asset_uuid(uuid("00000000-0000-0000-0000-000000000049"));
+    let root = unique_root("zircon_shader_prewarm_id_locator_conflict");
+    let first_root = root.join("first_assets");
+    let second_root = root.join("second_assets");
+    write_named_shader_with_meta(
+        &first_root,
+        "shared_a",
+        "00000000-0000-0000-0000-000000000049",
+        "res://shaders/shared_a",
+        "source-hash-shared-a",
+    );
+    write_named_shader_with_meta(
+        &second_root,
+        "shared_b",
+        "00000000-0000-0000-0000-000000000049",
+        "res://shaders/shared_b",
+        "source-hash-shared-b",
+    );
 
-    let error = deduplicate_shader_resource_records(vec![
-        shader_record(id, "res://shaders/shared_a"),
-        shader_record(id, "res://shaders/shared_b"),
-    ])
-    .unwrap_err();
+    let error = shader_resource_records_from_asset_roots(&[first_root, second_root]).unwrap_err();
 
     match error {
         ShaderPrewarmResourceRegistryError::DuplicateRecordId {
@@ -160,18 +173,74 @@ fn shader_resource_records_from_asset_roots_rejects_id_locator_conflicts() {
         }
         other => panic!("expected typed duplicate resource id error, got {other:?}"),
     }
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn shader_resource_records_from_asset_root_rejects_id_locator_conflicts() {
+    let id = ResourceId::from_asset_uuid(uuid("00000000-0000-0000-0000-000000000054"));
+    let root = unique_root("zircon_shader_prewarm_single_root_id_locator_conflict");
+    write_named_shader_with_meta(
+        &root,
+        "shared_a",
+        "00000000-0000-0000-0000-000000000054",
+        "res://shaders/shared_a",
+        "source-hash-single-root-shared-a",
+    );
+    write_named_shader_with_meta(
+        &root,
+        "shared_b",
+        "00000000-0000-0000-0000-000000000054",
+        "res://shaders/shared_b",
+        "source-hash-single-root-shared-b",
+    );
+
+    let error = shader_resource_records_from_asset_root(&root).unwrap_err();
+
+    match error {
+        ShaderPrewarmResourceRegistryError::DuplicateRecordId {
+            id: actual_id,
+            existing_locator,
+            new_locator,
+        } => {
+            assert_eq!(actual_id, id);
+            assert_eq!(
+                existing_locator,
+                ResourceLocator::parse("res://shaders/shared_a").unwrap()
+            );
+            assert_eq!(
+                new_locator,
+                ResourceLocator::parse("res://shaders/shared_b").unwrap()
+            );
+        }
+        other => panic!("expected typed duplicate resource id error, got {other:?}"),
+    }
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
 fn shader_resource_records_from_asset_roots_rejects_locator_id_conflicts() {
     let first_id = ResourceId::from_asset_uuid(uuid("00000000-0000-0000-0000-000000000050"));
     let second_id = ResourceId::from_asset_uuid(uuid("00000000-0000-0000-0000-000000000051"));
+    let root = unique_root("zircon_shader_prewarm_locator_id_conflict");
+    let first_root = root.join("first_assets");
+    let second_root = root.join("second_assets");
+    write_named_shader_with_meta(
+        &first_root,
+        "shared",
+        "00000000-0000-0000-0000-000000000050",
+        "res://shaders/shared",
+        "source-hash-shared-first",
+    );
+    write_named_shader_with_meta(
+        &second_root,
+        "shared",
+        "00000000-0000-0000-0000-000000000051",
+        "res://shaders/shared",
+        "source-hash-shared-second",
+    );
 
-    let error = deduplicate_shader_resource_records(vec![
-        shader_record(first_id, "res://shaders/shared"),
-        shader_record(second_id, "res://shaders/shared"),
-    ])
-    .unwrap_err();
+    let error = shader_resource_records_from_asset_roots(&[first_root, second_root]).unwrap_err();
 
     match error {
         ShaderPrewarmResourceRegistryError::DuplicateLocator {
@@ -188,6 +257,7 @@ fn shader_resource_records_from_asset_roots_rejects_locator_id_conflicts() {
         }
         other => panic!("expected typed duplicate locator error, got {other:?}"),
     }
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -269,15 +339,6 @@ fn unique_root(prefix: &str) -> PathBuf {
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!("{prefix}_{}_{}", std::process::id(), nanos))
-}
-
-fn shader_record(id: ResourceId, locator: &str) -> ResourceRecord {
-    ResourceRecord::new(
-        id,
-        ResourceKind::Shader,
-        ResourceLocator::parse(locator).unwrap(),
-    )
-    .with_state(ResourceState::Ready)
 }
 
 fn uuid(value: &str) -> AssetUuid {

@@ -1,4 +1,5 @@
 mod entry;
+mod indicator;
 mod label;
 mod style;
 mod surface;

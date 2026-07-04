@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 from typing import Any
 
 from .manifest_schema import is_non_empty_trimmed_string
@@ -48,8 +49,11 @@ GEOMETRY_SOURCE_BINDING_KINDS = (
 )
 GEOMETRY_SOURCE_SHADER_DEFINE_FIELDS = frozenset({"kind", "name", "value"})
 GEOMETRY_SOURCE_SHADER_DEFINE_KINDS = ("bool", "int", "uint")
-SHADER_PERMUTATION_FIELDS = frozenset({"geometry_source_ids", "shading_model_ids"})
+SHADER_PERMUTATION_FIELDS = frozenset(
+    {"geometry_source_ids", "shading_model_ids", "shader_modules"}
+)
 SHADER_PERMUTATION_ID_FIELDS = frozenset({"token", "id"})
+SHADER_PERMUTATION_MODULE_FIELDS = frozenset({"import_path", "source"})
 I32_MIN = -(2**31)
 I32_MAX = 2**31 - 1
 U32_MAX = 2**32 - 1
@@ -187,6 +191,11 @@ def collect_shader_permutation_schema_violations(
         violations,
         registry,
     )
+    collect_shader_permutation_shader_modules(
+        display_path,
+        permutation.get("shader_modules"),
+        violations,
+    )
 
 
 def collect_shader_permutation_geometry_source_ids(
@@ -225,6 +234,53 @@ def collect_shader_permutation_geometry_source_ids(
             display_path, f"{field_label}.id", entry.get("id"), violations
         )
         registry.add(display_path, field_label, token, id_value, violations)
+
+
+def collect_shader_permutation_shader_modules(
+    display_path: str,
+    entries: object,
+    violations: list[str],
+) -> None:
+    if entries is None:
+        return
+    if not isinstance(entries, list):
+        violations.append(
+            f"{display_path}: shader_permutation.shader_modules must be an array"
+        )
+        return
+    seen: dict[str, int] = {}
+    for index, entry in enumerate(entries):
+        field_label = f"shader_permutation.shader_modules[{index}]"
+        if not isinstance(entry, dict):
+            violations.append(f"{display_path}: {field_label} must be a table")
+            continue
+        collect_known_field_violations(
+            display_path,
+            field_label,
+            entry,
+            SHADER_PERMUTATION_MODULE_FIELDS,
+            "shader_permutation shader module",
+            violations,
+        )
+        for field in ("import_path", "source"):
+            if field not in entry:
+                violations.append(f"{display_path}: missing {field_label}.{field}")
+        import_path = shader_module_import_path(
+            display_path, f"{field_label}.import_path", entry.get("import_path"), violations
+        )
+        shader_module_source(
+            display_path, f"{field_label}.source", entry.get("source"), violations
+        )
+        if import_path is None:
+            continue
+        previous_index = seen.get(import_path)
+        if previous_index is not None:
+            violations.append(
+                f"{display_path}: {field_label}.import_path {import_path} "
+                f"duplicates shader_permutation.shader_modules[{previous_index}]"
+            )
+            continue
+        seen[import_path] = index
 
 
 def collect_known_field_violations(
@@ -289,6 +345,64 @@ def geometry_source_token(
         violations.append(
             f"{display_path}: {field_label} {value} should contain only "
             "lowercase ASCII letters, digits, underscores, and hyphens after custom:"
+        )
+        return None
+    return value
+
+
+def shader_module_import_path(
+    display_path: str,
+    field_label: str,
+    value: object,
+    violations: list[str],
+) -> str | None:
+    if not is_non_empty_trimmed_string(value):
+        violations.append(
+            f"{display_path}: {field_label} must be a non-empty trimmed string"
+        )
+        return None
+    segments = value.split("::")
+    if len(segments) < 2 or any(not segment for segment in segments):
+        violations.append(
+            f"{display_path}: {field_label} {value} must use namespace::module form"
+        )
+        return None
+    if not all(
+        char.isascii() and (char.islower() or char.isdigit() or char == "_")
+        for segment in segments
+        for char in segment
+    ):
+        violations.append(
+            f"{display_path}: {field_label} {value} should contain only "
+            "lowercase ASCII letters, digits, underscores, and namespace separators"
+        )
+        return None
+    return value
+
+
+def shader_module_source(
+    display_path: str,
+    field_label: str,
+    value: object,
+    violations: list[str],
+) -> str | None:
+    if not is_non_empty_trimmed_string(value):
+        violations.append(
+            f"{display_path}: {field_label} must be a non-empty trimmed string"
+        )
+        return None
+    if "\\" in value:
+        violations.append(f"{display_path}: {field_label} {value} must use forward slashes")
+        return None
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
+        violations.append(
+            f"{display_path}: {field_label} {value} must be a package-relative shader path"
+        )
+        return None
+    if path.suffix not in {".zshader", ".wgsl"}:
+        violations.append(
+            f"{display_path}: {field_label} {value} must end with .zshader or .wgsl"
         )
         return None
     return value

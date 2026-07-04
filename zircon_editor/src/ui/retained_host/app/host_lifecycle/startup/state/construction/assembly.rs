@@ -20,6 +20,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         startup_session,
         viewport_size,
         shell_size,
+        shell_scale_factor,
         template_bridges,
     } = input;
     let StartupManagers {
@@ -96,6 +97,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         last_focused_callback_window: None,
         active_layout_preset: None,
         shell_size,
+        shell_scale_factor,
         chrome_metrics: WorkbenchChromeMetrics::default(),
         shell_geometry: None,
         transient_region_preferred: BTreeMap::new(),

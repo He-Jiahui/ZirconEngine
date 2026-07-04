@@ -1,14 +1,15 @@
 use super::super::super::super::data::FrameRect;
-use super::metrics::{PROPERTY_FIELD_INSET_Y, PROPERTY_TEXT_INSET_X, PROPERTY_TEXT_INSET_Y};
+use super::metrics::property_row_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn property_value_area_rect(
     rect: &FrameRect,
     label_width: f32,
 ) -> FrameRect {
+    let metrics = property_row_metrics();
     FrameRect {
         x: rect.x + label_width,
         y: rect.y,
-        width: (rect.width - label_width - PROPERTY_TEXT_INSET_X).max(1.0),
+        width: (rect.width - label_width - metrics.property_text_inset_x).max(1.0),
         height: rect.height,
     }
 }
@@ -16,21 +17,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn propert
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn scalar_field_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let metrics = property_row_metrics();
     FrameRect {
         x: rect.x,
-        y: rect.y + PROPERTY_FIELD_INSET_Y,
+        y: rect.y + metrics.property_field_inset_y,
         width: rect.width,
-        height: (rect.height - PROPERTY_FIELD_INSET_Y * 2.0).max(1.0),
+        height: (rect.height - metrics.property_field_inset_y * 2.0).max(1.0),
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn value_text_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let metrics = property_row_metrics();
     FrameRect {
-        x: rect.x + PROPERTY_TEXT_INSET_X,
-        y: rect.y + PROPERTY_TEXT_INSET_Y,
-        width: (rect.width - PROPERTY_TEXT_INSET_X * 2.0).max(1.0),
-        height: (rect.height - PROPERTY_TEXT_INSET_Y * 2.0).max(1.0),
+        x: rect.x + metrics.property_text_inset_x,
+        y: rect.y + metrics.property_text_inset_y,
+        width: (rect.width - metrics.property_text_inset_x * 2.0).max(1.0),
+        height: (rect.height - metrics.property_text_inset_y * 2.0).max(1.0),
     }
 }

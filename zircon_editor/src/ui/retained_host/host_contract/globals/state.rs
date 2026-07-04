@@ -20,8 +20,10 @@ pub(crate) trait HostContractGlobal: Sized {
 pub(crate) struct HostContractState {
     pub(crate) window_position: PhysicalPosition,
     pub(crate) window_size: PhysicalSize,
+    pub(crate) window_scale_factor: f32,
     pub(crate) window_visible: bool,
     pub(crate) exit_requested: bool,
+    pub(crate) exit_after_first_presented_frame: bool,
     pub(crate) window_maximized: bool,
     pub(crate) close_requested: Option<Rc<dyn Fn() -> CloseRequestResponse>>,
     pub(crate) host_presentation: HostWindowPresentationData,
@@ -45,12 +47,16 @@ pub(crate) struct HostContractState {
 }
 
 impl HostContractState {
+    pub(crate) const DEFAULT_WINDOW_SCALE_FACTOR: f32 = 1.0;
+
     pub(crate) fn new(window_size: PhysicalSize) -> Self {
         Self {
             window_position: PhysicalPosition::new(0, 0),
             window_size,
+            window_scale_factor: Self::DEFAULT_WINDOW_SCALE_FACTOR,
             window_visible: false,
             exit_requested: false,
+            exit_after_first_presented_frame: false,
             window_maximized: false,
             close_requested: None,
             host_presentation: HostWindowPresentationData::default(),
@@ -71,6 +77,22 @@ impl HostContractState {
             welcome_pane: WelcomePaneData::default(),
             ui_callbacks: UiHostCallbacks::default(),
             pane_callbacks: PaneSurfaceCallbacks::default(),
+        }
+    }
+
+    pub(crate) fn set_window_scale_factor(&mut self, scale_factor: f32) {
+        self.window_scale_factor = Self::normalize_window_scale_factor(scale_factor);
+    }
+
+    pub(crate) fn window_scale_factor(&self) -> f32 {
+        self.window_scale_factor
+    }
+
+    pub(crate) fn normalize_window_scale_factor(scale_factor: f32) -> f32 {
+        if scale_factor.is_finite() && scale_factor > 0.0 {
+            scale_factor
+        } else {
+            Self::DEFAULT_WINDOW_SCALE_FACTOR
         }
     }
 }

@@ -5,6 +5,8 @@ use super::*;
 fn runtime_15_code_review_findings_structure_guard_children_are_mounted() {
     let parent = read_runtime_src(STRUCTURE_GUARD_PARENT);
     let structure_guard = read_runtime_src(STRUCTURE_GUARD_CHILD_OWNER);
+    let child_inventory = read_runtime_src(STRUCTURE_GUARD_ROOT_CHILD_ROWS_CHILD);
+    let status_inventory = read_runtime_src(STRUCTURE_GUARD_ROOT_STATUSES_CHILD);
     let child_sources = structure_guard_child_source_blob();
 
     assert_contains_all(
@@ -45,12 +47,28 @@ fn runtime_15_code_review_findings_structure_guard_children_are_mounted() {
             "mod plugin_importer;",
             "#[path = \"structure_guard_children/review_guard_groups.rs\"]",
             "mod review_guard_groups;",
+            "#[path = \"structure_guard_children/root_child_rows.rs\"]",
+            "mod root_child_rows;",
+            "#[path = \"structure_guard_children/root_inventory.rs\"]",
+            "mod root_inventory;",
+            "#[path = \"structure_guard_children/root_paths.rs\"]",
+            "mod root_paths;",
+            "#[path = \"structure_guard_children/root_sources.rs\"]",
+            "mod root_sources;",
+            "#[path = \"structure_guard_children/root_statuses.rs\"]",
+            "mod root_statuses;",
             "#[path = \"structure_guard_children/status_docs.rs\"]",
             "mod status_docs;",
             "#[path = \"structure_guard_children/folder_backed_summary.rs\"]",
             "mod folder_backed_summary;",
             "#[path = \"structure_guard_children/typed_error.rs\"]",
             "mod typed_error;",
+        ],
+    );
+    assert_contains_all(
+        "code review findings structure guard root statuses keep folder-backed status",
+        &status_inventory,
+        &[
             STRUCTURE_GUARD_FOLDER_BACKED_SPLIT_NAME,
             STRUCTURE_GUARD_FOLDER_BACKED_SPLIT_ID,
         ],
@@ -77,8 +95,8 @@ fn runtime_15_code_review_findings_structure_guard_children_are_mounted() {
     }
     for (_, child_path, guard_name) in STRUCTURE_GUARD_CHILDREN {
         assert!(
-            structure_guard.contains(child_path),
-            "structure guard parent should inventory child path {child_path}"
+            child_inventory.contains(child_path),
+            "structure guard root child inventory should list child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

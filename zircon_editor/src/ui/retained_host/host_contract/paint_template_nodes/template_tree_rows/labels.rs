@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_node_labels::template_node_label;
-use super::super::template_tree_row_geometry::{tree_label_rect, tree_line_height, TREE_FONT_SIZE};
+use super::super::template_tree_row_geometry::{tree_font_size, tree_label_rect, tree_line_height};
 use super::style::tree_text_color;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -26,7 +26,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         order,
         label,
         tree_text_color(node),
-        TREE_FONT_SIZE,
+        tree_font_size(),
         tree_line_height(),
         UiTextRunPaintStyle::default(),
         opacity,

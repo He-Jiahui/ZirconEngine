@@ -1,7 +1,7 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::paint_theme::PALETTE;
 use super::render_commands::HostPaintCommand;
 use super::template_icon_assets::push_icon_asset_pixels;
+use super::template_row_metrics::workbench_row_palette;
 
 mod geometry;
 mod segments;
@@ -56,13 +56,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
             shapes::push_right_chevron(commands, &adornment, clip, order, color, opacity);
         }
         ListRowAdornmentKind::DisabledDiamond => {
+            let palette = workbench_row_palette();
             if push_icon_asset_pixels(
                 commands,
                 LIST_ROW_DISABLED_ICON,
                 &adornment,
                 clip,
                 order,
-                Some(PALETTE.text_disabled),
+                Some(palette.disabled_adornment_tint),
                 opacity,
             ) {
                 return;

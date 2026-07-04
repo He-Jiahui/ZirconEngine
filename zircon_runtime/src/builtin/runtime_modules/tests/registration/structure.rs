@@ -16,6 +16,10 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     let plugin_module_availability_source = include_str!("../../plugin_modules/availability.rs");
     let plugin_module_loader_source = include_str!("../../plugin_modules/loader.rs");
     let registration_inputs_source = include_str!("../../assembly/registration_inputs.rs");
+    let registration_inputs_production_source = registration_inputs_source
+        .split("#[cfg(test)]")
+        .next()
+        .expect("registration inputs production source");
     let registration_reports_source = include_str!("../../assembly/registration_reports.rs");
     let load_report_source = include_str!("../../load_report.rs");
     let load_report_diagnostics_source = include_str!("../../load_report/diagnostics.rs");
@@ -196,15 +200,17 @@ fn runtime_module_assembly_keeps_specialized_flows_in_child_owners() {
     assert!(!assembly_source.contains("runtime_profile_manifest_availability"));
     assert!(!assembly_source.contains("RuntimeProfileDescriptor"));
     assert!(!assembly_source.contains("RuntimeModuleRegistrationInputs::empty"));
-    assert!(!registration_inputs_source.contains("RuntimeTargetMode"));
-    assert!(!registration_inputs_source.contains("project_selection.supports_target"));
-    assert!(!registration_inputs_source.contains("RuntimeExtensionRegistry"));
-    assert!(!registration_inputs_source.contains("asset_importers_from_extension_registries"));
-    assert!(!registration_inputs_source.contains("collect_render_features"));
-    assert!(!registration_inputs_source.contains("collect_shading_models"));
-    assert!(!registration_inputs_source.contains("collect_render_pass_executors"));
-    assert!(!registration_inputs_source.contains("collect_runtime_prepare_collectors"));
-    assert!(!registration_inputs_source.contains("collect_hybrid_gi_runtime_providers"));
-    assert!(!registration_inputs_source.contains("collect_solari_runtime_providers"));
-    assert!(!registration_inputs_source.contains("collect_virtual_geometry_runtime_providers"));
+    assert!(!registration_inputs_production_source.contains("RuntimeTargetMode"));
+    assert!(!registration_inputs_production_source.contains("project_selection.supports_target"));
+    assert!(!registration_inputs_production_source.contains("RuntimeExtensionRegistry"));
+    assert!(!registration_inputs_production_source
+        .contains("asset_importers_from_extension_registries"));
+    assert!(!registration_inputs_production_source.contains("collect_render_features"));
+    assert!(!registration_inputs_production_source.contains("collect_shading_models"));
+    assert!(!registration_inputs_production_source.contains("collect_render_pass_executors"));
+    assert!(!registration_inputs_production_source.contains("collect_runtime_prepare_collectors"));
+    assert!(!registration_inputs_production_source.contains("collect_hybrid_gi_runtime_providers"));
+    assert!(!registration_inputs_production_source.contains("collect_solari_runtime_providers"));
+    assert!(!registration_inputs_production_source
+        .contains("collect_virtual_geometry_runtime_providers"));
 }

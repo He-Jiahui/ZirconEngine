@@ -2,6 +2,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeD
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 use crate::ui::retained_host::host_contract::paint_template_nodes::visual_assets::raster_size_from_frame;
 
+use super::super::metrics::material_feedback_metrics;
 use super::super::state::{
     progress_fill_color, progress_is_indeterminate, progress_percent, progress_track_color,
 };
@@ -27,7 +28,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ci
     }
 
     let progress = if progress_is_indeterminate(node) {
-        0.58
+        material_feedback_metrics().circular_indeterminate_percent
     } else {
         progress_percent(node)
     };

@@ -4,6 +4,8 @@ use super::*;
 fn runtime_15_module_layout_status_docs_guard_is_folder_backed() {
     let status_output_row_data_parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let guard_parent = read_runtime_src(MODULE_LAYOUT_STATUS_DOCS_GUARD_PATH);
+    let child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = module_layout_status_doc_child_source_blob();
 
     assert_contains_all(
@@ -20,8 +22,19 @@ fn runtime_15_module_layout_status_docs_guard_is_folder_backed() {
         &[
             "mod budgets;",
             "mod delegation;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
             "mod source_ownership;",
             "mod status_mirrors;",
+        ],
+    );
+    assert_contains_all(
+        "module-layout status-doc status inventory records old and new split anchors",
+        &status_inventory,
+        &[
             ROW_DATA_GUARD_STATUS_NAME,
             ROW_DATA_GUARD_STATUS_ID,
             ROW_DATA_GUARD_NAME,
@@ -35,8 +48,8 @@ fn runtime_15_module_layout_status_docs_guard_is_folder_backed() {
     );
     for (_, child_path, guard_name) in MODULE_LAYOUT_STATUS_DOC_CHILDREN {
         assert!(
-            guard_parent.contains(child_path),
-            "module-layout status-doc guard should mount child path {child_path}"
+            child_inventory.contains(child_path),
+            "module-layout status-doc child inventory should list child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

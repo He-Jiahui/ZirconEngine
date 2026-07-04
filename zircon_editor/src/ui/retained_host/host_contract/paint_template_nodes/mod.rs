@@ -19,6 +19,7 @@ mod template_command_palette;
 mod template_dialogs;
 mod template_drag_overlay;
 mod template_dropdown_glyphs;
+mod template_dropdown_metrics;
 mod template_dropdowns;
 mod template_field_stepper;
 mod template_fields;

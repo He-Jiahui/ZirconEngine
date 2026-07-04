@@ -14,7 +14,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     WorkbenchStatusChipStyle {
         background: status_chip_background(state, &palette),
         border: status_chip_border(state, &palette),
-        text: status_chip_text_color(node, state, &palette),
+        label_text: status_chip_label_text_color(node, state, &palette),
+        value_text: status_chip_value_text_color(node, state, &palette),
         state,
     }
 }
@@ -61,7 +62,7 @@ fn status_chip_border(
     }
 }
 
-fn status_chip_text_color(
+fn status_chip_label_text_color(
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     palette: &WorkbenchStatusControlPalette,
@@ -69,6 +70,18 @@ fn status_chip_text_color(
     if is_unavailable_status_state(state) {
         palette.text_disabled
     } else {
-        declared_color(node.value_color).unwrap_or(palette.text_muted)
+        declared_color(node.label_color).unwrap_or(palette.text_muted)
+    }
+}
+
+fn status_chip_value_text_color(
+    node: &TemplatePaneNodeData,
+    state: UiPainterResolvedState,
+    palette: &WorkbenchStatusControlPalette,
+) -> [u8; 4] {
+    if is_unavailable_status_state(state) {
+        palette.text_disabled
+    } else {
+        declared_color(node.value_color).unwrap_or(palette.text)
     }
 }

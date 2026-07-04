@@ -2,6 +2,7 @@ use crate::core::math::UVec2;
 
 pub(crate) struct OffscreenTarget {
     pub(crate) size: UVec2,
+    pub(crate) render_size: UVec2,
     pub(crate) final_color: wgpu::Texture,
     pub(crate) final_color_view: wgpu::TextureView,
     pub(crate) global_illumination: wgpu::Texture,

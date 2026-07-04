@@ -4,6 +4,9 @@ use super::*;
 fn runtime_15_status_output_row_data_guard_child_owner_split() {
     let parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let module_layout_guard = read_runtime_src(MODULE_LAYOUT_PARENT_PATH);
+    let root_statuses = read_runtime_src(ROOT_STATUSES_PATH);
+    let root_child_rows = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let child_sources = module_layout_child_source_blob();
 
     assert_contains_all(
         "status-output row-data guard parent mounts child owners",
@@ -66,20 +69,41 @@ fn runtime_15_status_output_row_data_guard_child_owner_split() {
         "module-layout parent delegates folder-backed child guards",
         &module_layout_guard,
         &[
-            FOLDER_BACKED_STATUS_NAME,
-            FOLDER_BACKED_STATUS_ID,
             "mod delegation;",
             "mod child_summaries;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_owner_paths;",
+            "mod root_paths;",
+            "mod root_statuses;",
             "mod status_mirrors;",
             "mod budgets;",
+            "pub(super) use root_child_rows::*;",
+            "pub(super) use root_owner_paths::*;",
+            "pub(super) use root_paths::*;",
+            "pub(super) use root_statuses::*;",
             "module_layout_child_source_blob",
         ],
     );
+    assert_contains_all(
+        "module-layout root statuses preserve historical anchors",
+        &root_statuses,
+        &[
+            FOLDER_BACKED_STATUS_NAME,
+            FOLDER_BACKED_STATUS_ID,
+            HISTORICAL_STATUS_NAME,
+            HISTORICAL_STATUS_ID,
+            HISTORICAL_GUARD_NAME,
+        ],
+    );
     for (_, path, guard) in MODULE_LAYOUT_CHILDREN {
-        assert_contains_all(
-            "module-layout parent records child path and guard",
-            &module_layout_guard,
-            &[path, guard],
+        assert!(
+            root_child_rows.contains(path),
+            "module-layout root child inventory should record {path}"
+        );
+        assert!(
+            child_sources.contains(guard),
+            "module-layout child {path} should define {guard}"
         );
     }
 }

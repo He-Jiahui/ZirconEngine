@@ -17,6 +17,7 @@ pub(crate) use reference::{
     AssetPointerReferenceRoute, AssetReferenceListPointerBridge, AssetReferenceListPointerDispatch,
     AssetReferenceListPointerLayout,
 };
+pub(in crate::ui::retained_host) use tree::{asset_tree_content_height, asset_tree_viewport_y};
 pub(crate) use tree::{
     AssetFolderTreePointerBridge, AssetFolderTreePointerDispatch, AssetFolderTreePointerLayout,
     AssetPointerTreeRoute,

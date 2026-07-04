@@ -162,6 +162,24 @@ fn asset_import_icon_button_uses_primary_accent_fill_with_theme_foreground() {
 }
 
 #[test]
+fn top_toolbar_icon_button_uses_persistent_low_emphasis_tile() {
+    let node = icon_node(
+        "WorkbenchToolbarMenu",
+        "zircon_editor_shell/toolbar/menu.svg",
+        false,
+        30.0,
+        30.0,
+    );
+    let context = icon_button_context(&node);
+    let style = icon_button_style(&node, context);
+
+    assert_eq!(context, IconButtonContext::Toolbar);
+    assert_eq!(style.background, Some(PALETTE.surface));
+    assert_eq!(style.border, Some(PALETTE.border));
+    assert_eq!(style.border_width, METRICS.border_width);
+}
+
+#[test]
 fn dock_tab_close_button_uses_toolbar_context_without_persistent_panel_surface() {
     let node = icon_node("DockTabClose0", "close-outline", false, 20.0, 20.0);
     let context = icon_button_context(&node);

@@ -96,8 +96,7 @@ use super::welcome_recent_pointer::{
     WelcomeRecentPointerState,
 };
 use super::{
-    apply_host_metrics_from_tokens, apply_host_palette_from_tokens, apply_host_text_preferences,
-    project_host_text_preferences, FrameRect, UiHostWindow, WorkbenchContextMenuRequestData,
+    apply_host_appearance_from_tokens, FrameRect, UiHostWindow, WorkbenchContextMenuRequestData,
 };
 
 mod asset_content_pointer;
@@ -149,6 +148,7 @@ mod workbench_notifications;
 mod workbench_pointer;
 mod workbench_snapshot_access;
 mod workspace_docking;
+use super::run_config::EditorHostRunConfig;
 use callback_wiring::wire_callbacks;
 pub(super) use helpers::{
     asset_surface_visible, compute_window_menu_popup_height,
@@ -169,7 +169,7 @@ pub fn run_editor(
     core: CoreHandle,
     runtime_client: SharedEditorRuntimeClient,
 ) -> Result<(), Box<dyn Error>> {
-    run_editor_with_startup_request(core, runtime_client, None)
+    run_editor_with_config(core, runtime_client, EditorHostRunConfig::new())
 }
 
 pub fn run_editor_with_startup_request(
@@ -177,12 +177,25 @@ pub fn run_editor_with_startup_request(
     runtime_client: SharedEditorRuntimeClient,
     startup_request: Option<EditorGuiStartupRequest>,
 ) -> Result<(), Box<dyn Error>> {
+    run_editor_with_config(
+        core,
+        runtime_client,
+        EditorHostRunConfig::new().with_startup_request(startup_request),
+    )
+}
+
+pub fn run_editor_with_config(
+    core: CoreHandle,
+    runtime_client: SharedEditorRuntimeClient,
+    config: EditorHostRunConfig,
+) -> Result<(), Box<dyn Error>> {
     let appearance_preferences = editor_startup_appearance_preferences();
     let design_tokens = appearance_preferences.design_tokens();
-    apply_host_metrics_from_tokens(design_tokens);
-    apply_host_palette_from_tokens(design_tokens);
-    apply_host_text_preferences(project_host_text_preferences(design_tokens));
+    apply_host_appearance_from_tokens(design_tokens);
+    let exit_after_first_presented_frame = config.exit_after_first_presented_frame();
+    let startup_request = config.into_startup_request();
     let ui = UiHostWindow::new()?;
+    ui.set_exit_after_first_presented_frame(exit_after_first_presented_frame);
     let host = Rc::new(RefCell::new(RetainedEditorHost::new(
         core,
         runtime_client,
@@ -267,6 +280,7 @@ struct RetainedEditorHost {
     last_focused_callback_window: Option<MainPageId>,
     active_layout_preset: Option<String>,
     shell_size: ShellSizePx,
+    shell_scale_factor: f32,
     chrome_metrics: WorkbenchChromeMetrics,
     shell_geometry: Option<WorkbenchShellGeometry>,
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,

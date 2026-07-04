@@ -1,0 +1,3 @@
+   Compiling zircon_runtime v0.1.0 (E:\Git\ZirconEngine\zircon_runtime)
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\late_api_cleanup_child_owners.rs:12:1: error: couldn't read `zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\late_api_cleanup_child_owners\root_inventory.rs`: 系统找不到指定的文件。 (os error 2)
+error: could not compile `zircon_runtime` (lib test) due to 1 previous error

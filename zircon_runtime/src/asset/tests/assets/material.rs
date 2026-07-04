@@ -19,7 +19,7 @@ mod owned_descriptor;
 mod shader_readiness;
 
 fn shader_contract() -> ShaderAsset {
-    ShaderAsset {
+    let mut shader = ShaderAsset {
         uri: AssetUri::parse("res://shaders/mismatch.zshader").unwrap(),
         kind: ShaderAssetKind::Surface,
         source_language: ShaderSourceLanguage::Wgsl,
@@ -71,7 +71,9 @@ fn shader_contract() -> ShaderAsset {
         editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
-    }
+    };
+    shader.regenerate_material_artifact();
+    shader
 }
 
 fn asset_reference(label: &str, uri: &str) -> AssetReference {

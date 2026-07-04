@@ -1,0 +1,14 @@
+runtime_text_bitmap_atlas_wgpu_upload_mapping_owner_rustfmt_static_visual_cargo_deferred
+date=2026-07-04
+scope=zircon_runtime graphics scene UI atlas texture upload owner
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+change=shared renderer owner maps GlyphAtlasUploadCommand to Queue::write_texture fields
+change=SDF atlas texture upload now consumes write_glyph_atlas_texture_upload_command(...)
+check=rustfmt --edition 2021 --check atlas_texture_upload.rs atlas_texture_upload/tests.rs ui/mod.rs sdf_render.rs passed
+check=scoped git diff --check passed with LF-to-CRLF warnings only
+check=focused Cargo deferred because external cargo/rustc processes remained active
+image=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_bitmap_atlas_wgpu_upload_mapping_owner_preview_20260704.png
+image_sha256=78E2774B8AB5C5D5E6A05147FB7EBA53B1F6599C9506F8530A0B2F78DB2BB9EF

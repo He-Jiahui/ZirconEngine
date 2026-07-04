@@ -270,27 +270,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 }
 
 pub(super) fn post_process_texture_origin(
-    frame: &ViewportRenderFrame,
-    resource_name: &str,
+    _frame: &ViewportRenderFrame,
+    _resource_name: &str,
 ) -> [u32; 2] {
-    if fixed_frame_texture_resource(resource_name) {
-        frame.render_region().physical_origin()
-    } else {
-        [0, 0]
-    }
-}
-
-fn fixed_frame_texture_resource(resource_name: &str) -> bool {
-    matches!(
-        resource_name,
-        PostProcessGraphResourceNames::SCENE_COLOR
-            | PostProcessGraphResourceNames::SCENE_DEPTH
-            | PostProcessGraphResourceNames::SCENE_VELOCITY
-            | PostProcessGraphResourceNames::GBUFFER_ALBEDO
-            | PostProcessGraphResourceNames::GBUFFER_NORMAL
-            | PostProcessGraphResourceNames::GBUFFER_MATERIAL
-            | PostProcessGraphResourceNames::AMBIENT_OCCLUSION
-    )
+    [0, 0]
 }
 
 fn post_process_graph_has_node(

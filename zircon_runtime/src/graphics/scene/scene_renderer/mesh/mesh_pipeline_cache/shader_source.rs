@@ -257,13 +257,6 @@ pub(crate) fn mesh_pipeline_deferred_gbuffer_template_source_for_geometry_descri
     key: &PipelineKey,
     geometry_source: &GeometrySourceDescriptor,
 ) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
-    if key.uses_fallback_shader() {
-        return mesh_pipeline_deferred_gbuffer_template_source_for_geometry_descriptor(
-            key,
-            geometry_source,
-        );
-    }
-
     if shader_source_uses_runtime_material_surface(streamer, key) {
         let Some(surface_source) = streamer.shader_source(&key.shader_id) else {
             return mesh_pipeline_deferred_gbuffer_template_source_for_geometry_descriptor(
@@ -431,14 +424,6 @@ fn mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass_with_
     geometry_source: GeometrySourceDescriptor,
     pass_type: ShaderPassType,
 ) -> Result<MeshPipelineShaderSource, ShaderTemplateAssemblyError> {
-    if key.uses_fallback_shader() {
-        return mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass(
-            key,
-            geometry_source,
-            pass_type,
-        );
-    }
-
     if shader_source_uses_runtime_material_surface(streamer, key) {
         let Some(surface_source) = streamer.shader_source(&key.shader_id) else {
             return mesh_pipeline_material_template_source_for_geometry_descriptor_and_pass(

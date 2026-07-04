@@ -269,6 +269,7 @@ fn many_point_light_extract() -> RenderFrameExtract {
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -377,6 +378,7 @@ fn many_point_light_product_extract(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -421,6 +423,7 @@ fn hundred_point_light_density_extract(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,

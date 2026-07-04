@@ -1,0 +1,16 @@
+runtime_text_editor_render_command_alignment_resolved_family
+date=2026-07-04
+status=rustfmt_static_visual_cargo_deferred
+owner=zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
+change=aligned_text_x projects UiResolvedStyle through retained_runtime_measure_style before measure_text_size so alignment width uses runtime_text_style_for_face(font_face_for_paint_style(...))
+test_change=style/text.rs tests cover retained resolved family measurement, strong face projection, logical start/end expectations on retained measurement
+static_rustfmt=passed: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
+static_diff_check=passed: git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs (LF/CRLF notice only)
+static_raw_style_measure_scan=0 matches for measure_text_size(text, style) and measure_text_size(text, &style) in render_command_conversion/style
+static_conflict_marker_scan=0 matches
+static_trailing_whitespace_scan=0 matches on touched code file
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_render_command_alignment_resolved_family_preview_20260704.png
+preview_sha256=09D689593F62A4589DE643010AABC5C3A3AC049BAF4B46650EBCD6FA60253BB0
+target_same_name_scan_count=0
+cargo=deferred because external cargo/rustc lanes are active: cargo:21716,cargo:31624,cargo:45684,cargo:46284,rustc:41176,rustc:48620
+scope=no ZUI asset shortcut, no component-local font policy, no root painter branch, no runtime atlas routing change

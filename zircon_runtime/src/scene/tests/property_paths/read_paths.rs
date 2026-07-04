@@ -174,6 +174,7 @@ fn world_entity_path_resolution_compares_target_segments_directly() {
 #[test]
 fn world_property_entries_pre_size_projection_vector() {
     let entries_source = include_str!("../../world/property_access/entries.rs");
+    let physics_entries_source = include_str!("../../world/property_access/entries/physics.rs");
 
     assert!(
         entries_source.contains("Vec::with_capacity(self.property_entry_capacity_hint(entity))")
@@ -183,7 +184,15 @@ fn world_property_entries_pre_size_projection_vector() {
     assert!(entries_source.contains("ScenePropertyValue::Entity(self.parent_of(entity))"));
     assert!(entries_source.contains("fn property_entry_capacity_hint(&self, entity: EntityId)"));
     assert!(entries_source.contains("capacity += 10 + mesh.morph_weights.len();"));
-    assert!(entries_source.contains("capacity += 14;"));
+    assert!(entries_source.contains("self.visit_physics_property_entries(entity, &mut visitor)"));
+    assert!(
+        entries_source.contains("capacity += self.physics_property_entry_capacity_hint(entity);")
+    );
+    assert!(physics_entries_source.contains("pub(super) fn visit_physics_property_entries"));
+    assert!(physics_entries_source.contains("pub(super) fn physics_property_entry_capacity_hint"));
+    assert!(physics_entries_source.contains("capacity += 14;"));
+    assert!(physics_entries_source.contains("if let Some(collider) = self.colliders.get(&entity)"));
+    assert!(physics_entries_source.contains("capacity += match &collider.shape"));
     assert!(entries_source.contains("capacity += 2 + player.parameters.len();"));
     assert!(entries_source.contains("capacity += 3 + player.parameters.len();"));
     assert!(entries_source.contains("match &player.active_state"));

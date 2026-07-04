@@ -1,0 +1,26 @@
+{
+  "artifact": "docs/tests/runtime/text/runtime_text_editor_retained_grayscale_pixel_snap_preview_20260705.png",
+  "font": "C:\\Windows\\Fonts\\Deng.ttf",
+  "labels": [
+    "editor base.zui",
+    "folder-open.svg"
+  ],
+  "old_unique_phases": [
+    0.0,
+    0.125,
+    0.25,
+    0.375,
+    0.5,
+    0.625,
+    0.75,
+    0.875
+  ],
+  "new_unique_phases": [
+    0.0
+  ],
+  "old_nonzero_phase_count": 23,
+  "new_nonzero_phase_count": 0,
+  "render_scale": 8,
+  "policy": "HostTextSmoothing::Grayscale uses nearest device-pixel glyph placement; HostTextSmoothing::Subpixel keeps RetainedGlyphPlacement::from_screen_x 8-bin phase.",
+  "sha256": "68EF3F9913DBDAB37CC02A73CF89B121B1A022CE5CC03876574C9FC0BD1C929C"
+}

@@ -1,0 +1,34 @@
+
+running 29 tests
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_execution_owned_graph_resources::tests::hzb_external_fallback_buffers_satisfy_materialization_report ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_execution_owned_graph_resources::tests::light_grid_external_fallback_buffers_satisfy_materialization_report ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_frame_graph_resources::tests::frame_binder_leaves_advanced_transients_for_materialization ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_plugin_graph_resources::tests::plugin_external_fallback_buffers_satisfy_materialization_report ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_compatible_transient_texture_slots ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_transient_buffer_slots ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_creates_dense_transients_and_skips_sparse_reservations ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_exposes_owned_texture_mip_views ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_overrides_preimported_terminal_aa_input_with_owned_transient ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_receives_incompatible_texture_resources_in_separate_graph_slots ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::non_storage_texture_formats_do_not_request_storage_binding ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::storage_texture_formats_request_storage_binding ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_fails_unbound_required_external_buffer ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_fails_unbound_required_external_texture ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_rejects_stale_buffer_binding_outside_live_lifetimes ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_rejects_stale_texture_binding_outside_live_lifetimes ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_required_and_report_only_external_coverage_separately ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_unbound_compiled_lifetimes ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_unbound_external_lifetimes_without_failing ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_unbound_typed_optional_external_without_failing ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_copies_runtime_package_without_source_crates ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_does_not_directly_resolve_package_id_outside_plugin_root ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_reports_missing_native_directory ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_reports_source_only_native_package ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_sanitizes_package_directory_names ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::render_graph_materialization_tests::runtime_15_render_graph_materialization_tests_are_child_owner_split ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 6543 filtered out; finished in 9.84s
+

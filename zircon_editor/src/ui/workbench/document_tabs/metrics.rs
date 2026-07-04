@@ -8,12 +8,15 @@ pub(crate) const DOCUMENT_TAB_GAP: f32 = 4.0;
 pub(crate) const DOCUMENT_TAB_CLOSE_EXTENT: f32 = 20.0;
 pub(crate) const DOCUMENT_TAB_CLOSE_RIGHT_INSET: f32 = 8.0;
 pub(crate) const DOCUMENT_TAB_CLOSE_TOP_INSET: f32 = 6.0;
+pub(crate) const DOCUMENT_TAB_TITLE_FONT_SIZE: f32 = 12.0;
 
-const TITLE_WIDTH_PER_CHAR: f32 = 7.0;
 const TITLE_CHROME_RESERVE: f32 = 42.0;
 const CLOSEABLE_TITLE_CHROME_RESERVE: f32 = 70.0;
 
-pub(crate) fn document_tab_preferred_width(title: &str, closeable: bool) -> f32 {
+pub(crate) fn document_tab_preferred_width_from_title_width(
+    title_width: f32,
+    closeable: bool,
+) -> f32 {
     let reserve = if closeable {
         CLOSEABLE_TITLE_CHROME_RESERVE
     } else {
@@ -24,9 +27,13 @@ pub(crate) fn document_tab_preferred_width(title: &str, closeable: bool) -> f32 
     } else {
         DOCUMENT_TAB_MIN_WIDTH
     };
+    let title_width = if title_width.is_finite() {
+        title_width.max(0.0)
+    } else {
+        0.0
+    };
 
-    (title.chars().count() as f32 * TITLE_WIDTH_PER_CHAR + reserve)
-        .clamp(minimum, DOCUMENT_TAB_MAX_WIDTH)
+    (title_width + reserve).clamp(minimum, DOCUMENT_TAB_MAX_WIDTH)
 }
 
 pub(crate) fn document_tab_close_x(tab_x: f32, tab_width: f32) -> f32 {
@@ -39,10 +46,26 @@ mod tests {
 
     #[test]
     fn closeable_document_tab_width_keeps_asset_browser_title_readable() {
-        let width = document_tab_preferred_width("Asset Browser", true);
+        let width = document_tab_preferred_width_from_title_width(72.0, true);
 
-        assert!(width >= 160.0);
+        assert!(width >= DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH);
         assert!(width <= DOCUMENT_TAB_MAX_WIDTH);
+    }
+
+    #[test]
+    fn document_tab_width_clamps_measured_title_width() {
+        assert_eq!(
+            document_tab_preferred_width_from_title_width(1.0, false),
+            DOCUMENT_TAB_MIN_WIDTH
+        );
+        assert_eq!(
+            document_tab_preferred_width_from_title_width(10_000.0, true),
+            DOCUMENT_TAB_MAX_WIDTH
+        );
+        assert_eq!(
+            document_tab_preferred_width_from_title_width(f32::NAN, true),
+            DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH
+        );
     }
 
     #[test]

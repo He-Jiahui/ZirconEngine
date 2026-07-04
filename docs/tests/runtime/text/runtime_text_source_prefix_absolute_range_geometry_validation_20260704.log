@@ -1,0 +1,24 @@
+Runtime text source-prefix absolute range geometry validation
+Timestamp: 2026-07-04 18:34:34 +0800
+
+Slice: runtime_text_source_prefix_absolute_range_geometry_rustfmt_static_visual_cargo_deferred
+Touched code: zircon_runtime/src/ui/text/geometry.rs
+Proof image: E:/Git/ZirconEngine/docs/tests/runtime/text/runtime_text_source_prefix_absolute_range_geometry_preview_20260704.png
+
+Implementation summary:
+- measured_source_prefix_width now derives an absolute UiTextRange from line.source_range.
+- The backend source-range measurement receives measure_context.text, not line.text.as_str().
+- source_prefix_range_for_visual_offset maps visual offset to [line.source_range.start, line.source_range.start + local grapheme boundary].
+- Regression covers source = "editor base.zui", visible line = "base.zui", caret after "base", expected range 7..11.
+
+Validation commands completed:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs: passed
+- git diff --check -- zircon_runtime/src/ui/text/geometry.rs: passed with LF/CRLF normalization warning only
+- stale local line measure scan: old_local_measure_calls=0
+- helper presence scan: helper_mentions=3
+- conflict/trailing whitespace scan for geometry.rs: conflicts=0 trailing=0
+- proof image visual inspection: regenerated after removing annotation/text overlap
+
+Deferred:
+- Focused Cargo tests are deferred because external cargo/rustc lanes are active.
+- Live editor-window typography QA remains open; this artifact is a validation diagram, not a live window capture.

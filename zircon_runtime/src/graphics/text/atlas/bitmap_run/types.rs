@@ -26,12 +26,25 @@ pub(crate) struct GlyphAtlasBitmapGlyph {
     pub(crate) draw_glyph: GlyphAtlasDrawGlyph,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct GlyphAtlasBitmapUploadCopy {
+    pub(crate) source_index: usize,
+    pub(crate) page_key: GlyphAtlasPageKey,
+    pub(crate) atlas_rect: GlyphAtlasRect,
+    pub(crate) content_size: UVec2,
+    pub(crate) source_bytes_per_row: u32,
+    pub(crate) source_byte_len: usize,
+    pub(crate) atlas_bytes_per_row: u32,
+    pub(crate) atlas_byte_offset: u64,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct GlyphAtlasBitmapRunPlan {
     pub(crate) atlas: GlyphAtlasSet,
     pub(crate) glyphs: Vec<GlyphAtlasBitmapGlyph>,
     pub(crate) draw_glyphs: Vec<GlyphAtlasDrawGlyph>,
     pub(crate) dirty_pages: Vec<GlyphAtlasDirtyPage>,
+    pub(crate) upload_copies: Vec<GlyphAtlasBitmapUploadCopy>,
     pub(crate) upload_commands: Vec<GlyphAtlasUploadCommand>,
     pub(crate) rebuilt_pages: Vec<GlyphAtlasPageKey>,
     pub(crate) allocation_failures: Vec<GlyphAtlasBitmapAllocationFailure>,

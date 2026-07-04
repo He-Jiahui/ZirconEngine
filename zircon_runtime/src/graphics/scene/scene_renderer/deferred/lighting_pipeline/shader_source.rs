@@ -4,6 +4,7 @@ use crate::graphics::material::ShadingModelIncludeSourceSet;
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
+const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
 const DEFERRED_STANDARD_PBR_INCLUDE_TOKEN: &str = "zr_shade_deferred_standard_pbr.wgsl";
 const DEFERRED_BLINN_PHONG_INCLUDE_TOKEN: &str = "zr_shade_deferred_blinn_phong.wgsl";
 const DEFERRED_UNLIT_INCLUDE_TOKEN: &str = "zr_shade_deferred_unlit.wgsl";
@@ -12,6 +13,7 @@ const CUSTOM_DISPATCH_MARKER: &str = "    // zr-deferred-lighting-custom-shading
 const GPU_SCENE_INCLUDE: &str = include_str!("../../mesh/shaders/zr_gpu_scene.wgsl");
 const LIGHT_GRID_INCLUDE: &str = include_str!("../../lighting/shaders/zr_light_grid.wgsl");
 const SHADOW_INCLUDE: &str = include_str!("../../shadow/shaders/zr_shadow.wgsl");
+const ENVIRONMENT_INCLUDE: &str = include_str!("../../../../shader/wgsl/zr_environment.wgsl");
 const DEFERRED_STANDARD_PBR_INCLUDE: &str =
     include_str!("../../../../shader/wgsl/zr_shade_deferred_standard_pbr.wgsl");
 const DEFERRED_BLINN_PHONG_INCLUDE: &str =
@@ -34,7 +36,9 @@ pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING
     "\n// include: zr_shade_deferred_unlit.wgsl\n",
     include_str!("../../../../shader/wgsl/zr_shade_deferred_unlit.wgsl"),
     "\n// include: deferred_lighting.wgsl\n",
-    include_str!("../shaders/deferred_lighting.wgsl")
+    include_str!("../shaders/deferred_lighting.wgsl"),
+    "\n// include: zr_environment.wgsl\n",
+    include_str!("../../../../shader/wgsl/zr_environment.wgsl")
 );
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -151,6 +155,7 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
         &format!("{CUSTOM_DISPATCH_MARKER}\n{custom_dispatch}"),
     );
     push_include(&mut source, "deferred_lighting.wgsl", &template);
+    push_include(&mut source, ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_INCLUDE);
     Ok(source)
 }
 

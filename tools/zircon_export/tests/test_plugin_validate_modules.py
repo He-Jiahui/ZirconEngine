@@ -405,6 +405,63 @@ class PluginValidateModuleTests(unittest.TestCase):
                 report["diagnostics"],
             )
 
+    def test_plugin_validate_accepts_module_description_descriptor_field(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir) / "repo"
+            crate_name = "zircon_plugin_native_dynamic_fixture_native"
+            _write_dist_plugin_workspace(repo_root, crate_name)
+            _write_complete_native_dynamic_fixture_manifest(repo_root, crate_name)
+            _append_manifest(
+                repo_root / "zircon_plugins/native_dynamic_fixture/plugin.toml",
+                [
+                    "[[modules]]",
+                    'name = "native_dynamic_fixture.tools.runtime"',
+                    'description = "Runtime plugin module native_dynamic_fixture.tools.runtime"',
+                    'kind = "runtime"',
+                    'crate_name = "zircon_plugin_native_dynamic_fixture_native"',
+                    'target_modes = ["client_runtime"]',
+                    'capabilities = ["runtime.plugin.native_dynamic_fixture"]',
+                ],
+            )
+
+            exit_code, report = _run_plugin_validate(repo_root)
+
+            self.assertEqual(exit_code, 0)
+            self.assertFalse(report["fatal"])
+            self.assertNotIn(
+                "plugin native_dynamic_fixture modules[1].description "
+                "is not a known module field",
+                report["diagnostics"],
+            )
+
+    def test_plugin_validate_rejects_malformed_module_description(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir) / "repo"
+            crate_name = "zircon_plugin_native_dynamic_fixture_native"
+            _write_dist_plugin_workspace(repo_root, crate_name)
+            _write_complete_native_dynamic_fixture_manifest(repo_root, crate_name)
+            _append_manifest(
+                repo_root / "zircon_plugins/native_dynamic_fixture/plugin.toml",
+                [
+                    "[[modules]]",
+                    'name = "native_dynamic_fixture.tools.runtime"',
+                    'description = " Runtime plugin module native_dynamic_fixture.tools.runtime "',
+                    'kind = "runtime"',
+                    'crate_name = "zircon_plugin_native_dynamic_fixture_native"',
+                    'target_modes = ["client_runtime"]',
+                    'capabilities = ["runtime.plugin.native_dynamic_fixture"]',
+                ],
+            )
+
+            exit_code, report = _run_plugin_validate(repo_root)
+
+            self.assertEqual(exit_code, 2)
+            self.assertIn(
+                "plugin native_dynamic_fixture modules[1].description "
+                "must be a non-empty trimmed string",
+                report["diagnostics"],
+            )
+
     def test_plugin_validate_rejects_unknown_module_fields(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             repo_root = Path(temp_dir) / "repo"

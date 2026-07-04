@@ -28,6 +28,18 @@ const QUERIES_BEHAVIOR_SOURCE: &str =
     include_str!("../../scene/tests/dynamic_scene_session/queries.rs");
 const PATH_MANAGEMENT_BEHAVIOR_SOURCE: &str =
     include_str!("../../scene/tests/dynamic_scene_session/path_management.rs");
+const PATH_MANAGEMENT_ARCHIVE_MERGE_SOURCE: &str =
+    include_str!("../../scene/tests/dynamic_scene_session/path_management/archive_merge.rs");
+const PATH_MANAGEMENT_MUTATION_PREVIEWS_SOURCE: &str =
+    include_str!("../../scene/tests/dynamic_scene_session/path_management/mutation_previews.rs");
+const PATH_MANAGEMENT_SINGLE_SLOT_IMPORT_SOURCE: &str =
+    include_str!("../../scene/tests/dynamic_scene_session/path_management/single_slot_import.rs");
+const PATH_MANAGEMENT_SINGLE_SLOT_SAVE_SOURCE: &str =
+    include_str!("../../scene/tests/dynamic_scene_session/path_management/single_slot_save.rs");
+const PATH_MANAGEMENT_SLOT_COPY_SOURCE: &str =
+    include_str!("../../scene/tests/dynamic_scene_session/path_management/slot_copy.rs");
+const PATH_MANAGEMENT_SLOT_MUTATIONS_SOURCE: &str =
+    include_str!("../../scene/tests/dynamic_scene_session/path_management/slot_mutations.rs");
 const ASSET_RELOAD_BEHAVIOR_SOURCE: &str =
     include_str!("../../scene/tests/dynamic_scene_asset_reload.rs");
 const RUNTIME_05_PLAN: &str = include_str!(

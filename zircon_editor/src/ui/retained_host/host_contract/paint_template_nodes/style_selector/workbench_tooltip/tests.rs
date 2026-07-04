@@ -5,6 +5,36 @@ use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
 
 #[test]
+fn tooltip_palette_projects_from_host_palette() {
+    let mut host = PALETTE;
+    host.popup = [10, 11, 12, 255];
+    host.border = [20, 21, 22, 255];
+    host.text = [30, 31, 32, 255];
+    host.text_muted = [40, 41, 42, 255];
+    host.focus_ring = [50, 51, 52, 255];
+    host.shadow = [1, 2, 3, 90];
+    host.surface_disabled = [60, 61, 62, 255];
+    host.border_disabled = [70, 71, 72, 255];
+    host.text_disabled = [80, 81, 82, 255];
+    host.accent = [90, 91, 92, 255];
+
+    let palette = palette::tooltip_palette_from_host(host);
+
+    assert_eq!(palette.surface, [10, 11, 12, 255]);
+    assert_eq!(palette.border, [20, 21, 22, 255]);
+    assert_eq!(palette.title, [30, 31, 32, 255]);
+    assert_eq!(palette.body, [40, 41, 42, 255]);
+    assert_eq!(palette.icon, [50, 51, 52, 255]);
+    assert_eq!(palette.shadow, [1, 2, 3, 90]);
+    assert_eq!(palette.disabled_surface, [60, 61, 62, 255]);
+    assert_eq!(palette.disabled_border, [70, 71, 72, 255]);
+    assert_eq!(palette.disabled_text, [80, 81, 82, 255]);
+    assert_eq!(palette.disabled_shadow, [1, 2, 3, 48]);
+    assert_eq!(palette.focused_border, [50, 51, 52, 255]);
+    assert_eq!(palette.hover_icon, [90, 91, 92, 255]);
+}
+
+#[test]
 fn tooltip_loading_state_uses_unavailable_visuals() {
     let mut node = TemplatePaneNodeData::default();
     node.hovered = true;

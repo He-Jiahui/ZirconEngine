@@ -30,6 +30,8 @@ related_code:
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
   - zircon_editor/src/ui/workbench/window_registry/window_instance.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
+  - zircon_editor/src/ui/workbench/menu_bar/mod.rs
+  - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
@@ -55,6 +57,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
+  - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
@@ -83,6 +86,9 @@ tests:
   - cargo test -p zircon_editor --lib retained_menu_pointer --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never -- --nocapture
   - cargo check -p zircon_editor --lib --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never
   - cargo test -p zircon_editor --lib menu_chrome_nodes_project_extension_slots_beyond_authored_stencil --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never -- --nocapture
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/menu_bar/mod.rs zircon_editor/src/ui/workbench/menu_bar/metrics.rs zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs zircon_editor/src/tests/host/retained_menu_pointer/layout.rs zircon_editor/src/tests/host/retained_menu_pointer/support.rs
+  - static scan: menu touched paths contain no `chars().count()`, `TITLE_WIDTH_PER_CHAR`, `WIDTH_PER_CHAR`, or `* 7.0` text-width heuristics
+  - docs/tests/runtime/text/runtime_text_editor_menu_bar_runtime_measure_preview_20260704.png
   - cargo test -p zircon_editor retained_menu_pointer -- --nocapture (2026-05-11: passed, 22 passed, 4 ignored)
 doc_type: module-detail
 ---
@@ -95,7 +101,7 @@ doc_type: module-detail
 
 ## Data Flow
 
-`build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`. The shared menu bar frame stencil now comes from `workbench_menu_chrome.zui` through the v2 file cache rather than reparsing the old root chrome asset.
+`build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`. The shared menu bar frame stencil now comes from `workbench_menu_chrome.zui` through the v2 file cache rather than reparsing the old root chrome asset. The stencil supplies origin, height, and gap; live width comes from `measure_runtime_text_width(..., WORKBENCH_MENU_SLOT_FONT_SIZE)` plus `workbench_menu_slot_width_from_label_width(...)`, so pointer hitboxes match the visual menu slot width for the actual glyphs.
 
 `HostMenuPointerLayout` carries editor action state, preset rows, popup height, explicit tree-shaped `menus`, dynamic top-level button frames, menu-bar content width, menu-bar scroll offset state, and `menu_overflow_mode`. `build_host_menu_pointer_layout(...)` reads overflow mode from `EditorChromeSnapshot`, whose active-window value comes from persisted `ActivityWindowLayout.menu_overflow_mode`. When `menus` is present, the pointer bridge consumes those rows rather than rebuilding hard-coded menu contents. Branch rows stay as enabled tree nodes with children; leaves preserve either legacy `MenuAction` ids or `EditorOperationPath` ids so extension operations dispatch through the operation runtime.
 
@@ -123,7 +129,7 @@ Overwide menu bars use `menu_bar_content_width` plus `menu_bar_scroll_offset`. T
 
 ## Native Chrome Projection
 
-Workbench chrome projection now keeps menu items as a tree through `HostMenuChromeItemData.children`. Root popup rows come from `workbench_menu_popup.zui`, while native child popups are painted from the same tree and `HostMenuStateData.open_submenu_path`. The menu-bar v2 stencil still owns the first seven JetBrains-like Material menu slots, and `chrome_template_projection.rs` clones that stencil horizontally for extension menus beyond slot 6 so projected `menu_frames` and shared pointer frames do not truncate plugin top-level menus. The native pointer guard also treats open child popup frames as menu-owned space, so pointer events over a child popup stay in the shared menu pointer route instead of falling through to panes or the viewport.
+Workbench chrome projection now keeps menu items as a tree through `HostMenuChromeItemData.children`. Root popup rows come from `workbench_menu_popup.zui`, while native child popups are painted from the same tree and `HostMenuStateData.open_submenu_path`. The menu-bar v2 stencil still owns the top-row shape, and `chrome_template_projection/menu_chrome.rs` clones that stencil horizontally for extension menus beyond slot 6 so projected `menu_frames` and shared pointer frames do not truncate plugin top-level menus. Each cloned slot is remeasured from the live label before x advancement, which removes the old `label.chars().count() * 7 + 24` drift. The native pointer guard also treats open child popup frames as menu-owned space, so pointer events over a child popup stay in the shared menu pointer route instead of falling through to panes or the viewport.
 
 ## Test Coverage
 
@@ -144,6 +150,8 @@ Existing menu pointer coverage still owns the single-column paths: opening and d
 `shared_menu_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state` verifies identical layout/state syncs do not rebuild the bridge-local pointer surface, while all scroll/hover/open-menu tests above continue to prove real state changes rebuild the route surface.
 
 `menu_chrome_nodes_project_extension_slots_beyond_authored_stencil` verifies native chrome projection clones menu slot nodes beyond `MenuSlot6` while preserving the extension label and monotonically increasing x position.
+
+`menu_chrome_nodes_measure_top_level_slots_with_runtime_font_width` and `shared_menu_pointer_layout_measures_menu_labels_with_runtime_font_width` verify visual menu slots and shared pointer hitboxes both use runtime glyph widths. The pair locks the same-character-count case where `iiiiiiii` and `WWWWWWWW` must not receive the same slot width.
 
 `shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbench_model` verifies a nested `EditorOperationPath` leaf dispatches through the shared pointer route into the operation runtime.
 

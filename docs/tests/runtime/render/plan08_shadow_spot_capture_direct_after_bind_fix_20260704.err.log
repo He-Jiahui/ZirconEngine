@@ -1,0 +1,11 @@
+
+thread 'graphics::tests::render_product_shadow_captures::render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture' (15272) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 2
+
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

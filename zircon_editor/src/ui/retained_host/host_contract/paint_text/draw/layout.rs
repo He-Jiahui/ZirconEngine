@@ -10,10 +10,14 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::super::data::FrameRect;
+use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
 use super::super::font::{
     font_face_for_paint_style, font_for_face, runtime_text_style_for_face, HostTextFontFace,
 };
-use super::placement::retained_glyph_placements_share_bin;
+use super::placement::{
+    retained_glyph_left_offset_px, retained_glyph_placements_share_bin_for_smoothing,
+    retained_text_origin_for_smoothing,
+};
 
 const TOTAL_ADVANCE_TOLERANCE_PX: f32 = 1.0;
 const TOTAL_ADVANCE_TOLERANCE_RATIO: f32 = 0.15;
@@ -29,7 +33,7 @@ pub(super) struct PaintTextLayout {
 pub(super) struct RuntimeTextGlyph {
     pub(super) glyph_index: u16,
     pub(super) px: f32,
-    // Bitmap-left draw position after projecting runtime grapheme advances onto the host glyph face.
+    // Host-layout bitmap-left fallback; raster bearings stay authoritative when the pen origin is valid.
     pub(super) x: f32,
     // Pen origin used for raster subpixel phase; glyph bearings must not choose the phase.
     pub(super) origin_x: f32,
@@ -44,16 +48,30 @@ pub(super) fn layout_text_run(
     style: UiTextRunPaintStyle,
 ) -> PaintTextLayout {
     let font_face = font_face_for_paint_style(style);
+    let smoothing = current_host_text_preferences().smoothing;
+    layout_text_run_with_smoothing(rect, text, font_size, line_height, font_face, smoothing)
+}
+
+fn layout_text_run_with_smoothing(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    font_face: HostTextFontFace,
+    smoothing: HostTextSmoothing,
+) -> PaintTextLayout {
     let line = runtime_single_line_text(rect, text, font_size, line_height, font_face);
     let text_y = rect.y + ((rect.height - line_height).max(0.0) * 0.5);
+    let text_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
     let glyphs = runtime_positioned_glyphs(
         line.text.as_str(),
         &line.glyph_advances,
         &line.shaped_glyphs,
         font_face,
         font_size,
-        rect.x + line.frame_x,
+        text_x,
         text_y,
+        smoothing,
     );
     PaintTextLayout {
         display_text: line.text,
@@ -90,6 +108,7 @@ fn runtime_positioned_glyphs(
     font_size: f32,
     x: f32,
     y: f32,
+    smoothing: HostTextSmoothing,
 ) -> Vec<RuntimeTextGlyph> {
     let glyphs = fontdue_glyph_layout(display_text, font_face, font_size, x, y);
     if glyphs.is_empty() {
@@ -121,6 +140,7 @@ fn runtime_positioned_glyphs(
             glyph_advances,
             font_face,
             x,
+            smoothing,
         )
     {
         return glyphs
@@ -170,9 +190,6 @@ fn runtime_positioned_glyphs_from_shaped_positions(
     if !shaped_positions_match_host_advances(glyphs, shaped_glyphs, font_face) {
         return None;
     }
-    if !shaped_positions_preserve_retained_raster_bins(glyphs, shaped_glyphs, font_face, start_x) {
-        return None;
-    }
 
     let mut previous_origin = None;
     glyphs
@@ -198,21 +215,6 @@ fn runtime_positioned_glyphs_from_shaped_positions(
             })
         })
         .collect()
-}
-
-fn shaped_positions_preserve_retained_raster_bins(
-    glyphs: &[GlyphPosition],
-    shaped_glyphs: &[ShapedGlyph],
-    font_face: HostTextFontFace,
-    start_x: f32,
-) -> bool {
-    glyphs.iter().zip(shaped_glyphs).all(|(host, shaped)| {
-        let host_origin = glyph_cursor_x(host, font_face);
-        let shaped_origin = start_x + shaped.x + shaped.offset_x;
-        host_origin.is_finite()
-            && shaped_origin.is_finite()
-            && retained_glyph_placements_share_bin(host_origin, shaped_origin)
-    })
 }
 
 fn shaped_position_matches_host_glyph(
@@ -421,6 +423,7 @@ fn runtime_advances_preserve_retained_raster_bins(
     advances: &[f32],
     font_face: HostTextFontFace,
     start_x: f32,
+    smoothing: HostTextSmoothing,
 ) -> bool {
     if graphemes.len() != advances.len() {
         return false;
@@ -432,7 +435,11 @@ fn runtime_advances_preserve_retained_raster_bins(
         let projected_origin = runtime_glyph_origin_x(glyph, &positions, font_face);
         host_origin.is_finite()
             && projected_origin.is_finite()
-            && retained_glyph_placements_share_bin(host_origin, projected_origin)
+            && retained_glyph_placements_share_bin_for_smoothing(
+                host_origin,
+                projected_origin,
+                smoothing,
+            )
     })
 }
 
@@ -495,7 +502,7 @@ fn glyph_cursor_x(glyph: &GlyphPosition, font_face: HostTextFontFace) -> f32 {
 fn glyph_left_offset(glyph: &GlyphPosition, font_face: HostTextFontFace) -> f32 {
     font_for_face(font_face)
         .map(|font| font.metrics_indexed(glyph.key.glyph_index, glyph.key.px))
-        .map(|metrics| metrics.bounds.xmin.floor())
+        .map(|metrics| retained_glyph_left_offset_px(metrics.bounds.xmin))
         .unwrap_or(0.0)
 }
 

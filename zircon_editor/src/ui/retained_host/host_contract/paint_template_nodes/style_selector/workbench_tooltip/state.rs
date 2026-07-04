@@ -1,29 +1,29 @@
 use super::model::WorkbenchTooltipStyle;
-use super::palette::tooltip_normal_style;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use super::palette::{tooltip_normal_style, tooltip_palette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_state_style(
     state: UiPainterResolvedState,
 ) -> WorkbenchTooltipStyle {
+    let palette = tooltip_palette();
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             WorkbenchTooltipStyle {
-                surface: PALETTE.surface_disabled,
-                border: PALETTE.border_disabled,
-                title: PALETTE.text_disabled,
-                body: PALETTE.text_disabled,
-                arrow: PALETTE.surface_disabled,
-                icon: PALETTE.text_disabled,
-                shadow: [0, 0, 0, 48],
+                surface: palette.disabled_surface,
+                border: palette.disabled_border,
+                title: palette.disabled_text,
+                body: palette.disabled_text,
+                arrow: palette.disabled_surface,
+                icon: palette.disabled_text,
+                shadow: palette.disabled_shadow,
                 state,
             }
         }
         UiPainterResolvedState::Pressed | UiPainterResolvedState::Focused => {
             let mut style = tooltip_normal_style(state);
-            style.border = PALETTE.focus_ring;
-            style.icon = PALETTE.focus_ring;
-            style.title = PALETTE.text;
+            style.border = palette.focused_border;
+            style.icon = palette.focused_border;
+            style.title = palette.title;
             style
         }
         UiPainterResolvedState::Open
@@ -31,8 +31,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Hovered => {
             let mut style = tooltip_normal_style(state);
-            style.border = PALETTE.border;
-            style.icon = PALETTE.accent;
+            style.border = palette.border;
+            style.icon = palette.hover_icon;
             style
         }
         UiPainterResolvedState::Checked

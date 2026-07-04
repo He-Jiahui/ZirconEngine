@@ -1,0 +1,24 @@
+runtime_text_editor_page_tab_runtime_measure_validation_20260704
+Generated: 2026-07-04 16:42:17 +08:00
+Proof image: E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_page_tab_runtime_measure_preview_20260704.png
+Font used by proof renderer: 等线
+Scope:
+- Workbench host page-tab preferred widths now consume runtime measured title width.
+- Fallback page chrome and retained host page pointer hitbox allocation both use MAIN_PAGE_TAB_TITLE_FONT_SIZE and retained runtime text measurement before min/max clamp.
+- The old TITLE_WIDTH_PER_CHAR character-count estimate is removed from page_tabs/metrics.rs.
+Labels:
+editor base.zui: old_char_count_width=128px
+folder-open-line.svg: old_char_count_width=158px
+WWWWWWWW: old_char_count_width=108px
+editor base.zui: measured_text=81.4px runtime_tab_width=119.4px
+folder-open-line.svg: measured_text=114.09px runtime_tab_width=152.09px
+WWWWWWWW: measured_text=94.42px runtime_tab_width=132.42px
+iiiiiiii: measured_text=26.12px runtime_tab_width=108px
+Verification run separately after artifact generation: rustfmt --check, static scans, diff check, same-name target scan.
+
+Post-generation verification:
+- cargo fmt --check --: passed
+- stale page-tab heuristic scan: NO_STALE_PAGE_TAB_CHAR_WIDTH_HEURISTICS_IN_TOUCHED_PATHS
+- scoped git diff --check: exit 0; LF/CRLF normalization warnings only
+- same-name target scan: NO_MATCHING_PAGE_TAB_RUNTIME_MEASURE_ARTIFACTS_IN_TARGETS
+- focused Cargo tests: deferred because active external cargo/rustc lanes were present (cargo: 25108, 29508, 47904, 48984; rustc: 37344)

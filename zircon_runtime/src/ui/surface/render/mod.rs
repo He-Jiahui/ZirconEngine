@@ -23,7 +23,10 @@ mod text_fields;
 mod text_measure;
 
 pub use cache::{UiSurfaceRenderCache, UiSurfaceRenderCacheStats};
-pub(crate) use extract::extract_ui_render_tree_from_arranged_with_component_states;
 pub use extract::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
+pub(crate) use extract::{
+    extract_ui_render_tree_from_arranged_with_component_states,
+    extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
+};
 pub(super) use resolve::resolve_style;
 pub(crate) use text_measure::measure_text;

@@ -92,6 +92,7 @@ fn validation_extract_for_core_pipeline(core_pipeline: CorePipelineKind) -> Rend
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: crate::core::framework::render::PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

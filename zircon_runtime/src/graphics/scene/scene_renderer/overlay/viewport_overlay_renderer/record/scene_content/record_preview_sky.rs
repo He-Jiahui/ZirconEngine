@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::overlay::ViewportOverlayRenderer;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 impl ViewportOverlayRenderer {
@@ -29,6 +29,7 @@ impl ViewportOverlayRenderer {
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         frame: &ViewportRenderFrame,
+        render_region: ViewportRenderRegion,
         color_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
@@ -39,6 +40,7 @@ impl ViewportOverlayRenderer {
             scene_bind_group,
             &self.sky_pipeline,
             frame,
+            render_region,
             color_attachment_ops,
             depth_attachment_ops,
         );

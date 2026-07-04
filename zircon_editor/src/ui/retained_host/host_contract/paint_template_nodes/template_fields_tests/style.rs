@@ -9,11 +9,12 @@ use super::super::super::style_selector::{
     WORKBENCH_TEXT_FIELD_SURFACE as FIELD_SURFACE,
 };
 use super::super::geometry::field_paint_rect;
-use super::super::search::{search_field_text_left, SEARCH_FIELD_MAX_HEIGHT};
+use super::super::metrics::workbench_field_metrics;
+use super::super::search::search_field_text_left;
 use super::super::style::{field_opacity, field_style};
 use super::support::positioned_field_node;
 use crate::ui::retained_host::host_contract::data::FrameRect;
-use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
+use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
 
 #[test]
@@ -119,11 +120,14 @@ fn search_field_uses_placeholder_tone_and_icon_text_inset() {
     assert_eq!(field_text_color(&node), FIELD_PLACEHOLDER);
     assert_eq!(
         search_field_text_left(&node),
-        METRICS.input_pad[0] + 16.0 + METRICS.gap_s
+        workbench_field_metrics().search_text_left
     );
 
     let normal = positioned_field_node("WorkbenchInputText", "Search", 12.0, 8.0, 170.0, 28.0);
-    assert_eq!(search_field_text_left(&normal), METRICS.input_pad[0]);
+    assert_eq!(
+        search_field_text_left(&normal),
+        workbench_field_metrics().input_pad_left
+    );
 }
 
 #[test]
@@ -140,7 +144,7 @@ fn search_field_paint_rect_clamps_tall_authored_frames_to_compact_control_height
         },
     );
 
-    assert_eq!(rect.height, SEARCH_FIELD_MAX_HEIGHT);
+    assert_eq!(rect.height, workbench_field_metrics().search_max_height);
     assert_eq!(rect.y, 16.0);
     assert_eq!(rect.x, 12.0);
     assert_eq!(rect.width, 170.0);

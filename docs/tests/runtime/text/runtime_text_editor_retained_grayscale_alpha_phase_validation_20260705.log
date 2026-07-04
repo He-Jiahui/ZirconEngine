@@ -1,0 +1,8 @@
+runtime_text_editor_retained_grayscale_alpha_phase_validation_20260705
+font=C:\Windows\Fonts\Deng.ttf
+contract=HostTextSmoothing::Grayscale uses swash Alpha coverage and retained 8-bin glyph placement; line origin snapping remains separate.
+label='editor base.zui' old_max_origin_error_px=0.4688 new_max_origin_error_px=0.0605 old_max_advance_error_px=0.7539 new_max_advance_error_px=0.0859
+label='folder-open.svg' old_max_origin_error_px=0.3848 new_max_origin_error_px=0.0527 old_max_advance_error_px=0.6816 new_max_advance_error_px=0.0684
+label='folder-op...line.svg' old_max_origin_error_px=0.3809 new_max_origin_error_px=0.0605 old_max_advance_error_px=0.6816 new_max_advance_error_px=0.0723
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_grayscale_alpha_phase_preview_20260705.png
+target_output=none

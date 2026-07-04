@@ -1,0 +1,22 @@
+Runtime text bitmap atlas placeholder draw-plan validation - 2026-07-04
+
+Slice: runtime_text_at_m1_at_m3_bitmap_atlas_placeholder_draw_plan_rustfmt_static_visual_cargo_deferred
+
+Implementation:
+- Added zircon_runtime/src/graphics/text/atlas/render_submission/placeholder.rs.
+- GlyphAtlasBitmapRenderSubmissionPlan now carries placeholder_draws.
+- GlyphAtlasBitmapRenderSubmissionReport now exposes visible_placeholder_count, skipped_placeholder_count, and has_placeholder_work().
+- GlyphAtlasScreenRect exposes clipped_to(...) so normal glyph draw quads and placeholder draw plans share the same clipping semantics.
+- Regression coverage added in render_submission/tests.rs for visible blocked placeholders and fully clipped placeholders.
+
+Validation performed:
+- rustfmt --edition 2021 passed on touched Rust files.
+- rustfmt --edition 2021 --check passed on touched Rust files.
+- Target artifact scan must remain 0 for this PNG/log.
+
+Cargo status:
+- Focused Cargo validation deferred because external cargo/rustc lanes were active during this implementation slice.
+
+Artifacts:
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_placeholder_draw_plan_preview_20260704.png
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_placeholder_draw_plan_validation_20260704.log

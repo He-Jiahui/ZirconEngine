@@ -31,14 +31,17 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
     assert!(
         runtime_config_source.contains("WindowDescriptor")
             && runtime_config_source.contains("EventLoopPolicy")
-            && runtime_config_source.contains("WindowLifecyclePolicy"),
-        "runtime entry app config should carry the neutral window descriptor, event-loop policy, and lifecycle policy"
+            && runtime_config_source.contains("WindowLifecyclePolicy")
+            && runtime_config_source.contains("exit_after_first_presented_frame"),
+        "runtime entry app config should carry the neutral window descriptor, event-loop policy, lifecycle policy, and first-frame exit validation policy"
     );
     assert!(
         runtime_config_source.contains("with_window_lifecycle_policy")
             && runtime_config_source.contains("with_close_when_requested")
-            && runtime_config_source.contains("window_lifecycle_policy(&self)"),
-        "runtime entry app config should expose the Bevy-style close/exit host policy"
+            && runtime_config_source.contains("window_lifecycle_policy(&self)")
+            && runtime_config_source.contains("with_exit_after_first_presented_frame")
+            && runtime_config_source.contains("exit_after_first_presented_frame(&self)"),
+        "runtime entry app config should expose the Bevy-style close/exit host policy and the explicit startup-smoke first-frame exit policy"
     );
     assert_source_order(
         runtime_config_app_config_source,
@@ -47,11 +50,14 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "window_descriptor: WindowDescriptor",
             "event_loop_policy: EventLoopPolicy",
             "window_lifecycle_policy: WindowLifecyclePolicy",
+            "exit_after_first_presented_frame: bool",
             "fn with_window_descriptor",
             "fn with_event_loop_policy",
             "fn with_window_lifecycle_policy",
+            "fn with_exit_after_first_presented_frame",
             "impl Default for RuntimeEntryAppConfig",
             "EventLoopPolicy::Game",
+            "exit_after_first_presented_frame: false",
         ],
         "runtime app-config implementation should keep host policy fields, builder methods, and defaults source-visible",
     );
@@ -59,12 +65,14 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         runtime_construct_source.contains("RuntimeEntryAppConfig")
             && runtime_construct_source.contains("config.window_descriptor")
             && runtime_construct_source.contains("config.event_loop_policy")
-            && runtime_construct_source.contains("config.window_lifecycle_policy"),
+            && runtime_construct_source.contains("config.window_lifecycle_policy")
+            && runtime_construct_source.contains("config.exit_after_first_presented_frame"),
         "runtime entry construction should seed host state from RuntimeEntryAppConfig"
     );
     assert!(
-        runtime_app_source.contains("window_lifecycle_policy: WindowLifecyclePolicy"),
-        "runtime entry construction should store close/exit policy from RuntimeEntryAppConfig"
+        runtime_app_source.contains("window_lifecycle_policy: WindowLifecyclePolicy")
+            && runtime_app_source.contains("exit_after_first_presented_frame: bool"),
+        "runtime entry construction should store close/exit and first-frame-exit policies from RuntimeEntryAppConfig"
     );
     assert!(
         runtime_window_creation_source.contains("self.window_descriptor.primary_window.is_none()"),
@@ -76,10 +84,15 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "parse_runtime_session_startup_args",
             "RuntimeSession::create_with_profile_and_project",
             "runtime_session_args.project_root.as_deref()",
-            "runtime_entry_app_config_for_session_profile(runtime_session_args.profile)",
+            "runtime_entry_app_config_for_session_profile_with_first_frame_exit",
+            "runtime_exit_after_first_frame_enabled()",
             "RuntimeEntryApp::new(session, host_config)",
         ],
         "runtime runner should derive the app host config from the already-parsed session profile before creating the app",
+    );
+    assert!(
+        runtime_runner_source.contains("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME"),
+        "runtime startup smoke should keep the first-frame exit validation hook source-visible"
     );
     for required in [
         "RuntimeSessionProfile::Runtime => RuntimeEntryAppConfig::default()",

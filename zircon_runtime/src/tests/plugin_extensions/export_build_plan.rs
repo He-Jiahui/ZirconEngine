@@ -77,7 +77,8 @@ fn export_plan_treats_missing_required_profile_providers_as_fatal() {
             RuntimePluginId::Sound,
             true,
             true,
-        )],
+        )
+        .with_packaging(ExportPackagingStrategy::NativeDynamic)],
     };
     manifest.export_profiles = vec![ExportProfile::new(
         "client",
@@ -193,7 +194,7 @@ fn source_template_profile_carries_build_validation_plan() {
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
-    .with_strategy(ExportPackagingStrategy::SourceTemplate)];
+    .with_strategies([ExportPackagingStrategy::SourceTemplate])];
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let cargo_manifest = generated_file(&plan, "Cargo.toml");

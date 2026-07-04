@@ -1,0 +1,6 @@
+
+running 1 test
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::history::copy_history_textures::tests::history_region_copy_uses_scaled_dynamic_render_region ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6459 filtered out; finished in 0.01s
+

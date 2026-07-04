@@ -1,0 +1,575 @@
+{
+  "requested_count": 18,
+  "written_count": 18,
+  "failed_count": 0,
+  "written_variants": [
+    {
+      "cache_hash": "219cfdc17e0b9549cbbd776d5d61d820a0b1edec87a9ffc9b7fdfb32588a4af8",
+      "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=forward|features=0x00000002|quality=medium|platform=wgpu-runtime",
+      "source_label": "builtin://shader/pbr.wgsl",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "5c869c4999c3fffa772ccedd8bb64e0f6ecfa0de3f7df7554e5828ccd4a43413",
+      "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=gbuffer|features=0x00000002|quality=medium|platform=wgpu-runtime",
+      "source_label": "builtin://shader/pbr.wgsl",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "2d5af0d0990dabbeef017a62a5fbd57cf3d26f2ea087ea96e2ebdef816411b24",
+      "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=depth_prepass|features=0x00000002|quality=medium|platform=wgpu-runtime",
+      "source_label": "builtin://shader/pbr.wgsl",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "fa10809ac47cc6057f8d5a0b10a03fd58360b1cb0695e9d0e1819e1a579ef345",
+      "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=shadow|features=0x00000002|quality=medium|platform=wgpu-runtime",
+      "source_label": "builtin://shader/pbr.wgsl",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "a2dbe5877750f297db74ba429f320ed5a15ec61741ac4ec768a2f9485df5ac8c",
+      "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=velocity|features=0x00000002|quality=medium|platform=wgpu-runtime",
+      "source_label": "builtin://shader/pbr.wgsl",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "fac373e2fffeee36289c611deb5df4670482471c24ebc70f3a41829572e7c7c7",
+      "canonical_string": "shader_variant_v1|material=66fd4693-b0a0-f3db-6761-e6d531c295b3|revision=1|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=taa_reactive_mask|features=0x00000002|quality=medium|platform=wgpu-runtime",
+      "source_label": "builtin://shader/pbr.wgsl",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "f31b806bd1e02ff2d89190c80838533c770e7b1f56f7e994f5e9ce633746346c",
+      "canonical_string": "shader_variant_v1|material=8fd04368-9494-a884-82be-e0060430c46f|revision=9627352721800845558|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=forward|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "res://project/shaders/project_shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "20fd3dac9f2655eac1e2bba77072a4668d6087a52f55e4c2bf0f2181566341b3",
+      "canonical_string": "shader_variant_v1|material=8fd04368-9494-a884-82be-e0060430c46f|revision=9627352721800845558|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=gbuffer|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "res://project/shaders/project_shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "bf9f618d0beb98e158127bfc554962b086993acd0d6d2c75b28aaf639c8fe52a",
+      "canonical_string": "shader_variant_v1|material=8fd04368-9494-a884-82be-e0060430c46f|revision=9627352721800845558|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=depth_prepass|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "res://project/shaders/project_shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "5a363d664671b816b16eada80cbe164b54a74274b797b8453a8fb86ddac2b41c",
+      "canonical_string": "shader_variant_v1|material=8fd04368-9494-a884-82be-e0060430c46f|revision=9627352721800845558|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=shadow|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "res://project/shaders/project_shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "7e2efa6ce2351480880ba7e52299023ba85f71ed434bd6135123b6e3b4ca5081",
+      "canonical_string": "shader_variant_v1|material=8fd04368-9494-a884-82be-e0060430c46f|revision=9627352721800845558|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=velocity|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "res://project/shaders/project_shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "fb32bd7bd0343830659e712aa1fa8217c5bfb93ee1afaf163d84132b35c0a004",
+      "canonical_string": "shader_variant_v1|material=8fd04368-9494-a884-82be-e0060430c46f|revision=9627352721800845558|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=taa_reactive_mask|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "res://project/shaders/project_shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "c94f20e4566f185c7436e2c9761dcf7119266ccc6d556995be4c4b19a2fccfba",
+      "canonical_string": "shader_variant_v1|material=c691366c-f89c-c175-785f-26e10c28fffa|revision=14843875089575827114|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=forward|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "package://native_dynamic_fixture/shaders/shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "9baebdef78c4393efb10f8bb1d3c1783519434270e2f4c61eedf6cd9976826c8",
+      "canonical_string": "shader_variant_v1|material=c691366c-f89c-c175-785f-26e10c28fffa|revision=14843875089575827114|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=gbuffer|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "package://native_dynamic_fixture/shaders/shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "144cef91bfeb19e22f01a4a6af5eefcc7b34545fdd1c2445d276fad876571bd5",
+      "canonical_string": "shader_variant_v1|material=c691366c-f89c-c175-785f-26e10c28fffa|revision=14843875089575827114|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=depth_prepass|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "package://native_dynamic_fixture/shaders/shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "d08f008d0605b0927edf0a48a15ef1cc54c68f899199c404d9226c86dd5051df",
+      "canonical_string": "shader_variant_v1|material=c691366c-f89c-c175-785f-26e10c28fffa|revision=14843875089575827114|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=shadow|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "package://native_dynamic_fixture/shaders/shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "10c9d42b6c63df54bdcacec9e77ed96a215eec1c16866672c6eddc1cfc1afe96",
+      "canonical_string": "shader_variant_v1|material=c691366c-f89c-c175-785f-26e10c28fffa|revision=14843875089575827114|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=velocity|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "package://native_dynamic_fixture/shaders/shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    },
+    {
+      "cache_hash": "0ae2b36d229165c8ef00491047a3be947dfd08f2f65310de0facc724553f454f",
+      "canonical_string": "shader_variant_v1|material=c691366c-f89c-c175-785f-26e10c28fffa|revision=14843875089575827114|layout=0x0000000000000000|material_options=0x00000000|geometry=0|shading=2|pass=taa_reactive_mask|features=0x00000000|quality=medium|platform=wgpu-runtime",
+      "source_label": "package://native_dynamic_fixture/shaders/shader",
+      "template_revision": "zr-material-template-v1",
+      "naga_version": "naga-29.0.1",
+      "wgpu_version": "wgpu-29.0.1"
+    }
+  ],
+  "wgpu_module_validation": {
+    "enabled": false,
+    "requested_count": 0,
+    "validated_count": 0,
+    "failed_count": 0,
+    "skipped_count": 0
+  },
+  "wgpu_pipeline_validation": {
+    "enabled": true,
+    "requested_count": 18,
+    "validated_count": 18,
+    "failed_count": 0,
+    "skipped_count": 0
+  },
+  "dimension_summary": {
+    "pass_types": {
+      "depth_prepass": {
+        "requested_count": 3,
+        "written_count": 3,
+        "failed_count": 0
+      },
+      "forward": {
+        "requested_count": 3,
+        "written_count": 3,
+        "failed_count": 0
+      },
+      "gbuffer": {
+        "requested_count": 3,
+        "written_count": 3,
+        "failed_count": 0
+      },
+      "shadow": {
+        "requested_count": 3,
+        "written_count": 3,
+        "failed_count": 0
+      },
+      "taa_reactive_mask": {
+        "requested_count": 3,
+        "written_count": 3,
+        "failed_count": 0
+      },
+      "velocity": {
+        "requested_count": 3,
+        "written_count": 3,
+        "failed_count": 0
+      }
+    },
+    "geometry_source_ids": {
+      "0": {
+        "requested_count": 18,
+        "written_count": 18,
+        "failed_count": 0
+      }
+    },
+    "shading_model_ids": {
+      "2": {
+        "requested_count": 18,
+        "written_count": 18,
+        "failed_count": 0
+      }
+    },
+    "quality_tiers": {
+      "medium": {
+        "requested_count": 18,
+        "written_count": 18,
+        "failed_count": 0
+      }
+    }
+  },
+  "source_provenance": {
+    "source_count": 18,
+    "variant_count": 18,
+    "sources": {
+      "builtin://shader/pbr.wgsl#026c9d24fca0db7d132802d5322490b7a0a2942601ccd22754966b53eefd4c71#zr-material-template-v1": {
+        "source_label": "builtin://shader/pbr.wgsl",
+        "source_hash": "026c9d24fca0db7d132802d5322490b7a0a2942601ccd22754966b53eefd4c71",
+        "include_content_hashes": [
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "c86c927f145785b051e7d1249bb5cb75831c2a799997fa0c4dde45b5d6ef7a8d",
+          "026c9d24fca0db7d132802d5322490b7a0a2942601ccd22754966b53eefd4c71"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "builtin://shader/pbr.wgsl#12e48843f4ad97c6c1831787fad9793ae11844cf8a59eebce2cc3b151fd20de0#zr-material-template-v1": {
+        "source_label": "builtin://shader/pbr.wgsl",
+        "source_hash": "12e48843f4ad97c6c1831787fad9793ae11844cf8a59eebce2cc3b151fd20de0",
+        "include_content_hashes": [
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "35afba578cfb8878420f9c542b991bd7514bfe0347e357ec3a69fd11510558c2",
+          "1f713b7b543023eb581ebed8061e0aafb84f2e990e6a170f14ae935d4913a3ed",
+          "12e48843f4ad97c6c1831787fad9793ae11844cf8a59eebce2cc3b151fd20de0"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "builtin://shader/pbr.wgsl#17eeb02858a9ae604fbbb9d9ba3f60fecd57d9fa78e003c2864de7bee1e7e7ae#zr-material-template-v1": {
+        "source_label": "builtin://shader/pbr.wgsl",
+        "source_hash": "17eeb02858a9ae604fbbb9d9ba3f60fecd57d9fa78e003c2864de7bee1e7e7ae",
+        "include_content_hashes": [
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "68d77ba87d85fb121c7255b28c9eebd3f4342dfd3ea2dda5c791547d6e6807b8",
+          "61355600a3e0cdb361a9eb573e287c5b9680111a6356afb18baeb763b284c3a7",
+          "cb3367dcf13bebe9711267d8245c7a9fa3ec120e9032ab37482e8fbdde3f3a0d",
+          "118466a9df3cbf2329dbc5c193fad2f2e30b7caf225b86e6382a6ab173e4a4be",
+          "17eeb02858a9ae604fbbb9d9ba3f60fecd57d9fa78e003c2864de7bee1e7e7ae"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "builtin://shader/pbr.wgsl#2bdd127fa47d44abbba12c34df2cc5c21f10cbf34751911863e55d190b87b53a#zr-material-template-v1": {
+        "source_label": "builtin://shader/pbr.wgsl",
+        "source_hash": "2bdd127fa47d44abbba12c34df2cc5c21f10cbf34751911863e55d190b87b53a",
+        "include_content_hashes": [
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "d3a14575b326d059d30c3917d339c2f50807d9f31c24643ce233e2ae683c7bd6",
+          "2bdd127fa47d44abbba12c34df2cc5c21f10cbf34751911863e55d190b87b53a"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "builtin://shader/pbr.wgsl#7c9022ae30679afdc5c4dbd00c31f12b10a29b7a3a0aef318b5fafa3b1e46316#zr-material-template-v1": {
+        "source_label": "builtin://shader/pbr.wgsl",
+        "source_hash": "7c9022ae30679afdc5c4dbd00c31f12b10a29b7a3a0aef318b5fafa3b1e46316",
+        "include_content_hashes": [
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "8b6b530f09e419b02dd8ea0c3436a0efed866824a91d6cc8cfe95837ef6e81bb",
+          "7c9022ae30679afdc5c4dbd00c31f12b10a29b7a3a0aef318b5fafa3b1e46316"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "builtin://shader/pbr.wgsl#a5931cb3ae31b272f087da776cfd5f5b2f6e38d407b608fac9fcc2a7b4f71810#zr-material-template-v1": {
+        "source_label": "builtin://shader/pbr.wgsl",
+        "source_hash": "a5931cb3ae31b272f087da776cfd5f5b2f6e38d407b608fac9fcc2a7b4f71810",
+        "include_content_hashes": [
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "d3a14575b326d059d30c3917d339c2f50807d9f31c24643ce233e2ae683c7bd6",
+          "a5931cb3ae31b272f087da776cfd5f5b2f6e38d407b608fac9fcc2a7b4f71810"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "package://native_dynamic_fixture/shaders/shader#1b765ef5a90a742b55256d91c73fa8da79d5b557f7969cfeb1303e246e18410a#zr-material-template-v1": {
+        "source_label": "package://native_dynamic_fixture/shaders/shader",
+        "source_hash": "1b765ef5a90a742b55256d91c73fa8da79d5b557f7969cfeb1303e246e18410a",
+        "include_content_hashes": [
+          "6bcf4ba1debdd866f57ef809441342f15df5fa4b1e62421db568944ebec0a420",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "68d77ba87d85fb121c7255b28c9eebd3f4342dfd3ea2dda5c791547d6e6807b8",
+          "61355600a3e0cdb361a9eb573e287c5b9680111a6356afb18baeb763b284c3a7",
+          "cb3367dcf13bebe9711267d8245c7a9fa3ec120e9032ab37482e8fbdde3f3a0d",
+          "118466a9df3cbf2329dbc5c193fad2f2e30b7caf225b86e6382a6ab173e4a4be",
+          "1b765ef5a90a742b55256d91c73fa8da79d5b557f7969cfeb1303e246e18410a"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "package://native_dynamic_fixture/shaders/shader#6a9f3351c8fd87ae1c33e86f68368fbdc49525751daf3a100daf8c1faf2b5fa4#zr-material-template-v1": {
+        "source_label": "package://native_dynamic_fixture/shaders/shader",
+        "source_hash": "6a9f3351c8fd87ae1c33e86f68368fbdc49525751daf3a100daf8c1faf2b5fa4",
+        "include_content_hashes": [
+          "6bcf4ba1debdd866f57ef809441342f15df5fa4b1e62421db568944ebec0a420",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "c86c927f145785b051e7d1249bb5cb75831c2a799997fa0c4dde45b5d6ef7a8d",
+          "6a9f3351c8fd87ae1c33e86f68368fbdc49525751daf3a100daf8c1faf2b5fa4"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "package://native_dynamic_fixture/shaders/shader#8fdc6d90ba971cb21606e911716a03252b4e3d277d142a2c733c796096783558#zr-material-template-v1": {
+        "source_label": "package://native_dynamic_fixture/shaders/shader",
+        "source_hash": "8fdc6d90ba971cb21606e911716a03252b4e3d277d142a2c733c796096783558",
+        "include_content_hashes": [
+          "6bcf4ba1debdd866f57ef809441342f15df5fa4b1e62421db568944ebec0a420",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "d3a14575b326d059d30c3917d339c2f50807d9f31c24643ce233e2ae683c7bd6",
+          "8fdc6d90ba971cb21606e911716a03252b4e3d277d142a2c733c796096783558"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "package://native_dynamic_fixture/shaders/shader#a7a9696a4ebcb3aefa47d33877f37dcee661b94d9bb36c6d5801378dcff6cbc0#zr-material-template-v1": {
+        "source_label": "package://native_dynamic_fixture/shaders/shader",
+        "source_hash": "a7a9696a4ebcb3aefa47d33877f37dcee661b94d9bb36c6d5801378dcff6cbc0",
+        "include_content_hashes": [
+          "6bcf4ba1debdd866f57ef809441342f15df5fa4b1e62421db568944ebec0a420",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "8b6b530f09e419b02dd8ea0c3436a0efed866824a91d6cc8cfe95837ef6e81bb",
+          "a7a9696a4ebcb3aefa47d33877f37dcee661b94d9bb36c6d5801378dcff6cbc0"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "package://native_dynamic_fixture/shaders/shader#c27fba3b30bf8140484e77bca2bc8fc0bbc73569ff92939a09805561266512ea#zr-material-template-v1": {
+        "source_label": "package://native_dynamic_fixture/shaders/shader",
+        "source_hash": "c27fba3b30bf8140484e77bca2bc8fc0bbc73569ff92939a09805561266512ea",
+        "include_content_hashes": [
+          "6bcf4ba1debdd866f57ef809441342f15df5fa4b1e62421db568944ebec0a420",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "d3a14575b326d059d30c3917d339c2f50807d9f31c24643ce233e2ae683c7bd6",
+          "c27fba3b30bf8140484e77bca2bc8fc0bbc73569ff92939a09805561266512ea"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "package://native_dynamic_fixture/shaders/shader#ca3ff450131e8e2d31277c7f78ba0b5624175230503decd55ccb7b290448206d#zr-material-template-v1": {
+        "source_label": "package://native_dynamic_fixture/shaders/shader",
+        "source_hash": "ca3ff450131e8e2d31277c7f78ba0b5624175230503decd55ccb7b290448206d",
+        "include_content_hashes": [
+          "6bcf4ba1debdd866f57ef809441342f15df5fa4b1e62421db568944ebec0a420",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "35afba578cfb8878420f9c542b991bd7514bfe0347e357ec3a69fd11510558c2",
+          "1f713b7b543023eb581ebed8061e0aafb84f2e990e6a170f14ae935d4913a3ed",
+          "ca3ff450131e8e2d31277c7f78ba0b5624175230503decd55ccb7b290448206d"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "res://project/shaders/project_shader#6d11c042b7de0d669dd291f9e42793b467528918e099cbd0a9af309ac8878f8f#zr-material-template-v1": {
+        "source_label": "res://project/shaders/project_shader",
+        "source_hash": "6d11c042b7de0d669dd291f9e42793b467528918e099cbd0a9af309ac8878f8f",
+        "include_content_hashes": [
+          "05330cf00c557c4d62fc80c0987039a92d357cd8e3e7da4a7cf57acb47df0f52",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "c86c927f145785b051e7d1249bb5cb75831c2a799997fa0c4dde45b5d6ef7a8d",
+          "6d11c042b7de0d669dd291f9e42793b467528918e099cbd0a9af309ac8878f8f"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "res://project/shaders/project_shader#854dff754d87a2315950202601b930df9f49dc5d154848e58845231bcec95f61#zr-material-template-v1": {
+        "source_label": "res://project/shaders/project_shader",
+        "source_hash": "854dff754d87a2315950202601b930df9f49dc5d154848e58845231bcec95f61",
+        "include_content_hashes": [
+          "05330cf00c557c4d62fc80c0987039a92d357cd8e3e7da4a7cf57acb47df0f52",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "68d77ba87d85fb121c7255b28c9eebd3f4342dfd3ea2dda5c791547d6e6807b8",
+          "61355600a3e0cdb361a9eb573e287c5b9680111a6356afb18baeb763b284c3a7",
+          "cb3367dcf13bebe9711267d8245c7a9fa3ec120e9032ab37482e8fbdde3f3a0d",
+          "118466a9df3cbf2329dbc5c193fad2f2e30b7caf225b86e6382a6ab173e4a4be",
+          "854dff754d87a2315950202601b930df9f49dc5d154848e58845231bcec95f61"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "res://project/shaders/project_shader#8fdc6d90ba971cb21606e911716a03252b4e3d277d142a2c733c796096783558#zr-material-template-v1": {
+        "source_label": "res://project/shaders/project_shader",
+        "source_hash": "8fdc6d90ba971cb21606e911716a03252b4e3d277d142a2c733c796096783558",
+        "include_content_hashes": [
+          "05330cf00c557c4d62fc80c0987039a92d357cd8e3e7da4a7cf57acb47df0f52",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "d3a14575b326d059d30c3917d339c2f50807d9f31c24643ce233e2ae683c7bd6",
+          "8fdc6d90ba971cb21606e911716a03252b4e3d277d142a2c733c796096783558"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "res://project/shaders/project_shader#978a07dde2f94dcaf8ea74708f3708dbfb62ac49a027b08dbe908a4c1acbb531#zr-material-template-v1": {
+        "source_label": "res://project/shaders/project_shader",
+        "source_hash": "978a07dde2f94dcaf8ea74708f3708dbfb62ac49a027b08dbe908a4c1acbb531",
+        "include_content_hashes": [
+          "05330cf00c557c4d62fc80c0987039a92d357cd8e3e7da4a7cf57acb47df0f52",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "35afba578cfb8878420f9c542b991bd7514bfe0347e357ec3a69fd11510558c2",
+          "1f713b7b543023eb581ebed8061e0aafb84f2e990e6a170f14ae935d4913a3ed",
+          "978a07dde2f94dcaf8ea74708f3708dbfb62ac49a027b08dbe908a4c1acbb531"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "res://project/shaders/project_shader#a7a9696a4ebcb3aefa47d33877f37dcee661b94d9bb36c6d5801378dcff6cbc0#zr-material-template-v1": {
+        "source_label": "res://project/shaders/project_shader",
+        "source_hash": "a7a9696a4ebcb3aefa47d33877f37dcee661b94d9bb36c6d5801378dcff6cbc0",
+        "include_content_hashes": [
+          "05330cf00c557c4d62fc80c0987039a92d357cd8e3e7da4a7cf57acb47df0f52",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "8b6b530f09e419b02dd8ea0c3436a0efed866824a91d6cc8cfe95837ef6e81bb",
+          "a7a9696a4ebcb3aefa47d33877f37dcee661b94d9bb36c6d5801378dcff6cbc0"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      },
+      "res://project/shaders/project_shader#c27fba3b30bf8140484e77bca2bc8fc0bbc73569ff92939a09805561266512ea#zr-material-template-v1": {
+        "source_label": "res://project/shaders/project_shader",
+        "source_hash": "c27fba3b30bf8140484e77bca2bc8fc0bbc73569ff92939a09805561266512ea",
+        "include_content_hashes": [
+          "05330cf00c557c4d62fc80c0987039a92d357cd8e3e7da4a7cf57acb47df0f52",
+          "52c2bdc96baa0b274cf9e47d7b5a845022971be5fdf76ccbdea575149afd99e8",
+          "66b43d7a1bef8d9bd22e2c5d37f4e352152d62154e3836dcc5c5fa4e100205b4",
+          "26970bf145545538ea8d8134f10bfc8d24bfb7fc2b2bec31dd5c205205d95695",
+          "2ca1925d0377d20a945537c71a2f25b90542e638a1e556dbe50adbc3da1a0089",
+          "d3a14575b326d059d30c3917d339c2f50807d9f31c24643ce233e2ae683c7bd6",
+          "c27fba3b30bf8140484e77bca2bc8fc0bbc73569ff92939a09805561266512ea"
+        ],
+        "template_revision": "zr-material-template-v1",
+        "naga_version": "naga-29.0.1",
+        "wgpu_version": "wgpu-29.0.1",
+        "requested_count": 1,
+        "written_count": 1,
+        "failed_count": 0
+      }
+    }
+  },
+  "failures": []
+}

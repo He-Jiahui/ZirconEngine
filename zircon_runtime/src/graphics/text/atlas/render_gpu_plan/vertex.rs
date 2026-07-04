@@ -1,3 +1,5 @@
+use bytemuck::{Pod, Zeroable};
+
 const GLYPH_ATLAS_GPU_VERTEX_F32_BYTES: u64 = std::mem::size_of::<f32>() as u64;
 const GLYPH_ATLAS_GPU_VERTEX_U32_BYTES: u64 = std::mem::size_of::<u32>() as u64;
 const GLYPH_ATLAS_GPU_VERTEX_POSITION_COMPONENTS: u64 = 2;
@@ -19,7 +21,7 @@ const GLYPH_ATLAS_GPU_VERTEX_STRIDE_BYTES: u64 =
 const GLYPH_ATLAS_GPU_VERTEX_ATTRIBUTE_COUNT: usize = 5;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 pub(crate) struct GlyphAtlasGpuVertex {
     pub(crate) position_ndc: [f32; 2],
     pub(crate) uv: [f32; 2],

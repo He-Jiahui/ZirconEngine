@@ -1,0 +1,17 @@
+runtime_text_atlas_texture_upload_submission_owner_split_validation_20260704
+status: passed-static-cargo-deferred
+artifact: docs/tests/runtime/text/runtime_text_atlas_texture_upload_submission_owner_split_preview_20260704.png
+
+checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs: passed
+- Select-String trailing whitespace/conflict markers over atlas_texture_upload root/frame/submission/tests: no matches
+- Select-String frame.rs for RenderSubmission|prepared_upload\(|GlyphAtlasBitmapUploadSourceBytes: no matches
+- line counts: frame.rs=123, submission.rs=42, tests.rs=450
+
+owner result:
+- atlas_texture_upload.rs mounts submission as a leaf owner and re-exports the submission handoff only through the renderer-local upload module surface.
+- frame.rs owns prepared-upload frame readiness/report/resource writing only.
+- submission.rs owns RenderSubmissionPlan + source-bytes to prepared-upload to frame-report/resource-writer composition.
+
+cargo:
+- focused Cargo execution deferred because external cargo/rustc processes were active during this validation window.

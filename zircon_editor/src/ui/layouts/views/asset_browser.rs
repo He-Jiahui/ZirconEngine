@@ -24,6 +24,7 @@ use utility_tabs::apply_asset_browser_utility_tab_typography;
 
 mod compact_layout;
 mod labels;
+mod name_compaction;
 mod stack_layout;
 mod summary_layout;
 mod summary_nodes;

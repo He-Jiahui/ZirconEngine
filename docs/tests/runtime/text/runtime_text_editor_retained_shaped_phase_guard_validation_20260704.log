@@ -1,0 +1,15 @@
+runtime_text_editor_retained_shaped_phase_guard_validation_20260704
+date=2026-07-04
+status=rustfmt_static_visual_cargo_deferred
+user_issue=editor DengXian/retained-host labels still showed uncomfortable left/right glyph spacing and phase jitter
+code_owner=zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
+test_owner=zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+change=runtime_positioned_glyphs_from_shaped_positions(...) now rejects matching shaped pen origins when they cross retained 1/8px raster bins against the resolved host-font natural origins
+kept_behavior=runtime text still supplies single-line clipping, ellipsis text, resolved font family, snapped line origin, and natural host glyph placement for simple editor labels
+rustfmt=passed: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+diff_check=passed: git diff --check on touched layout files and proof png, with existing LF/CRLF working-tree warnings only
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_shaped_phase_guard_preview_20260704.png
+preview_sha256=E8DA90793747ACCF3D92B33BFA3BD47FD7682FAC789DDCF982E0D1380034B52D
+target_same_name_scan_count=0
+cargo=deferred because external cargo/rustc lanes are active
+scope=no concrete font hardcode, no component-local spacing heuristic, no ZUI asset rewrite, no runtime atlas routing change

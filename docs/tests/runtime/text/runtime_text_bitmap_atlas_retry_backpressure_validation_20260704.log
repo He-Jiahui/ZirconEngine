@@ -1,0 +1,7 @@
+Runtime Text bitmap atlas retry backpressure validation
+Date: 2026-07-04
+Slice: AT-M1/AT-M3 bitmap atlas retry backpressure
+Code: bitmap_run/retry.rs, render_submission/retry.rs, bitmap_run/tests.rs, render_submission/tests.rs, atlas/mod.rs
+Behavior: due retry sources can be capped per frame; excess due sources are deferred with a later retry_frame_index while source diagnostics are preserved.
+Tests added: render_text_atlas_bitmap_retry_plan_backpressures_due_retries_over_budget; render_text_atlas_bitmap_retry_frame_input_applies_backpressure_before_new_sources; render_text_atlas_bitmap_retry_frame_submission_report_tracks_backpressured_retries.
+Cargo: deferred because external cargo/rustc lanes were active during implementation.

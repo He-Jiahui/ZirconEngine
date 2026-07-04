@@ -48,7 +48,7 @@ tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
-  - cargo test -p zircon_runtime --lib time --locked
+  - cargo test -p zircon_runtime --lib tests::time:: --locked
 doc_type: module-detail
 ---
 

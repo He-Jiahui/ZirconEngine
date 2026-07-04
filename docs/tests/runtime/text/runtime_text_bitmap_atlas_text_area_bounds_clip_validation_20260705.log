@@ -1,0 +1,20 @@
+Runtime text bitmap atlas TextArea bounds clip validation - 2026-07-05
+
+Scope:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+
+Checks:
+- rustfmt --edition 2021 --check native_bitmap_atlas.rs: passed
+- conflict marker scan: passed
+- trailing whitespace scan: passed
+- stale fail-closed scan for text_bounds_contains_screen_rect / clipped_glyph_count == 0: passed
+- external cargo/rustc lanes active, so focused Cargo was deferred
+
+Behavior locked by tests/code:
+- Native alpha source preserves full glyph bitmap when bounds do not clip.
+- TextArea.bounds partial clip crops source rows and updates screen_rect/content_size/source_byte_len.
+- A clipped alpha source can still replace glyphon when all visible glyphs have source bytes and allocation succeeds.
+- Fully outside glyphs are ignored before visible glyph accounting; unsupported Color/Subpixel glyphs inside bounds still fall back to glyphon.
+
+Preview image:
+- docs/tests/runtime/text/runtime_text_bitmap_atlas_text_area_bounds_clip_preview_20260705.png

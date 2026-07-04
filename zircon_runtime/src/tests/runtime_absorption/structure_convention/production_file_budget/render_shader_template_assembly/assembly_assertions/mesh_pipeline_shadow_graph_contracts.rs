@@ -14,6 +14,7 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
         shadow_renderer,
         shadow_mod,
         graph_gpu_context,
+        graph_gpu_reports,
         graph_stage_execution,
         ..
     } = sources;
@@ -126,6 +127,22 @@ pub(super) fn assert_mesh_pipeline_shadow_graph_contracts(
             "record_atlas_commands_with_attachment_ops",
             "self.device",
             "mesh_pipelines,",
+        ],
+    );
+    assert_contains_all(
+        "render pass gpu context mounts report extraction child owner",
+        &graph_gpu_context,
+        &["mod reports;"],
+    );
+    assert_contains_all(
+        "render pass gpu report child owns dispatch records and frame reports",
+        &graph_gpu_reports,
+        &[
+            "record_compute_dispatch",
+            "take_compute_dispatches",
+            "take_hzb_occlusion_cull_report",
+            "take_light_grid_report",
+            "motion_vector_camera_status",
         ],
     );
     assert_contains_all(

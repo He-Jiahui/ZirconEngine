@@ -1,0 +1,57 @@
+use super::*;
+
+pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "preserved_guards",
+        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_PRESERVED_GUARDS_CHILD,
+        "runtime_15_typed_error_moved_guard_absence_preserved_guards_are_child_owned",
+    ),
+    (
+        "parent_backflow",
+        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_PARENT_BACKFLOW_CHILD,
+        "runtime_15_typed_error_moved_guard_absence_parent_backflow_guards_are_child_owned",
+    ),
+    (
+        "path_anchors",
+        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_PATH_ANCHORS_CHILD,
+        "runtime_15_typed_error_moved_guard_absence_path_anchors_are_child_owned",
+    ),
+    (
+        "budgets",
+        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_BUDGETS_CHILD,
+        "runtime_15_typed_error_moved_guard_absence_children_line_budgets_are_current",
+    ),
+    (
+        "status_mirrors",
+        TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_STATUS_MIRRORS_CHILD,
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_STATUS_GUARD,
+    ),
+];
+
+pub(super) const TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "root_paths",
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_PATHS_CHILD,
+        "TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_PATHS_CHILD",
+    ),
+    (
+        "root_statuses",
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_STATUSES_CHILD,
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_INVENTORY_STATUS,
+    ),
+    (
+        "root_child_rows",
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_CHILD_ROWS_CHILD,
+        "TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_CHILDREN",
+    ),
+    (
+        "root_sources",
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_SOURCES_CHILD,
+        "moved_guard_absence_child_sources",
+    ),
+    (
+        "root_inventory",
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_INVENTORY_CHILD,
+        TYPED_ERROR_MOVED_GUARD_ABSENCE_ROOT_INVENTORY_GUARD,
+    ),
+];

@@ -72,6 +72,7 @@ fn render_frame_extract_selected_camera_descriptor_replaces_active_selection_onl
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,
@@ -139,6 +140,7 @@ fn render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_widt
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

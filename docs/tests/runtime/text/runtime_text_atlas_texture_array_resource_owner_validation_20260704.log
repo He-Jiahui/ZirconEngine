@@ -1,0 +1,15 @@
+runtime_text_atlas_texture_array_resource_owner
+date=2026-07-04
+scope=renderer-local glyph atlas texture-array resource owner
+changed_code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
+changed_code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+changed_code=zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+changed_code=zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+behavior=GlyphAtlasTextureArraySpec maps GlyphAtlasStorageFormat R8Unorm/Rgba8Unorm to WGPU texture formats
+behavior=resource creation clamps atlas extent width/height/layers to at least one and creates D2Array views
+behavior=SDF atlas texture creation now delegates to atlas_texture_upload/resource.rs while upload commands remain unchanged
+verification_image=docs/tests/runtime/text/runtime_text_atlas_texture_array_resource_owner_preview_20260704.png
+verification_image_sha256=6E8FFFCE35642A9B17F55DF50A52812CBAA200FE8FA6B5EEF475D230B63C3C85
+target_policy=proof image and log stored under docs/tests/runtime/text, not target
+cargo_status=deferred because external cargo/rustc lanes are active
+remaining=open: production alpha bitmap atlas renderer, frame-loop glyph source production, bitmap texture-array draw integration, glyphon TextAtlas cutover, live editor typography QA, LCD/gamma/background policy

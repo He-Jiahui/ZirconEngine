@@ -11,12 +11,13 @@ pub use geometry::{GeometryExtract, GeometryPhaseInput, StaticMeshBatchExtract};
 
 use super::{
     build_sprite_phase_queue, AntiAliasSettings, CameraRenderDescriptor, CorePipelineKind,
-    DisplayMode, FallbackSkyboxKind, PostProcessPassGraph, PostProcessStackDescriptor,
-    PostProcessVolumeExtract, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
-    RenderBakedLightingExtract, RenderBloomSettings, RenderCameraOrderReport, RenderCameraTarget,
-    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExposureSettings,
-    RenderFramePhaseQueueSummary, RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode,
-    RenderOverlayExtract, RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
+    DisplayMode, EnvironmentExtract, FallbackSkyboxKind, PostProcessPassGraph,
+    PostProcessStackDescriptor, PostProcessVolumeExtract, PreviewEnvironmentExtract,
+    RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderBloomSettings,
+    RenderCameraOrderReport, RenderCameraTarget, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderExposureSettings, RenderFramePhaseQueueSummary,
+    RenderHybridGiExtract, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
+    RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
     RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
     RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderQueueValue,
     RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings,
@@ -533,6 +534,7 @@ pub struct RenderFrameExtract {
     pub geometry: GeometryExtract,
     pub animation_poses: Vec<RenderSkeletalPoseExtract>,
     pub lighting: LightingExtract,
+    pub environment: EnvironmentExtract,
     pub post_process: PostProcessExtract,
     pub debug: DebugOverlayExtract,
     pub sprites: SpriteExtract,
@@ -594,6 +596,7 @@ impl RenderFrameExtract {
                 baked_lighting: None,
                 hybrid_global_illumination: None,
             },
+            environment: snapshot.environment.clone(),
             post_process: {
                 let mut post_process = PostProcessExtract::from_parts(
                     snapshot.preview.clone(),
@@ -633,6 +636,7 @@ impl RenderFrameExtract {
                 rect_lights: self.lighting.rect_lights.clone(),
             },
             overlays: self.debug.overlays.clone(),
+            environment: self.environment.clone(),
             preview: self.post_process.preview.clone(),
             virtual_geometry_debug: self.geometry.virtual_geometry_debug,
         }

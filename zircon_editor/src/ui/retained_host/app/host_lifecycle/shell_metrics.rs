@@ -1,10 +1,20 @@
 use super::super::*;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
+const SHELL_SCALE_FACTOR_EPSILON: f32 = 0.001;
+
 pub(in crate::ui::retained_host::app::host_lifecycle) fn ui_frame_is_visible(
     frame: &UiFrame,
 ) -> bool {
     frame.width > f32::EPSILON && frame.height > f32::EPSILON
+}
+
+fn normalized_shell_scale_factor(scale_factor: f32) -> f32 {
+    if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    }
 }
 
 impl RetainedEditorHost {
@@ -21,12 +31,16 @@ impl RetainedEditorHost {
             bootstrap.shell_frame.width.max(1.0),
             bootstrap.shell_frame.height.max(1.0),
         );
-        if (next.width - self.shell_size.width).abs() <= 0.5
-            && (next.height - self.shell_size.height).abs() <= 0.5
-        {
+        let next_scale_factor = normalized_shell_scale_factor(self.ui.window().scale_factor());
+        let size_changed = (next.width - self.shell_size.width).abs() > 0.5
+            || (next.height - self.shell_size.height).abs() > 0.5;
+        let scale_changed =
+            (next_scale_factor - self.shell_scale_factor).abs() > SHELL_SCALE_FACTOR_EPSILON;
+        if !size_changed && !scale_changed {
             return;
         }
         self.shell_size = next;
+        self.shell_scale_factor = next_scale_factor;
         self.invalidate_host(
             HostInvalidationMask::WINDOW_METRICS.union(HostInvalidationMask::PRESENTATION_DATA),
         );

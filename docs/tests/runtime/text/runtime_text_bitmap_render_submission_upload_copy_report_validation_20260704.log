@@ -1,0 +1,19 @@
+Runtime Text Bitmap Render Submission Upload Copy Report Validation - 2026-07-04
+
+Slice: render submission report now aggregates bitmap upload copy work separately from dirty-rect upload commands.
+Code files:
+  zircon_runtime/src/graphics/text/atlas/render_submission/report.rs
+  zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs
+
+Assertions added:
+  upload_copy_count records the number of GlyphAtlasBitmapUploadCopy entries.
+  upload_copy_byte_len sums source_byte_len across upload copies.
+  has_upload_copy_work() is true only when copy count and copied bytes are both non-zero.
+  retry submission reports carry nested upload copy totals.
+
+Local checks:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/render_submission/report.rs zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs : PASS
+  cargo/unit validation: DEFERRED because independent cargo/rustc validation lanes were already active in this workspace.
+
+Preview PNG: docs\tests\runtime\text\runtime_text_bitmap_render_submission_upload_copy_report_preview_20260704.png
+Preview SHA256: 4307D82C95B0E12DA948CA4327CC5023955AC1C206E1EBF1224ED41A8F7B0053

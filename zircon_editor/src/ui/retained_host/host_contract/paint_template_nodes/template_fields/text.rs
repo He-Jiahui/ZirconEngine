@@ -1,10 +1,10 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchTextFieldStyle;
-use super::super::template_field_stepper::STEPPER_WIDTH;
+use super::super::template_field_stepper::workbench_field_stepper_metrics;
 use super::super::template_node_labels::template_node_label;
+use super::metrics::workbench_field_metrics;
 use super::search::{search_field_label_is_placeholder, search_field_text_left};
-use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_field_text(
@@ -21,27 +21,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
     if label.trim().is_empty() {
         return;
     }
-    let metrics = current_host_metrics();
-    let line_height = metrics.line_height(metrics.font_body);
+    let metrics = workbench_field_metrics();
     let right_reserve = if stepper {
-        STEPPER_WIDTH + metrics.input_pad[1]
+        workbench_field_stepper_metrics().width + metrics.input_pad_right
     } else {
-        metrics.input_pad[1]
+        metrics.input_pad_right
     };
     let text_left = search_field_text_left(node);
     commands.push(HostPaintCommand::text(
         FrameRect {
             x: rect.x + text_left,
-            y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+            y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,
             width: (rect.width - text_left - right_reserve).max(1.0),
-            height: line_height,
+            height: metrics.line_height,
         },
         Some(clip.clone()),
         order,
         label,
         style.text,
-        metrics.font_body,
-        line_height,
+        metrics.font_size,
+        metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

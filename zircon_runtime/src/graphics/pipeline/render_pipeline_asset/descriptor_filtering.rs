@@ -95,9 +95,10 @@ fn filter_no_stack_post_process_resources(
 fn filter_no_stack_plugin_post_process_resources(
     mut descriptor: RenderFeatureDescriptor,
 ) -> RenderFeatureDescriptor {
-    descriptor
-        .stage_passes
-        .retain(|pass| pass.executor_id.as_str() != SMAA_EXECUTOR_ID);
+    descriptor.stage_passes.retain(|pass| {
+        pass.executor_id.as_str() != SMAA_EXECUTOR_ID
+            && !plugin_pass_references_scene_velocity(pass)
+    });
     descriptor
 }
 
@@ -140,6 +141,9 @@ fn filter_plugin_post_process_pass(
     if !plugin_post_process_pass_enabled(&pass, stack) {
         return None;
     }
+    if plugin_pass_requires_inactive_scene_velocity(&pass, stack) {
+        return None;
+    }
     if post_process_pass_can_be_filtered(
         BuiltinRenderFeature::PostProcess,
         pass.executor_id.as_str(),
@@ -155,6 +159,19 @@ fn plugin_post_process_pass_enabled(
 ) -> bool {
     pass.executor_id.as_str() != SMAA_EXECUTOR_ID
         || stack_effect_enabled(stack, PostProcessEffectKind::Smaa)
+}
+
+fn plugin_pass_requires_inactive_scene_velocity(
+    pass: &RenderFeaturePassDescriptor,
+    stack: &PostProcessStackDescriptor,
+) -> bool {
+    !post_process_stack_uses_scene_velocity(stack) && plugin_pass_references_scene_velocity(pass)
+}
+
+fn plugin_pass_references_scene_velocity(pass: &RenderFeaturePassDescriptor) -> bool {
+    pass.resources
+        .iter()
+        .any(|resource| resource.name == PostProcessGraphResourceNames::SCENE_VELOCITY)
 }
 
 fn filter_post_process_descriptor(

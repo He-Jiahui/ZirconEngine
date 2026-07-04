@@ -12,6 +12,10 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/register/event_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
+  - zircon_runtime/src/plugin/extension_registry/validation.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/token.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/component.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
@@ -61,6 +65,10 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/register/event_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
+  - zircon_runtime/src/plugin/extension_registry/validation.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/token.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/component.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/core/framework/bridge.rs
   - zircon_runtime/src/plugin/bridge.rs
@@ -102,6 +110,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_event_catalogs.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_components.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_systems.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs
@@ -161,6 +171,8 @@ Typed plugin ECS registration is the primary runtime path. Plugins intern their 
 
 Owner revocation is exposed through `RuntimeExtensionRegistry::revoke_owner_registrations(...)`. For typed extension points, it removes every row owned by the supplied `PluginModuleId`, rebuilds the remaining dense key/value/owner arrays, and returns an `ExtensionOwnership` summary containing the old removed slots for diagnostics and rollback reporting. Asset importers are not stored in `TypedExtensionPoint`, so they are revoked through `AssetImporterRegistry::remove_by_plugin_id(...)` using the `"<plugin_id>.runtime"` owner module suffix to recover the exact package `plugin_id`; this preserves dotted plugin ids such as `net.rpc` and prevents hot reload from leaving stale importer matchers behind.
 
+Programmatic extension metadata now follows the same package-owner identity shape. Component types, UI components, and scene hooks accept runtime package ids with dotted, non-empty lowercase segments such as `net.rpc` or `weather.layer`, while still rejecting uppercase, empty segments, trailing underscores, and repeated underscores. Manager registration intentionally stays on the legacy single-token contributor id because its plugin id is only used to intern the `"<plugin_id>.runtime"` owner for manager rows, not to mirror package-manifest package identity. The native host API adapter therefore projects `net.rpc.runtime` back to `net.rpc` and registers its component descriptor through the shared registry path without a native-host compatibility branch.
+
 Manifest-declared system anchors are validated against those owner-tracked ECS registrations. A runtime module row can declare `system_sets` and `system_anchors`, and the registration report accepts an anchor when either `plugin_systems()` or `plugin_runtime_systems()` contains a matching system id owned by the same interned module name. This prevents a package from satisfying `weather.runtime`'s `weather.tick` anchor by registering that system from `weather.tools`, and it avoids manifest-only anchors that would not participate in unload, hot reload, or schedule planning.
 
 Static first-party manifest coverage now includes `declared_system_anchors_are_registered`. The guard walks `zircon_plugins/**/plugin.toml`, finds runtime module rows with `system_anchors`, resolves the declaring `crate_name` through Cargo manifests, and requires the crate source to retain both a runtime-system registration path and the declared anchor id. It keeps the physics and animation `plugin.toml` anchors tied to their linked runtime-system code without making `zircon_runtime` depend on plugin crates.
@@ -196,3 +208,5 @@ Additional M5-T1 ABI evidence: `cargo test -p zircon_runtime_interface --lib abi
 Additional M5-T2 native adapter evidence: `rustfmt --edition 2021 --check zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs` passes after adding `NativeDynamicAccess` and the plan-facing `native_system_enters_schedule_as_conservative_node` alias. Earlier focused attempts hit stale target-dir dep-info output, lib-test compile/link timeout, process `-1` exits without Rust diagnostics, and one unrelated render-owned lib-test compile blocker; the later `cargo test -p zircon_runtime --lib native_system_enters_schedule_as_conservative_node --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-m5-check-coremin-0613b --message-format short --color never -- --test-threads=1 --nocapture` passes 1 focused test.
 
 Additional M5-T3 owner rollback evidence: `failed_registration_revoked_via_ownership` now exposes the plan-named failed-registration rollback filter by routing through `runtime_extension_registry_revokes_owner_tracked_contributions`. That underlying test removes owner-tracked components, options, events, resources, native systems, and asset importers for one plugin while preserving a second plugin owner. `rustfmt --edition 2021 --check zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs` passed, and direct execution of the warmed `zircon_runtime` lib-test binary passed `failed_registration_revoked_via_ownership`.
+
+Additional Frameworks02 dotted-owner evidence: `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-extension-registry-dotted-coremin-0704 --message-format short --color never` passes with existing warning noise after the registry package-id validator split. Focused tests pass for `runtime_extension_registry_accepts_dotted_component_plugin_ids`, `runtime_extension_registry_accepts_dotted_scene_hook_plugin_ids`, `native_host_api_v3_preserves_dotted_plugin_ids`, and the invalid component/UI/scene-hook plugin id filters. Direct module filters from the same lib-test binary pass `tests::plugin_extensions::extension_registry_components` 16/16, `tests::plugin_extensions::extension_registry_scene_hooks` 9/9, and `native_host` 16/16. A default-feature Cargo test attempt for the dotted component filter timed out during Windows lib-test link and is not accepted as evidence; full `zircon_runtime` lib-test and Frameworks02 integration remain separate gates.

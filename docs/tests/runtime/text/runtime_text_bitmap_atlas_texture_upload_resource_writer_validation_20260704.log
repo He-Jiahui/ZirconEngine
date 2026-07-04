@@ -1,0 +1,26 @@
+Runtime text bitmap atlas texture upload resource writer validation
+Date: 2026-07-04
+Slice: runtime_text_bitmap_atlas_texture_upload_resource_writer_rustfmt_static_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+
+Behavior/architecture validated:
+- The bitmap texture upload frame writer now has a UI-subtree handoff that targets GlyphAtlasTextureArrayResources instead of requiring renderer callers to extract a raw wgpu::Texture.
+- GlyphAtlasTextureArrayResources exposes only the texture reference currently needed by the writer; no unused view accessor was added.
+- The original fail-closed write path remains the single implementation: the resource writer delegates to write_glyph_atlas_bitmap_texture_upload_frame_plan(...), so Queue::write_texture still only runs when the frame plan is ready.
+- A compile-time unit-test signature guard locks the writer input to (&wgpu::Queue, &GlyphAtlasTextureArrayResources, &GlyphAtlasBitmapTextureUploadFramePlan<'_>) -> GlyphAtlasBitmapTextureUploadFrameReport.
+
+Fresh checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs: passed.
+- Explicit trailing-whitespace/conflict-marker scan over the untracked atlas_texture_upload owners: passed.
+- Static scan confirmed resource.rs has no unused view() accessor.
+- Active cargo/rustc lanes were present, so focused Cargo validation remains deferred.
+- Proof image inspected: docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_resource_writer_preview_20260704.png.
+- Proof image SHA256: 9F22304B5AEE302EAFADECEBD4CAA830A025FF033094812805D2B592DEE6CA33.
+
+Deferred:
+- Focused Cargo validation for bitmap_texture_upload_frame_resources_writer_targets_texture_array_resources remains deferred while external cargo/rustc lanes are active.

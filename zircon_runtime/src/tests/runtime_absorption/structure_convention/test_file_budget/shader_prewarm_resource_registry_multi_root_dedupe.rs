@@ -8,6 +8,7 @@ const TEST: &str = "shader_resource_records_from_asset_roots_deduplicates_duplic
 fn runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired() {
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let registry = read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
+    let project_record_export = read_runtime_src("asset/project/shader_resource_records.rs");
     let registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs");
     let auto_export_guard = read_runtime_src(
@@ -37,8 +38,17 @@ fn runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired() {
     );
 
     assert_contains_all(
-        "resource registry owner deduplicates multi-root shader records",
+        "resource registry owner delegates multi-root shader records to asset/project",
         &registry,
+        &[
+            "project_shader_resource_records_from_asset_roots",
+            "ShaderResourceRecordExportError",
+            "impl From<ShaderResourceRecordExportError> for ShaderPrewarmResourceRegistryError",
+        ],
+    );
+    assert_contains_all(
+        "asset/project owner deduplicates multi-root shader records",
+        &project_record_export,
         &[
             "shader_resource_records_from_asset_roots",
             "deduplicate_shader_resource_records",
@@ -76,6 +86,10 @@ fn runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired() {
         (
             "bin/zircon_shader_prewarm/manifest/resource_registry.rs",
             registry.as_str(),
+        ),
+        (
+            "asset/project/shader_resource_records.rs",
+            project_record_export.as_str(),
         ),
         (
             "bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",

@@ -14,7 +14,7 @@ use crate::{
 use super::{
     PluginDependencyManifest, PluginDistributionManifest, PluginEventCatalogManifest,
     PluginFeatureBundleManifest, PluginInterfaceManifest, PluginModuleKind, PluginModuleManifest,
-    PluginOptionManifest, PluginPackageKind, PluginPackageManifest,
+    PluginOptionManifest, PluginPackageKind, PluginPackageManifest, PluginShaderModuleManifest,
     PluginShaderPermutationIdManifest,
 };
 
@@ -427,6 +427,17 @@ impl PluginPackageManifest {
         self.shader_permutation
             .shading_model_ids
             .push(PluginShaderPermutationIdManifest::new(token, id));
+        self
+    }
+
+    pub fn with_shader_module(
+        mut self,
+        import_path: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Self {
+        self.shader_permutation
+            .shader_modules
+            .push(PluginShaderModuleManifest::new(import_path, source));
         self
     }
 

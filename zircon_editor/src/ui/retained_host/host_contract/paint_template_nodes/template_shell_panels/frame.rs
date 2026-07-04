@@ -72,6 +72,8 @@ mod tests {
             segment_selected_inset: 2.0,
             tab_underline_height: 2.0,
             selection_indicator_width: 2.0,
+            scrollbar_thickness: 8.0,
+            scrollbar_min_thumb_length: 24.0,
             gap_s: 4.0,
             gap_m: 8.0,
             gap_l: 12.0,

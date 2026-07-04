@@ -300,7 +300,7 @@ fn apply_color_depth_clear_state(
     render_region: ViewportRenderRegion,
     pass: &mut wgpu::RenderPass<'_>,
 ) {
-    render_region.apply_physical_to_render_pass(pass);
+    render_region.apply_local_to_render_pass(pass);
 }
 
 #[cfg(test)]

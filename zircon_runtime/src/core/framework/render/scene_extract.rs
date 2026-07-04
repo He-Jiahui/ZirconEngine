@@ -9,7 +9,10 @@ use super::light::{
     RenderAmbientLightSnapshot, RenderDirectionalLightSnapshot, RenderPointLightSnapshot,
     RenderRectLightSnapshot, RenderSpotLightSnapshot,
 };
-use super::{FallbackSkyboxKind, RenderLayerSet, RenderOverlayExtract, ViewportCameraSnapshot};
+use super::{
+    EnvironmentExtract, FallbackSkyboxKind, RenderLayerSet, RenderOverlayExtract, SkyboxMode,
+    ViewportCameraSnapshot,
+};
 
 pub const RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS: u32 = 16;
 pub const RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL: u32 =
@@ -524,6 +527,25 @@ pub struct PreviewEnvironmentExtract {
     pub clear_color: Vec4,
 }
 
+impl PreviewEnvironmentExtract {
+    pub fn from_environment(
+        environment: &EnvironmentExtract,
+        lighting_enabled: bool,
+        clear_color: Vec4,
+    ) -> Self {
+        Self {
+            lighting_enabled,
+            skybox_enabled: environment.skybox_enabled(),
+            fallback_skybox: match environment.skybox.mode {
+                SkyboxMode::Disabled => FallbackSkyboxKind::None,
+                SkyboxMode::ProceduralGradient => FallbackSkyboxKind::ProceduralGradient,
+                SkyboxMode::SampledEquirectangular => FallbackSkyboxKind::None,
+            },
+            clear_color,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderSceneGeometryExtract {
     pub camera: ViewportCameraSnapshot,
@@ -539,6 +561,7 @@ pub struct RenderSceneGeometryExtract {
 pub struct SceneViewportRenderPacket {
     pub scene: RenderSceneGeometryExtract,
     pub overlays: RenderOverlayExtract,
+    pub environment: EnvironmentExtract,
     pub preview: PreviewEnvironmentExtract,
     pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
 }

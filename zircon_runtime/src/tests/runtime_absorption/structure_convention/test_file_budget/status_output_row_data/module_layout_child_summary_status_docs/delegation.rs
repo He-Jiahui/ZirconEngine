@@ -4,6 +4,8 @@ use super::*;
 fn runtime_15_module_layout_child_summary_status_docs_guard_is_folder_backed() {
     let status_output_row_data_parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let status_doc_parent = read_runtime_src(CHILD_SUMMARY_STATUS_DOCS_GUARD_PATH);
+    let child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
 
     assert_contains_all(
         "status-output row-data guard mounts module-layout child-summary status-doc child",
@@ -20,9 +22,12 @@ fn runtime_15_module_layout_child_summary_status_docs_guard_is_folder_backed() {
             &[
                 &format!("#[path = \"module_layout_child_summary_status_docs/{module_name}.rs\"]"),
                 &format!("mod {module_name};"),
-                path,
-                guard_name,
             ],
+        );
+        assert_contains_all(
+            "module-layout child-summary status-doc child inventory lists focused children",
+            &child_inventory,
+            &[path, guard_name],
         );
         assert_contains_all(
             "module-layout child-summary status-doc child keeps expected guard anchor",
@@ -32,7 +37,7 @@ fn runtime_15_module_layout_child_summary_status_docs_guard_is_folder_backed() {
     }
     assert_contains_all(
         "module-layout child-summary status-doc route parent records historical and folder-backed status",
-        &status_doc_parent,
+        &status_inventory,
         &[
             HISTORICAL_STATUS_NAME,
             HISTORICAL_STATUS_ID,

@@ -9,6 +9,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::painter_state::UiRenderPainterStateSource;
+use crate::ui::text::measure_text_size;
 
 const DIALOG_PADDING_X: f32 = 20.0;
 const DIALOG_TITLE_TOP: f32 = 18.0;
@@ -16,7 +17,7 @@ const DIALOG_BODY_TOP: f32 = 48.0;
 const DIALOG_ACTION_BOTTOM: f32 = 20.0;
 const DIALOG_ACTION_GAP: f32 = 16.0;
 const DIALOG_ACTION_MIN_WIDTH: f32 = 56.0;
-const DIALOG_ACTION_CHAR_WIDTH: f32 = 7.0;
+const DIALOG_ACTION_TEXT_PADDING_X: f32 = 10.0;
 const DIALOG_TITLE_FONT_SIZE: f32 = 15.0;
 const DIALOG_TITLE_LINE_HEIGHT: f32 = 18.0;
 const DIALOG_BODY_FONT_SIZE: f32 = 12.5;
@@ -461,7 +462,13 @@ fn severity_border_color(metadata: &UiTemplateNodeMetadata) -> &'static str {
 }
 
 fn action_width(text: &str) -> f32 {
-    (text.chars().count() as f32 * DIALOG_ACTION_CHAR_WIDTH + 20.0).max(DIALOG_ACTION_MIN_WIDTH)
+    let style = UiResolvedStyle {
+        font_size: DIALOG_ACTION_FONT_SIZE,
+        line_height: DIALOG_ACTION_LINE_HEIGHT,
+        ..UiResolvedStyle::default()
+    };
+    (measure_text_size(text, &style).width + DIALOG_ACTION_TEXT_PADDING_X * 2.0)
+        .max(DIALOG_ACTION_MIN_WIDTH)
 }
 
 fn border_width(metadata: &UiTemplateNodeMetadata) -> f32 {

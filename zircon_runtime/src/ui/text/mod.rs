@@ -23,8 +23,11 @@ pub(crate) use grapheme::{
 };
 pub(crate) use hit_test::{hit_test_text_layout, UiTextHitTest};
 pub(crate) use layout_engine::resolve_text_direction;
+pub(crate) use measure_cache::UiTextMeasureCache;
 #[cfg(test)]
-pub(crate) use measure_cache::{UiTextMeasureCache, UiWidthBucket};
-pub(crate) use resolved_layout::{resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest};
+pub(crate) use measure_cache::UiWidthBucket;
+pub(crate) use resolved_layout::{
+    resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest, UiTextLayoutResolution,
+};
 pub use shaper::layout_text;
 pub(crate) use shaper::{measure_text_size, measure_text_source_range_width};

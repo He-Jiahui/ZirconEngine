@@ -22,6 +22,8 @@ pub(in crate::ui::retained_host::host_contract) struct HostControlMetrics {
     pub segment_selected_inset: f32,
     pub tab_underline_height: f32,
     pub selection_indicator_width: f32,
+    pub scrollbar_thickness: f32,
+    pub scrollbar_min_thumb_length: f32,
     pub gap_s: f32,
     pub gap_m: f32,
     pub gap_l: f32,
@@ -52,6 +54,8 @@ pub(in crate::ui::retained_host::host_contract) const METRICS: HostControlMetric
         segment_selected_inset: 2.0,
         tab_underline_height: 2.0,
         selection_indicator_width: 2.0,
+        scrollbar_thickness: 8.0,
+        scrollbar_min_thumb_length: 24.0,
         gap_s: 4.0,
         gap_m: 8.0,
         gap_l: 12.0,
@@ -103,6 +107,8 @@ pub(in crate::ui::retained_host::host_contract) fn project_host_metrics(
         segment_selected_inset: controls.border_width * 2.0,
         tab_underline_height: controls.border_width * 2.0,
         selection_indicator_width: controls.border_width * 2.0,
+        scrollbar_thickness: density.gap_medium.max(controls.border_width * 4.0),
+        scrollbar_min_thumb_length: density.row_height.max(density.gap_medium * 2.0),
         gap_s: density.gap_small,
         gap_m: density.gap_medium,
         gap_l: density.gap_large,
@@ -131,6 +137,8 @@ mod tests {
         assert_eq!(METRICS.button_pressed_offset_y, 1.0);
         assert_eq!(METRICS.input_pad, [8.0, 8.0, 3.0, 4.0]);
         assert_eq!(METRICS.selection_indicator_width, 2.0);
+        assert_eq!(METRICS.scrollbar_thickness, 8.0);
+        assert_eq!(METRICS.scrollbar_min_thumb_length, 24.0);
         assert_eq!(METRICS.line_height(METRICS.font_body), 12.0);
     }
 
@@ -150,5 +158,7 @@ mod tests {
         assert_eq!(metrics.font_body, 11.0);
         assert_eq!(metrics.gap_m, 7.0);
         assert_eq!(metrics.row_height, 26.0);
+        assert_eq!(metrics.scrollbar_thickness, 7.0);
+        assert_eq!(metrics.scrollbar_min_thumb_length, 26.0);
     }
 }

@@ -22,7 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ho
         return;
     }
 
-    let (label_left, label_right) = horizontal_label_bounds(node, line_start, line_end, &label);
+    let (label_left, label_right) =
+        horizontal_label_bounds(node, rect, line_start, line_end, &label);
 
     push_horizontal_line(
         commands, line_start, label_left, line_y, clip, order, node, opacity,

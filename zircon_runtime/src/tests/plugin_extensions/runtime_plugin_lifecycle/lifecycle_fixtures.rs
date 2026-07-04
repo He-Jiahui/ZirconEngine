@@ -163,7 +163,9 @@ impl RuntimePlugin for ReadyOrderPlugin<'_> {
             .any(|module| module.name == "weather.runtime"));
         assert!(context.capabilities.has("runtime.plugin.weather"));
         if self.expect_feature_capability {
-            assert!(context.capabilities.has("runtime.feature.sound.occlusion"));
+            assert!(context
+                .capabilities
+                .has("runtime.feature.weather.occlusion"));
         }
         Ok(self.ready_result)
     }
@@ -348,19 +350,19 @@ impl<'a> ReadyOrderFeature<'a> {
 
 impl RuntimePluginFeature for ReadyOrderFeature<'_> {
     fn manifest(&self) -> PluginFeatureBundleManifest {
-        PluginFeatureBundleManifest::new("sound.occlusion", "Sound Occlusion", "sound")
+        PluginFeatureBundleManifest::new("weather.occlusion", "Weather Occlusion", "weather")
             .with_dependency(PluginFeatureDependency::primary(
                 "weather",
                 "runtime.plugin.weather",
             ))
-            .with_capability("runtime.feature.sound.occlusion")
+            .with_capability("runtime.feature.weather.occlusion")
             .with_runtime_module(
                 PluginModuleManifest::runtime(
-                    "sound.occlusion.runtime",
-                    "zircon_plugin_sound_occlusion_runtime",
+                    "weather.occlusion.runtime",
+                    "zircon_plugin_weather_occlusion_runtime",
                 )
                 .with_target_modes([RuntimeTargetMode::ClientRuntime])
-                .with_capabilities(["runtime.feature.sound.occlusion"]),
+                .with_capabilities(["runtime.feature.weather.occlusion"]),
             )
     }
 
@@ -370,8 +372,8 @@ impl RuntimePluginFeature for ReadyOrderFeature<'_> {
     ) -> Result<(), RuntimeExtensionRegistryError> {
         self.log.borrow_mut().push("feature.register");
         registry.register_module(ModuleDescriptor::new(
-            "sound.occlusion.runtime",
-            "sound occlusion runtime module",
+            "weather.occlusion.runtime",
+            "weather occlusion runtime module",
         ))
     }
 
@@ -384,9 +386,11 @@ impl RuntimePluginFeature for ReadyOrderFeature<'_> {
             .registry
             .modules()
             .iter()
-            .any(|module| module.name == "sound.occlusion.runtime"));
+            .any(|module| module.name == "weather.occlusion.runtime"));
         assert!(context.capabilities.has("runtime.plugin.weather"));
-        assert!(context.capabilities.has("runtime.feature.sound.occlusion"));
+        assert!(context
+            .capabilities
+            .has("runtime.feature.weather.occlusion"));
         Ok(self.ready_result)
     }
 

@@ -1,0 +1,22 @@
+
+running 1 test
+
+thread 'graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on' (37020) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a pass parameter
+      Attachments have differing sizes: the depth attachment's texture view has extent (160, 120, 1) but is followed by the color attachment at index 0's texture view which has (80, 60, 1)
+
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6445 filtered out; finished in 4.81s
+

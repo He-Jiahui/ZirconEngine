@@ -1,0 +1,6 @@
+
+running 1 test
+test tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data::runtime_15_lock_poison_status_row_data_children::status_mirrors::runtime_15_lock_poison_status_row_data_status_mirror_children_are_child_owned ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6394 filtered out; finished in 0.06s
+

@@ -1,9 +1,12 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_style::template_corner_radius;
+use super::super::metrics::{linear_progress_radius, material_feedback_metrics};
 use super::super::state::{
     progress_fill_color, progress_is_indeterminate, progress_percent, progress_track_color,
 };
+
+const INDETERMINATE_SEGMENTS: [(f32, f32); 2] = [(0.12, 0.36), (0.62, 0.24)];
 
 pub(super) fn push_linear_progress_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,9 +16,11 @@ pub(super) fn push_linear_progress_commands(
     order: i32,
     opacity: f32,
 ) {
-    let radius = template_corner_radius(node)
-        .max((rect.height * 0.5).min(2.0))
-        .max(0.0);
+    let radius = linear_progress_radius(
+        template_corner_radius(node),
+        rect.height,
+        material_feedback_metrics(),
+    );
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
@@ -29,7 +34,7 @@ pub(super) fn push_linear_progress_commands(
 
     let fill = progress_fill_color(node);
     if progress_is_indeterminate(node) {
-        for (x_factor, width_factor) in [(0.12, 0.36), (0.62, 0.24)] {
+        for (x_factor, width_factor) in INDETERMINATE_SEGMENTS {
             let bar = FrameRect {
                 x: rect.x + rect.width * x_factor,
                 y: rect.y,

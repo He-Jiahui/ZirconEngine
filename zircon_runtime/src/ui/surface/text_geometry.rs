@@ -103,6 +103,37 @@ mod tests {
         assert_eq!(frame, UiFrame::new(34.0, 20.0, 1.0, 12.0));
     }
 
+    #[test]
+    fn surface_text_caret_frame_rejects_unresolved_auto_direction_source_metrics() {
+        let style = UiResolvedStyle {
+            font_size: 10.0,
+            line_height: 12.0,
+            ..UiResolvedStyle::default()
+        };
+        let text = "Wi";
+        let mut layout = layout_with_advances(text, vec![2.0, 20.0]);
+        layout.direction = UiTextDirection::Auto;
+        let caret = UiTextCaret {
+            offset: "W".len(),
+            affinity: UiTextCaretAffinity::Downstream,
+        };
+
+        let frame =
+            text_caret_frame_for_layout(&layout, &caret, text, &style).expect("caret frame");
+        let selection = text_range_frames_for_layout(
+            &layout,
+            UiTextRange {
+                start: 0,
+                end: "W".len(),
+            },
+            text,
+            &style,
+        );
+
+        assert_eq!(frame, UiFrame::new(12.0, 20.0, 1.0, 12.0));
+        assert_eq!(selection, vec![UiFrame::new(10.0, 20.0, 2.0, 12.0)]);
+    }
+
     fn layout_with_advances(text: &str, glyph_advances: Vec<f32>) -> UiResolvedTextLayout {
         UiResolvedTextLayout {
             font_size: 10.0,
@@ -111,6 +142,7 @@ mod tests {
                 start: 0,
                 end: text.len(),
             },
+            direction: UiTextDirection::LeftToRight,
             lines: vec![UiResolvedTextLine {
                 text: text.to_string(),
                 frame: UiFrame::new(10.0, 20.0, 30.0, 12.0),

@@ -1,5 +1,7 @@
 use crate::plugin::{RuntimeExtensionRegistryError, SceneRuntimeHookRegistration};
 
+use super::is_lowercase_plugin_package_id;
+
 pub(in crate::plugin::extension_registry) fn validate_scene_hook_registration(
     registration: &SceneRuntimeHookRegistration,
 ) -> Result<(), RuntimeExtensionRegistryError> {
@@ -7,7 +9,7 @@ pub(in crate::plugin::extension_registry) fn validate_scene_hook_registration(
     validate_scene_hook_field("id", &descriptor.id)?;
     validate_scene_hook_namespace("id", &descriptor.id)?;
     validate_scene_hook_field("plugin_id", &descriptor.plugin_id)?;
-    validate_scene_hook_token("plugin_id", &descriptor.plugin_id)?;
+    validate_scene_hook_plugin_id(&descriptor.plugin_id)?;
     let expected_prefix = format!("{}.", descriptor.plugin_id);
     if !descriptor.id.starts_with(&expected_prefix) {
         return Err(RuntimeExtensionRegistryError::InvalidSceneHook(format!(
@@ -46,16 +48,10 @@ fn validate_scene_hook_namespace(
     Ok(())
 }
 
-fn validate_scene_hook_token(
-    field_name: &str,
-    value: &str,
-) -> Result<(), RuntimeExtensionRegistryError> {
-    if !value
-        .bytes()
-        .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
-    {
+fn validate_scene_hook_plugin_id(plugin_id: &str) -> Result<(), RuntimeExtensionRegistryError> {
+    if !is_lowercase_plugin_package_id(plugin_id) {
         return Err(RuntimeExtensionRegistryError::InvalidSceneHook(format!(
-            "{field_name} `{value}` must contain only lowercase ASCII letters, digits, and underscores"
+            "plugin_id `{plugin_id}` must start with a lowercase ASCII letter and contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments without trailing or repeated underscores"
         )));
     }
     Ok(())

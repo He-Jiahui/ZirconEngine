@@ -2,6 +2,7 @@ use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 
 mod menu;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) mod metrics;
 mod options;
 mod surface;
 mod text;

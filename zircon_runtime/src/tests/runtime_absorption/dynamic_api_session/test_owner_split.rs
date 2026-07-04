@@ -97,7 +97,7 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
         (
             "runtime_errors",
             runtime_errors,
-            "runtime_session_error_preserves_step_when_inner_error_is_empty",
+            "runtime_session_error_preserves_step_and_typed_source",
         ),
     ] {
         assert!(

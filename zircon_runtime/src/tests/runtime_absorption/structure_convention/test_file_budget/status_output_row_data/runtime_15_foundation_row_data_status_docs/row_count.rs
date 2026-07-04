@@ -90,7 +90,7 @@ fn runtime_15_foundation_row_data_row_count_children_are_child_owned() {
 
 #[test]
 fn runtime_15_foundation_row_data_row_count_child_split_is_status_recorded() {
-    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_PATH);
+    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_STATUS_DOCS_PATH);
     let status_map = read_runtime_src(STATUS_SUPPORT_STATUS_MAP_PATH);
     let date_map = read_runtime_src(STATUS_SUPPORT_DATE_MAP_PATH);
 

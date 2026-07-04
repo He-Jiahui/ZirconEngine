@@ -5,13 +5,14 @@ use crate::ui::retained_host::{
     paint_template_nodes_for_test, TemplateNodeFrameData, TemplatePaneActionData,
     TemplatePaneNodeData,
 };
+use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 
 const BACKGROUND: [u8; 4] = [0, 0, 0, 255];
-const DIALOG_SURFACE: [u8; 4] = [23, 28, 32, 255];
-const DIALOG_ACTIVE_BORDER: [u8; 4] = [53, 199, 208, 255];
-const DIALOG_ERROR: [u8; 4] = [239, 112, 102, 255];
-const DIALOG_ERROR_BORDER: [u8; 4] = [133, 61, 58, 255];
-const DIALOG_DISABLED_TEXT: [u8; 4] = [89, 101, 108, 255];
+const DIALOG_SURFACE: [u8; 4] = EditorPaletteTokens::WORKBENCH_POPUP;
+const DIALOG_ACTIVE_BORDER: [u8; 4] = EditorPaletteTokens::WORKBENCH_FOCUS_RING;
+const DIALOG_ERROR: [u8; 4] = EditorPaletteTokens::WORKBENCH_ERROR;
+const DIALOG_ERROR_BORDER: [u8; 4] = EditorPaletteTokens::WORKBENCH_ERROR_CONTAINER;
+const DIALOG_DISABLED_TEXT: [u8; 4] = EditorPaletteTokens::WORKBENCH_TEXT_DISABLED;
 
 #[test]
 fn native_template_painter_draws_open_dialog_panel_text_and_action() {

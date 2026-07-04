@@ -71,7 +71,7 @@ impl DeferredSceneResources {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !render_region.apply_physical_to_render_pass(&mut pass) {
+        if !render_region.apply_local_to_render_pass(&mut pass) {
             return MeshDrawReplayStats::default();
         }
         pass.set_bind_group(0, scene_bind_group, &[]);

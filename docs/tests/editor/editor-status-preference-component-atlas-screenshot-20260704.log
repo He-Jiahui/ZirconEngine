@@ -1,0 +1,684 @@
+   Compiling zircon_runtime v0.1.0 (E:\Git\ZirconEngine\zircon_runtime)
+zircon_runtime\src\core\framework\render\frame_extract.rs:20:35: warning: unused imports: `RenderPhaseQueueSummary` and `RenderPhaseQueue`
+zircon_runtime\src\core\framework\render\material\readiness_report.rs:7:47: warning: unused import: `RenderMaterialPropertyValue`
+zircon_runtime\src\core\framework\render\shader\mod.rs:86:5: warning: unused import: `ShaderVariantPrewarmWrittenVariant`
+zircon_runtime\src\dynamic_api\session\extract.rs:5:5: warning: unused import: `super::extract_cache::RuntimeFrameExtractCacheStatus`
+zircon_runtime\src\dynamic_api\mod.rs:12:16: warning: unused import: `shader_prewarm::builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models`
+zircon_runtime\src\asset\formats\obj\mod.rs:10:40: warning: unused import: `ObjDecodeResult`
+zircon_runtime\src\scene\world\project_io.rs:7:56: warning: unused imports: `SceneBloomSettingsAsset`, `SceneCameraAsset`, `SceneCameraTargetAsset`, `SceneChromaticAberrationSettingsAsset`, `SceneColliderShapeAsset`, `SceneColorGradingSettingsAsset`, `SceneDitherSettingsAsset`, `SceneFilmGrainSettingsAsset`, `SceneFogSettingsAsset`, `ScenePostProcessEffectStackAsset`, `ScenePostProcessSettingsAsset`, `ScenePostProcessVolumeAsset`, `ScenePostProcessVolumeProfileAsset`, `SceneScriptBindingAsset`, `SceneTonemapOperatorAsset`, `SceneTonemapSettingsAsset`, `SceneViewportRectAsset`, and `SceneVignetteSettingsAsset`
+zircon_runtime\src\scene\world\project_io.rs:20:5: warning: unused import: `crate::asset::AssetReference`
+zircon_runtime\src\scene\world\project_io.rs:23:57: warning: unused imports: `ResourceHandle`, `ResourceMarker`, `ResourceScheme`, and `TextureMarker`
+zircon_runtime\src\scene\world\project_io.rs:39:5: warning: unused imports: `RenderBloomSettings`, `RenderCameraTarget`, `RenderChromaticAberrationSettings`, `RenderColorGradingSettings`, `RenderDitherSettings`, `RenderFilmGrainSettings`, `RenderFogSettings`, `RenderPostProcessEffectStackSettings`, `RenderPostProcessVolumeProfile`, `RenderTonemapOperator`, `RenderTonemapSettings`, `RenderViewportRect`, and `RenderVignetteSettings`
+zircon_runtime\src\scene\world\project_io.rs:47:79: warning: unused imports: `ColliderShape`, `PostProcessSettingsComponent`, and `PostProcessVolumeComponent`
+zircon_runtime\src\ui\accessibility\action\range.rs:3:21: warning: unused import: `UiAccessibilityAction`
+zircon_runtime\src\ui\text\mod.rs:16:5: warning: unused imports: `caret_frame_for_text_layout` and `text_range_frames_for_text_layout`
+zircon_runtime\src\ui\text\mod.rs:24:49: warning: unused import: `UiTextHitTest`
+zircon_runtime\src\graphics\material\mod.rs:5:5: warning: unused import: `ShadingModelIncludeSource`
+zircon_runtime\src\graphics\scene\gpu_scene\prev_transform.rs:2:5: warning: unused import: `super::layout::GPU_INSTANCE_DATA_STRIDE`
+zircon_runtime\src\graphics\scene\gpu_scene\mod.rs:19:60: warning: unused imports: `GPU_INSTANCE_DATA_STRIDE`, `GPU_MORPH_DELTA_STRIDE`, `GPU_MORPH_PAYLOAD_STRIDE`, `GPU_MORPH_WEIGHT_STRIDE`, and `GPU_PRIMITIVE_DATA_STRIDE`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract.rs:12:49: warning: unused import: `PendingMeshGeometry`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\virtual_geometry_resident_upload.rs:9:29: warning: unused import: `GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:4:41: warning: unused import: `RenderPhaseSortComponents`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:16:5: warning: unused imports: `INDIRECT_COMPACTION_UNUSED_INSTANCE_INDEX` and `IndirectCompactionBatchMetadata`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:22:45: warning: unused import: `IndirectDrawBatcherStats`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:25:54: warning: unused import: `MeshIndirectArgsSnapshot`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:34:5: warning: unused import: `MeshDrawCommandListStats`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:37:5: warning: unused import: `MeshBatchCacheIdentity`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:40:5: warning: unused imports: `DepthPrepassProcessor`, `OpaqueBasePassProcessor`, `ShadowPassProcessor`, `TaaReactiveMaskPassProcessor`, `TransparentPassProcessor`, and `VelocityPassProcessor`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:45:30: warning: unused import: `GPU_SCENE_BIND_GROUP_SLOT`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mod.rs:10:39: warning: unused import: `IndexedIndirectArgs`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mod.rs:30:5: warning: unused import: `prepare_mesh_queue`
+zircon_runtime\src\graphics\scene\scene_renderer\post_process\mod.rs:24:5: warning: unused import: `wgpu_post_process_texture_format`
+zircon_runtime\src\graphics\scene\scene_renderer\mod.rs:48:5: warning: unused imports: `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT`, `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT`, and `SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT`
+zircon_runtime\src\graphics\scene\mod.rs:21:17: warning: unused imports: `FALLBACK_MESH_SHADER`, `ShadowAtlasAllocator`, `ShadowAtlasResourceConfig`, `ShadowLightSlotAssignment`, `build_light_grid_for_frame`, `build_shadow_frame_plan`, `mesh_pipeline_standard_material_template_source_for_geometry`, `mesh_pipeline_standard_material_template_source`, and `pack_lighting_extract`
+zircon_runtime\src\graphics\shader\template\mod.rs:20:5: warning: unused imports: `StandardMaterialSurfaceSource` and `standard_material_surface_source`
+zircon_runtime\src\graphics\shader\template\mod.rs:28:5: warning: unused imports: `MaterialShaderTemplateValidation`, `ShaderTemplateValidationError`, and `validate_material_shader_template_wgsl`
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:5:47: warning: unused import: `GlyphAtlasScreenRect`
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:12:70: warning: unused imports: `GlyphAtlasGpuSamplerBindingType`, `GlyphAtlasGpuSamplerBinding`, `GlyphAtlasGpuTextureBinding`, `GlyphAtlasGpuTextureSampleType`, and `GlyphAtlasGpuTextureViewDimension`
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:17:5: warning: unused imports: `GlyphAtlasGpuPrimitiveTopology` and `glyph_atlas_gpu_batch_contract`
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:21:71: warning: unused import: `GlyphAtlasGpuPipelineKey`
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:24:64: warning: unused imports: `GlyphAtlasGpuVertexAttributeFormat`, `GlyphAtlasGpuVertexAttributeSemantic`, and `GlyphAtlasGpuVertexAttribute`
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:29:41: warning: unused import: `GlyphAtlasGpuPixelCoordinateConvention`
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:5:5: warning: unused imports: `GlyphAtlasFormat` and `GlyphSmoothingMode`
+zircon_runtime\src\graphics\text\atlas\render_submission.rs:16:5: warning: unused imports: `GlyphAtlasBitmapPlaceholderDrawPlan`, `GlyphAtlasBitmapPlaceholderDraw`, and `glyph_atlas_bitmap_placeholder_draw_plan`
+zircon_runtime\src\graphics\text\atlas\mod.rs:17:5: warning: unused imports: `GlyphAtlasBitmapAllocationFailure`, `GlyphAtlasBitmapGlyph`, `GlyphAtlasBitmapRetryPlan`, `GlyphAtlasBitmapRetrySourceOrigin`, `GlyphAtlasBitmapStagedUploadFailureReason`, `GlyphAtlasBitmapStagedUploadFailure`, `GlyphAtlasBitmapStagedUploadPlan`, `GlyphAtlasBitmapStagedUpload`, `GlyphAtlasBitmapUploadCopy`, `GlyphAtlasBitmapUploadSourceBytes`, `GlyphAtlasBitmapUploadStagingFailureReason`, `GlyphAtlasBitmapUploadStagingFailure`, `GlyphAtlasBitmapUploadStagingPlan`, `glyph_atlas_bitmap_prepared_upload_plan`, `glyph_atlas_bitmap_retry_frame_input`, `glyph_atlas_bitmap_retry_plan_with_backpressure`, `glyph_atlas_bitmap_retry_plan`, `glyph_atlas_bitmap_staged_upload_plan`, and `glyph_atlas_bitmap_upload_staging_plan`
+zircon_runtime\src\graphics\text\atlas\mod.rs:46:5: warning: unused imports: `GlyphHintingMode`, `GlyphRasterKey`, `GlyphRasterRequest`, and `SyntheticGlyphStyle`
+zircon_runtime\src\graphics\text\atlas\mod.rs:50:5: warning: unused imports: `GlyphAtlasBitmapRenderSubmissionPlan`, `GlyphAtlasBitmapRenderSubmissionReport`, `GlyphAtlasBitmapRetryFrameDriverConfig`, `GlyphAtlasBitmapRetryFrameDriverOutput`, `GlyphAtlasBitmapRetryFrameStateReport`, `GlyphAtlasBitmapRetryFrameState`, `GlyphAtlasBitmapRetryFrameSubmissionPlan`, `GlyphAtlasBitmapRetryFrameSubmissionReport`, `glyph_atlas_bitmap_render_submission_plan_with_padding`, `glyph_atlas_bitmap_render_submission_plan`, `glyph_atlas_bitmap_render_submission_report`, `glyph_atlas_bitmap_retry_frame_driver_submit_with_config`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_padding`, `glyph_atlas_bitmap_retry_frame_submission_plan`, and `glyph_atlas_bitmap_retry_frame_submission_report`
+zircon_runtime\src\graphics\text\font\database.rs:10:17: warning: unused imports: `FontStretch`, `FontStyle`, and `FontWeight`
+zircon_runtime\src\graphics\text\raster\swash\mod.rs:9:38: warning: unused import: `GlyphBitmapContent`
+zircon_runtime\src\graphics\text\raster\mod.rs:7:5: warning: unused imports: `GlyphRasterEffects`, `GlyphRasterPath`, `GlyphRasterPolicyRequest`, `GlyphRasterPolicy`, `raster_path_for_request`, and `raster_path_for`
+zircon_runtime\src\graphics\text\raster\mod.rs:11:5: warning: unused imports: `ColorGlyphBitmapStrikeFit`, `ColorGlyphBitmapStrikeSelection`, `ColorGlyphBitmapStrike`, `ColorGlyphRasterPlan`, `GlyphBitmapError`, `GlyphBitmap`, `SwashBitmapStrike`, `SwashRasterError`, `SwashRasterImageContent`, `SwashRasterRequest`, `SwashRasterSource`, `SwashRasterizer`, `color_glyph_raster_plan`, `glyph_atlas_bitmap_source_from_glyph_bitmap`, and `select_color_bitmap_strike`
+zircon_runtime\src\rhi_wgpu\mod.rs:14:18: warning: unused imports: `WgpuCommandList` and `WgpuRenderDevice`
+zircon_runtime\src\asset\importer\ingest\import_font_asset\parse_sfnt.rs:65:14: warning: use of deprecated method `ttf_parser::Face::<'a>::table_data`: use `self.raw_face().table()` instead
+zircon_runtime\src\dynamic_api\runtime_loop.rs:40:9: warning: variable does not need to be mutable
+zircon_runtime\src\dynamic_api\runtime_loop.rs:89:9: warning: variable does not need to be mutable
+zircon_runtime\src\ui\accessibility\action.rs:36:9: warning: variable does not need to be mutable
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:234:9: warning: variable does not need to be mutable
+zircon_runtime\src\plugin\runtime_plugin\feature_registration_report\project_selection.rs:14:9: warning: variable does not need to be mutable
+zircon_runtime\src\asset\artifact\cache_payload.rs:33:12: warning: type `ArtifactCacheShaderAsset` is more private than the item `ArtifactCacheAsset::Shader::0`: field `ArtifactCacheAsset::Shader::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:34:14: warning: type `ArtifactCacheMaterialAsset` is more private than the item `ArtifactCacheAsset::Material::0`: field `ArtifactCacheAsset::Material::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:48:10: warning: type `ArtifactCacheMeshAsset` is more private than the item `ArtifactCacheAsset::Mesh::0`: field `ArtifactCacheAsset::Mesh::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:54:14: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiLayout::0`: field `ArtifactCacheAsset::UiLayout::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:55:14: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiWidget::0`: field `ArtifactCacheAsset::UiWidget::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:56:13: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiStyle::0`: field `ArtifactCacheAsset::UiStyle::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:59:14: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2View::0`: field `ArtifactCacheAsset::UiV2View::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:60:19: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2Component::0`: field `ArtifactCacheAsset::UiV2Component::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:61:15: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2Style::0`: field `ArtifactCacheAsset::UiV2Style::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload\json_value.rs:20:12: warning: type `ArtifactCacheJsonNumber` is more private than the item `ArtifactCacheJsonValue::Number::0`: field `ArtifactCacheJsonValue::Number::0` is reachable at visibility `pub(in crate::asset::artifact::cache_payload)`
+zircon_runtime\src\scene\ecs\messages\cursor.rs:84:5: warning: type `MessageInstance<T>` is more private than the item `MessageReadIter::<'a, T>::new`: associated function `MessageReadIter::<'a, T>::new` is reachable at visibility `pub(crate)`
+zircon_runtime\src\graphics\scene\scene_renderer\ui\text.rs:54:5: warning: type `ScreenSpaceUiTextFontIdReport` is more private than the item `ScreenSpaceUiTextPrepareReport::native_font_ids`: field `ScreenSpaceUiTextPrepareReport::native_font_ids` is reachable at visibility `pub(in crate::graphics::scene::scene_renderer::ui)`
+zircon_runtime\src\core\framework\scene\property_value.rs:27:19: warning: struct `ScenePropertyEntry` is never constructed
+zircon_runtime\src\core\framework\scene\property_value.rs:34:19: warning: associated function `new` is never used
+zircon_runtime\src\dynamic_api\runtime_loop.rs:38:19: warning: methods `submit_extract` and `present_extract` are never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:314:15: warning: function `builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:339:4: warning: function `builtin_standard_material_shader_prewarm_manifest_for_geometry_descriptor_with_plugin_shading_models` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:474:8: warning: struct `PluginShadingModelTemplateSource` is never constructed
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:481:8: warning: associated function `from_template` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:496:4: warning: function `builtin_standard_material_template_source_for_plugin_shading_model_and_pass` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:525:4: warning: function `plugin_shading_model_material_template_source` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:551:4: warning: function `plugin_shading_model_gbuffer_template_source` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:576:4: warning: function `plugin_shading_model_taa_reactive_mask_template_source` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:594:4: warning: function `plugin_shading_model_descriptor_for_pipeline_key` is never used
+zircon_runtime\src\dynamic_api\shader_prewarm.rs:610:4: warning: function `prewarm_alpha_cutoff` is never used
+zircon_runtime\src\asset\pipeline\worker_pool.rs:32:5: warning: field `completion_tx` is never read
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:149:19: warning: method `native_system_steps_by_stage` is never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:553:4: warning: function `native_step_counts_by_stage` is never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:568:4: warning: function `native_step_groups_with_capacity` is never used
+zircon_runtime\src\scene\ecs\schedule_stage_plan.rs:151:8: warning: method `stage` is never used
+zircon_runtime\src\scene\world\property_access\entries.rs:20:19: warning: methods `property_entries` and `property_entry_capacity_hint` are never used
+zircon_runtime\src\scene\world\property_access\entries.rs:583:4: warning: function `dynamic_scene_value_is_projectable` is never used
+zircon_runtime\src\scene\world\property_access\entries\physics.rs:254:19: warning: method `physics_property_entry_capacity_hint` is never used
+zircon_runtime\src\ui\text\font_registry.rs:8:19: warning: struct `UiFontId` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:11:25: warning: associated items `new` and `value` are never used
+zircon_runtime\src\ui\text\font_registry.rs:21:17: warning: enum `UiFontStyle` is never used
+zircon_runtime\src\ui\text\font_registry.rs:28:17: warning: enum `UiFontSource` is never used
+zircon_runtime\src\ui\text\font_registry.rs:34:19: warning: struct `UiFontFamilyRecord` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:44:17: warning: enum `UiFontRegistryError` is never used
+zircon_runtime\src\ui\text\font_registry.rs:50:19: warning: struct `UiFontRegistry` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:71:19: warning: multiple methods are never used
+zircon_runtime\src\ui\text\font_registry.rs:163:4: warning: function `family_from_source` is never used
+zircon_runtime\src\ui\text\font_registry.rs:171:4: warning: function `normalized_family_key` is never used
+zircon_runtime\src\ui\text\geometry.rs:26:15: warning: function `caret_frame_for_text_layout` is never used
+zircon_runtime\src\ui\text\geometry.rs:81:15: warning: function `text_range_frames_for_text_layout` is never used
+zircon_runtime\src\ui\text\grapheme.rs:148:15: warning: function `grapheme_prefix` is never used
+zircon_runtime\src\ui\text\measure_cache.rs:9:19: warning: struct `UiWidthBucket` is never constructed
+zircon_runtime\src\ui\text\measure_cache.rs:12:19: warning: associated items `from_request` and `value` are never used
+zircon_runtime\src\ui\text\measure_cache.rs:33:19: warning: struct `UiTextMeasureKey` is never constructed
+zircon_runtime\src\ui\text\measure_cache.rs:40:19: warning: associated function `from_request` is never used
+zircon_runtime\src\ui\text\measure_cache.rs:50:8: warning: struct `UiTextMeasureEntry` is never constructed
+zircon_runtime\src\ui\text\measure_cache.rs:56:19: warning: struct `UiTextMeasureCache` is never constructed
+zircon_runtime\src\ui\text\measure_cache.rs:62:19: warning: methods `clear`, `begin_frame`, `frame_shape_count`, and `resolve_or_shape` are never used
+zircon_runtime\src\ui\text\resolved_layout.rs:22:19: warning: struct `UiTextStyleKey` is never constructed
+zircon_runtime\src\ui\text\resolved_layout.rs:37:17: warning: enum `UiTextOverflowKey` is never used
+zircon_runtime\src\ui\text\resolved_layout.rs:65:19: warning: associated function `from_style` is never used
+zircon_runtime\src\ui\text\resolved_layout.rs:118:19: warning: method `style_key` is never used
+zircon_runtime\src\graphics\backend\render_backend\offscreen_target.rs:8:16: warning: fields `global_illumination_view` and `bloom_view` are never read
+zircon_runtime\src\graphics\debug_markers.rs:4:18: warning: constant `RENDERDOC_MARKER_CLEAR` is never used
+zircon_runtime\src\graphics\runtime\history\validation_key.rs:60:19: warning: associated function `from_extract` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\gpu_scene.rs:59:25: warning: method `label` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\gpu_scene.rs:490:19: warning: methods `primitive_buffer`, `instance_buffer`, `light_buffer`, and `entry` are never used
+zircon_runtime\src\graphics\scene\gpu_scene\id_allocator.rs:121:19: warning: method `pending_free_span_count` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:4:18: warning: constant `GPU_PRIMITIVE_DATA_BOUNDS_CENTER_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:5:18: warning: constant `GPU_PRIMITIVE_DATA_BOUNDS_RADIUS_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:6:18: warning: constant `GPU_PRIMITIVE_DATA_TINT_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:7:18: warning: constant `GPU_PRIMITIVE_DATA_SHADOW_PARAMS_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:8:18: warning: constant `GPU_PRIMITIVE_DATA_MOTION_PARAMS_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:9:18: warning: constant `GPU_PRIMITIVE_DATA_FLAGS_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:10:18: warning: constant `GPU_PRIMITIVE_DATA_FIRST_INSTANCE_INDEX_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:11:18: warning: constant `GPU_PRIMITIVE_DATA_INSTANCE_COUNT_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:12:18: warning: constant `GPU_PRIMITIVE_DATA_PAYLOAD_SLOT_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:15:18: warning: constant `GPU_INSTANCE_DATA_WORLD_FROM_LOCAL_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:16:18: warning: constant `GPU_INSTANCE_DATA_PREV_WORLD_FROM_LOCAL_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:17:18: warning: constant `GPU_INSTANCE_DATA_PRIMITIVE_INDEX_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:18:18: warning: constant `GPU_INSTANCE_DATA_FLAGS_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:19:18: warning: constant `GPU_INSTANCE_DATA_PAYLOAD_SLOT_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:20:18: warning: constant `GPU_INSTANCE_DATA_MORPH_PAYLOAD_SLOT_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:27:18: warning: constant `GPU_VIRTUAL_GEOMETRY_PAGE_CLUSTER_BASE_WORD_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:28:18: warning: constant `GPU_VIRTUAL_GEOMETRY_PAGE_VERTEX_COUNT_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:29:18: warning: constant `GPU_VIRTUAL_GEOMETRY_PAGE_PAGE_ID_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:30:18: warning: constant `GPU_VIRTUAL_GEOMETRY_PAGE_FLAGS_OFFSET` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\layout.rs:38:18: warning: constant `GPU_VIRTUAL_GEOMETRY_CLUSTER_WORDS_PER_VERTEX` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\update_queue.rs:80:19: warning: method `is_empty` is never used
+zircon_runtime\src\graphics\scene\resources\gpu_material_uniform\gpu_material_uniform_resource.rs:34:19: warning: methods `payload_byte_len` and `buffer_byte_len` are never used
+zircon_runtime\src\graphics\scene\resources\pipeline\pipeline_key.rs:42:19: warning: method `shader_variant_key` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors.rs:408:19: warning: method `shader_is_surface` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_construction.rs:19:19: warning: associated function `new` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_execute_output_target_writeback.rs:135:4: warning: function `should_execute_output_target_writeback` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_resolve_texture_id.rs:27:50: warning: method `resolve_texture_reference` is never used
+zircon_runtime\src\graphics\scene\resources\runtime\material_runtime.rs:141:16: warning: fields `shader_property_values` and `non_standard_texture_slots` are never read
+zircon_runtime\src\graphics\scene\scene_renderer\core\scene_renderer\advanced_plugin_outputs\scene_renderer_advanced_plugin_outputs.rs:9:19: warning: method `plugin_renderer_outputs_ref` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\deferred\lighting_pipeline\shader_source.rs:23:64: warning: constant `DEFERRED_LIGHTING_SHADER` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\deferred\lighting_pipeline\shader_source.rs:81:65: warning: method `with_shading_model_deferred_include_source` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_graph_execution_record.rs:97:12: warning: methods `push_executed_pass_with_resources` and `push_executed_pass_with_stage_declared_queue_dependencies_and_resources` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_execution_context\gpu.rs:364:55: warning: method `resource_streamer` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\lighting\light_buffer.rs:20:19: warning: method `light_count` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract.rs:137:4: warning: function `cached_commands_for_extract_item` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract.rs:147:4: warning: function `commands_for_extract_item` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract.rs:164:4: warning: function `commands_for_extract_item_with_stats` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\skinning.rs:50:15: warning: function `skin_mesh_asset_primitive` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\skinning.rs:74:15: warning: function `skin_model_primitive` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\geometry_source.rs:35:25: warning: methods `uses_cpu_morphed_source`, `uses_cpu_morphed_gpu_skinning_source`, and `uses_gpu_morph_payload_source` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\is_skinned.rs:4:19: warning: methods `is_skinned`, `has_skinned_joint_palette_upload`, `has_previous_skinned_joint_palette_upload`, `has_skinned_gpu_source_candidate`, and `has_skinned_gpu_cpu_morphed_source_candidate` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\mesh_draw.rs:29:16: warning: multiple fields are never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\mesh_draw.rs:132:19: warning: method `has_previous_velocity_transform` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\queue_profile.rs:29:19: warning: struct `MeshDrawBatchKey` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\queue_profile.rs:281:19: warning: method `batch_key` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\virtual_geometry_submission_detail.rs:93:19: warning: method `submission_slot` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:74:19: warning: method `lookup` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_compaction.rs:11:18: warning: constant `INDIRECT_COMPACTION_UNUSED_INSTANCE_INDEX` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_compaction.rs:49:19: warning: associated function `try_from_args` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_compaction_resources.rs:15:5: warning: fields `metadata_buffer_byte_size`, `visible_instance_index_buffer_byte_size`, and `visible_instance_index_capacity` are never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_compaction_resources.rs:103:25: warning: methods `metadata_buffer_byte_size`, `visible_instance_index_buffer_byte_size`, `visible_instance_index_buffer_allocation_byte_size`, `visible_instance_index_capacity`, `draw_count_buffer_allocation_byte_size`, and `compacted_indirect_args_buffer_byte_size` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_batcher.rs:111:25: warning: method `fallback_draw_count` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_execution.rs:56:5: warning: field `compaction_plan` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_execution.rs:144:19: warning: method `compaction_plan` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_execution.rs:232:19: warning: associated function `from_args` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_execution.rs:420:19: warning: methods `occlusion_cull_candidate_arg_count`, `occlusion_cull_candidate_instance_count`, `copy_args_to_readbacks`, and `executions` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:104:9: warning: field `buffer_id` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:154:25: warning: method `is_indirect` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:195:25: warning: method `uses_gpu_scene` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command_list.rs:90:19: warning: method `iter_phase` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command_list.rs:197:19: warning: method `stats` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_pass_processor.rs:169:19: warning: methods `with_material_textures` and `with_base_color_texture` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline\fallback_mesh_shader_source.rs:1:18: warning: constant `FALLBACK_MESH_SHADER` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\mesh_pipeline_cache.rs:59:19: warning: method `resolve_variant` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\mesh_pipeline_variant_registry.rs:73:19: warning: method `resolve_variant` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:85:15: warning: function `mesh_pipeline_standard_material_template_source` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:94:15: warning: function `mesh_pipeline_standard_material_template_source_for_geometry` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:102:15: warning: function `mesh_pipeline_standard_material_template_source_for_geometry_descriptor` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:165:15: warning: function `mesh_pipeline_velocity_template_source_for_geometry` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:173:15: warning: function `mesh_pipeline_velocity_template_source_for_geometry_descriptor` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:197:15: warning: function `mesh_pipeline_depth_prepass_template_source_for_geometry` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:205:15: warning: function `mesh_pipeline_depth_prepass_template_source_for_geometry_descriptor` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:229:15: warning: function `mesh_pipeline_deferred_gbuffer_template_source_for_geometry` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:300:15: warning: function `mesh_pipeline_shadow_template_source_for_geometry` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:308:15: warning: function `mesh_pipeline_shadow_template_source_for_geometry_descriptor` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pipeline_cache\shader_source.rs:332:15: warning: function `mesh_pipeline_taa_reactive_mask_template_source_for_geometry` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:19:19: warning: struct `PreparedMeshQueue` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:23:15: warning: function `prepare_mesh_queue` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:43:19: warning: method `stats` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\skinning\joint_palette_uniform.rs:42:61: warning: method `joint_matrices` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\post_process\resources\shader_sources.rs:1:68: warning: constant `POST_PROCESS_SCREEN_SPACE_REFLECTION_SHADER` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:61:19: warning: method `slot_buffer_size_bytes` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:93:5: warning: field `atlas_texture` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:125:19: warning: methods `atlas_texture` and `upload_disabled` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\plan.rs:60:19: warning: method `is_empty` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\slot.rs:10:18: warning: constant `GPU_SHADOW_GLOBALS_STRIDE` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\slot.rs:16:18: warning: constant `GPU_SHADOW_SLOT_PCF_QUALITY_MASK` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\slot.rs:62:19: warning: method `flags_bits` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:8:19: warning: struct `GlyphAtlasBitmapTextureUploadBinding` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:15:17: warning: enum `GlyphAtlasBitmapTextureUploadBindingFailureReason` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:24:19: warning: struct `GlyphAtlasBitmapTextureUploadBindingFailure` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:30:19: warning: struct `GlyphAtlasBitmapTextureUploadBindingPlan` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:36:19: warning: methods `has_bindings` and `has_failures` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:45:15: warning: function `glyph_atlas_bitmap_texture_upload_binding_plan` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:99:15: warning: function `write_glyph_atlas_bitmap_texture_upload_bindings` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:109:4: warning: function `glyph_atlas_texture_upload_write_for_bitmap_request` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:125:4: warning: function `bitmap_upload_binding_failure` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:135:4: warning: function `bitmap_upload_request_range_fits` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:12:19: warning: struct `GlyphAtlasBitmapTextureUploadFrameReport` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:24:19: warning: struct `GlyphAtlasBitmapTextureUploadFramePlan` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:31:19: warning: method `has_failures` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:39:19: warning: method `ready_to_write_texture` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:44:15: warning: function `glyph_atlas_bitmap_texture_upload_frame_plan` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:66:15: warning: function `write_glyph_atlas_bitmap_texture_upload_frame_plan` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:81:4: warning: function `glyph_atlas_bitmap_texture_upload_frame_report` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:57:16: warning: field `source_range` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:157:19: warning: method `text_prepare_report` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_atlas.rs:382:15: warning: function `plan_sdf_atlas` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\sdf_atlas.rs:386:4: warning: function `plan_sdf_atlas_with_quality` is never used
+zircon_runtime\src\graphics\shader\template\assemble.rs:72:19: warning: method `with_shading_model_forward_include_source` is never used
+zircon_runtime\src\graphics\shader\template\deferred_gbuffer.rs:71:19: warning: method `with_shading_model_gbuffer_include_source` is never used
+zircon_runtime\src\graphics\shader\template\material_surface.rs:188:15: warning: function `standard_material_surface_source` is never used
+zircon_runtime\src\graphics\shader\template\material_surface.rs:212:4: warning: function `standard_material_shader_features` is never used
+zircon_runtime\src\graphics\shader\template\material_surface.rs:226:4: warning: function `standard_material_alpha_cutoff` is never used
+zircon_runtime\src\graphics\shader\template\validation.rs:22:15: warning: function `validate_material_shader_template_assembly` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:52:18: warning: constant `GLYPH_BITMAP_ATLAS_PADDING_PX` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:54:15: warning: function `glyph_atlas_bitmap_run_plan` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:72:15: warning: function `glyph_atlas_bitmap_run_plan_with_padding` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\allocation.rs:12:15: warning: function `allocate_bitmap_source` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\allocation.rs:58:4: warning: function `ensure_active_bitmap_page` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\allocation.rs:84:4: warning: function `reserve_bitmap_page` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\allocation.rs:126:4: warning: function `allocate_without_mutating_on_failure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\allocation.rs:138:15: warning: function `mark_bitmap_dirty` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\failure.rs:6:17: warning: enum `GlyphAtlasBitmapAllocationFailureReason` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\failure.rs:15:19: warning: struct `GlyphAtlasBitmapAllocationFailure` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\failure.rs:22:19: warning: struct `GlyphAtlasBitmapQueuedGlyph` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\failure.rs:28:15: warning: function `record_bitmap_allocation_failure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\failure.rs:52:4: warning: function `bitmap_allocation_failure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\placeholder.rs:6:17: warning: enum `GlyphAtlasBitmapPlaceholderMode` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\placeholder.rs:11:19: warning: struct `GlyphAtlasBitmapPlaceholderGlyph` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\placeholder.rs:19:15: warning: function `bitmap_placeholder_glyph` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:5:19: warning: struct `GlyphAtlasBitmapRetryBackpressurePolicy` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:17:19: warning: associated function `unlimited` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:26:17: warning: enum `GlyphAtlasBitmapRetrySourceOrigin` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:37:19: warning: struct `GlyphAtlasBitmapRetryFrameInput` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:49:19: warning: struct `GlyphAtlasBitmapRetryFrameOutcome` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:61:19: warning: struct `GlyphAtlasBitmapRetryPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:71:19: warning: method `retry_sources` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:76:15: warning: function `glyph_atlas_bitmap_retry_frame_input` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:93:15: warning: function `glyph_atlas_bitmap_retry_frame_input_with_backpressure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:138:15: warning: function `glyph_atlas_bitmap_retry_frame_outcome` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:186:15: warning: function `glyph_atlas_bitmap_retry_plan` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:200:15: warning: function `glyph_atlas_bitmap_retry_plan_with_backpressure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:234:4: warning: function `retry_budget_allows` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:244:4: warning: function `backpressured_retry_frame_index` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\retry.rs:253:4: warning: function `update_next_retry_frame_index` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:13:19: warning: struct `GlyphAtlasBitmapStagedUpload` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:20:17: warning: enum `GlyphAtlasBitmapStagedUploadFailureReason` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:26:19: warning: struct `GlyphAtlasBitmapStagedUploadFailure` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:33:19: warning: struct `GlyphAtlasBitmapStagedUploadPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:39:19: warning: method `has_failures` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:45:19: warning: struct `GlyphAtlasBitmapPreparedUploadPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:51:19: warning: method `has_failures` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:57:19: warning: struct `GlyphAtlasBitmapTextureUploadRequest` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:71:19: warning: struct `GlyphAtlasBitmapTextureUploadRequestPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:77:19: warning: method `has_requests` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:82:15: warning: function `glyph_atlas_bitmap_prepared_upload_plan` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:102:15: warning: function `glyph_atlas_bitmap_texture_upload_request_plan` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:118:15: warning: function `glyph_atlas_bitmap_staged_upload_plan` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:160:4: warning: function `glyph_atlas_bitmap_texture_upload_request` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:178:4: warning: function `staged_upload_source_range_fits` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staged_upload.rs:210:4: warning: function `staged_upload_failure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:7:19: warning: struct `GlyphAtlasBitmapUploadSourceBytes` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:13:19: warning: associated function `new` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:22:19: warning: struct `GlyphAtlasBitmapPageUploadStaging` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:29:17: warning: enum `GlyphAtlasBitmapUploadStagingFailureReason` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:38:19: warning: struct `GlyphAtlasBitmapUploadStagingFailure` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:45:19: warning: struct `GlyphAtlasBitmapUploadStagingPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:51:19: warning: method `has_failures` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:56:15: warning: function `glyph_atlas_bitmap_upload_staging_plan` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:119:4: warning: function `copy_upload_source_bytes` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\staging.rs:167:4: warning: function `staging_failure` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\types.rs:12:19: warning: struct `GlyphAtlasBitmapSource` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\types.rs:22:19: warning: struct `GlyphAtlasBitmapGlyph` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\types.rs:30:19: warning: struct `GlyphAtlasBitmapUploadCopy` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\types.rs:42:19: warning: struct `GlyphAtlasBitmapRunPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\bitmap_run\upload.rs:7:15: warning: function `bitmap_upload_copy` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\upload.rs:28:15: warning: function `bitmap_upload_commands` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\upload.rs:48:4: warning: function `bitmap_upload_mode` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\upload.rs:63:4: warning: function `bitmap_page_source_byte_len` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\validation.rs:5:15: warning: function `validate_bitmap_source` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\validation.rs:29:4: warning: function `expected_bitmap_source_len` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run\validation.rs:35:4: warning: function `is_bitmap_format` is never used
+zircon_runtime\src\graphics\text\atlas\dirty.rs:27:19: warning: method `page_key` is never used
+zircon_runtime\src\graphics\text\atlas\page.rs:157:19: warning: method `page_count` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:5:7: warning: constant `DEFAULT_PX_SIZE_BUCKET_QUANTUM` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:9:17: warning: enum `GlyphHintingMode` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:25:19: warning: struct `SyntheticGlyphStyle` is never constructed
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:31:19: warning: struct `GlyphRasterRequest` is never constructed
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:52:19: warning: associated function `from_request` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:96:19: warning: struct `GlyphRasterKey` is never constructed
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:108:19: warning: associated functions `from_request` and `from_request_with_quantum` are never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:131:4: warning: function `px_size_bucket` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:145:4: warning: function `normalized_raster_quality` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:165:4: warning: function `finite_positive_or_default` is never used
+zircon_runtime\src\graphics\text\atlas\raster_key\mod.rs:174:8: warning: method `is_distance_field` is never used
+zircon_runtime\src\graphics\text\atlas\render_batch.rs:8:19: warning: struct `GlyphAtlasDrawBatchKey` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_batch.rs:14:19: warning: struct `GlyphAtlasDrawBatch` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_batch.rs:20:19: warning: struct `GlyphAtlasDrawBatchPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_batch.rs:28:15: warning: function `glyph_atlas_draw_batch_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:3:18: warning: constant `GLYPH_ATLAS_SAMPLING_SHADER` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:5:18: warning: constant `GLYPH_ATLAS_PIPELINE_SHADER` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:7:18: warning: constant `GLYPH_ATLAS_TEXT_SHADER` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:13:7: warning: constant `GLYPH_ATLAS_VERTEX_ENTRY_POINT` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:14:7: warning: constant `GLYPH_ATLAS_ALPHA_FRAGMENT_ENTRY_POINT` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:15:7: warning: constant `GLYPH_ATLAS_SUBPIXEL_FRAGMENT_ENTRY_POINT` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:16:7: warning: constant `GLYPH_ATLAS_SIGNED_DISTANCE_FRAGMENT_ENTRY_POINT` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:17:7: warning: constant `GLYPH_ATLAS_MSDF_FRAGMENT_ENTRY_POINT` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:18:7: warning: constant `GLYPH_ATLAS_COLOR_FRAGMENT_ENTRY_POINT` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:21:17: warning: enum `GlyphAtlasShaderDecode` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:30:19: warning: method `fragment_entry_point` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:42:19: warning: struct `GlyphAtlasShaderEntryPoints` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:48:17: warning: enum `GlyphAtlasBlendMode` is never used
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:55:19: warning: struct `GlyphAtlasRenderContract` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_contract.rs:62:19: warning: associated items `for_page`, `for_sampling_semantics`, `requires_background_composite`, and `shader_entry_points` are never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:34:19: warning: struct `GlyphAtlasGpuDrawPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:65:19: warning: method `vertex_count` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:70:15: warning: function `glyph_atlas_gpu_draw_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:1:7: warning: constant `GLYPH_ATLAS_GPU_BIND_GROUP_INDEX` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:2:7: warning: constant `GLYPH_ATLAS_GPU_ATLAS_TEXTURE_BINDING` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:3:7: warning: constant `GLYPH_ATLAS_GPU_ATLAS_SAMPLER_BINDING` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:6:17: warning: enum `GlyphAtlasGpuTextureSampleType` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:11:17: warning: enum `GlyphAtlasGpuTextureViewDimension` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:16:17: warning: enum `GlyphAtlasGpuSamplerBindingType` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:21:19: warning: struct `GlyphAtlasGpuTextureBinding` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:30:19: warning: struct `GlyphAtlasGpuSamplerBinding` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:38:19: warning: struct `GlyphAtlasGpuBindGroupLayout` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\bind_group.rs:43:15: warning: function `glyph_atlas_gpu_bind_group_layout` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:5:7: warning: constant `GLYPH_ATLAS_GPU_TRIANGLE_VERTEX_COUNT` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:6:7: warning: constant `GLYPH_ATLAS_GPU_QUAD_VERTEX_COUNT` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:9:19: warning: struct `GlyphAtlasGpuBatch` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:16:17: warning: enum `GlyphAtlasGpuPrimitiveTopology` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:21:19: warning: struct `GlyphAtlasGpuDrawCommand` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:32:19: warning: methods `triangle_count`, `quad_count`, and `is_quad_aligned` are never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:45:15: warning: function `glyph_atlas_gpu_draw_command` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\draw_command.rs:62:15: warning: function `glyph_atlas_gpu_batch_contract` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\pipeline.rs:9:19: warning: struct `GlyphAtlasGpuPipelineKey` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\pipeline.rs:16:19: warning: struct `GlyphAtlasGpuPipelineContract` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\pipeline.rs:23:15: warning: function `glyph_atlas_gpu_pipeline_contract` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:1:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_F32_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:2:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_U32_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:3:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_POSITION_COMPONENTS` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:4:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_UV_COMPONENTS` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:5:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_COLOR_COMPONENTS` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:6:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_POSITION_OFFSET_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:7:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_UV_OFFSET_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:9:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_FOREGROUND_OFFSET_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:11:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_BACKGROUND_OFFSET_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:14:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_PAGE_INDEX_OFFSET_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:17:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_STRIDE_BYTES` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:19:7: warning: constant `GLYPH_ATLAS_GPU_VERTEX_ATTRIBUTE_COUNT` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:23:19: warning: struct `GlyphAtlasGpuVertex` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:32:17: warning: enum `GlyphAtlasGpuVertexAttributeSemantic` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:41:17: warning: enum `GlyphAtlasGpuVertexAttributeFormat` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:48:19: warning: struct `GlyphAtlasGpuVertexAttribute` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:56:19: warning: struct `GlyphAtlasGpuVertexBufferLayout` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\vertex.rs:61:15: warning: function `glyph_atlas_gpu_vertex_buffer_layout` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:3:7: warning: constant `GLYPH_ATLAS_GPU_NDC_MIN` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:4:7: warning: constant `GLYPH_ATLAS_GPU_NDC_MAX` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:5:7: warning: constant `GLYPH_ATLAS_GPU_NDC_SPAN` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:8:17: warning: enum `GlyphAtlasGpuPixelCoordinateConvention` is never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:14:19: warning: struct `GlyphAtlasGpuViewportTransform` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:26:19: warning: associated items `new`, `position_ndc`, `pixel_to_ndc_x`, `pixel_to_ndc_y`, `viewport_width`, and `viewport_height` are never used
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan\viewport.rs:57:15: warning: function `glyph_atlas_gpu_viewport_transform` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:8:7: warning: constant `COLOR_CHANNEL_MIN` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:9:7: warning: constant `COLOR_CHANNEL_MAX` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:10:7: warning: constant `DEFAULT_BACKGROUND_CHANNEL` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:11:7: warning: constant `OPAQUE_BACKGROUND_ALPHA` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:14:19: warning: struct `GlyphAtlasScreenRect` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:22:19: warning: associated items `new`, `from_raster_placement`, `right`, `bottom`, `is_drawable`, and `clipped_to` are never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:73:19: warning: struct `GlyphAtlasUvRect` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:81:19: warning: struct `GlyphAtlasDrawGlyph` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:92:19: warning: struct `GlyphAtlasDrawQuad` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:99:19: warning: struct `GlyphAtlasDrawVertex` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:107:15: warning: function `glyph_atlas_draw_quad` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:144:4: warning: function `glyph_atlas_content_uv_rect` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:169:4: warning: function `glyph_atlas_draw_vertex` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:187:4: warning: function `glyph_atlas_background_color_for_contract` is never used
+zircon_runtime\src\graphics\text\atlas\render_plan.rs:203:4: warning: function `normalized_background_channel` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_driver.rs:14:19: warning: struct `GlyphAtlasBitmapRetryFrameDriverConfig` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_driver.rs:25:19: warning: struct `GlyphAtlasBitmapRetryFrameDriverOutput` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_driver.rs:31:19: warning: associated function `with_defaults` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_driver.rs:49:19: warning: method `retry_submission_report` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_driver.rs:54:15: warning: function `glyph_atlas_bitmap_retry_frame_driver_submit_with_config` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_state.rs:15:19: warning: struct `GlyphAtlasBitmapRetryFrameState` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_state.rs:21:19: warning: struct `GlyphAtlasBitmapRetryFrameStateReport` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_state.rs:27:19: warning: multiple associated items are never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_state.rs:128:19: warning: method `has_queued_retry_work` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_state.rs:133:4: warning: function `next_retry_frame_index` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\placeholder.rs:6:19: warning: struct `GlyphAtlasBitmapPlaceholderDraw` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\placeholder.rs:15:19: warning: struct `GlyphAtlasBitmapPlaceholderDrawPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\placeholder.rs:21:15: warning: function `glyph_atlas_bitmap_placeholder_draw_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\placeholder.rs:46:4: warning: function `glyph_atlas_bitmap_placeholder_draw` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\plan.rs:18:19: warning: struct `GlyphAtlasBitmapRenderSubmissionPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\plan.rs:26:19: warning: methods `upload_commands`, `rebuilt_page_count`, `allocation_failure_count`, and `submission_report` are never used
+zircon_runtime\src\graphics\text\atlas\render_submission\plan.rs:43:15: warning: function `glyph_atlas_bitmap_render_submission_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\plan.rs:58:15: warning: function `glyph_atlas_bitmap_render_submission_plan_with_padding` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\plan.rs:80:4: warning: function `bitmap_render_submission_from_run` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\report.rs:5:19: warning: struct `GlyphAtlasBitmapRenderSubmissionReport` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\report.rs:38:19: warning: multiple methods are never used
+zircon_runtime\src\graphics\text\atlas\render_submission\report.rs:69:15: warning: function `glyph_atlas_bitmap_render_submission_report` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:17:19: warning: struct `GlyphAtlasBitmapRetryFrameSubmissionPlan` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:25:19: warning: struct `GlyphAtlasBitmapRetryFrameSubmissionReport` is never constructed
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:42:19: warning: method `retry_submission_report` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:48:19: warning: methods `has_retry_input`, `has_pending_retry_work`, `has_blocked_retry_work`, `has_backpressured_retry_work`, and `has_unmapped_blocked_sources` are never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:69:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:94:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_plan_with_padding` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:121:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:148:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:187:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_report` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:3:7: warning: constant `DEFAULT_SDF_MIN_SIZE_PX` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:6:17: warning: enum `GlyphRasterPath` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:13:19: warning: struct `GlyphRasterEffects` is never constructed
+zircon_runtime\src\graphics\text\raster\policy.rs:20:8: warning: method `requires_distance_field` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:26:19: warning: struct `GlyphRasterPolicyRequest` is never constructed
+zircon_runtime\src\graphics\text\raster\policy.rs:34:19: warning: associated function `new` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:45:19: warning: struct `GlyphRasterPolicy` is never constructed
+zircon_runtime\src\graphics\text\raster\policy.rs:59:15: warning: function `raster_path_for` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:63:15: warning: function `raster_path_for_request` is never used
+zircon_runtime\src\graphics\text\raster\policy.rs:68:19: warning: methods `path_for` and `path_for_request` are never used
+zircon_runtime\src\graphics\text\raster\swash\atlas_source.rs:6:15: warning: function `glyph_atlas_bitmap_source_from_glyph_bitmap` is never used
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:4:18: warning: constant `ALPHA_MASK_CHANNELS` is never used
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:5:18: warning: constant `COLOR_BITMAP_CHANNELS` is never used
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:8:17: warning: enum `GlyphBitmapContent` is never used
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:15:8: warning: methods `channels` and `atlas_format` are never used
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:32:19: warning: struct `GlyphBitmap` is never constructed
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:42:17: warning: enum `GlyphBitmapError` is never used
+zircon_runtime\src\graphics\text\raster\swash\bitmap.rs:51:19: warning: multiple associated items are never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:4:19: warning: struct `ColorGlyphBitmapStrike` is never constructed
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:12:19: warning: associated function `new` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:23:17: warning: enum `ColorGlyphBitmapStrikeFit` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:30:19: warning: struct `ColorGlyphBitmapStrikeSelection` is never constructed
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:38:19: warning: methods `scaled_size`, `scaled_bearing`, and `scaled_advance_px` are never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:58:17: warning: enum `ColorGlyphRasterPlan` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:64:15: warning: function `color_glyph_raster_plan` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:78:15: warning: function `select_color_bitmap_strike` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:112:4: warning: function `valid_bitmap_strike` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:122:4: warning: function `strike_fit` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:133:4: warning: function `scale_dimension` is never used
+zircon_runtime\src\graphics\text\raster\swash\color_strike.rs:137:4: warning: function `finite_positive_or_default` is never used
+zircon_runtime\src\graphics\text\raster\swash\error.rs:5:17: warning: enum `SwashRasterError` is never used
+zircon_runtime\src\graphics\text\raster\swash\rasterizer.rs:12:19: warning: struct `SwashRasterizer` is never constructed
+zircon_runtime\src\graphics\text\raster\swash\rasterizer.rs:17:19: warning: associated items `new`, `rasterize`, `rasterize_alpha_outline`, and `rasterize_subpixel_outline` are never used
+zircon_runtime\src\graphics\text\raster\swash\rasterizer.rs:89:17: warning: enum `SwashRasterImageContent` is never used
+zircon_runtime\src\graphics\text\raster\swash\rasterizer.rs:105:15: warning: function `glyph_bitmap_from_swash_image` is never used
+zircon_runtime\src\graphics\text\raster\swash\request.rs:6:19: warning: struct `SwashRasterRequest` is never constructed
+zircon_runtime\src\graphics\text\raster\swash\request.rs:15:19: warning: associated items `alpha_outline`, `subpixel_outline`, and `validate` are never used
+zircon_runtime\src\graphics\text\raster\swash\request.rs:55:17: warning: enum `SwashRasterSource` is never used
+zircon_runtime\src\graphics\text\raster\swash\request.rs:64:19: warning: methods `to_swash_source` and `render_format` are never used
+zircon_runtime\src\graphics\text\raster\swash\request.rs:86:5: warning: variants `ExactSize`, `BestFit`, `LargestSize`, and `Index` are never constructed
+zircon_runtime\src\graphics\types\viewport_render_frame.rs:62:19: warning: methods `camera`, `directional_lights`, and `point_lights` are never used
+zircon_runtime\src\graphics\types\viewport_render_output_target.rs:64:19: warning: method `texture_format` is never used
+zircon_runtime\src\graphics\types\viewport_render_region.rs:51:19: warning: method `local_to_physical_coord` is never used
+zircon_runtime\src\graphics\visibility\occlusion\mod.rs:8:5: warning: variant `TwoPhaseRetest` is never constructed
+zircon_runtime\src\graphics\visibility\occlusion\mod.rs:87:18: warning: associated function `skipped` is never used
+zircon_runtime\src\rhi_wgpu\bind_group_validation.rs:11:18: warning: trait `BindGroupResourceLookup` is never used
+zircon_runtime\src\rhi_wgpu\bind_group_validation.rs:18:15: warning: function `validate_bind_group_desc` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:15:15: warning: function `validate_recorded_commands` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:401:15: warning: function `execute_recorded_commands` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:544:6: warning: enum `DebugGroupScope` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:550:14: warning: associated function `from_render_pass_state` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:559:4: warning: function `validate_debug_label` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:568:4: warning: function `validate_raster_queue` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:579:4: warning: function `require_active_render_pass` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:590:4: warning: function `ensure_no_active_render_pass` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:603:4: warning: function `ensure_non_zero_draw_counts` is never used
+zircon_runtime\src\rhi_wgpu\command_validation.rs:613:4: warning: function `buffer_to_texture_copy_size` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:11:19: warning: struct `IndexBufferBinding` is never constructed
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:17:8: warning: struct `VertexBufferBinding` is never constructed
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:22:19: warning: struct `RecordedRenderState` is never constructed
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:30:19: warning: multiple methods are never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:167:15: warning: function `validate_bind_group_slot` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:193:4: warning: function `pipeline_layout_for_command` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:205:18: warning: trait `CommandResourceLookup` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:218:15: warning: function `ensure_binding_range` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:235:4: warning: function `pipeline_vertex_input_is_empty` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:243:15: warning: function `validate_index_range` is never used
+zircon_runtime\src\rhi_wgpu\command_validation\render_state.rs:259:4: warning: function `validate_strided_binding_range` is never used
+zircon_runtime\src\rhi_wgpu\device.rs:30:12: warning: struct `WgpuRenderDevice` is never constructed
+zircon_runtime\src\rhi_wgpu\device.rs:36:19: warning: struct `WgpuRenderDeviceState` is never constructed
+zircon_runtime\src\rhi_wgpu\device.rs:51:19: warning: struct `WgpuBufferResource` is never constructed
+zircon_runtime\src\rhi_wgpu\device.rs:57:19: warning: struct `WgpuTextureResource` is never constructed
+zircon_runtime\src\rhi_wgpu\device.rs:63:19: warning: struct `WgpuBindGroupResource` is never constructed
+zircon_runtime\src\rhi_wgpu\device.rs:68:19: warning: methods `bind_group_desc_ref`, `pipeline_layout_desc_ref`, `texture_desc_ref`, and `transient_allocator_stats` are never used
+zircon_runtime\src\rhi_wgpu\device.rs:165:12: warning: associated items `new_headless`, `new_with_surface_support`, `allocate_handle`, and `lock_state` are never used
+zircon_runtime\src\rhi_wgpu\device\command_list.rs:8:12: warning: struct `WgpuCommandList` is never constructed
+zircon_runtime\src\rhi_wgpu\device\command_list.rs:15:12: warning: associated function `new` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:9:18: warning: trait `PipelineResourceLookup` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:19:15: warning: function `validate_shader_module_desc` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:35:15: warning: function `validate_pipeline_layout_desc` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:55:15: warning: function `validate_pipeline_desc` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:150:4: warning: function `validate_raster_pipeline_state` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:205:4: warning: function `validate_vertex_input_layout` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:216:4: warning: function `validate_vertex_buffer_layout` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:264:4: warning: function `require_shader_stage` is never used
+zircon_runtime\src\rhi_wgpu\pipeline_validation.rs:290:4: warning: function `reject_shader` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:13:19: warning: struct `ActiveRenderPass` is never constructed
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:22:19: warning: associated items `new`, `validate_pipeline_attachments`, `validate_viewport`, and `validate_scissor_rect` are never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:198:19: warning: struct `RenderPassAttachmentInfo` is never constructed
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:205:8: warning: methods `validate_matches` and `validate_resolve_target` are never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:268:15: warning: function `validate_render_pass_attachments` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:384:4: warning: function `validate_color_attachment_desc` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:409:4: warning: function `validate_color_resolve_target_desc` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:427:4: warning: function `validate_depth_stencil_attachment_desc` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:456:4: warning: function `validate_attachment_view` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:489:4: warning: function `texture_view_layer_count` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:496:10: warning: function `mip_extent` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:509:4: warning: function `validate_attachment_info` is never used
+zircon_runtime\src\rhi_wgpu\render_pass_validation.rs:523:4: warning: function `scissor_exceeds_extent_error` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:8:15: warning: function `ensure_buffer_usage` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:24:15: warning: function `ensure_texture_usage` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:40:15: warning: function `texture_storage_size` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:47:15: warning: function `validate_buffer_desc` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:63:15: warning: function `validate_texture_desc` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:164:15: warning: function `validate_sampler_desc` is never used
+zircon_runtime\src\rhi_wgpu\resource_validation.rs:186:15: warning: function `validate_bind_group_layout_desc` is never used
+zircon_runtime\src\rhi_wgpu\texture_copy.rs:4:19: warning: struct `TextureCopyLayout` is never constructed
+zircon_runtime\src\rhi_wgpu\texture_copy.rs:11:15: warning: function `texture_copy_layout` is never used
+zircon_runtime\src\rhi_wgpu\texture_copy.rs:58:4: warning: function `texture_mip_level_offset` is never used
+zircon_runtime\src\rhi_wgpu\texture_copy.rs:75:4: warning: function `texture_mip_depth` is never used
+zircon_runtime\src\rhi_wgpu\texture_copy.rs:85:10: warning: function `mip_extent` is never used
+zircon_runtime\src\rhi_wgpu\ui_surface.rs:66:12: warning: associated items `new_headless`, `descriptor`, `backend_name`, and `descriptor_from_winit_window` are never used
+zircon_runtime\src\plugin\extension_registry\typed_extension_point.rs:99:12: warning: methods `get`, `key_for_slot`, and `finalize` are never used
+zircon_runtime\src\plugin\native_plugin_loader\bridge_method_abi.rs:16:9: warning: field `method_count` is never read
+zircon_runtime\src\plugin\native_plugin_loader\bridge_method_abi.rs:19:9: warning: field `field_name` is never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_abi.rs:63:9: warning: field `field_name` is never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_lifecycle.rs:25:5: warning: variant `Unload` is never constructed
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_methods.rs:272:8: warning: methods `installed_runtime_bridge_method_bindings` and `replace_runtime_bridge_method_bindings` are never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_methods.rs:377:15: warning: function `discovered_runtime_bridge_method_bindings` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\diagnostics.rs:14:9: warning: fields `label` and `status_code` are never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\diagnostics.rs:37:15: warning: function `unloaded_plugin_error` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\hot_reload.rs:145:19: warning: method `rollback_error` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:33:9: warning: fields `plugin_id` and `module_kind` are never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:48:9: warning: fields `plugin_id` and `module_kind` are never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\loading.rs:117:19: warning: method `load_reported_plugins` is never used
+warning: `zircon_runtime` (lib) generated 554 warnings (run `cargo fix --lib -p zircon_runtime` to apply 55 suggestions)
+   Compiling zircon_editor v0.1.0 (E:\Git\ZirconEngine\zircon_editor)
+zircon_editor\src\ui\host\editor_asset_manager\manager\sprite_atlas\mod.rs:6:20: warning: unused imports: `SpriteAtlasArtifactReport` and `write_sprite_atlas_artifacts`
+zircon_editor\src\ui\host\editor_asset_manager\manager\sprite_atlas\mod.rs:7:9: warning: unused import: `config::SpriteAtlasBuildConfig`
+zircon_editor\src\ui\host\editor_asset_manager\manager\sprite_atlas\mod.rs:8:9: warning: unused import: `diagnostics::SpriteAtlasBuildDiagnostics`
+zircon_editor\src\ui\host\editor_asset_manager\manager\sprite_atlas\mod.rs:10:5: warning: unused imports: `PackedSpriteAtlas`, `SpriteAtlasBuildError`, and `decode_sprite_atlas_source_image`
+zircon_editor\src\ui\host\editor_manager_plugins_export\export_build\wizard\mod.rs:19:5: warning: unused import: `execute_export_wizard_stage_with_output`
+zircon_editor\src\ui\reflection\activity.rs:10:5: warning: unused import: `super::state_flags::visible_enabled_flags`
+zircon_editor\src\ui\retained_host\app.rs:4:5: warning: unused import: `std::fs`
+zircon_editor\src\ui\retained_host\app.rs:24:9: warning: unused imports: `UiComponentBindingTarget`, `UiComponentEventEnvelope`, `UiComponentEvent`, and `UiValue`
+zircon_editor\src\ui\retained_host\app.rs:91:5: warning: unused import: `super::ui::apply_presentation`
+zircon_editor\src\ui\retained_host\app\tests\mod.rs:3:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::ui::retained_host::app)` because no imported item is public enough
+zircon_editor\src\ui\retained_host\host_contract\chrome_command_stream\extraction.rs:8:53: warning: unused import: `model::ChromeCommandExtraction`
+zircon_editor\src\ui\retained_host\host_contract\native_pointer\menu_geometry\frames.rs:11:27: warning: unused import: `shell_content_height`
+zircon_editor\src\ui\retained_host\host_contract\native_pointer\routing\panes\pane\entry.rs:8:65: warning: unused import: `PanePointerTarget`
+zircon_editor\src\ui\retained_host\host_contract\paint_primitives\pixels.rs:11:41: warning: unused import: `rounded_rect_contains_pixel`
+zircon_editor\src\ui\retained_host\host_contract\paint_primitives\pixels.rs:13:77: warning: unused import: `write_pixel`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\style_selector\exports\feedback.rs:2:35: warning: unused import: `WorkbenchAlertStyle`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\template_axis_value_field_style.rs:12:62: warning: unused import: `AXIS_FIELD_HOVER_BORDER`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\template_popup_rows.rs:15:50: warning: unused import: `PopupRowAdornmentKind`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\template_slider_geometry.rs:10:67: warning: unused import: `WorkbenchSliderMetrics`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\template_tree_row_geometry.rs:7:53: warning: unused import: `tree_action_rect`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\template_tree_row_geometry.rs:11:57: warning: unused import: `tree_metrics`
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\visual_assets.rs:14:47: warning: unused import: `load_visual_asset_pixels`
+zircon_editor\src\ui\retained_host\host_contract\template_popup_layout.rs:8:5: warning: unused imports: `dropdown_option_popup_frame` and `dropdown_option_row_frame`
+zircon_editor\src\ui\retained_host\host_contract\window.rs:19:25: warning: unused imports: `HostWindowHandle` and `HostWindowSnapshot`
+zircon_editor\src\ui\retained_host\tab_drag\bridge.rs:2:5: warning: unused import: `zircon_runtime_interface::ui::layout::UiFrame`
+zircon_editor\src\ui\retained_host\ui\pane_data_conversion\build_export\target_rows\mod.rs:15:21: warning: unused imports: `BUILD_EXPORT_ROW_GAP` and `BUILD_EXPORT_ROW_HEIGHT`
+zircon_editor\src\ui\retained_host\ui\tests\mod.rs:3:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::ui::retained_host::ui)` because no imported item is public enough
+zircon_editor\src\ui\retained_host\ui\reference_overlay_apply_tests.rs:169:9: warning: unused variable: `root_frames`: help: if this is intentional, prefix it with an underscore: `_root_frames`
+zircon_editor\src\ui\retained_host\app\helpers\animation_assets\tests.rs:11:4: warning: function `unique_temp_dir` is never used
+zircon_editor\src\ui\retained_host\app\helpers\animation_assets\tests.rs:19:4: warning: function `derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_clip_files` is never used
+zircon_editor\src\ui\retained_host\app\helpers\animation_assets\tests.rs:63:4: warning: function `derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars` is never used
+zircon_editor\src\ui\retained_host\app\helpers\animation_assets\tests.rs:138:4: warning: function `write_animated_gltf` is never used
+zircon_editor\src\ui\retained_host\callback_dispatch\template_bridge\workbench\componentized_window.rs:287:19: warning: method `dispatch_binding_state` is never used
+zircon_editor\src\ui\retained_host\drawer_resize.rs:37:15: warning: function `resolve_host_resize_target_group_with_root_frames` is never used
+zircon_editor\src\ui\retained_host\host_contract\chrome_command_stream\stream\push\text.rs:9:56: warning: method `push_text` is never used
+zircon_editor\src\ui\retained_host\host_contract\data\assets.rs:5:9: warning: fields `id`, `name`, `count`, `depth`, and `selected` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\assets.rs:14:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\assets.rs:31:9: warning: fields `uuid`, `locator`, `name`, `kind`, and `known_project_asset` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\assets.rs:40:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\common.rs:6:9: warning: fields `slot` and `closeable` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\docks.rs:29:9: warning: field `panel_header_height_px` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\docks.rs:38:9: warning: fields `subtitle_frame` and `header_height_px` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\docks.rs:56:9: warning: fields `expanded` and `header_height_px` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\floating.rs:9:9: warning: fields `title` and `focus_target_id` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\floating.rs:27:9: warning: field `header_height_px` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\floating.rs:32:9: warning: fields `floating_windows` and `header_height_px` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\menus.rs:10:9: warning: field `action_id` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\menus.rs:26:9: warning: fields `outer_margin_px`, `save_project_enabled`, `undo_enabled`, `redo_enabled`, and `delete_enabled` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\menus.rs:42:9: warning: fields `top_bar_height_px`, `host_bar_height_px`, and `project_path` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\menus.rs:58:9: warning: fields `status_primary`, `status_secondary`, and `viewport_label` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\metrics.rs:3:9: warning: fields `outer_margin_px`, `rail_width_px`, `top_bar_height_px`, `host_bar_height_px`, `panel_header_height_px`, and `document_header_height_px` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\metrics.rs:13:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\window.rs:13:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\window.rs:43:9: warning: field `left_splitter_frame` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\window.rs:56:19: warning: struct `HostWindowSurfaceData` is never constructed
+zircon_editor\src\ui\retained_host\host_contract\data\host_components\window.rs:71:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\host_scene.rs:11:9: warning: fields `metrics`, `orchestration`, and `drag_overlay` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\animation.rs:10:9: warning: fields `status`, `selection`, and `playback_label` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\basic.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\build_export.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\build_export.rs:24:9: warning: field `diagnostics` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\module_plugins.rs:8:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\module_plugins.rs:39:9: warning: field `diagnostics` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\pane.rs:23:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\performance_timeline.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\performance_timeline.rs:21:9: warning: fields `stream`, `category`, `name`, `path`, `duration_label`, and `depth` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\performance_timeline.rs:31:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\performance_timeline.rs:42:9: warning: fields `label`, `action_id`, and `enabled` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\performance_timeline.rs:50:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\runtime_diagnostics.rs:12:9: warning: field `severity` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\panes\viewport.rs:12:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\template_nodes\collection.rs:5:9: warning: fields `row_id` and `move_up_payload` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\template_nodes\context_menu.rs:6:9: warning: fields `target_action_id`, `target_dispatch_kind`, and `target_role` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\canvas.rs:5:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\canvas.rs:19:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\canvas.rs:30:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\canvas.rs:41:9: warning: fields `width`, `height`, and `items` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\common.rs:6:9: warning: field `selected_index` is never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\inspector\binding.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\inspector\layout.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\inspector\panel.rs:9:9: warning: fields `slot`, `layout`, and `binding` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\inspector\semantic.rs:7:9: warning: fields `title`, `collection`, `path`, and `value` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\inspector\slot.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\inspector\widget.rs:13:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\pane\actions.rs:3:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\pane\collections.rs:6:9: warning: fields `hierarchy` and `preview` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\pane\editor.rs:24:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\pane\header.rs:7:9: warning: fields `status`, `shell_state`, and `emergency_summary` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\pane\runtime_report.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\pane\tools.rs:5:9: warning: fields `mode`, `can_select`, `can_resize_slot`, and `can_preview_interact` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\preview.rs:8:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\preview.rs:31:9: warning: fields `preset`, `summary`, `available`, `canvas`, and `mock` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\source.rs:7:9: warning: fields `block_label`, `selected_line`, `cursor_byte_offset`, `selected_excerpt`, `roundtrip_status`, and `outline` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\source.rs:17:9: warning: fields `text` and `detail` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\declaration.rs:5:9: warning: fields `items`, `selected_index`, `selected_path`, `selected_value`, `can_edit`, and `can_delete` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\matched_rule.rs:7:9: warning: fields `collection`, `selected_origin`, `selected_selector`, `selected_specificity`, `selected_source_order`, and `selected_declaration_items` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\panel.rs:12:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\rule.rs:5:9: warning: fields `items`, `selected_index`, `selected_selector`, `can_edit`, and `can_delete` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\state.rs:3:9: warning: fields `hover`, `focus`, `pressed`, `disabled`, and `selected` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\theme_source.rs:7:9: warning: multiple fields are never read
+zircon_editor\src\ui\retained_host\host_contract\data\ui_asset\style\token.rs:5:9: warning: fields `items`, `selected_index`, `selected_name`, `selected_value`, `can_edit`, and `can_delete` are never read
+zircon_editor\src\ui\retained_host\host_contract\data\welcome.rs:23:9: warning: field `browse_supported` is never read
+zircon_editor\src\ui\retained_host\host_contract\globals\pane_context\callbacks.rs:25:81: warning: methods `invoke_component_showcase_control_drag_delta`, `invoke_component_showcase_control_context_requested`, `invoke_mesh_import_path_edited`, `invoke_ui_asset_action`, `invoke_ui_asset_detail_event`, and `invoke_ui_asset_collection_event` are never used
+zircon_editor\src\ui\retained_host\host_contract\native_pointer\routing\pane_route\target.rs:18:14: warning: field `0` is never read
+zircon_editor\src\ui\retained_host\host_contract\native_pointer\routing\pane_route\target.rs:9:5: warning: variants `BrowserAssetDetails`, `AssetContent`, and `AssetReference` are never constructed
+zircon_editor\src\ui\retained_host\host_contract\paint_template_nodes\visual_assets\asset.rs:10:74: warning: function `load_visual_asset_pixels` is never used
+zircon_editor\src\ui\retained_host\host_contract\presenter\error.rs:12:5: warning: variant `GpuUnavailable` is never constructed
+zircon_editor\src\ui\retained_host\host_contract\presenter\error.rs:23:56: warning: associated function `gpu_unavailable` is never used
+zircon_editor\src\ui\retained_host\host_contract\presenter\softbuffer.rs:21:5: warning: field `context` is never read
+zircon_editor\src\ui\retained_host\host_contract\surface_hit_test\surface_frame.rs:9:53: warning: fields `control_id` and `control_frame` are never read
+zircon_editor\src\ui\retained_host\host_contract\template_popup_layout\dropdown.rs:45:15: warning: function `dropdown_option_row_frame` is never used
+zircon_editor\src\ui\retained_host\host_contract\window\test_support.rs:137:19: warning: method `dispatch_native_popup_arrow_up_for_test` is never used
+zircon_editor\src\ui\retained_host\route_intent\map.rs:20:5: warning: variant `Editor` is never constructed
+zircon_editor\src\ui\retained_host\route_intent\map.rs:63:19: warning: method `intent_for` is never used
+zircon_editor\src\ui\retained_host\tab_drag\bridge.rs:74:8: warning: function `resolve_host_drag_target_group` is never used
+zircon_editor\src\ui\template_runtime\component_adapter\component_drawer.rs:73:15: warning: function `apply_component_drawer_envelope` is never used
+zircon_editor\src\tests\host\retained_callback_dispatch\template_bridge\support.rs:4:15: warning: function `surface_control_frame` is never used
+zircon_editor\src\tests\host\retained_callback_dispatch\template_bridge\workbench_projection.rs:3435:4: warning: function `round_to_layout_pixel` is never used
+warning: `zircon_editor` (lib test) generated 118 warnings (run `cargo fix --lib -p zircon_editor --tests` to apply 26 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4m 33s
+     Running unittests src\lib.rs (F:\cargo-targets\zircon-editor-popup-preference-0704\debug\deps\zircon_editor-5f4f470ab76133bf.exe)
+
+running 1 test
+test tests::host::retained_menu_pointer::visual_screenshot::capture_workbench_component_slate_atlas_visual_artifact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2426 filtered out; finished in 1.73s
+

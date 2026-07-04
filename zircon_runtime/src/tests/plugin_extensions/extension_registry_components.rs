@@ -33,6 +33,31 @@ fn runtime_extension_registry_collects_component_and_ui_component_contributions(
 }
 
 #[test]
+fn runtime_extension_registry_accepts_dotted_component_plugin_ids() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let component = ComponentTypeDescriptor::new(
+        "weather.layer.Component.CloudLayer",
+        "weather.layer",
+        "Cloud Layer",
+    );
+    let ui_component = UiComponentDescriptor::new(
+        "weather.layer.Ui.CloudLayerInspector",
+        "weather.layer",
+        "asset://weather.layer/editor/cloud_layer_inspector.zui",
+    );
+
+    registry
+        .register_component(component.clone())
+        .expect("dotted component plugin id");
+    registry
+        .register_ui_component(ui_component.clone())
+        .expect("dotted ui component plugin id");
+
+    assert_eq!(registry.components(), &[component]);
+    assert_eq!(registry.ui_components(), &[ui_component]);
+}
+
+#[test]
 fn runtime_plugin_registration_report_validates_shadowed_manifest_component_declarations() {
     let plugin = ShadowedInvalidComponentRuntimePlugin {
         descriptor: RuntimePluginDescriptor::builder(
@@ -209,8 +234,8 @@ fn runtime_extension_registry_rejects_invalid_component_plugin_ids() {
     let mut registry = RuntimeExtensionRegistry::default();
     let error = registry
         .register_component(ComponentTypeDescriptor::new(
-            "weather.layer.Component.CloudLayer",
-            "weather.layer",
+            "weather..layer.Component.CloudLayer",
+            "weather..layer",
             "Cloud Layer",
         ))
         .unwrap_err();
@@ -298,8 +323,8 @@ fn runtime_extension_registry_rejects_invalid_ui_component_plugin_ids() {
     let mut registry = RuntimeExtensionRegistry::default();
     let error = registry
         .register_ui_component(UiComponentDescriptor::new(
-            "weather.layer.Ui.CloudLayerInspector",
-            "weather.layer",
+            "weather..layer.Ui.CloudLayerInspector",
+            "weather..layer",
             "asset://weather/editor/cloud_layer_inspector.zui",
         ))
         .unwrap_err();
@@ -422,7 +447,7 @@ impl RuntimePlugin for ShadowedInvalidComponentRuntimePlugin {
             .with_ui_component(UiComponentDescriptor::new(
                 "weather.Ui.CloudLayerInspector",
                 "weather",
-                "asset://weather/editor/cloud_layer_inspector.zui",
+                "asset://weather/editor/cloud_layer_inspector.toml",
             ))
     }
 

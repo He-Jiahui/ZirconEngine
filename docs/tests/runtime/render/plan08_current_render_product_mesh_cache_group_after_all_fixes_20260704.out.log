@@ -1,0 +1,36 @@
+
+running 31 tests
+test graphics::tests::render_product_mesh_cache::morph::direct_velocity::export_direct_morph_weight_velocity_product_png ... ignored, writes Plan 08 product scene-velocity PNG artifact
+test graphics::tests::render_product_mesh_cache::morph::direct_velocity::render_product_direct_mesh_morph_weight_change_writes_scene_velocity_pixels ... ok
+test graphics::tests::render_product_mesh_cache::morph::render_product_direct_mesh_active_morph_weights_use_gpu_morphed_source ... ok
+test graphics::tests::render_product_mesh_cache::morph::render_product_direct_mesh_gpu_morph_matches_cpu_baked_reference_pixels ... ok
+test graphics::tests::render_product_mesh_cache::morph::render_product_skinned_mesh_gpu_morph_matches_cpu_baked_reference_pixels ... ok
+test graphics::tests::render_product_mesh_cache::morph::skinned_velocity::export_skinned_morph_weight_velocity_product_png ... ignored, writes Plan 08 product scene-velocity PNG artifact
+test graphics::tests::render_product_mesh_cache::morph::skinned_velocity::render_product_skinned_mesh_morph_weight_change_writes_scene_velocity_pixels ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_product_png::export_custom_shading_model_deferred_lighting_product_png ... ignored, manual product PNG export for Plan 08 custom shading-model deferred-lighting readback
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_second_launch::render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_shading_model::render_product_custom_shading_model_deferred_lighting_readback_uses_project_include ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_shading_model::render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::live_registry_bridge::render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::live_registry_records::render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::manifest::tests::registry_material_pass_runtime_surface_source_uses_surface_entry_contract ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::product_png::export_project_plugin_registry_material_passes_product_png ... ignored, manual product PNG export for Plan 08 project/plugin registry material-pass staged prewarm
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::render_product_project_plugin_registry_material_passes_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::second_launch::render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_staged_cache::render_product_project_plugin_registry_materials_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::render_product_static_mesh_material_revision_invalidates_pre_mesh_cache ... ok
+test graphics::tests::render_product_mesh_cache::render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse ... ok
+test graphics::tests::render_product_mesh_cache::render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path ... ok
+test graphics::tests::render_product_mesh_cache::render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache ... ok
+test graphics::tests::render_product_mesh_cache::render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache ... ok
+test graphics::tests::render_product_mesh_cache::shading_model_parity::export_three_shading_models_forward_deferred_product_png ... ignored, manual product PNG export for Plan 08 Forward/Deferred parity
+test graphics::tests::render_product_mesh_cache::shading_model_parity::render_product_three_shading_models_forward_deferred_parity ... ok
+test graphics::tests::render_product_mesh_cache::staged_prewarm::material_passes::render_product_material_mesh_passes_second_launch_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::staged_prewarm::render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::virtual_geometry::export_virtual_geometry_page_cluster_product_png ... ignored, manual product PNG export for Plan 08 VirtualGeometry page/cluster evidence
+test graphics::tests::render_product_mesh_cache::virtual_geometry::render_product_virtual_geometry_extract_stays_out_of_pre_mesh_cache ... ok
+test graphics::tests::render_product_mesh_cache::virtual_geometry::render_product_virtual_geometry_model_asset_uses_automatic_draw_source ... ok
+test graphics::tests::render_product_mesh_cache::virtual_geometry::render_product_virtual_geometry_page_cluster_bindings_drive_visible_frame ... ok
+
+test result: ok. 25 passed; 0 failed; 6 ignored; 0 measured; 6432 filtered out; finished in 96.75s
+

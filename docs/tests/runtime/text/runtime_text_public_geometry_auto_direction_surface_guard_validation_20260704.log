@@ -1,0 +1,24 @@
+Runtime Text Public Geometry Auto Direction Surface Guard Validation
+Date: 2026-07-04
+Slice: runtime_text_public_geometry_auto_direction_surface_guard_rustfmt_static_visual_cargo_deferred
+
+Implementation:
+- zircon_runtime/src/ui/text/geometry.rs test fixture now sets UiResolvedTextLayout.direction to explicit UiTextDirection::LeftToRight for source-metrics acceptance regressions.
+- zircon_runtime/src/ui/surface/text_geometry.rs test fixture now sets UiResolvedTextLayout.direction to explicit UiTextDirection::LeftToRight.
+- Added public surface regression surface_text_caret_frame_rejects_unresolved_auto_direction_source_metrics to prove layout.direction=Auto uses resolved glyph_advances through text_caret_frame_for_layout/text_range_frames_for_layout.
+
+Checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs zircon_runtime/src/ui/surface/text_geometry.rs: pass
+- geometry LTR fixture scan: geometry_ltr_fixture_mentions=3
+- surface LTR fixture scan: surface_ltr_fixture_mentions=3
+- public surface Auto guard regression scan: surface_auto_guard_test_mentions=1
+- conflict marker scan: pass
+- trailing whitespace scan: pass
+- target artifact scan for runtime_text_public_geometry_auto_direction_surface_guard_preview_20260704.png and runtime_text_public_geometry_auto_direction_surface_guard_validation_20260704.log: target_artifact_match_count=0
+
+Visual Evidence:
+- docs/tests/runtime/text/runtime_text_public_geometry_auto_direction_surface_guard_preview_20260704.png
+- SHA256: 7335FD451A9C5742308BC621BF69B490BF0F24CE85450B7B34C135A66B901E19
+
+Cargo:
+- Focused Cargo remains deferred because external cargo/rustc lanes were active during this slice.

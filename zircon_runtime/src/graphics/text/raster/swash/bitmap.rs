@@ -129,7 +129,11 @@ impl GlyphBitmap {
     }
 
     pub(crate) fn atlas_format(&self) -> Option<GlyphAtlasFormat> {
-        Some(self.content.atlas_format())
+        Some(self.required_atlas_format())
+    }
+
+    pub(super) fn required_atlas_format(&self) -> GlyphAtlasFormat {
+        self.content.atlas_format()
     }
 
     pub(crate) fn storage_format(&self) -> Option<GlyphAtlasStorageFormat> {

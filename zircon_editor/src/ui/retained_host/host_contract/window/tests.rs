@@ -88,3 +88,30 @@ fn completed_frame_update_scenario_is_one_shot() {
     );
     assert_eq!(host.take_completed_frame_update_scenario(), None);
 }
+
+#[test]
+fn first_presented_frame_exit_policy_defaults_off_and_can_be_enabled() {
+    let host = UiHostWindow::new().expect("host window should construct for policy test");
+
+    assert!(!host.exit_after_first_presented_frame());
+
+    host.set_exit_after_first_presented_frame(true);
+
+    assert!(host.exit_after_first_presented_frame());
+}
+
+#[test]
+fn window_scale_factor_defaults_to_one_and_filters_invalid_values() {
+    let host = UiHostWindow::new().expect("host window should construct for scale test");
+    let window = host.window();
+
+    assert_eq!(window.scale_factor(), 1.0);
+
+    window.set_scale_factor(1.5);
+
+    assert_eq!(window.scale_factor(), 1.5);
+
+    window.set_scale_factor(f32::NAN);
+
+    assert_eq!(window.scale_factor(), 1.0);
+}

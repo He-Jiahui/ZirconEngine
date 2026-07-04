@@ -45,3 +45,46 @@ fn componentized_workbench_layout_collapses_right_drawer_shell_at_narrow_width()
     assert!(right_shell_frame.width > 0.0);
     assert!(right_content_frame.width > 0.0);
 }
+
+#[test]
+fn componentized_workbench_layout_collapses_right_drawer_shell_by_logical_width_under_scale() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let mut bridge =
+        match BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 840.0)) {
+            Ok(bridge) => bridge,
+            Err(error) => panic!("workbench bridge should build: {error:?}"),
+        };
+    if let Err(error) = bridge.recompute_layout_with_workbench_model_at_scale(
+        UiSize::new(1280.0, 840.0),
+        2.0,
+        &model,
+        &metrics,
+    ) {
+        panic!("scaled narrow workbench layout should recompute: {error:?}");
+    }
+
+    let scaled_narrow_frames = bridge.layout_frames();
+    assert_eq!(scaled_narrow_frames.right_drawer_shell_frame, None);
+    assert_eq!(scaled_narrow_frames.right_drawer_content_frame, None);
+
+    if let Err(error) = bridge.recompute_layout_with_workbench_model_at_scale(
+        UiSize::new(1800.0, 1240.0),
+        2.0,
+        &model,
+        &metrics,
+    ) {
+        panic!("scaled regular workbench layout should recompute: {error:?}");
+    }
+
+    let scaled_regular_frames = bridge.layout_frames();
+    assert!(scaled_regular_frames.right_drawer_shell_frame.is_some());
+    assert!(scaled_regular_frames.right_drawer_content_frame.is_some());
+}

@@ -330,6 +330,7 @@ fn multi_spot_shadow_capture_extract(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -401,6 +402,7 @@ fn spot_shadow_pcf_capture_extract(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,

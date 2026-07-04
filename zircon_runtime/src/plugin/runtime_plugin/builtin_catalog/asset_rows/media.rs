@@ -25,4 +25,15 @@ pub(super) const MEDIA_BUILTIN_CATALOG_ROWS: &[BuiltinCatalogRow] = &[
             RuntimeTargetMode::EditorHost,
         ],
     },
+    BuiltinCatalogRow {
+        package_id: "opus_importer",
+        display_name: "Opus Audio Importer",
+        runtime_id: RuntimePluginId::OpusImporter,
+        runtime_crate: "zircon_plugin_opus_importer_runtime",
+        capability: "runtime.plugin.opus_importer",
+        target_modes: &[
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ],
+    },
 ];

@@ -70,6 +70,7 @@ impl UiHostWindowEventLoop {
         let size = window.surface_size();
         let mut state = self.host.state.borrow_mut();
         state.window_size = PhysicalSize::new(size.width, size.height);
+        state.set_window_scale_factor(window.scale_factor() as f32);
         state.window_visible = true;
         state.window_maximized = window.is_maximized();
         if let Ok(position) = window.outer_position() {

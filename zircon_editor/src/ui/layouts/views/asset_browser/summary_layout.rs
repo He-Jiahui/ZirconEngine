@@ -1,4 +1,5 @@
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::retained_host::measure_runtime_text_width;
 
 const SUMMARY_CARD_INSET_X: f32 = 8.0;
 const SUMMARY_CARD_INSET_Y: f32 = 6.0;
@@ -17,7 +18,6 @@ const SUMMARY_TYPE_BADGE_MIN_WIDTH: f32 = 40.0;
 const SUMMARY_TYPE_BADGE_MAX_WIDTH: f32 = 76.0;
 const SUMMARY_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.50;
 const SUMMARY_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.0;
-const SUMMARY_TYPE_BADGE_TEXT_WIDTH_RATIO: f32 = 0.56;
 const SUMMARY_TYPE_BADGE_PADDING_X: f32 = 6.0;
 const SUMMARY_TYPE_BADGE_TEXT_INSET_X: f32 = 4.0;
 const SUMMARY_META_ROW_GAP: f32 = 6.0;
@@ -25,7 +25,6 @@ const SUMMARY_REVISION_MIN_WIDTH: f32 = 34.0;
 const SUMMARY_REVISION_MAX_WIDTH: f32 = 62.0;
 const SUMMARY_REVISION_MAX_WIDTH_RATIO: f32 = 0.28;
 const SUMMARY_REVISION_FONT_SIZE: f32 = 9.0;
-const SUMMARY_REVISION_TEXT_WIDTH_RATIO: f32 = 0.54;
 const SUMMARY_REVISION_PADDING_X: f32 = 4.0;
 
 pub(super) fn apply_compact_content_preview_summary_layout(
@@ -146,15 +145,12 @@ fn summary_meta_row_offset_y(continuation_height: f32) -> f32 {
 }
 
 fn summary_type_badge_width(nodes: &[ViewTemplateNodeData], text_width: f32) -> f32 {
-    let label_chars = node_text(nodes, "AssetBrowserContentPreviewType")
-        .map(|text| text.chars().count())
-        .unwrap_or(0) as f32;
-    if label_chars == 0.0 {
+    let label = node_text(nodes, "AssetBrowserContentPreviewType").unwrap_or("");
+    if label.is_empty() {
         return 0.0;
     }
-    let content_width =
-        label_chars * SUMMARY_TYPE_BADGE_TEXT_FONT_SIZE * SUMMARY_TYPE_BADGE_TEXT_WIDTH_RATIO
-            + SUMMARY_TYPE_BADGE_PADDING_X * 2.0;
+    let content_width = measure_runtime_text_width(label, SUMMARY_TYPE_BADGE_TEXT_FONT_SIZE)
+        + SUMMARY_TYPE_BADGE_PADDING_X * 2.0;
     let badge_max_width = SUMMARY_TYPE_BADGE_MAX_WIDTH
         .min(text_width * SUMMARY_TYPE_BADGE_MAX_WIDTH_RATIO)
         .max(SUMMARY_TYPE_BADGE_MIN_WIDTH);
@@ -162,15 +158,12 @@ fn summary_type_badge_width(nodes: &[ViewTemplateNodeData], text_width: f32) -> 
 }
 
 fn summary_revision_width(nodes: &[ViewTemplateNodeData], text_width: f32) -> f32 {
-    let label_chars = node_text(nodes, "AssetBrowserContentPreviewRevision")
-        .map(|text| text.chars().count())
-        .unwrap_or(0) as f32;
-    if label_chars == 0.0 {
+    let label = node_text(nodes, "AssetBrowserContentPreviewRevision").unwrap_or("");
+    if label.is_empty() {
         return 0.0;
     }
-    let content_width =
-        label_chars * SUMMARY_REVISION_FONT_SIZE * SUMMARY_REVISION_TEXT_WIDTH_RATIO
-            + SUMMARY_REVISION_PADDING_X * 2.0;
+    let content_width = measure_runtime_text_width(label, SUMMARY_REVISION_FONT_SIZE)
+        + SUMMARY_REVISION_PADDING_X * 2.0;
     let max_width = SUMMARY_REVISION_MAX_WIDTH
         .min(text_width * SUMMARY_REVISION_MAX_WIDTH_RATIO)
         .max(SUMMARY_REVISION_MIN_WIDTH);
@@ -268,11 +261,11 @@ mod tests {
         assert!(continuation.height > 0.0);
         assert_eq!(legacy_meta.height, 0.0);
         assert!(type_badge.y >= continuation.y + continuation.height);
-        assert!(
-            type_badge.width > 48.0 && type_badge.width <= SUMMARY_TYPE_BADGE_MAX_WIDTH,
-            "summary type badge should expand for readable labels without escaping its cap: {:?}",
-            type_badge
+        assert_close(
+            type_badge.width,
+            expected_summary_type_width("UI Layout", name.width),
         );
+        assert!(type_badge.width <= SUMMARY_TYPE_BADGE_MAX_WIDTH);
         assert_eq!(type_label.x, type_badge.x + SUMMARY_TYPE_BADGE_TEXT_INSET_X);
         assert!(state.x > type_badge.x + type_badge.width);
         assert!(revision.x > state.x);
@@ -315,6 +308,35 @@ mod tests {
         );
     }
 
+    #[test]
+    fn summary_badge_and_revision_widths_use_runtime_text_measurement() {
+        let mut nodes = vec![
+            node("AssetBrowserContentPreviewCard", "Panel", ""),
+            node("AssetBrowserContentPreviewVisual", "Panel", ""),
+            node(
+                "AssetBrowserContentPreviewName",
+                "Label",
+                "MaterialVariant.zmat",
+            ),
+            node("AssetBrowserContentPreviewNameContinuation", "Label", ""),
+            node("AssetBrowserContentPreviewTypeBadge", "Panel", ""),
+            node("AssetBrowserContentPreviewType", "Label", "iiiiiiiiii"),
+            node("AssetBrowserContentPreviewState", "Label", "Ready"),
+            node("AssetBrowserContentPreviewRevision", "Label", "rev iiiiii"),
+        ];
+
+        apply_compact_content_preview_summary_layout(&mut nodes, 80.0, 320.0, 420.0, 50.0);
+
+        let text_width = frame(&nodes, "AssetBrowserContentPreviewName").width;
+        let type_badge = frame(&nodes, "AssetBrowserContentPreviewTypeBadge");
+        let revision = frame(&nodes, "AssetBrowserContentPreviewRevision");
+        let expected_type_width = expected_summary_type_width("iiiiiiiiii", text_width);
+        let expected_revision_width = expected_summary_revision_width("rev iiiiii", text_width);
+
+        assert_close(type_badge.width, expected_type_width);
+        assert_close(revision.width, expected_revision_width);
+    }
+
     fn node(control_id: &str, role: &str, text: &str) -> ViewTemplateNodeData {
         ViewTemplateNodeData {
             control_id: control_id.into(),
@@ -331,5 +353,30 @@ mod tests {
             .find(|node| node.control_id.as_str() == control_id)
             .map(|node| node.frame.clone())
             .unwrap_or_else(|| panic!("missing {control_id}"))
+    }
+
+    fn expected_summary_type_width(label: &str, text_width: f32) -> f32 {
+        let content_width = measure_runtime_text_width(label, SUMMARY_TYPE_BADGE_TEXT_FONT_SIZE)
+            + SUMMARY_TYPE_BADGE_PADDING_X * 2.0;
+        let max_width = SUMMARY_TYPE_BADGE_MAX_WIDTH
+            .min(text_width * SUMMARY_TYPE_BADGE_MAX_WIDTH_RATIO)
+            .max(SUMMARY_TYPE_BADGE_MIN_WIDTH);
+        content_width.clamp(SUMMARY_TYPE_BADGE_MIN_WIDTH, max_width)
+    }
+
+    fn expected_summary_revision_width(label: &str, text_width: f32) -> f32 {
+        let content_width = measure_runtime_text_width(label, SUMMARY_REVISION_FONT_SIZE)
+            + SUMMARY_REVISION_PADDING_X * 2.0;
+        let max_width = SUMMARY_REVISION_MAX_WIDTH
+            .min(text_width * SUMMARY_REVISION_MAX_WIDTH_RATIO)
+            .max(SUMMARY_REVISION_MIN_WIDTH);
+        content_width.clamp(SUMMARY_REVISION_MIN_WIDTH, max_width)
+    }
+
+    fn assert_close(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() <= 0.01,
+            "expected {expected:.3}, got {actual:.3}",
+        );
     }
 }

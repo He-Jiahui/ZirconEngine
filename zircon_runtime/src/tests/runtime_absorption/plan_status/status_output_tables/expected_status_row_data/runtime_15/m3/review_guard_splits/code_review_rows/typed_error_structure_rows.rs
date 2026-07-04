@@ -1,5 +1,7 @@
 use super::Slice;
 
+#[path = "typed_error_structure_rows/child_ownership.rs"]
+mod child_ownership;
 #[path = "typed_error_structure_rows/folder_backed.rs"]
 mod folder_backed;
 #[path = "typed_error_structure_rows/status_docs.rs"]
@@ -23,16 +25,60 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         folder_backed::STRUCTURE_GUARD_FOLDER_BACKED_SPLIT,
     ),
     (
+        "Runtime 15 M3 typed-error structure guard root inventory child split",
+        folder_backed::STRUCTURE_GUARD_ROOT_INVENTORY_CHILD_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error child-ownership guard folder-backed split",
+        child_ownership::CHILD_OWNERSHIP_GUARD_FOLDER_BACKED_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error child-ownership root inventory child split",
+        child_ownership::CHILD_OWNERSHIP_ROOT_INVENTORY_CHILD_SPLIT,
+    ),
+    (
         "Runtime 15 M3 typed-error structure assertions guard folder-backed split",
         structure_assertions::STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error convergence mounts guard folder-backed split",
+        structure_assertions::CONVERGENCE_MOUNTS_GUARD_FOLDER_BACKED_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error convergence mounts root inventory child split",
+        structure_assertions::CONVERGENCE_MOUNTS_ROOT_INVENTORY_CHILD_SPLIT,
     ),
     (
         "Runtime 15 M3 typed-error structure status-doc guard folder-backed split",
         status_docs::STATUS_DOC_GUARD_FOLDER_BACKED_SPLIT,
     ),
     (
+        "Runtime 15 M3 typed-error status-doc doc mirrors folder-backed split",
+        status_docs::DOC_MIRRORS_FOLDER_BACKED_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error status-doc source helper child split",
+        status_docs::STATUS_DOC_SOURCE_HELPER_CHILD_SPLIT,
+    ),
+    (
         "Runtime 15 M3 typed-error native plugin loader structure guard child-owner split",
         structure_assertions::NATIVE_PLUGIN_LOADER_GUARD_CHILD_OWNER_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error native plugin loader structure guard folder-backed split",
+        structure_assertions::NATIVE_PLUGIN_LOADER_GUARD_FOLDER_BACKED_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error native plugin loader routes child split",
+        structure_assertions::NATIVE_PLUGIN_LOADER_ROUTES_CHILD_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error native plugin loader routes source helper child split",
+        structure_assertions::NATIVE_PLUGIN_LOADER_ROUTES_SOURCE_HELPER_CHILD_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error native plugin loader source helper child split",
+        structure_assertions::NATIVE_PLUGIN_LOADER_SOURCE_HELPER_CHILD_SPLIT,
     ),
     (
         "Runtime 15 M3 typed-error structure moved-guard absence child-owner split",
@@ -41,5 +87,9 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
     (
         "Runtime 15 M3 typed-error moved-guard absence guard folder-backed split",
         structure_assertions::MOVED_GUARD_ABSENCE_GUARD_FOLDER_BACKED_SPLIT,
+    ),
+    (
+        "Runtime 15 M3 typed-error moved-guard absence root inventory child split",
+        structure_assertions::MOVED_GUARD_ABSENCE_ROOT_INVENTORY_CHILD_SPLIT,
     ),
 ];

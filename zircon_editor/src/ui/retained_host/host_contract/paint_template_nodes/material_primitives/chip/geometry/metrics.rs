@@ -5,7 +5,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_LABEL_FONT_SIZE:
     f32 = 13.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_SMALL_LABEL_FONT_SIZE: f32 = 12.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_LABEL_WIDTH_RATIO: f32 = 0.56;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_LABEL_PADDING:
     f32 = 12.0;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_LABEL_OUTLINED_PADDING: f32 = 11.0;

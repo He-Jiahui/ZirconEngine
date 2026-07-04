@@ -41,6 +41,7 @@ try:
     from .zircon_build_plugin_shader_descriptors import (
         collect_geometry_source_descriptor_id_specs,
         collect_geometry_source_descriptors,
+        collect_shader_module_specs,
         collect_shader_permutation_id_specs,
         collect_shading_model_descriptors,
         shading_model_descriptor_id_specs,
@@ -82,6 +83,7 @@ except ImportError:  # pragma: no cover - exercised when run as a script.
     from zircon_build_plugin_shader_descriptors import (
         collect_geometry_source_descriptor_id_specs,
         collect_geometry_source_descriptors,
+        collect_shader_module_specs,
         collect_shader_permutation_id_specs,
         collect_shading_model_descriptors,
         shading_model_descriptor_id_specs,
@@ -576,6 +578,7 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                 ]
             )
         )
+        shader_modules = collect_shader_module_specs(manifest_path, data)
         matched_crates = tuple(
             crates_by_name[name] for name in module_crate_names if name in crates_by_name
         )
@@ -595,6 +598,7 @@ def discover_plugins(repo_root: Path) -> tuple[PluginPackage, ...]:
                 shader_shading_model_ids=shader_shading_model_ids,
                 shader_shading_model_descriptors=shader_shading_model_descriptors,
                 crates=matched_crates,
+                shader_modules=shader_modules,
             )
         )
     return tuple(sorted(packages, key=lambda item: item.plugin_id))

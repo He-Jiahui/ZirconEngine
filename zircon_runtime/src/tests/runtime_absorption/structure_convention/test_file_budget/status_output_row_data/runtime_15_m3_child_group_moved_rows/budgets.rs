@@ -11,20 +11,25 @@ fn runtime_15_m3_child_group_moved_row_child_budgets_stay_focused() {
         );
     }
 
-    for path in [
-        CHILD_GROUPS_GUARD_PATH,
-        MOVED_ROWS_GUARD_PATH,
-        FOUNDATION_GUARDS_ROWS_PATH,
-        LOCK_POISON_STATUS_ROWS_PATH,
-        MODULE_CONVENTION_STATUS_ROWS_PATH,
-        REVIEW_STATUS_SYNC_ROWS_PATH,
-        PRODUCTION_GUARD_SUPPORT_ROWS_PATH,
+    for (path, budget) in [
+        (CHILD_GROUPS_GUARD_PATH, 180),
+        (MOVED_ROWS_GUARD_PATH, 70),
+        (ROOT_PATHS_PATH, 120),
+        (ROOT_STATUSES_PATH, 80),
+        (ROOT_CHILD_ROWS_PATH, 140),
+        (ROOT_SOURCE_BLOBS_PATH, 60),
+        (ROOT_INVENTORY_GUARD_PATH, 100),
+        (FOUNDATION_GUARDS_ROWS_PATH, 800),
+        (LOCK_POISON_STATUS_ROWS_PATH, 800),
+        (MODULE_CONVENTION_STATUS_ROWS_PATH, 800),
+        (REVIEW_STATUS_SYNC_ROWS_PATH, 800),
+        (STATUS_SUPPORT_STATUS_DOCS_ROWS_PATH, 280),
     ] {
         let source = read_runtime_src(path);
         let line_count = source.lines().count();
         assert!(
-            line_count < 800,
-            "{path} should stay below the Runtime 15 M3 moved-row guard support budget; got {line_count} lines"
+            line_count < budget,
+            "{path} should stay below the Runtime 15 M3 moved-row guard support budget of {budget} lines; got {line_count}"
         );
     }
 }

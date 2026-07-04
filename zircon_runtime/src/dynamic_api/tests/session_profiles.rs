@@ -11,23 +11,25 @@ fn create_session_accepts_named_headless_profile_without_render_bridge() {
 
 #[test]
 fn dev_profile_ticks_runtime_diagnostic_store_log_schedule() {
-    let source = include_str!("../session.rs");
+    let session_source = include_str!("../session.rs");
+    let profile_source = include_str!("../session/profile.rs");
 
-    assert!(source.contains("RUNTIME_SESSION_PROFILE_DEV => Some(Self::Dev)"));
-    assert!(source.contains("DiagnosticStoreLogSchedule::repeating"));
-    assert!(source.contains("DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT"));
-    assert!(source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
-    assert!(source.contains("write_diagnostic_store_snapshot"));
+    assert!(profile_source.contains("RUNTIME_SESSION_PROFILE_DEV => Some(Self::Dev)"));
+    assert!(profile_source.contains("DiagnosticStoreLogSchedule::repeating"));
+    assert!(profile_source.contains("DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT"));
+    assert!(session_source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
+    assert!(session_source.contains("write_diagnostic_store_snapshot"));
 }
 
 #[test]
 fn minimal_and_headless_profiles_skip_render_bridge_bootstrap() {
-    let source = include_str!("../session.rs");
+    let session_source = include_str!("../session.rs");
+    let profile_source = include_str!("../session/profile.rs");
 
-    assert!(source.contains("fn uses_render_bridge(self) -> bool"));
-    assert!(source.contains("matches!(self, Self::Runtime | Self::Editor | Self::Dev)"));
-    assert!(source.contains("runtime_dynamic_session_render_bridge_skipped"));
-    assert!(source.contains("let Some(render_bridge) = &mut self.render_bridge else"));
+    assert!(profile_source.contains("fn uses_render_bridge(self) -> bool"));
+    assert!(profile_source.contains("matches!(self, Self::Runtime | Self::Editor | Self::Dev)"));
+    assert!(session_source.contains("runtime_dynamic_session_render_bridge_skipped"));
+    assert!(session_source.contains("let Some(render_bridge) = &mut self.render_bridge else"));
 }
 
 #[test]
@@ -55,28 +57,30 @@ fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
 
 #[test]
 fn session_ui_extract_remains_documented_dynamic_session_side_path() {
-    let source = include_str!("../session.rs");
-    let capture_start = source
-        .find("fn capture_frame(")
-        .expect("capture_frame implementation");
-    let present_start = source
-        .find("fn present_viewport(&mut self")
-        .expect("present_viewport implementation");
-    let ui_extract_start = source
+    let session_source = include_str!("../session.rs");
+    let extract_source = include_str!("../session/extract.rs");
+    let capture_start = session_source
+        .find("fn capture_frame(\n        &mut self,")
+        .expect("RuntimeDynamicSession::capture_frame implementation");
+    let present_start = session_source
+        .find("fn present_viewport(\n        &mut self,")
+        .expect("RuntimeDynamicSession::present_viewport implementation");
+    let ui_extract_start = extract_source
         .find("fn current_ui_extract(&self)")
         .expect("current_ui_extract implementation");
-    let resize_start = source[ui_extract_start..]
+    let resize_start = extract_source[ui_extract_start..]
         .find("fn resize_viewport")
         .map(|offset| ui_extract_start + offset)
         .expect("method after current_ui_extract");
-    let ui_extract_body = &source[ui_extract_start..resize_start];
+    let ui_extract_body = &extract_source[ui_extract_start..resize_start];
 
     assert!(
-        source[capture_start..present_start].contains("let ui = self.current_ui_extract();"),
+        session_source[capture_start..present_start]
+            .contains("let ui = self.current_ui_extract();"),
         "capture_frame should keep the documented UI extract side path explicit"
     );
     assert!(
-        source[present_start..ui_extract_start].contains("let ui = self.current_ui_extract();"),
+        session_source[present_start..].contains("let ui = self.current_ui_extract();"),
         "present_viewport should keep the documented UI extract side path explicit"
     );
     assert!(ui_extract_body.contains("runtime_session_menu_extract(world, viewport_size)"));

@@ -22,7 +22,7 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         &[
             "fn create_primary_window_surface",
             "let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));",
-            "self.resize_viewport(viewport_size).is_err()",
+            "if let Err(error) = self.resize_viewport(viewport_size)",
             "self.bind_window_surface(window.as_ref())",
         ],
         "runtime entry should resize the runtime viewport before initial surface binding",
@@ -50,10 +50,10 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         &[
             "fn resize_surface_presenter",
             "let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));",
-            "self.resize_viewport(viewport_size).is_err()",
+            "if let Err(error) = self.resize_viewport(viewport_size)",
             "self.surface_present_enabled && !self.surface_present_failed",
             "self.bind_current_window_surface()",
-            "presenter.resize(viewport_size).is_err()",
+            "if let Err(error) = presenter.resize(viewport_size)",
         ],
         "runtime surface resize should resize the runtime viewport before rebinding the active surface",
     );
@@ -69,6 +69,7 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         runtime_surface_present_source.as_str(),
         &[
             "fn present_redraw_frame",
+            "let exit_after_first_presented_frame = self.exit_after_first_presented_frame;",
             "self.surface_present_enabled && !self.surface_present_failed",
             ".present_viewport(self.viewport, self.viewport_size)",
             "self.fail_surface_present();",
@@ -77,6 +78,15 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         ],
         "runtime redraw should fall back to capture_frame plus softbuffer after native present failure in the same branch",
     );
+    for required_path in [
+        "exit_after_presented_frame(exit_after_first_presented_frame, event_loop);",
+        "fn exit_after_presented_frame(enabled: bool, event_loop: &dyn ActiveEventLoop)",
+    ] {
+        assert!(
+            runtime_surface_present_source.contains(required_path),
+            "runtime first-frame startup smoke should keep `{required_path}` in the surface-present redraw owner"
+        );
+    }
     assert_source_order(
         runtime_surface_present_source.as_str(),
         &[

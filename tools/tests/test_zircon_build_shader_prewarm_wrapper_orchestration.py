@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -12,8 +13,16 @@ from tools import zircon_build
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PREWARM_EXE = Path(
-    r"E:\cargo-targets\zircon-runtime-text-0630-clamp-contract\debug\zircon_shader_prewarm.exe"
+PREWARM_EXE_ENV = "ZR_TEST_SHADER_PREWARM_EXE"
+PREWARM_EXE_CANDIDATES = (
+    REPO_ROOT / "target" / "debug" / "zircon_shader_prewarm.exe",
+    REPO_ROOT / "target" / "debug" / "zircon_shader_prewarm",
+    Path(
+        r"E:\cargo-targets\zircon-plan08-wrapper-pipeline-0704\debug\zircon_shader_prewarm.exe"
+    ),
+    Path(
+        r"E:\cargo-targets\zircon-plan08-wrapper-pipeline-0704\debug\zircon_shader_prewarm"
+    ),
 )
 
 
@@ -52,13 +61,19 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
             output,
         )
 
-    def test_public_runtime_wrapper_exports_project_plugin_registry_with_live_wgpu(self):
-        if not PREWARM_EXE.exists():
-            self.skipTest(f"shader prewarm executable is unavailable: {PREWARM_EXE}")
+    def test_public_runtime_wrapper_exports_project_plugin_registry_with_live_wgpu_pipelines(
+        self,
+    ):
+        prewarm_exe = _prewarm_executable_for_wrapper_orchestration()
+        if prewarm_exe is None:
+            self.skipTest(
+                "shader prewarm executable is unavailable; set "
+                f"{PREWARM_EXE_ENV} or build zircon_shader_prewarm"
+            )
 
         out_root = REPO_ROOT / "target" / "codex-plan08-wrapper-orchestration-test"
         _safe_reset(out_root)
-        fake_cargo = _write_fake_cargo(out_root, PREWARM_EXE)
+        fake_cargo = _write_fake_cargo(out_root, prewarm_exe)
         project_assets = _write_project_shader_assets(out_root / "project_assets")
 
         stdout = StringIO()
@@ -77,6 +92,7 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
                     str(fake_cargo),
                     "--prewarm-shaders",
                     "--validate-wgpu-shaders",
+                    "--validate-wgpu-pipelines",
                     "--shader-asset-root",
                     str(project_assets),
                     "--shader-quality-tier",
@@ -89,7 +105,7 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
         self.assertEqual(0, exit_code)
         output = stdout.getvalue()
         self.assertIn("Zircon build plan", output)
-        self.assertIn("shader WGPU module validation: enabled", output)
+        self.assertIn("shader WGPU render pipeline validation: enabled", output)
         self.assertIn("shader resource registry export:", output)
 
         log_records = _read_log_records(out_root / "fake_cargo" / "calls.jsonl")
@@ -100,6 +116,7 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
 
         prewarm_args = run_records[0]["prewarm_args"]
         self.assertIn("--validate-wgpu-modules", prewarm_args)
+        self.assertIn("--validate-wgpu-pipelines", prewarm_args)
         self.assertIn("--export-resource-registry", prewarm_args)
         self.assertIn(str(project_assets), _flag_values(prewarm_args, "--asset-root"))
         self.assertIn(
@@ -119,6 +136,17 @@ class ZirconBuildShaderPrewarmWrapperOrchestrationTests(unittest.TestCase):
         self.assertEqual(18, report["wgpu_module_validation"]["requested_count"])
         self.assertEqual(18, report["wgpu_module_validation"]["validated_count"])
         self.assertEqual(0, report["wgpu_module_validation"]["failed_count"])
+        self.assertEqual(18, report["wgpu_pipeline_validation"]["requested_count"])
+        self.assertEqual(18, report["wgpu_pipeline_validation"]["validated_count"])
+        self.assertEqual(0, report["wgpu_pipeline_validation"]["failed_count"])
+        self.assertIn(
+            "res://project/shaders/project_shader",
+            _source_labels_from_report(report),
+        )
+        self.assertIn(
+            "package://native_dynamic_fixture/shaders/shader",
+            _source_labels_from_report(report),
+        )
 
         registry = json.loads(
             (engine_root / "cache" / "shader_resource_records.json").read_text(
@@ -150,6 +178,19 @@ def _write_fake_cargo(out_root: Path, prewarm_exe: Path) -> Path:
         encoding="utf-8",
     )
     return command
+
+
+def _prewarm_executable_for_wrapper_orchestration() -> Path | None:
+    explicit_path = os.environ.get(PREWARM_EXE_ENV)
+    if explicit_path:
+        explicit = Path(explicit_path)
+        if explicit.exists():
+            return explicit
+        return None
+    for candidate in PREWARM_EXE_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 def _fake_cargo_script(prewarm_exe: Path, repo_root: Path, log_path: Path) -> str:
@@ -262,6 +303,25 @@ def _read_log_records(path: Path) -> list[dict[str, object]]:
 
 def _flag_values(args: list[str], flag: str) -> list[str]:
     return [args[index + 1] for index, value in enumerate(args[:-1]) if value == flag]
+
+
+def _source_labels_from_report(report: dict[str, object]) -> set[str]:
+    labels = {
+        variant["source_label"]
+        for variant in report.get("written_variants", [])
+        if isinstance(variant, dict) and isinstance(variant.get("source_label"), str)
+    }
+    provenance = report.get("source_provenance", {})
+    if isinstance(provenance, dict):
+        sources = provenance.get("sources", {})
+        if isinstance(sources, dict):
+            labels.update(
+                source["source_label"]
+                for source in sources.values()
+                if isinstance(source, dict)
+                and isinstance(source.get("source_label"), str)
+            )
+    return labels
 
 
 if __name__ == "__main__":

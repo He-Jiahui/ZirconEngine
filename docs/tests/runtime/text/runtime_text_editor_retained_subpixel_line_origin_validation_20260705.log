@@ -1,0 +1,9 @@
+runtime_text_editor_retained_subpixel_line_origin_validation_20260705
+source: zircon_editor retained-host paint_text/draw line-origin placement
+assertions:
+- retained_text_origin_for_smoothing(8.875, Grayscale) == 9.0
+- retained_text_origin_for_smoothing(8.875, Subpixel) == 8.875
+- layout_text_run_with_smoothing(..., Subpixel) preserves the 0.125px origin delta between x=8.875 and x=9.0
+- default grayscale behavior remains covered by retained_text_run_snaps_fractional_line_origin_before_glyph_spacing
+proof_image: docs/tests/runtime/text/runtime_text_editor_retained_subpixel_line_origin_preview_20260705.png
+scope: validation diagram only; not a live editor capture

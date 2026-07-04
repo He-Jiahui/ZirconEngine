@@ -1,0 +1,1978 @@
+   Compiling zircon_runtime v0.1.0 (E:\Git\ZirconEngine\zircon_runtime)
+error[E0425]: cannot find function `assert_typed_error_native_plugin_loader_routes_are_folder_backed` in this scope
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\typed_error_child_owners\structure_assertions\native_plugin_loader\delegation.rs:65:5
+   |
+65 |     assert_typed_error_native_plugin_loader_routes_are_folder_backed(&sources);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+  ::: zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\typed_error_child_owners\structure_assertions\native_plugin_loader.rs:71:1
+   |
+71 | pub(super) fn assert_typed_error_native_plugin_loader_children_are_folder_backed() {
+   | ---------------------------------------------------------------------------------- similarly named function `assert_typed_error_native_plugin_loader_children_are_folder_backed` defined here
+   |
+help: a function with a similar name exists
+   |
+65 -     assert_typed_error_native_plugin_loader_routes_are_folder_backed(&sources);
+65 +     assert_typed_error_native_plugin_loader_children_are_folder_backed(&sources);
+   |
+help: consider importing this function
+   |
+ 1 + use crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings::typed_error_child_owners::structure_assertions::native_plugin_loader::routes::assert_typed_error_native_plugin_loader_routes_are_folder_backed;
+   |
+
+warning: unused imports: `RenderPhaseQueueSummary` and `RenderPhaseQueue`
+  --> zircon_runtime\src\core\framework\render\frame_extract.rs:20:35
+   |
+20 |     RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
+   |                                   ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ShaderVariantPrewarmWrittenVariant`
+  --> zircon_runtime\src\core\framework\render\shader\mod.rs:86:5
+   |
+86 |     ShaderVariantPrewarmWrittenVariant,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::extract_cache::RuntimeFrameExtractCacheStatus`
+ --> zircon_runtime\src\dynamic_api\session\extract.rs:5:5
+  |
+5 | use super::extract_cache::RuntimeFrameExtractCacheStatus;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `ObjDecodeResult`
+  --> zircon_runtime\src\asset\formats\obj\mod.rs:10:40
+   |
+10 | pub(crate) use error::{ObjDecodeError, ObjDecodeResult};
+   |                                        ^^^^^^^^^^^^^^^
+
+warning: unused imports: `SceneBloomSettingsAsset`, `SceneCameraAsset`, `SceneCameraTargetAsset`, `SceneChromaticAberrationSettingsAsset`, `SceneColliderShapeAsset`, `SceneColorGradingSettingsAsset`, `SceneDitherSettingsAsset`, `SceneFilmGrainSettingsAsset`, `SceneFogSettingsAsset`, `ScenePostProcessEffectStackAsset`, `ScenePostProcessSettingsAsset`, `ScenePostProcessVolumeAsset`, `ScenePostProcessVolumeProfileAsset`, `SceneScriptBindingAsset`, `SceneTonemapOperatorAsset`, `SceneTonemapSettingsAsset`, `SceneViewportRectAsset`, and `SceneVignetteSettingsAsset`
+  --> zircon_runtime\src\scene\world\project_io.rs:7:56
+   |
+ 7 |     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneBloomSettingsAsset, SceneCameraAsset,
+   |                                                        ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+ 8 |     SceneCameraTargetAsset, SceneChromaticAberrationSettingsAsset, SceneColliderAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |     SceneColliderShapeAsset, SceneColorGradingSettingsAsset, SceneDirectionalLightAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 |     SceneDitherSettingsAsset, SceneEntityAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+11 |     SceneJointAsset, SceneJointKindAsset, SceneMobilityAsset, ScenePointLightAsset,
+12 |     ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13 |     ScenePostProcessVolumeProfileAsset, SceneRectLightAsset, SceneRigidBodyAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 |     SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^
+15 |     SceneTonemapOperatorAsset, SceneTonemapSettingsAsset, SceneViewportRectAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+16 |     SceneVignetteSettingsAsset, TransformAsset,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::asset::AssetReference`
+  --> zircon_runtime\src\scene\world\project_io.rs:20:5
+   |
+20 | use crate::asset::AssetReference;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ResourceHandle`, `ResourceMarker`, `ResourceScheme`, and `TextureMarker`
+  --> zircon_runtime\src\scene\world\project_io.rs:23:57
+   |
+23 |     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceHandle, ResourceId,
+   |                                                         ^^^^^^^^^^^^^^
+24 |     ResourceLocator, ResourceMarker, ResourceScheme, TextureMarker,
+   |                      ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `RenderBloomSettings`, `RenderCameraTarget`, `RenderChromaticAberrationSettings`, `RenderColorGradingSettings`, `RenderDitherSettings`, `RenderFilmGrainSettings`, `RenderFogSettings`, `RenderPostProcessEffectStackSettings`, `RenderPostProcessVolumeProfile`, `RenderTonemapOperator`, `RenderTonemapSettings`, `RenderViewportRect`, and `RenderVignetteSettings`
+  --> zircon_runtime\src\scene\world\project_io.rs:39:5
+   |
+39 |     RenderBloomSettings, RenderCameraTarget, RenderChromaticAberrationSettings,
+   |     ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+40 |     RenderColorGradingSettings, RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^
+41 |     RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderTonemapOperator,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+42 |     RenderTonemapSettings, RenderViewportRect, RenderVignetteSettings,
+   |     ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ColliderShape`, `PostProcessSettingsComponent`, and `PostProcessVolumeComponent`
+  --> zircon_runtime\src\scene\world\project_io.rs:47:79
+   |
+47 |     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, ColliderShape,
+   |                                                                               ^^^^^^^^^^^^^
+48 |     JointComponent, JointKind, Mobility, NodeKind, PointLight, PostProcessSettingsComponent,
+   |                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |     PostProcessVolumeComponent, RectLight, RigidBodyComponent, RigidBodyType, SpotLight,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+ --> zircon_runtime\src\scene\tests\property_paths\write_validation.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `UiAccessibilityAction`
+ --> zircon_runtime\src\ui\accessibility\action\range.rs:3:21
+  |
+3 |         UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityNode,
+  |                     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `UiTextHitTest`
+  --> zircon_runtime\src\ui\text\mod.rs:24:49
+   |
+24 | pub(crate) use hit_test::{hit_test_text_layout, UiTextHitTest};
+   |                                                 ^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+ --> zircon_runtime\src\ui\tests\boundary\binding_event_roots.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `super::*`
+ --> zircon_runtime\src\ui\tests\boundary\layout_tree_surface.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `super::*`
+ --> zircon_runtime\src\ui\tests\boundary\template_namespace.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `tree::UiRuntimeTreeLayoutExt`
+ --> zircon_runtime\src\ui\tests\surface_dirty_mui.rs:3:5
+  |
+3 |     tree::UiRuntimeTreeLayoutExt,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `ShadingModelIncludeSource`
+ --> zircon_runtime\src\graphics\material\mod.rs:5:5
+  |
+5 |     ShadingModelIncludeSource, ShadingModelIncludeSourceError, ShadingModelIncludeSourceSet,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+  --> zircon_runtime\src\graphics\scene\gpu_scene\prev_transform.rs:77:9
+   |
+77 |     use super::*;
+   |         ^^^^^^^^
+
+warning: unused imports: `GPU_MORPH_DELTA_STRIDE`, `GPU_MORPH_PAYLOAD_STRIDE`, `GPU_MORPH_WEIGHT_STRIDE`, and `GPU_PRIMITIVE_DATA_STRIDE`
+  --> zircon_runtime\src\graphics\scene\gpu_scene\mod.rs:20:5
+   |
+20 |     GPU_MORPH_DELTA_STRIDE, GPU_MORPH_PAYLOAD_STRIDE, GPU_MORPH_WEIGHT_STRIDE,
+   |     ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^
+21 |     GPU_PRIMITIVE_DATA_STRIDE, GPU_PRIMITIVE_FLAG_CAST_SHADOWS,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PassFlags`
+   --> zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_graph_execution_resources.rs:450:9
+    |
+450 |         PassFlags, QueueLane, RenderGraphBuilder, RenderGraphResource, RenderGraphResourceKind,
+    |         ^^^^^^^^^
+
+warning: unused import: `RenderFrameExtract`
+ --> zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_executor_registry\tests.rs:6:5
+  |
+6 |     RenderFrameExtract, RenderMotionBlurSettings, RenderPipelineHandle,
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `PendingMeshGeometry`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract.rs:12:49
+   |
+12 | use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry};
+   |                                                 ^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `RenderPhaseSortComponents`
+ --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract\lazy_rebuild_tests.rs:2:41
+  |
+2 |     RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `RenderPhaseSortComponents`
+ --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:4:41
+  |
+4 |     RenderMeshStaticState, RenderPhase, RenderPhaseSortComponents,
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `MeshBindHandle`
+   --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:190:43
+    |
+190 |         DrawInstanceSource, MeshBatchRef, MeshBindHandle, MeshDrawArgs, MeshDrawCommand,
+    |                                           ^^^^^^^^^^^^^^
+
+warning: unused imports: `INDIRECT_COMPACTION_UNUSED_INSTANCE_INDEX` and `IndirectCompactionBatchMetadata`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:16:5
+   |
+16 |     IndirectCompactionBatchMetadata, IndirectCompactionBatchRange, IndirectCompactionPlan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 |     INDIRECT_COMPACTION_METADATA_STRIDE_BYTES, INDIRECT_COMPACTION_UNUSED_INSTANCE_INDEX,
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `IndirectDrawBatcherStats`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:22:45
+   |
+22 |     IndirectDrawBatch, IndirectDrawBatcher, IndirectDrawBatcherStats,
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `MeshDrawCommandListStats`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:34:5
+   |
+34 |     MeshDrawCommandListStats, MeshPassCommandBufferStats, MeshPassCommandBuffers,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `MeshBatchCacheIdentity`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:37:5
+   |
+37 |     MeshBatchCacheIdentity, MeshBatchRef, MeshPassBuildContext, MeshPassProcessor,
+   |     ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `GPU_SCENE_BIND_GROUP_SLOT`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:45:30
+   |
+45 |     MeshSceneDataBindHandle, GPU_SCENE_BIND_GROUP_SLOT,
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `prepare_mesh_queue`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mesh\mod.rs:30:5
+   |
+30 |     prepare_mesh_queue, PreparedMeshQueueStats, PreparedMeshVirtualGeometryExecutionStats,
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `wgpu_post_process_texture_format`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\post_process\mod.rs:24:5
+   |
+24 |     wgpu_post_process_texture_format, POST_PROCESS_COLOR_LUT_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `write_glyph_atlas_bitmap_texture_upload_frame_plan`
+ --> zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload.rs:9:5
+  |
+9 |     write_glyph_atlas_bitmap_texture_upload_frame_plan,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `write_glyph_atlas_bitmap_render_submission_texture_upload_resources`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload.rs:19:5
+   |
+19 |     write_glyph_atlas_bitmap_render_submission_texture_upload_resources,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT`, `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT`, and `SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT`
+  --> zircon_runtime\src\graphics\scene\scene_renderer\mod.rs:48:5
+   |
+48 |     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+49 |     SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+50 |     SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `FALLBACK_MESH_SHADER`, `mesh_pipeline_standard_material_template_source_for_geometry`, and `mesh_pipeline_standard_material_template_source`
+  --> zircon_runtime\src\graphics\scene\mod.rs:25:5
+   |
+25 |     mesh_pipeline_standard_material_template_source,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+26 |     mesh_pipeline_standard_material_template_source_for_geometry,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+31 |     ShadowAtlasResourceConfig, ShadowLightSlotAssignment, FALLBACK_MESH_SHADER,
+   |                                                           ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `StandardMaterialSurfaceSource` and `standard_material_surface_source`
+  --> zircon_runtime\src\graphics\shader\template\mod.rs:20:5
+   |
+20 |     standard_material_surface_source, standard_material_surface_source_for_features,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+21 |     StandardMaterialSurfaceSource,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `MaterialShaderTemplateValidation`, `ShaderTemplateValidationError`, and `validate_material_shader_template_wgsl`
+  --> zircon_runtime\src\graphics\shader\template\mod.rs:28:5
+   |
+28 |     validate_material_shader_template_wgsl, validate_shader_variant_prewarm_wgsl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+29 |     MaterialShaderTemplateValidation, ShaderTemplateValidationError,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `GlyphAtlasScreenRect`
+ --> zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:5:47
+  |
+5 | use super::render_plan::{GlyphAtlasDrawGlyph, GlyphAtlasScreenRect};
+  |                                               ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GlyphAtlasGpuSamplerBinding` and `GlyphAtlasGpuTextureBinding`
+  --> zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:12:70
+   |
+12 |     glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout, GlyphAtlasGpuSamplerBinding,
+   |                                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+13 |     GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureBinding, GlyphAtlasGpuTextureSampleType,
+   |                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GlyphAtlasBitmapPlaceholderDrawPlan`, `GlyphAtlasBitmapPlaceholderDraw`, and `glyph_atlas_bitmap_placeholder_draw_plan`
+  --> zircon_runtime\src\graphics\text\atlas\render_submission.rs:16:5
+   |
+16 |     glyph_atlas_bitmap_placeholder_draw_plan, GlyphAtlasBitmapPlaceholderDraw,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+17 |     GlyphAtlasBitmapPlaceholderDrawPlan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GlyphAtlasBitmapAllocationFailure`, `GlyphAtlasBitmapGlyph`, `GlyphAtlasBitmapRetryPlan`, `GlyphAtlasBitmapUploadCopy`, `glyph_atlas_bitmap_retry_frame_input`, `glyph_atlas_bitmap_retry_plan_with_backpressure`, `glyph_atlas_bitmap_retry_plan`, and `glyph_atlas_bitmap_staged_upload_plan`
+  --> zircon_runtime\src\graphics\text\atlas\mod.rs:17:46
+   |
+17 |     glyph_atlas_bitmap_prepared_upload_plan, glyph_atlas_bitmap_retry_frame_input,
+   |                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+18 |     glyph_atlas_bitmap_retry_frame_input_with_backpressure, glyph_atlas_bitmap_retry_frame_outcome,
+19 |     glyph_atlas_bitmap_retry_plan, glyph_atlas_bitmap_retry_plan_with_backpressure,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 |     glyph_atlas_bitmap_run_plan, glyph_atlas_bitmap_run_plan_with_padding,
+21 |     glyph_atlas_bitmap_staged_upload_plan, glyph_atlas_bitmap_texture_upload_request_plan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+22 |     glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapAllocationFailure,
+   |                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+23 |     GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasBitmapGlyph,
+   |                                              ^^^^^^^^^^^^^^^^^^^^^
+...
+27 |     GlyphAtlasBitmapRetryFrameInput, GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapRetryPlan,
+   |                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+32 |     GlyphAtlasBitmapUploadCopy, GlyphAtlasBitmapUploadSourceBytes,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GlyphHintingMode`, `GlyphRasterKey`, `GlyphRasterRequest`, and `SyntheticGlyphStyle`
+  --> zircon_runtime\src\graphics\text\atlas\mod.rs:46:5
+   |
+46 |     GlyphHintingMode, GlyphRasterKey, GlyphRasterPlacement, GlyphRasterRequest, GlyphSmoothingMode,
+   |     ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^                        ^^^^^^^^^^^^^^^^^^
+47 |     SyntheticGlyphStyle,
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GlyphAtlasBitmapRenderSubmissionReport`, `GlyphAtlasBitmapRetryFrameDriverConfig`, `GlyphAtlasBitmapRetryFrameDriverOutput`, `GlyphAtlasBitmapRetryFrameStateReport`, `GlyphAtlasBitmapRetryFrameState`, `GlyphAtlasBitmapRetryFrameSubmissionPlan`, `GlyphAtlasBitmapRetryFrameSubmissionReport`, `glyph_atlas_bitmap_render_submission_plan`, `glyph_atlas_bitmap_render_submission_report`, `glyph_atlas_bitmap_retry_frame_driver_submit_with_config`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_padding`, `glyph_atlas_bitmap_retry_frame_submission_plan`, and `glyph_atlas_bitmap_retry_frame_submission_report`
+  --> zircon_runtime\src\graphics\text\atlas\mod.rs:50:5
+   |
+50 |     glyph_atlas_bitmap_render_submission_plan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+51 |     glyph_atlas_bitmap_render_submission_plan_with_padding,
+52 |     glyph_atlas_bitmap_render_submission_report,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+53 |     glyph_atlas_bitmap_retry_frame_driver_submit_with_config,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 |     glyph_atlas_bitmap_retry_frame_submission_plan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+55 |     glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+56 |     glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+57 |     glyph_atlas_bitmap_retry_frame_submission_plan_with_padding,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+58 |     glyph_atlas_bitmap_retry_frame_submission_report, GlyphAtlasBitmapRenderSubmissionPlan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+59 |     GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasBitmapRetryFrameDriverConfig,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+60 |     GlyphAtlasBitmapRetryFrameDriverOutput, GlyphAtlasBitmapRetryFrameState,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+61 |     GlyphAtlasBitmapRetryFrameStateReport, GlyphAtlasBitmapRetryFrameSubmissionPlan,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+62 |     GlyphAtlasBitmapRetryFrameSubmissionReport,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `GlyphRasterEffects`, `GlyphRasterPath`, `GlyphRasterPolicyRequest`, `GlyphRasterPolicy`, `raster_path_for_request`, and `raster_path_for`
+ --> zircon_runtime\src\graphics\text\raster\mod.rs:7:5
+  |
+7 |     raster_path_for, raster_path_for_request, GlyphRasterEffects, GlyphRasterPath,
+  |     ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+8 |     GlyphRasterPolicy, GlyphRasterPolicyRequest,
+  |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `ColorGlyphBitmapStrikeFit`, `ColorGlyphBitmapStrikeSelection`, `ColorGlyphBitmapStrike`, `ColorGlyphRasterPlan`, `GlyphBitmapError`, `GlyphBitmap`, `SwashBitmapStrike`, `SwashRasterError`, `SwashRasterImageContent`, `SwashRasterRequest`, `SwashRasterSource`, `SwashRasterizer`, `color_glyph_raster_plan`, `glyph_atlas_bitmap_source_from_glyph_bitmap`, and `select_color_bitmap_strike`
+  --> zircon_runtime\src\graphics\text\raster\mod.rs:11:5
+   |
+11 |     color_glyph_raster_plan, glyph_atlas_bitmap_source_from_glyph_bitmap,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+12 |     select_color_bitmap_strike, ColorGlyphBitmapStrike, ColorGlyphBitmapStrikeFit,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^
+13 |     ColorGlyphBitmapStrikeSelection, ColorGlyphRasterPlan, GlyphBitmap, GlyphBitmapError,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+14 |     SwashBitmapStrike, SwashRasterError, SwashRasterImageContent, SwashRasterRequest,
+   |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+15 |     SwashRasterSource, SwashRasterizer,
+   |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+
+warning: unused import: `RenderCameraClear`
+  --> zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:12:81
+   |
+12 |     DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderCameraClear,
+   |                                                                                 ^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::asset::pipeline::manager::AssetManager`
+ --> zircon_runtime\src\graphics\tests\m4_behavior_layers\queue_override.rs:3:5
+  |
+3 | use crate::asset::pipeline::manager::AssetManager;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `RuntimePluginId`
+ --> zircon_runtime\src\builtin\runtime_modules\manifest.rs:4:18
+  |
+4 | use super::ids::{RuntimePluginId, RuntimeTargetMode};
+  |                  ^^^^^^^^^^^^^^^
+
+warning: unused import: `super::*`
+ --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\structure_guard_children\budgets.rs:2:5
+  |
+2 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `super::super::super::super::*`
+ --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\typed_error_child_owners\child_ownership\budgets.rs:1:5
+  |
+1 | use super::super::super::super::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::super::super::super::super::*`
+ --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\code_review_findings\typed_error_child_owners\structure_assertions\native_plugin_loader\budgets.rs:1:5
+  |
+1 | use super::super::super::super::super::*;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summaries.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_child_summary_status_docs.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout_status_docs.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:27:16
+   |
+27 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:27:16
+   |
+27 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:28:16
+   |
+28 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:28:16
+   |
+28 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data_status_docs.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:27:16
+   |
+27 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:27:16
+   |
+27 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:28:16
+   |
+28 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:28:16
+   |
+28 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:28:16
+   |
+28 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:28:16
+   |
+28 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:29:16
+   |
+29 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:29:16
+   |
+29 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:30:16
+   |
+30 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:30:16
+   |
+30 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:31:16
+   |
+31 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:31:16
+   |
+31 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:27:16
+   |
+27 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:27:16
+   |
+27 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:28:16
+   |
+28 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:28:16
+   |
+28 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:27:16
+   |
+27 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:27:16
+   |
+27 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:28:16
+   |
+28 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:28:16
+   |
+28 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:23:16
+   |
+23 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:24:16
+   |
+24 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:22:16
+   |
+22 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:23:16
+   |
+23 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:24:16
+   |
+24 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:25:16
+   |
+25 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:25:16
+   |
+25 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:26:16
+   |
+26 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:24:16
+   |
+24 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:25:16
+   |
+25 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:26:16
+   |
+26 | pub(super) use root_source_blobs::*;
+   |                ^^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_priority_plan_docs.rs:27:16
+   |
+27 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:26:16
+   |
+26 | pub(super) use root_child_rows::*;
+   |                ^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:27:16
+   |
+27 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:27:16
+   |
+27 | pub(super) use root_owner_paths::*;
+   |                ^^^^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:28:16
+   |
+28 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:28:16
+   |
+28 | pub(super) use root_paths::*;
+   |                ^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   |
+note: the most public imported item is `pub(self)`
+  --> zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:29:16
+   |
+29 | pub(super) use root_statuses::*;
+   |                ^^^^^^^^^^^^^^^^
+   = help: reduce the glob import's visibility or increase visibility of imported items
+
+warning: unused import: `super::*`
+ --> zircon_runtime\src\tests\runtime_absorption\ui_architecture\mirror_docs.rs:1:5
+  |
+1 | use super::*;
+  |     ^^^^^^^^
+
+warning: unused import: `assert_render_bool_series`
+ --> zircon_runtime\src\tests\runtime_diagnostics\graph_execution.rs:4:5
+  |
+4 |     assert_render_bool_series, assert_render_count_series, assert_render_microsecond_series,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated method `ttf_parser::Face::<'a>::table_data`: use `self.raw_face().table()` instead
+  --> zircon_runtime\src\asset\importer\ingest\import_font_asset\parse_sfnt.rs:65:14
+   |
+65 |         face.table_data(Tag::from_bytes(b"fvar")),
+   |              ^^^^^^^^^^
+   |
+   = note: `#[warn(deprecated)]` on by default
+
+warning: unused import: `CommandList`
+ --> zircon_runtime\src\rhi\tests\texture_copy.rs:2:30
+  |
+2 |     BufferDesc, BufferUsage, CommandList, RenderDevice, RenderQueueClass, TextureCopyRegion,
+  |                              ^^^^^^^^^^^
+
+warning: unused import: `CommandList`
+ --> zircon_runtime\src\rhi\tests\device_contract.rs:4:44
+  |
+4 |     BufferDesc, BufferHandle, BufferUsage, CommandList, CompareFunction, FenceValue, PipelineDesc,
+  |                                            ^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\dynamic_api\runtime_loop.rs:40:9
+   |
+40 |         mut extract: RenderFrameExtract,
+   |         ----^^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\dynamic_api\runtime_loop.rs:89:9
+   |
+89 |         mut extract: RenderFrameExtract,
+   |         ----^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: unused variable: `stale_entity`
+   --> zircon_runtime\src\scene\tests\dynamic_scene_session\selection.rs:371:9
+    |
+371 |     let stale_entity = level.with_world_mut(|world| {
+    |         ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_stale_entity`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\ui\accessibility\action.rs:36:9
+   |
+36 |     let mut result = UiInputDispatchResult::new(
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:234:9
+    |
+234 |         mut report: NativePluginLoadReport,
+    |         ----^^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: variable does not need to be mutable
+  --> zircon_runtime\src\plugin\runtime_plugin\feature_registration_report\project_selection.rs:14:9
+   |
+14 |     let mut selection = ProjectPluginFeatureSelection::new(feature.id.clone())
+   |         ----^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+For more information about this error, try `rustc --explain E0425`.
+warning: `zircon_runtime` (lib test) generated 175 warnings
+error: could not compile `zircon_runtime` (lib test) due to 1 previous error; 175 warnings emitted

@@ -43,6 +43,40 @@ class ZirconBuildShaderPermutationRegistryContractTests(unittest.TestCase):
                     config=config,
                 )
 
+    def test_validate_generated_registry_requires_selected_plugin_shader_modules(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            registry_path = Path(temp_dir) / "shader_permutation_registry.json"
+            registry_path.write_text(
+                json.dumps(
+                    {
+                        "geometry_source_ids": [],
+                        "shading_model_ids": [],
+                        "shader_modules": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = _FakePrewarmConfig()
+            config.plugins = (
+                _FakePluginPackage(
+                    shader_modules=(
+                        {
+                            "import_path": "custom::toon::noise",
+                            "content_hash": "b" * 64,
+                        },
+                    ),
+                ),
+            )
+
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "missing selected shader modules: custom::toon::noise",
+            ):
+                validate_shader_permutation_registry_export_contract(
+                    registry_path,
+                    config=config,
+                )
+
     def test_prewarm_shaders_validates_generated_registry_before_run(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             config = _FakePrewarmConfig()
@@ -181,9 +215,11 @@ class _FakePluginPackage:
         self,
         shader_geometry_source_ids: tuple[str, ...] = (),
         shader_shading_model_ids: tuple[str, ...] = (),
+        shader_modules: tuple[dict[str, object], ...] = (),
     ):
         self.shader_geometry_source_ids = shader_geometry_source_ids
         self.shader_shading_model_ids = shader_shading_model_ids
+        self.shader_modules = shader_modules
 
 
 if __name__ == "__main__":

@@ -38,19 +38,29 @@ fn destroy_session_reports_explicit_not_found_for_missing_nonzero_handle() {
 
 #[test]
 fn destroy_session_removes_registry_entry_so_destroyed_handles_become_missing() {
-    let source = include_str!("../session.rs");
-    let destroy_start = source
-        .find("pub(super) unsafe extern \"C\" fn destroy_session")
-        .expect("destroy_session entry point");
-    let next_entry = source[destroy_start..]
-        .find("\npub(super) unsafe extern \"C\" fn handle_event")
+    let session_source = include_str!("../session.rs");
+    let exports_source = include_str!("../exports.rs");
+    let destroy_start = session_source
+        .find("pub(super) unsafe fn destroy_session")
+        .expect("destroy_session rust owner");
+    let next_entry = session_source[destroy_start..]
+        .find("\npub(super) unsafe fn handle_event")
         .map(|offset| destroy_start + offset)
         .expect("entry point after destroy_session");
-    let destroy_body = &source[destroy_start..next_entry];
+    let destroy_body = &session_source[destroy_start..next_entry];
+    let export_start = exports_source
+        .find("unsafe extern \"C\" fn destroy_session_ffi")
+        .expect("destroy_session FFI wrapper");
+    let next_export = exports_source[export_start..]
+        .find("\nunsafe extern \"C\" fn handle_event_ffi")
+        .map(|offset| export_start + offset)
+        .expect("FFI entry point after destroy_session");
+    let export_body = &exports_source[export_start..next_export];
 
     assert!(destroy_body.contains("if !handle.is_valid()"));
     assert!(destroy_body.contains("registry.sessions.remove(&handle.raw()).is_none()"));
     assert!(destroy_body.contains("return not_found(b\"runtime session not found\")"));
+    assert!(export_body.contains("catch_ffi_panic(|| unsafe { destroy_session(handle) })"));
 }
 
 #[test]

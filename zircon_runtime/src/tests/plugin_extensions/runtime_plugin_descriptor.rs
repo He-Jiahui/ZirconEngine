@@ -28,8 +28,8 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
         .any(|diagnostic| diagnostic.contains("package_id `Weather`")
             && diagnostic.contains("lowercase ASCII")));
 
-    let dotted = RuntimePluginDescriptor::builder(
-        "weather.layer",
+    let empty_segment = RuntimePluginDescriptor::builder(
+        "weather..layer",
         "Weather",
         RuntimePluginId::Particles,
         "zircon_plugin_weather_runtime",
@@ -37,12 +37,12 @@ fn runtime_plugin_registration_report_rejects_invalid_descriptor_package_ids() {
     .with_target_modes([RuntimeTargetMode::ClientRuntime])
     .with_capability("runtime.plugin.weather")
     .build();
-    let catalog = RuntimePluginCatalog::from_descriptors([dotted]);
+    let catalog = RuntimePluginCatalog::from_descriptors([empty_segment]);
 
     assert!(!catalog.is_success());
     assert!(catalog.diagnostics().iter().any(|diagnostic| diagnostic
-        .contains("package_id `weather.layer`")
-        && diagnostic.contains("lowercase ASCII")));
+        .contains("package_id `weather..layer`")
+        && diagnostic.contains("non-empty segments")));
 }
 
 #[test]

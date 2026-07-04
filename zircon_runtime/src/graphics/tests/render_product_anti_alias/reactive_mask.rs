@@ -238,6 +238,7 @@ fn authored_reactive_mask_taa_product_extract_with_alpha_mode(
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

@@ -1,0 +1,10 @@
+runtime_text_editor_sdf_glyph_spacing_validation_20260704
+font_path=C:\Windows\Fonts\Deng.ttf
+font_size=28
+png=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_sdf_glyph_spacing_preview_20260704.png
+png_sha256=17AC939B3EB79AD20ABD466A71183A8B38F51D540FC568EDCCCA1ED990306DEE
+code_change=text_glyph_device_frame preserves finite subpixel glyph origins; text_frame_device_origin still snaps line origin.
+sample='editor base.zui' mode=before max_spacing_error_px=0.6719 rms_spacing_error_px=0.3880
+sample='editor base.zui' mode=after max_spacing_error_px=0.0000 rms_spacing_error_px=0.0000
+sample='folder-open.svg' mode=before max_spacing_error_px=0.7500 rms_spacing_error_px=0.3519
+sample='folder-open.svg' mode=after max_spacing_error_px=0.0000 rms_spacing_error_px=0.0000

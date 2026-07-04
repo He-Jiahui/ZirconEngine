@@ -339,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn post_process_params_pack_viewport_and_scene_source_origins_separately() {
+    fn post_process_params_pack_physical_viewport_and_local_scene_source_origins_separately() {
         let mut camera =
             crate::core::framework::render::CameraRenderDescriptor::from_camera_payload(
                 None,
@@ -355,7 +355,7 @@ mod tests {
             UVec2::new(320, 180),
             UVec2::new(20, 12),
             region,
-            region.physical_origin(),
+            [0, 0],
             &RenderFrameExtract::from_snapshot(
                 RenderWorldSnapshotHandle::new(1),
                 World::new().to_render_snapshot(),
@@ -368,7 +368,7 @@ mod tests {
         );
 
         assert_eq!(params.viewport_and_clusters, [320, 180, 320, 40]);
-        assert_eq!(params.cluster_dimensions, [20, 12, 320, 40]);
+        assert_eq!(params.cluster_dimensions, [20, 12, 0, 0]);
     }
 
     #[test]

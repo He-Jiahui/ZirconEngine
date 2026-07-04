@@ -1,10 +1,90 @@
 use super::super::super::super::*;
 use super::*;
 
+#[path = "doc_mirrors/guard_anchors.rs"]
+mod guard_anchors;
+#[path = "doc_mirrors/source_paths.rs"]
+mod source_paths;
+#[path = "doc_mirrors/status_current.rs"]
+mod status_current;
+#[path = "doc_mirrors/status_slices.rs"]
+mod status_slices;
+
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs/doc_mirrors.rs";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_STATUS_SLICES_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs/doc_mirrors/status_slices.rs";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_SOURCE_PATHS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs/doc_mirrors/source_paths.rs";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_GUARD_ANCHORS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs/doc_mirrors/guard_anchors.rs";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_STATUS_CURRENT_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs/doc_mirrors/status_current.rs";
+
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_FOLDER_BACKED_SLICE: &str =
+    "Runtime 15 M3 typed-error status-doc doc mirrors folder-backed split";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_FOLDER_BACKED_STATUS: &str =
+    "runtime_15_typed_error_status_doc_mirrors_folder_backed_static_passed_cargo_deferred";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_FOLDER_BACKED_DATE: &str = "2026-07-04";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_FOLDER_BACKED_GUARD: &str =
+    "runtime_15_typed_error_status_doc_mirrors_are_folder_backed";
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRRORS_STATUS_GUARD: &str =
+    "runtime_15_typed_error_status_doc_mirrors_folder_backed_status_is_current";
+
+pub(super) const TYPED_ERROR_STATUS_DOC_MIRROR_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "status_slices",
+        TYPED_ERROR_STATUS_DOC_MIRRORS_STATUS_SLICES_CHILD,
+        "assert_typed_error_status_doc_slice_anchors_are_synced",
+    ),
+    (
+        "source_paths",
+        TYPED_ERROR_STATUS_DOC_MIRRORS_SOURCE_PATHS_CHILD,
+        "assert_typed_error_status_doc_source_paths_are_synced",
+    ),
+    (
+        "guard_anchors",
+        TYPED_ERROR_STATUS_DOC_MIRRORS_GUARD_ANCHORS_CHILD,
+        "assert_typed_error_status_doc_guard_anchors_are_synced",
+    ),
+    (
+        "status_current",
+        TYPED_ERROR_STATUS_DOC_MIRRORS_STATUS_CURRENT_CHILD,
+        TYPED_ERROR_STATUS_DOC_MIRRORS_STATUS_GUARD,
+    ),
+];
+
 pub(super) fn assert_typed_error_status_doc_mirrors_are_synced(
     sources: &TypedErrorStatusDocSources,
 ) {
-    for (label, source) in [
+    status_slices::assert_typed_error_status_doc_slice_anchors_are_synced(sources);
+    source_paths::assert_typed_error_status_doc_source_paths_are_synced(sources);
+    guard_anchors::assert_typed_error_status_doc_guard_anchors_are_synced(sources);
+}
+
+#[test]
+fn runtime_15_typed_error_status_doc_mirrors_are_folder_backed() {
+    let sources = typed_error_status_doc_sources();
+    let parent = read_runtime_src(TYPED_ERROR_STATUS_DOC_MIRRORS_CHILD);
+    let child_tree = typed_error_status_doc_mirror_child_source_blob();
+
+    for (_, child_path, anchor) in TYPED_ERROR_STATUS_DOC_MIRROR_CHILDREN {
+        assert!(
+            parent.contains(child_path),
+            "typed-error status-doc mirror parent should inventory child path {child_path}"
+        );
+        assert!(
+            child_tree.contains(anchor),
+            "typed-error status-doc mirror child {child_path} should own anchor {anchor}"
+        );
+    }
+    assert_typed_error_status_doc_mirrors_are_synced(&sources);
+}
+
+pub(super) fn typed_error_status_doc_mirror_sources<'a>(
+    sources: &'a TypedErrorStatusDocSources,
+) -> [(&'static str, &'a str); 6] {
+    [
         ("Runtime 15 plan", sources.runtime_15_plan.as_str()),
         ("Runtime index", sources.runtime_index.as_str()),
         ("review findings", sources.review_findings.as_str()),
@@ -14,148 +94,21 @@ pub(super) fn assert_typed_error_status_doc_mirrors_are_synced(
         ),
         ("module convention doc", sources.module_doc.as_str()),
         ("status-output row data", sources.status_rows.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M3 code review findings typed-error structure guard child-owner split",
-                "runtime_15_code_review_findings_typed_error_structure_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 typed-error structure assertions guard child-owner split",
-                "runtime_15_typed_error_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 typed-error structure assertions guard folder-backed split",
-                "runtime_15_typed_error_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
-                "Runtime 15 M3 typed-error native plugin loader structure guard child-owner split",
-                "runtime_15_typed_error_native_plugin_loader_structure_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 typed-error structure moved-guard absence child-owner split",
-                "runtime_15_typed_error_structure_moved_guard_absence_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 typed-error structure status-doc guard child-owner split",
-                "runtime_15_typed_error_structure_status_docs_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 typed-error source inventory guard child-owner split",
-                "runtime_15_typed_error_source_inventory_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 native live-host typed-error review guard child-owner split",
-                "runtime_15_native_live_host_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 native live-host lifecycle-paths typed-error review guard child-owner split",
-                "runtime_15_native_live_host_lifecycle_paths_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 native live-host replay-runtime typed-error review guard child-owner split",
-                "runtime_15_native_live_host_replay_runtime_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 native ABI surfaces typed-error review guard child-owner split",
-                "runtime_15_native_abi_surfaces_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 native plugin descriptor ABI typed-error review guard child-owner split",
-                "runtime_15_native_plugin_descriptor_abi_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 UI input typed-error review guard child-owner split",
-                "runtime_15_ui_input_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 native manifest sources typed-error review guard child-owner split",
-                "runtime_15_native_manifest_sources_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 scene world typed-error review guard child-owner split",
-                "runtime_15_scene_world_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 script host typed-error review guard child-owner split",
-                "runtime_15_script_host_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 asset loader typed-error review guard child-owner split",
-                "runtime_15_asset_loader_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 asset records typed-error review guard child-owner split",
-                "runtime_15_asset_records_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "Runtime 15 M3 shader prewarm CLI typed-error review guard child-owner split",
-                "runtime_15_shader_prewarm_cli_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/convergence_mounts.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/delegation.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/child_ownership.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/status_mirrors.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/native_plugin_loader.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs",
-                "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs.rs",
-                "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
-                "runtime_15_typed_error_structure_assertions_are_child_owner",
-                "runtime_15_typed_error_structure_assertions_children_are_child_owned",
-                "runtime_15_typed_error_structure_assertions_guard_folder_backed_status_is_current",
-                "runtime_15_typed_error_native_plugin_loader_structure_is_child_owner",
-                "runtime_15_typed_error_structure_moved_guard_absence_is_child_owner",
-                "runtime_15_typed_error_source_inventory_is_child_owner",
-                "runtime_15_code_review_findings_tests_are_folder_backed",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/animation_binary.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/artifact_importer.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/mesh_obj.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders/texture.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/authoring.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/font.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/meta.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/navigation.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/sound.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records/zshader.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/behavior_bridge.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/string_helpers.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/descriptor_abi.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/entry_abi.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/host_adapter.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths/hot_reload.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths/lifecycle.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths/loading.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/bridge_methods.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/registration_replay.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime/runtime_behavior.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources/compat_registration.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources/collection_candidate.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/typed_mutation_surface.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/fixed_mutation.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/dynamic_components.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/script_host.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/script_host/gameplay_scene.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/script_host/plugin_management.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/script_host/host_reflection_docs.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli/args_boundary.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli/run_boundary.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_input.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_input/surface_effects.rs",
-                "tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_input/surrounding_text.rs",
-                "review_f5_texture_loader_uses_typed_error",
-                "review_f5_mesh_loader_and_obj_decoder_use_typed_errors",
-                "review_f5_animation_asset_binary_uses_typed_errors",
-                "review_f5_asset_authoring_uses_typed_error",
-                "review_f5_navigation_asset_uses_typed_error",
-                "review_f5_font_asset_uses_typed_error_source",
-                "review_f5_sound_asset_uses_typed_error",
-            "review_f5_zshader_v2_replaces_user_shader_definitions",
-                "review_f5_asset_meta_uses_typed_error",
-                "review_f5_world_spawn_bundle_surface_uses_scene_error",
-                "review_f5_scene_property_access_uses_scene_error",
-                "review_f7_asset_artifact_errors_use_asset_import_error_sources",
-                "review_f5_native_plugin_behavior_abi_uses_typed_error",
-                "review_f5_native_plugin_string_helpers_use_typed_error",
-                "review_f5_native_plugin_descriptor_abi_uses_typed_error",
-                "review_f5_native_plugin_entry_abi_uses_typed_error",
-                "review_f5_native_host_api_adapter_uses_typed_error",
-                "review_f5_native_live_host_loading_uses_typed_error",
-                "review_f5_native_live_host_lifecycle_uses_typed_error",
-                "review_f5_native_live_host_hot_reload_uses_typed_error",
-                "review_f5_native_live_host_registration_replay_uses_typed_error",
-                "review_f5_native_live_host_bridge_methods_use_typed_error",
-                "review_f5_native_live_host_runtime_behavior_uses_typed_error",
-                "review_f5_native_plugin_distribution_compat_uses_typed_error",
-                "review_f5_native_plugin_manifest_candidate_uses_typed_error",
-                "review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary",
-                "review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary",
-                "review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary",
-                "review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary",
-                "review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_boundary",
-                "review_f5_ui_input_surrounding_text_error_implements_std_error",
-                "Cargo gate deferred",
-            ],
-        );
+    ]
+}
+
+pub(super) fn typed_error_status_doc_mirror_child_sources() -> Vec<(&'static str, String)> {
+    TYPED_ERROR_STATUS_DOC_MIRROR_CHILDREN
+        .iter()
+        .map(|(_, path, _)| (*path, read_runtime_src(path)))
+        .collect()
+}
+
+pub(super) fn typed_error_status_doc_mirror_child_source_blob() -> String {
+    let mut blob = String::new();
+    for (_, source) in typed_error_status_doc_mirror_child_sources() {
+        blob.push_str(&source);
+        blob.push('\n');
     }
+    blob
 }

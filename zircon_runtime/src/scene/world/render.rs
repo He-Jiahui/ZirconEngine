@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
     default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
-    sort_render_cameras, CameraRenderDescriptor, DebugOverlayExtract, FallbackSkyboxKind,
+    sort_render_cameras, CameraRenderDescriptor, DebugOverlayExtract, EnvironmentExtract,
     GeometryExtract, GeometryPhaseInput, LightingExtract, MaterialPropertyOverrideBlock,
     ParticleExtract, PostProcessExtract, PostProcessVolumeExtract, PreviewEnvironmentExtract,
     ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport, RenderExposureSettings,
@@ -74,6 +74,7 @@ impl World {
                     display_mode: request.settings.display_mode,
                     ..RenderOverlayExtract::default()
                 },
+                environment: build_environment_extract(request),
                 preview: build_preview_environment(request),
                 virtual_geometry_debug: request.virtual_geometry_debug,
             };
@@ -115,6 +116,7 @@ impl World {
                 display_mode: request.settings.display_mode,
                 ..RenderOverlayExtract::default()
             },
+            environment: build_environment_extract(request),
             preview: build_preview_environment(request),
             virtual_geometry_debug: request.virtual_geometry_debug,
         }
@@ -184,6 +186,7 @@ impl World {
                 baked_lighting: None,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
             },
+            environment: build_environment_extract(request),
             post_process: build_post_process_extract(
                 request,
                 camera_exposure_ev100,
@@ -693,6 +696,7 @@ fn inactive_camera_frame_extract(
             baked_lighting: None,
             hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
         },
+        environment: build_environment_extract(request),
         post_process: build_post_process_extract(
             request,
             camera_exposure_ev100,
@@ -732,14 +736,13 @@ fn build_post_process_extract(
 }
 
 fn build_preview_environment(request: &SceneViewportExtractRequest) -> PreviewEnvironmentExtract {
-    PreviewEnvironmentExtract {
-        lighting_enabled: request.settings.preview_lighting,
-        skybox_enabled: request.settings.preview_skybox,
-        fallback_skybox: if request.settings.preview_skybox {
-            FallbackSkyboxKind::ProceduralGradient
-        } else {
-            FallbackSkyboxKind::None
-        },
-        clear_color: SCENE_CLEAR_COLOR,
-    }
+    PreviewEnvironmentExtract::from_environment(
+        &build_environment_extract(request),
+        request.settings.preview_lighting,
+        SCENE_CLEAR_COLOR,
+    )
+}
+
+fn build_environment_extract(request: &SceneViewportExtractRequest) -> EnvironmentExtract {
+    EnvironmentExtract::from_preview_skybox_enabled(request.settings.preview_skybox)
 }

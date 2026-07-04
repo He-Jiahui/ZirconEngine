@@ -1,0 +1,46 @@
+runtime_text_ime_render_extract_geometry_rustfmt_static_visual_cargo_deferred
+Date: 2026-07-04 slice, validated from Asia/Shanghai session crossing into 2026-07-05 00:xx
+
+Scope:
+- zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
+- zircon_runtime/src/ui/surface/input/editable_text/mutation.rs
+- zircon_runtime/src/ui/surface/surface/rebuild.rs
+- zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
+- docs/tests/runtime/text/runtime_text_ime_render_extract_geometry_preview_20260704.png
+
+Implementation summary:
+- IME cursor/composition geometry now refreshes current-tree render extract before UpdateCursor.
+- Geometry consumes matching UiRenderCommand.text_layout, the same layout object used by TextField paint.
+- The old direct ime_context.rs resolve_text_layout/resolve_style path was removed.
+- Fixed-column cursor/composition geometry remains only as a no-layout fallback.
+
+Focused regression added:
+- text_input_ime_preedit_refreshes_render_extract_before_cursor_update
+- Scenario: start with text "ab", preedit inserts "W", surface content becomes "aWb".
+- Assertion: render_extract has no stale command with text "ab" after the event.
+- Assertion: requested IME cursor_rect equals caret_frame_for_text_layout(refreshed render_extract layout, offset len("aW")).
+
+Validation commands and results:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs zircon_runtime/src/ui/surface/input/editable_text/mutation.rs zircon_runtime/src/ui/surface/surface/rebuild.rs zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs: passed.
+- direct production resolve_text_layout scan under zircon_runtime/src/ui: expected owners/tests only:
+  - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/ui/text/measure_cache.rs
+  - zircon_runtime/src/ui/text/resolved_layout.rs
+  - zircon_runtime/src/ui/tests/text_pipeline.rs
+  - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
+- input_method_update_for_text_state caller scan: mutation.rs calls the new &mut UiSurface signature.
+- git diff --check on touched Rust/docs/artifact: no whitespace errors; LF/CRLF warnings only.
+- conflict marker scan on touched Rust/docs: 0.
+- trailing whitespace scan on touched Rust/docs: 0.
+- proof image inspection: docs/tests/runtime/text/runtime_text_ime_render_extract_geometry_preview_20260704.png inspected and readable.
+- same-name target scans for preview/log under repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets: 0.
+
+Cargo status:
+- Focused Cargo test was not started because external cargo/rustc lanes were active during validation.
+- Active examples observed: cargo PIDs 19716, 23276, 42420, 50052; rustc PIDs 43044, 50624.
+- Deferred focused command when lanes are clear:
+  cargo test -p zircon_runtime text_input_ime_preedit_refreshes_render_extract_before_cursor_update --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0704-ime-render-extract --message-format short --color never -- --nocapture --test-threads=1
+
+Boundaries:
+- This slice closes IME render-layout divergence for normal TextField update geometry.
+- It does not claim full layout-pass measure cache, complex BIDI or vertical source-range geometry, backend cluster reverse lookup, live editor-window typography QA, GPU/native paragraph parity, or bitmap atlas cutover completion.

@@ -56,6 +56,7 @@ struct ShaderIdePreviewFile {
 const SHADER_IDE_COMMON_BUILTIN_VALIDATION_MODULES: &[&str] = &[
     "zr_scene_runtime.wgsl",
     "zr_gpu_scene.wgsl",
+    "zr_environment.wgsl",
     "zr_light_grid.wgsl",
     "zr_shadow.wgsl",
     "zr_surface_types.wgsl",

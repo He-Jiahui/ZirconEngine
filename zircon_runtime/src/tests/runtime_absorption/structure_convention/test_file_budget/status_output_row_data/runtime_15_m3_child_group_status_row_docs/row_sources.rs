@@ -3,7 +3,12 @@ use super::*;
 #[test]
 fn runtime_15_status_output_m3_child_group_status_row_docs_are_child_owner() {
     let status_docs_guard = read_runtime_src(STATUS_DOCS_GUARD_PATH);
-    let status_row_docs_guard = read_runtime_src(STATUS_ROW_DOCS_GUARD_PATH);
+    let status_row_docs_guard = format!(
+        "{}\n{}\n{}",
+        read_runtime_src(STATUS_ROW_DOCS_GUARD_PATH),
+        read_runtime_src(ROOT_PATHS_PATH),
+        read_runtime_src(ROOT_STATUSES_PATH)
+    );
 
     for moved_row_doc_source in [
         "lock_poison_status.rs",

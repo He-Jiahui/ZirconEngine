@@ -1,0 +1,6 @@
+
+running 1 test
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::live_registry_records::render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6395 filtered out; finished in 10.29s
+

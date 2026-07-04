@@ -1,0 +1,18 @@
+
+running 13 tests
+test graphics::tests::render_product_camera_targets::custom_target::composite::custom_target_two_viewport_stacks_preserve_independent_composites_before_primary_sample ... ok
+test graphics::tests::render_product_camera_targets::custom_target::material_sampling::custom_target_chain_feeds_later_texture_and_primary_surface_samples ... ok
+test graphics::tests::render_product_camera_targets::custom_target::material_sampling::custom_target_stacks_feed_later_primary_surface_materials_independently ... ok
+test graphics::tests::render_product_camera_targets::custom_target::material_sampling::render_product_dual_camera_rt_then_main ... ok
+test graphics::tests::render_product_camera_targets::custom_target::ordering::custom_target_late_producer_feeds_previous_frame_not_future_sample ... ok
+test graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_overlay_inherits_base_viewport_region_before_primary_sample ... ok
+test graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_viewport_regions_feed_later_primary_surface_sample ... ok
+test graphics::tests::render_product_camera_targets::primary_surface::render_product_camera_render_order_swap_changes_composite ... ok
+test graphics::tests::render_product_camera_targets::primary_surface::render_product_overlay_stack_composites_over_base ... ok
+test graphics::tests::render_product_camera_targets::primary_surface::render_product_split_screen_viewports ... ok
+test graphics::tests::render_product_camera_targets::texture_target::texture_target_overlay_camera_converts_linear_final_product_after_composite ... ok
+test graphics::tests::render_product_camera_targets::texture_target::texture_target_overlay_camera_draws_layered_mesh_over_base_clear ... ok
+test graphics::tests::render_product_camera_targets::texture_target::texture_target_stack_preserves_composite_when_primary_surface_renders_later ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 6517 filtered out; finished in 48.47s
+

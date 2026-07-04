@@ -141,6 +141,7 @@ fn blur_particle_product_extract(viewport_size: UVec2, blur_enabled: bool) -> Re
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

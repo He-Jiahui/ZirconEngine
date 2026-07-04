@@ -1,0 +1,32 @@
+Runtime text unkerned measure backend request validation
+timestamp: 2026-07-04 18:22 +08:00
+status: runtime_text_unkerned_measure_backend_request_rustfmt_static_visual_cargo_deferred
+
+implementation:
+- TextShapeRequest now carries include_kerning, default true.
+- shape_horizontal_line_with_kerning(...) routes include_kerning=false into cosmic-text OpenType feature kern=0.
+- measure_text_source_range_width_with_kerning(...) shapes with the requested kerning mode before measured_width(...).
+
+validation:
+- rustfmt --edition 2021 --check passed for shaped_run.rs, shaping/mod.rs, shaping/cosmic.rs, layout/measure.rs, layout/mod.rs.
+- git diff --check passed for the touched runtime text files with LF-to-CRLF working-tree warnings only.
+- conflict-marker and trailing-whitespace scans returned 0.
+- proof preview SHA256: 828B620EEA40FCEB2D959937E6FD161B1E7FE9C34A4E27B8AB13F1E0DFE3B094
+- proof preview path: docs/tests/runtime/text/runtime_text_unkerned_measure_backend_request_preview_20260704.png
+
+cargo:
+- focused Cargo not started because external cargo/rustc lanes are active.
+
+active external cargo/rustc lanes:
+- cargo pid=12128 cpu=2.97 start=07/04/2026 18:15:27
+- cargo pid=14268 cpu=0.02 start=07/04/2026 18:04:25
+- cargo pid=38448 cpu=0.03 start=07/04/2026 18:15:27
+- cargo pid=40216 cpu=0.06 start=07/04/2026 18:17:19
+- cargo pid=42372 cpu=5.17 start=07/04/2026 18:04:25
+- cargo pid=48540 cpu=3.22 start=07/04/2026 18:17:04
+- cargo pid=48716 cpu=4.42 start=07/04/2026 18:17:19
+- cargo pid=50232 cpu=0.03 start=07/04/2026 18:17:04
+- rustc pid=11536 cpu=124.69 start=07/04/2026 18:15:33
+- rustc pid=16752 cpu=24.52 start=07/04/2026 18:17:23
+- rustc pid=42164 cpu=385.91 start=07/04/2026 18:11:04
+- rustc pid=49868 cpu=5.58 start=07/04/2026 18:17:43

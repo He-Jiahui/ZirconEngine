@@ -20,6 +20,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupHos
         EditorStartupSessionDocument,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) viewport_size: UVec2,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) shell_size: ShellSizePx,
+    pub(in crate::ui::retained_host::app::host_lifecycle::startup) shell_scale_factor: f32,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) template_bridges:
         StartupTemplateBridges,
 }

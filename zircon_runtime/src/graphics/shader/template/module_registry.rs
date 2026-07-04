@@ -10,6 +10,7 @@ use crate::core::framework::render::{
 const SURFACE_TYPES_INCLUDE_TOKEN: &str = "zr_surface_types.wgsl";
 const SCENE_RUNTIME_INCLUDE_TOKEN: &str = "zr_scene_runtime.wgsl";
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
+const ENVIRONMENT_INCLUDE_TOKEN: &str = "zr_environment.wgsl";
 const LIGHT_GRID_INCLUDE_TOKEN: &str = "zr_light_grid.wgsl";
 const SHADOW_INCLUDE_TOKEN: &str = "zr_shadow.wgsl";
 const STANDARD_PBR_SHADING_INCLUDE_TOKEN: &str = "zr_shading_standard_pbr.wgsl";
@@ -30,6 +31,7 @@ const LIGHT_GRID_INCLUDE: &str =
 const SHADOW_INCLUDE: &str =
     include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl");
 const SURFACE_TYPES_INCLUDE: &str = include_str!("../wgsl/zr_surface_types.wgsl");
+const ENVIRONMENT_INCLUDE: &str = include_str!("../wgsl/zr_environment.wgsl");
 const STANDARD_PBR_SHADING_INCLUDE: &str = include_str!("../wgsl/zr_shading_standard_pbr.wgsl");
 const STANDARD_PBR_GBUFFER_ENCODE_INCLUDE: &str =
     include_str!("../wgsl/zr_gbuffer_encode_standard_pbr.wgsl");
@@ -188,6 +190,7 @@ fn builtin_module_includes() -> Vec<ShaderTemplateInclude> {
         surface_types_include(),
         scene_runtime_include(),
         gpu_scene_include(),
+        environment_include(),
         light_grid_include(),
         shadow_include(),
         standard_pbr_shading_include(),
@@ -226,6 +229,10 @@ pub(crate) fn scene_runtime_include() -> ShaderTemplateInclude {
 
 pub(crate) fn gpu_scene_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(GPU_SCENE_INCLUDE_TOKEN, GPU_SCENE_INCLUDE)
+}
+
+pub(crate) fn environment_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(ENVIRONMENT_INCLUDE_TOKEN, ENVIRONMENT_INCLUDE)
 }
 
 pub(crate) fn light_grid_include() -> ShaderTemplateInclude {

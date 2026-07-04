@@ -1,0 +1,24 @@
+Runtime text bitmap atlas texture upload frame export validation
+Date: 2026-07-04
+Slice: runtime_text_bitmap_atlas_texture_upload_frame_export_rustfmt_static_visual_cargo_deferred
+
+Changed code:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+
+Behavior/architecture validated:
+- The bitmap texture upload frame plan is now exported through the renderer-local atlas_texture_upload structural root with pub(in crate::graphics::scene::scene_renderer::ui) visibility.
+- The frame plan keeps request_plan and binding_plan private.
+- Renderer-facing callers can inspect a copyable GlyphAtlasBitmapTextureUploadFrameReport through report(), and can test ready_to_write_texture() without reading private frame-plan internals.
+- The fail-closed writer still writes WGPU texture data only when the frame report is ready_to_write_texture.
+
+Fresh checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs: passed.
+- Static scan confirmed frame-plan tests use plan.report() for frame diagnostics rather than request_plan or binding_plan fields.
+- Proof image inspected: docs/tests/runtime/text/runtime_text_bitmap_atlas_texture_upload_frame_export_preview_20260704.png.
+- Proof image SHA256: EF47BAD020503791FFD0A18E58D84529176465C1907EF3C89CB85D63D46F6E4E.
+- Same-name target scan under repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets: 0 matches.
+
+Deferred:
+- Focused Cargo validation was deferred because external cargo/rustc lanes were active during this slice.

@@ -3,6 +3,8 @@ use super::*;
 #[test]
 fn runtime_15_p0_native_fixture_leaf_owner_guard_is_folder_backed() {
     let parent = read_runtime_src(STRUCTURE_GUARD_OWNER);
+    let child_inventory = read_runtime_src(P0_NATIVE_FIXTURE_ROOT_CHILD_ROWS_CHILD);
+    let status_inventory = read_runtime_src(P0_NATIVE_FIXTURE_ROOT_STATUSES_CHILD);
     let child_sources = folder_backed_child_source_blob();
 
     assert_contains_all(
@@ -17,10 +19,22 @@ fn runtime_15_p0_native_fixture_leaf_owner_guard_is_folder_backed() {
             "mod leaf_ownership;",
             "#[path = \"p0_native_fixture_leaf_owners/status_mirrors.rs\"]",
             "mod status_mirrors;",
-            "pub(super) const STRUCTURE_GUARD_OWNER",
-            FOLDER_BACKED_SLICE,
-            FOLDER_BACKED_STATUS,
+            "#[path = \"p0_native_fixture_leaf_owners/root_paths.rs\"]",
+            "mod root_paths;",
+            "#[path = \"p0_native_fixture_leaf_owners/root_statuses.rs\"]",
+            "mod root_statuses;",
+            "#[path = \"p0_native_fixture_leaf_owners/root_child_rows.rs\"]",
+            "mod root_child_rows;",
+            "#[path = \"p0_native_fixture_leaf_owners/root_sources.rs\"]",
+            "mod root_sources;",
+            "#[path = \"p0_native_fixture_leaf_owners/root_inventory.rs\"]",
+            "mod root_inventory;",
         ],
+    );
+    assert_contains_all(
+        "P0 native fixture root status child preserves folder-backed status anchors",
+        &status_inventory,
+        &[FOLDER_BACKED_SLICE, FOLDER_BACKED_STATUS],
     );
     for moved_guard in [
         format!("fn {GUARD}"),
@@ -34,8 +48,8 @@ fn runtime_15_p0_native_fixture_leaf_owner_guard_is_folder_backed() {
     }
     for (_, child_path, guard_name) in FOLDER_BACKED_CHILDREN {
         assert!(
-            parent.contains(child_path),
-            "P0 native fixture leaf-owner parent should inventory child path {child_path}"
+            child_inventory.contains(child_path),
+            "P0 native fixture root child inventory should include child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

@@ -1,147 +1,99 @@
 use super::*;
 
+#[path = "route_ownership/child_ownership.rs"]
+mod child_ownership;
+#[path = "route_ownership/descriptor_builder_routes.rs"]
+mod descriptor_builder_routes;
+#[path = "route_ownership/descriptor_privacy_routes.rs"]
+mod descriptor_privacy_routes;
+#[path = "route_ownership/leaf_owners.rs"]
+mod leaf_owners;
+#[path = "route_ownership/parent_routes.rs"]
+mod parent_routes;
+#[path = "route_ownership/status_mirrors.rs"]
+mod status_mirrors;
+
+pub(super) const F8_ROUTE_PARENT_ROUTES_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/route_ownership/parent_routes.rs";
+pub(super) const F8_ROUTE_DESCRIPTOR_BUILDER_ROUTES_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/route_ownership/descriptor_builder_routes.rs";
+pub(super) const F8_ROUTE_DESCRIPTOR_PRIVACY_ROUTES_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/route_ownership/descriptor_privacy_routes.rs";
+pub(super) const F8_ROUTE_LEAF_OWNERS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/route_ownership/leaf_owners.rs";
+pub(super) const F8_ROUTE_CHILD_OWNERSHIP_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/route_ownership/child_ownership.rs";
+pub(super) const F8_ROUTE_STATUS_MIRRORS_CHILD: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/route_ownership/status_mirrors.rs";
+
+pub(super) const F8_ROUTE_OWNERSHIP_CHILD_SPLIT_SLICE: &str =
+    "Runtime 15 M3 F8 route ownership guard child split";
+pub(super) const F8_ROUTE_OWNERSHIP_CHILD_SPLIT_STATUS: &str =
+    "runtime_15_f8_route_ownership_guard_child_split_static_passed_cargo_deferred";
+pub(super) const F8_ROUTE_OWNERSHIP_CHILD_SPLIT_DATE: &str = "2026-07-05";
+pub(super) const F8_ROUTE_OWNERSHIP_CHILD_SPLIT_GUARD: &str =
+    "runtime_15_f8_route_ownership_guard_is_child_backed";
+pub(super) const F8_ROUTE_STATUS_MIRROR_GUARD: &str =
+    "runtime_15_f8_route_ownership_status_mirrors_are_current";
+
+pub(super) const F8_ROUTE_OWNERSHIP_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "parent_routes",
+        F8_ROUTE_PARENT_ROUTES_CHILD,
+        "assert_f8_parent_routes_are_child_owned",
+    ),
+    (
+        "descriptor_builder_routes",
+        F8_ROUTE_DESCRIPTOR_BUILDER_ROUTES_CHILD,
+        "assert_f8_descriptor_builder_routes_are_child_owned",
+    ),
+    (
+        "descriptor_privacy_routes",
+        F8_ROUTE_DESCRIPTOR_PRIVACY_ROUTES_CHILD,
+        "assert_f8_descriptor_privacy_routes_are_child_owned",
+    ),
+    (
+        "leaf_owners",
+        F8_ROUTE_LEAF_OWNERS_CHILD,
+        "assert_f8_review_leaf_owners_are_child_owned",
+    ),
+    (
+        "child_ownership",
+        F8_ROUTE_CHILD_OWNERSHIP_CHILD,
+        F8_ROUTE_OWNERSHIP_CHILD_SPLIT_GUARD,
+    ),
+    (
+        "status_mirrors",
+        F8_ROUTE_STATUS_MIRRORS_CHILD,
+        F8_ROUTE_STATUS_MIRROR_GUARD,
+    ),
+];
+
+pub(super) fn f8_route_ownership_child_source_blob() -> String {
+    let mut blob = String::new();
+    for (_, child_path, _) in F8_ROUTE_OWNERSHIP_CHILDREN {
+        blob.push_str(&read_runtime_src(child_path));
+        blob.push('\n');
+    }
+    blob
+}
+
 #[test]
 fn runtime_15_f8_api_convergence_review_guards_are_child_owners() {
     let sources = read_f8_review_sources();
 
-    assert_contains_all(
-        "F8 API convergence parent mounts focused child owners",
-        &sources.parent,
-        &[
-            "#[path = \"f8_api_convergence/texture_import_settings.rs\"]",
-            "mod texture_import_settings;",
-            "#[path = \"f8_api_convergence/descriptor_builder.rs\"]",
-            "mod descriptor_builder;",
-            "#[path = \"f8_api_convergence/descriptor_privacy.rs\"]",
-            "mod descriptor_privacy;",
-        ],
-    );
-    assert_eq!(
-        sources.parent.matches("#[test]").count(),
-        0,
-        "f8_api_convergence.rs should only mount child review guard owners"
-    );
-    for child_owned_test in REVIEW_GUARDS {
-        assert!(
-            !sources.parent.contains(&format!("fn {child_owned_test}")),
-            "child-owned F8 review guard `{child_owned_test}` should not return to f8_api_convergence.rs"
-        );
-    }
+    parent_routes::assert_f8_parent_routes_are_child_owned(&sources);
+    descriptor_builder_routes::assert_f8_descriptor_builder_routes_are_child_owned(&sources);
+    descriptor_privacy_routes::assert_f8_descriptor_privacy_routes_are_child_owned(&sources);
+    leaf_owners::assert_f8_review_leaf_owners_are_child_owned(&sources);
+}
 
-    assert_contains_all(
-        "F8 descriptor builder route mounts focused child owners",
-        &sources.descriptor_builder,
-        &[
-            "#[path = \"descriptor_builder/first_party_descriptors.rs\"]",
-            "mod first_party_descriptors;",
-            "#[path = \"descriptor_builder/scaffold.rs\"]",
-            "mod scaffold;",
-            "#[path = \"descriptor_builder/test_fixtures.rs\"]",
-            "mod test_fixtures;",
-        ],
-    );
-    assert_eq!(
-        sources.descriptor_builder.matches("#[test]").count(),
-        0,
-        "descriptor_builder.rs should only mount descriptor builder review guard owners"
-    );
-    for child_owned_test in &REVIEW_GUARDS[1..4] {
-        assert!(
-            !sources
-                .descriptor_builder
-                .contains(&format!("fn {child_owned_test}")),
-            "child-owned F8 descriptor builder guard `{child_owned_test}` should not return to descriptor_builder.rs"
-        );
-    }
+#[test]
+fn runtime_15_f8_route_ownership_guard_is_child_backed() {
+    child_ownership::assert_f8_route_ownership_guard_is_child_backed();
+}
 
-    assert_contains_all(
-        "F8 descriptor privacy route mounts focused child owners",
-        &sources.descriptor_privacy,
-        &[
-            "#[path = \"descriptor_privacy/constructor_retirement.rs\"]",
-            "mod constructor_retirement;",
-            "#[path = \"descriptor_privacy/private_fields.rs\"]",
-            "mod private_fields;",
-            "#[path = \"descriptor_privacy/status_mirrors.rs\"]",
-            "mod status_mirrors;",
-        ],
-    );
-    assert_eq!(
-        sources.descriptor_privacy.matches("#[test]").count(),
-        0,
-        "descriptor_privacy.rs should only mount descriptor privacy review guard owners"
-    );
-    for child_owned_test in &REVIEW_GUARDS[4..7] {
-        assert!(
-            !sources
-                .descriptor_privacy
-                .contains(&format!("fn {child_owned_test}")),
-            "child-owned F8 descriptor privacy guard `{child_owned_test}` should not return to descriptor_privacy.rs"
-        );
-    }
-
-    assert_contains_all(
-        "F8 texture child owns texture apply review guard",
-        &sources.texture_import_settings,
-        &[
-            REVIEW_GUARDS[0],
-            "apply_import_settings",
-            "TextureDescriptorError",
-            "runtime_15_texture_descriptor_typed_errors_static_passed_cargo_deferred",
-        ],
-    );
-    assert_contains_all(
-        "F8 descriptor scaffold child owns builder scaffold review guard",
-        &sources.descriptor_builder_scaffold,
-        &[
-            REVIEW_GUARDS[1],
-            "RuntimePluginDescriptorBuilder",
-            "RuntimePluginDescriptor::builder(",
-        ],
-    );
-    assert_contains_all(
-        "F8 descriptor first-party child owns production builder migration guard",
-        &sources.descriptor_builder_first_party,
-        &[
-            REVIEW_GUARDS[2],
-            "first-party runtime plugin descriptor production files 16/16",
-            "RuntimePluginDescriptor::builder(",
-        ],
-    );
-    assert_contains_all(
-        "F8 descriptor fixture child owns test fixture builder migration guard",
-        &sources.descriptor_builder_test_fixtures,
-        &[
-            REVIEW_GUARDS[3],
-            "plugin extension RuntimePluginDescriptor test fixtures 14/14",
-            "RuntimePluginDescriptor::builder(",
-        ],
-    );
-    assert_contains_all(
-        "F8 descriptor private-fields child owns privacy review guard",
-        &sources.descriptor_privacy_private_fields,
-        &[
-            REVIEW_GUARDS[4],
-            "RuntimePluginDescriptor private fields 15/15",
-            "pub fn package_id(&self) -> &str",
-        ],
-    );
-    assert_contains_all(
-        "F8 descriptor constructor child owns constructor retirement guard",
-        &sources.descriptor_privacy_constructor_retirement,
-        &[
-            REVIEW_GUARDS[5],
-            "RuntimePluginDescriptor::new retired",
-            "descriptor/builder/construction.rs retired",
-        ],
-    );
-    assert_contains_all(
-        "F8 descriptor status child owns status mirror cleanup guard",
-        &sources.descriptor_privacy_status_mirrors,
-        &[
-            REVIEW_GUARDS[6],
-            "Runtime 15 F8 RuntimePluginDescriptor status mirror cleanup",
-            "f8_f9_f10_runtime_surface_top_row_closed_status_static_passed_cargo_deferred",
-        ],
-    );
+#[test]
+fn runtime_15_f8_route_ownership_status_mirrors_are_current() {
+    status_mirrors::assert_f8_route_ownership_status_mirrors_are_current();
 }

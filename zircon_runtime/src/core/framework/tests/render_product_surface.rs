@@ -334,7 +334,10 @@ fn render_product_post_process_effect_stack_runs_before_output_transfer_when_aut
         .contains(&PostProcessGraphResourceNames::SCENE_DEPTH.to_string()));
     assert_eq!(
         effect_stack.produced_outputs,
-        vec![PostProcessGraphResourceNames::EFFECT_STACKED.to_string()]
+        vec![
+            PostProcessGraphResourceNames::EFFECT_STACKED.to_string(),
+            PostProcessGraphResourceNames::TONEMAPPED.to_string(),
+        ]
     );
     assert_eq!(
         output_transfer.required_inputs,

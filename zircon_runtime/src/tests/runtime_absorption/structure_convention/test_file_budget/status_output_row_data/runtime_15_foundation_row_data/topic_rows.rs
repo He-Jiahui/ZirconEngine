@@ -1,5 +1,12 @@
 use super::*;
 
+fn runtime_15_row_count(source: &str) -> usize {
+    source
+        .lines()
+        .filter(|line| line.starts_with("        \"Runtime 15 "))
+        .count()
+}
+
 #[test]
 fn runtime_15_foundation_topic_rows_are_child_owned() {
     let foundation_core_rows = read_runtime_src(FOUNDATION_CORE_ROWS_PATH);

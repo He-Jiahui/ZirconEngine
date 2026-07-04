@@ -2,7 +2,12 @@ use super::bitmap::{ALPHA_MASK_CHANNELS, COLOR_BITMAP_CHANNELS};
 use super::rasterizer::glyph_bitmap_from_swash_image;
 use super::*;
 use crate::core::math::{UVec2, Vec2};
-use crate::graphics::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
+use crate::graphics::text::atlas::render_plan::GlyphAtlasScreenRect;
+use crate::graphics::text::atlas::{
+    glyph_atlas_bitmap_run_plan_with_padding, glyph_atlas_bitmap_upload_staging_plan,
+    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
+    GlyphAtlasStorageFormat,
+};
 use ::swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
 use ::swash::FontRef;
 
@@ -86,6 +91,122 @@ fn text_raster_swash_glyph_bitmap_rejects_invalid_metrics() {
         GlyphBitmap::alpha_mask(UVec2::new(1, 1), Vec2::new(1.0, 3.0), 0.0, vec![255; 1])
             .expect_err("non-positive px size should be rejected");
     assert_eq!(invalid_px_size, GlyphBitmapError::InvalidPxSize);
+}
+
+#[test]
+fn text_raster_swash_glyph_bitmap_builds_alpha_atlas_source_from_actual_bytes() {
+    let bitmap =
+        GlyphBitmap::alpha_mask(UVec2::new(2, 3), Vec2::new(-1.0, 9.0), 13.0, vec![128; 6])
+            .expect("alpha mask bitmap should be valid");
+    let screen_rect = GlyphAtlasScreenRect::new(7.0, 11.0, 2.0, 3.0);
+    let foreground_color = [0.9, 0.8, 0.7, 1.0];
+    let background_color = [0.1, 0.2, 0.3, 1.0];
+
+    let source = glyph_atlas_bitmap_source_from_glyph_bitmap(
+        &bitmap,
+        screen_rect,
+        foreground_color,
+        background_color,
+    );
+
+    assert_eq!(
+        source,
+        GlyphAtlasBitmapSource {
+            format: GlyphAtlasFormat::AlphaMask,
+            content_size: UVec2::new(2, 3),
+            screen_rect,
+            foreground_color,
+            background_color,
+            source_byte_len: bitmap.data.len(),
+        }
+    );
+}
+
+#[test]
+fn text_raster_swash_glyph_bitmap_atlas_source_preserves_rgba_content_semantics() {
+    let screen_rect = GlyphAtlasScreenRect::new(3.0, 5.0, 2.0, 2.0);
+    let cases = [
+        (
+            GlyphBitmap::subpixel_mask(UVec2::new(2, 2), Vec2::new(1.0, 3.0), 14.0, vec![64; 16])
+                .expect("subpixel mask bitmap should be valid"),
+            GlyphAtlasFormat::SubpixelMask,
+        ),
+        (
+            GlyphBitmap::color(UVec2::new(2, 2), Vec2::new(1.0, 3.0), 14.0, vec![255; 16])
+                .expect("color bitmap should be valid"),
+            GlyphAtlasFormat::Color,
+        ),
+    ];
+
+    for (bitmap, expected_format) in cases {
+        let source = glyph_atlas_bitmap_source_from_glyph_bitmap(
+            &bitmap,
+            screen_rect,
+            [1.0, 1.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+        );
+
+        assert_eq!(source.format, expected_format);
+        assert_eq!(source.content_size, bitmap.size);
+        assert_eq!(source.source_byte_len, bitmap.expected_data_len());
+    }
+}
+
+#[test]
+fn text_raster_swash_glyph_bitmap_atlas_source_feeds_bitmap_run_plan() {
+    let bitmap =
+        GlyphBitmap::alpha_mask(UVec2::new(4, 3), Vec2::new(0.0, 8.0), 12.0, vec![200; 12])
+            .expect("alpha mask bitmap should be valid");
+    let screen_rect = GlyphAtlasScreenRect::new(2.0, 4.0, 4.0, 3.0);
+    let source = glyph_atlas_bitmap_source_from_glyph_bitmap(
+        &bitmap,
+        screen_rect,
+        [0.7, 0.8, 0.9, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+    );
+
+    let plan = glyph_atlas_bitmap_run_plan_with_padding([source], UVec2::new(16, 16), 5, 1, 1);
+
+    assert!(plan.allocation_failures.is_empty());
+    assert_eq!(plan.glyphs.len(), 1);
+    assert_eq!(plan.draw_glyphs[0].content_size, bitmap.size);
+    assert_eq!(plan.draw_glyphs[0].screen_rect, screen_rect);
+}
+
+#[test]
+fn text_raster_swash_glyph_bitmap_data_feeds_bitmap_upload_staging_plan() {
+    let bitmap = GlyphBitmap::alpha_mask(
+        UVec2::new(4, 2),
+        Vec2::new(0.0, 8.0),
+        12.0,
+        vec![11, 12, 13, 14, 15, 16, 17, 18],
+    )
+    .expect("alpha mask bitmap should be valid");
+    let source = glyph_atlas_bitmap_source_from_glyph_bitmap(
+        &bitmap,
+        GlyphAtlasScreenRect::new(2.0, 4.0, 4.0, 2.0),
+        [0.7, 0.8, 0.9, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+    );
+    let plan = glyph_atlas_bitmap_run_plan_with_padding([source], UVec2::new(8, 4), 6, 1, 0);
+
+    let staging = glyph_atlas_bitmap_upload_staging_plan(
+        &plan,
+        [GlyphAtlasBitmapUploadSourceBytes::new(
+            0,
+            bitmap.data.as_slice(),
+        )],
+    );
+
+    assert!(!staging.has_failures());
+    assert_eq!(staging.pages.len(), 1);
+    assert_eq!(
+        staging.pages[0].bytes,
+        vec![
+            11, 12, 13, 14, 0, 0, 0, 0, 15, 16, 17, 18, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0,
+        ]
+    );
 }
 
 #[test]

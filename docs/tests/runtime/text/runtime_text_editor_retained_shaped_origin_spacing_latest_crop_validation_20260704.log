@@ -1,0 +1,19 @@
+runtime_text_editor_retained_shaped_origin_spacing_latest_crop_validation_20260704
+status: passed-static-cargo-deferred
+artifact: docs/tests/runtime/text/runtime_text_editor_retained_shaped_origin_spacing_latest_crop_preview_20260704.png
+
+root cause:
+- Matching runtime-shaped glyph positions were still rejected when a small pen-origin delta crossed the retained-host 1/8px raster bin.
+- That fallback could return compact editor labels to host-natural placement even though glyph id, source range, width, and per-glyph advances matched.
+
+fix:
+- Removed shaped-position-only retained raster-bin veto from paint_text/draw/layout.rs.
+- Kept glyph id/range, finite/non-negative fields, advance matching, and monotonic origin checks.
+- Kept runtime-advance projection raster-bin guard for the fallback advance path.
+- Updated regression to assert matching shaped origins are preserved even when they cross the old bin guard.
+
+checks:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs: passed
+- Select-String trailing whitespace/conflict markers over layout.rs and layout/tests.rs: no matches
+- Select-String layout.rs for shaped_positions_preserve_retained_raster_bins: no matches
+- focused Cargo: deferred because external cargo/rustc lanes were active during validation

@@ -36,9 +36,10 @@ mod workbench_context_menu;
 pub(crate) use data::*;
 pub(crate) use diagnostics::{HostInvalidationDiagnostics, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY};
 pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
+pub(crate) use paint_text::measure_runtime_text_width;
 pub(crate) use paint_theme::{
-    apply_host_metrics_from_tokens, apply_host_palette_from_tokens, apply_host_text_preferences,
-    project_host_text_preferences,
+    apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
+    apply_host_palette_from_tokens, apply_host_text_preferences, project_host_text_preferences,
 };
 #[cfg(test)]
 pub(crate) fn paint_host_frame_for_test(
@@ -53,5 +54,7 @@ pub(crate) use paint_template_nodes::{
     paint_runtime_render_commands_for_test, paint_template_nodes_for_test,
     paint_template_nodes_for_test_with_background,
 };
+#[cfg(test)]
+pub(crate) use paint_workbench_renderer::paint_scrollbar_component_for_test;
 pub(crate) use surface_hit_test::build_pane_template_surface_frame;
 pub(crate) use window::UiHostWindow;

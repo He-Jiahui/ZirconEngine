@@ -30,7 +30,7 @@ fn sdf_draw_plan_creates_one_textured_quad_per_glyph() {
     assert!(vertices[6].uv[0] > vertices[0].uv[0]);
 }
 #[test]
-fn sdf_draw_plan_snaps_text_and_glyph_origin_before_horizontal_quad_placement() {
+fn sdf_draw_plan_snaps_text_origin_but_preserves_glyph_subpixel_phase() {
     let text = text_batch("A", UiFrame::new(8.375, 12.51, 64.0, 20.0));
     let plan = plan_sdf_atlas(std::slice::from_ref(&text));
     let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
@@ -64,7 +64,7 @@ fn sdf_draw_plan_snaps_text_and_glyph_origin_before_horizontal_quad_placement() 
     );
     assert_eq!(placement.requested_x, requested_x);
     assert_eq!(placement.subpixel_bin, 0);
-    let expected_glyph_x = placement.snapped_x.round();
+    let expected_glyph_x = placement.snapped_x;
     assert!((placement.snapped_x - requested_x).abs() < 0.0001);
     assert_eq!(vertices.len(), 6);
     assert!((vertices[0].position[0] - pixel_to_ndc_x(expected_glyph_x, 128.0)).abs() < 0.0001);
@@ -88,7 +88,7 @@ fn sdf_draw_plan_snaps_text_and_glyph_origin_before_horizontal_quad_placement() 
 }
 
 #[test]
-fn sdf_glyph_frames_snap_fractional_bitmap_origins_without_changing_size() {
+fn sdf_glyph_frames_preserve_fractional_bitmap_origins_without_changing_size() {
     let glyph = RunGlyph {
         slot_index: Some(0),
         metrics: SdfGlyphMetrics {
@@ -107,8 +107,8 @@ fn sdf_glyph_frames_snap_fractional_bitmap_origins_without_changing_size() {
 
     let frame = horizontal_sdf_glyph_frame(20.0, 30.0, &glyph);
 
-    assert_eq!(frame.x, 21.0);
-    assert_eq!(frame.y, 11.0);
+    assert_eq!(frame.x, 20.58);
+    assert_eq!(frame.y, 10.75);
     assert_eq!(frame.width, 11.0);
     assert_eq!(frame.height, 17.0);
 }
@@ -227,8 +227,7 @@ fn sdf_draw_plan_zeroes_format_control_advances_without_slots() {
         false,
         requested_second_glyph_x,
     )
-    .snapped_x
-    .round();
+    .snapped_x;
     assert_eq!(
         plan.runs[0].glyph_slot_indices,
         vec![Some(0), None, None, Some(1)]

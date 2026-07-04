@@ -1,130 +1,71 @@
 use super::*;
 
+#[path = "owner_budgets/nested_children.rs"]
+mod nested_children;
+#[path = "owner_budgets/route_children.rs"]
+mod route_children;
+#[path = "owner_budgets/status_mirrors.rs"]
+mod status_mirrors;
+#[path = "owner_budgets/surrounding_owners.rs"]
+mod surrounding_owners;
+
+const OWNER_BUDGET_PARENT_PATH: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/owner_budgets.rs";
+const OWNER_BUDGET_ROUTE_CHILDREN_PATH: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/owner_budgets/route_children.rs";
+const OWNER_BUDGET_NESTED_CHILDREN_PATH: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/owner_budgets/nested_children.rs";
+const OWNER_BUDGET_SURROUNDING_OWNERS_PATH: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/owner_budgets/surrounding_owners.rs";
+const OWNER_BUDGET_STATUS_MIRRORS_PATH: &str =
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/owner_budgets/status_mirrors.rs";
+
+const OWNER_BUDGET_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "route_children",
+        OWNER_BUDGET_ROUTE_CHILDREN_PATH,
+        "assert_module_layout_child_summary_route_owner_budgets_are_current",
+    ),
+    (
+        "nested_children",
+        OWNER_BUDGET_NESTED_CHILDREN_PATH,
+        "assert_module_layout_child_summary_nested_budgets_are_current",
+    ),
+    (
+        "surrounding_owners",
+        OWNER_BUDGET_SURROUNDING_OWNERS_PATH,
+        "assert_module_layout_child_summary_surrounding_owner_budgets_are_current",
+    ),
+    (
+        "status_mirrors",
+        OWNER_BUDGET_STATUS_MIRRORS_PATH,
+        "runtime_15_module_layout_child_summary_owner_budget_guard_child_split_status_is_current",
+    ),
+];
+
 #[test]
 fn runtime_15_module_layout_child_summary_guard_owner_budgets_are_child_owned() {
-    let child_summary_parent = read_runtime_src(CHILD_SUMMARY_PARENT_PATH);
-    assert!(
-        child_summary_parent.lines().count() < 120,
-        "module_layout_child_summaries.rs should stay below 120 lines as a route/shared-helper owner"
-    );
-
-    for (path, source) in child_summary_child_sources() {
-        let line_count = source.lines().count();
-        assert!(
-            line_count < 220,
-            "{path} should stay below the focused Runtime 15 child-summary guard budget; got {line_count} lines"
+    let parent = read_runtime_src(OWNER_BUDGET_PARENT_PATH);
+    for (module_name, path, guard_name) in OWNER_BUDGET_CHILDREN {
+        let module_mount = format!("#[path = \"owner_budgets/{module_name}.rs\"]");
+        assert_contains_all(
+            "module-layout child-summary owner-budget guard mounts child",
+            &parent,
+            &[module_mount.as_str(), *path, *guard_name],
         );
-    }
-    for (path, budget) in [
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/foundation_review.rs",
-            150,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/foundation_review/runtime_foundation_rows.rs",
-            100,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/foundation_review/foundation_status_docs.rs",
-            80,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/foundation_review/review_guard_rows.rs",
-            130,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/milestone_groups.rs",
-            150,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/milestone_groups/runtime_row_data.rs",
-            90,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/milestone_groups/m3_child_groups.rs",
-            120,
-        ),
-        (
-            "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summaries/milestone_groups/status_doc_groups.rs",
-            70,
-        ),
-    ] {
-        let line_count = read_runtime_src(path).lines().count();
-        assert!(
-            line_count < budget,
-            "{path} should stay below its nested child-summary budget of {budget} lines; got {line_count}"
-        );
+        let child = read_runtime_src(path);
+        assert_contains_all(path, &child, &[*guard_name]);
     }
 
-    for (path, source, budget) in [
-        (
-            "structure_convention/test_file_budget/status_output_row_data/module_layout.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout.rs",
-            ),
-            400,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/module_layout_child_summary_status_docs.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout_child_summary_status_docs.rs",
-            ),
-            400,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
-            ),
-            800,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data.rs",
-            ),
-            800,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_foundation_row_data.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_foundation_row_data.rs",
-            ),
-            800,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data.rs",
-            ),
-            800,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data_moved_rows.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data_moved_rows.rs",
-            ),
-            800,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_status_row_docs.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_status_row_docs.rs",
-            ),
-            800,
-        ),
-        (
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs",
-            read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs",
-            ),
-            800,
-        ),
-    ] {
-        let line_count = source.lines().count();
-        assert!(
-            line_count < budget,
-            "{path} should stay below the Runtime 15 test-file budget {budget}; got {line_count} lines"
-        );
-    }
+    route_children::assert_module_layout_child_summary_route_owner_budgets_are_current();
+    nested_children::assert_module_layout_child_summary_nested_budgets_are_current();
+    surrounding_owners::assert_module_layout_child_summary_surrounding_owner_budgets_are_current();
+}
+
+fn owner_budget_child_source_blob() -> String {
+    OWNER_BUDGET_CHILDREN
+        .iter()
+        .map(|(_, path, _)| read_runtime_src(path))
+        .collect::<Vec<_>>()
+        .join("\n")
 }

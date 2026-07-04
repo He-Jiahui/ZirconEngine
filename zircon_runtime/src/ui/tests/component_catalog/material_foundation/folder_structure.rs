@@ -22,6 +22,7 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
         "data_display_editor.rs",
         "data_display_subcomponents.rs",
         "data_display_table.rs",
+        "data_display_visuals.rs",
         "feedback.rs",
         "feedback_editor_overlays.rs",
         "surfaces.rs",

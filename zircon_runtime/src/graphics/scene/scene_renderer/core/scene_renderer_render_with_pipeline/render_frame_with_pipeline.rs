@@ -139,7 +139,7 @@ impl SceneRenderer {
 
         let size = viewport_size(frame);
         let render_size = frame.extract.view.effective_render_size();
-        ensure_offscreen_target(&self.backend.device, &mut self.target, size);
+        ensure_offscreen_target(&self.backend.device, &mut self.target, size, render_size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
         let screen_space_reflection_history_enabled = runtime_features.temporal_history_enabled
             && frame

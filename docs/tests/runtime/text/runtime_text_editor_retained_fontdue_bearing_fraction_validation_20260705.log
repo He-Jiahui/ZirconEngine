@@ -1,0 +1,20 @@
+runtime_text_editor_retained_fontdue_bearing_fraction
+status: passed-rustfmt-static-visual-cargo-deferred
+artifact: docs/tests/runtime/text/runtime_text_editor_retained_fontdue_bearing_fraction_preview_20260705.png
+artifact_sha256: E3C6DE159F197CE245BC6F4A1011602A3CF087F2D2A2A5685DC061586E4A478F
+root_cause:
+- The latest editor crop was already using the resolved UI face and the retained pen origin, but FontdueFallback sampling still carried only the pen-origin phase.
+- The high-resolution fallback bitmap's fractional left bearing was reduced to an integer draw origin before downsampling, so small labels could still look shifted left or right after the earlier pen-origin + raster-bearing correction.
+fix:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs computes FontdueFallback sample_offset_x from pen-origin phase plus the high-resolution bitmap-left fraction.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs and draw/glyphs/row.rs now allow the combined fallback sample offset to exceed one pixel, so downsampling can represent origin phase plus bearing fraction without clamping back to 0.999.
+- Tests in raster/tests.rs, draw/glyphs/tests.rs, and draw/glyphs/row/tests.rs cover bitmap-left fraction, logical extent, and row sampling for combined offsets over one pixel.
+checks:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/raster.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/raster/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs: passed
+- git diff --check on touched retained raster/glyph files: passed with LF/CRLF working-tree warnings only
+- static scan: fontdue_fallback_sample_offset_x and MAX_COMBINED_SAMPLE_OFFSET_X are present; retained raster draw no longer clamps combined sample offsets to 0.999
+- preview inspected as readable validation diagram
+- target scan: repo target plus E:/cargo-targets, D:/cargo-targets, and F:/cargo-targets same-name scans returned 0
+- focused Cargo test/build deferred because external cargo/rustc lanes were already active.
+remaining:
+- Run focused retained-host paint_text/raster/glyph tests and a live editor-window typography capture when the compile lane is idle.

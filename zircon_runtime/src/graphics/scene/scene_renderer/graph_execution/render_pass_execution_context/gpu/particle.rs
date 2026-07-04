@@ -39,7 +39,7 @@ impl RenderPassGpuExecutionContext<'_> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let render_region = self.render_region();
+        let render_region = self.render_region_for_write_resource(color_resource_name);
         let particle_renderer = self.particle_renderer.ok_or_else(|| {
             format!(
                 "particle graph executor requires particle renderer context for resources `{color_resource_name}` and `{depth_resource_name}`"
@@ -83,7 +83,7 @@ impl RenderPassGpuExecutionContext<'_> {
             let camera = &self.frame_extract().view.camera;
             (camera.transform.right(), camera.transform.up())
         };
-        let render_region = self.render_region();
+        let render_region = self.render_region_for_write_resource(color_resource_name);
         record_gpu_draw(ParticleGpuTransparentDrawContext {
             device: self.device,
             queue: self.queue,
@@ -121,7 +121,7 @@ impl RenderPassGpuExecutionContext<'_> {
             depth_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
-        let render_region = self.render_region();
+        let render_region = self.render_region_for_write_resource(velocity_resource_name);
         let particle_renderer = self.particle_renderer.ok_or_else(|| {
             format!(
                 "particle velocity graph executor for pass `{pass_name}` requires particle renderer context for resources `{velocity_resource_name}` and `{depth_resource_name}`"

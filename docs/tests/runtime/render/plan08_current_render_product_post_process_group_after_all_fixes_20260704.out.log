@@ -1,0 +1,17 @@
+
+running 12 tests
+test graphics::tests::render_product_post_process::motion_blur::render_product_post_motion_blur_split_uses_velocity_and_changes_final_frame ... ok
+test graphics::tests::render_product_post_process::render_product_post_non_neutral_tonemap_grading_changes_final_frame ... ok
+test graphics::tests::render_product_post_process::render_product_post_uber_light_effects_change_final_frame ... ok
+test graphics::tests::render_product_post_process::render_product_post_user_lut_texture_changes_final_frame_and_matches_readback_reference ... ok
+test graphics::tests::render_product_post_process_blur::render_product_post_blur_split_changes_final_frame ... ok
+test graphics::tests::render_product_post_process_depth_of_field::render_product_post_depth_of_field_split_changes_final_frame ... ok
+test graphics::tests::render_product_post_process_full_chain::render_product_post_full_chain_all_effects_on ... ok
+test graphics::tests::render_product_post_process_scene_composite::render_product_post_scene_composite_fog_changes_final_frame ... ok
+test graphics::tests::render_product_post_process_scene_composite::render_product_post_scene_composite_ssr_changes_final_frame ... ok
+test graphics::tests::render_product_post_process_terminal::render_product_post_dynamic_resolution_upscale_feeds_smaa_terminal_frame ... ok
+test graphics::tests::render_product_post_process_terminal::render_product_post_terminal_fxaa_changes_final_frame_after_output_transfer ... ok
+test graphics::tests::render_product_post_process_volume::render_product_post_volume_camera_transition ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 6451 filtered out; finished in 30.97s
+

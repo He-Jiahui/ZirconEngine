@@ -1,0 +1,7 @@
+runtime_text_bitmap_atlas_native_alpha_source_feed_validation_20260705
+preview=docs\tests\runtime\text\runtime_text_bitmap_atlas_native_alpha_source_feed_preview_20260705.png
+preview_sha256=773FA8B536B7D3BAE35AC3D902B04E2D1528EBB6114EE1ABDAE340869C9E4D41
+checks=rustfmt --check passed; git diff --check passed with LF/CRLF warnings only; static source-feed scan passed
+cargo=deferred: external cargo/rustc lanes active during this slice
+target_policy=validation image/log written under docs/tests/runtime/text, not target
+code=zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs

@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn runtime_15_m3_child_group_status_row_doc_child_owner_status_is_current() {
-    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_ROWS_PATH);
+    let status_rows = read_runtime_src(STATUS_SUPPORT_STATUS_DOCS_ROWS_PATH);
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -24,8 +24,8 @@ fn runtime_15_m3_child_group_status_row_doc_child_owner_status_is_current() {
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         (
-            "status-output Runtime 15 M3 production support row data",
-            production_guard_support.as_str(),
+            "status-output Runtime 15 M3 production support status-doc rows",
+            status_rows.as_str(),
         ),
     ] {
         assert_contains_all(label, source, &child_owner_status_anchors);

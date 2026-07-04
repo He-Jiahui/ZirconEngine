@@ -26,6 +26,7 @@ fn shadow_frame(lighting: LightingExtract) -> ViewportRenderFrame {
             rect_lights: lighting.rect_lights,
         },
         overlays: RenderOverlayExtract::default(),
+        environment: crate::core::framework::render::EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,

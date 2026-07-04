@@ -5,6 +5,8 @@ fn runtime_15_shader_prewarm_custom_shading_model_id_is_wired() {
     let args = read_runtime_src("bin/zircon_shader_prewarm/args.rs");
     let run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
+    let material_sources =
+        read_runtime_src("bin/zircon_shader_prewarm/manifest/material_sources.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
     let build_tool = read_repo("tools/zircon_build.py");
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
@@ -40,7 +42,7 @@ fn runtime_15_shader_prewarm_custom_shading_model_id_is_wired() {
     );
     assert_contains_all(
         "shader prewarm manifest resolves custom material lighting models through explicit ids",
-        &manifest,
+        &(manifest.clone() + &material_sources),
         &[
             "asset_root_manifest_for_quality_tiers_geometry_sources_and_shading_model_ids",
             "shading_model_ids: &BTreeMap<String, ShadingModelId>",

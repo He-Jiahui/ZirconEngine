@@ -32,10 +32,21 @@ pub(crate) fn shape_horizontal_line(
     direction: UiTextDirection,
     source_range: UiTextRange,
 ) -> ShapedGlyphRun {
-    shape_text(TextShapeRequest::horizontal(
+    shape_horizontal_line_with_kerning(text, style, direction, source_range, true)
+}
+
+pub(crate) fn shape_horizontal_line_with_kerning(
+    text: &str,
+    style: &UiResolvedStyle,
+    direction: UiTextDirection,
+    source_range: UiTextRange,
+    include_kerning: bool,
+) -> ShapedGlyphRun {
+    shape_text(TextShapeRequest::horizontal_with_kerning(
         text,
         style,
         direction,
         source_range,
+        include_kerning,
     ))
 }

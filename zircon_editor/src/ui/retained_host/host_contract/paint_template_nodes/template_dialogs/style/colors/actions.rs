@@ -1,24 +1,26 @@
-use super::super::tokens::{DIALOG_ACTION, DIALOG_BODY, DIALOG_DISABLED_TEXT, DIALOG_ERROR};
+use super::super::palette::dialog_palette;
 use super::super::variants::variant_contains_any;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_action_color(
     unavailable: bool,
 ) -> [u8; 4] {
+    let palette = dialog_palette();
     if unavailable {
-        DIALOG_DISABLED_TEXT
+        palette.disabled_text
     } else {
-        DIALOG_ACTION
+        palette.action
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn cancel_action_color(
     unavailable: bool,
 ) -> [u8; 4] {
+    let palette = dialog_palette();
     if unavailable {
-        DIALOG_DISABLED_TEXT
+        palette.disabled_text
     } else {
-        DIALOG_BODY
+        palette.body
     }
 }
 
@@ -27,11 +29,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn confirm
     unavailable: bool,
     confirm_enabled: bool,
 ) -> [u8; 4] {
+    let palette = dialog_palette();
     if unavailable || !confirm_enabled {
-        DIALOG_DISABLED_TEXT
+        palette.disabled_text
     } else if variant_contains_any(node, &["destructive"]) {
-        DIALOG_ERROR
+        palette.error
     } else {
-        DIALOG_ACTION
+        palette.action
     }
 }

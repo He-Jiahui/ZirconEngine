@@ -145,6 +145,12 @@ dist_crate = "zircon_plugin_bad_form_native"
                 "zircon_plugin_virtual_geometry_native",
                 ['"cdylib"'],
             )
+            shader_source = plugins_root / "virtual_geometry/assets/shaders/noise.zshader"
+            shader_source.parent.mkdir(parents=True)
+            shader_source.write_text(
+                "version = 2\nkind = \"include\"\nimport_path = \"custom::virtual_geometry::noise\"\nwgsl_files = [\"noise.wgsl\"]\n",
+                encoding="utf-8",
+            )
             self._write_plugin(
                 plugins_root / "virtual_geometry/plugin.toml",
                 "virtual_geometry",
@@ -157,6 +163,10 @@ id = 4
 [[shader_permutation.shading_model_ids]]
 token = "custom:toon"
 id = 16
+
+[[shader_permutation.shader_modules]]
+import_path = "custom::virtual_geometry::noise"
+source = "assets/shaders/noise.zshader"
 """,
             )
 
@@ -176,6 +186,18 @@ id = 16
         self.assertEqual(
             ("custom:toon=16",),
             packages["virtual_geometry"].shader_shading_model_ids,
+        )
+        self.assertEqual(
+            "custom::virtual_geometry::noise",
+            packages["virtual_geometry"].shader_modules[0]["import_path"],
+        )
+        self.assertEqual(
+            "assets/shaders/noise.zshader",
+            packages["virtual_geometry"].shader_modules[0]["source"],
+        )
+        self.assertEqual(
+            64,
+            len(packages["virtual_geometry"].shader_modules[0]["content_hash"]),
         )
 
     def test_zircon_build_discovers_plugin_shading_model_descriptors_as_shader_ids(self):

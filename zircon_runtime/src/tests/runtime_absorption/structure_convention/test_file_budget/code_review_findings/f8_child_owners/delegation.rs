@@ -3,6 +3,8 @@ use super::*;
 #[test]
 fn runtime_15_f8_child_owner_structure_guard_is_folder_backed() {
     let parent = read_runtime_src(STRUCTURE_GUARD_OWNER);
+    let child_inventory = read_runtime_src(F8_ROOT_CHILD_ROWS_CHILD);
+    let status_inventory = read_runtime_src(F8_ROOT_STATUSES_CHILD);
     let child_blob = folder_backed_child_source_blob();
 
     assert_contains_all(
@@ -17,14 +19,27 @@ fn runtime_15_f8_child_owner_structure_guard_is_folder_backed() {
             "mod route_ownership;",
             "#[path = \"f8_child_owners/status_mirrors.rs\"]",
             "mod status_mirrors;",
-            FOLDER_BACKED_SLICE,
-            FOLDER_BACKED_STATUS,
+            "#[path = \"f8_child_owners/root_paths.rs\"]",
+            "mod root_paths;",
+            "#[path = \"f8_child_owners/root_statuses.rs\"]",
+            "mod root_statuses;",
+            "#[path = \"f8_child_owners/root_child_rows.rs\"]",
+            "mod root_child_rows;",
+            "#[path = \"f8_child_owners/root_sources.rs\"]",
+            "mod root_sources;",
+            "#[path = \"f8_child_owners/root_inventory.rs\"]",
+            "mod root_inventory;",
         ],
+    );
+    assert_contains_all(
+        "F8 root status child preserves folder-backed status anchors",
+        &status_inventory,
+        &[FOLDER_BACKED_SLICE, FOLDER_BACKED_STATUS],
     );
     for (_, child_path, child_guard) in FOLDER_BACKED_CHILDREN {
         assert!(
-            parent.contains(child_path),
-            "F8 structure guard parent should inventory child path {child_path}"
+            child_inventory.contains(child_path),
+            "F8 structure guard root child inventory should list {child_path}"
         );
         assert!(
             child_blob.contains(child_guard),

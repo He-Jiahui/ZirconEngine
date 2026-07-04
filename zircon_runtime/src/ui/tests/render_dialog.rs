@@ -110,6 +110,21 @@ confirm_enabled = false
     }));
 }
 
+#[test]
+fn render_extract_dialog_action_width_uses_runtime_text_measurement() {
+    let narrow = dialog_action_command("iiiiiiiiiiii");
+    let wide = dialog_action_command("WWWWWWWWWWWW");
+
+    assert_eq!(narrow.text.as_deref(), Some("iiiiiiiiiiii"));
+    assert_eq!(wide.text.as_deref(), Some("WWWWWWWWWWWW"));
+    assert!(
+        wide.frame.width > narrow.frame.width + 8.0,
+        "same-character-count dialog action labels should be sized by runtime glyph measurement, narrow={:?}, wide={:?}",
+        narrow.frame,
+        wide.frame
+    );
+}
+
 fn commands_for_component(
     component: &str,
     frame: UiFrame,
@@ -143,6 +158,28 @@ fn commands_for_component(
         .unwrap();
     surface.rebuild();
     surface.render_extract.list.commands
+}
+
+fn dialog_action_command(action: &str) -> UiRenderCommand {
+    commands_for_component(
+        "Dialog",
+        UiFrame::new(100.0, 64.0, 460.0, 210.0),
+        &format!(
+            r##"
+open = true
+popup_open = true
+title = "Measured action"
+message = "Action frame width follows runtime text measurement."
+action = "{action}"
+"##
+        ),
+        visible_state(),
+    )
+    .into_iter()
+    .find(|command| {
+        command.kind == UiRenderCommandKind::Text && command.text.as_deref() == Some(action)
+    })
+    .expect("dialog action text command")
 }
 
 fn visible_state() -> UiStateFlags {

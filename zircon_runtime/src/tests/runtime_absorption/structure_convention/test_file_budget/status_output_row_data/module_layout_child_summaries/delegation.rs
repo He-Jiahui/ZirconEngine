@@ -26,6 +26,8 @@ fn runtime_15_status_output_row_data_module_layout_child_summaries_are_child_own
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout.rs",
     );
     let child_summary_parent = read_runtime_src(CHILD_SUMMARY_PARENT_PATH);
+    let child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = child_summary_child_source_blob();
 
     assert_contains_all(
@@ -46,11 +48,16 @@ fn runtime_15_status_output_row_data_module_layout_child_summaries_are_child_own
             "mod foundation_review;",
             "mod milestone_groups;",
             "mod owner_budgets;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
         ],
     );
     assert_contains_all(
         "module-layout child-summary guard records status anchors",
-        &child_summary_parent,
+        &status_inventory,
         CHILD_SUMMARY_STATUS_ANCHORS,
     );
 
@@ -70,6 +77,10 @@ fn runtime_15_status_output_row_data_module_layout_child_summaries_are_child_own
         assert!(
             child_summary_parent.contains(&module_mount),
             "module_layout_child_summaries.rs should mount child module `{module_mount}`"
+        );
+        assert!(
+            child_inventory.contains(child_path),
+            "module_layout_child_summaries child inventory should list {child_path}"
         );
 
         let child = read_runtime_src(child_path);

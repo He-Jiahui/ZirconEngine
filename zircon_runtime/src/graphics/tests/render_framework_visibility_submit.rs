@@ -90,6 +90,7 @@ fn large_static_scene_extract(viewport_size: UVec2) -> RenderFrameExtract {
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

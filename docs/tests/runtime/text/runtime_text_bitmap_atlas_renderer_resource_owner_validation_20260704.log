@@ -1,0 +1,37 @@
+runtime_text_bitmap_atlas_renderer_resource_owner_validation_20260704
+
+Scope:
+- Added renderer-local folder-backed atlas_renderer owner under zircon_runtime/src/graphics/scene/scene_renderer/ui/.
+- Converted GlyphAtlasGpuVertex to bytemuck Pod/Zeroable for safe vertex buffer upload bytes.
+- Mounted GlyphAtlasBitmapRenderer in ScreenSpaceUiTextSystem with an empty draw plan so the frame path owns resources without replacing glyphon native rendering yet.
+
+Touched code:
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/vertex.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+- zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
+- zircon_runtime/src/graphics/text/atlas/render_gpu_plan/vertex.rs
+
+Validation completed:
+- rustfmt --edition 2021 --check passed for all touched Rust files in this slice.
+- git diff --check passed for all touched Rust files in this slice; only existing LF/CRLF normalization warnings were emitted.
+- trailing-whitespace scans passed for atlas_renderer files, text.rs, text/tests.rs, and render_gpu_plan/vertex.rs.
+- target proof-artifact scan is expected to be run after this file is created.
+
+Cargo status:
+- Attempted focused `cargo test -p zircon_runtime glyph_atlas_bitmap --no-default-features`.
+- The command timed out after 120 seconds under concurrent cargo/rustc lanes and produced no Rust diagnostics in the tool window.
+- Residual PIDs from this attempted command were stopped: cargo 33680/15200 and rustc 45360/6968.
+- No focused Cargo pass is claimed for this slice.
+
+Open work explicitly not completed:
+- Real bitmap glyph source feeding into the mounted renderer.
+- Submission source bytes to texture upload execution in the frame path.
+- glyphon TextAtlas cutover.
+- Persistent glyph cache eviction and full atlas residency loop.
+- Real window visual QA for bitmap atlas renderer output.

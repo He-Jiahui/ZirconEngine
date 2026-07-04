@@ -1,0 +1,492 @@
+   Compiling proc-macro2 v1.0.106
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.45
+   Compiling syn v2.0.117
+   Compiling cfg-if v1.0.4
+   Compiling libm v0.2.16
+   Compiling serde_core v1.0.228
+   Compiling autocfg v1.5.1
+   Compiling num-traits v0.2.19
+   Compiling windows-link v0.2.1
+   Compiling log v0.4.31
+   Compiling bitflags v2.12.1
+   Compiling bytemuck_derive v1.10.2
+   Compiling bytemuck v1.25.0
+   Compiling thiserror v2.0.18
+   Compiling equivalent v1.0.2
+   Compiling arrayvec v0.7.6
+   Compiling zerocopy v0.8.50
+   Compiling thiserror-impl v2.0.18
+   Compiling zerocopy-derive v0.8.50
+   Compiling cfg_aliases v0.2.1
+   Compiling crossbeam-utils v0.8.21
+   Compiling allocator-api2 v0.2.21
+   Compiling libc v0.2.186
+   Compiling getrandom v0.3.4
+   Compiling once_cell v1.21.4
+   Compiling smallvec v1.15.1
+   Compiling memchr v2.8.1
+   Compiling foldhash v0.1.5
+   Compiling hashbrown v0.15.5
+   Compiling half v2.7.1
+   Compiling windows-result v0.4.1
+   Compiling windows-strings v0.5.1
+   Compiling windows-interface v0.59.3
+   Compiling windows-implement v0.60.2
+   Compiling version_check v0.9.5
+   Compiling khronos_api v3.1.0
+   Compiling windows-core v0.62.2
+   Compiling jobserver v0.1.34
+   Compiling crossbeam-epoch v0.9.18
+   Compiling profiling-procmacros v1.0.18
+   Compiling hashbrown v0.17.1
+   Compiling shlex v2.0.1
+   Compiling rayon-core v1.13.0
+   Compiling simd-adler32 v0.3.9
+   Compiling find-msvc-tools v0.1.9
+   Compiling cc v1.2.63
+   Compiling indexmap v2.14.0
+   Compiling profiling v1.0.18
+   Compiling crossbeam-deque v0.8.6
+   Compiling core_maths v0.1.1
+   Compiling equator-macro v0.4.2
+   Compiling foldhash v0.2.0
+   Compiling xml-rs v0.8.28
+   Compiling gl_generator v0.14.0
+   Compiling hashbrown v0.16.1
+   Compiling equator v0.4.2
+   Compiling naga v29.0.3
+   Compiling num-integer v0.1.46
+   Compiling windows-threading v0.2.1
+   Compiling libloading v0.8.9
+   Compiling adler2 v2.0.1
+   Compiling bit-vec v0.9.1
+   Compiling either v1.16.0
+   Compiling anyhow v1.0.102
+   Compiling parking_lot_core v0.9.12
+   Compiling ash v0.38.0+1.3.281
+   Compiling unicode-xid v0.2.6
+   Compiling unicode-width v0.2.2
+   Compiling crc32fast v1.5.0
+   Compiling fixedbitset v0.5.7
+   Compiling petgraph v0.8.3
+   Compiling codespan-reporting v0.13.1
+   Compiling pp-rs v0.2.1
+   Compiling bit-set v0.9.1
+   Compiling miniz_oxide v0.8.9
+   Compiling windows-future v0.3.2
+   Compiling num-bigint v0.4.6
+   Compiling aligned-vec v0.6.4
+   Compiling glutin_wgl_sys v0.6.1
+   Compiling windows-numerics v0.3.1
+   Compiling windows-collections v0.3.2
+   Compiling spirv v0.4.0+sdk-1.4.341.0
+   Compiling raw-window-handle v0.6.2
+   Compiling scopeguard v1.2.0
+   Compiling rustc-hash v1.1.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling hexf-parse v0.2.1
+   Compiling khronos-egl v6.0.0
+   Compiling serde v1.0.228
+   Compiling as-slice v0.2.1
+   Compiling lock_api v0.4.14
+   Compiling wgpu-types v29.0.3
+   Compiling windows v0.62.2
+   Compiling v_frame v0.3.9
+   Compiling num-rational v0.4.2
+   Compiling rayon v1.12.0
+   Compiling slotmap v1.1.1
+   Compiling wgpu-hal v29.0.3
+   Compiling font-types v0.11.3
+   Compiling gpu-descriptor-types v0.2.0
+   Compiling serde_derive v1.0.228
+   Compiling pkg-config v0.3.33
+   Compiling built v0.8.1
+   Compiling presser v0.3.1
+   Compiling zmij v1.0.21
+   Compiling av-scenechange v0.14.1
+   Compiling paste v1.0.15
+   Compiling gpu-allocator v0.28.0
+   Compiling rav1e v0.8.1
+   Compiling zstd-sys v2.0.16+zstd.1.5.7
+   Compiling gpu-descriptor v0.3.2
+   Compiling read-fonts v0.37.0
+   Compiling flate2 v1.1.9
+   Compiling parking_lot v0.12.5
+   Compiling wgpu-naga-bridge v29.0.3
+   Compiling aligned v0.4.3
+   Compiling nom v8.0.0
+   Compiling no_std_io2 v0.9.4
+   Compiling ordered-float v5.3.0
+   Compiling arg_enum_proc_macro v0.3.4
+   Compiling range-alloc v0.1.5
+   Compiling serde_json v1.0.150
+   Compiling renderdoc-sys v1.1.0
+   Compiling pastey v0.1.1
+   Compiling glow v0.17.0
+   Compiling quick-error v2.0.1
+   Compiling y4m v0.8.0
+   Compiling bitstream-io v4.10.0
+   Compiling av1-grain v0.2.5
+   Compiling maybe-rayon v0.1.1
+   Compiling itertools v0.14.0
+   Compiling ttf-parser v0.25.1
+   Compiling wgpu-core v29.0.3
+   Compiling windows-sys v0.61.2
+   Compiling num-derive v0.4.2
+   Compiling simd_helpers v0.1.0
+   Compiling itoa v1.0.18
+   Compiling noop_proc_macro v0.3.0
+   Compiling new_debug_unreachable v1.0.6
+   Compiling zune-core v0.5.1
+   Compiling imgref v1.12.1
+   Compiling tinyvec_macros v0.1.1
+   Compiling litrs v1.0.0
+   Compiling weezl v0.1.12
+   Compiling getrandom v0.4.2
+   Compiling document-features v0.2.12
+   Compiling tinyvec v1.11.0
+   Compiling loop9 v0.1.5
+   Compiling zune-jpeg v0.5.15
+   Compiling winapi-util v0.1.11
+   Compiling wgpu-core-deps-windows-linux-android v29.0.3
+   Compiling skrifa v0.40.0
+   Compiling zune-inflate v0.2.54
+   Compiling fdeflate v0.3.7
+   Compiling ahash v0.8.12
+   Compiling wgpu v29.0.3
+   Compiling avif-serialize v0.8.9
+   Compiling memmap2 v0.9.10
+   Compiling yazi v0.2.1
+   Compiling rgb v0.8.53
+   Compiling byteorder-lite v0.1.0
+   Compiling unicode-segmentation v1.13.3
+   Compiling pxfm v0.1.29
+   Compiling lebe v0.5.3
+   Compiling zstd-safe v7.2.4
+   Compiling bit_field v0.10.3
+   Compiling inflections v1.1.1
+   Compiling fax v0.2.7
+   Compiling zeno v0.3.3
+   Compiling typeid v1.0.3
+   Compiling winnow v1.0.3
+   Compiling color_quant v1.1.0
+   Compiling gif v0.14.2
+   Compiling toml_parser v1.1.2+spec-1.1.0
+   Compiling swash v0.2.7
+   Compiling tiff v0.11.3
+   Compiling gltf-derive v1.4.1
+   Compiling exr v1.74.0
+   Compiling moxcms v0.8.1
+   Compiling image-webp v0.2.4
+   Compiling ravif v0.13.0
+   Compiling fontdb v0.23.0
+   Compiling png v0.18.1
+   Compiling same-file v1.0.6
+   Compiling harfrust v0.5.2
+   Compiling blake3 v1.8.5
+   Compiling qoi v0.4.1
+   Compiling euclid v0.22.14
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling serde_spanned v1.1.1
+   Compiling unicode-script v0.5.8
+   Compiling unicode-bidi v0.3.18
+   Compiling rustc-hash v2.1.2
+   Compiling toml_writer v1.1.1+spec-1.1.0
+   Compiling smol_str v0.3.6
+   Compiling ttf-parser v0.21.1
+   Compiling static_assertions v1.1.0
+   Compiling sys-locale v0.3.2
+   Compiling self_cell v1.2.2
+   Compiling rangemap v1.7.1
+   Compiling unicode-linebreak v0.1.5
+   Compiling linebender_resource_handle v0.1.1
+   Compiling cosmic-text v0.18.2
+   Compiling fontdue v0.9.3
+   Compiling toml v1.1.2+spec-1.1.0
+   Compiling etagere v0.3.0
+   Compiling image v0.25.10
+   Compiling uuid v1.23.2
+   Compiling walkdir v2.5.0
+   Compiling gltf-json v1.4.1
+   Compiling tracing-core v0.1.36
+   Compiling notify-types v2.1.0
+   Compiling glam v0.32.1
+   Compiling tracing-attributes v0.1.31
+   Compiling zircon_runtime v0.1.0 (E:\Git\ZirconEngine\zircon_runtime)
+   Compiling typed-path v0.12.3
+   Compiling grid v1.0.1
+   Compiling xxhash-rust v0.8.15
+   Compiling byteorder v1.5.0
+   Compiling urlencoding v2.1.3
+   Compiling constant_time_eq v0.4.2
+   Compiling arrayref v0.3.9
+   Compiling lru v0.16.4
+   Compiling base64 v0.13.1
+   Compiling glam v0.30.10
+   Compiling lazy_static v1.5.0
+   Compiling pin-project-lite v0.2.17
+   Compiling cpufeatures v0.3.0
+   Compiling tracing v0.1.44
+   Compiling gltf v1.4.1
+   Compiling fontsdf v0.5.3
+   Compiling glyphon v0.11.0
+   Compiling notify v9.0.0-rc.4
+   Compiling taffy v0.10.1
+   Compiling zip v9.0.0-pre2
+   Compiling zircon_runtime_interface v0.1.0 (E:\Git\ZirconEngine\zircon_runtime_interface)
+   Compiling ron v0.12.1
+   Compiling tobj v4.0.3
+   Compiling zstd v0.13.3
+   Compiling bincode v1.3.3
+   Compiling crossbeam-channel v0.5.15
+   Compiling chrono v0.4.44
+   Compiling libloading v0.9.0
+   Compiling zircon_runtime_reflection_macros v0.1.0 (E:\Git\ZirconEngine\zircon_runtime\reflection_macros)
+   Compiling pollster v0.4.0
+zircon_runtime\src\core\framework\render\frame_extract.rs:20:35: warning: unused imports: `RenderPhaseQueueSummary` and `RenderPhaseQueue`
+zircon_runtime\src\core\framework\render\shader\mod.rs:86:5: warning: unused import: `ShaderVariantPrewarmWrittenVariant`
+zircon_runtime\src\dynamic_api\session\extract.rs:5:5: warning: unused import: `super::extract_cache::RuntimeFrameExtractCacheStatus`
+zircon_runtime\src\asset\formats\obj\mod.rs:10:40: warning: unused import: `ObjDecodeResult`
+zircon_runtime\src\scene\world\project_io.rs:7:56: warning: unused imports: `SceneBloomSettingsAsset`, `SceneCameraAsset`, `SceneCameraTargetAsset`, `SceneChromaticAberrationSettingsAsset`, `SceneColliderShapeAsset`, `SceneColorGradingSettingsAsset`, `SceneDitherSettingsAsset`, `SceneFilmGrainSettingsAsset`, `SceneFogSettingsAsset`, `ScenePostProcessEffectStackAsset`, `ScenePostProcessSettingsAsset`, `ScenePostProcessVolumeAsset`, `ScenePostProcessVolumeProfileAsset`, `SceneScriptBindingAsset`, `SceneTonemapOperatorAsset`, `SceneTonemapSettingsAsset`, `SceneViewportRectAsset`, and `SceneVignetteSettingsAsset`
+zircon_runtime\src\scene\world\project_io.rs:20:5: warning: unused import: `crate::asset::AssetReference`
+zircon_runtime\src\scene\world\project_io.rs:23:57: warning: unused imports: `ResourceHandle`, `ResourceMarker`, `ResourceScheme`, and `TextureMarker`
+zircon_runtime\src\scene\world\project_io.rs:39:5: warning: unused imports: `RenderBloomSettings`, `RenderCameraTarget`, `RenderChromaticAberrationSettings`, `RenderColorGradingSettings`, `RenderDitherSettings`, `RenderFilmGrainSettings`, `RenderFogSettings`, `RenderPostProcessEffectStackSettings`, `RenderPostProcessVolumeProfile`, `RenderTonemapOperator`, `RenderTonemapSettings`, `RenderViewportRect`, and `RenderVignetteSettings`
+zircon_runtime\src\scene\world\project_io.rs:47:79: warning: unused imports: `ColliderShape`, `PostProcessSettingsComponent`, and `PostProcessVolumeComponent`
+zircon_runtime\src\scene\tests\property_paths\write_validation.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\accessibility\action\range.rs:3:21: warning: unused import: `UiAccessibilityAction`
+zircon_runtime\src\ui\text\mod.rs:24:49: warning: unused import: `UiTextHitTest`
+zircon_runtime\src\ui\tests\boundary\binding_event_roots.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\tests\boundary\layout_tree_surface.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\tests\boundary\template_namespace.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\ui\tests\surface_dirty_mui.rs:3:5: warning: unused import: `tree::UiRuntimeTreeLayoutExt`
+zircon_runtime\src\graphics\material\mod.rs:5:5: warning: unused import: `ShadingModelIncludeSource`
+zircon_runtime\src\graphics\scene\gpu_scene\prev_transform.rs:77:9: warning: unused import: `super::*`
+zircon_runtime\src\graphics\scene\gpu_scene\mod.rs:20:5: warning: unused imports: `GPU_MORPH_DELTA_STRIDE`, `GPU_MORPH_PAYLOAD_STRIDE`, `GPU_MORPH_WEIGHT_STRIDE`, and `GPU_PRIMITIVE_DATA_STRIDE`
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_graph_execution_resources.rs:450:9: warning: unused import: `PassFlags`
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_executor_registry\tests.rs:6:5: warning: unused import: `RenderFrameExtract`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract.rs:12:49: warning: unused import: `PendingMeshGeometry`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\build_mesh_draws\build\pending_command_cache_extract\lazy_rebuild_tests.rs:2:41: warning: unused import: `RenderPhaseSortComponents`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:4:41: warning: unused import: `RenderPhaseSortComponents`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\cached_mesh_draw_commands.rs:190:43: warning: unused import: `MeshBindHandle`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:16:5: warning: unused imports: `INDIRECT_COMPACTION_UNUSED_INSTANCE_INDEX` and `IndirectCompactionBatchMetadata`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:22:45: warning: unused import: `IndirectDrawBatcherStats`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:34:5: warning: unused import: `MeshDrawCommandListStats`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:37:5: warning: unused import: `MeshBatchCacheIdentity`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mod.rs:45:30: warning: unused import: `GPU_SCENE_BIND_GROUP_SLOT`
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mod.rs:30:5: warning: unused import: `prepare_mesh_queue`
+zircon_runtime\src\graphics\scene\scene_renderer\post_process\mod.rs:24:5: warning: unused import: `wgpu_post_process_texture_format`
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload.rs:8:5: warning: unused import: `GlyphAtlasTextureArrayResources`
+zircon_runtime\src\graphics\scene\scene_renderer\mod.rs:48:5: warning: unused imports: `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_COARSE_FORMAT`, `SCREEN_SPACE_REFLECTION_REFLECTION_PYRAMID_FORMAT`, and `SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION_FORMAT`
+zircon_runtime\src\graphics\scene\mod.rs:25:5: warning: unused imports: `FALLBACK_MESH_SHADER`, `mesh_pipeline_standard_material_template_source_for_geometry`, and `mesh_pipeline_standard_material_template_source`
+zircon_runtime\src\graphics\shader\template\mod.rs:20:5: warning: unused imports: `StandardMaterialSurfaceSource` and `standard_material_surface_source`
+zircon_runtime\src\graphics\shader\template\mod.rs:28:5: warning: unused imports: `MaterialShaderTemplateValidation`, `ShaderTemplateValidationError`, and `validate_material_shader_template_wgsl`
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:5:47: warning: unused import: `GlyphAtlasScreenRect`
+zircon_runtime\src\graphics\text\atlas\render_gpu_plan.rs:12:70: warning: unused imports: `GlyphAtlasGpuSamplerBinding` and `GlyphAtlasGpuTextureBinding`
+zircon_runtime\src\graphics\text\atlas\render_submission.rs:16:5: warning: unused imports: `GlyphAtlasBitmapPlaceholderDrawPlan`, `GlyphAtlasBitmapPlaceholderDraw`, and `glyph_atlas_bitmap_placeholder_draw_plan`
+zircon_runtime\src\graphics\text\atlas\mod.rs:17:5: warning: unused imports: `GlyphAtlasBitmapAllocationFailure`, `GlyphAtlasBitmapGlyph`, `GlyphAtlasBitmapRetryPlan`, `GlyphAtlasBitmapUploadCopy`, `glyph_atlas_bitmap_prepared_upload_plan`, `glyph_atlas_bitmap_retry_frame_input`, `glyph_atlas_bitmap_retry_plan_with_backpressure`, `glyph_atlas_bitmap_retry_plan`, and `glyph_atlas_bitmap_staged_upload_plan`
+zircon_runtime\src\graphics\text\atlas\mod.rs:46:5: warning: unused imports: `GlyphHintingMode`, `GlyphRasterKey`, `GlyphRasterRequest`, and `SyntheticGlyphStyle`
+zircon_runtime\src\graphics\text\atlas\mod.rs:50:5: warning: unused imports: `GlyphAtlasBitmapRenderSubmissionPlan`, `GlyphAtlasBitmapRenderSubmissionReport`, `GlyphAtlasBitmapRetryFrameDriverConfig`, `GlyphAtlasBitmapRetryFrameDriverOutput`, `GlyphAtlasBitmapRetryFrameStateReport`, `GlyphAtlasBitmapRetryFrameState`, `GlyphAtlasBitmapRetryFrameSubmissionPlan`, `GlyphAtlasBitmapRetryFrameSubmissionReport`, `glyph_atlas_bitmap_render_submission_plan_with_padding`, `glyph_atlas_bitmap_render_submission_plan`, `glyph_atlas_bitmap_render_submission_report`, `glyph_atlas_bitmap_retry_frame_driver_submit_with_config`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure`, `glyph_atlas_bitmap_retry_frame_submission_plan_with_padding`, `glyph_atlas_bitmap_retry_frame_submission_plan`, and `glyph_atlas_bitmap_retry_frame_submission_report`
+zircon_runtime\src\graphics\text\raster\mod.rs:7:5: warning: unused imports: `GlyphRasterEffects`, `GlyphRasterPath`, `GlyphRasterPolicyRequest`, `GlyphRasterPolicy`, `raster_path_for_request`, and `raster_path_for`
+zircon_runtime\src\graphics\text\raster\mod.rs:11:5: warning: unused imports: `ColorGlyphBitmapStrikeFit`, `ColorGlyphBitmapStrikeSelection`, `ColorGlyphBitmapStrike`, `ColorGlyphRasterPlan`, `GlyphBitmapError`, `GlyphBitmap`, `SwashBitmapStrike`, `SwashRasterError`, `SwashRasterImageContent`, `SwashRasterRequest`, `SwashRasterSource`, `SwashRasterizer`, `color_glyph_raster_plan`, `glyph_atlas_bitmap_source_from_glyph_bitmap`, and `select_color_bitmap_strike`
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:12:81: warning: unused import: `RenderCameraClear`
+zircon_runtime\src\graphics\tests\m4_behavior_layers\queue_override.rs:3:5: warning: unused import: `crate::asset::pipeline::manager::AssetManager`
+zircon_runtime\src\builtin\runtime_modules\manifest.rs:4:18: warning: unused import: `RuntimePluginId`
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\evidence_anchors.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\module_layout.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_asset_budget_row_data.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_guards_row_data.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:28:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_foundation_row_data.rs:29:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m2_row_data_children.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:28:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_moved_rows.rs:29:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_docs.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_group_status_row_docs.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:28:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:29:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:30:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_child_groups.rs:31:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m3_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_m4_row_data_children.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:28:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_code_review_rows.rs:29:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_direct_assertion_rows.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_moved_rows.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_review_guard_row_data_status_docs.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:22:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:23:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:24:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:25:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_scene_script_row_data.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:26:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:27:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:28:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_status_support_row_data.rs:29:16: warning: glob import doesn't reexport anything with visibility `pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::status_output_row_data)` because no imported item is public enough
+zircon_runtime\src\tests\runtime_absorption\ui_architecture\mirror_docs.rs:1:5: warning: unused import: `super::*`
+zircon_runtime\src\tests\runtime_diagnostics\graph_execution.rs:4:5: warning: unused import: `assert_render_bool_series`
+zircon_runtime\src\asset\importer\ingest\import_font_asset\parse_sfnt.rs:65:14: warning: use of deprecated method `ttf_parser::Face::<'a>::table_data`: use `self.raw_face().table()` instead
+zircon_runtime\src\rhi\tests\texture_copy.rs:2:30: warning: unused import: `CommandList`
+zircon_runtime\src\rhi\tests\device_contract.rs:4:44: warning: unused import: `CommandList`
+zircon_runtime\src\dynamic_api\runtime_loop.rs:40:9: warning: variable does not need to be mutable
+zircon_runtime\src\dynamic_api\runtime_loop.rs:89:9: warning: variable does not need to be mutable
+zircon_runtime\src\scene\tests\dynamic_scene_session\selection.rs:371:9: warning: unused variable: `stale_entity`: help: if this is intentional, prefix it with an underscore: `_stale_entity`
+zircon_runtime\src\ui\accessibility\action.rs:36:9: warning: variable does not need to be mutable
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:234:9: warning: variable does not need to be mutable
+zircon_runtime\src\plugin\runtime_plugin\feature_registration_report\project_selection.rs:14:9: warning: variable does not need to be mutable
+zircon_runtime\src\asset\artifact\cache_payload.rs:33:12: warning: type `ArtifactCacheShaderAsset` is more private than the item `ArtifactCacheAsset::Shader::0`: field `ArtifactCacheAsset::Shader::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:34:14: warning: type `ArtifactCacheMaterialAsset` is more private than the item `ArtifactCacheAsset::Material::0`: field `ArtifactCacheAsset::Material::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:48:10: warning: type `ArtifactCacheMeshAsset` is more private than the item `ArtifactCacheAsset::Mesh::0`: field `ArtifactCacheAsset::Mesh::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:54:14: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiLayout::0`: field `ArtifactCacheAsset::UiLayout::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:55:14: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiWidget::0`: field `ArtifactCacheAsset::UiWidget::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:56:13: warning: type `ArtifactCacheUiAssetDocument` is more private than the item `ArtifactCacheAsset::UiStyle::0`: field `ArtifactCacheAsset::UiStyle::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:59:14: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2View::0`: field `ArtifactCacheAsset::UiV2View::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:60:19: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2Component::0`: field `ArtifactCacheAsset::UiV2Component::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload.rs:61:15: warning: type `ArtifactCacheUiV2AssetDocument` is more private than the item `ArtifactCacheAsset::UiV2Style::0`: field `ArtifactCacheAsset::UiV2Style::0` is reachable at visibility `pub(in crate::asset::artifact)`
+zircon_runtime\src\asset\artifact\cache_payload\json_value.rs:20:12: warning: type `ArtifactCacheJsonNumber` is more private than the item `ArtifactCacheJsonValue::Number::0`: field `ArtifactCacheJsonValue::Number::0` is reachable at visibility `pub(in crate::asset::artifact::cache_payload)`
+zircon_runtime\src\scene\ecs\messages\cursor.rs:84:5: warning: type `MessageInstance<T>` is more private than the item `MessageReadIter::<'a, T>::new`: associated function `MessageReadIter::<'a, T>::new` is reachable at visibility `pub(crate)`
+zircon_runtime\src\graphics\scene\scene_renderer\ui\text.rs:54:5: warning: type `font_id_report::ScreenSpaceUiTextFontIdReport` is more private than the item `graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextPrepareReport::native_font_ids`: field `graphics::scene::scene_renderer::ui::text::ScreenSpaceUiTextPrepareReport::native_font_ids` is reachable at visibility `pub(in crate::graphics::scene::scene_renderer::ui)`
+zircon_runtime\src\core\framework\scene\property_value.rs:27:19: warning: struct `ScenePropertyEntry` is never constructed
+zircon_runtime\src\core\framework\scene\property_value.rs:34:19: warning: associated function `new` is never used
+zircon_runtime\src\dynamic_api\runtime_loop.rs:38:19: warning: methods `submit_extract` and `present_extract` are never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:127:19: warning: methods `native_system_steps_for_stage` and `native_system_steps_by_stage` are never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:553:4: warning: function `native_step_counts_by_stage` is never used
+zircon_runtime\src\scene\ecs\scene_system_registry.rs:568:4: warning: function `native_step_groups_with_capacity` is never used
+zircon_runtime\src\scene\ecs\schedule_stage_plan.rs:151:8: warning: method `stage` is never used
+zircon_runtime\src\scene\world\property_access\entries.rs:20:19: warning: methods `property_entries` and `property_entry_capacity_hint` are never used
+zircon_runtime\src\scene\world\property_access\entries.rs:583:4: warning: function `dynamic_scene_value_is_projectable` is never used
+zircon_runtime\src\scene\world\property_access\entries\physics.rs:254:19: warning: method `physics_property_entry_capacity_hint` is never used
+zircon_runtime\src\scene\tests\ecs_schedule\resources_events.rs:245:26: warning: field `0` is never read
+zircon_runtime\src\scene\tests\ecs_schedule\resources_events.rs:246:31: warning: field `0` is never read
+zircon_runtime\src\scene\tests\ecs_schedule\resources_events.rs:247:30: warning: field `0` is never read
+zircon_runtime\src\ui\text\font_registry.rs:24:5: warning: variant `Italic` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:30:5: warning: variant `System` is never constructed
+zircon_runtime\src\ui\text\font_registry.rs:124:19: warning: method `register_system_family` is never used
+zircon_runtime\src\ui\text\grapheme.rs:148:15: warning: function `grapheme_prefix` is never used
+zircon_runtime\src\ui\text\measure_cache.rs:62:19: warning: methods `clear` and `begin_frame` are never used
+zircon_runtime\src\ui\tests\component_catalog\material_foundation\mod.rs:37:4: warning: function `assert_button_style_schema` is never used
+zircon_runtime\src\graphics\backend\render_backend\offscreen_target.rs:8:16: warning: fields `global_illumination_view` and `bloom_view` are never read
+zircon_runtime\src\graphics\runtime\render_framework\submit_frame_extract\submit\build_runtime_frame.rs:523:8: warning: function `test_mesh` is never used
+zircon_runtime\src\graphics\scene\gpu_scene\gpu_scene.rs:490:19: warning: methods `primitive_buffer`, `instance_buffer`, and `light_buffer` are never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors.rs:72:19: warning: multiple methods are never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors\material_capture.rs:13:19: warning: methods `material_capture_seed`, `sample_texture_rgba`, and `shading_model_id_for_lighting_model` are never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors\material_capture.rs:117:4: warning: function `sample_texture_asset_rgba` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_accessors\material_capture.rs:136:4: warning: function `wrap01` is never used
+zircon_runtime\src\graphics\scene\resources\resource_streamer\resource_streamer_resolve_texture_id.rs:27:50: warning: method `resolve_texture_reference` is never used
+zircon_runtime\src\graphics\scene\resources\runtime\material_runtime.rs:84:16: warning: fields `disabled_passes` and `taa_reactive_mask_strength` are never read
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_execution_context\gpu.rs:364:55: warning: method `resource_streamer` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\graph_execution\render_pass_execution_context\resource_resolver.rs:153:55: warning: methods `buffer_by_name` and `buffer` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\is_skinned.rs:4:19: warning: methods `is_skinned`, `has_skinned_joint_palette_upload`, `has_previous_skinned_joint_palette_upload`, `has_skinned_gpu_source_candidate`, and `has_skinned_gpu_cpu_morphed_source_candidate` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\mesh_draw.rs:29:16: warning: multiple fields are never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\mesh_draw.rs:132:19: warning: method `has_previous_velocity_transform` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\queue_profile.rs:29:19: warning: struct `MeshDrawBatchKey` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\queue_profile.rs:281:19: warning: method `batch_key` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_draw\virtual_geometry_submission_detail.rs:93:19: warning: method `submission_slot` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_compaction_resources.rs:125:25: warning: method `draw_count_buffer_allocation_byte_size` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\indirect_draw_execution.rs:420:19: warning: methods `occlusion_cull_candidate_arg_count`, `occlusion_cull_candidate_instance_count`, `copy_args_to_readbacks`, and `executions` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:104:9: warning: field `buffer_id` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:154:25: warning: method `is_indirect` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_draw_command.rs:195:25: warning: method `uses_gpu_scene` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\mesh_pass\mesh_pass_processor.rs:174:19: warning: method `with_base_color_texture` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:19:19: warning: struct `PreparedMeshQueue` is never constructed
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:23:15: warning: function `prepare_mesh_queue` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\mesh\prepared_queue.rs:43:19: warning: method `stats` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:93:5: warning: field `atlas_texture` is never read
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\atlas\resources.rs:125:19: warning: methods `atlas_texture` and `upload_disabled` are never used
+zircon_runtime\src\graphics\scene\scene_renderer\shadow\plan.rs:60:19: warning: method `is_empty` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\binding.rs:99:15: warning: function `write_glyph_atlas_bitmap_texture_upload_bindings` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\atlas_texture_upload\frame.rs:66:15: warning: function `write_glyph_atlas_bitmap_texture_upload_frame_plan` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\font_asset.rs:16:15: warning: function `load_ui_font_manifest` is never used
+zircon_runtime\src\graphics\scene\scene_renderer\ui\render.rs:157:19: warning: method `text_prepare_report` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:52:18: warning: constant `GLYPH_BITMAP_ATLAS_PADDING_PX` is never used
+zircon_runtime\src\graphics\text\atlas\bitmap_run.rs:54:15: warning: function `glyph_atlas_bitmap_run_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\frame_driver.rs:31:19: warning: associated function `with_defaults` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\plan.rs:43:15: warning: function `glyph_atlas_bitmap_render_submission_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:69:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_plan` is never used
+zircon_runtime\src\graphics\text\atlas\render_submission\retry.rs:121:15: warning: function `glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure` is never used
+zircon_runtime\src\graphics\text\raster\swash\request.rs:58:5: warning: variants `AlphaBitmap`, `ColorOutline`, and `ColorBitmap` are never constructed
+zircon_runtime\src\graphics\text\raster\swash\request.rs:86:5: warning: variants `ExactSize`, `BestFit`, `LargestSize`, and `Index` are never constructed
+zircon_runtime\src\graphics\types\viewport_render_frame.rs:101:19: warning: methods `directional_lights` and `point_lights` are never used
+zircon_runtime\src\graphics\visibility\occlusion\mod.rs:8:5: warning: variant `TwoPhaseRetest` is never constructed
+zircon_runtime\src\graphics\visibility\occlusion\mod.rs:87:18: warning: associated function `skipped` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:239:8: warning: method `insert_texture_sampling_material` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:417:4: warning: function `dominant_red_pixels` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:423:4: warning: function `dominant_green_pixels` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:429:4: warning: function `dominant_blue_pixels` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:536:4: warning: function `sample_texture_shader` is never used
+zircon_runtime\src\graphics\tests\m4_behavior_layers.rs:566:4: warning: function `sample_texture_wgsl_source` is never used
+zircon_runtime\src\rhi_wgpu\device.rs:181:12: warning: associated function `new_with_surface_support` is never used
+zircon_runtime\src\rhi_wgpu\ui_surface.rs:79:12: warning: method `backend_name` is never used
+zircon_runtime\src\plugin\extension_registry\typed_extension_point.rs:99:12: warning: methods `get`, `key_for_slot`, and `finalize` are never used
+zircon_runtime\src\plugin\native_plugin_loader\bridge_method_abi.rs:16:9: warning: field `method_count` is never read
+zircon_runtime\src\plugin\native_plugin_loader\bridge_method_abi.rs:19:9: warning: field `field_name` is never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_abi.rs:63:9: warning: field `field_name` is never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_lifecycle.rs:25:5: warning: variant `Unload` is never constructed
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\bridge_methods.rs:377:15: warning: function `discovered_runtime_bridge_method_bindings` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\diagnostics.rs:37:15: warning: function `unloaded_plugin_error` is never used
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:33:9: warning: fields `plugin_id` and `module_kind` are never read
+zircon_runtime\src\plugin\native_plugin_loader\native_plugin_live_host\lifecycle.rs:48:9: warning: fields `plugin_id` and `module_kind` are never read
+zircon_runtime\src\tests\plugin_extensions\runtime_plugin_package_manifest.rs:686:8: warning: method `sample_temperature` is never used
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children\root_paths.rs:41:18: warning: constant `M3_STRUCTURE_SUPPORT_STATUS_MAP_PATH` is never used
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children\root_paths.rs:42:18: warning: constant `M3_STRUCTURE_SUPPORT_DATE_MAP_PATH` is never used
+zircon_runtime\src\tests\runtime_absorption\structure_convention\test_file_budget\status_output_row_data\runtime_15_lock_poison_status_row_data_children\root_paths.rs:43:18: warning: constant `PRODUCTION_GUARD_SUPPORT_ROWS_PATH` is never used
+warning: `zircon_runtime` (lib test) generated 243 warnings (run `cargo fix --lib -p zircon_runtime --tests` to apply 56 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20m 29s
+     Running unittests src\lib.rs (E:\cargo-targets\zircon-plan08-current-broader-sweep-0704\debug\deps\zircon_runtime-6bef7a696c15c9a5.exe)

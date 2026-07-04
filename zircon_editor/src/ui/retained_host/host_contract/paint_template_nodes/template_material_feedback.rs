@@ -1,5 +1,7 @@
 mod backdrop;
 mod circular_progress;
+mod metrics;
+mod palette;
 mod progress;
 mod state;
 

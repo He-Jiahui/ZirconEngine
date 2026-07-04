@@ -1,9 +1,13 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::layout::{search_rect, search_text_rect, FONT_SIZE, LINE_HEIGHT, SEARCH_RADIUS};
+use super::super::super::template_icon_assets::push_icon_asset_pixels;
+use super::super::layout::{
+    command_palette_metrics, search_icon_rect, search_rect, search_text_rect,
+};
+use super::super::palette::command_palette_palette;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
+const SEARCH_ICON: &str = "search";
 const SEARCH_PLACEHOLDER: &str = "Search commands";
 
 pub(super) fn push_command_palette_search_field(
@@ -14,32 +18,44 @@ pub(super) fn push_command_palette_search_field(
     order: i32,
     opacity: f32,
 ) {
+    let metrics = command_palette_metrics();
+    let palette = command_palette_palette();
     let search_rect = search_rect(rect);
     commands.push(HostPaintCommand::quad(
         search_rect.clone(),
         Some(clip.clone()),
         order,
-        Some(PALETTE.surface_inset),
-        Some(PALETTE.focus_ring),
+        Some(palette.search_surface),
+        Some(palette.search_border),
         1.0,
-        SEARCH_RADIUS,
+        metrics.search_radius,
         opacity,
     ));
+    let icon_rect = search_icon_rect(&search_rect);
+    push_icon_asset_pixels(
+        commands,
+        SEARCH_ICON,
+        &icon_rect,
+        clip,
+        order + 1,
+        Some(palette.search_icon),
+        opacity,
+    );
 
     let query = node.search_query.as_str();
     let (search_text, search_color) = if query.trim().is_empty() {
-        (SEARCH_PLACEHOLDER, PALETTE.text_muted)
+        (SEARCH_PLACEHOLDER, palette.placeholder)
     } else {
-        (query, PALETTE.text)
+        (query, palette.text)
     };
     commands.push(HostPaintCommand::text(
         search_text_rect(&search_rect),
         Some(clip.clone()),
-        order + 1,
+        order + 2,
         search_text.to_string(),
         search_color,
-        FONT_SIZE,
-        LINE_HEIGHT,
+        metrics.font_size,
+        metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

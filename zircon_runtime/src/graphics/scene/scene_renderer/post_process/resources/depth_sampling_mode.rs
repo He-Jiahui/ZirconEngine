@@ -11,8 +11,11 @@ const DOF_PREPARE_RAW_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(0) var scene_depth_tex: texture_depth_2d;";
 const DOF_PREPARE_FALLBACK_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(0) var scene_depth_tex: texture_2d<f32>;";
-const DOF_PREPARE_RAW_DEPTH_LOAD_RETURN: &str =
-    "return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);";
+const DOF_PREPARE_RAW_DEPTH_LOAD_RETURN: &str = "return clamp(
+        textureLoad(scene_depth_tex, params.viewport.zw + clamped, 0),
+        0.0,
+        1.0
+    );";
 const DOF_PREPARE_FALLBACK_DEPTH_LOAD_RETURN: &str =
     "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(viewport_size.y), 0.0, 1.0);";
 const VELOCITY_CAMERA_RAW_DEPTH_BINDING_DECLARATION: &str =

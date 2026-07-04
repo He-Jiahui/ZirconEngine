@@ -15,19 +15,19 @@ impl RenderViewportRegion {
 
 pub(super) fn dominant_red_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
-        .filter(|pixel| pixel[3] >= 240 && pixel[0] > 72 && pixel[0] > pixel[1] + 32)
+        .filter(|pixel| pixel[3] >= 240 && pixel[0] > 72 && channel_exceeds(pixel[0], pixel[1]))
         .count()
 }
 
 pub(super) fn dominant_green_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
-        .filter(|pixel| pixel[3] >= 240 && pixel[1] > 72 && pixel[1] > pixel[0] + 32)
+        .filter(|pixel| pixel[3] >= 240 && pixel[1] > 72 && channel_exceeds(pixel[1], pixel[0]))
         .count()
 }
 
 pub(super) fn dominant_blue_pixels(rgba: &[u8]) -> usize {
     rgba.chunks_exact(4)
-        .filter(|pixel| pixel[3] >= 240 && pixel[2] > 72 && pixel[2] > pixel[0] + 32)
+        .filter(|pixel| pixel[3] >= 240 && pixel[2] > 72 && channel_exceeds(pixel[2], pixel[0]))
         .count()
 }
 
@@ -154,13 +154,17 @@ pub(super) fn rgba_pixel_at(rgba: &[u8], width: u32, position: UVec2) -> [u8; 4]
 }
 
 pub(super) fn is_dominant_red(pixel: &[u8]) -> bool {
-    pixel[3] >= 240 && pixel[0] > 72 && pixel[0] > pixel[1] + 32
+    pixel[3] >= 240 && pixel[0] > 72 && channel_exceeds(pixel[0], pixel[1])
 }
 
 pub(super) fn is_dominant_green(pixel: &[u8]) -> bool {
-    pixel[3] >= 240 && pixel[1] > 72 && pixel[1] > pixel[0] + 32
+    pixel[3] >= 240 && pixel[1] > 72 && channel_exceeds(pixel[1], pixel[0])
 }
 
 fn is_dominant_blue(pixel: &[u8]) -> bool {
-    pixel[3] >= 240 && pixel[2] > 72 && pixel[2] > pixel[0] + 32
+    pixel[3] >= 240 && pixel[2] > 72 && channel_exceeds(pixel[2], pixel[0])
+}
+
+fn channel_exceeds(channel: u8, other: u8) -> bool {
+    u16::from(channel) > u16::from(other) + 32
 }

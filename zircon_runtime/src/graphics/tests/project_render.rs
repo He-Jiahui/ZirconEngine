@@ -6,8 +6,8 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::assets::{
-    AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
+    AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneDirectionalLightAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
 use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use crate::asset::project::{
@@ -15,11 +15,11 @@ use crate::asset::project::{
 };
 use crate::asset::{AssetKind, AssetReference, AssetUri, AssetUuid};
 use crate::core::framework::render::{
-    CapturedFrame, DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportHandle,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ShaderAssetKind,
-    ViewportCameraSnapshot, ViewportRenderSettings,
+    CapturedFrame, DisplayMode, EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract,
+    ProjectionMode, RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportHandle, RenderWorldSnapshotHandle, SampledEquirectangularEnvironment,
+    SceneViewportExtractRequest, ShaderAssetKind, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::ResourceHandle;
@@ -665,6 +665,7 @@ fn build_snapshot(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: crate::core::framework::render::EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,

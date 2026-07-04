@@ -1,0 +1,22 @@
+runtime_text_editor_retained_bitmap_left_draw
+status: passed-static-cargo-deferred
+artifact: docs/tests/runtime/text/runtime_text_editor_retained_bitmap_left_draw_preview_20260704.png
+artifact_sha256: 92BA6223151A8BC00C68AB6BB6B6ED539D267EC7E673189FFDD25E9909B70E7B
+
+root cause:
+- Retained-host glyph layout computed RuntimeTextGlyph.x as bitmap-left placement, but draw_layout_glyph ignored it.
+- The draw path used origin subpixel placement plus raster.metrics.x_offset, letting the raster backend reapply a per-glyph horizontal offset after runtime shaping had already positioned the label.
+
+fix:
+- draw/glyphs.rs keeps origin_x for subpixel raster phase.
+- final glyph bitmap x now comes from layout-provided glyph.x when finite.
+- raster metrics x_offset remains only as an invalid-layout fallback.
+- draw/glyphs/tests.rs adds guards for layout bitmap-left authority and invalid-layout fallback.
+
+checks:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs: passed
+- git diff --check -- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs: passed with LF/CRLF working-tree warnings only
+- conflict marker scan: no matches
+- trailing whitespace scan: no matches
+- static scan: old placement.pixel_x + metrics.x_offset draw path count = 0
+- focused Cargo: deferred because external cargo/rustc lanes were active during validation

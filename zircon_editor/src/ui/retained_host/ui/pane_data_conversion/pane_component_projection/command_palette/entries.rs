@@ -28,6 +28,7 @@ pub(super) fn projected_command_entries(
                 .find(|entry| entry.id == id)
                 .cloned()
                 .or_else(|| (!id.is_empty()).then(|| CommandProjectionEntry::new(id)))
+                .map(CommandProjectionEntry::with_filter_matched)
         })
         .collect()
 }

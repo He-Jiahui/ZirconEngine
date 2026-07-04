@@ -1,0 +1,22 @@
+slice: runtime_text_at_m1_at_m3_bitmap_atlas_retry_frame_input_rustfmt_static_visual_cargo_deferred
+date: 2026-07-04
+
+implementation:
+- zircon_runtime/src/graphics/text/atlas/bitmap_run/retry.rs now owns GlyphAtlasBitmapRetryFrameInput and GlyphAtlasBitmapRetrySourceOrigin.
+- glyph_atlas_bitmap_retry_frame_input(...) merges due retry sources before new frame sources, keeps deferred queued glyphs, preserves next_retry_frame_index, and records an origin map for run-local source indices.
+- bitmap_run.rs and atlas/mod.rs re-export the new frame-input contract through the existing atlas owner boundary.
+- bitmap_run/tests.rs adds retry-frame input order/origin-map regressions.
+
+validation:
+- rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/retry.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs: passed.
+- git diff --check -- zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/retry.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs: passed with LF-to-CRLF working-tree warnings only.
+- target artifact scan for runtime_text_bitmap_atlas_retry_frame_input_preview_20260704.png under repo target, E:\cargo-targets, D:\cargo-targets, and F:\cargo-targets: 0 matches.
+- proof image inspected: docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_input_preview_20260704.png
+- proof image SHA256: 1D5A26510CE7E51BAB8CD046BE62E273501BAB0C3D90956A0A90A812672B0037
+
+cargo:
+- focused Cargo was deferred because external cargo/rustc lanes were active during this implementation slice.
+
+scope limits:
+- This closes the retry frame-input data-plane only.
+- It does not claim real renderer/frame-loop execution, retry backoff policy, real wgpu upload/draw, glyphon TextAtlas cutover, persistent glyph cache eviction, LCD/gamma/background policy, or live editor typography QA.

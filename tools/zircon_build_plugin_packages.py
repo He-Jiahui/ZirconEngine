@@ -45,6 +45,7 @@ class PluginPackage:
     shader_shading_model_ids: tuple[str, ...]
     shader_shading_model_descriptors: tuple[dict[str, object], ...]
     crates: tuple[CargoPackage, ...]
+    shader_modules: tuple[dict[str, object], ...] = ()
 
     @property
     def native_dynamic_crates(self) -> tuple[CargoPackage, ...]:

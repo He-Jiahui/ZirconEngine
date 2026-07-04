@@ -1,11 +1,12 @@
 mod row;
 mod viewport;
 
+pub(super) use viewport::hierarchy_viewport_frame;
+
 use super::super::super::data::{FrameRect, HostPaneInteractionStateData, PaneData};
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::intersect;
 use row::draw_hierarchy_row;
-use viewport::hierarchy_viewport_frame;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_hierarchy_rows(
     frame: &mut HostRgbaFrame,

@@ -6,7 +6,8 @@ use crate::ui::layout::{compute_incremental_layout_tree, compute_layout_tree};
 use crate::ui::surface::{
     build_arranged_tree,
     render::{
-        extract_ui_render_tree_from_arranged_with_component_states, UiSurfaceRenderCacheStats,
+        extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
+        UiSurfaceRenderCacheStats,
     },
 };
 use zircon_runtime_interface::ui::{
@@ -318,14 +319,22 @@ impl UiSurface {
         if force_rebuild {
             self.render_cache = Default::default();
         }
-        let extract = extract_ui_render_tree_from_arranged_with_component_states(
-            &self.tree,
-            &self.arranged_tree,
-            Some(&self.component_states),
-        );
+        self.text_measure_cache.begin_frame();
+        let extract =
+            extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
+                &self.tree,
+                &self.arranged_tree,
+                Some(&self.component_states),
+                Some(&mut self.text_measure_cache),
+            );
         let update = self.render_cache.update(extract, force_rebuild);
         self.render_extract = update.extract;
         update.stats
+    }
+
+    pub(crate) fn refresh_render_extract_for_current_tree(&mut self) {
+        self.arranged_tree = build_arranged_tree(&self.tree);
+        let _ = self.rebuild_render_extract(false);
     }
 
     pub fn rebuild(&mut self) {

@@ -1,0 +1,21 @@
+Runtime text source metrics vertical fail-closed validation
+Timestamp: 2026-07-04 18:42:17 +0800
+
+Slice: runtime_text_source_metrics_vertical_fail_closed_rustfmt_static_visual_cargo_deferred
+Touched code: zircon_runtime/src/ui/text/geometry.rs
+Proof image: E:/Git/ZirconEngine/docs/tests/runtime/text/runtime_text_source_metrics_vertical_fail_closed_preview_20260704.png
+
+Implementation summary:
+- line_accepts_source_measure now accepts source-range measurement only when layout.writing_mode is HorizontalTb.
+- VerticalRl caret/range geometry keeps using resolved line.glyph_advances until real vertical source-range backend geometry exists.
+- Regression source_geometry_with_source_metrics_keeps_vertical_advances covers VerticalRl with text "Wi", glyph advances [2, 20], and a horizontal shaped source width that must not feed y.
+
+Validation commands completed:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs: passed
+- git diff --check -- zircon_runtime/src/ui/text/geometry.rs: passed with LF/CRLF normalization warning only
+- static scan: HorizontalTb guard present; vertical source-metrics regression present
+- conflict/trailing whitespace scan for geometry.rs: conflicts=0 trailing=0
+
+Deferred:
+- Focused Cargo tests are deferred because external cargo/rustc lanes are active.
+- Live editor-window typography QA remains open; this artifact is a validation diagram, not a live window capture.

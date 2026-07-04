@@ -1,5 +1,7 @@
 use crate::ui::retained_host as host_contract;
-use crate::ui::workbench::autolayout::{workbench_layout_tier_for_width, WorkbenchLayoutTier};
+use crate::ui::workbench::autolayout::{
+    workbench_layout_tier_for_logical_width, WorkbenchLayoutTier,
+};
 
 pub(in crate::ui::retained_host::ui) const TABLE_LAYOUT_NARROW_VARIANT: &str = "layoutNarrow";
 pub(in crate::ui::retained_host::ui) const TABLE_LAYOUT_REGULAR_VARIANT: &str = "layoutRegular";
@@ -22,7 +24,7 @@ pub(in crate::ui::retained_host::ui) fn apply_table_layout_context_variant(
 pub(in crate::ui::retained_host::ui) fn table_layout_context_variant_for_width(
     context_width: f32,
 ) -> &'static str {
-    match workbench_layout_tier_for_width(context_width) {
+    match workbench_layout_tier_for_logical_width(context_width) {
         WorkbenchLayoutTier::Ultra | WorkbenchLayoutTier::Narrow => TABLE_LAYOUT_NARROW_VARIANT,
         WorkbenchLayoutTier::Regular => TABLE_LAYOUT_REGULAR_VARIANT,
         WorkbenchLayoutTier::Wide => TABLE_LAYOUT_WIDE_VARIANT,

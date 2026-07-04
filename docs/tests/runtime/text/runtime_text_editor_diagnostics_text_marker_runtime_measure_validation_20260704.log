@@ -1,0 +1,48 @@
+runtime_text_editor_diagnostics_text_marker_runtime_measure_rustfmt_static_visual_cargo_deferred
+
+Date: 2026-07-04
+Scope:
+- zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs
+- zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
+- zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
+- docs/tests/runtime/text/runtime_text_editor_diagnostics_text_marker_runtime_measure_preview_20260704.png
+
+Implementation summary:
+- Diagnostics debug-refresh overlay markers no longer size frames with APPROX_GLYPH_WIDTH or label.chars().count().
+- Text marker bars no longer size frames with text.chars().count() * 8.0.
+- Both retained-host paths now consume measure_runtime_text_width(...) at 12px and keep their existing padding, clipping, and height behavior.
+- This closes the editor overlay/text-marker same-character-count i/W width risk behind the latest DengXian spacing crop without adding a root painter branch or component-local font policy.
+
+Focused regressions added:
+- paint_diagnostics_tests.rs::debug_refresh_overlay_frame_uses_runtime_text_measurement
+- paint_primitives/text_markers.rs::text_bars_frame_uses_runtime_text_measurement
+
+Validation performed:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs: passed
+- Scoped stale scan for APPROX_GLYPH_WIDTH and chars().count() * 8 patterns in touched production paths: no stale touched-path formula remains; measure_runtime_text_width(...) appears in the new owners/tests.
+- git diff --check for touched Rust files: passed with LF/CRLF normalization warnings only.
+- Conflict marker scan for touched Rust files: passed.
+- Preview image inspected manually in Codex: readable and shows before same-count frames versus after measured frames.
+- Preview image path stayed under docs/tests/runtime/text.
+
+Preview SHA256: 43334F126689D0C3287EB65D82652151B673BDF1B0E79960B9C4E22533E9C3BF
+
+Cargo status:
+- Focused Cargo was not started because external cargo/rustc lanes were active during this slice.
+- Active processes observed:
+  - cargo#14956 started=07/05/2026 00:23:28 cpu=0.03
+  - cargo#15584 started=07/05/2026 00:14:05 cpu=3.3
+  - cargo#33604 started=07/05/2026 00:17:32 cpu=0.03
+  - cargo#34472 started=07/05/2026 00:17:32 cpu=6.39
+  - cargo#35488 started=07/05/2026 00:14:04 cpu=0.03
+  - cargo#38676 started=07/05/2026 00:23:28 cpu=5.59
+  - rustc#20352 started=07/05/2026 00:25:10 cpu=58.36
+  - rustc#33892 started=07/05/2026 00:26:07 cpu=3.31
+  - rustc#38648 started=07/05/2026 00:24:22 cpu=106.2
+
+Out of scope / still open:
+- This is not a live editor-window typography QA pass.
+- This does not claim all editor text owners have been migrated.
+- This does not change ZUI font preferences, runtime FontDatabase, glyph atlas routing, GPU/native parity, LCD/gamma policy, or bitmap atlas cutover.
+- Focused Cargo green remains pending until the compile lanes are idle.
+

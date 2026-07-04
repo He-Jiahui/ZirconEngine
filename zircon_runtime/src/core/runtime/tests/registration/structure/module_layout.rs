@@ -77,7 +77,7 @@ fn registration_source_preserves_module_layout() {
     assert!(sources.entry.contains("pub(super) fn service_entry("));
     assert!(sources
         .service_lists
-        .contains("pub(super) struct ModuleServiceLists"));
+        .contains("pub(in crate::core::runtime::handle::registration) struct ModuleServiceLists"));
     assert!(sources
         .validation
         .contains("pub(super) fn validate_service_descriptor("));

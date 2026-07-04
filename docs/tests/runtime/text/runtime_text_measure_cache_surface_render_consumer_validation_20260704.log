@@ -1,0 +1,27 @@
+slice=runtime_text_measure_cache_surface_render_consumer
+status=rustfmt_static_visual_cargo_deferred
+date=2026-07-04T19:43:00+08:00
+
+implementation:
+- UiSurface now owns a per-surface UiTextMeasureCache skipped by serde.
+- render extract routes owner text and TextField text through resolve_text_layout_with_cache(...).
+- UiTextMeasureKey now includes exact frame and clip_frame float bits, so absolute UiResolvedTextLine.frame is not reused across different node positions.
+- text_pipeline regressions cover same-request hit, frame-origin reshape, width-bucket reshape, and surface rebuild cache consumption.
+
+validation:
+- rustfmt --edition 2021 --check for touched runtime text/surface files: passed.
+- git diff --check for touched runtime text/surface files: passed with LF/CRLF working-tree warnings only.
+- conflict marker scan: passed.
+- surface render direct resolve_text_layout(&request).layout bypass scan: 0.
+- target/cargo-target same-name scan after artifact creation: 0.
+- focused Cargo was deferred because external cargo/rustc processes were active.
+
+artifacts:
+- preview_png=docs/tests/runtime/text/runtime_text_measure_cache_surface_render_consumer_preview_20260704.png
+- preview_png_sha256=8E6664BED4F196B8CD809D53EA4164CB28016F4AE702E8570EC1B6C00ADB418E
+- validation_log=docs/tests/runtime/text/runtime_text_measure_cache_surface_render_consumer_validation_20260704.log
+
+cargo_deferral_processes_seen:
+- cargo/rustc lanes active around 2026-07-04 19:43 +08:00; see session note for process ids.
+
+

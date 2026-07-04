@@ -115,9 +115,6 @@ fn runtime_custom_shading_model_sources_compile_as_wgpu_modules() {
             .expect("forward runtime custom shading model source");
     assert!(forward_source
         .wgsl_source
-        .contains("// include: zr_shading_toon.wgsl"));
-    assert!(forward_source
-        .wgsl_source
         .contains("ZR_SHADING_TOON_DEBUG_ID"));
     validate_wgpu_shader_module(
         &backend.device,
@@ -132,9 +129,6 @@ fn runtime_custom_shading_model_sources_compile_as_wgpu_modules() {
             &geometry_source,
         )
         .expect("gbuffer runtime custom shading model source");
-    assert!(gbuffer_source
-        .wgsl_source
-        .contains("// include: zr_gbuffer_encode_toon.wgsl"));
     assert!(gbuffer_source
         .wgsl_source
         .contains("ZR_GBUFFER_TOON_DEBUG_ID"));

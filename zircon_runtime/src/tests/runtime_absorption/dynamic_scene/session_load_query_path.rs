@@ -96,8 +96,19 @@ fn runtime_05_dynamic_scene_session_load_query_path_anchors_stay_visible() {
         "preview_merge_archive_from_path_at_path(",
         "temporary_archive_leftovers(",
     ] {
+        let path_management_sources = [
+            PATH_MANAGEMENT_BEHAVIOR_SOURCE,
+            PATH_MANAGEMENT_ARCHIVE_MERGE_SOURCE,
+            PATH_MANAGEMENT_MUTATION_PREVIEWS_SOURCE,
+            PATH_MANAGEMENT_SINGLE_SLOT_IMPORT_SOURCE,
+            PATH_MANAGEMENT_SINGLE_SLOT_SAVE_SOURCE,
+            PATH_MANAGEMENT_SLOT_COPY_SOURCE,
+            PATH_MANAGEMENT_SLOT_MUTATIONS_SOURCE,
+        ];
         assert!(
-            PATH_MANAGEMENT_BEHAVIOR_SOURCE.contains(anchor),
+            path_management_sources
+                .iter()
+                .any(|source| source.contains(anchor)),
             "Runtime 05 path-management behavior source should keep anchor `{anchor}`"
         );
     }

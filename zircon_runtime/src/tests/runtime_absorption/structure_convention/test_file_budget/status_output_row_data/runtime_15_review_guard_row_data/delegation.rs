@@ -5,6 +5,8 @@ fn runtime_15_status_output_m3_review_guard_row_data_is_child_owner() {
     let status_output_row_data_parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let runtime_15_row_data_guard = read_runtime_src(RUNTIME_15_ROW_DATA_GUARD_PATH);
     let review_guard_row_data_guard = read_runtime_src(REVIEW_GUARD_ROW_DATA_GUARD_PATH);
+    let child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = review_guard_row_data_child_source_blob();
 
     assert_contains_all(
@@ -29,7 +31,18 @@ fn runtime_15_status_output_m3_review_guard_row_data_is_child_owner() {
             "mod budgets;",
             "mod delegation;",
             "mod moved_rows;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
             "mod status_mirrors;",
+        ],
+    );
+    assert_contains_all(
+        "review-guard row-data status inventory records split anchors",
+        &status_inventory,
+        &[
             CHILD_OWNER_STATUS_NAME,
             CHILD_OWNER_STATUS_ID,
             FOLDER_BACKED_STATUS_NAME,
@@ -39,8 +52,8 @@ fn runtime_15_status_output_m3_review_guard_row_data_is_child_owner() {
     );
     for (_, child_path, guard_name) in REVIEW_GUARD_ROW_DATA_CHILDREN {
         assert!(
-            review_guard_row_data_guard.contains(child_path),
-            "review-guard row-data parent should mount child path {child_path}"
+            child_inventory.contains(child_path),
+            "review-guard row-data child inventory should list child path {child_path}"
         );
         assert!(
             child_sources.contains(guard_name),

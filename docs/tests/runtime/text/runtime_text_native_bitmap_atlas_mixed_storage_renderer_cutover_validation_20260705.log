@@ -1,0 +1,10 @@
+runtime_text_native_bitmap_atlas_mixed_storage_renderer_cutover_validation_20260705
+date=2026-07-05
+scope=AT-M1/AT-M3 native bitmap atlas mixed-storage renderer cutover
+code_paths=zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+behavior=NativeBitmapAtlasPrepareReport.replaces_glyphon routes single-storage frames to prepare_submission()
+behavior=NativeBitmapAtlasPrepareReport.mixed_storage_replacement_ready routes contiguous mixed R8/RGBA frames to prepare_storage_submissions()
+guard=non-contiguous mixed storage remains glyphon fallback to preserve draw order
+guard=SubpixelMask remains glyphon fallback until framebuffer background composite owner exists
+expected_renderer_report=storage_pass_count=2; mixed_atlas_storage_format=true; upload_ready_to_write_texture=true when both storage uploads are ready
+target_output=none

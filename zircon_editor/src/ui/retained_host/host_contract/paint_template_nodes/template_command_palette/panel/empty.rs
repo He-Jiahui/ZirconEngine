@@ -1,7 +1,7 @@
 use super::super::super::super::data::FrameRect;
-use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::layout::{empty_text_rect, FONT_SIZE, LINE_HEIGHT};
+use super::super::layout::{command_palette_metrics, empty_text_rect};
+use super::super::palette::command_palette_palette;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const EMPTY_MESSAGE: &str = "No commands found";
@@ -13,14 +13,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_co
     order: i32,
     opacity: f32,
 ) {
+    let metrics = command_palette_metrics();
+    let palette = command_palette_palette();
     commands.push(HostPaintCommand::text(
         empty_text_rect(rect),
         Some(clip.clone()),
         order,
         EMPTY_MESSAGE.to_string(),
-        PALETTE.text_muted,
-        FONT_SIZE,
-        LINE_HEIGHT,
+        palette.empty_text,
+        metrics.font_size,
+        metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

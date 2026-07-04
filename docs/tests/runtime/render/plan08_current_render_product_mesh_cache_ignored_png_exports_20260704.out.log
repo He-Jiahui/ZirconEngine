@@ -1,0 +1,11 @@
+
+running 6 tests
+test graphics::tests::render_product_mesh_cache::morph::direct_velocity::export_direct_morph_weight_velocity_product_png ... ok
+test graphics::tests::render_product_mesh_cache::morph::skinned_velocity::export_skinned_morph_weight_velocity_product_png ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_product_png::export_custom_shading_model_deferred_lighting_product_png ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::product_png::export_project_plugin_registry_material_passes_product_png ... ok
+test graphics::tests::render_product_mesh_cache::shading_model_parity::export_three_shading_models_forward_deferred_product_png ... ok
+test graphics::tests::render_product_mesh_cache::virtual_geometry::export_virtual_geometry_page_cluster_product_png ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 6539 filtered out; finished in 28.02s
+

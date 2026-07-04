@@ -37,17 +37,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_st
             clip,
             order + 2,
             &label,
-            style.text,
+            style.label_text,
+            style.value_text,
             opacity,
         );
     }
 }
 
 #[cfg(test)]
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_chip_text_color(
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_chip_text_colors(
     node: &TemplatePaneNodeData,
-) -> [u8; 4] {
-    select_workbench_status_chip_style(node).text
+) -> ([u8; 4], [u8; 4]) {
+    let style = select_workbench_status_chip_style(node);
+    (style.label_text, style.value_text)
 }
 
 fn push_status_chip_surface(

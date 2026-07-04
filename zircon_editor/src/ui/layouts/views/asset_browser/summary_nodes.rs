@@ -4,6 +4,7 @@ use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 
 use super::labels::{asset_state_label, summary_resource_kind_label};
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 use super::thumbnail_nodes::asset_display_name_lines;
 
 const SUMMARY_NAME_CONTROL_ID: &str = "AssetBrowserContentPreviewName";
@@ -16,10 +17,10 @@ const SUMMARY_NAME_FONT_SIZE: f32 = 10.0;
 const SUMMARY_NAME_FONT_WEIGHT: i32 = 600;
 const SUMMARY_NAME_CONTINUATION_FONT_SIZE: f32 = 9.0;
 const SUMMARY_NAME_CONTINUATION_FONT_WEIGHT: i32 = 500;
-const SUMMARY_FILE_NAME_VISIBLE_CHAR_LIMIT: usize = 36;
-const SUMMARY_FILE_NAME_MAX_PREFIX_CHARS: usize = 20;
+const SUMMARY_FILE_NAME_MAX_WIDTH: f32 = 220.0;
+const SUMMARY_FILE_NAME_MIN_PREFIX_CHARS: usize = 8;
+const SUMMARY_FILE_NAME_MIN_TAIL_STEM_CHARS: usize = 4;
 const SUMMARY_FILE_NAME_EXTENSION_TAIL_STEM_CHARS: usize = 10;
-const SUMMARY_FILE_NAME_ELLIPSIS: &str = "...";
 
 pub(super) fn sync_asset_browser_summary_nodes(
     nodes: &mut Vec<ViewTemplateNodeData>,
@@ -156,47 +157,17 @@ fn is_file_like_summary_name(display_name: &str, extension: &str) -> bool {
 }
 
 fn summary_file_like_display_title(display_name: &str, extension: &str) -> String {
-    if display_name.chars().count() <= SUMMARY_FILE_NAME_VISIBLE_CHAR_LIMIT {
-        return display_name.to_string();
-    }
-
-    let Some((stem, suffix)) = display_name.rsplit_once('.') else {
-        return display_name.to_string();
-    };
-    let extension = extension.trim().trim_start_matches('.');
-    if !suffix.eq_ignore_ascii_case(extension) {
-        return display_name.to_string();
-    }
-
-    let suffix_char_count = suffix.chars().count();
-    let ellipsis_char_count = SUMMARY_FILE_NAME_ELLIPSIS.chars().count();
-    let available_stem_chars = SUMMARY_FILE_NAME_VISIBLE_CHAR_LIMIT
-        .saturating_sub(ellipsis_char_count + 1 + suffix_char_count);
-    if available_stem_chars < 2 {
-        return display_name.to_string();
-    }
-
-    let tail_chars = SUMMARY_FILE_NAME_EXTENSION_TAIL_STEM_CHARS.min(available_stem_chars / 2);
-    let prefix_chars =
-        SUMMARY_FILE_NAME_MAX_PREFIX_CHARS.min(available_stem_chars.saturating_sub(tail_chars));
-    let stem_char_count = stem.chars().count();
-    if prefix_chars == 0 || tail_chars == 0 || stem_char_count <= prefix_chars + tail_chars {
-        return display_name.to_string();
-    }
-
-    let prefix = first_n_chars(stem, prefix_chars);
-    let tail = last_n_chars(stem, tail_chars);
-    format!("{prefix}{SUMMARY_FILE_NAME_ELLIPSIS}{tail}.{suffix}")
-}
-
-fn first_n_chars(text: &str, count: usize) -> String {
-    text.chars().take(count).collect()
-}
-
-fn last_n_chars(text: &str, count: usize) -> String {
-    let chars = text.chars().collect::<Vec<_>>();
-    let start = chars.len().saturating_sub(count);
-    chars[start..].iter().copied().collect()
+    compact_file_like_display_name(
+        display_name,
+        extension,
+        RuntimeFileNameCompaction {
+            max_width: SUMMARY_FILE_NAME_MAX_WIDTH,
+            font_size: SUMMARY_NAME_FONT_SIZE,
+            min_prefix_chars: SUMMARY_FILE_NAME_MIN_PREFIX_CHARS,
+            min_tail_stem_chars: SUMMARY_FILE_NAME_MIN_TAIL_STEM_CHARS,
+            preferred_tail_stem_chars: SUMMARY_FILE_NAME_EXTENSION_TAIL_STEM_CHARS,
+        },
+    )
 }
 
 fn summary_type_badge_node() -> ViewTemplateNodeData {
@@ -237,6 +208,7 @@ fn summary_label_node(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::retained_host::measure_runtime_text_width;
     use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetWorkspaceSnapshot};
     use zircon_runtime_interface::resource::ResourceKind;
 
@@ -377,6 +349,24 @@ mod tests {
         assert_eq!(name.text.as_str(), "workbench_page_chrome.zui");
         assert_eq!(continuation.text.as_str(), "");
         assert_eq!(continuation.frame.height, 0.0);
+    }
+
+    #[test]
+    fn summary_file_like_title_uses_runtime_width_not_character_count() {
+        let narrow = format!("{}.zui", "i".repeat(44));
+        let wide = format!("{}.zui", "W".repeat(44));
+        assert_eq!(narrow.chars().count(), wide.chars().count());
+
+        assert_eq!(summary_file_like_display_title(&narrow, "zui"), narrow);
+        let compact_wide = summary_file_like_display_title(&wide, "zui");
+
+        assert_ne!(compact_wide, wide);
+        assert!(compact_wide.ends_with(".zui"));
+        assert!(
+            measure_runtime_text_width(&compact_wide, SUMMARY_NAME_FONT_SIZE)
+                <= SUMMARY_FILE_NAME_MAX_WIDTH + 0.01,
+            "summary file-like title should fit measured width: {compact_wide}"
+        );
     }
 
     #[test]

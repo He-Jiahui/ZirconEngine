@@ -5,12 +5,14 @@ use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::resource::ResourceKind;
 
 use super::labels::compact_resource_kind_label;
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 
 const ASSET_TABLE_HEADER_CELLS: [&str; 4] = ["Name", "Type", "Size", "Rev"];
-const ASSET_TABLE_NAME_CHAR_BUDGET: usize = 32;
-const ASSET_TABLE_NAME_PREFIX_CHARS: usize = 18;
-const ASSET_TABLE_NAME_TAIL_CHARS: usize = 8;
-const ASSET_TABLE_NAME_ELLIPSIS: &str = "...";
+const ASSET_TABLE_NAME_MAX_WIDTH: f32 = 150.0;
+const ASSET_TABLE_NAME_FONT_SIZE: f32 = 10.0;
+const ASSET_TABLE_NAME_MIN_PREFIX_CHARS: usize = 6;
+const ASSET_TABLE_NAME_MIN_TAIL_CHARS: usize = 4;
+const ASSET_TABLE_NAME_PREFERRED_TAIL_CHARS: usize = 8;
 
 pub(super) fn asset_table_rows(snapshot: &AssetWorkspaceSnapshot) -> Vec<[String; 4]> {
     let mut rows = snapshot
@@ -102,56 +104,17 @@ fn asset_size_hint(asset: &AssetItemSnapshot) -> &'static str {
 }
 
 fn compact_asset_table_name(display_name: &str, extension: &str) -> String {
-    let name = display_name.trim();
-    if name.chars().count() <= ASSET_TABLE_NAME_CHAR_BUDGET {
-        return name.to_string();
-    }
-
-    if let Some(file_name) = extension_preserving_table_name(name, extension) {
-        return file_name;
-    }
-
-    let prefix = first_n_chars(name, ASSET_TABLE_NAME_PREFIX_CHARS);
-    let tail = last_n_chars(name, ASSET_TABLE_NAME_TAIL_CHARS);
-    format!("{prefix}{ASSET_TABLE_NAME_ELLIPSIS}{tail}")
-}
-
-fn extension_preserving_table_name(display_name: &str, extension: &str) -> Option<String> {
-    let extension = extension.trim().trim_start_matches('.');
-    let (stem, suffix) = display_name.rsplit_once('.')?;
-    if extension.is_empty() || !suffix.eq_ignore_ascii_case(extension) {
-        return None;
-    }
-
-    let suffix_chars = suffix.chars().count();
-    let ellipsis_chars = ASSET_TABLE_NAME_ELLIPSIS.chars().count();
-    let stem_budget =
-        ASSET_TABLE_NAME_CHAR_BUDGET.saturating_sub(ellipsis_chars + 1 + suffix_chars);
-    if stem_budget < 8 {
-        return None;
-    }
-
-    let tail_chars = ASSET_TABLE_NAME_TAIL_CHARS.min(stem_budget / 2);
-    let prefix_chars = ASSET_TABLE_NAME_PREFIX_CHARS.min(stem_budget.saturating_sub(tail_chars));
-    if stem.chars().count() <= prefix_chars + tail_chars {
-        return Some(display_name.to_string());
-    }
-
-    let prefix = first_n_chars(stem, prefix_chars);
-    let tail = last_n_chars(stem, tail_chars);
-    Some(format!(
-        "{prefix}{ASSET_TABLE_NAME_ELLIPSIS}{tail}.{suffix}"
-    ))
-}
-
-fn first_n_chars(text: &str, count: usize) -> String {
-    text.chars().take(count).collect()
-}
-
-fn last_n_chars(text: &str, count: usize) -> String {
-    let chars = text.chars().collect::<Vec<_>>();
-    let start = chars.len().saturating_sub(count);
-    chars[start..].iter().copied().collect()
+    compact_file_like_display_name(
+        display_name,
+        extension,
+        RuntimeFileNameCompaction {
+            max_width: ASSET_TABLE_NAME_MAX_WIDTH,
+            font_size: ASSET_TABLE_NAME_FONT_SIZE,
+            min_prefix_chars: ASSET_TABLE_NAME_MIN_PREFIX_CHARS,
+            min_tail_stem_chars: ASSET_TABLE_NAME_MIN_TAIL_CHARS,
+            preferred_tail_stem_chars: ASSET_TABLE_NAME_PREFERRED_TAIL_CHARS,
+        },
+    )
 }
 
 fn shared_string_options(values: Vec<String>) -> ModelRc<SharedString> {
@@ -161,6 +124,7 @@ fn shared_string_options(values: Vec<String>) -> ModelRc<SharedString> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::retained_host::measure_runtime_text_width;
 
     #[test]
     fn compact_asset_table_name_preserves_readable_file_identity() {
@@ -168,9 +132,33 @@ mod tests {
             compact_asset_table_name("workbench_page_chrome.zui", "zui"),
             "workbench_page_chrome.zui"
         );
-        assert_eq!(
-            compact_asset_table_name("workbench_extension_accessibility_workspace.zui", "zui"),
-            "workbench_extensi...orkspace.zui"
+        let compact =
+            compact_asset_table_name("workbench_extension_accessibility_workspace.zui", "zui");
+        assert!(compact.starts_with("workbench"));
+        assert!(compact.contains("..."));
+        assert!(compact.ends_with(".zui"));
+        assert!(
+            measure_runtime_text_width(&compact, ASSET_TABLE_NAME_FONT_SIZE)
+                <= ASSET_TABLE_NAME_MAX_WIDTH + 0.01,
+            "compact asset table name should fit measured table name width: {compact}"
+        );
+    }
+
+    #[test]
+    fn compact_asset_table_name_uses_runtime_width_not_character_count() {
+        let narrow = format!("{}.zui", "i".repeat(40));
+        let wide = format!("{}.zui", "W".repeat(40));
+        assert_eq!(narrow.chars().count(), wide.chars().count());
+
+        assert_eq!(compact_asset_table_name(&narrow, "zui"), narrow);
+        let compact_wide = compact_asset_table_name(&wide, "zui");
+
+        assert_ne!(compact_wide, wide);
+        assert!(compact_wide.ends_with(".zui"));
+        assert!(
+            measure_runtime_text_width(&compact_wide, ASSET_TABLE_NAME_FONT_SIZE)
+                <= ASSET_TABLE_NAME_MAX_WIDTH + 0.01,
+            "wide table name should fit measured width: {compact_wide}"
         );
     }
 }

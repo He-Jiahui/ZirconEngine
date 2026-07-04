@@ -28,6 +28,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORK
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_DISABLED_TEXT: [u8; 4] =
     PALETTE.text_disabled;
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORKBENCH_TEXT_FIELD_STEPPER_DIVIDER: [u8; 4] =
+    PALETTE.separator_soft;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct WorkbenchTextFieldPalette {
@@ -42,6 +45,7 @@ pub(super) struct WorkbenchTextFieldPalette {
     pub text: [u8; 4],
     pub placeholder: [u8; 4],
     pub disabled_text: [u8; 4],
+    pub stepper_divider: [u8; 4],
     pub error: [u8; 4],
     pub focus_ring: [u8; 4],
 }
@@ -65,6 +69,7 @@ pub(super) fn workbench_text_field_palette_from_host(
         text: palette.text,
         placeholder: palette.text_muted,
         disabled_text: palette.text_disabled,
+        stepper_divider: palette.separator_soft,
         error: palette.error,
         focus_ring: palette.focus_ring,
     }

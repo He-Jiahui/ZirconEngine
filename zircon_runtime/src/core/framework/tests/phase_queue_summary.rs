@@ -314,6 +314,7 @@ fn render_frame_phase_queue_summary_merges_geometry_and_sprite_counts() {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,
@@ -636,6 +637,7 @@ fn render_frame_phase_queue_summary_merges_geometry_and_sprite_counts() {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

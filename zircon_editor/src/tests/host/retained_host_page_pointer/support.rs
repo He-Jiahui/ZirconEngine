@@ -8,9 +8,11 @@ pub(super) fn sample_host_page_layout() -> HostPagePointerLayout {
     let items = vec![
         HostPagePointerItem {
             page_id: MainPageId::workbench().0,
+            title: "Workbench".to_string(),
         },
         HostPagePointerItem {
             page_id: "inspector".to_string(),
+            title: "Inspector".to_string(),
         },
     ];
     let strip_frame = UiFrame::new(0.0, 24.0, 1280.0, 32.0);
@@ -35,15 +37,19 @@ pub(super) fn sample_overflow_host_page_layout() -> HostPagePointerLayout {
     let items = vec![
         HostPagePointerItem {
             page_id: MainPageId::workbench().0,
+            title: "Workbench".to_string(),
         },
         HostPagePointerItem {
             page_id: "inspector".to_string(),
+            title: "Inspector".to_string(),
         },
         HostPagePointerItem {
             page_id: "assets".to_string(),
+            title: "Assets".to_string(),
         },
         HostPagePointerItem {
             page_id: "animation".to_string(),
+            title: "Animation".to_string(),
         },
     ];
     let strip_frame = UiFrame::new(0.0, 24.0, 360.0, 32.0);

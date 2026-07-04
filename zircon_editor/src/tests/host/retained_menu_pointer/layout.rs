@@ -21,16 +21,11 @@ fn shared_menu_pointer_layout_prefers_shared_root_menu_bar_projection_over_stale
     assert_eq!(layout.shell_frame, UiFrame::new(32.0, 18.0, 1440.0, 900.0));
     assert_eq!(
         layout.button_frames,
-        vec![
-            UiFrame::new(40.0, 20.0, 40.0, 22.0),
-            UiFrame::new(82.0, 20.0, 42.0, 22.0),
-            UiFrame::new(126.0, 20.0, 74.0, 22.0),
-            UiFrame::new(202.0, 20.0, 42.0, 22.0),
-            UiFrame::new(246.0, 20.0, 42.0, 22.0),
-            UiFrame::new(290.0, 20.0, 56.0, 22.0),
-            UiFrame::new(348.0, 20.0, 40.0, 22.0),
-        ],
-        "shared root menu bar projection should own top-level menu button frames"
+        expected_menu_button_frames_for_model(
+            UiFrame::new(32.0, 18.0, 1440.0, 40.0),
+            &model.menu_bar
+        ),
+        "shared root menu bar projection should own runtime-measured top-level menu button frames"
     );
     assert_eq!(layout.active_preset_name, "compact");
     assert_eq!(layout.resolved_preset_name, "compact");
@@ -57,16 +52,8 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
 
     assert_eq!(
         layout.button_frames,
-        vec![
-            UiFrame::new(40.0, 20.0, 40.0, 22.0),
-            UiFrame::new(82.0, 20.0, 42.0, 22.0),
-            UiFrame::new(126.0, 20.0, 74.0, 22.0),
-            UiFrame::new(202.0, 20.0, 42.0, 22.0),
-            UiFrame::new(246.0, 20.0, 42.0, 22.0),
-            UiFrame::new(290.0, 20.0, 56.0, 22.0),
-            UiFrame::new(348.0, 20.0, 40.0, 22.0),
-        ],
-        "shared shell projection should still own top-level menu button frames when menu bar frame is temporarily unavailable"
+        expected_menu_button_frames_for_model(UiFrame::new(32.0, 18.0, 1440.0, 900.0), &model.menu_bar),
+        "shared shell projection should still own runtime-measured top-level menu button frames when menu bar frame is temporarily unavailable"
     );
 }
 
@@ -163,5 +150,52 @@ fn shared_menu_pointer_layout_uses_chrome_menu_overflow_preference() {
         layout.menu_overflow_mode,
         MenuOverflowMode::MultiColumn,
         "production menu pointer layout must consume the active chrome overflow preference"
+    );
+}
+
+#[test]
+fn shared_menu_pointer_layout_measures_menu_labels_with_runtime_font_width() {
+    let menu_bar = MenuBarModel {
+        menus: vec![
+            MenuModel {
+                label: "iiiiiiii".to_string(),
+                items: Vec::new(),
+            },
+            MenuModel {
+                label: "WWWWWWWW".to_string(),
+                items: Vec::new(),
+            },
+            MenuModel {
+                label: "folder-open-line.svg".to_string(),
+                items: Vec::new(),
+            },
+        ],
+    };
+    let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_runtime_text_width");
+    let layout = build_host_menu_pointer_layout(
+        &menu_bar,
+        &harness.runtime.chrome_snapshot(),
+        UiSize::new(720.0, 240.0),
+        &[],
+        None,
+        None,
+    );
+
+    assert_eq!(
+        layout.button_frames,
+        expected_menu_button_frames_for_model(UiFrame::new(0.0, 0.0, 720.0, 240.0), &menu_bar),
+        "menu pointer hitboxes should share the glyph-aware slot widths used by visual menu chrome"
+    );
+    assert_eq!(
+        layout.button_frames[0].width,
+        runtime_menu_slot_width("iiiiiiii")
+    );
+    assert_eq!(
+        layout.button_frames[1].width,
+        runtime_menu_slot_width("WWWWWWWW")
+    );
+    assert!(
+        layout.button_frames[1].width > layout.button_frames[0].width,
+        "same character count should not collapse to the same menu hitbox width"
     );
 }

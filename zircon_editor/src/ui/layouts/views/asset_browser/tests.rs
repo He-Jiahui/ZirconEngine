@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -455,7 +456,12 @@ fn thumbnail_view_keeps_file_like_names_single_line_with_extension_tail() {
     let type_badge = find_node(&nodes, "AssetBrowserThumbTypeBadge01");
     let meta = find_node(&nodes, "AssetBrowserThumbMeta01");
 
-    assert_eq!(name.text.as_str(), "workbench...ndow.zui");
+    assert!(name.text.as_str().ends_with(".zui"));
+    assert!(
+        measure_runtime_text_width(name.text.as_str(), name.font_size) <= name.frame.width + 0.01,
+        "thumbnail file-like name should fit its measured text slot: name={:?}",
+        name
+    );
     assert!(name.text.as_str().ends_with(".zui"));
     assert!(continuation.text.is_empty());
     assert_eq!(continuation.frame.height, 0.0);

@@ -1,0 +1,90 @@
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_GUARD_CHILD_OWNER_SPLIT: &[&str] = &[
+    "runtime_15_plugin_importer_dx_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/runtime_exports.rs",
+    "runtime_15_plugin_importer_dx_structure_assertions_are_child_owner",
+    "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_owner",
+    "runtime_15_plugin_importer_dx_source_inventory_is_child_owner",
+    "11 plugin-importer DX review guards",
+    "Cargo gate deferred",
+];
+
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "runtime_15_plugin_importer_dx_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/delegation.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/child_ownership.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/status_mirrors.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk.rs",
+    "runtime_15_plugin_importer_dx_structure_assertions_are_child_owner",
+    "runtime_15_plugin_importer_dx_structure_assertions_children_are_child_owned",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_are_child_owner",
+    "runtime_15_plugin_importer_dx_structure_assertions_guard_folder_backed_status_is_current",
+    "Cargo gate deferred",
+];
+
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "runtime_15_plugin_importer_dx_review_mounts_guard_folder_backed_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/parent_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/review_children.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/budgets.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/status_mirrors.rs",
+    "assert_plugin_importer_dx_review_mounts_are_folder_backed",
+    "runtime_15_plugin_importer_dx_review_mounts_guard_is_folder_backed",
+    "runtime_15_plugin_importer_dx_review_mounts_guard_folder_backed_status_is_current",
+    "runtime_15_plugin_importer_dx_review_mounts_children_line_budgets_are_current",
+    "Cargo gate deferred",
+];
+
+pub(super) const PLUGIN_IMPORTER_D13_SDK_STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/review_children.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/budgets.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/status_mirrors.rs",
+    "assert_plugin_importer_d13_sdk_child_owners_are_folder_backed",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_is_folder_backed",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_folder_backed_status_is_current",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_children_line_budgets_are_current",
+    "Cargo gate deferred",
+];
+
+pub(super) const PLUGIN_IMPORTER_D13_SDK_PARENT_MOUNTS_GUARD_CHILD_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer D13 SDK parent-mount guard child split",
+    "runtime_15_plugin_importer_d13_sdk_parent_mounts_guard_child_split_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts/delegation.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts/review_mounts.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts/folder_backed.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts/child_ownership.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/parent_mounts/status_mirrors.rs",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_are_child_owner",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_is_folder_backed",
+    "runtime_15_plugin_importer_d13_sdk_parent_mounts_guard_is_child_backed",
+    "runtime_15_plugin_importer_d13_sdk_parent_mounts_status_mirrors_are_current",
+    "Cargo gate deferred",
+];
+
+pub(super) const PLUGIN_IMPORTER_D13_SDK_STRUCTURE_ASSERTIONS_GUARD_CHILD_OWNER_SPLIT: &[&str] = &[
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/runtime_exports.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d13_importer_sdk/manifest_parity.rs",
+    "runtime_15_plugin_importer_d13_sdk_structure_assertions_are_child_owner",
+    "runtime_15_plugin_importer_dx_structure_assertions_are_child_owner",
+    "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_owner",
+    "3 D13 importer SDK review guards",
+    "Cargo gate deferred",
+];

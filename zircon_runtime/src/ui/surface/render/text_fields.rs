@@ -12,8 +12,9 @@ use zircon_runtime_interface::ui::{
     widget::UiWidgetBehavior,
 };
 
+use super::extract::resolve_text_layout_with_cache;
 use super::painter_state::UiRenderPainterStateSource;
-use crate::ui::text::{resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest};
+use crate::ui::text::{UiPreeditSpan, UiTextLayoutRequest, UiTextMeasureCache};
 
 const DEFAULT_PADDING_X: f32 = 8.0;
 const DEFAULT_PADDING_Y: f32 = 4.0;
@@ -48,6 +49,7 @@ pub(super) fn text_field_render_commands(
     base_style: &UiResolvedStyle,
     visible_text: Option<&str>,
     editable: Option<&UiEditableTextState>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> Vec<UiRenderCommand> {
     let Some(metadata) = metadata else {
         return Vec::new();
@@ -72,6 +74,7 @@ pub(super) fn text_field_render_commands(
             base_style,
             visible_text.unwrap_or_default(),
             editable,
+            text_measure_cache,
         ));
     }
     commands
@@ -173,14 +176,21 @@ fn text_command(
     base_style: &UiResolvedStyle,
     visible_text: &str,
     editable: Option<&UiEditableTextState>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiRenderCommand {
     let text_frame = text_frame(metadata, frame);
     let text_clip = clip_frame
         .and_then(|clip| clip.intersection(text_frame))
         .unwrap_or(text_frame);
     let mut style = text_style(metadata, state, base_style, visible_text);
-    let mut layout =
-        resolve_text_field_layout(visible_text, &style, text_frame, text_clip, editable);
+    let mut layout = resolve_text_field_layout(
+        visible_text,
+        &style,
+        text_frame,
+        text_clip,
+        editable,
+        text_measure_cache,
+    );
     if state.focused() && !state.unavailable() {
         layout.editable = editable.cloned();
     }
@@ -205,16 +215,17 @@ fn resolve_text_field_layout(
     text_frame: UiFrame,
     text_clip: UiFrame,
     editable: Option<&UiEditableTextState>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiResolvedTextLayout {
     let request = UiTextLayoutRequest::new(visible_text, style, text_frame, Some(text_clip));
     let Some(composition) = editable.and_then(|editable| editable.composition.as_ref()) else {
-        return resolve_text_layout(&request).layout;
+        return resolve_text_layout_with_cache(&request, text_measure_cache).layout;
     };
     let preedit = UiPreeditSpan {
         range: composition.range,
         text: composition.text.clone(),
     };
-    resolve_text_layout(&request.with_preedit(&preedit)).layout
+    resolve_text_layout_with_cache(&request.with_preedit(&preedit), text_measure_cache).layout
 }
 
 fn text_frame(metadata: &UiTemplateNodeMetadata, frame: UiFrame) -> UiFrame {

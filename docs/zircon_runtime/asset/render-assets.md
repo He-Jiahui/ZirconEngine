@@ -3,6 +3,7 @@ related_code:
   - dev/bevy/crates/bevy_pbr/src/render/mesh_types.wgsl
   - dev/bevy/crates/bevy_pbr/src/render/pbr_functions.wgsl
   - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/project/shader_resource_records.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/assets/texture/mod.rs
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
@@ -1025,6 +1026,10 @@ The 2026-06-24 Runtime 15 M3 asset pipeline manager test folder split keeps Proj
 2026-07-01 follow-up: the pipeline-manager structure guard now locks the current 11 executable ProjectAssetManager tests while retaining the seven child-owner boundary and the shared `expected_status_row_data/runtime_15/m3/asset_budget_tests.rs` row-data owner.
 
 The 2026-06-24 Runtime 15 M4 mesh asset management record owner split keeps the mesh asset production owner below the structure budget. `asset/assets/mesh/mesh_asset.rs` now owns `MeshAsset` behavior, model primitive conversion, morph-target application, validation, render descriptor projection, and the management entry methods, while `asset/assets/mesh/mesh_asset/management.rs` owns `MeshAssetOverview`, management records, failures, record-set summaries, and record-set aggregation. Guard `runtime_15_mesh_asset_management_records_are_child_owner` locks the parent/child boundary, moved management DTO/impl ownership, the status anchor `runtime_15_mesh_asset_management_record_owner_split_static_passed_cargo_deferred`, and the 800-line production-file budget; current evidence is scoped rustfmt/static/line-count/docs-anchor/whitespace/diff-check only, with Cargo deferred because external cargo/rustc lanes were active.
+
+## 2026-07-04 Project/Plugin Shader ResourceRecord Export Owner
+
+`zircon_runtime/src/asset/project/shader_resource_records.rs` is the shared project/plugin asset-root owner for Ready Shader `ResourceRecord` export. It walks `.zmeta` files, loads `AssetMetaDocument`, emits root and subasset shader records only when state is Ready, derives the nonzero source-hash revision used by staged prewarm, preserves import/config/artifact locators, rejects duplicate record ids or locators across roots, and returns records in stable order. `zircon_shader_prewarm` delegates through this owner and mirrors it as `project_shader_resource_records_from_asset_roots`; the Plan 08 product material-pass bridge consumes `crate::asset::project::shader_resource_records_from_asset_roots(...)` instead of maintaining a scanner copy. Status: `render_plan08_project_plugin_registry_shared_resource_record_export_product_wgpu_passed_renderdoc_deferred`; evidence includes touched-file rustfmt, focused prewarm Cargo check after 4m48s, lower Runtime 15 support guard 1/1 with 6394 filtered, focused WGPU product rerun 1/1 with 6395 filtered and 10.29s, refreshed structure guard 1/1 with 6402 filtered, and shader-prewarm bin duplicate-id/locator regression 1/1 with 54 filtered. RenderDoc/product capture, workspace/full CI, and broader live registry export acceptance remain open.
 
 ## 2026-07-04 Shader Readiness Redirect Diagnostics and Material Fixture V2 Cleanup
 

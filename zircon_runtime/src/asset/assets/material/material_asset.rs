@@ -244,6 +244,12 @@ impl MaterialAsset {
         shader_resolves: impl Fn(&AssetReference) -> bool,
         texture_resolves: impl Fn(&AssetReference) -> bool,
     ) -> RenderMaterialReadinessReport {
+        let unresolved_shader_imports = shader
+            .dependencies
+            .iter()
+            .filter(|dependency| !shader_resolves(&dependency.reference))
+            .map(|dependency| dependency.reference.clone())
+            .collect::<Vec<_>>();
         let descriptor = self.standard_material_descriptor_for_shader(shader);
         let texture_slots = self.shader_aware_texture_slots_from_descriptor(&descriptor);
         let mut report = self.readiness_report_from_texture_slots(
@@ -254,6 +260,17 @@ impl MaterialAsset {
         );
         for error in self.shader_contract_diagnostics(shader) {
             report.push_validation_error_once(error);
+        }
+        for reference in unresolved_shader_imports {
+            report.push_validation_error_once(
+                RenderMaterialValidationError::UnresolvedShaderReference {
+                    reference: reference.clone(),
+                },
+            );
+            report.push_fallback_usage_once(RenderMaterialFallbackUsage {
+                reason: RenderMaterialFallbackReason::Shader { reference },
+                fallback_policy: report.fallback_policy,
+            });
         }
         push_shader_readiness_validation_errors(&mut report, shader);
         report

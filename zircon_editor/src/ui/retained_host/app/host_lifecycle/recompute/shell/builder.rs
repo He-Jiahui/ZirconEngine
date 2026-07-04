@@ -37,6 +37,7 @@ impl RetainedEditorHost {
                 &layout,
                 &descriptors,
                 self.shell_size,
+                self.shell_scale_factor,
                 &self.chrome_metrics,
                 if self.transient_region_preferred.is_empty() {
                     None

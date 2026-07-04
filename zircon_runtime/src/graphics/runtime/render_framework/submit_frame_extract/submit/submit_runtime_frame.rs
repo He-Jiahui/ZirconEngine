@@ -241,7 +241,8 @@ fn refresh_camera_policy_to_runtime_frame(frame: &mut ViewportRenderFrame) {
     frame.render_region = ViewportRenderRegion::from_camera(
         frame.extract.view.selected_camera_descriptor(),
         frame.viewport_size,
-    );
+    )
+    .with_local_size(frame.extract.view.effective_render_size());
 }
 
 fn attach_prepared_sidebands_to_runtime_frame(
@@ -369,6 +370,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

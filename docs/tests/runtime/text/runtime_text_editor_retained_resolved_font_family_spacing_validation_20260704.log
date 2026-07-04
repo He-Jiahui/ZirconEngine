@@ -1,0 +1,15 @@
+runtime_text_editor_retained_resolved_font_family_spacing
+date=2026-07-04
+status=rustfmt_static_visual_cargo_deferred
+owner=zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+test_owner=zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
+change=runtime_text_style_for_face uses cached_host_font(...).runtime_family for UiResolvedStyle.font_family
+static_rustfmt=passed: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
+static_direct_request_family_projection_scan=0 matches for font_family: Some(request.family.clone())
+static_conflict_marker_scan=0 matches
+static_trailing_whitespace_scan=0 matches on touched code files
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_retained_resolved_font_family_spacing_preview_20260704.png
+preview_sha256=9A933B13AD382F932249AC5C06941D4D37FE8ABE3116189F3CC1463BE6033406
+target_same_name_scan_count=0
+cargo=deferred because external cargo/rustc lanes are active
+scope=no component-local font policy, no ZUI asset shortcut, no root painter branch, no runtime atlas routing change

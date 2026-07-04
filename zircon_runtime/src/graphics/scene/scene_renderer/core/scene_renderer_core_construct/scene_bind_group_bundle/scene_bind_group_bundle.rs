@@ -4,6 +4,8 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_constru
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) uniform_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) environment_sample_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_construct) bind_group:
         wgpu::BindGroup,
 }

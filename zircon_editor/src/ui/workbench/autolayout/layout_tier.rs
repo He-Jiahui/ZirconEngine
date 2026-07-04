@@ -95,8 +95,20 @@ pub(crate) fn workbench_layout_defaults() -> WorkbenchLayoutDefaults {
     WorkbenchLayoutDefaults::from_density_tokens(EditorDensityTokens::workbench_dense())
 }
 
-pub(crate) fn workbench_layout_tier_for_width(width: f32) -> WorkbenchLayoutTier {
-    let width = width.max(0.0);
+fn effective_layout_scale_factor(scale_factor: f32) -> f32 {
+    if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    }
+}
+
+pub(crate) fn workbench_logical_width_for_scale(physical_width: f32, scale_factor: f32) -> f32 {
+    physical_width.max(0.0) / effective_layout_scale_factor(scale_factor)
+}
+
+pub(crate) fn workbench_layout_tier_for_logical_width(logical_width: f32) -> WorkbenchLayoutTier {
+    let width = logical_width.max(0.0);
     let defaults = workbench_layout_defaults().breakpoints;
     if width <= defaults.ultra_max_width {
         WorkbenchLayoutTier::Ultra
@@ -109,11 +121,31 @@ pub(crate) fn workbench_layout_tier_for_width(width: f32) -> WorkbenchLayoutTier
     }
 }
 
-pub(crate) fn right_drawer_should_collapse_for_width(width: f32) -> bool {
+pub(crate) fn workbench_layout_tier_for_physical_width(
+    physical_width: f32,
+    scale_factor: f32,
+) -> WorkbenchLayoutTier {
+    workbench_layout_tier_for_logical_width(workbench_logical_width_for_scale(
+        physical_width,
+        scale_factor,
+    ))
+}
+
+pub(crate) fn right_drawer_should_collapse_for_logical_width(logical_width: f32) -> bool {
     matches!(
-        workbench_layout_tier_for_width(width),
+        workbench_layout_tier_for_logical_width(logical_width),
         WorkbenchLayoutTier::Ultra | WorkbenchLayoutTier::Narrow
     )
+}
+
+pub(crate) fn right_drawer_should_collapse_for_physical_width(
+    physical_width: f32,
+    scale_factor: f32,
+) -> bool {
+    right_drawer_should_collapse_for_logical_width(workbench_logical_width_for_scale(
+        physical_width,
+        scale_factor,
+    ))
 }
 
 pub(crate) fn compact_side_defaults() -> WorkbenchCompactSideDefaults {
@@ -124,14 +156,24 @@ pub(crate) fn compact_bottom_defaults() -> WorkbenchCompactBottomDefaults {
     workbench_layout_defaults().compact_bottom
 }
 
-pub(crate) fn window_min_width_limit_for_width(width: f32) -> f32 {
+pub(crate) fn window_min_width_limit_for_logical_width(logical_width: f32) -> f32 {
     let defaults = workbench_layout_defaults();
-    match workbench_layout_tier_for_width(width) {
+    match workbench_layout_tier_for_logical_width(logical_width) {
         WorkbenchLayoutTier::Ultra => defaults.window_minimums.ultra_min_width,
         WorkbenchLayoutTier::Narrow | WorkbenchLayoutTier::Regular | WorkbenchLayoutTier::Wide => {
             defaults.window_minimums.min_width
         }
     }
+}
+
+pub(crate) fn window_min_width_limit_for_physical_width(
+    physical_width: f32,
+    scale_factor: f32,
+) -> f32 {
+    window_min_width_limit_for_logical_width(workbench_logical_width_for_scale(
+        physical_width,
+        scale_factor,
+    ))
 }
 
 pub(crate) fn window_min_height_limit_for_height(height: f32) -> f32 {

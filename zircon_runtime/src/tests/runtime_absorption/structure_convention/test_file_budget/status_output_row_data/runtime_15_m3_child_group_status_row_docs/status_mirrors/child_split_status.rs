@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn runtime_15_m3_child_group_status_row_doc_status_mirror_status_rows_are_current() {
-    let production_guard_support = read_runtime_src(PRODUCTION_GUARD_SUPPORT_ROWS_PATH);
+    let status_rows = read_runtime_src(STATUS_SUPPORT_STATUS_DOCS_ROWS_PATH);
     let status_map = read_runtime_src(STATUS_SUPPORT_STATUS_MAP_PATH);
     let date_map = read_runtime_src(STATUS_SUPPORT_DATE_MAP_PATH);
     let runtime_15_plan =
@@ -33,8 +33,8 @@ fn runtime_15_m3_child_group_status_row_doc_status_mirror_status_rows_are_curren
         ("module convention doc", module_doc.as_str()),
         ("session note", session_note.as_str()),
         (
-            "production support row data records child-group status-row-doc status-mirror child split",
-            production_guard_support.as_str(),
+            "production support status-doc rows record child-group status-row-doc status-mirror child split",
+            status_rows.as_str(),
         ),
     ] {
         assert_contains_all(label, source, &status_anchors);

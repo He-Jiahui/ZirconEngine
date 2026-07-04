@@ -46,16 +46,13 @@ pub(crate) fn build_host_page_pointer_layout(
         .iter()
         .map(|page| HostPagePointerItem {
             page_id: page.id.0.clone(),
+            title: page.title.clone(),
         })
         .collect::<Vec<_>>();
-    let page_ids = items
+    let active_index = items
         .iter()
-        .map(|item| item.page_id.clone())
-        .collect::<Vec<_>>();
-    let active_index = page_ids
-        .iter()
-        .position(|page_id| page_id == model.host_strip.active_page.0.as_str());
-    let (tabs, overflow) = allocate_host_page_tabs(strip_frame, &page_ids, active_index);
+        .position(|item| item.page_id == model.host_strip.active_page.0.as_str());
+    let (tabs, overflow) = allocate_host_page_tabs(strip_frame, &items, active_index);
 
     HostPagePointerLayout {
         strip_frame,

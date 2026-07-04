@@ -12,7 +12,7 @@ use crate::plugin::{
     ComponentTypeDescriptor, ExportPackagingStrategy, ExportTargetPlatform,
     PluginDependencyManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginInterfaceManifest, PluginInterfaceMethodManifest, PluginModuleKind, PluginModuleManifest,
-    PluginPackageKind, PluginPackageManifest, UiComponentDescriptor,
+    PluginPackageKind, PluginPackageManifest, PluginShaderModuleManifest, UiComponentDescriptor,
 };
 
 #[test]
@@ -365,6 +365,28 @@ fn plugin_package_manifest_declares_custom_geometry_source_descriptors() {
     assert!(encoded.contains("[[geometry_sources]]"));
     assert!(encoded.contains("token = \"custom:virtual_geometry\""));
     assert!(encoded.contains("wgsl_include = \"zr_geometry_virtual_geometry.wgsl\""));
+
+    let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
+    assert_eq!(decoded, manifest);
+}
+
+#[test]
+fn plugin_package_manifest_declares_shader_module_registration() {
+    let manifest = PluginPackageManifest::new("toon", "Toon")
+        .with_shader_module("custom::toon::noise", "assets/shaders/noise.zshader");
+
+    assert_eq!(
+        manifest.shader_permutation.shader_modules,
+        vec![PluginShaderModuleManifest::new(
+            "custom::toon::noise",
+            "assets/shaders/noise.zshader",
+        )]
+    );
+
+    let encoded = toml::to_string(&manifest).expect("manifest toml");
+    assert!(encoded.contains("[[shader_permutation.shader_modules]]"));
+    assert!(encoded.contains("import_path = \"custom::toon::noise\""));
+    assert!(encoded.contains("source = \"assets/shaders/noise.zshader\""));
 
     let decoded: PluginPackageManifest = toml::from_str(&encoded).expect("manifest roundtrip");
     assert_eq!(decoded, manifest);

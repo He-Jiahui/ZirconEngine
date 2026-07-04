@@ -528,17 +528,15 @@ fn dynamic_component_presence_updates_use_direct_result_branches() {
         .expect("read dynamic component presence remove body");
 
     assert!(
-        insert_presence.contains("let old = match self.component_storage.insert_at_tick(")
+        insert_presence.contains("let old = self.component_storage.insert_at_tick(")
             && insert_presence.contains("DynamicComponentPresence")
-            && insert_presence.contains("Ok(old) => old")
-            && insert_presence.contains("Err(error) => return Err(error.to_string())")
+            && insert_presence.contains(")?;")
             && !insert_presence.contains(".map_err(|error| error.to_string())")
-            && remove_presence.contains("let removed = match self")
+            && remove_presence.contains("let removed = self")
             && remove_presence.contains(".remove::<DynamicComponentPresence>(component_id, internal)")
-            && remove_presence.contains("Ok(removed) => removed")
-            && remove_presence.contains("Err(error) => return Err(error.to_string())")
+            && remove_presence.contains(")?;")
             && !remove_presence.contains(".map_err(|error| error.to_string())"),
-        "dynamic component presence updates must use direct Result branches instead of map_err adapters"
+        "dynamic component presence updates must propagate typed SceneResult errors instead of map_err adapters"
     );
 }
 

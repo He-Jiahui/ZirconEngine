@@ -106,6 +106,156 @@ fn compile_routes_bloom_extract_after_split_scene_color_passes() {
 }
 
 #[test]
+fn compile_orders_bloom_extract_after_motion_blur_before_exposure() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+        &RenderBloomSettings {
+            intensity: 0.6,
+            ..Default::default()
+        },
+        &extract.post_process.color_grading,
+        RenderExposureSettings::histogram(),
+        &RenderPostProcessEffectStackSettings {
+            motion_blur: RenderMotionBlurSettings {
+                shutter_angle: 0.5,
+                samples: 8,
+            },
+            ..Default::default()
+        },
+        false,
+        false,
+        &AntiAliasSettings::off(),
+        false,
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    let motion_blur = graph_pass_index(&compiled, "motion-blur");
+    let bloom = graph_pass_index(&compiled, "bloom-extract");
+    let exposure_histogram = graph_pass_index(&compiled, "exposure-histogram");
+
+    assert!(motion_blur < bloom);
+    assert!(bloom < exposure_histogram);
+}
+
+#[test]
+fn compile_orders_plugin_scene_velocity_load_after_temporal_velocity_producer() {
+    let mut extract = test_extract();
+    extract.particles.emitters = vec![42];
+    extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
+        entity: 42,
+        stable_sprite_key: 7,
+        position: Vec3::new(0.0, 0.0, -2.0),
+        size: 0.5,
+        aspect_ratio: 1.0,
+        billboard_offset: Vec2::ZERO,
+        rotation: 0.0,
+        sort_order: 0,
+        color: Vec4::ONE,
+        intensity: 1.0,
+        depth_test: true,
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        material: None,
+        texture: None,
+    }];
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
+        &RenderBloomSettings {
+            intensity: 0.6,
+            ..Default::default()
+        },
+        &extract.post_process.color_grading,
+        RenderExposureSettings::histogram(),
+        &RenderPostProcessEffectStackSettings {
+            motion_blur: RenderMotionBlurSettings {
+                shutter_angle: 0.5,
+                samples: 8,
+            },
+            screen_space_reflection: RenderScreenSpaceReflectionSettings {
+                intensity: 1.0,
+                temporal_blend_factor: 0.0,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        true,
+        true,
+        &AntiAliasSettings::smaa(),
+        true,
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([particle_velocity_descriptor()])
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::Temporal)
+                .with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    assert_pass_writes(
+        &compiled,
+        "velocity-object",
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
+    );
+    assert_pass_writes(
+        &compiled,
+        "particle-velocity",
+        PostProcessGraphResourceNames::SCENE_VELOCITY,
+    );
+    let velocity_object_index = graph_pass_index(&compiled, "velocity-object");
+    let particle_velocity_index = graph_pass_index(&compiled, "particle-velocity");
+    assert!(
+        velocity_object_index < particle_velocity_index,
+        "temporal velocity producer must execute before plugin particle velocity load/store writer"
+    );
+    let particle_velocity = graph_pass(&compiled, "particle-velocity");
+    assert!(particle_velocity.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::SCENE_VELOCITY
+            && resource.access == RenderGraphResourceAccessKind::Write
+            && resource.attachment_ops == Some(RenderGraphAttachmentOps::load_store())
+    }));
+}
+
+#[test]
+fn compile_filters_plugin_scene_velocity_pass_without_post_process_stack() {
+    let extract = particle_extract();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([particle_velocity_descriptor()])
+        .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
+        .unwrap();
+
+    assert!(!graph_has_pass(&compiled, "particle-velocity"));
+    assert!(graph_has_pass(&compiled, "particle-render"));
+}
+
+#[test]
+fn compile_filters_plugin_scene_velocity_pass_when_stack_does_not_use_scene_velocity() {
+    let extract = particle_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &RenderBloomSettings::default(),
+        &extract.post_process.color_grading,
+        &RenderPostProcessEffectStackSettings::default(),
+        false,
+        false,
+        &AntiAliasSettings::off(),
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([particle_velocity_descriptor()])
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    assert!(!graph_has_pass(&compiled, "particle-velocity"));
+    assert!(graph_has_pass(&compiled, "particle-render"));
+}
+
+#[test]
 fn compile_routes_blur_split_through_uber_and_output_transfer() {
     let extract = test_extract();
     let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
@@ -421,4 +571,94 @@ fn compile_describes_hzb_as_half_power_of_two_mip_chain() {
     );
     assert!(!hzb_pass.culled);
     assert!(hzb_pass.flags.has_side_effects);
+}
+
+fn particle_velocity_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "particle",
+        vec![
+            "view".to_string(),
+            "particles".to_string(),
+            "visibility".to_string(),
+        ],
+        Vec::new(),
+        vec![
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-velocity",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.velocity")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture_with_ops(
+                PostProcessGraphResourceNames::SCENE_VELOCITY,
+                RenderGraphAttachmentOps::load_store(),
+            ),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
+                "particle-render",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("particle.transparent")
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
+        ],
+    )
+}
+
+fn particle_extract() -> RenderFrameExtract {
+    let mut extract = test_extract();
+    extract.particles.emitters = vec![42];
+    extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
+        entity: 42,
+        stable_sprite_key: 7,
+        position: Vec3::new(0.0, 0.0, -2.0),
+        size: 0.5,
+        aspect_ratio: 1.0,
+        billboard_offset: Vec2::ZERO,
+        rotation: 0.0,
+        sort_order: 0,
+        color: Vec4::ONE,
+        intensity: 1.0,
+        depth_test: true,
+        render_layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        material: None,
+        texture: None,
+    }];
+    extract
+}
+
+fn graph_has_pass(
+    compiled: &crate::graphics::pipeline::CompiledRenderPipeline,
+    pass_name: &str,
+) -> bool {
+    compiled
+        .graph
+        .passes()
+        .iter()
+        .any(|pass| pass.name == pass_name)
+}
+
+fn graph_pass_index(
+    compiled: &crate::graphics::pipeline::CompiledRenderPipeline,
+    pass_name: &str,
+) -> usize {
+    compiled
+        .graph
+        .passes()
+        .iter()
+        .position(|pass| pass.name == pass_name)
+        .unwrap_or_else(|| panic!("missing graph pass `{pass_name}`"))
+}
+
+fn graph_pass<'a>(
+    compiled: &'a crate::graphics::pipeline::CompiledRenderPipeline,
+    pass_name: &str,
+) -> &'a crate::render_graph::CompiledRenderPass {
+    compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == pass_name)
+        .unwrap_or_else(|| panic!("missing graph pass `{pass_name}`"))
 }

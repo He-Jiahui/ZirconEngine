@@ -56,6 +56,8 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
         ),
         read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH)
     );
+    let status_doc_child_anchors = status_anchors::status_doc_child_anchors();
+    let status_doc_session_anchors = status_anchors::status_doc_session_anchors();
 
     source_anchors::assert_code_review_findings_status_doc_source_anchors(
         [
@@ -66,7 +68,7 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
             ("module convention doc", module_doc.as_str()),
             ("status-output row data", status_rows.as_str()),
         ],
-        status_anchors::STATUS_DOC_CHILD_ANCHORS,
+        &status_doc_child_anchors,
     );
 
     assert_contains_all(
@@ -77,6 +79,6 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
     assert_contains_all(
         "runtime architecture session note",
         &session_note,
-        status_anchors::STATUS_DOC_SESSION_ANCHORS,
+        &status_doc_session_anchors,
     );
 }

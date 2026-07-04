@@ -1,0 +1,14 @@
+
+running 9 tests
+test graphics::shader::ide_env_generation::tests::shader_ide_env_batches_preview_matrix_for_all_surface_shaders ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_parses_stub_with_builtin_and_generated_context ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_rejects_duplicate_preview_variant_names ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_rejects_invalid_stub_wgsl_with_module_context ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_report_serializes_without_nested_objects ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_rewrites_only_changed_module_stub_and_map ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_writes_default_preview_and_segments_when_variants_enabled ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_writes_module_map_stubs_and_generated_material ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_writes_non_default_preview_variants_with_option_bits ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 6552 filtered out; finished in 6.28s
+

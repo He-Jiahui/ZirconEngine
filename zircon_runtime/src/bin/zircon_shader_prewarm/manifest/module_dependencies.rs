@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use zircon_runtime::core::framework::render::ShaderAssetKind;
 
@@ -7,20 +7,26 @@ use super::ShaderPrewarmSource;
 
 pub(super) fn shader_sources_with_module_dependency_hashes(
     mut sources: Vec<ShaderPrewarmSource>,
+    external_include_modules: &BTreeMap<String, String>,
 ) -> Vec<ShaderPrewarmSource> {
-    let include_modules = sources
+    let mut include_modules = external_include_modules
         .iter()
-        .enumerate()
-        .filter_map(|(index, source)| {
-            if source.kind != ShaderAssetKind::Include {
-                return None;
-            }
-            source
-                .import_path
-                .as_ref()
-                .map(|import_path| (import_path.clone(), index))
+        .map(|(import_path, content_hash)| {
+            (
+                import_path.clone(),
+                IncludeModuleDependency::External(content_hash.clone()),
+            )
         })
         .collect::<HashMap<_, _>>();
+    include_modules.extend(sources.iter().enumerate().filter_map(|(index, source)| {
+        if source.kind != ShaderAssetKind::Include {
+            return None;
+        }
+        source
+            .import_path
+            .as_ref()
+            .map(|import_path| (import_path.clone(), IncludeModuleDependency::Local(index)))
+    }));
 
     for index in 0..sources.len() {
         let imports = sources[index].imports.clone();
@@ -55,7 +61,7 @@ pub(super) fn shader_sources_with_module_dependency_hashes(
 fn collect_include_module_hashes(
     import_path: &str,
     sources: &[ShaderPrewarmSource],
-    include_modules: &HashMap<String, usize>,
+    include_modules: &HashMap<String, IncludeModuleDependency>,
     visited: &mut HashSet<String>,
     visiting: &mut Vec<String>,
     output: &mut Vec<String>,
@@ -63,13 +69,21 @@ fn collect_include_module_hashes(
     if visited.contains(import_path) || visiting.iter().any(|entry| entry == import_path) {
         return;
     }
-    let Some(index) = include_modules.get(import_path).copied() else {
+    let Some(dependency) = include_modules.get(import_path).cloned() else {
         return;
     };
+    let index = match dependency {
+        IncludeModuleDependency::External(content_hash) => {
+            visited.insert(import_path.to_string());
+            output.push(content_hash);
+            return;
+        }
+        IncludeModuleDependency::Local(index) => index,
+    };
     visiting.push(import_path.to_string());
-    for dependency in &sources[index].imports {
+    for dependency_import in &sources[index].imports {
         collect_include_module_hashes(
-            dependency,
+            dependency_import,
             sources,
             include_modules,
             visited,
@@ -80,4 +94,10 @@ fn collect_include_module_hashes(
     visiting.pop();
     visited.insert(import_path.to_string());
     output.extend(sources[index].include_content_hashes.iter().cloned());
+}
+
+#[derive(Clone, Debug)]
+enum IncludeModuleDependency {
+    Local(usize),
+    External(String),
 }

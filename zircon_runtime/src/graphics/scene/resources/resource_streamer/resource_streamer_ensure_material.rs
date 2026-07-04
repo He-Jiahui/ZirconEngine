@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::asset::{AssetReference, MaterialAsset, ShaderAsset};
+use crate::asset::{AssetReference, MaterialAsset, ShaderAsset, TextureUploadSupport};
 use crate::core::framework::render::{
     RenderImageUsage, RenderMaterialAlphaMode, RenderMaterialDiagnosticSource,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
@@ -14,7 +14,7 @@ use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, Resource
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::prepared::PreparedMaterial;
+use super::super::prepared::{PreparedMaterial, PreparedMaterialTextureDependency};
 use super::super::{
     default_pipeline_key, texture_upload_support_from_device, GpuMaterialUniformResource,
     MaterialDisabledPasses, MaterialRuntime, PipelineKey,
@@ -35,11 +35,10 @@ impl ResourceStreamer {
     ) -> Result<(), GraphicsError> {
         let id = handle.id();
         let requested_revision = self.resource_revision(id).ok();
-        if let Some(prepared) = self
-            .materials
-            .get(&id)
-            .filter(|prepared| prepared.revision == requested_revision)
-        {
+        let texture_support = texture_upload_support_from_device(device);
+        if let Some(prepared) = self.materials.get(&id).filter(|prepared| {
+            self.prepared_material_cache_is_current(prepared, requested_revision, texture_support)
+        }) {
             return material_prepare_result(id, &prepared.runtime.readiness_report);
         }
         let (material, missing_material_fallback, prepared_revision, loaded_material_id) =
@@ -76,6 +75,10 @@ impl ResourceStreamer {
             .as_ref()
             .map(|shader| material.standard_material_descriptor_for_shader(shader))
             .unwrap_or_else(|| material.standard_material_descriptor());
+        let texture_dependencies = self.material_texture_dependency_snapshots(
+            descriptor.dependencies.textures.iter(),
+            texture_support,
+        );
         let material_option_bits = shader_contract
             .as_ref()
             .map(|shader| material.material_option_bits_for_shader(shader))
@@ -188,7 +191,6 @@ impl ResourceStreamer {
             });
         }
         let unlit = lighting_model.is_unlit();
-        let texture_support = texture_upload_support_from_device(device);
         let base_color_texture = self.resolve_texture_reference_with_support(
             "base_color_texture",
             descriptor.base_color_texture.as_ref(),
@@ -433,6 +435,7 @@ impl ResourceStreamer {
                 id,
                 PreparedMaterial {
                     revision: prepared_revision,
+                    texture_dependencies: texture_dependencies.clone(),
                     runtime,
                     uniform,
                     standard_uniform,
@@ -460,6 +463,7 @@ impl ResourceStreamer {
             id,
             PreparedMaterial {
                 revision: prepared_revision,
+                texture_dependencies,
                 runtime,
                 uniform,
                 standard_uniform,
@@ -492,6 +496,76 @@ impl ResourceStreamer {
                     && descriptor.usage.contains(&RenderImageUsage::Sampled)
             })
             .unwrap_or(false)
+    }
+
+    fn prepared_material_cache_is_current(
+        &self,
+        prepared: &PreparedMaterial,
+        requested_revision: Option<u64>,
+        texture_support: TextureUploadSupport,
+    ) -> bool {
+        prepared.revision == requested_revision
+            && prepared.texture_dependencies.iter().all(|dependency| {
+                self.texture_dependency_snapshot_for_locator(&dependency.locator, texture_support)
+                    == *dependency
+            })
+    }
+
+    fn material_texture_dependency_snapshots<'a>(
+        &self,
+        references: impl IntoIterator<Item = &'a AssetReference>,
+        texture_support: TextureUploadSupport,
+    ) -> Vec<PreparedMaterialTextureDependency> {
+        let mut dependencies = Vec::new();
+        for reference in references {
+            let snapshot =
+                self.texture_dependency_snapshot_for_locator(&reference.locator, texture_support);
+            if dependencies
+                .iter()
+                .any(|dependency: &PreparedMaterialTextureDependency| {
+                    dependency.locator == snapshot.locator
+                })
+            {
+                continue;
+            }
+            dependencies.push(snapshot);
+        }
+        dependencies
+    }
+
+    fn texture_dependency_snapshot_for_locator(
+        &self,
+        locator: &ResourceLocator,
+        texture_support: TextureUploadSupport,
+    ) -> PreparedMaterialTextureDependency {
+        let Some((texture_id, texture_revision)) = self
+            .asset_manager
+            .resource_manager()
+            .registry()
+            .get_by_locator(locator)
+            .map(|record| (record.id(), record.revision))
+        else {
+            return PreparedMaterialTextureDependency {
+                locator: locator.clone(),
+                id: None,
+                revision: None,
+                upload_unsupported_reason: None,
+            };
+        };
+        let upload_unsupported_reason = match self.asset_manager.load_texture_asset(texture_id) {
+            Ok(texture) => texture
+                .upload_readiness(texture_support)
+                .unsupported_reason()
+                .map(str::to_string),
+            Err(error) => Some(error.to_string()),
+        };
+
+        PreparedMaterialTextureDependency {
+            locator: locator.clone(),
+            id: Some(texture_id),
+            revision: Some(texture_revision),
+            upload_unsupported_reason,
+        }
     }
 
     fn load_shader_contract(&self, reference: AssetReference) -> Option<ShaderAsset> {

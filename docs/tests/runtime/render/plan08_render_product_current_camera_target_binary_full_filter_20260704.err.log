@@ -1,0 +1,82 @@
+
+thread 'core::framework::tests::render_product_surface::render_product_post_process_effect_stack_runs_before_output_transfer_when_authored' (49120) panicked at zircon_runtime\src\core\framework\tests\render_product_surface.rs:335:5:
+assertion `left == right` failed
+  left: ["postprocess.effect-stacked", "postprocess.tonemapped"]
+ right: ["postprocess.effect-stacked"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_dependency_readiness_change_invalidates_material_cache' (47592) panicked at zircon_runtime\src\graphics\scene\render_product_streamer_tests\readiness_diagnostics.rs:668:5:
+assertion failed: report.validation_errors.iter().any(|error|
+        matches!(error, RenderMaterialValidationError::TextureNotUploadReady
+            { slot, reference, .. } if slot == "base_color_texture" &&
+            reference.locator == locator("res://textures/cache-change.png")))
+
+thread 'graphics::tests::render_product_shadow_captures::directional::render_product_csm_directional_remains_stable_under_subtexel_camera_shift' (45816) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+
+
+thread 'graphics::tests::render_product_shadow_captures::directional::render_product_directional_shadow_atlas_capture_records_receiver_path' (39944) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+
+
+thread 'graphics::tests::render_product_shadow_captures::directional::render_product_directional_shadow_atlas_darkens_receiver_capture' (42096) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+
+
+thread 'graphics::tests::render_product_shadow_captures::directional::render_product_directional_shadow_atlas_forward_deferred_darkening_parity' (37404) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+
+
+thread 'graphics::tests::render_product_shadow_captures::render_product_multi_spot_shadow_atlas_darkens_receivers_capture' (47556) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+
+
+thread 'graphics::tests::render_product_shadow_captures::render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture' (14268) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+
+
+thread 'graphics::tests::render_product_shadow_wide::render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture' (42124) panicked at C:\Users\HeJiahui\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wgpu-29.0.3\src\backend\wgpu_core.rs:2653:18:
+wgpu error: Validation Error
+
+Caused by:
+  In a CommandEncoder, label = 'zircon-compiled-scene-encoder'
+    In a draw command, kind: DrawIndirect
+      The current set RenderPipeline with 'zircon-shadow-depth-mesh-pipeline' label expects a BindGroup to be set at index 1
+
+

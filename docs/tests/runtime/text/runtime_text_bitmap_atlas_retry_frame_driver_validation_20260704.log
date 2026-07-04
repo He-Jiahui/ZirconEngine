@@ -1,0 +1,9 @@
+runtime_text_bitmap_atlas_retry_frame_driver_validation_20260704
+slice=AT-M1/AT-M3 bitmap atlas retry frame driver
+owners=zircon_runtime/src/graphics/text/atlas/render_submission/frame_driver.rs; zircon_runtime/src/graphics/text/atlas/render_submission/frame_state.rs; zircon_runtime/src/graphics/text/atlas/mod.rs
+tests=render_text_atlas_bitmap_retry_frame_driver_commits_successful_frame_state; render_text_atlas_bitmap_retry_frame_driver_applies_backpressure_and_commits_queue
+rustfmt=passed for atlas/mod.rs, render_submission.rs, render_submission/frame_driver.rs, render_submission/frame_state.rs, render_submission/tests.rs
+static=git diff --check passed for tracked touched files with CRLF warnings only; frame_driver trailing whitespace scan passed
+cargo=deferred because external cargo/rustc lanes were active during this slice
+proof_image=docs/tests/runtime/text/runtime_text_bitmap_atlas_retry_frame_driver_preview_20260704.png
+proof_image_kind=validation diagram, not live editor capture

@@ -17,9 +17,12 @@ use manifest::{
 
 mod assertions;
 mod case;
+mod custom_product_png;
 mod custom_second_launch;
 mod custom_shading_model;
 mod fixture;
+mod live_registry_bridge;
+mod live_registry_records;
 mod manifest;
 mod pipeline;
 mod product_png;

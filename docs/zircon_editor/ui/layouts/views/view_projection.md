@@ -7,6 +7,12 @@ related_code:
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_layout.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/name_compaction.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout.rs
   - zircon_editor/src/ui/layouts/views/console.rs
   - zircon_editor/src/ui/layouts/views/hierarchy.rs
@@ -32,6 +38,12 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_layout.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/name_compaction.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout.rs
   - zircon_editor/src/ui/layouts/views/console.rs
   - zircon_editor/src/ui/layouts/views/hierarchy.rs
@@ -101,6 +113,10 @@ tests:
   - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --ignored --test-threads=1 --nocapture (2026-06-26: passed, refreshed `docs/tests/editor/editor-window-m3-asset-browser-900x620.png`; no repo target; collapsed utility Preview residual hidden)
   - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs zircon_editor/src/ui/layouts/views/asset_browser/tests.rs zircon_editor/src/ui/asset_editor/node_projection.rs zircon_editor/src/ui/layouts/views/view_projection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs (2026-06-28 logical text-align support gate: passed)
   - cargo test -q -p zircon_editor --lib aligned_text_x_resolves_logical_start_end_against_text_direction --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-badge-muted -- --test-threads=1 --nocapture (2026-06-28: passed, 1/1)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text.rs zircon_editor/src/ui/retained_host/host_contract/mod.rs (2026-07-04 Asset Browser runtime badge measure: passed)
+  - docs/tests/runtime/text/runtime_text_editor_asset_browser_badge_runtime_measure_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_asset_browser_badge_runtime_measure_validation_20260704.log (2026-07-04 Asset Browser runtime badge measure proof: PNG SHA256 4C4A260F73FDBA9517CDC9A93A1F18F9756BF0A4060EF82FA7B2845CCF6A34F6; log SHA256 C29A8DC5FFE54B04FCA43FC4CF048462FA21DF513C73F5C9C811305E9EDC1308; repo/cargo target same-name matches 0; focused Cargo deferred because external lanes were active)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/layouts/views/asset_browser.rs zircon_editor/src/ui/layouts/views/asset_browser/name_compaction.rs zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs zircon_editor/src/ui/layouts/views/asset_browser/tests.rs (2026-07-04 Asset Browser file-name runtime compaction: passed)
+  - docs/tests/runtime/text/runtime_text_editor_asset_browser_file_name_runtime_compaction_preview_20260704.png and docs/tests/runtime/text/runtime_text_editor_asset_browser_file_name_runtime_compaction_validation_20260704.log (2026-07-04 Asset Browser file-name runtime compaction proof: PNG SHA256 ADA594408056E5C989A42BCB07835A5040F936E3B969C06AE0AC1E4E17F20156; log SHA256 88D3839DD2AE374BB614624F193B458650560AE3C670E750BA180F647F4E18B0; repo/cargo target same-name matches 0; focused Cargo deferred because external lanes were active)
 doc_type: module-detail
 ---
 
@@ -173,5 +189,9 @@ The same compact owner now lays out the primary content stack directly: a 20px c
 The compact utility drawer also treats duplicate projected `control_id`s as one visual component. `asset_browser/compact_layout.rs` now applies frame and height updates to every matching projection node, not just the first match. When the short viewport collapses the utility content to a 28px tab strip, all `AssetBrowserPreview*` panel, visual, and text projections are moved to the collapsed frame with height 0 so hidden Preview content cannot remain visible under the tab row.
 
 The selected-preview summary card now keeps its selected semantics without using a full cyan fill. The `asset-preview` and `asset-preview-visual` surfaces resolve selected/focused states to the low-emphasis pressed surface and preserve the authored 1px border, matching the darker Slate-like row/card selection pattern while leaving the selected asset identity visible.
+
+The 2026-07-04 runtime badge-measure pass keeps compact Asset Browser metadata from reintroducing character-count text widths after the retained-host font and glyph-origin fixes. `asset_browser/summary_layout.rs` now measures the summary type badge and revision label through `measure_runtime_text_width(...)`, and `asset_browser/thumbnail_layout.rs` uses the same runtime measurement for thumbnail type badges. The existing min/max badge clamps still bound the visual layout, but width no longer comes from `chars().count()*font_size*ratio`, so narrow labels such as repeated `i` and wider labels such as repeated `W` no longer get identical character-count treatment under DengXian/等线.
+
+The 2026-07-04 file-name compaction pass applies the same rule to Asset Browser row, tile, and selected-summary names. `asset_browser/name_compaction.rs` is the shared owner for extension-preserving `prefix...tail.ext` truncation, and `table_nodes.rs`, `thumbnail_nodes.rs`, and `summary_nodes.rs` now choose the compacted text by `measure_runtime_text_width(...)` instead of visible-character budgets. This directly addresses file labels such as `editor base.zui` and `folder-open-line.svg`, where same-length narrow and wide glyph strings need different visual treatment under the resolved UI font.
 
 The focused Asset Browser tests assert these frames directly: compact toolbar/search/kind/view/import strip geometry, utility content height 0, all duplicate Preview utility projections collapsed in short viewports, details width 0, sources width 0, the content panel expanded across the reclaimed columns, one visible content panel, one visible table panel, compact header geometry, table closure on the fourth asset row, and the selected-preview card staying inside the content panel. The M3 screenshot harness refreshes `docs/tests/editor/editor-window-m3-workbench-900x620.png` and `docs/tests/editor/editor-window-m3-asset-browser-900x620.png`.

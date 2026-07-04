@@ -1,0 +1,14 @@
+﻿Runtime text editor menu-bar runtime measure validation - 2026-07-04
+preview=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_menu_bar_runtime_measure_preview_20260704.png
+preview_sha256=03417BD4578384E63075D83CDF21070129DCE9365705FFB73A26F53D034E1BEB
+font=DengXian 12px
+slot_formula=clamp(runtime_text_width + 24px, 40px, 128px)
+comparison=old character-count formula shown only as removed reference
+rows:
+  iiiiiiii: text_width=31px runtime_slot=55px old_slot=80px x=34px
+  WWWWWWWW: text_width=95px runtime_slot=119px old_slot=80px x=91px
+  folder-open-line.svg: text_width=117px runtime_slot=128px old_slot=128px x=212px
+  Selection: text_width=54px runtime_slot=78px old_slot=87px x=342px
+  Window: text_width=50px runtime_slot=74px old_slot=66px x=422px
+  Help: text_width=31px runtime_slot=55px old_slot=52px x=498px
+log_sha256=7C405D8CEA0477E7D76776D1DE12349D0900218132114536096F8A8BD853714E

@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-use zircon_runtime::core::framework::render::{ShaderQualityTier, GEOMETRY_SOURCE_ID_STATIC_MESH};
+use zircon_runtime::core::framework::render::{
+    ShaderPassType, ShaderQualityTier, GEOMETRY_SOURCE_ID_STATIC_MESH,
+};
 use zircon_runtime::core::resource::{
     ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceState,
 };
@@ -48,6 +50,7 @@ source_hash = "source-hash-registry-fallback"
         &root,
         &[ShaderQualityTier::Medium],
         &[GEOMETRY_SOURCE_ID_STATIC_MESH],
+        &BTreeMap::new(),
         &BTreeMap::new(),
         &BTreeMap::new(),
         Some(&overlay),
@@ -102,6 +105,7 @@ source_hash = "source-hash-registry-export"
         &[GEOMETRY_SOURCE_ID_STATIC_MESH],
         &BTreeMap::new(),
         &BTreeMap::new(),
+        &BTreeMap::new(),
         Some(&overlay),
     )
     .unwrap();
@@ -148,6 +152,7 @@ fn shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions
         &[GEOMETRY_SOURCE_ID_STATIC_MESH],
         &BTreeMap::new(),
         &BTreeMap::new(),
+        &BTreeMap::new(),
         Some(&overlay),
     )
     .unwrap();
@@ -157,6 +162,7 @@ fn shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions
             &plugin_root,
             &[ShaderQualityTier::Medium],
             &[GEOMETRY_SOURCE_ID_STATIC_MESH],
+            &BTreeMap::new(),
             &BTreeMap::new(),
             &BTreeMap::new(),
             Some(&overlay),
@@ -181,6 +187,18 @@ fn shader_prewarm_project_and_plugin_asset_roots_use_exported_registry_revisions
         assert!(requests
             .iter()
             .all(|request| request.key.material_revision == record.revision));
+        assert!(requests
+            .iter()
+            .all(|request| request.template_revision == "zr-material-template-v1"));
+        let forward = requests
+            .iter()
+            .find(|request| request.key.pass_type == ShaderPassType::Forward)
+            .expect("forward project/plugin registry request");
+        assert!(forward.wgsl_source.contains("fn vs_main("));
+        assert!(forward.wgsl_source.contains("fn fs_main("));
+        assert!(forward
+            .wgsl_source
+            .contains("// include: zr_template_forward.wgsl"));
     }
 
     let _ = fs::remove_dir_all(root);
@@ -254,6 +272,7 @@ source_hash = "source-hash-live-manager-fallback"
         &root,
         &[ShaderQualityTier::Medium],
         &[GEOMETRY_SOURCE_ID_STATIC_MESH],
+        &BTreeMap::new(),
         &BTreeMap::new(),
         &BTreeMap::new(),
         Some(&overlay),

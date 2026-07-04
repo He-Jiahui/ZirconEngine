@@ -190,9 +190,14 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
             )
         },
     );
+    let stale_error = stale_write.unwrap_err().to_string();
     assert!(
-        format!("{}", stale_write.unwrap_err()).contains("missing node"),
-        "stale script-held entity id should not be accepted by write access"
+        stale_error.contains("cannot update transform for missing entity"),
+        "stale script-held entity id should be rejected by the typed SceneError boundary"
+    );
+    assert!(
+        !stale_error.contains("missing node"),
+        "stale script-held entity diagnostics must not drift back to the retired node wording"
     );
 }
 

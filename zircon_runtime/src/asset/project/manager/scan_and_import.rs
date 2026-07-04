@@ -16,6 +16,7 @@ use super::{
     ProjectManager,
 };
 
+mod shader_import_dependencies;
 mod sources;
 
 use self::sources::{source_bytes_for_import, source_mtime_unix_ms_for_import, AssetImportSource};
@@ -153,6 +154,12 @@ impl ProjectManager {
             }
         }
 
+        shader_import_dependencies::append_shader_import_dependencies(
+            &self.artifact_store,
+            &self.paths,
+            &imported,
+            &mut dependencies_by_id,
+        )?;
         resolve_imported_dependencies(&mut registry, &mut imported, &dependencies_by_id);
 
         self.registry = registry;

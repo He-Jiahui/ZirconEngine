@@ -131,6 +131,7 @@ fn volume_transition_extract(viewport_size: UVec2, camera_position: Vec3) -> Ren
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

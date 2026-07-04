@@ -50,6 +50,19 @@ impl RenderMaterialPropertyUniformPayload {
                     });
             }
         }
+        for (name, value) in values {
+            if payload.layout.iter().any(|field| field.name == *name) {
+                continue;
+            }
+            if !value.is_uniform_eligible() {
+                payload
+                    .unsupported
+                    .push(RenderMaterialPropertyUniformUnsupported {
+                        name: name.clone(),
+                        reason: RenderMaterialPropertyUniformUnsupportedReason::UnsupportedType,
+                    });
+            }
+        }
         if payload.bytes.is_empty() {
             payload.bytes.resize(MATERIAL_PROPERTY_UNIFORM_ALIGNMENT, 0);
         }

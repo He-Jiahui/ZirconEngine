@@ -58,7 +58,7 @@ pub(super) fn assert_code_review_status_doc_children_are_mounted() {
             "#[path = \"status_docs/status_anchors.rs\"]",
             "mod status_anchors;",
             "source_anchors::assert_code_review_findings_status_doc_source_anchors",
-            "status_anchors::STATUS_DOC_CHILD_ANCHORS",
+            "status_anchors::status_doc_child_anchors",
             "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
             "runtime_15_code_review_findings_status_docs_are_child_owner",
             "runtime_15_code_review_findings_status_docs_source_anchors_are_child_owner",

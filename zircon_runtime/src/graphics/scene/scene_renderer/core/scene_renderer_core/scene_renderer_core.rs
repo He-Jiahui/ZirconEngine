@@ -20,6 +20,8 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::core) scene_uniform_buffer: wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::core) scene_environment_sample_buffer:
+        wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::core) scene_bind_group: wgpu::BindGroup,
     pub(in crate::graphics::scene::scene_renderer::core) target_format: wgpu::TextureFormat,
     pub(in crate::graphics::scene::scene_renderer::core) depth_format: wgpu::TextureFormat,

@@ -7,6 +7,4 @@ pub(super) const BADGE_DOT_RADIUS: f32 = 4.0;
 pub(super) const BADGE_FONT_SIZE: f32 = 12.0;
 pub(super) const BADGE_ROOT_FONT_SIZE: f32 = 12.0;
 pub(super) const BADGE_ROOT_TEXT_INSET_X: f32 = 8.0;
-pub(super) const BADGE_ROOT_TEXT_WIDTH_RATIO: f32 = 0.56;
 pub(super) const BADGE_CIRCULAR_OFFSET_RATIO: f32 = 0.14;
-pub(super) const BADGE_TEXT_WIDTH_RATIO: f32 = 0.56;

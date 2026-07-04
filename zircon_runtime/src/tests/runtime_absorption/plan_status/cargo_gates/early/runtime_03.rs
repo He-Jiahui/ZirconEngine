@@ -44,7 +44,7 @@ fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_valida
             "cargo test -p zircon_runtime --lib session --locked",
             "cargo test -p zircon_app --locked",
             "cargo test -p zircon_runtime --lib fixed_update --locked -- --nocapture",
-            "cargo test -p zircon_runtime --lib time --locked",
+            "cargo test -p zircon_runtime --lib tests::time:: --locked",
             "cargo test -p zircon_runtime --lib schedule_parallel --locked -- --nocapture",
             "runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation",
             "schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration",

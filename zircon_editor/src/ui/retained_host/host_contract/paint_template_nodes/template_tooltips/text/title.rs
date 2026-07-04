@@ -1,8 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
-use super::metrics::{
-    TOOLTIP_TEXT_LEFT, TOOLTIP_TITLE_FONT_SIZE, TOOLTIP_TITLE_LINE_HEIGHT, TOOLTIP_TITLE_TOP,
-};
+use super::super::metrics::tooltip_metrics;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(super) fn push_tooltip_title(
@@ -19,20 +17,21 @@ pub(super) fn push_tooltip_title(
     if title.is_empty() {
         return;
     }
+    let metrics = tooltip_metrics();
 
     commands.push(HostPaintCommand::text(
         FrameRect {
-            x: bubble.x + TOOLTIP_TEXT_LEFT,
-            y: bubble.y + TOOLTIP_TITLE_TOP,
+            x: bubble.x + metrics.text_left,
+            y: bubble.y + metrics.title_top,
             width: text_width,
-            height: TOOLTIP_TITLE_LINE_HEIGHT,
+            height: metrics.title_line_height,
         },
         Some(clip.clone()),
         order,
         title,
         title_color,
-        TOOLTIP_TITLE_FONT_SIZE,
-        TOOLTIP_TITLE_LINE_HEIGHT,
+        metrics.title_font_size,
+        metrics.title_line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

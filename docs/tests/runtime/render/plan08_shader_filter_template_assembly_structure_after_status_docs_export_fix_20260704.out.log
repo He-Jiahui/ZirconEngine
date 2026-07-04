@@ -1,0 +1,11 @@
+
+running 1 test
+test tests::runtime_absorption::structure_convention::production_file_budget::render_shader_template_assembly::runtime_15_render_shader_template_assembly_is_folder_backed ... FAILED
+
+failures:
+
+failures:
+    tests::runtime_absorption::structure_convention::production_file_budget::render_shader_template_assembly::runtime_15_render_shader_template_assembly_is_folder_backed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6561 filtered out; finished in 0.04s
+

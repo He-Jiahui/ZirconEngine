@@ -1,7 +1,7 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::{
-    push_status_control_commands, select_workbench_status_chip_style, status_chip_text_color,
+    push_status_control_commands, select_workbench_status_chip_style, status_chip_text_colors,
     status_chip_text_rect, status_control_offset_rect, PALETTE,
 };
 use super::support::{pixel_at, status_chip_node};
@@ -51,9 +51,10 @@ fn status_chip_emits_only_text_commands_for_normal_state() {
 }
 
 #[test]
-fn status_chip_uses_declared_text_color_and_layout_offset() {
+fn status_chip_uses_declared_text_colors_and_layout_offset() {
     let mut node = status_chip_node("WorkbenchStatusGrid", "Grid: 10 cm");
     node.layout_offset_y = -2.0;
+    node.label_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(91, 101, 107);
     node.value_color = crate::ui::retained_host::primitives::Color::from_rgb_u8(125, 137, 144);
 
     let rect = status_control_offset_rect(
@@ -67,7 +68,10 @@ fn status_chip_uses_declared_text_color_and_layout_offset() {
     );
 
     assert!((rect.y - 7.0).abs() < 0.001);
-    assert_eq!(status_chip_text_color(&node), [125, 137, 144, 255]);
+    assert_eq!(
+        status_chip_text_colors(&node),
+        ([91, 101, 107, 255], [125, 137, 144, 255])
+    );
 }
 
 #[test]
@@ -98,6 +102,58 @@ fn status_chip_right_aligns_colon_value_text() {
             < 0.01
     );
     assert!(text_commands[0].frame.x < text_commands[1].frame.x);
+}
+
+#[test]
+fn status_bar_right_value_controls_use_status_chip_text_layers() {
+    for (control_id, text, expected_count) in [
+        ("WorkbenchStatusGrid", "Grid: 10 cm", 2),
+        ("WorkbenchStatusSnap", "Snap: On", 2),
+        ("WorkbenchStatusZoom", "100%", 1),
+    ] {
+        let node = status_chip_node(control_id, text);
+        let rect = FrameRect {
+            x: node.frame.x,
+            y: node.frame.y,
+            width: node.frame.width,
+            height: node.frame.height,
+        };
+        let mut commands = Vec::new();
+
+        push_status_control_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        let text_commands = commands
+            .iter()
+            .filter(|command| command.text.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(text_commands.len(), expected_count, "{control_id}");
+        assert_eq!(
+            commands
+                .iter()
+                .filter(|command| command.text.is_none())
+                .count(),
+            0,
+            "{control_id}"
+        );
+        if expected_count == 2 {
+            assert_eq!(
+                text_commands[0].foreground_color,
+                Some(PALETTE.text_muted),
+                "{control_id}"
+            );
+            assert_eq!(
+                text_commands[1].foreground_color,
+                Some(PALETTE.text),
+                "{control_id}"
+            );
+        } else {
+            assert_eq!(
+                text_commands[0].foreground_color,
+                Some(PALETTE.text),
+                "{control_id}"
+            );
+        }
+    }
 }
 
 #[test]
@@ -166,5 +222,6 @@ fn status_chip_normal_state_is_flat_transparent_status_text() {
 
     assert_eq!(normal.background, TRANSPARENT);
     assert_eq!(normal.border, TRANSPARENT);
-    assert_eq!(normal.text, PALETTE.text_muted);
+    assert_eq!(normal.label_text, PALETTE.text_muted);
+    assert_eq!(normal.value_text, PALETTE.text);
 }

@@ -6,6 +6,10 @@ use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::views::build_view_template_nodes;
 use crate::ui::retained_host::app::compute_window_menu_popup_height;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
+use crate::ui::retained_host::measure_runtime_text_width;
+use crate::ui::workbench::menu_bar::{
+    workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
+};
 use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 
@@ -177,7 +181,7 @@ fn menu_button_frames_from_chrome_asset(
     }
 
     let mut frames = if stencil_frames.iter().all(|slot| slot.width > 0.0) {
-        stencil_frames.to_vec()
+        menu_button_frames_from_stencil(&stencil_frames, menu_labels, menu_count)
     } else {
         fallback_menu_button_frames(frame, menu_labels, MENU_BUTTON_COUNT)
     };
@@ -199,6 +203,25 @@ fn menu_button_frames_from_chrome_asset(
     frames
 }
 
+fn menu_button_frames_from_stencil(
+    stencil_frames: &[UiFrame; MENU_BUTTON_COUNT],
+    menu_labels: &[&str],
+    menu_count: usize,
+) -> Vec<UiFrame> {
+    let first = stencil_frames[0];
+    let gap = menu_button_gap(stencil_frames).unwrap_or(2.0);
+    let mut x = first.x;
+    (0..menu_count)
+        .map(|index| {
+            let label = menu_labels.get(index).copied().unwrap_or_default();
+            let width = menu_label_slot_width(label);
+            let slot = UiFrame::new(x, first.y, width, first.height);
+            x += width + gap;
+            slot
+        })
+        .collect()
+}
+
 fn fallback_menu_button_frames(
     frame: UiFrame,
     menu_labels: &[&str],
@@ -217,7 +240,8 @@ fn fallback_menu_button_frames(
 }
 
 fn menu_label_slot_width(label: &str) -> f32 {
-    ((label.chars().count() as f32 * 7.0) + 24.0).clamp(40.0, 128.0)
+    let label_width = measure_runtime_text_width(label, WORKBENCH_MENU_SLOT_FONT_SIZE);
+    workbench_menu_slot_width_from_label_width(label_width)
 }
 
 fn menu_button_gap(frames: &[UiFrame]) -> Option<f32> {

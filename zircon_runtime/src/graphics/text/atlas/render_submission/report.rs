@@ -24,6 +24,8 @@ pub(crate) struct GlyphAtlasBitmapRenderSubmissionReport {
     pub(crate) full_page_upload_count: usize,
     pub(crate) partial_upload_count: usize,
     pub(crate) upload_byte_len: usize,
+    pub(crate) upload_copy_count: usize,
+    pub(crate) upload_copy_byte_len: usize,
     pub(crate) draw_batch_count: usize,
     pub(crate) pipeline_count: usize,
     pub(crate) gpu_batch_count: usize,
@@ -35,6 +37,10 @@ pub(crate) struct GlyphAtlasBitmapRenderSubmissionReport {
 impl GlyphAtlasBitmapRenderSubmissionReport {
     pub(crate) fn has_upload_work(self) -> bool {
         self.upload_command_count > 0 && self.upload_byte_len > 0
+    }
+
+    pub(crate) fn has_upload_copy_work(self) -> bool {
+        self.upload_copy_count > 0 && self.upload_copy_byte_len > 0
     }
 
     pub(crate) fn has_gpu_work(self) -> bool {
@@ -82,6 +88,13 @@ pub(crate) fn glyph_atlas_bitmap_render_submission_report(
         dirty_page_count: plan.run.dirty_pages.len(),
         rebuilt_page_count: plan.run.rebuilt_pages.len(),
         upload_command_count: plan.run.upload_commands.len(),
+        upload_copy_count: plan.run.upload_copies.len(),
+        upload_copy_byte_len: plan
+            .run
+            .upload_copies
+            .iter()
+            .map(|copy| copy.source_byte_len)
+            .sum(),
         draw_batch_count: plan.draw_batches.batches.len(),
         pipeline_count: plan.gpu_draw.pipeline_contracts.len(),
         gpu_batch_count: plan.gpu_draw.batches.len(),

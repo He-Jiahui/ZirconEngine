@@ -4,6 +4,7 @@ mod danger;
 mod declared;
 mod glyph;
 mod radius;
+mod toolbar_chrome;
 
 use super::super::resolved_state_for_node;
 use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
@@ -28,7 +29,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     let style = WorkbenchIconButtonStyle {
         background: icon_background(node, context, state, danger),
         border: icon_border(node, context, state, danger),
-        border_width: icon_border_width(context, state),
+        border_width: icon_border_width(node, context, state),
         radius: icon_radius(node, context),
         glyph: icon_glyph_color(node, context, state, danger),
         state,

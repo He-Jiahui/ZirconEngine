@@ -2,10 +2,19 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_moved_row_status_mirror_scope_budgets_are_focused() {
-    for (path, source) in moved_row_child_sources().into_iter().chain([(
-        MOVED_ROWS_PARENT_PATH,
-        read_runtime_src(MOVED_ROWS_PARENT_PATH),
-    )]) {
+    for (path, source) in moved_row_child_sources().into_iter().chain([
+        (
+            MOVED_ROWS_PARENT_PATH,
+            read_runtime_src(MOVED_ROWS_PARENT_PATH),
+        ),
+        (ROOT_PATHS_PATH, read_runtime_src(ROOT_PATHS_PATH)),
+        (ROOT_STATUSES_PATH, read_runtime_src(ROOT_STATUSES_PATH)),
+        (ROOT_CHILD_ROWS_PATH, read_runtime_src(ROOT_CHILD_ROWS_PATH)),
+        (
+            ROOT_SOURCE_BLOBS_PATH,
+            read_runtime_src(ROOT_SOURCE_BLOBS_PATH),
+        ),
+    ]) {
         let line_count = source.lines().count();
         assert!(
             line_count < 400,

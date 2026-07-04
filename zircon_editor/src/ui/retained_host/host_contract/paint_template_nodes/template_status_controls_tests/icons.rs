@@ -1,7 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::{
-    select_workbench_status_icon_button_style, status_control_offset_rect, PALETTE,
+    select_workbench_status_icon_button_style, status_control_offset_rect,
+    status_icon_button_glyph_rect, PALETTE,
 };
 use super::support::{changed_pixel_count, pixel_at, status_icon_node};
 use crate::ui::layouts::common::model_rc;
@@ -37,6 +38,21 @@ fn status_icon_button_uses_declared_layout_offset() {
     );
 
     assert!((rect.y - 4.0).abs() < 0.001);
+}
+
+#[test]
+fn status_icon_button_glyph_rect_uses_shared_status_metrics() {
+    let rect = status_icon_button_glyph_rect(&FrameRect {
+        x: 6.0,
+        y: 6.0,
+        width: 34.0,
+        height: 30.0,
+    });
+
+    assert!((rect.x - 15.0).abs() < 0.001);
+    assert!((rect.y - 13.0).abs() < 0.001);
+    assert!((rect.width - 16.0).abs() < 0.001);
+    assert!((rect.height - 16.0).abs() < 0.001);
 }
 
 #[test]

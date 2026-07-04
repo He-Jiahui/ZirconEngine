@@ -71,6 +71,9 @@ label = "Base Color Texture"
     fs::write(
         shader_dir.join("unlit.wgsl"),
         r#"
+#include <zircon::lighting>
+#include <naga_oil::math>
+
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
     let x = f32(i32(vertex_index) - 1);

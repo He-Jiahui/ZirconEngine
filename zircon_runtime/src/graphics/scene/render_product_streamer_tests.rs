@@ -176,6 +176,7 @@ fn shader_with_texture_slot(uri: &str, slot: &str) -> ShaderAsset {
         st: false,
         editor: Default::default(),
     }];
+    shader.regenerate_material_artifact();
     shader
 }
 

@@ -1,9 +1,8 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::identity::DialogKind;
-use super::super::{layout, style};
+use super::super::{layout, metrics::dialog_metrics, style};
 use super::labels::{action_label, action_width};
-use super::metrics::{DIALOG_ACTION_BOTTOM, DIALOG_ACTION_GAP, DIALOG_ACTION_LINE_HEIGHT};
 use super::text::push_dialog_action_text;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dialog_actions(
@@ -16,7 +15,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     unavailable: bool,
     opacity: f32,
 ) {
-    let action_y = rect.y + rect.height - DIALOG_ACTION_BOTTOM - DIALOG_ACTION_LINE_HEIGHT;
+    let metrics = dialog_metrics();
+    let action_y = rect.y + rect.height - metrics.action_bottom - metrics.action_line_height;
     let mut action_right = layout::action_right(rect);
     if matches!(kind, DialogKind::ConfirmDialog) {
         let confirm = action_label(node, 1).unwrap_or_else(|| "Confirm".to_string());
@@ -29,7 +29,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
                 x: action_right,
                 y: action_y,
                 width: confirm_width,
-                height: DIALOG_ACTION_LINE_HEIGHT,
+                height: metrics.action_line_height,
             },
             clip,
             order + 5,
@@ -37,7 +37,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
             style::confirm_action_color(node, unavailable, confirm_enabled),
             opacity,
         );
-        action_right -= DIALOG_ACTION_GAP;
+        action_right -= metrics.action_gap;
 
         let cancel = action_label(node, 0).unwrap_or_else(|| "Cancel".to_string());
         let cancel_width = action_width(&cancel);
@@ -48,7 +48,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
                 x: action_right,
                 y: action_y,
                 width: cancel_width,
-                height: DIALOG_ACTION_LINE_HEIGHT,
+                height: metrics.action_line_height,
             },
             clip,
             order + 4,
@@ -69,7 +69,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
             x: action_right - width,
             y: action_y,
             width,
-            height: DIALOG_ACTION_LINE_HEIGHT,
+            height: metrics.action_line_height,
         },
         clip,
         order + 4,

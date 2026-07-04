@@ -4,6 +4,8 @@ use super::*;
 fn runtime_15_priority_plan_docs_row_data_guard_is_folder_backed() {
     let status_output_row_data_parent = read_runtime_src(STATUS_OUTPUT_ROW_DATA_PARENT_PATH);
     let guard_parent = read_runtime_src(PRIORITY_GUARD_PATH);
+    let child_inventory = read_runtime_src(ROOT_CHILD_ROWS_PATH);
+    let status_inventory = read_runtime_src(ROOT_STATUSES_PATH);
     let child_sources = priority_guard_child_source_blob();
 
     assert_contains_all(
@@ -22,7 +24,18 @@ fn runtime_15_priority_plan_docs_row_data_guard_is_folder_backed() {
             "mod delegation;",
             "mod export_chain;",
             "mod row_sources;",
+            "mod root_child_rows;",
+            "mod root_inventory;",
+            "mod root_paths;",
+            "mod root_source_blobs;",
+            "mod root_statuses;",
             "mod status_mirrors;",
+        ],
+    );
+    assert_contains_all(
+        "priority-plan-doc status inventory records split anchors",
+        &status_inventory,
+        &[
             HISTORICAL_STATUS_NAME,
             HISTORICAL_STATUS_ID,
             HISTORICAL_GUARD_NAME,
@@ -33,7 +46,7 @@ fn runtime_15_priority_plan_docs_row_data_guard_is_folder_backed() {
     );
     for (_, child_path, guard_name) in PRIORITY_GUARD_CHILDREN {
         assert!(
-            guard_parent.contains(child_path),
+            child_inventory.contains(child_path),
             "priority-plan-doc guard should mount child path {child_path}"
         );
         assert!(

@@ -120,7 +120,24 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
         &sdf,
         &resolved,
         ScreenSpaceUiTextSdfFallbackReport::default(),
-        ScreenSpaceUiTextFontIdReport::default(),
+        ScreenSpaceUiNativePrepareReport {
+            font_ids: ScreenSpaceUiTextFontIdReport::default(),
+            bitmap_atlas: NativeBitmapAtlasPrepareReport {
+                visible_raster_glyph_count: 2,
+                source_image_count: 1,
+                unsupported_glyph_count: 1,
+                clipped_glyph_count: 0,
+                atlas_storage_format: Some(GlyphAtlasStorageFormat::R8Unorm),
+                mixed_atlas_storage_format: false,
+                storage_submission_count: 1,
+                storage_submission_visible_glyph_count: 1,
+                mixed_storage_replacement_ready: false,
+                requires_background_composite: false,
+                replaces_glyphon: false,
+                submission: Default::default(),
+            },
+        },
+        GlyphAtlasBitmapRendererPrepareReport::default(),
         atlas_report.clone(),
         sdf_report.clone(),
     );
@@ -135,9 +152,64 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             resolved_sdf_text_batch_count: 2,
             sdf_fallback: ScreenSpaceUiTextSdfFallbackReport::default(),
             native_font_ids: ScreenSpaceUiTextFontIdReport::default(),
+            native_bitmap_atlas: NativeBitmapAtlasPrepareReport {
+                visible_raster_glyph_count: 2,
+                source_image_count: 1,
+                unsupported_glyph_count: 1,
+                clipped_glyph_count: 0,
+                atlas_storage_format: Some(GlyphAtlasStorageFormat::R8Unorm),
+                mixed_atlas_storage_format: false,
+                storage_submission_count: 1,
+                storage_submission_visible_glyph_count: 1,
+                mixed_storage_replacement_ready: false,
+                requires_background_composite: false,
+                replaces_glyphon: false,
+                submission: Default::default(),
+            },
+            bitmap_atlas_renderer: GlyphAtlasBitmapRendererPrepareReport::default(),
             sdf_atlas: atlas_report,
             sdf_renderer: sdf_report,
         }
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_handoff_uses_single_storage_replacement() {
+    let report = NativeBitmapAtlasPrepareReport {
+        replaces_glyphon: true,
+        mixed_storage_replacement_ready: true,
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::SingleStorageReplacement
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_handoff_routes_mixed_storage_to_renderer_submissions() {
+    let report = NativeBitmapAtlasPrepareReport {
+        mixed_storage_replacement_ready: true,
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::MixedStorageReplacement
+    );
+}
+
+#[test]
+fn native_bitmap_atlas_handoff_keeps_glyphon_for_background_composite() {
+    let report = NativeBitmapAtlasPrepareReport {
+        requires_background_composite: true,
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::GlyphonFallback
     );
 }
 

@@ -6,6 +6,11 @@ struct SceneUniform {
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
+    sky_horizon_color: vec4<f32>,
+    sky_zenith_color: vec4<f32>,
+    sky_ground_color: vec4<f32>,
+    environment_params: vec4<f32>,
+    environment_sample_params: vec4<f32>,
 };
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
@@ -230,7 +235,17 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
     let ambient = scene.ambient_color.rgb * occlusion;
     let diffuse_color = deferred_diffuse_color(albedo, metallic, shading_model_id);
     let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id, receive_shadows);
-    let color = diffuse_color * ambient + direct_lights;
+    let environment_lights = zr_environment_pbr_indirect(
+        normal,
+        view_dir,
+        roughness,
+        metallic,
+        diffuse_color,
+        albedo.rgb,
+        occlusion,
+        shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID,
+    );
+    let color = diffuse_color * ambient + direct_lights + environment_lights;
     return vec4<f32>(color, albedo.a);
 }
 

@@ -1,20 +1,36 @@
 use crate::asset::AssetUri;
 use crate::core::framework::render::ShaderPassType;
-use crate::core::resource::ResourceId;
+use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord, ResourceState};
+
+const PROJECT_SHADER_LOCATOR: &str = "res://project/shaders/project_shader";
+const PROJECT_MATERIAL_LOCATOR: &str = "res://materials/project_registry_material_pass.zmaterial";
+const PLUGIN_SHADER_LOCATOR: &str = "package://native_dynamic_fixture/shaders/shader";
+const PLUGIN_MATERIAL_LOCATOR: &str = "res://materials/plugin_registry_material_pass.zmaterial";
 
 pub(super) fn registry_shader_cases() -> [RegistryShaderCase; 2] {
     [
         RegistryShaderCase {
-            locator: "res://project/shaders/project_shader",
-            material_locator: "res://materials/project_registry_material_pass.zmaterial",
+            locator: PROJECT_SHADER_LOCATOR,
+            material_locator: PROJECT_MATERIAL_LOCATOR,
             revision: 126_198_881_308_539_824,
         },
         RegistryShaderCase {
-            locator: "package://native_dynamic_fixture/shaders/shader",
-            material_locator: "res://materials/plugin_registry_material_pass.zmaterial",
+            locator: PLUGIN_SHADER_LOCATOR,
+            material_locator: PLUGIN_MATERIAL_LOCATOR,
             revision: 14_843_875_089_575_827_114,
         },
     ]
+}
+
+pub(super) fn registry_shader_cases_from_live_records(
+    records: &[ResourceRecord],
+) -> Vec<RegistryShaderCase> {
+    let mut cases = records
+        .iter()
+        .filter_map(registry_shader_case_from_live_record)
+        .collect::<Vec<_>>();
+    cases.sort_by(|left, right| left.locator.cmp(right.locator));
+    cases
 }
 
 #[derive(Clone, Copy)]
@@ -43,5 +59,28 @@ impl RegistryShaderCase {
 
     pub(super) fn material_id(self) -> ResourceId {
         ResourceId::from_locator(&self.material_uri())
+    }
+}
+
+fn registry_shader_case_from_live_record(record: &ResourceRecord) -> Option<RegistryShaderCase> {
+    if record.kind != ResourceKind::Shader
+        || record.state != ResourceState::Ready
+        || record.revision == 0
+    {
+        return None;
+    }
+
+    match record.primary_locator.to_string().as_str() {
+        PROJECT_SHADER_LOCATOR => Some(RegistryShaderCase {
+            locator: PROJECT_SHADER_LOCATOR,
+            material_locator: PROJECT_MATERIAL_LOCATOR,
+            revision: record.revision,
+        }),
+        PLUGIN_SHADER_LOCATOR => Some(RegistryShaderCase {
+            locator: PLUGIN_SHADER_LOCATOR,
+            material_locator: PLUGIN_MATERIAL_LOCATOR,
+            revision: record.revision,
+        }),
+        _ => None,
     }
 }

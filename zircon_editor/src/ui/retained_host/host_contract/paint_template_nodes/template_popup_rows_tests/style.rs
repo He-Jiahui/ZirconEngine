@@ -1,7 +1,39 @@
 use super::super::super::super::data::{TemplatePaneMenuItemData, TemplatePaneOptionData};
 use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::paint_theme::{HostControlMetrics, METRICS};
+use super::super::metrics::workbench_popup_row_metrics_from_host;
 use super::super::{popup_menu_row_style, popup_option_row_style};
 use super::support::{menu_item, option};
+
+#[test]
+fn popup_row_metrics_project_from_host_control_metrics() {
+    let host = HostControlMetrics {
+        radius_control: 6.0,
+        border_width: 2.0,
+        font_body: 11.0,
+        line_height_ratio: 1.25,
+        font_large: 15.0,
+        input_pad: [9.0, 10.0, 2.0, 5.0],
+        gap_m: 10.0,
+        gap_l: 13.0,
+        ..METRICS
+    };
+
+    let metrics = workbench_popup_row_metrics_from_host(host);
+
+    assert_eq!(metrics.font_size, 11.0);
+    assert!((metrics.line_height - 13.75).abs() < 0.001);
+    assert_eq!(metrics.text_left, 9.0);
+    assert_eq!(metrics.text_right, 10.0);
+    assert_eq!(metrics.text_top, 2.0);
+    assert_eq!(metrics.text_bottom, 5.0);
+    assert!((metrics.min_text_rect_height - 13.75).abs() < 0.001);
+    assert_eq!(metrics.surface_radius, 4.0);
+    assert_eq!(metrics.outline_width, 2.0);
+    assert_eq!(metrics.adornment_right, 13.0);
+    assert_eq!(metrics.adornment_size, 15.0);
+    assert_eq!(metrics.adornment_reserved_width, 35.0);
+}
 
 #[test]
 fn popup_row_style_selector_resolves_state_priority_for_options_and_menu_items() {

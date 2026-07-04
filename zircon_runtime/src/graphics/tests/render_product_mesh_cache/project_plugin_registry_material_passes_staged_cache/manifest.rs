@@ -1,7 +1,8 @@
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantPrewarmManifest,
-    ShadingModelDescriptor, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_ID_STANDARD_PBR,
+    ShaderVariantPrewarmRequest, ShadingModelDescriptor, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::dynamic_api::{
     builtin_fallback_shader_prewarm_manifest,
@@ -50,6 +51,22 @@ pub(super) fn registry_material_pass_product_prewarm_manifest(
     ShaderVariantPrewarmManifest::new(variants)
 }
 
+pub(super) fn registry_material_pass_live_source_label_prewarm_manifest(
+    cases: &[RegistryShaderCase],
+) -> ShaderVariantPrewarmManifest {
+    let mut manifest = registry_material_pass_product_prewarm_manifest(cases);
+    for request in &mut manifest.variants {
+        if let Some(case) = cases
+            .iter()
+            .copied()
+            .find(|case| request_belongs_to_case(request, *case))
+        {
+            request.source_label = case.locator.to_string();
+        }
+    }
+    manifest
+}
+
 pub(super) fn registry_material_pass_product_prewarm_manifest_with_plugin_shading_models(
     asset_manager: &ProjectAssetManager,
     cases: &[RegistryShaderCase],
@@ -87,6 +104,14 @@ pub(super) fn raw_wgsl_hash(source: &str) -> String {
 
 pub(super) fn registry_material_pass_runtime_surface_source() -> String {
     super::super::registry_staged_cache_runtime_surface_source()
+}
+
+fn request_belongs_to_case(
+    request: &ShaderVariantPrewarmRequest,
+    case: RegistryShaderCase,
+) -> bool {
+    request.key.material_shader == case.shader_id()
+        && request.key.material_revision == case.revision
 }
 
 #[cfg(test)]

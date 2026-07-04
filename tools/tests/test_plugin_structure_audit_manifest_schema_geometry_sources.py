@@ -116,6 +116,55 @@ class PluginStructureAuditManifestSchemaGeometrySourcesTests(unittest.TestCase):
             violations,
         )
 
+    def test_manifest_schema_rejects_shader_permutation_shader_module_shape(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        manifest["shader_permutation"] = {
+            "shader_modules": [
+                {
+                    "import_path": "Virtual.Geometry.Noise",
+                    "source": "../noise.txt",
+                    "legacy": True,
+                },
+                {
+                    "import_path": "custom::virtual_geometry::noise",
+                    "source": "assets\\noise.zshader",
+                },
+                {
+                    "import_path": "custom::virtual_geometry::noise",
+                    "source": "assets/noise.zshader",
+                },
+            ]
+        }
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/virtual_geometry/plugin.toml",
+            manifest,
+            violations,
+        )
+
+        self.assertEqual(
+            [
+                "zircon_plugins/virtual_geometry/plugin.toml: "
+                "shader_permutation.shader_modules[0].legacy is not a known "
+                "shader_permutation shader module field",
+                "zircon_plugins/virtual_geometry/plugin.toml: "
+                "shader_permutation.shader_modules[0].import_path "
+                "Virtual.Geometry.Noise must use namespace::module form",
+                "zircon_plugins/virtual_geometry/plugin.toml: "
+                "shader_permutation.shader_modules[0].source ../noise.txt "
+                "must be a package-relative shader path",
+                "zircon_plugins/virtual_geometry/plugin.toml: "
+                "shader_permutation.shader_modules[1].source "
+                "assets\\noise.zshader must use forward slashes",
+                "zircon_plugins/virtual_geometry/plugin.toml: "
+                "shader_permutation.shader_modules[2].import_path "
+                "custom::virtual_geometry::noise duplicates "
+                "shader_permutation.shader_modules[1]",
+            ],
+            violations,
+        )
+
 
 def plugin_manifest() -> dict[str, object]:
     return {

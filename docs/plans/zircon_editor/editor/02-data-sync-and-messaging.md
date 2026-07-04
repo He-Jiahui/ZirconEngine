@@ -1,0 +1,212 @@
+---
+related_code:
+  - zircon_editor/src/core/editor_message/bus.rs
+  - zircon_editor/src/ui/binding_dispatch/mod.rs
+  - zircon_runtime/src/scene/inspection/snapshot.rs
+  - zircon_runtime/src/scene/inspection/hierarchy.rs
+  - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/reports.rs
+  - zircon_runtime/src/dynamic_api/session/events.rs
+  - zircon_runtime_interface/src/buffer.rs
+reference_sources:
+  - dev/bevy/crates/bevy_remote/src/lib.rs
+  - dev/bevy/crates/bevy_remote/src/http.rs
+  - dev/Fyrox/editor/src/plugin.rs
+plan_sources:
+  - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
+  - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
+  - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
+status: planned
+---
+
+# 02 信息与数据同步（WorldSyncProtocol）
+
+本计划落地 00 §5 帧数据流的「runtime → 编辑器」半程：查询/订阅/失效协议，把既有 `ViewDirtySet` 通道喂活。「编辑器 → runtime」半程归 03（事务）。
+
+## 参照证据（dev/）
+
+**bevy BRP**（`dev/bevy/crates/bevy_remote/src/lib.rs:8-72`）：JSON-RPC 2.0，请求 `{method, id, params}`；核心方法 `world.query`（with/without 组件过滤）、`world.get_components`（实体 id + 全限定组件类型名）、`world.insert_components`；HTTP 传输层独立于协议本体（`http.rs`）。模板要点：**结构化世界访问协议与传输解耦**——zircon 同一协议要同时服务进程内直连（零拷贝）与 ABI 序列化过界。
+
+**Fyrox 拉模式对照**（`dev/Fyrox/editor/src/plugin.rs:46-132`）：`EditorPlugin::on_sync_to_model()` 每帧从引擎模型全量同步 UI。取其「同步点集中在一个钩子」的纪律，弃其全量拉（规模上限低，zircon hierarchy 需支撑 5k+ 节点）。
+
+## 现状与证据（zircon，2026-07-05 实读）
+
+**编辑器侧失效通道存在但无数据源**：`EditorMessageBus.dirty: ViewDirtySet` + `mark_view_dirty/drain_dirty`（`bus.rs:115-129`）——面板失效机制齐备，但 runtime 世界变化不会到达它。
+
+**拉侧快照已有稳定锚、缺世代与指纹**（v2 记载「行无稳定 id」**失实，此处修正**）：
+
+```rust
+// scene/inspection/hierarchy.rs:5-15（实读全文）
+pub struct WorldInspectionHierarchyRow {
+    pub entity: EntityId, pub parent: Option<EntityId>,   // ← 稳定锚已在
+    pub depth: u32, pub display_name: String, pub kind: String,
+    pub focused: bool, pub active_in_hierarchy: bool, pub has_children: bool,
+}
+// scene/inspection/snapshot.rs:12-36
+pub struct WorldInspection {
+    pub focused_entity: Option<EntityId>,
+    pub hierarchy_rows: Vec<WorldInspectionHierarchyRow>,
+    pub fields: Vec<WorldInspectionField>,
+}
+impl WorldInspection { pub fn from_world(world: &World, focused: Option<EntityId>) -> Self { /* 全量重建 */ } }
+impl World { pub fn inspect_world(&self, focused: Option<EntityId>) -> WorldInspection }
+```
+
+真实缺口：(a) 无 `generation`——编辑器无法判定快照新旧、无法做 `NotModified` 短路；(b) 无 `subtree_hash`——有锚但无「这棵子树没变」的判据，diff 仍需全树对比；(c) `from_world` 把 hierarchy 与 focused 实体的 fields 耦合在一次全量重建里——inspector 换选中会连带重建全 hierarchy 行；(d) `focused` 入参耦合选中态，01 迁出 `selected_node` 后由编辑器 SelectionModel 供值。
+
+**推送/事件侧**：`AssetReloadFrameApplyReport { applied, failed, stale, pending_count }`（`dynamic_scene/scene/reports.rs:70-73`）按帧产出；`dynamic_api/session/events.rs` 已有 14+ 事件 ABI 转码——均不进 bus。`World` 存储按组件类型分 map（`world.rs:42-143`：`entities: Vec<EntityId>` + `hierarchy/local_transforms/world_matrices: HashMap` + `entity_registry`），对「按类型 watch」打点友好。
+
+**LevelSystem 咽喉已核**（`level_system.rs:111-134`）：`snapshot() -> World`、`replace(World)`、`replace_world_and_reset_runtime_state(World)`、`with_world<R>(FnOnce(&World)->R)`、`with_world_mut<R>`、`tick(&CoreHandle, RuntimeTimeAdvance)`——01 gateway 的映射对象与本计划冲刷点。
+
+**绑定消费面**：`ui/binding_dispatch/mod.rs` 是 8 个域级自由函数（`dispatch_{animation,asset,docking,draft,inspector,selection,viewport,welcome}_binding`）+ `apply_*` 回写族——事件进方向成型；数据出方向（世界→面板投影）无脏驱动，靠调用方每次重取。
+
+## 目标
+
+1. **`WorldSyncProtocol`**：查询 + 订阅 + 失效三段协议，DTO 全 serde 可过 ABI；InProcess 零拷贝、Session 序列化，同一契约测试双跑。
+2. **世代号与子树指纹**：`World.world_generation: u64`（spawn/despawn/reparent 递增）；`WorldInspectionHierarchyRow` 增 `subtree_hash: u64`（锚已有，只补指纹）；`WorldInspection` 增 `generation` 头并把 fields 重建与 hierarchy 重建解耦（`inspect_hierarchy` / `inspect_fields(entity)` 拆分，`inspect_world` 保留为组合门面）。
+3. **世界事实入总线**：`WorldFact` 族（spawn/despawn/reparent/scene load-unload/热重载报告）经泵进 bus 并驱动 `mark_view_dirty`——喂活既有 `ViewDirtySet`，成为 `editor_layout/09` 刷新总线的数据源。
+4. **绑定接 watch**：绑定源声明 `WatchKey` 依赖，投影重算由 `drain_dirty` 驱动，删除无条件重取路径。
+
+## 非目标
+
+- 不做协作编辑/合并；不实现网络传输（协议可序列化即止）；不改面板刷新机制本身（editor_layout/09）；组件值级 change-tick 不在本期——结构级世代 + 子树指纹先行，值级由 03 事务提交事件补足。
+
+## 架构设计
+
+### 协议 DTO（`zircon_runtime_interface/src/world_sync/`，新建四文件）
+
+```rust
+// query.rs —— 对齐 BRP world.query / get_components
+pub struct WorldQuery {
+    pub filter: QueryFilter,               // with/without 组件类型名（全限定字符串）
+    pub select: Vec<ComponentSelector>,
+    pub generation_hint: Option<u64>,      // 相同则服务端可回 NotModified
+}
+pub enum WorldQueryResult { Rows(Vec<EntityRow>), NotModified { generation: u64 } }
+
+// watch.rs
+pub enum WatchKey {
+    Subtree { root: EntityId },            // hierarchy 面板
+    ComponentType { type_name: String },   // inspector 按类型
+    Asset { resource_id: ResourceId },     // 资产依赖视图/热重载
+    WorldStructure,                        // 任何 spawn/despawn/reparent
+}
+pub struct WatchRegistration { pub key: WatchKey }
+pub struct WatchToken(pub u64);            // runtime 侧发号，unwatch/会话回收凭据
+
+// invalidation.rs
+pub struct InvalidationBatch {
+    pub generation: u64,
+    pub dirty: Vec<WatchToken>,            // 本帧命中的订阅（token 而非 key：编辑器侧 token→view 映射）
+    pub facts: Vec<WorldFact>,
+}
+pub enum WorldFact {
+    Spawned(EntityId), Despawned(EntityId),
+    Reparented { entity: EntityId, new_parent: Option<EntityId> },
+    SceneLoaded { scene: ResourceId }, SceneUnloaded { scene: ResourceId },
+    AssetReloadApplied(AssetReloadFrameApplyReportDto),   // 包装既有 reports.rs 结构
+}
+```
+
+命中语义定稿：`Subtree` 命中=子树内任意结构 fact 的祖先链包含 root；`ComponentType` 命中=该类型 map 的 `&mut` 访问打点（允许假阳性）；`WorldStructure` 命中=任意结构 fact。`dirty` 用 token 不用 key——同 key 多订阅者各收各的 token，编辑器侧维护 `token → ViewInstanceId` 映射，runtime 保持不认识 view 概念。
+
+### runtime 侧（`scene/inspection/` 扩展 + 三咽喉打点）
+
+```rust
+// scene/inspection/subscription.rs（新）
+pub struct SubscriptionTable {
+    next_token: u64,
+    by_key: BTreeMap<WatchKeyCanon, BTreeSet<WatchToken>>,   // key 规范化后索引
+    pending_facts: Vec<WorldFact>,
+    pending_dirty: BTreeSet<WatchToken>,
+}
+impl SubscriptionTable {
+    pub fn watch(&mut self, reg: WatchRegistration) -> WatchToken;
+    pub fn unwatch(&mut self, token: WatchToken);
+    pub fn record_fact(&mut self, world: &World, fact: WorldFact);   // 折算命中入 pending
+    pub fn flush(&mut self, generation: u64) -> Option<InvalidationBatch>;  // 帧末冲刷，空则 None
+}
+```
+
+挂载点：`RuntimeDynamicSession` 旁（session 级字段，session 销毁即回收——ABI 崩溃清理免费获得）；进程内路径由 `InProcessGateway` 持同一张表。打点三咽喉：
+
+1. world 结构变更 API（spawn/despawn/reparent 实现处）：递增 `world_generation` + `record_fact`；
+2. `LevelSystem::tick` 末尾：`flush` 产 `InvalidationBatch` 暂存至 session 出口队列；
+3. dynamic_scene 热重载应用处：`AssetReloadFrameApplyReport` 包装为 fact。
+
+不建平行脏标记体系；`ComponentType` 打点借 `World` 分 map 结构在 `&mut` 访问口做，值级精度不足由 fact/03 事务事件兜底。
+
+### 编辑器侧泵（gateway 扩展 + 每帧管线）
+
+```rust
+// 01 trait 本期追加
+fn query(&self, q: WorldQuery) -> Result<WorldQueryResult, GatewayError>;
+fn watch(&self, reg: WatchRegistration) -> Result<WatchToken, GatewayError>;
+fn unwatch(&self, token: WatchToken);
+fn drain_invalidations(&self) -> Vec<InvalidationBatch>;
+```
+
+主循环每帧固定一次：
+
+```
+let batches = ctx.gateway().drain_invalidations();
+for batch in batches {
+    for fact in batch.facts { bus.publish(TOPIC_WORLD_FACT, fact.into_message()); }  // Focus/Custom 族
+    for token in batch.dirty {
+        if let Some(view) = watch_map.view_for(token) { bus.mark_view_dirty(view, mask_for(token)); }
+    }
+    sync_state.generation = batch.generation;
+}
+```
+
+新管线**只到 bus 为止**；bus 以下（`drain_dirty` → 面板重取）复用现物。`watch_map`（token→view）随视图注册/关闭登记/注销，落 `core/sync/watch_map.rs`。
+
+### 端到端时序（改名一例，验收剧本同款）
+
+```
+用户改名 → 03 事务 apply → with_world_mut 改 display_name
+→ 咽喉打点：record_fact(Reparented? 否——名称属结构 hash 输入，Subtree 命中)
+→ tick 末 flush → InvalidationBatch{dirty:[hierarchy 面板 token]}
+→ 泵 → mark_view_dirty(hierarchy_view) → 面板 drain_dirty 命中
+→ 面板 query(Subtree, generation_hint) → 行级 diff：仅 subtree_hash 变化的子树重建
+```
+
+### 迁移映射表
+
+| 现物 | 去向 |
+| --- | --- |
+| `WorldInspection::from_world` 全量重建 | 保留为组合门面；新增 `inspect_hierarchy(&World)`/`inspect_fields(&World, EntityId)` 拆分入口，hierarchy 视图与 inspector 各取所需 |
+| `inspect_world(focused)` 的 focused 入参 | 调用方改由编辑器 SelectionModel 供值（01 M2 之后） |
+| binding 投影无条件重取 | `depends_on: Vec<WatchKey>` 声明 + dirty 驱动；删除点执行时 Grep 定稿记状态节 |
+| `session/events.rs` 既有 14+ 事件转码 | 保留 ABI 事件面；世界事实走本协议，不与其合并（事件面=输入方向，本协议=状态方向） |
+
+### 深度测试
+
+新增一种视图数据源（夹具：资产依赖面板）只需注册 `WatchKey::Asset` + 查询；`SubscriptionTable`/DTO/泵零改动。
+
+## 里程碑
+
+### M1 协议契约与世代号
+
+- 切片 1.1：`world_sync/` 四文件 + serde 往返测试 + `NotModified` 语义单测。
+- 切片 1.2：`World.world_generation` 三咽喉打点；`WorldInspectionHierarchyRow.subtree_hash`；`inspect_hierarchy/inspect_fields` 拆分（`from_world` 改为组合调用）；既有 inspection 消费方迁移。
+- 测试阶段：`cargo test -p zircon_runtime_interface --locked`、`cargo test -p zircon_runtime --lib scene:: --locked`（世代号单调性/结构变更必递增/拆分入口与组合门面等价断言）；authoring 边界守卫不回归——watch DTO 属会话查询面不入场景序列化，守卫矩阵显式声明。更新 `docs/zircon_runtime/scene/inspection.md`。
+
+### M2 订阅表与编辑器泵
+
+- 切片 2.1：`subscription.rs` + 三咽喉冲刷；gateway 四方法 InProcess 实现；`core/sync/watch_map.rs`。
+- 切片 2.2：主循环泵接线；hierarchy 视图迁 diff 更新（entity 锚 + subtree_hash 判重建），删除全量重建消费路径。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`；验收：5k 节点夹具单节点改名 → hierarchy 重建行数=该子树行数（计数器断言）；watch 注册/注销/session 销毁回收生命周期矩阵；泵每帧至多一次 drain 断言。
+
+### M3 绑定接线与 ABI 过界
+
+- 切片 3.1：绑定源 `depends_on` + dirty 驱动重算；无条件重取路径删除（清单记状态节）。
+- 切片 3.2：`SessionGateway` 实现 query/watch/drain（经 `buffer.rs` 序列化）；契约测试双实现复跑。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`（dirty 驱动重算次数断言：值不变时零重算）+ `cargo test -p zircon_runtime_interface --locked`（ABI 往返）。证据记状态节。
+
+## 风险与开放问题
+
+- `subtree_hash` 输入=子节点 id 序列 + display_name（不含 transform/组件值，避免每帧全树重 hash）；5k 节点重 hash 超帧预算时改父链向上传播脏位图，证据裁决。
+- `ComponentType` 打点假阳性（借 `&mut` 未必写）：接受（多刷新不错刷新），03 提交事件提供精确通道后收窄。
+- `fields` 拆分后 inspector 与 hierarchy 取数节奏不同步的撕裂窗口：同帧内两次 query 携带同一 `generation_hint`，世代不一致时丢弃重取（泵保证每帧 generation 单调）。

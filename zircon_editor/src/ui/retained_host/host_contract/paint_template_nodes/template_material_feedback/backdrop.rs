@@ -2,8 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::material_primitives::component_variant_contains;
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_style_color::resolved_style_color;
-
-const MUI_BACKDROP_SCRIM: [u8; 4] = [0, 0, 0, 128];
+use super::palette::material_feedback_palette;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_material_backdrop_commands(
     commands: &mut Vec<HostPaintCommand>,
@@ -28,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ma
         order,
         Some(
             resolved_style_color(node.button_style.element.background_color.as_ref())
-                .unwrap_or(MUI_BACKDROP_SCRIM),
+                .unwrap_or_else(|| material_feedback_palette().backdrop_scrim),
         ),
         None,
         0.0,

@@ -141,7 +141,8 @@ fn rendering_plugin_toml_roundtrips_owner_features_and_modules() {
         manifest.default_packaging,
         vec![
             ExportPackagingStrategy::SourceTemplate,
-            ExportPackagingStrategy::LibraryEmbed
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
         ]
     );
     assert!(manifest.modules.iter().any(|module| {
@@ -157,6 +158,13 @@ fn rendering_plugin_toml_roundtrips_owner_features_and_modules() {
             && module
                 .capabilities
                 .contains(&"editor.extension.rendering_authoring".to_string())
+    }));
+    assert!(manifest.modules.iter().any(|module| {
+        module.kind == PluginModuleKind::Native
+            && module.name == "rendering.dist"
+            && module.crate_name == "zircon_plugin_rendering_dist"
+            && module.target_modes == manifest.supported_targets
+            && module.capabilities == manifest.capabilities
     }));
 
     let expected_features = vec![

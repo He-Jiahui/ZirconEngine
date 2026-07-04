@@ -382,45 +382,14 @@ fn build_native_dynamic_fixture_with_features(
     target_root: &std::path::Path,
     features: &[&str],
 ) -> PathBuf {
-    // Keep runtime tests from mutating zircon_plugins/Cargo.lock while still compiling the live fixture source.
-    let build_root = temp_export_root("native-dynamic-fixture-build");
-    fs::create_dir_all(&build_root).unwrap();
-    let source_path = repo_root()
-        .join("zircon_plugins/native_dynamic_fixture/native/src/lib.rs")
-        .display()
-        .to_string()
-        .replace('\\', "/");
-    let manifest_path = build_root.join("Cargo.toml");
-    fs::write(
-        &manifest_path,
-        format!(
-            r#"[package]
-name = "zircon_plugin_native_dynamic_fixture_native"
-version = "0.1.0"
-edition = "2021"
-license = "MIT OR Apache-2.0"
-description = "Native dynamic ABI fixture plugin for Zircon."
-
-[lib]
-crate-type = ["cdylib"]
-path = "{source_path}"
-
-[features]
-abi_unknown_version = []
-
-[dependencies]
-serde = {{ version = "1.0.228", features = ["derive"] }}
-serde_json = "1.0.149"
-"#
-        ),
-    )
-    .unwrap();
     let mut command = Command::new("cargo");
     command
         .arg("build")
         .arg("--manifest-path")
-        .arg(&manifest_path)
-        .arg("--offline")
+        .arg(repo_root().join("zircon_plugins/Cargo.toml"))
+        .arg("-p")
+        .arg("zircon_plugin_native_dynamic_fixture_native")
+        .arg("--locked")
         .arg("--target-dir")
         .arg(target_root)
         .arg("--quiet");

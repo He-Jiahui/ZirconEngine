@@ -125,6 +125,7 @@ impl SceneRendererCore {
             texture_bind_group_layout,
             scene_bind_group_layout: scene_bind_group_bundle.layout,
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
+            scene_environment_sample_buffer: scene_bind_group_bundle.environment_sample_buffer,
             scene_bind_group: scene_bind_group_bundle.bind_group,
             target_format,
             depth_format: DEPTH_FORMAT,

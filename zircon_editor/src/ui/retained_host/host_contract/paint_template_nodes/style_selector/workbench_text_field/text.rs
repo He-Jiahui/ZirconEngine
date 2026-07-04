@@ -26,3 +26,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
         palette.placeholder
     }
 }
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_field_stepper_divider(
+    state: UiPainterResolvedState,
+) -> [u8; 4] {
+    let palette = workbench_text_field_palette();
+    if is_unavailable_text_field_state(state) {
+        palette.disabled_border
+    } else {
+        palette.stepper_divider
+    }
+}

@@ -64,6 +64,9 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
         "F8 RuntimePluginDescriptor fixture migration should enumerate every plugin extension test file that used the old constructor"
     );
 
+    let lifecycle_fixture_source = include_str!(
+        "../../../../plugin_extensions/runtime_plugin_lifecycle/lifecycle_fixtures.rs"
+    );
     let builder_count: usize = fixture_sources
         .iter()
         .map(|(_, source)| {
@@ -71,10 +74,24 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
                 .match_indices("RuntimePluginDescriptor::builder(")
                 .count()
         })
-        .sum();
+        .sum::<usize>()
+        + lifecycle_fixture_source
+            .match_indices("RuntimePluginDescriptor::builder(")
+            .count();
     assert_eq!(
         builder_count, 59,
-        "F8 runtime/plugin extension test fixtures should keep the current builder call count"
+        "F8 runtime/plugin extension test fixtures and child fixture owners should keep the current builder call count"
+    );
+    assert_eq!(
+        lifecycle_fixture_source
+            .match_indices("RuntimePluginDescriptor::builder(")
+            .count(),
+        4,
+        "runtime plugin lifecycle descriptor builders should live in the lifecycle fixture child owner"
+    );
+    assert!(
+        !lifecycle_fixture_source.contains("RuntimePluginDescriptor::new("),
+        "runtime plugin lifecycle fixture child owner should not keep RuntimePluginDescriptor::new"
     );
 
     for (name, source) in fixture_sources {
@@ -82,6 +99,14 @@ fn review_f8_runtime_plugin_descriptor_test_fixtures_use_builder() {
             !source.contains("RuntimePluginDescriptor::new("),
             "plugin extension test fixture `{name}` should not keep RuntimePluginDescriptor::new"
         );
+        if name == "runtime_plugin_lifecycle" {
+            assert!(
+                source.contains("#[path = \"runtime_plugin_lifecycle/lifecycle_fixtures.rs\"]")
+                    && source.contains("mod lifecycle_fixtures;"),
+                "plugin extension test fixture `{name}` should delegate descriptor builders to lifecycle_fixtures child owner"
+            );
+            continue;
+        }
         assert!(
             source.contains("RuntimePluginDescriptor::builder("),
             "plugin extension test fixture `{name}` should construct RuntimePluginDescriptor values through the builder"

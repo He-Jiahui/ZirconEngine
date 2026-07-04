@@ -232,21 +232,29 @@ mod tests {
         let chromatic = POST_PROCESS_SHADER
             .find("color = apply_chromatic_aberration")
             .unwrap();
-        let ssr_resolve = POST_PROCESS_SHADER
-            .find("let resolved_reflection =")
-            .unwrap();
-        let fog = POST_PROCESS_SHADER
-            .find("color = apply_effect_fog")
+        let scene_composite = POST_PROCESS_SHADER
+            .find("color = apply_scene_composite")
             .unwrap();
         let vignette = POST_PROCESS_SHADER.find("color = apply_vignette").unwrap();
         let grain = POST_PROCESS_SHADER
             .find("color = apply_grain_and_dither")
             .unwrap();
 
-        assert!(chromatic < ssr_resolve);
-        assert!(ssr_resolve < fog);
-        assert!(fog < vignette);
+        assert!(chromatic < scene_composite);
+        assert!(scene_composite < vignette);
         assert!(vignette < grain);
+
+        let scene_composite_body = POST_PROCESS_SHADER
+            .split("fn apply_scene_composite")
+            .nth(1)
+            .unwrap();
+        let ssr_resolve = scene_composite_body
+            .find("let resolved_reflection =")
+            .unwrap();
+        let fog = scene_composite_body
+            .find("composited = apply_effect_fog")
+            .unwrap();
+        assert!(ssr_resolve < fog);
     }
 
     #[test]

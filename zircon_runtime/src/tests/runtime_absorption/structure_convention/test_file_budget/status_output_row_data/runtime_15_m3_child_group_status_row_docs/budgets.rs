@@ -2,18 +2,24 @@ use super::*;
 
 #[test]
 fn runtime_15_m3_child_group_status_row_doc_child_budgets_stay_focused() {
-    for path in [
-        STATUS_DOCS_GUARD_PATH,
-        STATUS_ROW_DOCS_GUARD_PATH,
-        LOCK_POISON_STATUS_ROWS_PATH,
-        MODULE_CONVENTION_STATUS_ROWS_PATH,
-        REVIEW_STATUS_SYNC_ROWS_PATH,
+    for (path, budget) in [
+        (STATUS_DOCS_GUARD_PATH, 70),
+        (STATUS_ROW_DOCS_GUARD_PATH, 70),
+        (ROOT_PATHS_PATH, 120),
+        (ROOT_STATUSES_PATH, 80),
+        (ROOT_CHILD_ROWS_PATH, 120),
+        (ROOT_SOURCE_BLOBS_PATH, 60),
+        (ROOT_INVENTORY_GUARD_PATH, 100),
+        (LOCK_POISON_STATUS_ROWS_PATH, 400),
+        (MODULE_CONVENTION_STATUS_ROWS_PATH, 400),
+        (REVIEW_STATUS_SYNC_ROWS_PATH, 400),
+        (STATUS_SUPPORT_STATUS_DOCS_ROWS_PATH, 280),
     ] {
         let source = read_runtime_src(path);
         let line_count = source.lines().count();
         assert!(
-            line_count < 400,
-            "{path} should stay below the focused Runtime 15 M3 child-group row-doc guard budget; got {line_count} lines"
+            line_count < budget,
+            "{path} should stay below the focused Runtime 15 M3 child-group row-doc guard budget of {budget} lines; got {line_count}"
         );
     }
 

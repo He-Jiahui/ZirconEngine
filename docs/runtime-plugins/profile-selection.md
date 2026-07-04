@@ -149,7 +149,7 @@ tests:
   - cargo check -p zircon_runtime --lib --locked
   - cargo test -p zircon_runtime --lib prelude --locked
   - cargo test -p zircon_runtime --lib state --locked
-  - cargo test -p zircon_runtime --lib time --locked
+  - cargo test -p zircon_runtime --lib tests::time:: --locked
   - cargo test -p zircon_runtime --lib tasks --locked
   - cargo test -p zircon_runtime --lib plugin_extensions::export_build_plan --locked
   - cargo test -p zircon_app --locked plugins
@@ -280,7 +280,7 @@ These commands form the local M1 gate when shared Cargo target directories are n
 - `cargo test -p zircon_app --locked prelude`
 - `cargo test -p zircon_runtime --lib prelude --locked`
 - `cargo test -p zircon_runtime --lib state --locked`
-- `cargo test -p zircon_runtime --lib time --locked`
+- `cargo test -p zircon_runtime --lib tests::time:: --locked`
 - `cargo test -p zircon_runtime --lib tasks --locked`
 - `cargo check -p zircon_runtime --lib --locked`
 

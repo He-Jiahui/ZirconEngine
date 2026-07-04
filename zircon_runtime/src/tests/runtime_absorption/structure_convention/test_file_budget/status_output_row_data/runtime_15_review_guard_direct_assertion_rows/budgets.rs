@@ -2,18 +2,24 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_direct_assertion_child_budgets_stay_focused() {
-    for path in [
-        DIRECT_ASSERTION_GUARD_PATH,
-        REVIEW_GUARD_ROW_DATA_AGGREGATION_PATH,
-        CODE_REVIEW_ROWS_PATH,
-        DIRECT_ASSERTION_ROWS_PATH,
-        PLUGIN_IMPORTER_ROWS_PATH,
+    for (path, budget) in [
+        (DIRECT_ASSERTION_GUARD_PATH, 70),
+        (ROOT_PATHS_PATH, 100),
+        (ROOT_STATUSES_PATH, 80),
+        (ROOT_CHILD_ROWS_PATH, 120),
+        (ROOT_SOURCE_BLOBS_PATH, 80),
+        (ROOT_INVENTORY_GUARD_PATH, 100),
+        (REVIEW_GUARD_ROW_DATA_AGGREGATION_PATH, 400),
+        (CODE_REVIEW_ROWS_PATH, 400),
+        (DIRECT_ASSERTION_ROWS_PATH, 400),
+        (PLUGIN_IMPORTER_ROWS_PATH, 400),
+        (STATUS_SUPPORT_REVIEW_GUARD_ROWS_PATH, 240),
     ] {
         let source = read_runtime_src(path);
         let line_count = source.lines().count();
         assert!(
-            line_count < 400,
-            "{path} should stay below the focused Runtime 15 direct-assertion row-data budget; got {line_count} lines"
+            line_count < budget,
+            "{path} should stay below the focused Runtime 15 direct-assertion row-data budget of {budget} lines; got {line_count}"
         );
     }
 

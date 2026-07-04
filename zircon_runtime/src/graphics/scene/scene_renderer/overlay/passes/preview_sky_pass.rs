@@ -1,9 +1,9 @@
-use crate::core::framework::render::FallbackSkyboxKind;
+use crate::core::framework::render::SkyboxMode;
 
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
 
 pub(crate) struct PreviewSkyPass;
@@ -25,6 +25,7 @@ impl PreviewSkyPass {
             scene_bind_group,
             sky_pipeline,
             frame,
+            frame.render_region(),
             RenderGraphAttachmentOps::clear_store(),
             RenderGraphAttachmentOps::clear_store(),
         );
@@ -39,6 +40,7 @@ impl PreviewSkyPass {
         scene_bind_group: &wgpu::BindGroup,
         sky_pipeline: &wgpu::RenderPipeline,
         frame: &ViewportRenderFrame,
+        render_region: ViewportRenderRegion,
         color_attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) {
@@ -68,18 +70,10 @@ impl PreviewSkyPass {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if !frame
-            .render_region()
-            .apply_physical_to_render_pass(&mut pass)
-        {
+        if !render_region.apply_physical_to_render_pass(&mut pass) {
             return;
         }
-        if frame.preview().skybox_enabled
-            && matches!(
-                frame.preview().fallback_skybox,
-                FallbackSkyboxKind::ProceduralGradient
-            )
-        {
+        if !matches!(frame.environment().skybox.mode, SkyboxMode::Disabled) {
             pass.set_bind_group(0, scene_bind_group, &[]);
             pass.set_pipeline(sky_pipeline);
             pass.draw(0..3, 0..1);

@@ -1,5 +1,9 @@
 ﻿use super::*;
 
+use crate::asset::ShaderDependencyAsset;
+use crate::core::framework::render::RenderMaterialFallbackReason;
+use crate::core::resource::ResourceKind;
+
 #[test]
 fn material_asset_reports_shader_contract_diagnostics_without_blocking_import() {
     let material = MaterialAsset::from_toml_str(
@@ -161,6 +165,47 @@ url = "res://shaders/readiness.zshader"
         } if *source == RenderMaterialDiagnosticSource::ShaderReadiness
             && path == "shader_defs.USE_UNLIT"
             && diagnostic.contains("duplicated")
+    )));
+}
+
+#[test]
+fn material_asset_readiness_reports_unresolved_shader_import_redirect_dependency() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "RedirectImport"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/redirect_surface.zshader"
+"#,
+    )
+    .unwrap();
+    let mut shader = shader_contract();
+    shader.property_schema.clear();
+    shader.texture_slots.clear();
+    let redirected_module = asset_reference("missing-shared", "res://shaders/missing_shared");
+    shader.dependencies = vec![ShaderDependencyAsset {
+        kind: ResourceKind::Shader,
+        reference: redirected_module.clone(),
+    }];
+
+    let report = material.readiness_report_with_shader_contract(
+        &shader,
+        |reference| reference != &redirected_module,
+        |_| true,
+    );
+
+    assert!(!report.is_ready());
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::UnresolvedShaderReference { reference }
+            if reference == &redirected_module
+    )));
+    assert!(report.fallback_usages.iter().any(|usage| matches!(
+        &usage.reason,
+        RenderMaterialFallbackReason::Shader { reference }
+            if reference == &redirected_module
     )));
 }
 

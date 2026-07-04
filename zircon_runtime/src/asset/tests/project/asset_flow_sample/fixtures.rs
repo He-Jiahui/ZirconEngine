@@ -103,17 +103,11 @@ pub(super) fn write_sample_shader_package(paths: &ProjectPaths) {
             .join("lit_sample")
             .join("lit.zshader"),
         r#"
-version = 1
+kind = "surface"
+version = 2
 name = "Lit Sample"
+shading_model = "standard_pbr"
 wgsl_files = ["lit.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
 
 [[properties]]
 name = "base_color"
@@ -191,17 +185,11 @@ pub(super) fn write_default_pbr_shader_package(paths: &ProjectPaths) {
             .join("default_pbr")
             .join("default_pbr.zshader"),
         r#"
-version = 1
+kind = "surface"
+version = 2
 name = "Default PBR Sample"
+shading_model = "standard_pbr"
 wgsl_files = ["default_pbr.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
 
 [[properties]]
 name = "base_color"

@@ -35,6 +35,8 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
         "\n",
         include_str!("../../scene/scene_renderer/shadow/shaders/zr_shadow.wgsl"),
         "\n",
+        include_str!("../../shader/wgsl/zr_environment.wgsl"),
+        "\n",
         include_str!("../../shader/wgsl/zr_shade_deferred_standard_pbr.wgsl"),
         "\n",
         include_str!("../../shader/wgsl/zr_shade_deferred_blinn_phong.wgsl"),

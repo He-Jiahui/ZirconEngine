@@ -84,7 +84,7 @@ fn export_project_plugin_registry_material_passes_product_png() {
     let _ = fs::remove_dir_all(&cache_roots.root);
 }
 
-fn render_test_output_dir() -> PathBuf {
+pub(super) fn render_test_output_dir() -> PathBuf {
     let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("zircon_runtime should live below repository root")
@@ -96,7 +96,7 @@ fn render_test_output_dir() -> PathBuf {
     output_dir
 }
 
-fn save_side_by_side_product_frames(
+pub(super) fn save_side_by_side_product_frames(
     first: &CapturedFrame,
     velocity: &CapturedFrame,
     output_path: &PathBuf,
@@ -135,7 +135,7 @@ fn write_separator(width: u32, height: u32, x: u32, rgba: &mut [u8]) {
     }
 }
 
-fn assert_visible_frame(frame: &CapturedFrame, label: &str) {
+pub(super) fn assert_visible_frame(frame: &CapturedFrame, label: &str) {
     let visible_pixels = frame
         .rgba
         .chunks_exact(4)

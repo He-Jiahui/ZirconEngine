@@ -1,0 +1,41 @@
+runtime_text_editor_asset_browser_badge_runtime_measure_validation_20260704
+date: 2026-07-04 +08:00
+scope: Asset Browser summary type badge, summary revision label, thumbnail type badge
+issue: user screenshot showed DengXian/等线 active but compact editor text still felt horizontally uneven because some layout slots still estimated width by character count.
+
+changed production files:
+  zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs
+  zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  zircon_editor/src/ui/retained_host/host_contract/mod.rs
+
+behavior:
+  removed SUMMARY_TYPE_BADGE_TEXT_WIDTH_RATIO, SUMMARY_REVISION_TEXT_WIDTH_RATIO, and THUMBNAIL_TYPE_BADGE_TEXT_WIDTH_RATIO production constants.
+  summary/thumbnail badge widths now call measure_runtime_text_width(...) using the retained-host resolved UI face.
+  max-width ratios remain layout clamps, not text-width estimators.
+
+tests added:
+  summary_badge_and_revision_widths_use_runtime_text_measurement
+  thumbnail_type_badge_width_uses_runtime_text_measurement
+
+checks:
+  PASS rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs zircon_editor/src/ui/retained_host/host_contract/paint_text.rs zircon_editor/src/ui/retained_host/host_contract/mod.rs zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
+  PASS git diff --check for the same scoped files (LF/CRLF normalization warnings only).
+  PASS static scan: no SUMMARY/REVISION/THUMBNAIL *_TEXT_WIDTH_RATIO constants, no label_chars * font_size production formulas, no chars().count() as f32 text-width estimator in touched production files.
+  DEFERRED focused Cargo: external cargo/rustc lanes were active during this slice; no Cargo green claimed.
+
+active cargo/rustc lanes at log creation:
+  none
+
+visual artifact:
+  E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_asset_browser_badge_runtime_measure_preview_20260704.png
+  sha256: 4C4A260F73FDBA9517CDC9A93A1F18F9756BF0A4060EF82FA7B2845CCF6A34F6
+
+target placement check:
+  repo target same-name matches: 0
+  external cargo target same-name matches: 0
+
+open:
+  live editor-window typography QA remains open because no Zircon/editor process is running in this session.
+  focused Cargo should be rerun when active external compile lanes are clear.

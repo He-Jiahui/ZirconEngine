@@ -126,7 +126,10 @@ fn navigation_plugin_toml_matches_catalog_beta_partial_metadata() {
         RuntimeTargetMode::ServerRuntime,
         RuntimeTargetMode::EditorHost,
     ];
-    let expected_capabilities = vec!["runtime.plugin.navigation".to_string()];
+    let expected_capabilities = vec![
+        "runtime.plugin.navigation".to_string(),
+        "runtime.plugin.navigation.recast".to_string(),
+    ];
 
     assert_eq!(decoded, manifest);
     assert_eq!(manifest.sdk_api_version, "0.1.0");

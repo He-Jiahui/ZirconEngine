@@ -9,6 +9,7 @@ use zircon_runtime::core::framework::render::{
 };
 use zircon_runtime::dynamic_api::{
     default_shader_variant_cache_root_for_project, prewarm_shader_variants,
+    prewarm_shader_variants_with_wgpu_module_and_pipeline_validation,
     prewarm_shader_variants_with_wgpu_module_validation,
     prewarm_shader_variants_with_wgpu_pipeline_validation,
 };
@@ -41,6 +42,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     let mut geometry_source_descriptors = BTreeMap::new();
     let mut shading_model_ids = args.shading_model_ids.clone();
     let mut shading_model_descriptors = BTreeMap::new();
+    let mut shader_modules = BTreeMap::new();
     for registry_path in
         shader_permutation_registry_paths(&args.permutation_registries, &args.asset_roots)
     {
@@ -53,6 +55,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
                 &mut geometry_source_descriptors,
                 &mut shading_model_ids,
                 &mut shading_model_descriptors,
+                &mut shader_modules,
             )
             .map_err(|error| error.to_string())?;
     }
@@ -95,6 +98,7 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
                 &geometry_sources,
                 &geometry_source_descriptors,
                 &shading_model_ids,
+                &shader_modules,
                 resource_registry.as_ref(),
             )
             .map_err(|error| error.to_string())?,
@@ -105,7 +109,9 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
     let cache_dir = args
         .cache_dir
         .unwrap_or_else(|| default_shader_variant_cache_root_for_project(&args.project_root));
-    let report = if args.validate_wgpu_pipelines {
+    let report = if args.validate_wgpu_modules && args.validate_wgpu_pipelines {
+        prewarm_shader_variants_with_wgpu_module_and_pipeline_validation(&manifest, &cache_dir)
+    } else if args.validate_wgpu_pipelines {
         prewarm_shader_variants_with_wgpu_pipeline_validation(&manifest, &cache_dir)
     } else if args.validate_wgpu_modules {
         prewarm_shader_variants_with_wgpu_module_validation(&manifest, &cache_dir)

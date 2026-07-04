@@ -201,11 +201,6 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
     let native_source = fs::read_to_string(&native_source_path).unwrap_or_else(|error| {
         panic!("missing native fixture source {native_source_path:?}: {error}")
     });
-    let embedded_manifest_literal = native_source
-        .split("const PLUGIN_MANIFEST: &str = concat!(")
-        .nth(1)
-        .and_then(|tail| tail.split("\n\"#,").next())
-        .expect("native fixture should declare an embedded PLUGIN_MANIFEST literal");
     let expected_targets = vec![
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::ServerRuntime,
@@ -213,8 +208,15 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
     ];
     let expected_capabilities = vec![
         "runtime.plugin.native_dynamic_fixture".to_string(),
+        "runtime.asset.importer.native_dynamic_fixture.data_json".to_string(),
         "editor.extension.native_dynamic_fixture".to_string(),
     ];
+    let manifest_source_path = plugins_root
+        .join("native_dynamic_fixture")
+        .join("plugin.toml");
+    let manifest_source = fs::read_to_string(&manifest_source_path).unwrap_or_else(|error| {
+        panic!("missing native fixture manifest {manifest_source_path:?}: {error}")
+    });
     let runtime_module = manifest
         .modules
         .iter()
@@ -241,7 +243,10 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
     assert_eq!(runtime_module.target_modes, manifest.supported_targets);
     assert_eq!(
         runtime_module.capabilities,
-        vec!["runtime.plugin.native_dynamic_fixture".to_string()]
+        vec![
+            "runtime.plugin.native_dynamic_fixture".to_string(),
+            "runtime.asset.importer.native_dynamic_fixture.data_json".to_string(),
+        ]
     );
     assert_eq!(
         editor_module.target_modes,
@@ -257,14 +262,20 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
         r#"category = "sdk""#,
         r#"maturity = "experimental""#,
         r#"supported_targets = ["client_runtime", "server_runtime", "editor_host"]"#,
-        r#"capabilities = ["runtime.plugin.native_dynamic_fixture", "editor.extension.native_dynamic_fixture"]"#,
+        r#""runtime.plugin.native_dynamic_fixture""#,
+        r#""runtime.asset.importer.native_dynamic_fixture.data_json""#,
+        r#""editor.extension.native_dynamic_fixture""#,
         r#"default_packaging = ["native_dynamic"]"#,
     ] {
         assert!(
-            embedded_manifest_literal.contains(expected_line),
-            "embedded native fixture manifest should contain `{expected_line}`"
+            manifest_source.contains(expected_line),
+            "native fixture manifest should contain `{expected_line}`"
         );
     }
+    assert!(
+        native_source.contains(r#"include_str!("../../plugin.toml")"#),
+        "native fixture should embed its root plugin.toml manifest"
+    );
 }
 
 #[test]

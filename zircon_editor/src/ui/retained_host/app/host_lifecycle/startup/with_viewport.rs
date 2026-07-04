@@ -12,7 +12,7 @@ mod shell_bootstrap;
 use finalize::finalize_startup_host;
 use runtime_backend::create_startup_runtime_backend;
 use session_state::resolve_startup_session_state;
-use shell_bootstrap::resolve_startup_shell_size;
+use shell_bootstrap::{resolve_startup_shell_scale_factor, resolve_startup_shell_size};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn new_with_viewport(
@@ -35,6 +35,7 @@ impl RetainedEditorHost {
         );
         let startup_session_state = startup_session_state?;
         let shell_size = resolve_startup_shell_size(&ui);
+        let shell_scale_factor = resolve_startup_shell_scale_factor(&ui);
         let template_bridges = create_startup_template_bridges(shell_size)?;
         let runtime_backend = create_startup_runtime_backend(
             startup_session_state.state,
@@ -52,6 +53,7 @@ impl RetainedEditorHost {
             startup_session: startup_session_state.startup_session,
             viewport_size,
             shell_size,
+            shell_scale_factor,
             template_bridges,
         });
         finalize_startup_host(&mut host);

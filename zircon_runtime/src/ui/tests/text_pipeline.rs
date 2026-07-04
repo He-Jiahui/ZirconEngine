@@ -1,12 +1,15 @@
 use crate::asset::assets::{FontAsset, FontAssetRenderStrategy};
 use crate::graphics::text::font::default_runtime_font_families;
+use crate::ui::surface::UiSurface;
 use crate::ui::text::{
     resolve_text_layout, UiFontRegistry, UiPreeditSpan, UiTextLayoutRequest, UiTextMeasureCache,
     UiWidthBucket,
 };
 use zircon_runtime_interface::ui::{
-    layout::UiFrame,
+    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    layout::{AxisConstraint, BoxConstraints, StretchMode, UiContainerKind, UiFrame, UiSize},
     surface::{UiResolvedStyle, UiTextRange, UiTextRenderMode, UiTextWrap},
+    tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
 #[test]
@@ -127,7 +130,7 @@ fn text_layout_request_injects_preedit_without_mutating_source() {
 }
 
 #[test]
-fn text_measure_cache_hits_same_content_style_and_width_bucket() {
+fn text_measure_cache_hits_same_layout_request() {
     let style = UiResolvedStyle {
         font_size: 10.0,
         line_height: 12.0,
@@ -147,6 +150,37 @@ fn text_measure_cache_hits_same_content_style_and_width_bucket() {
 
     assert_eq!(cache.frame_shape_count(), 1);
     assert!(UiWidthBucket::from_request(&request).value() >= 1);
+}
+
+#[test]
+fn text_measure_cache_reshapes_when_frame_origin_changes() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 12.0,
+        wrap: UiTextWrap::Word,
+        ..UiResolvedStyle::default()
+    };
+    let first = UiTextLayoutRequest::new(
+        "Alpha Beta",
+        &style,
+        UiFrame::new(8.0, 0.0, 60.0, 20.0),
+        None,
+    );
+    let shifted = UiTextLayoutRequest::new(
+        "Alpha Beta",
+        &style,
+        UiFrame::new(24.0, 0.0, 60.0, 20.0),
+        None,
+    );
+    let mut cache = UiTextMeasureCache::default();
+
+    assert_eq!(cache.resolve_or_shape(&first).layout.lines[0].frame.x, 8.0);
+    assert_eq!(
+        cache.resolve_or_shape(&shifted).layout.lines[0].frame.x,
+        24.0
+    );
+
+    assert_eq!(cache.frame_shape_count(), 2);
 }
 
 #[test]
@@ -175,4 +209,92 @@ fn text_measure_cache_reshapes_when_wrap_bucket_changes() {
     assert_eq!(cache.resolve_or_shape(&wide).layout.lines.len(), 1);
 
     assert_eq!(cache.frame_shape_count(), 2);
+}
+
+#[test]
+fn text_measure_cache_is_consumed_by_surface_render_rebuild() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.text.measure_cache.surface"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::BlockBox)
+            .with_constraints(fixed_constraints(160.0, 48.0)),
+    );
+    for (node_id, path) in [
+        (UiNodeId::new(2), "root/first"),
+        (UiNodeId::new(3), "root/second"),
+    ] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(node_id, UiNodePath::new(path))
+                    .with_constraints(fixed_constraints(120.0, 18.0))
+                    .with_template_metadata(repeated_text_metadata()),
+            )
+            .expect("text child should be inserted");
+    }
+
+    surface
+        .compute_layout(UiSize::new(160.0, 48.0))
+        .expect("surface layout should compute");
+
+    assert_eq!(text_layout_command_count(&surface), 2);
+    assert_eq!(
+        surface.text_measure_cache.frame_shape_count(),
+        2,
+        "distinct text node frames should not reuse absolute text line geometry"
+    );
+
+    surface.rebuild();
+
+    assert_eq!(text_layout_command_count(&surface), 2);
+    assert_eq!(
+        surface.text_measure_cache.frame_shape_count(),
+        0,
+        "unchanged surface rebuild should hit retained text measure cache entries"
+    );
+}
+
+fn repeated_text_metadata() -> UiTemplateNodeMetadata {
+    UiTemplateNodeMetadata {
+        component: "Text".to_string(),
+        attributes: toml::from_str(
+            r#"
+text = "Repeated text label"
+font_size = 10.0
+line_height = 12.0
+wrap = "Word"
+"#,
+        )
+        .expect("text metadata should parse"),
+        ..Default::default()
+    }
+}
+
+fn fixed_constraints(width: f32, height: f32) -> BoxConstraints {
+    BoxConstraints {
+        width: fixed_axis(width),
+        height: fixed_axis(height),
+    }
+}
+
+fn fixed_axis(size: f32) -> AxisConstraint {
+    AxisConstraint {
+        min: size,
+        max: size,
+        preferred: size,
+        priority: 100,
+        weight: 1.0,
+        stretch_mode: StretchMode::Fixed,
+    }
+}
+
+fn text_layout_command_count(surface: &UiSurface) -> usize {
+    surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .filter(|command| command.text_layout.is_some())
+        .count()
 }

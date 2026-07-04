@@ -9,6 +9,8 @@ schema_version = 1
 
 [export_profiles.windows-release]
 platform = "windows-x86_64"
+output_name = "windows-release"
+runtime_profile_id = "minimal"
 path = "library_embed"
 mode = "release"
 plugins = ["net", "sound"]
@@ -126,6 +128,7 @@ fn validate_report_summarizes_profile_plan_and_fatal_state() {
         RuntimeTargetMode::ClientRuntime,
         ExportTargetPlatform::Windows,
     )
+    .with_runtime_profile_id(crate::plugin::RuntimeProfileId::Minimal)
     .with_strategies([ExportPackagingStrategy::LibraryEmbed])
     .with_selected_plugins(["net".to_string()])
     .with_feature_selection("net", ["http".to_string()])

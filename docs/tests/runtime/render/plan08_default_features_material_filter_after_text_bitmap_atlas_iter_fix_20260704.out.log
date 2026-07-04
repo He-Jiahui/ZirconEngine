@@ -1,0 +1,367 @@
+
+running 333 tests
+test asset::tests::assets::artifact_store::library_assets::artifact_store_roundtrips_physics_material_assets_in_library ... ok
+test asset::tests::assets::artifact_store::material_data::artifact_store_roundtrips_data_assets_with_dynamic_json_values ... ok
+test asset::tests::assets::artifact_store::material_data::artifact_store_roundtrips_material_assets_in_library ... ok
+test asset::tests::assets::artifact_store::material_data::artifact_store_roundtrips_material_assets_with_dynamic_property_values ... ok
+test asset::tests::assets::authoring::material_graph_requires_output_node_and_reports_references ... ok
+test asset::tests::assets::gltf_importer::material_transforms::importer_preserves_gltf_texture_transform_on_standard_material_slots ... ok
+test asset::tests::assets::gltf_importer::multi_primitive::importer_emits_gltf_multi_primitive_material_labels ... ok
+test asset::tests::assets::importer::physics_animation::importer_decodes_physics_material_and_animation_sequence_assets ... ok
+test asset::tests::assets::importer::typed_toml_ui::importer_default_routes_zmaterial_and_rejects_legacy_material_toml ... ok
+test asset::tests::assets::material::asset_serialization::material_asset_parses_uuid_url_references ... ok
+test asset::tests::assets::material::asset_serialization::material_asset_rejects_legacy_material_toml_shape ... ok
+test asset::tests::assets::material::asset_serialization::material_asset_roundtrip_preserves_standard_texture_transforms ... ok
+test asset::tests::assets::material::asset_serialization::material_asset_serialization_rewrites_stale_canonical_overrides ... ok
+test asset::tests::assets::material::asset_serialization::material_asset_zmaterial_roundtrip_maps_pbr_fields_to_shader_overrides ... ok
+test asset::tests::assets::material::management_records::material_asset_management_record_set_sorts_and_summarizes_records ... ok
+test asset::tests::assets::material::override_validation::material_asset_reports_invalid_lighting_model_as_material_validation_error ... ok
+test asset::tests::assets::material::override_validation::material_owned_cast_shadows_reports_non_bool_override ... ok
+test asset::tests::assets::material::override_validation::material_owned_receive_shadows_reports_non_bool_override ... ok
+test asset::tests::assets::material::override_validation::material_owned_sort_fields_report_invalid_override_types ... ok
+test asset::tests::assets::material::override_validation::material_owned_taa_reactive_mask_strength_reports_invalid_override ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_cast_shadows_defaults_on_and_can_opt_out_without_shader_override ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_lighting_model_drives_standard_descriptor_without_shader_override ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_receive_shadows_defaults_on_and_can_opt_out_without_shader_override ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_render_queue_reports_blend_queue_alpha_conflict ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_render_queue_value_resolves_unity_queue_override ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_sort_fields_drive_standard_descriptor_without_shader_override ... ok
+test asset::tests::assets::material::owned_descriptor::material_owned_taa_reactive_mask_strength_drives_standard_descriptor_without_shader_override ... ok
+test asset::tests::assets::material::shader_readiness::material_asset_readiness_includes_shader_payload_readiness_diagnostics ... ok
+test asset::tests::assets::material::shader_readiness::material_asset_readiness_reports_material_local_diagnostics_without_blocking ... ok
+test asset::tests::assets::material::shader_readiness::material_asset_readiness_reports_unresolved_shader_import_redirect_dependency ... ok
+test asset::tests::assets::material::shader_readiness::material_asset_reports_missing_required_shader_texture_slot ... ok
+test asset::tests::assets::material::shader_readiness::material_asset_reports_shader_contract_diagnostics_without_blocking_import ... ok
+test asset::tests::assets::material::shader_readiness::shader_declared_texture_slot_overrides_standard_material_bridge ... ok
+test asset::tests::assets::physics_material::physics_material_asset_toml_roundtrip_preserves_combine_rules ... ok
+test asset::tests::assets::render_product::render_product_assets_material_dependencies_validation_and_readiness_are_structured ... ok
+test asset::tests::assets::render_product::render_product_assets_material_readiness_reports_unresolved_dependencies_and_fallbacks ... ok
+test asset::tests::assets::render_product::render_product_assets_material_rejects_invalid_alpha_mask_cutoff ... ok
+test asset::tests::project::asset_flow_sample::end_to_end::project_manager_imports_minimal_gltf_material_shader_mesh_sample ... ok
+test asset::tests::project::manager::restore_failure_migration::project_manager_reimports_material_when_ready_artifact_payload_is_stale ... ok
+test asset::tests::project::zmeta::shader_diagnostics_fixture::documented_zmeta_shader_material_fixture_parses ... ok
+test core::framework::physics::tests::body_collider_material_and_contact_sync_use_scene_identity ... ok
+test core::framework::render::core_pipeline::render_queue::tests::authored_queue_offsets_are_clamped_to_material_window ... ok
+test core::framework::render::frame_extract::geometry::tests::geometry_extract_excludes_material_override_entities_from_static_batches ... ok
+test core::framework::render::material::management::tests::page_navigation::material_management_page_info_reports_window_and_page_numbers ... ok
+test core::framework::render::material::management::tests::page_navigation::material_management_query_page_info_derives_navigation_requests ... ok
+test core::framework::render::material::management::tests::query_controls::material_management_query_controls_aggregate_filter_actions_and_page_chrome ... ok
+test core::framework::render::material::management::tests::query_controls::material_management_query_selection_exposes_query_controls ... ok
+test core::framework::render::material::management::tests::query_execution::material_management_query_filters_issue_kind_before_sorting_and_paging ... ok
+test core::framework::render::material::management::tests::query_execution::material_management_query_filters_sorts_and_pages ... ok
+test core::framework::render::material::management::tests::query_execution::material_management_query_selection_returns_page_details_in_display_order ... ok
+test core::framework::render::material::management::tests::query_execution::material_management_selection_preserves_request_order_and_missing_ids ... ok
+test core::framework::render::material::management::tests::query_facets::material_management_query_facets_build_status_and_issue_select_queries ... ok
+test core::framework::render::material::management::tests::query_facets::material_management_query_facets_selection_exposes_result_facets ... ok
+test core::framework::render::material::management::tests::query_filters::material_management_query_filters_list_active_filters_with_remove_queries ... ok
+test core::framework::render::material::management::tests::query_filters::material_management_query_state_exposes_active_filter_rows ... ok
+test core::framework::render::material::management::tests::query_result_actions::material_management_query_result_actions_offer_adjacent_pages ... ok
+test core::framework::render::material::management::tests::query_result_actions::material_management_query_result_actions_offer_filter_and_page_resets ... ok
+test core::framework::render::material::management::tests::query_result_actions::material_management_query_result_actions_query_selection_exposes_actions ... ok
+test core::framework::render::material::management::tests::query_result_state::material_management_query_result_state_classifies_empty_filtered_and_populated_pages ... ok
+test core::framework::render::material::management::tests::query_result_state::material_management_query_result_state_classifies_page_edge_cases ... ok
+test core::framework::render::material::management::tests::query_result_state::material_management_query_selection_exposes_result_state ... ok
+test core::framework::render::material::management::tests::query_state::material_management_query_state_reports_filters_sort_and_page ... ok
+test core::framework::render::material::management::tests::query_state::material_management_query_state_treats_empty_text_and_unpaged_query_as_inactive ... ok
+test core::framework::render::material::management::tests::record_views::material_management_issue_index_tracks_filtered_and_selected_issue_types ... ok
+test core::framework::render::material::management::tests::record_views::material_management_issue_summary_counts_filtered_and_selected_rows ... ok
+test core::framework::render::material::management::tests::record_views::material_management_issue_view_returns_rows_for_issue_kind ... ok
+test core::framework::render::material::management::tests::record_views::material_management_sort_orders_records_and_filtered_views ... ok
+test core::framework::render::material::property_override_block::tests::material_property_override_block_keeps_transparent_value_map_shape ... ok
+test core::framework::render::material::property_uniform::tests::material_property_uniform_payload_aligns_and_encodes_numeric_values ... ok
+test core::framework::render::material::property_uniform::tests::material_property_uniform_payload_applies_runtime_override_block ... ok
+test core::framework::render::material::property_uniform::tests::material_property_uniform_payload_records_unsupported_strings ... ok
+test core::framework::render::material::property_uniform::tests::material_property_uniform_payload_reports_invalid_override_block_entries ... ok
+test core::framework::render::material::property_uniform::tests::material_property_uniform_payload_reports_unsupported_diagnostics ... ok
+test core::framework::render::material::property_value::tests::material_property_value_state_lists_property_names_and_uniform_eligibility ... ok
+test core::framework::render::material::property_value::tests::material_property_value_summary_counts_projected_value_kinds ... ok
+test core::framework::render::material::readiness_report::tests::material_readiness_report_deduplicates_material_uniform_diagnostics ... ok
+test core::framework::render::material::readiness_report::tests::material_readiness_report_summary_counts_status_and_prepared_summaries ... ok
+test core::framework::render::material::readiness_report::tests::material_readiness_status_classifies_issue_severity ... ok
+test core::framework::render::material::shading_model::tests::gbuffer_channel_mask_reports_required_channel_overflow ... ok
+test core::framework::render::material::shading_model::tests::render_material_custom_lighting_model_waits_for_plugin_registration ... ok
+test core::framework::render::material::shading_model::tests::render_material_lighting_model_token_resolves_shading_id ... ok
+test core::framework::render::material::shading_model::tests::render_material_shading_model_id_roundtrips_gbuffer_encoding ... ok
+test core::framework::render::material::texture_slot_summary::tests::material_texture_slot_state_keeps_fallback_reference_and_reason ... ok
+test core::framework::render::material::texture_slot_summary::tests::material_texture_slot_state_lists_slot_keys_and_resolution_state ... ok
+test core::framework::render::material::texture_slot_summary::tests::material_texture_slot_summary_counts_authored_standard_slot_states ... ok
+test core::framework::render::material::texture_slot_summary::tests::material_texture_slot_summary_counts_resolved_and_fallback_slots ... ok
+test core::framework::render::relevance::tests::primitive_relevance_tracks_material_layer_and_motion_policy ... ok
+test core::framework::render::shader::ide_env::tests::shader_ide_generated_material_stub_path_is_scoped_by_source_uri ... ok
+test dynamic_api::shader_prewarm::tests::builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules ... ok
+test dynamic_api::shader_prewarm::tests::builtin_standard_material_shader_prewarm_manifest_projects_geometry_source ... ok
+test dynamic_api::shader_prewarm::tests::builtin_standard_material_shader_prewarm_manifest_projects_material_features ... ok
+test graphics::material::shading_models::builtins::tests::builtin_shading_model_registry_contains_three_surface_models ... ok
+test graphics::material::shading_models::builtins::tests::builtin_shading_model_registry_resolves_lighting_model_tokens ... ok
+test graphics::material::shading_models::include_sources::tests::exported_include_source_set_feeds_forward_and_gbuffer_template_requests ... ok
+test graphics::material::shading_models::include_sources::tests::project_shader_records_export_plugin_shading_model_include_sources ... ok
+test graphics::material::shading_models::include_sources::tests::project_shader_records_match_include_tokens_without_wgsl_extension ... ok
+test graphics::material::shading_models::include_sources::tests::project_shader_records_reject_duplicate_include_token_matches ... ok
+test graphics::material::shading_models::include_sources::tests::project_shader_records_report_missing_plugin_include_source ... ok
+test graphics::material::shading_models::include_sources::tests::project_shader_records_skip_builtin_shading_model_descriptors ... ok
+test graphics::material::shading_models::registry::tests::shading_model_registry_rejects_duplicate_id ... ok
+test graphics::material::shading_models::registry::tests::shading_model_registry_rejects_duplicate_token ... ok
+test graphics::material::shading_models::registry::tests::shading_model_registry_rejects_plugin_descriptor_in_builtin_id_range ... ok
+test graphics::material::shading_models::registry::tests::shading_model_registry_rejects_unsupported_required_channels ... ok
+test graphics::material::shading_models::registry::tests::shading_model_registry_resolves_registered_lighting_model_tokens ... ok
+test graphics::scene::render_product_material_property_tests::render_product_material_properties_prepare_uniform_payload ... ok
+test graphics::scene::render_product_material_property_tests::render_product_streamer_reports_material_uniform_diagnostics_for_shader_string_defaults ... ok
+test graphics::scene::render_product_material_property_tests::render_product_streamer_reports_material_uniform_diagnostics_in_readiness_report ... ok
+test graphics::scene::render_product_material_property_tests::render_product_streamer_reuses_material_uniforms_for_unchanged_revision ... ok
+test graphics::scene::render_product_material_property_tests::uniform_debug_counts::render_product_streamer_exposes_material_uniform_debug_counts ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::pbr_projection::render_product_pbr_streamer_projects_standard_material_into_runtime_key ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_pbr_streamer_keeps_authored_texture_key_bits_when_upload_falls_back ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_pbr_streamer_projects_cast_shadows_override ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_variant ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_pbr_streamer_projects_receive_shadows_override ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_streamer_prepares_shader_property_runtime_values ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_streamer_prepares_shader_texture_slot_runtime_mapping ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_streamer_projects_blinn_phong_shading_model_into_pipeline_key ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key ... ok
+test graphics::scene::render_product_streamer_tests::material_runtime::render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_pbr_streamer_records_missing_material_fallback_runtime ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_dependency_readiness_change_invalidates_material_cache ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_material_report_exposes_missing_shader_and_texture_fallbacks ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_material_report_includes_shader_readiness_diagnostics ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_repeated_blocking_material_ensure_remains_blocking ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_reports_shader_material_contract_diagnostics ... ok
+test graphics::scene::render_product_streamer_tests::readiness_diagnostics::render_product_streamer_reports_shader_material_layout_abi_diagnostics ... ok
+test graphics::scene::render_product_zshader_import_tests::render_product_streamer_reports_shader_material_layout_abi_diagnostics ... ok
+test graphics::scene::resources::gpu_material_uniform::gpu_material_uniform_resource::tests::standard_material_uniform_packs_alpha_cutoff_for_template_clip ... ok
+test graphics::scene::resources::gpu_material_uniform::gpu_material_uniform_resource::tests::standard_material_uniform_packs_pbr_scalars_without_property_schema_offsets ... ok
+test graphics::scene::resources::gpu_material_uniform::gpu_material_uniform_resource::tests::standard_material_uniform_packs_per_slot_texture_transforms ... ok
+test graphics::scene::resources::gpu_material_uniform::gpu_material_uniform_resource::tests::standard_material_uniform_packs_shading_model_id_for_gbuffer_encoding ... ok
+test graphics::scene::resources::gpu_texture::gpu_texture_resource_from_asset::tests::rgba8_material_texture_view_keeps_current_d2_binding_contract ... ok
+test graphics::scene::resources::pipeline::pipeline_key::tests::pipeline_key_derives_material_shader_variant_key ... ok
+test graphics::scene::resources::resource_streamer::resource_streamer_validate_material_shader_layout::tests::renderer_material_layout_diagnostics_accept_current_renderer_abi ... ok
+test graphics::scene::resources::resource_streamer::resource_streamer_validate_material_shader_layout::tests::renderer_material_layout_diagnostics_keep_empty_layout_opt_out ... ok
+test graphics::scene::resources::resource_streamer::resource_streamer_validate_material_shader_layout::tests::renderer_material_layout_diagnostics_report_missing_material_and_gpu_scene_groups ... ok
+test graphics::scene::resources::resource_streamer::resource_streamer_validate_material_shader_layout::tests::renderer_material_layout_diagnostics_validate_gpu_scene_and_material_bindings ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_execution_owned_graph_resources::tests::hzb_external_fallback_buffers_satisfy_materialization_report ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_execution_owned_graph_resources::tests::light_grid_external_fallback_buffers_satisfy_materialization_report ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_frame_graph_resources::tests::frame_binder_leaves_advanced_transients_for_materialization ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::render::bind_plugin_graph_resources::tests::plugin_external_fallback_buffers_satisfy_materialization_report ... ok
+test graphics::scene::scene_renderer::deferred::lighting_pipeline::tests::deferred_lighting_shader_decodes_shading_model_and_receive_shadow_flag_from_gbuffer_material_alpha ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_compatible_transient_texture_slots ... FAILED
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_transient_buffer_slots ... FAILED
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_creates_dense_transients_and_skips_sparse_reservations ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_exposes_owned_texture_mip_views ... FAILED
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_overrides_preimported_terminal_aa_input_with_owned_transient ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_receives_incompatible_texture_resources_in_separate_graph_slots ... FAILED
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::non_storage_texture_formats_do_not_request_storage_binding ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization::tests::storage_texture_formats_request_storage_binding ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_fails_unbound_required_external_buffer ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_fails_unbound_required_external_texture ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_rejects_stale_buffer_binding_outside_live_lifetimes ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_rejects_stale_texture_binding_outside_live_lifetimes ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_required_and_report_only_external_coverage_separately ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_unbound_compiled_lifetimes ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_unbound_external_lifetimes_without_failing ... ok
+test graphics::scene::scene_renderer::graph_execution::materialization_validation::tests::materialization_validation_reports_unbound_typed_optional_external_without_failing ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::fallback_tests::pending_command_cache_extract_records_material_phase_residual_fallback ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::lazy_rebuild_tests::pending_command_cache_extract_does_not_materialize_batch_for_material_phase_miss ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::non_material_rebuild::tests::alpha_mask_shadow_is_not_pre_mesh_draw_rebuildable ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::non_material_rebuild::tests::depth_and_material_phases_are_not_pre_mesh_draw_rebuildable ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::non_material_rebuild::tests::rebuilds_opaque_shadow_command_without_material_handles ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::second_frame_tests::pending_command_cache_extract_rebuilds_shadow_material_invalidation_before_mesh_draw ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_extract::tests::pending_command_cache_extract_rebuilds_non_material_miss_when_material_phase_hits ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::pending_command_cache_plan::tests::pending_command_cache_plan_counts_alpha_mask_without_shadow_material ... ok
+test graphics::scene::scene_renderer::mesh::build_mesh_draws::build::phase_ordering::tests::phase_ordered_meshes_apply_material_sort_offsets_to_extract_phase_queue ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pass::cached_mesh_draw_commands::tests::cached_mesh_draw_commands_invalidate_changed_material_revision ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pass::indirect_draw_batcher::tests::render_gpu_scene_indirect_batcher_groups_by_pipeline_geometry_material ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pass::processors::tests::render_mesh_draw_processor_opaque_preserves_material_slots_for_fallback_shader_selection ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline::create_gbuffer_mesh_pipeline::tests::gbuffer_mesh_pipeline_declares_albedo_material_targets_and_static_layout ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_variant_registry::tests::mesh_pipeline_variant_registry_derives_material_shader_variant_key ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_deferred_gbuffer_template_source_writes_albedo_and_material_targets ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_standard_material_shader_pass_source_keeps_depth_only_contract ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_standard_material_template_source_assembles_forward_base_source ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_standard_material_template_source_uses_requested_geometry_source ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::mesh_pipeline_taa_reactive_mask_template_source_uses_material_surface_without_lighting ... ok
+test graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::shader_source::tests::runtime_shading_model_sources::builtin_fallback_shader_loaded_as_surface_still_uses_standard_material_template ... ok
+test graphics::scene::scene_renderer::mesh::prepared_queue::tests::prepared_queue_stats_filter_material_shadow_casters_without_changing_phase_counts ... ok
+test graphics::scene::scene_renderer::post_process::resources::construct::create_pipeline_bundle::post_process_pipeline::tests::post_process_shader_samples_bound_scene_material_texture_for_ssr_roughness ... ok
+test graphics::shader::ide_env_generation::tests::shader_ide_env_writes_module_map_stubs_and_generated_material ... ok
+test graphics::shader::template::tests::render_shader_template_clips_alpha_for_masked_standard_material_passes ... ok
+test graphics::shader::template::tests::render_shader_template_rejects_reserved_material_symbols ... ok
+test graphics::shader::template::tests::render_shader_template_validates_standard_material_wgsl_with_naga ... ok
+test graphics::shader::template::tests::standard_material_surface_source_can_be_built_from_runtime_features ... ok
+test graphics::shader::template::tests::standard_material_surface_template::render_shader_template_assembles_standard_material_surface_source ... ok
+test graphics::shader::template::tests::surface_modules::render_shader_self_material_anchor_is_byte_identical_to_auto_injection ... ok
+test graphics::tests::pipeline_compile::dynamic_resolution::deferred_material_gbuffer_shaders_encode_and_decode_material_channels ... ok
+test graphics::tests::project_render::project_scenes::directory_project_material_shader_drives_pipeline_color_output ... ok
+test graphics::tests::project_render::project_scenes::export_runtime_shader_material_sphere_png ... ignored, manual screenshot export for the runtime material sphere
+test graphics::tests::project_render::render_quality::deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path ... ok
+test graphics::tests::project_render::render_quality::temporal_history_rotates_history_when_scene_material_changes ... ok
+test graphics::tests::render_product_anti_alias::reactive_mask::render_product_taa_authored_reactive_mask_records_material_writer_path ... ok
+test graphics::tests::render_product_camera_targets::custom_target::material_sampling::custom_target_chain_feeds_later_texture_and_primary_surface_samples ... ok
+test graphics::tests::render_product_camera_targets::custom_target::material_sampling::custom_target_stacks_feed_later_primary_surface_materials_independently ... ok
+test graphics::tests::render_product_camera_targets::custom_target::material_sampling::render_product_dual_camera_rt_then_main ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_product_png::export_custom_shading_model_deferred_lighting_product_png ... ignored, manual product PNG export for Plan 08 custom shading-model deferred-lighting readback
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_second_launch::render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_shading_model::render_product_custom_shading_model_deferred_lighting_readback_uses_project_include ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::custom_shading_model::render_product_custom_shading_model_registry_material_passes_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::live_registry_bridge::render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::live_registry_records::render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::manifest::tests::registry_material_pass_runtime_surface_source_uses_surface_entry_contract ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::product_png::export_project_plugin_registry_material_passes_product_png ... ignored, manual product PNG export for Plan 08 project/plugin registry material-pass staged prewarm
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::render_product_project_plugin_registry_material_passes_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_material_passes_staged_cache::second_launch::render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::project_plugin_registry_staged_cache::render_product_project_plugin_registry_materials_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_mesh_cache::render_product_static_mesh_material_revision_invalidates_pre_mesh_cache ... ok
+test graphics::tests::render_product_mesh_cache::staged_prewarm::material_passes::render_product_material_mesh_passes_second_launch_use_staged_prewarm_without_compile_miss ... ok
+test graphics::tests::render_product_submit::render_product_pbr_submit_reports_material_fallback_and_light_stats ... ok
+test graphics::tests::render_product_submit::render_product_submit_material_stats_count_material_uniform_diagnostics ... ok
+test graphics::tests::render_product_submit::render_product_submit_material_stats_count_non_blocking_diagnostics ... ok
+test graphics::tests::renderer_data_asset::asset_aware_compile::asset_aware_compile_reports_material_contract_diagnostics ... FAILED
+test graphics::tests::renderer_data_asset::asset_aware_compile::asset_aware_compile_reports_material_local_validation_diagnostics ... FAILED
+test graphics::tests::renderer_data_asset::asset_aware_compile::asset_aware_compile_reports_missing_shader_and_material_without_blocking_graph ... ok
+test graphics::tests::renderer_data_asset::renderer_feature_asset_builders_preserve_shader_material_contract_references ... ok
+test graphics::tests::renderer_data_compile_report::render_pipeline_compile_report_groups_diagnostics_by_feature_material_and_shader ... ok
+test graphics::tests::renderer_data_material_shader::asset_aware_compile_reports_material_owned_shader_missing ... ok
+test graphics::tests::renderer_data_material_shader::asset_aware_compile_reports_material_owned_shader_readiness_diagnostics ... ok
+test graphics::tests::renderer_data_material_shader::asset_aware_compile_uses_material_shader_for_material_only_contract_diagnostics ... ok
+test rhi::tests::descriptors::bind_group_layout_descriptors_cover_material_texture_and_sampler_bindings ... ok
+test rhi_wgpu::ui_surface::batching::tests::batch_plan_batches_disjoint_list_rows_by_depth_and_material ... ok
+test rhi_wgpu::ui_surface::pipeline::tests::ui_material_shader_exposes_surface_entry_points_and_material_helpers ... ok
+test rhi_wgpu::ui_surface::pipeline::tests::ui_material_shader_routes_fragment_outputs_through_material_helpers ... ok
+test scene::tests::asset_scene::mesh_bindings::scene_assets_roundtrip_primitive_mesh_material_bindings ... ok
+test tests::extensions::tech_stack_dependency_guard::export_archive_policy_allows_zip_only_for_archive_materializer ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_copies_runtime_package_without_source_crates ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_does_not_directly_resolve_package_id_outside_plugin_root ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_reports_missing_native_directory ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_reports_source_only_native_package ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_materialization_sanitizes_package_directory_names ... ok
+test tests::plugin_extensions::export_build_plan_native_dynamic::native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads ... ok
+test tests::runtime_absorption::naming_boundary::runtime_15_m2::asset_schema::material_asset_schema_v1::runtime_15_material_asset_schema_v1_defaults_use_versioned_names ... ok
+test tests::runtime_absorption::naming_boundary::runtime_15_m2::graphics::render_fixtures::runtime_15_render_material_stale_texture_fixtures_use_current_names ... FAILED
+test tests::runtime_absorption::structure_convention::graphics_dead_code::gpu_resource_owners::runtime_15_gpu_material_uniform_owner_cleanup ... ok
+test tests::runtime_absorption::structure_convention::graphics_dead_code::resource_streamer_cleanup::runtime_15_material_runtime_capture_seed_cleanup ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::asset_gltf_labeled_subassets::runtime_15_gltf_labeled_material_subassets_are_child_owner ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::material_asset::runtime_15_material_asset_management_records_are_child_owner ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::material_asset::runtime_15_material_asset_value_readiness_helpers_are_child_owners ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::material_runtime_pbr_projection_tests::runtime_15_material_runtime_pbr_projection_tests_are_child_owner ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::render_graph_materialization_tests::runtime_15_render_graph_materialization_tests_are_child_owner_split ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::render_material_management_tests::runtime_15_render_material_management_tests_are_child_owners ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::render_material_product_debug_counts_tests::runtime_15_render_material_product_debug_counts_tests_are_child_owner ... ok
+test tests::runtime_absorption::structure_convention::production_file_budget::render_material_readiness_report_tests::runtime_15_render_material_readiness_report_tests_are_child_owner ... ok
+test tests::runtime_absorption::structure_convention::render_pending_command_cache_material_boundary::runtime_15_pending_command_cache_material_bound_phases_stay_out_of_pre_mesh_rebuild ... ok
+test tests::runtime_absorption::structure_convention::test_file_budget::asset_tests::material::runtime_15_asset_material_tests_are_folder_backed ... FAILED
+test tests::runtime_absorption::structure_convention::test_file_budget::material_custom_shading_model_runtime::runtime_15_material_custom_shading_model_runtime_registry_is_wired ... ok
+test tests::runtime_absorption::structure_convention::test_file_budget::naming_boundary_asset_schema_material::runtime_15_asset_schema_material_guard_is_child_owner ... ok
+test tests::runtime_absorption::structure_convention::test_file_budget::shader_prewarm_manifest::builtin_template_source::runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired ... ok
+test tests::runtime_absorption::structure_convention::test_file_budget::shader_prewarm_project_plugin_registry_material_passes_staged_cache::runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired ... ok
+test tests::runtime_absorption::structure_convention::test_file_budget::ui_component_catalog_material_foundation::runtime_15_ui_component_catalog_material_foundation_tests_are_folder_backed ... ok
+test tests::runtime_absorption::structure_convention::test_file_budget::ui_material_layout::runtime_15_ui_material_layout_tests_are_folder_backed ... ok
+test ui::tests::asset::document_compiler::ui_asset_loader_materializes_recursive_tree_authority_in_memory ... ok
+test ui::tests::asset_component_contract::selector_parser_materializes_public_part_tokens ... ok
+test ui::tests::asset_component_reference_layout::ui_document_compiler_resolves_nested_material_role_tokens_in_props_and_styles ... ok
+test ui::tests::asset_mui_web_badge_style::mui_badge_zero_content_slot_invisibility_matches_local_material_contract ... ok
+test ui::tests::asset_mui_web_collection_style::mui_collection_utility_classes_match_local_material_contracts ... ok
+test ui::tests::asset_mui_web_form_style::form_controls::mui_web_form_utility_classes_match_local_material_contracts ... ok
+test ui::tests::asset_mui_web_layout_style::mui_web_layout_utility_classes_match_local_material_contracts ... ok
+test ui::tests::asset_mui_web_navigation_style::mui_web_navigation_utility_classes_match_local_material_contracts ... ok
+test ui::tests::asset_mui_web_surface_child_style::mui_surface_child_utility_classes_match_local_material_contracts ... ok
+test ui::tests::asset_prototype_store::flat_asset_loader_materializes_heap_prototype_without_recursive_tree ... ok
+test ui::tests::asset_schema_migration::flat_node_table_asset_materializes_recursive_tree_authority ... ok
+test ui::tests::component_catalog::component_state::button::material_button_family_applies_interaction_flags_through_public_reducer ... ok
+test ui::tests::component_catalog::component_state::button::material_button_family_preserves_commit_value_delivery ... ok
+test ui::tests::component_catalog::component_state::keyboard::action_selection::material_keyboard_action_activates_buttons_and_toggles_checked_controls ... ok
+test ui::tests::component_catalog::component_state::keyboard::action_selection::material_keyboard_action_moves_grouped_selection_controls ... ok
+test ui::tests::component_catalog::component_state::keyboard::action_selection::material_keyboard_action_moves_tabs_with_selection_following_focus ... ok
+test ui::tests::component_catalog::component_state::keyboard::action_selection::material_keyboard_action_skips_disabled_grouped_selection_options ... ok
+test ui::tests::component_catalog::component_state::keyboard::action_selection::material_keyboard_action_toggles_multiple_toggle_button_group_focused_option ... ok
+test ui::tests::component_catalog::component_state::keyboard::menu_navigation::material_keyboard_action_moves_menu_focus_without_committing_selection ... ok
+test ui::tests::component_catalog::component_state::keyboard::menu_navigation::material_keyboard_action_moves_tree_and_table_focus_by_index ... ok
+test ui::tests::component_catalog::component_state::keyboard::menu_navigation::material_keyboard_text_buffers_menu_prefix_across_key_events_until_expired ... ok
+test ui::tests::component_catalog::component_state::keyboard::menu_navigation::material_keyboard_text_matches_menu_prefix_without_committing_selection ... ok
+test ui::tests::component_catalog::component_state::keyboard::menu_navigation::material_keyboard_text_moves_menu_focus_by_first_character_without_committing_selection ... ok
+test ui::tests::component_catalog::component_state::keyboard::numeric_controls::material_keyboard_action_steps_numeric_controls_and_closes_popup_controls ... ok
+test ui::tests::component_catalog::component_state::keyboard::numeric_controls::material_keyboard_action_targets_range_slider_focused_thumb ... ok
+test ui::tests::component_catalog::component_state::keyboard::text_inputs::material_keyboard_text_appends_text_input_values_without_full_editing_policy ... ok
+test ui::tests::component_catalog::component_state::keyboard::text_inputs::material_keyboard_text_replaces_text_input_selection_and_updates_caret_state ... ok
+test ui::tests::component_catalog::component_state::overlay::material_selection_popups_update_retained_popup_flags_through_public_reducer ... ok
+test ui::tests::component_catalog::component_state::tree_view::material_tree_view_range_selection_writes_controlled_selected_items ... ok
+test ui::tests::component_catalog::component_state::tree_view::material_tree_view_writes_controlled_expanded_items_from_default_seed ... ok
+test ui::tests::component_catalog::component_state::windowing::material_pagination_events_update_retained_page_window ... ok
+test ui::tests::component_catalog::component_state::windowing::material_pagination_window_handles_empty_and_invalid_page_size ... ok
+test ui::tests::component_catalog::material_foundation::editor_components::material_editor_foundation_catalog_covers_editor_descriptor_contracts ... ok
+test ui::tests::component_catalog::material_foundation::folder_structure::material_editor_foundation_catalog_stays_folder_backed_by_family ... FAILED
+test ui::tests::component_catalog::material_foundation::mui_surface_overlay::material_editor_foundation_catalog_covers_mui_surface_overlay_contracts ... ok
+test ui::tests::component_catalog::material_foundation::mui_web_inventory::material_foundation_catalog_tracks_local_mui_lab_exports ... ok
+test ui::tests::component_catalog::material_foundation::mui_web_inventory::material_foundation_catalog_tracks_local_mui_material_exports ... ok
+test ui::tests::component_catalog::material_foundation::mui_x_runtime::material_editor_foundation_catalog_covers_mui_x_runtime_visibility_contracts ... ok
+test ui::tests::component_catalog::material_foundation::planned_layers::material_editor_foundation_catalog_covers_planned_component_layers ... ok
+test ui::tests::component_catalog::material_foundation::virtualization::material_virtualized_descriptors_expose_mui_web_aliases ... ok
+test ui::tests::component_catalog::material_foundation::virtualization::mui_data_grid_visible_range_can_derive_count_from_rows_and_disable_virtualization ... ok
+test ui::tests::component_catalog::material_foundation::virtualization::mui_virtual_range_reducer_accepts_react_window_aliases ... ok
+test ui::tests::material_button_style::material_button_style_resolves_near_scope_over_far_scope ... ok
+test ui::tests::material_button_style::material_button_style_resolves_slint_state_layer_priority ... ok
+test ui::tests::material_button_style::material_button_style_resolves_typed_values_from_v2_style_values ... ok
+test ui::tests::material_button_style::material_button_style_skips_expired_weak_scopes_and_uses_defaults ... ok
+test ui::tests::material_button_style::material_button_style_uses_override_before_cascade_and_normalizes_default_variant ... ok
+test ui::tests::material_layout::asset_icon_roles::asset_value_nodes_render_as_image_or_icon_not_text ... ok
+test ui::tests::material_layout::asset_icon_roles::common_native_material_roles_use_authored_layout_metrics ... FAILED
+test ui::tests::material_layout::asset_icon_roles::icon_button_label_is_accessibility_text_not_rendered_text ... FAILED
+test ui::tests::material_layout::button_icon_metrics::material_button_long_text_expands_beyond_default_frame_width ... FAILED
+test ui::tests::material_layout::button_icon_metrics::material_button_measures_text_plus_layout_padding ... FAILED
+test ui::tests::material_layout::button_icon_metrics::material_button_with_icon_adds_icon_size_and_spacing ... FAILED
+test ui::tests::material_layout::button_icon_metrics::material_icon_button_ignores_accessibility_label_for_intrinsic_text ... ok
+test ui::tests::material_layout::button_icon_metrics::material_icon_button_without_text_uses_icon_and_minimum_outer_size ... ok
+test ui::tests::material_layout::button_icon_metrics::material_icon_button_without_visual_icon_keeps_label_accessibility_only ... ok
+test ui::tests::material_layout::button_icon_metrics::material_icon_only_button_keeps_square_material_size ... ok
+test ui::tests::material_layout::constraints_children::material_button_respects_authored_fixed_constraints ... ok
+test ui::tests::material_layout::constraints_children::material_button_with_child_content_receives_padding_and_minimum_height ... FAILED
+test ui::tests::material_layout::constraints_children::material_list_field_and_switch_controls_keep_min_height ... ok
+test ui::tests::material_layout::field_values::material_fields_measure_visible_value_placeholder_and_options_text ... FAILED
+test ui::tests::material_layout::field_values::material_numeric_fields_measure_numeric_value_text ... FAILED
+test ui::tests::material_layout::field_values::material_options_measure_scalar_and_object_visible_text ... FAILED
+test ui::tests::material_layout::field_values::material_vector_fields_measure_visible_value_text ... FAILED
+test ui::tests::material_layout::field_values::text_field_placeholder_measures_without_becoming_editable_value ... FAILED
+test ui::tests::material_layout::row_label_metrics::material_label_with_layout_attributes_receives_conservative_padding ... FAILED
+test ui::tests::material_layout::row_label_metrics::material_menu_item_uses_list_row_height_and_horizontal_padding ... FAILED
+test ui::tests::material_layout::row_label_metrics::material_tab_uses_control_height_and_text_width_plus_padding ... FAILED
+test ui::tests::material_layout::row_label_metrics::material_table_row_uses_list_row_height_and_text_width_plus_padding ... FAILED
+test ui::tests::material_layout::row_label_metrics::plain_non_material_label_remains_text_only ... FAILED
+test ui::tests::runtime_input_reply_routes::tree_view_pointer_routes::drag_reorder::material_tree_view_items_reordering_reorders_items_array ... ok
+test ui::tests::runtime_input_reply_routes::tree_view_pointer_routes::selection::material_tree_view_secondary_release_begins_context_rename_for_clicked_item ... ok
+test ui::tests::runtime_input_reply_routes::tree_view_pointer_routes::selection::material_tree_view_shift_click_selects_anchor_to_target_range ... ok
+test ui::tests::scroll_virtualization::virtualized_list_only_materializes_visible_window ... ok
+test ui::tests::shared_core::scroll_mutation::property_mutation::surface_property_mutation_marks_material_layout_metadata_as_layout_dirty ... ok
+test ui::tests::v2_asset::demo_and_builder::editor_material_runtime_pseudo_states_rebuild_render_extract_variants ... ok
+test ui::tests::v2_asset::demo_and_builder::editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface ... ok
+test ui::tests::v2_asset::demo_and_builder::material_demo_window_compiles_and_resolves_material_dark_states ... ok
+
+failures:
+
+failures:
+    graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_compatible_transient_texture_slots
+    graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_aliases_transient_buffer_slots
+    graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_exposes_owned_texture_mip_views
+    graphics::scene::scene_renderer::graph_execution::materialization::tests::materialization_receives_incompatible_texture_resources_in_separate_graph_slots
+    graphics::tests::renderer_data_asset::asset_aware_compile::asset_aware_compile_reports_material_contract_diagnostics
+    graphics::tests::renderer_data_asset::asset_aware_compile::asset_aware_compile_reports_material_local_validation_diagnostics
+    tests::runtime_absorption::naming_boundary::runtime_15_m2::graphics::render_fixtures::runtime_15_render_material_stale_texture_fixtures_use_current_names
+    tests::runtime_absorption::structure_convention::test_file_budget::asset_tests::material::runtime_15_asset_material_tests_are_folder_backed
+    ui::tests::component_catalog::material_foundation::folder_structure::material_editor_foundation_catalog_stays_folder_backed_by_family
+    ui::tests::material_layout::asset_icon_roles::common_native_material_roles_use_authored_layout_metrics
+    ui::tests::material_layout::asset_icon_roles::icon_button_label_is_accessibility_text_not_rendered_text
+    ui::tests::material_layout::button_icon_metrics::material_button_long_text_expands_beyond_default_frame_width
+    ui::tests::material_layout::button_icon_metrics::material_button_measures_text_plus_layout_padding
+    ui::tests::material_layout::button_icon_metrics::material_button_with_icon_adds_icon_size_and_spacing
+    ui::tests::material_layout::constraints_children::material_button_with_child_content_receives_padding_and_minimum_height
+    ui::tests::material_layout::field_values::material_fields_measure_visible_value_placeholder_and_options_text
+    ui::tests::material_layout::field_values::material_numeric_fields_measure_numeric_value_text
+    ui::tests::material_layout::field_values::material_options_measure_scalar_and_object_visible_text
+    ui::tests::material_layout::field_values::material_vector_fields_measure_visible_value_text
+    ui::tests::material_layout::field_values::text_field_placeholder_measures_without_becoming_editable_value
+    ui::tests::material_layout::row_label_metrics::material_label_with_layout_attributes_receives_conservative_padding
+    ui::tests::material_layout::row_label_metrics::material_menu_item_uses_list_row_height_and_horizontal_padding
+    ui::tests::material_layout::row_label_metrics::material_tab_uses_control_height_and_text_width_plus_padding
+    ui::tests::material_layout::row_label_metrics::material_table_row_uses_list_row_height_and_text_width_plus_padding
+    ui::tests::material_layout::row_label_metrics::plain_non_material_label_remains_text_only
+
+test result: FAILED. 305 passed; 25 failed; 3 ignored; 0 measured; 6237 filtered out; finished in 134.20s
+

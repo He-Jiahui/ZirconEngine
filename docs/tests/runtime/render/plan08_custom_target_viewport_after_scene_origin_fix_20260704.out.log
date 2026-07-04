@@ -1,0 +1,11 @@
+
+running 1 test
+test graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_viewport_regions_feed_later_primary_surface_sample ... FAILED
+
+failures:
+
+failures:
+    graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_viewport_regions_feed_later_primary_surface_sample
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6489 filtered out; finished in 3.49s
+

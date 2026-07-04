@@ -1,0 +1,114 @@
+mod asset;
+mod geometry;
+mod paint;
+mod style;
+
+use crate::ui::retained_host::hierarchy_pointer::constants::{ROW_GAP, ROW_HEIGHT, ROW_Y};
+
+use super::super::super::data::{
+    FrameRect, HostPaneInteractionStateData, PaneData, TemplatePaneNodeData,
+};
+use super::super::super::paint_frame::HostRgbaFrame;
+use super::hierarchy::hierarchy_viewport_frame;
+use asset::{asset_tree_row_count, asset_tree_viewport_frame};
+use paint::draw_vertical_scrollbar;
+
+const ACTIVITY_ASSET_TREE_ROW_CONTROL: &str = "AssetsActivityTreeRowPanel";
+const BROWSER_ASSET_TREE_ROW_CONTROL: &str = "AssetBrowserSourcesRowPanel";
+
+pub(super) fn draw_hierarchy_scrollbar(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    let node_count = pane.hierarchy.hierarchy_nodes.row_count();
+    if node_count == 0 {
+        return false;
+    }
+    let viewport = hierarchy_viewport_frame(pane, body);
+    draw_vertical_scrollbar(
+        frame,
+        &viewport,
+        clip,
+        interaction.hierarchy_scroll_px,
+        hierarchy_content_extent(node_count),
+        interaction.hovered_hierarchy_index >= 0,
+    )
+}
+
+pub(super) fn draw_activity_asset_tree_scrollbar(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    draw_asset_tree_scrollbar(
+        frame,
+        &pane.assets_activity.nodes,
+        body,
+        clip,
+        ACTIVITY_ASSET_TREE_ROW_CONTROL,
+        interaction.activity_asset_tree_scroll_px,
+        interaction.activity_asset_tree_hovered_index >= 0,
+    )
+}
+
+pub(super) fn draw_browser_asset_tree_scrollbar(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    draw_asset_tree_scrollbar(
+        frame,
+        &pane.asset_browser.nodes,
+        body,
+        clip,
+        BROWSER_ASSET_TREE_ROW_CONTROL,
+        interaction.browser_asset_tree_scroll_px,
+        interaction.browser_asset_tree_hovered_index >= 0,
+    )
+}
+
+fn draw_asset_tree_scrollbar(
+    frame: &mut HostRgbaFrame,
+    nodes: &crate::ui::retained_host::primitives::ModelRc<TemplatePaneNodeData>,
+    body: &FrameRect,
+    clip: &FrameRect,
+    row_control_id: &str,
+    scroll_px: f32,
+    active: bool,
+) -> bool {
+    let row_count = asset_tree_row_count(nodes, row_control_id);
+    if row_count == 0 {
+        return false;
+    }
+    draw_vertical_scrollbar(
+        frame,
+        &asset_tree_viewport_frame(body),
+        clip,
+        scroll_px,
+        crate::ui::retained_host::asset_pointer::asset_tree_content_height(row_count),
+        active,
+    )
+}
+
+fn hierarchy_content_extent(node_count: usize) -> f32 {
+    if node_count == 0 {
+        0.0
+    } else {
+        ROW_Y * 2.0 + node_count as f32 * ROW_HEIGHT + (node_count as f32 - 1.0) * ROW_GAP
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn paint_scrollbar_component_for_test(width: u32, height: u32) -> Vec<u8> {
+    paint::paint_scrollbar_component_for_test(width, height)
+}
+
+#[cfg(test)]
+mod tests;

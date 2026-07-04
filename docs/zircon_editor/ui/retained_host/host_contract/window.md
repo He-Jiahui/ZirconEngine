@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_editor/src/ui/retained_host/run_config.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/diagnostics.rs
@@ -41,6 +43,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
 implementation_files:
+  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/constants.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/diagnostics.rs
@@ -100,7 +103,9 @@ tests:
   - window lifecycle/constants/metadata ownership scan
   - window presentation close-prompt/snapshot/template-hover ownership scan
   - window template-hover pane/node/row ownership scan
+  - cargo test -p zircon_editor --lib window_scale_factor_defaults_to_one_and_filters_invalid_values --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-layout-tier-logical-0705 --message-format short --color never -- --nocapture --test-threads=1
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
+  - cargo test -p zircon_editor first_presented_frame_exit_policy_defaults_off_and_can_be_enabled --lib --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-popup-preference-0704 --message-format short --color never -- --nocapture --test-threads=1
 doc_type: module-detail
 ---
 
@@ -148,6 +153,8 @@ Event-loop redraw drains this module-owned queue in `window/event_loop/redraw.rs
 
 This separation keeps platform lifecycle, event dispatch, input mapping, and present/redraw orchestration visible in the path while `window.rs` remains the stable API used by retained host callbacks and tests. The event-loop subtree may access `UiHostWindow` internals because it is a child of the window module, but it should not grow Workbench hit routing or text-editing semantics; those stay in `native_pointer.rs`, `native_keyboard.rs`, and the parent window state API.
 
+The bounded first-frame startup smoke follows the same ownership boundary. `EditorHostRunConfig` enables the default-off policy, `window/lifecycle.rs` stores it on `UiHostWindow`, `host_contract/globals/state.rs` holds the flag, and `window/event_loop/redraw/present.rs` exits only after a successful presenter `present(...)` and diagnostics overlay update. Normal editor windows leave the flag disabled.
+
 ## Text Input Ownership
 
 `window/text_input.rs` is now a structural entry for focused text handling. `window/text_input/edit.rs` owns text focus state checks, insertion, backspace, and commit entry dispatch. `window/text_input/edit/dispatch.rs` owns edited-value fanout to Welcome/showcase/inspector/asset/generic surface callbacks, and `window/text_input/edit/redraw.rs` owns text-focus redraw damage.
@@ -159,6 +166,8 @@ This separation keeps platform lifecycle, event dispatch, input mapping, and pre
 `window/handle.rs` owns the external `HostWindowHandle` API, native window position/size/visibility/maximized mutation, close-request callback registration, and snapshot capture through the retained presentation snapshot path. `window/handle/snapshot.rs` owns the `HostWindowSnapshot` payload, RGBA byte storage, and width/height accessors.
 
 This keeps handle-facing window mutation and snapshot byte packaging out of the `UiHostWindow` state boundary. The root window module still constructs handles because it owns the shared state, but the handle module owns the public operations exposed through the handle.
+
+The handle also exposes the retained host window scale factor. `HostContractState` stores a normalized `window_scale_factor` with a default of 1.0, `HostWindowHandle::scale_factor()` reads it, and `HostWindowHandle::set_scale_factor(...)` gives tests and host integration a narrow write path that filters invalid values back to 1.0. Native winit lifecycle sync updates that state from `Window::scale_factor()` when the platform window is available, so retained-host layout code can consume a stable host-contract fact instead of reaching into platform APIs.
 
 ## Template Hover Ownership
 
@@ -182,6 +191,7 @@ This keeps handle-facing window mutation and snapshot byte packaging out of the 
 - Keep refresh invalidation diagnostics and refresh overlay text mutation in `window/diagnostics.rs`.
 - Keep frame-update requests, redraw-region requests, external redraw queue coalescing, and external redraw drain accounting in `window/redraw.rs`.
 - Keep `HostWindowHandle`, native-window handle mutation, close callback registration, and snapshot capture in `window/handle.rs`; keep `HostWindowSnapshot` byte packaging and dimension accessors in `window/handle/snapshot.rs`.
+- Keep window scale-factor storage in `HostContractState`, handle accessors in `window/handle.rs`, and native platform scale sync in `window/event_loop/lifecycle.rs`; layout modules should consume the host contract value rather than reading winit directly.
 - Keep winit event matching, native presenter creation/fallback, IME toggling, pointer button mapping, scroll delta mapping, and redraw scheduling inside `window/event_loop.rs`; keep native-window construction in `window/event_loop/lifecycle/native_window.rs` and presenter backend creation/fallback in `window/event_loop/lifecycle/presenter.rs`.
 - Keep focused text-input edit entry points inside `window/text_input/edit.rs`, callback fanout inside `window/text_input/edit/dispatch.rs`, and redraw damage fallback inside `window/text_input/edit/redraw.rs`.
 - Keep focused key dispatch and native keyboard orchestration inside `window/text_input/keyboard.rs`, popup fallback inside `window/text_input/keyboard/popup.rs`, consumption decisions inside `window/text_input/keyboard/consumed.rs`, and unhandled keyboard forwarding inside `window/text_input/keyboard/unhandled.rs`.
@@ -242,3 +252,5 @@ The 2026-06-21 text-input edit/keyboard split reduced `window/text_input.rs` fro
 The 2026-06-21 text-input edit dispatch/redraw split reduced `window/text_input/edit.rs` from 110 lines to a 53-line edit entry. `edit/dispatch.rs` owns target callback fanout and asset dispatch source selection, while `edit/redraw.rs` owns text-focus redraw region fallback. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a window text-input edit dispatch/redraw ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
 
 The 2026-06-21 text-input keyboard popup/consumed/unhandled split reduced `window/text_input/keyboard.rs` from 109 lines to a 55-line keyboard orchestration entry. `keyboard/popup.rs` owns popup command/text-search fallback, `keyboard/consumed.rs` owns text-focus keyboard consumption checks, and `keyboard/unhandled.rs` owns shared runtime keyboard forwarding. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a window text-input keyboard popup/consumed/unhandled ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-07-05 logical-width breakpoint cutover added the retained host window scale-factor contract. `HostContractState` now defaults invalid or missing scale to 1.0, `window/handle.rs` exposes getter/setter access, and `window/event_loop/lifecycle.rs` syncs real winit `Window::scale_factor()` into the state before retained-host recompute. Validation used `cargo test -p zircon_editor --lib window_scale_factor_defaults_to_one_and_filters_invalid_values --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-layout-tier-logical-0705 --message-format short --color never -- --nocapture --test-threads=1`, which passed 1/1.

@@ -1,0 +1,18 @@
+runtime_text_editor_retained_pen_origin_raster_bearing
+status: passed-static-cargo-deferred
+artifact: docs/tests/runtime/text/runtime_text_editor_retained_pen_origin_raster_bearing_preview_20260705.png
+artifact_sha256: F563656405366859CE7E379E5472A3CD5D2EE137A20B1B946605D2EDA3BB0B5A
+root_cause:
+- Retained editor labels already had a stable layout pen origin, but the previous bitmap-left override allowed host-layout glyph.x to replace the current raster backend bearing.
+- On system UI fonts this can make glyph bitmaps appear shifted left or right even after the resolved font family is correct.
+fix:
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs keeps origin_x as the normal placement authority and uses raster.metrics.x_offset for bitmap-left placement.
+- RuntimeTextGlyph.x remains an invalid-origin fallback only.
+- zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs guards the origin-plus-raster-bearing path and the invalid-origin fallback.
+checks:
+- rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs: passed
+- static scan: draw/glyphs.rs contains origin_pixel_x + raster_metrics_x_offset normal placement authority.
+- preview inspected as readable validation diagram.
+- focused Cargo test/build deferred because external cargo/rustc lanes were already active.
+remaining:
+- Run focused cargo test for retained_glyph_bitmap_pixel_x_* and a live editor-window typography capture when the compile lane is idle.

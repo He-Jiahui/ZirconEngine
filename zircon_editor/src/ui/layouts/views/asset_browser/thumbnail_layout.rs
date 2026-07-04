@@ -1,4 +1,5 @@
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::retained_host::measure_runtime_text_width;
 
 use super::thumbnail_nodes::thumbnail_control_id;
 
@@ -27,7 +28,6 @@ const THUMBNAIL_TYPE_BADGE_MAX_WIDTH: f32 = 48.0;
 const THUMBNAIL_TYPE_BADGE_HEIGHT: f32 = 13.0;
 const THUMBNAIL_TYPE_BADGE_TEXT_INSET_X: f32 = 5.0;
 const THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE: f32 = 8.5;
-const THUMBNAIL_TYPE_BADGE_TEXT_WIDTH_RATIO: f32 = 0.56;
 const THUMBNAIL_TYPE_BADGE_PADDING_X: f32 = 6.0;
 const THUMBNAIL_TYPE_BADGE_MAX_WIDTH_RATIO: f32 = 0.55;
 const THUMBNAIL_META_ROW_GAP: f32 = 5.0;
@@ -196,12 +196,9 @@ fn thumbnail_type_badge_width(
     index: usize,
     text_width: f32,
 ) -> f32 {
-    let label_chars = node_text(nodes, &thumbnail_control_id("Type", index))
-        .map(|text| text.chars().count())
-        .unwrap_or(0) as f32;
-    let content_width =
-        label_chars * THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE * THUMBNAIL_TYPE_BADGE_TEXT_WIDTH_RATIO
-            + THUMBNAIL_TYPE_BADGE_PADDING_X * 2.0;
+    let label = node_text(nodes, &thumbnail_control_id("Type", index)).unwrap_or("");
+    let content_width = measure_runtime_text_width(label, THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE)
+        + THUMBNAIL_TYPE_BADGE_PADDING_X * 2.0;
     let badge_max_width = THUMBNAIL_TYPE_BADGE_MAX_WIDTH
         .min(text_width * THUMBNAIL_TYPE_BADGE_MAX_WIDTH_RATIO)
         .max(THUMBNAIL_TYPE_BADGE_MIN_WIDTH);
@@ -218,6 +215,42 @@ fn thumbnail_name_continuation_height(nodes: &[ViewTemplateNodeData], index: usi
         0.0
     } else {
         THUMBNAIL_NAME_CONTINUATION_LINE_HEIGHT
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn thumbnail_type_badge_width_uses_runtime_text_measurement() {
+        let nodes = vec![node(&thumbnail_control_id("Type", 0), "Label", "iiiiiiii")];
+        let text_width = 96.0;
+        let width = thumbnail_type_badge_width(&nodes, 0, text_width);
+        let content_width =
+            measure_runtime_text_width("iiiiiiii", THUMBNAIL_TYPE_BADGE_TEXT_FONT_SIZE)
+                + THUMBNAIL_TYPE_BADGE_PADDING_X * 2.0;
+        let max_width = THUMBNAIL_TYPE_BADGE_MAX_WIDTH
+            .min(text_width * THUMBNAIL_TYPE_BADGE_MAX_WIDTH_RATIO)
+            .max(THUMBNAIL_TYPE_BADGE_MIN_WIDTH);
+        let expected = content_width
+            .clamp(THUMBNAIL_TYPE_BADGE_MIN_WIDTH, max_width)
+            .max(0.0);
+
+        assert!(
+            (width - expected).abs() <= 0.01,
+            "expected {expected:.3}, got {width:.3}",
+        );
+    }
+
+    fn node(control_id: &str, role: &str, text: &str) -> ViewTemplateNodeData {
+        ViewTemplateNodeData {
+            control_id: control_id.into(),
+            role: role.into(),
+            text: text.into(),
+            frame: ViewTemplateFrameData::default(),
+            ..ViewTemplateNodeData::default()
+        }
     }
 }
 

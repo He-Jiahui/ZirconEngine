@@ -11,6 +11,14 @@ use super::create_texture_bundle::create_texture_bundle;
 
 impl OffscreenTarget {
     pub(crate) fn new(device: &wgpu::Device, size: UVec2) -> Self {
+        Self::new_with_render_size(device, size, size)
+    }
+
+    pub(crate) fn new_with_render_size(
+        device: &wgpu::Device,
+        size: UVec2,
+        render_size: UVec2,
+    ) -> Self {
         let final_color = create_texture_bundle(
             device,
             "zircon-offscreen-final-color",
@@ -23,7 +31,7 @@ impl OffscreenTarget {
         let scene_color = create_texture_bundle(
             device,
             "zircon-offscreen-scene-color",
-            size,
+            render_size,
             OFFSCREEN_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
@@ -32,7 +40,7 @@ impl OffscreenTarget {
         let global_illumination = create_texture_bundle(
             device,
             "zircon-offscreen-global-illumination",
-            size,
+            render_size,
             OFFSCREEN_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
@@ -41,7 +49,7 @@ impl OffscreenTarget {
         let bloom = create_texture_bundle(
             device,
             "zircon-offscreen-bloom",
-            size,
+            render_size,
             OFFSCREEN_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
@@ -50,42 +58,43 @@ impl OffscreenTarget {
         let gbuffer_albedo = create_texture_bundle(
             device,
             "zircon-offscreen-gbuffer-albedo",
-            size,
+            render_size,
             GBUFFER_ALBEDO_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         );
         let gbuffer_material = create_texture_bundle(
             device,
             "zircon-offscreen-gbuffer-material",
-            size,
+            render_size,
             GBUFFER_MATERIAL_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         );
         let normal = create_texture_bundle(
             device,
             "zircon-offscreen-normal",
-            size,
+            render_size,
             NORMAL_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         );
         let ambient_occlusion = create_texture_bundle(
             device,
             "zircon-offscreen-ambient-occlusion",
-            size,
+            render_size,
             wgpu::TextureFormat::Rgba8Unorm,
             wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
                 | wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_SRC,
         );
-        let depth = create_depth_texture(device, size);
+        let depth = create_depth_texture(device, render_size);
         let depth_view = depth.create_view(&wgpu::TextureViewDescriptor::default());
-        let cluster_dimensions = cluster_dimensions_for_size(size);
-        let cluster_buffer_bytes = cluster_buffer_bytes_for_size(size);
+        let cluster_dimensions = cluster_dimensions_for_size(render_size);
+        let cluster_buffer_bytes = cluster_buffer_bytes_for_size(render_size);
         let cluster_buffer = create_cluster_buffer(device, cluster_buffer_bytes);
 
         Self {
             size,
+            render_size,
             final_color: final_color.texture,
             final_color_view: final_color.view,
             global_illumination: global_illumination.texture,

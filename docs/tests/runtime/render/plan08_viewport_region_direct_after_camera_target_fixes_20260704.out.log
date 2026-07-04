@@ -1,0 +1,16 @@
+
+running 11 tests
+test graphics::runtime::render_framework::viewport_record::camera_history_key::tests::camera_history_key_distinguishes_same_entity_viewport_regions ... ok
+test graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene::history::copy_history_textures::tests::history_region_copy_clamps_dynamic_resolution_to_viewport_region ... ok
+test graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_overlay_inherits_base_viewport_region_before_primary_sample ... ok
+test graphics::tests::render_product_camera_targets::custom_target::viewport::custom_target_viewport_regions_feed_later_primary_surface_sample ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_clamps_camera_rect_to_target ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_clamps_fully_outside_rect_to_last_in_bounds_pixel ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_defaults_to_full_target_without_camera_rect ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_derives_origin_zero_region_for_graph_owned_targets ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_maps_local_postprocess_coords_to_physical_target_coords ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_preserves_output_rect_when_local_render_size_changes ... ok
+test graphics::types::viewport_render_region::tests::viewport_region_reports_local_rect_for_graph_owned_targets ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 6519 filtered out; finished in 6.08s
+

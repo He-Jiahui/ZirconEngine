@@ -14,11 +14,24 @@ mod shelf_allocator;
 mod upload;
 
 pub(crate) use bitmap_run::{
+    glyph_atlas_bitmap_prepared_upload_plan, glyph_atlas_bitmap_retry_frame_input,
+    glyph_atlas_bitmap_retry_frame_input_with_backpressure, glyph_atlas_bitmap_retry_frame_outcome,
+    glyph_atlas_bitmap_retry_plan, glyph_atlas_bitmap_retry_plan_with_backpressure,
     glyph_atlas_bitmap_run_plan, glyph_atlas_bitmap_run_plan_with_padding,
-    GlyphAtlasBitmapAllocationFailure, GlyphAtlasBitmapAllocationFailureReason,
-    GlyphAtlasBitmapGlyph, GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPlaceholderMode,
-    GlyphAtlasBitmapQueuedGlyph, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource,
-    GLYPH_BITMAP_ATLAS_PADDING_PX,
+    glyph_atlas_bitmap_staged_upload_plan, glyph_atlas_bitmap_texture_upload_request_plan,
+    glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapAllocationFailure,
+    GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasBitmapGlyph,
+    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapPlaceholderGlyph,
+    GlyphAtlasBitmapPlaceholderMode, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapQueuedGlyph, GlyphAtlasBitmapRetryBackpressurePolicy,
+    GlyphAtlasBitmapRetryFrameInput, GlyphAtlasBitmapRetryFrameOutcome, GlyphAtlasBitmapRetryPlan,
+    GlyphAtlasBitmapRetrySourceOrigin, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource,
+    GlyphAtlasBitmapStagedUpload, GlyphAtlasBitmapStagedUploadFailure,
+    GlyphAtlasBitmapStagedUploadFailureReason, GlyphAtlasBitmapStagedUploadPlan,
+    GlyphAtlasBitmapTextureUploadRequest, GlyphAtlasBitmapTextureUploadRequestPlan,
+    GlyphAtlasBitmapUploadCopy, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasBitmapUploadStagingFailure, GlyphAtlasBitmapUploadStagingFailureReason,
+    GlyphAtlasBitmapUploadStagingPlan, GLYPH_BITMAP_ATLAS_PADDING_PX,
 };
 pub(crate) use dirty::GlyphAtlasDirtyPage;
 pub(crate) use page::{
@@ -36,8 +49,17 @@ pub(crate) use raster_key::{
 pub(crate) use render_submission::{
     glyph_atlas_bitmap_render_submission_plan,
     glyph_atlas_bitmap_render_submission_plan_with_padding,
-    glyph_atlas_bitmap_render_submission_report, GlyphAtlasBitmapRenderSubmissionPlan,
-    GlyphAtlasBitmapRenderSubmissionReport,
+    glyph_atlas_bitmap_render_submission_report,
+    glyph_atlas_bitmap_retry_frame_driver_submit_with_config,
+    glyph_atlas_bitmap_retry_frame_submission_plan,
+    glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure,
+    glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding,
+    glyph_atlas_bitmap_retry_frame_submission_plan_with_padding,
+    glyph_atlas_bitmap_retry_frame_submission_report, GlyphAtlasBitmapRenderSubmissionPlan,
+    GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasBitmapRetryFrameDriverConfig,
+    GlyphAtlasBitmapRetryFrameDriverOutput, GlyphAtlasBitmapRetryFrameState,
+    GlyphAtlasBitmapRetryFrameStateReport, GlyphAtlasBitmapRetryFrameSubmissionPlan,
+    GlyphAtlasBitmapRetryFrameSubmissionReport,
 };
 pub(crate) use shelf_allocator::{GlyphAtlasAllocation, GlyphAtlasShelfAllocator};
 pub(crate) use upload::{

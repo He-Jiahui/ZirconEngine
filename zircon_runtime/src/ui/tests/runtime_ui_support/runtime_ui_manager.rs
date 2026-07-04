@@ -336,6 +336,7 @@ fn empty_scene_snapshot(viewport_size: UVec2) -> RenderSceneSnapshot {
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: crate::core::framework::render::EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,

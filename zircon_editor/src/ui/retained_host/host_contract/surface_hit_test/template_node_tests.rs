@@ -2,10 +2,12 @@ use std::rc::Rc;
 
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use crate::ui::retained_host::host_contract::data::{
-    HostWindowPresentationData, TemplateNodeFrameData, TemplatePaneMenuItemData,
+    FrameRect, HostWindowPresentationData, TemplateNodeFrameData, TemplatePaneMenuItemData,
     TemplatePaneNodeData, TemplatePaneOptionData,
 };
 use crate::ui::retained_host::host_contract::template_component_family::TemplateComponentFamily;
+use crate::ui::retained_host::host_contract::template_geometry::template_nodes_bounds;
+use crate::ui::retained_host::host_contract::template_popup_layout::template_option_row_frame_within;
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 use crate::ui::retained_host::to_host_contract_workbench_window_nodes;
 use zircon_runtime_interface::ui::binding::UiEventKind;
@@ -49,7 +51,10 @@ fn workbench_hit_test_routes_open_dropdown_option_rows() {
         "component_lab.input_dropdown.select"
     );
     assert_eq!(hit.value_text.as_str(), "option_a");
-    assert_eq!(hit.frame.y, 88.0);
+    assert_eq!(
+        hit.frame.y,
+        expected_option_row_frame(&presentation, "WorkbenchInputDropdown", 1).y
+    );
 }
 
 #[test]
@@ -185,7 +190,10 @@ fn workbench_hit_test_routes_dropdown_option_rows_above_control_when_bottom_clip
     assert_eq!(hit.control_id.as_str(), "WorkbenchInputDropdown");
     assert_eq!(hit.dispatch_kind.as_str(), "workbench_option");
     assert_eq!(hit.value_text.as_str(), "option_a");
-    assert_eq!(hit.frame.y, 60.0);
+    assert_eq!(
+        hit.frame.y,
+        expected_option_row_frame(&presentation, "WorkbenchInputDropdown", 1).y
+    );
 }
 
 #[test]
@@ -286,6 +294,40 @@ fn workbench_node(
         .filter_map(|row| presentation.workbench_window_nodes.row_data(row))
         .find(|node| node.control_id.as_str() == control_id)
         .unwrap_or_else(|| panic!("{control_id} should project to native host nodes"))
+}
+
+fn expected_option_row_frame(
+    presentation: &HostWindowPresentationData,
+    control_id: &str,
+    row: usize,
+) -> FrameRect {
+    let node = workbench_node(presentation, control_id);
+    let origin = workbench_template_origin(presentation);
+    let control_frame = FrameRect {
+        x: origin.x + node.frame.x,
+        y: origin.y + node.frame.y,
+        width: node.frame.width,
+        height: node.frame.height,
+    };
+    template_option_row_frame_within(
+        &node,
+        &control_frame,
+        node.structured_options.row_count(),
+        row,
+        &origin,
+    )
+    .unwrap_or_else(|| panic!("{control_id} option row {row} should project to a popup frame"))
+}
+
+fn workbench_template_origin(presentation: &HostWindowPresentationData) -> FrameRect {
+    let bounds = template_nodes_bounds(&presentation.workbench_window_nodes)
+        .expect("workbench template should expose non-empty bounds");
+    FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: bounds.width.max(bounds.x + bounds.width).max(1.0),
+        height: bounds.height.max(bounds.y + bounds.height).max(1.0),
+    }
 }
 
 fn model<T: Clone>(values: Vec<T>) -> ModelRc<T> {

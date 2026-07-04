@@ -2,6 +2,7 @@ use super::super::model::WorkbenchIconButtonContext;
 use super::super::palette::ICON_PANEL_SURFACE;
 use super::super::state::is_unavailable_icon_button_state;
 use super::declared::declared_icon_button_background;
+use super::toolbar_chrome::icon_toolbar_normal_chrome_enabled;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -34,6 +35,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_ba
         UiPainterResolvedState::Normal => {
             if context == WorkbenchIconButtonContext::Panel {
                 declared_icon_button_background(node).or(Some(ICON_PANEL_SURFACE))
+            } else if context == WorkbenchIconButtonContext::Toolbar
+                && icon_toolbar_normal_chrome_enabled(node)
+            {
+                Some(PALETTE.surface)
             } else {
                 None
             }

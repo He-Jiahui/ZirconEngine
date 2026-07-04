@@ -16,7 +16,10 @@ pub(crate) fn execute_post_process_pass_graph(
         .collect::<BTreeSet<_>>();
     if !executed_executor_ids.is_empty() {
         for node in &graph.nodes {
-            if executed_executor_ids.contains(post_process_effect_executor_id(node.kind)) {
+            if post_process_effect_executor_ids(node.kind)
+                .iter()
+                .any(|executor_id| executed_executor_ids.contains(*executor_id))
+            {
                 record.push_executed_post_process_node(node.name.clone());
             }
         }
@@ -48,34 +51,34 @@ pub(crate) fn execute_post_process_pass_graph(
     }
 }
 
-fn post_process_effect_executor_id(kind: PostProcessEffectKind) -> &'static str {
+fn post_process_effect_executor_ids(kind: PostProcessEffectKind) -> &'static [&'static str] {
     match kind {
-        PostProcessEffectKind::Blur => "post.blur",
-        PostProcessEffectKind::Bloom => "post.bloom",
-        PostProcessEffectKind::ColorLutBake => "post.color-lut-bake",
-        PostProcessEffectKind::DepthOfField => "post.depth-of-field",
-        PostProcessEffectKind::ExposureHistogram => "post.exposure.histogram",
-        PostProcessEffectKind::ExposureResolve => "post.exposure.resolve",
-        PostProcessEffectKind::MotionBlur => "post.motion-blur",
-        PostProcessEffectKind::SceneComposite => "post.scene-composite",
-        PostProcessEffectKind::TaaResolve => "temporal.taa-resolve",
-        PostProcessEffectKind::Uber => "post.uber",
+        PostProcessEffectKind::Blur => &["post.blur"],
+        PostProcessEffectKind::Bloom => &["post.bloom", "post.bloom-extract"],
+        PostProcessEffectKind::ColorLutBake => &["post.color-lut-bake"],
+        PostProcessEffectKind::DepthOfField => &["post.depth-of-field"],
+        PostProcessEffectKind::ExposureHistogram => &["post.exposure.histogram"],
+        PostProcessEffectKind::ExposureResolve => &["post.exposure.resolve"],
+        PostProcessEffectKind::MotionBlur => &["post.motion-blur"],
+        PostProcessEffectKind::SceneComposite => &["post.scene-composite"],
+        PostProcessEffectKind::TaaResolve => &["temporal.taa-resolve"],
+        PostProcessEffectKind::Uber => &["post.uber"],
         PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramid => {
-            "post.screen-space-reflection-reflection-pyramid"
+            &["post.screen-space-reflection-reflection-pyramid"]
         }
         PostProcessEffectKind::ScreenSpaceReflectionReflectionPyramidCoarse => {
-            "post.screen-space-reflection-reflection-pyramid-coarse"
+            &["post.screen-space-reflection-reflection-pyramid-coarse"]
         }
         PostProcessEffectKind::ScreenSpaceReflectionSpecularOcclusion => {
-            "post.screen-space-reflection-specular-occlusion"
+            &["post.screen-space-reflection-specular-occlusion"]
         }
         PostProcessEffectKind::ScreenSpaceReflectionResolve => {
-            "post.screen-space-reflection-resolve"
+            &["post.screen-space-reflection-resolve"]
         }
-        PostProcessEffectKind::Upscale => "post.upscale",
-        PostProcessEffectKind::OutputTransfer => "post.output-transfer",
-        PostProcessEffectKind::Fxaa => "post.fxaa",
-        PostProcessEffectKind::Smaa => "post.smaa",
+        PostProcessEffectKind::Upscale => &["post.upscale"],
+        PostProcessEffectKind::OutputTransfer => &["post.output-transfer"],
+        PostProcessEffectKind::Fxaa => &["post.fxaa"],
+        PostProcessEffectKind::Smaa => &["post.smaa"],
     }
 }
 
@@ -170,5 +173,33 @@ mod tests {
                 "uber".to_string(),
             ]
         );
+    }
+
+    #[test]
+    fn post_process_pass_graph_records_bloom_extract_executor_as_bloom_node() {
+        let resources = RenderGraphExecutionResources::new();
+        let graph = PostProcessPassGraph::from_ordered_nodes(
+            vec![
+                PostProcessPassNode::new("bloom", PostProcessEffectKind::Bloom)
+                    .with_required_inputs(["scene-color"])
+                    .with_produced_outputs(["bloom-texture"]),
+            ],
+            Vec::new(),
+            None,
+        );
+        let mut record = RenderGraphExecutionRecord::default();
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::PostProcess),
+            "bloom-extract",
+            "post.bloom-extract",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
+
+        execute_post_process_pass_graph(&graph, &resources, &mut record);
+
+        assert_eq!(record.executed_post_process_nodes(), &["bloom".to_string()]);
     }
 }

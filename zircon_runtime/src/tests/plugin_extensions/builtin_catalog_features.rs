@@ -207,6 +207,9 @@ fn rendering_features_are_blocked_on_server_target() {
             RuntimePluginId::Rendering,
             true,
             false,
+        )
+        .with_feature(
+            ProjectPluginFeatureSelection::new("rendering.contact_shadow").enabled(true),
         )],
     };
 

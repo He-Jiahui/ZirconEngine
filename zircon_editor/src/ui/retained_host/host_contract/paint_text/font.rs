@@ -104,10 +104,7 @@ pub(in crate::ui::retained_host::host_contract) fn font_request_for_face_with_pr
     }
 }
 
-pub(in crate::ui::retained_host::host_contract) fn measure_runtime_text_width(
-    text: &str,
-    font_size: f32,
-) -> f32 {
+pub(crate) fn measure_runtime_text_width(text: &str, font_size: f32) -> f32 {
     measure_runtime_text_width_with_style(text, font_size, UiTextRunPaintStyle::default())
 }
 
@@ -139,6 +136,7 @@ pub(in crate::ui::retained_host::host_contract) fn runtime_text_style_for_face(
     text_overflow: UiTextOverflow,
 ) -> UiResolvedStyle {
     let request = font_request_for_face(face);
+    let runtime_family = cached_host_font(request.clone()).runtime_family.clone();
     let font_size = if font_size.is_finite() && font_size > 0.0 {
         font_size
     } else {
@@ -150,7 +148,7 @@ pub(in crate::ui::retained_host::host_contract) fn runtime_text_style_for_face(
         UiResolvedStyle::default_line_height(font_size)
     };
     UiResolvedStyle {
-        font_family: Some(request.family.clone()),
+        font_family: Some(runtime_family),
         font_weight: request.weight,
         font_size,
         line_height,
@@ -163,7 +161,6 @@ pub(in crate::ui::retained_host::host_contract) fn runtime_text_style_for_face(
 struct HostTextFont {
     font: Option<Font>,
     bytes: Box<[u8]>,
-    #[cfg(test)]
     runtime_family: String,
     cache_key: u64,
 }
@@ -287,7 +284,6 @@ fn load_font_from_bytes(
         font: Some(font),
         cache_key: host_text_font_cache_key(request, runtime_family.as_str(), bytes.as_slice()),
         bytes: bytes.into_boxed_slice(),
-        #[cfg(test)]
         runtime_family,
     })
 }
@@ -298,7 +294,6 @@ fn unavailable_host_font(request: &HostTextFontRequest) -> HostTextFont {
         font: None,
         cache_key: host_text_font_cache_key(request, runtime_family.as_str(), &[]),
         bytes: Vec::<u8>::new().into_boxed_slice(),
-        #[cfg(test)]
         runtime_family,
     }
 }

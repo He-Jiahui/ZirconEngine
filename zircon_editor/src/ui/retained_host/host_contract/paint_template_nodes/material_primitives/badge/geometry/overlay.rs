@@ -1,9 +1,11 @@
-use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::super::super::{
+    data::{FrameRect, TemplatePaneNodeData},
+    paint_text::measure_runtime_text_width,
+};
 use super::anchor::badge_anchor_point;
 use super::metrics::{
     BADGE_DOT_EDGE, BADGE_DOT_RADIUS, BADGE_FONT_SIZE, BADGE_STANDARD_HEIGHT,
     BADGE_STANDARD_MIN_WIDTH, BADGE_STANDARD_PADDING_X, BADGE_STANDARD_RADIUS,
-    BADGE_TEXT_WIDTH_RATIO,
 };
 use super::model::BadgeTextFrame;
 
@@ -17,8 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
         (BADGE_DOT_EDGE, BADGE_DOT_EDGE)
     } else {
         (
-            (display.chars().count() as f32 * BADGE_FONT_SIZE * BADGE_TEXT_WIDTH_RATIO
-                + BADGE_STANDARD_PADDING_X * 2.0)
+            (measure_runtime_text_width(display, BADGE_FONT_SIZE) + BADGE_STANDARD_PADDING_X * 2.0)
                 .max(BADGE_STANDARD_MIN_WIDTH),
             BADGE_STANDARD_HEIGHT,
         )
@@ -47,7 +48,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
     rect: &FrameRect,
 ) -> BadgeTextFrame {
     let line_height = BADGE_FONT_SIZE;
-    let text_width = (display.chars().count() as f32 * BADGE_FONT_SIZE * BADGE_TEXT_WIDTH_RATIO)
+    let text_width = measure_runtime_text_width(display, BADGE_FONT_SIZE)
         .min(rect.width)
         .max(1.0);
     BadgeTextFrame {
@@ -59,5 +60,65 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
         },
         font_size: BADGE_FONT_SIZE,
         line_height,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rect() -> FrameRect {
+        FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 80.0,
+            height: 40.0,
+        }
+    }
+
+    #[test]
+    fn badge_overlay_frame_uses_runtime_text_width_with_padding() {
+        let node = TemplatePaneNodeData::default();
+        let display = "WWW iii";
+        let frame = badge_overlay_frame(&node, &rect(), display, false);
+        let expected_width = (measure_runtime_text_width(display, BADGE_FONT_SIZE)
+            + BADGE_STANDARD_PADDING_X * 2.0)
+            .max(BADGE_STANDARD_MIN_WIDTH)
+            .round()
+            .max(1.0);
+
+        assert!((frame.width - expected_width).abs() <= 0.01);
+        let old_heuristic_width = (display.chars().count() as f32 * BADGE_FONT_SIZE * 0.56
+            + BADGE_STANDARD_PADDING_X * 2.0)
+            .max(BADGE_STANDARD_MIN_WIDTH)
+            .round()
+            .max(1.0);
+        assert!((expected_width - old_heuristic_width).abs() > 0.25);
+    }
+
+    #[test]
+    fn badge_overlay_text_frame_uses_runtime_text_width() {
+        let display = "WWW iii";
+        let overlay = FrameRect {
+            width: 160.0,
+            ..rect()
+        };
+        let text_frame = badge_overlay_text_frame(display, &overlay);
+        let expected_width = measure_runtime_text_width(display, BADGE_FONT_SIZE)
+            .min(overlay.width)
+            .max(1.0);
+
+        assert!((text_frame.rect.width - expected_width).abs() <= 0.01);
+    }
+
+    #[test]
+    fn badge_overlay_text_frame_clamps_measured_width_to_overlay_width() {
+        let overlay = FrameRect {
+            width: 20.0,
+            ..rect()
+        };
+        let text_frame = badge_overlay_text_frame("Long badge overlay", &overlay);
+
+        assert!((text_frame.rect.width - overlay.width).abs() <= 0.01);
     }
 }

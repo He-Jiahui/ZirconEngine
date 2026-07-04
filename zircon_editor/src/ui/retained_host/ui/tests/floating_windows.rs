@@ -176,6 +176,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
         &fixture.layout,
         &fixture.descriptors,
         crate::ui::workbench::autolayout::ShellSizePx::new(1440.0, 900.0),
+        1.0,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         None,
     );
@@ -265,6 +266,7 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
         &fixture.layout,
         &fixture.descriptors,
         crate::ui::workbench::autolayout::ShellSizePx::new(1440.0, 900.0),
+        1.0,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         None,
     );
@@ -355,6 +357,7 @@ fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projectio
         &fixture.layout,
         &fixture.descriptors,
         crate::ui::workbench::autolayout::ShellSizePx::new(1440.0, 900.0),
+        1.0,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         None,
     );

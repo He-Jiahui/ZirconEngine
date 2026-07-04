@@ -5,13 +5,14 @@ use crate::ui::retained_host::{
     paint_template_nodes_for_test, TemplateNodeFrameData, TemplatePaneNodeData,
     TemplatePaneOptionData,
 };
+use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 
 const BACKGROUND: [u8; 4] = [0, 0, 0, 255];
-const POPUP_SURFACE: [u8; 4] = [14, 18, 23, 255];
-const POPUP_BORDER: [u8; 4] = [75, 98, 109, 255];
-const SEARCH_SURFACE: [u8; 4] = [18, 24, 30, 255];
-const FOCUS_RING: [u8; 4] = [128, 234, 255, 255];
-const SELECTED_ROW: [u8; 4] = [15, 101, 116, 255];
+const POPUP_SURFACE: [u8; 4] = EditorPaletteTokens::WORKBENCH_POPUP;
+const POPUP_BORDER: [u8; 4] = EditorPaletteTokens::WORKBENCH_BORDER;
+const SEARCH_SURFACE: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE_RECESSED;
+const FOCUS_RING: [u8; 4] = EditorPaletteTokens::WORKBENCH_FOCUS_RING;
+const SELECTED_ROW: [u8; 4] = EditorPaletteTokens::WORKBENCH_SURFACE[3];
 
 #[test]
 fn native_template_painter_draws_command_palette_panel_search_and_rows() {
@@ -37,7 +38,7 @@ fn native_template_painter_draws_command_palette_panel_search_and_rows() {
     assert_eq!(pixel(&bytes, 208, 24, 24), SEARCH_SURFACE);
     assert_eq!(pixel(&bytes, 208, 96, 18), FOCUS_RING);
     assert_eq!(pixel(&bytes, 208, 160, 66), SELECTED_ROW);
-    assert_eq!(pixel(&bytes, 208, 16, 66), FOCUS_RING);
+    assert_eq!(pixel(&bytes, 208, 16, 66), POPUP_BORDER);
     assert_eq!(pixel(&bytes, 208, 160, 92), POPUP_SURFACE);
     assert_eq!(pixel(&bytes, 208, 204, 12), BACKGROUND);
 }

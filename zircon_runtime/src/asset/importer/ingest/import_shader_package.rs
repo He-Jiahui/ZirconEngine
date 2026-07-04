@@ -13,7 +13,7 @@ use crate::asset::{
 };
 use crate::core::framework::render::{
     derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
-    wgsl_include_paths, ShaderAssetKind, ShaderImportPathDerivation,
+    strip_wgsl_include_directives, wgsl_include_paths, ShaderAssetKind, ShaderImportPathDerivation,
     ShaderImportPathDerivationError, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceKind};
@@ -45,13 +45,7 @@ pub(crate) fn import_shader_package(
     let import_path = document_import_path(&document, derived_import_path, &mut import_diagnostics)
         .map_err(|error| shader_import_path_derivation_error(&context.uri, &zshader_path, error))?;
     let entry_points = if document.entry_points().is_empty() {
-        match validate_wgsl(&context.uri, &wgsl_source) {
-            Ok((module, _info)) => shader_entry_points(&module),
-            Err(error) => {
-                validation_diagnostics.push(error.to_string());
-                Vec::new()
-            }
-        }
+        package_shader_entry_points(&context.uri, &wgsl_source, &mut validation_diagnostics)
     } else {
         document
             .entry_points()
@@ -176,6 +170,21 @@ pub(crate) fn import_shader_package(
         outcome = outcome.with_entry(data_entry_for_file(context, &path, "wgsl", source)?);
     }
     Ok(outcome)
+}
+
+fn package_shader_entry_points(
+    uri: &AssetUri,
+    wgsl_source: &str,
+    validation_diagnostics: &mut Vec<String>,
+) -> Vec<ShaderEntryPointAsset> {
+    let entry_point_source = strip_wgsl_include_directives(wgsl_source);
+    match validate_wgsl(uri, &entry_point_source) {
+        Ok((module, _info)) => shader_entry_points(&module),
+        Err(error) => {
+            validation_diagnostics.push(error.to_string());
+            Vec::new()
+        }
+    }
 }
 
 fn derive_document_import_path(
@@ -537,6 +546,7 @@ mod tests {
         append_shader_module_diagnostics, document_import_path, ShaderImportPathDerivationError,
         ShaderImportRedirectAsset, ZShaderDocumentV2,
     };
+    use crate::asset::AssetUri;
 
     #[test]
     fn zshader_import_diagnostics_report_undeclared_wgsl_include() {
@@ -561,6 +571,32 @@ wgsl_files = ["surface.wgsl"]
         assert!(diagnostics
             .iter()
             .any(|diagnostic| diagnostic.contains("project::math")));
+    }
+
+    #[test]
+    fn zshader_package_entry_point_discovery_strips_include_directives() {
+        let mut diagnostics = Vec::new();
+        let entry_points = super::package_shader_entry_points(
+            &AssetUri::parse("res://shaders/include_surface").unwrap(),
+            r#"
+#include <project::math>
+#include <self::material>
+
+@fragment
+fn fs_main() -> @location(0) vec4f {
+    return vec4f(1.0);
+}
+"#,
+            &mut diagnostics,
+        );
+
+        assert_eq!(entry_points.len(), 1);
+        assert_eq!(entry_points[0].name, "fs_main");
+        assert_eq!(entry_points[0].stage, "fragment");
+        assert!(
+            diagnostics.is_empty(),
+            "include directives should not block package entry point discovery: {diagnostics:?}"
+        );
     }
 
     #[test]

@@ -1,15 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;
-use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
-#[cfg(test)]
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
-
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SEARCH_ICON_SIZE: f32 =
-    16.0;
-#[cfg(test)]
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SEARCH_FIELD_MAX_HEIGHT: f32 =
-    METRICS.row_height + (METRICS.border_width * 4.0);
+use super::metrics::workbench_field_metrics;
 
 const SEARCH_FIELD_ICON: &str = "search";
 
@@ -28,11 +20,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_sear
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_text_left(
     node: &TemplatePaneNodeData,
 ) -> f32 {
-    let metrics = current_host_metrics();
+    let metrics = workbench_field_metrics();
     if is_search_field(node) {
-        metrics.input_pad[0] + SEARCH_ICON_SIZE + metrics.gap_s
+        metrics.search_text_left
     } else {
-        metrics.input_pad[0]
+        metrics.input_pad_left
     }
 }
 
@@ -40,8 +32,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
     node: &TemplatePaneNodeData,
     rect: FrameRect,
 ) -> FrameRect {
-    let metrics = current_host_metrics();
-    let max_height = metrics.row_height + (metrics.border_width * 4.0);
+    let metrics = workbench_field_metrics();
+    let max_height = metrics.search_max_height;
     if !is_search_field(node) || rect.height <= max_height {
         return rect;
     }
@@ -87,8 +79,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         return;
     }
 
-    let metrics = current_host_metrics();
-    let ring = search_icon_ring_rect(&icon, metrics.gap_m);
+    let metrics = workbench_field_metrics();
+    let ring = search_icon_ring_rect(&icon, metrics.search_fallback_ring_size);
     commands.push(HostPaintCommand::quad(
         ring.clone(),
         Some(clip.clone()),
@@ -96,7 +88,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
         None,
         Some(color),
         metrics.border_width,
-        metrics.gap_m * 0.5,
+        metrics.search_fallback_radius,
         opacity,
     ));
 
@@ -119,21 +111,21 @@ fn search_identity_text(value: &str) -> bool {
 }
 
 fn search_icon_rect(rect: &FrameRect) -> FrameRect {
-    let metrics = current_host_metrics();
-    let icon_left = (rect.x + metrics.input_pad[0]).round();
-    let icon_top = (rect.y + (rect.height - SEARCH_ICON_SIZE).max(0.0) * 0.5).round();
+    let metrics = workbench_field_metrics();
+    let icon_left = (rect.x + metrics.input_pad_left).round();
+    let icon_top = (rect.y + (rect.height - metrics.search_icon_size).max(0.0) * 0.5).round();
     FrameRect {
         x: icon_left,
         y: icon_top,
-        width: SEARCH_ICON_SIZE,
-        height: SEARCH_ICON_SIZE,
+        width: metrics.search_icon_size,
+        height: metrics.search_icon_size,
     }
 }
 
 fn search_icon_ring_rect(icon: &FrameRect, ring_size: f32) -> FrameRect {
     FrameRect {
-        x: icon.x + ((SEARCH_ICON_SIZE - ring_size) * 0.5).round(),
-        y: icon.y + ((SEARCH_ICON_SIZE - ring_size) * 0.5).round(),
+        x: icon.x + ((icon.width - ring_size) * 0.5).round(),
+        y: icon.y + ((icon.height - ring_size) * 0.5).round(),
         width: ring_size,
         height: ring_size,
     }

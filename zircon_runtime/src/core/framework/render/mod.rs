@@ -6,6 +6,7 @@ mod camera_ordering;
 mod camera_stack;
 mod capture;
 mod core_pipeline;
+mod environment;
 mod frame_extract;
 mod frame_phase_queue_summary;
 mod framework;
@@ -83,6 +84,15 @@ pub use core_pipeline::{
     RenderPhaseQueueSummaryPhaseOrderSpan, RenderPhaseSortComponents, RenderPhaseSortDecision,
     RenderPhaseSortDecisionField, RenderPhaseSortKey, RenderPhaseSortKeyBreakdown,
     RenderQueueValue, SpritePhaseInput, RENDER_PHASES_BY_QUEUE_ORDER,
+};
+pub use environment::{
+    build_sampled_equirect_mip_chain, reflection_capture_mip_from_roughness,
+    reflection_capture_roughness_from_mip, EnvironmentExtract, IblBakeKey, ProceduralSkyParams,
+    SampledEquirectangularEnvironment, SampledEquirectangularSamples, SkyboxMode, SkyboxSettings,
+    EMPTY_SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLES, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,
+    SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT, SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH,
+    SAMPLED_EQUIRECT_ENVIRONMENT_HEIGHT, SAMPLED_EQUIRECT_ENVIRONMENT_MIP_COUNT,
+    SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT, SAMPLED_EQUIRECT_ENVIRONMENT_WIDTH,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,

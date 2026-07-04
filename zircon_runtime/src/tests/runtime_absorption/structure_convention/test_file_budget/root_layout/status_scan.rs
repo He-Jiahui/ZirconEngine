@@ -153,6 +153,7 @@ fn runtime_15_test_file_budget_root_layout_status_scan_is_child_owner() {
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/sources.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/legacy_maps.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_expected_slices/legacy_group_maps.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data.rs",
         "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/module_layout.rs",

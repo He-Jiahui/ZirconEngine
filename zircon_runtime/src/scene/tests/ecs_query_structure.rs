@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 const EXPECTED_QUERY_STATE_MODULES: &[&str] = &[
     "cache",
     "cached_direct",
-    "helpers",
+    "many_item_array",
     "mod",
     "mutable",
     "read_only",

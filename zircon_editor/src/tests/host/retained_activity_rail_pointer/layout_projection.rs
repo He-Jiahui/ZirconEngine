@@ -30,6 +30,7 @@ fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_
         &harness.runtime.current_layout(),
         &harness.runtime.descriptors(),
         ShellSizePx::new(1280.0, 720.0),
+        1.0,
         &WorkbenchChromeMetrics::default(),
         None,
     );

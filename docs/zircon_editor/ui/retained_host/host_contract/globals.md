@@ -48,6 +48,7 @@ tests:
   - globals callback host/pane/type ownership scan
   - scoped whitespace scan
   - scoped git diff --check
+  - cargo test -p zircon_editor --lib window_scale_factor_defaults_to_one_and_filters_invalid_values --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-layout-tier-logical-0705 --message-format short --color never -- --nocapture --test-threads=1
 doc_type: module-detail
 ---
 
@@ -57,7 +58,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`globals/state.rs` keeps `HostContractState` as the single state cell behind `UiHostWindow`. Window size, visibility, presentation snapshots, diagnostics counters, redraw queue state, viewport image data, menu/pane interaction state, drag/resize state, focused text input, Welcome pane state, and callback registries all live in this state object.
+`globals/state.rs` keeps `HostContractState` as the single state cell behind `UiHostWindow`. Window size, window scale factor, visibility, presentation snapshots, diagnostics counters, redraw queue state, viewport image data, menu/pane interaction state, drag/resize state, focused text input, Welcome pane state, and callback registries all live in this state object.
 
 `globals/ui_context.rs` exposes host-level state and chrome callbacks: menu pointer events, activity rail clicks, document and drawer tab clicks, floating header clicks, drag/resize forwarding, frame requests, close-prompt actions, and unhandled keyboard forwarding.
 
@@ -90,6 +91,7 @@ This shape follows the 08 M3.S2 owner-shrink rule: root files keep stable module
 ## Edge Cases And Constraints
 
 - `HostContractState` must remain the only shared storage cell used by both contexts.
+- Window scale factor must remain normalized at the state boundary. Invalid, non-finite, or non-positive values fall back to 1.0 before layout code observes them.
 - Callback invocation must not keep a mutable or immutable state borrow across callback execution.
 - Callback storage stays private to the globals subtree; external modules should register/invoke through the context methods.
 - Pane methods that are still placeholders should not silently grow into routing or projection logic inside `globals.rs`; concrete pane behavior belongs in the pane conversion, callback dispatch, native pointer, or template-node owner.
@@ -103,6 +105,8 @@ The 2026-06-21 callback host/pane/type split reduced `globals/callbacks.rs` from
 The 2026-06-21 pane-context setters/callbacks split reduced `globals/pane_context.rs` from 161 lines to a 22-line context wrapper entry. `pane_context/setters.rs` is 114 lines and owns pane state setter/placeholders plus direct retained state mutations, while `pane_context/callbacks.rs` is 51 lines and owns pane callback registration/invocation macro expansion. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a globals pane-context setters/callbacks ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
 
 The 2026-06-21 pane-context setter family split reduced `globals/pane_context/setters.rs` from 114 lines to a 4-line structural entry. `setters/welcome.rs` owns Welcome/project-overview state setters, `setters/viewport.rs` owns viewport image conversion and mesh-import placeholder, `setters/asset_data.rs` owns asset pane projected-data placeholders, and `setters/interaction.rs` owns hierarchy/asset interaction state mutation plus remaining scroll/hover placeholders. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a globals pane-context setter family ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check and full Cargo tests remain deferred per the user's feature-first instruction.
+
+The 2026-07-05 logical-width breakpoint cutover added normalized `window_scale_factor` storage to `HostContractState` so retained host layout can consume DPI scale through the same shared state cell as size and visibility. Validation used `cargo test -p zircon_editor --lib window_scale_factor_defaults_to_one_and_filters_invalid_values --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-layout-tier-logical-0705 --message-format short --color never -- --nocapture --test-threads=1`, which passed 1/1.
 
 ## Plan Sources
 

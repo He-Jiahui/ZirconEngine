@@ -8,8 +8,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::workbench::autolayout::{
-    compact_bottom_height_limit, compact_side_width_limit, right_drawer_should_collapse_for_width,
-    ShellRegionId, WorkbenchChromeMetrics,
+    compact_bottom_height_limit, compact_side_width_limit,
+    right_drawer_should_collapse_for_physical_width, ShellRegionId, WorkbenchChromeMetrics,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -89,11 +89,22 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         model: &WorkbenchViewModel,
         metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.recompute_layout_with_workbench_model_at_scale(shell_size, 1.0, model, metrics)
+    }
+
+    pub(crate) fn recompute_layout_with_workbench_model_at_scale(
+        &mut self,
+        shell_size: UiSize,
+        scale_factor: f32,
+        model: &WorkbenchViewModel,
+        metrics: &WorkbenchChromeMetrics,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.recompute_layout(shell_size)?;
         let anchors = self.componentized_drawer_layout_anchors(shell_size);
         apply_workbench_drawer_layout_to_surface(
             &mut self.template_surface.surface,
             shell_size,
+            scale_factor,
             model,
             metrics,
             anchors,
@@ -123,6 +134,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 fn apply_workbench_drawer_layout_to_surface(
     surface: &mut UiSurface,
     shell_size: UiSize,
+    scale_factor: f32,
     model: &WorkbenchViewModel,
     metrics: &WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
@@ -130,6 +142,7 @@ fn apply_workbench_drawer_layout_to_surface(
     apply_workbench_drawer_layout(
         surface,
         shell_size,
+        scale_factor,
         WorkbenchDrawerLayoutInputs::from_workbench_model(model, metrics),
         *metrics,
         anchors,
@@ -139,6 +152,7 @@ fn apply_workbench_drawer_layout_to_surface(
 fn apply_workbench_drawer_layout(
     surface: &mut UiSurface,
     shell_size: UiSize,
+    scale_factor: f32,
     drawer_inputs: WorkbenchDrawerLayoutInputs,
     metrics: WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
@@ -148,12 +162,14 @@ fn apply_workbench_drawer_layout(
         drawer_inputs.left,
         ShellRegionId::Left,
         shell_size,
+        scale_factor,
         rail_width,
     );
     let right = compacted_side_region_input(
         drawer_inputs.right,
         ShellRegionId::Right,
         shell_size,
+        scale_factor,
         rail_width,
     );
     let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics, anchors);
@@ -191,13 +207,16 @@ fn compacted_side_region_input(
     region: WorkbenchDrawerRegionInput,
     side: ShellRegionId,
     shell_size: UiSize,
+    scale_factor: f32,
     rail_width: f32,
 ) -> WorkbenchDrawerRegionInput {
     if !region.visible {
         return region;
     }
 
-    if side == ShellRegionId::Right && right_drawer_should_collapse_for_width(shell_size.width) {
+    if side == ShellRegionId::Right
+        && right_drawer_should_collapse_for_physical_width(shell_size.width, scale_factor)
+    {
         return WorkbenchDrawerRegionInput {
             extent: rail_width,
             ..region

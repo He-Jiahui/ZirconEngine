@@ -1,3 +1,5 @@
+mod atlas_renderer;
+mod atlas_texture_upload;
 mod construct;
 mod font_asset;
 mod render;

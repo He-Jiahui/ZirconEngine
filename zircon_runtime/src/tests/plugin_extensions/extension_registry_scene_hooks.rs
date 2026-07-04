@@ -55,6 +55,38 @@ fn runtime_extension_registry_rejects_invalid_scene_hook_plugin_ids() {
 
     assert!(error.to_string().contains("plugin_id"));
     assert!(error.to_string().contains("lowercase ASCII"));
+
+    let mut registry = RuntimeExtensionRegistry::default();
+    let error = registry
+        .register_scene_hook(scene_hook_registration(
+            "weather.layer.scene.post_update",
+            "weather..layer",
+            SystemStage::Update,
+        ))
+        .unwrap_err();
+
+    assert!(error.to_string().contains("plugin_id"));
+    assert!(error.to_string().contains("non-empty segments"));
+}
+
+#[test]
+fn runtime_extension_registry_accepts_dotted_scene_hook_plugin_ids() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let hook = scene_hook_registration(
+        "weather.layer.scene.post_update",
+        "weather.layer",
+        SystemStage::Update,
+    );
+
+    registry
+        .register_scene_hook(hook)
+        .expect("dotted scene hook plugin id");
+
+    assert_eq!(registry.scene_hooks().len(), 1);
+    assert_eq!(
+        registry.scene_hooks()[0].descriptor().plugin_id.as_str(),
+        "weather.layer"
+    );
 }
 
 #[test]

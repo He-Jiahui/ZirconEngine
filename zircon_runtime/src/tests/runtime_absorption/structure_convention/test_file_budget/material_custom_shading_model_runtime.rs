@@ -18,6 +18,8 @@ const PRODUCT_SECOND_LAUNCH_WGPU_STATUS: &str =
     "render_plan08_custom_shading_model_second_launch_staged_cache_wgpu_passed_renderdoc_deferred";
 const PRODUCT_READBACK_WGPU_STATUS: &str =
     "render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred";
+const PRODUCT_READBACK_PNG_STATUS: &str =
+    "render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred";
 const PRODUCT_GROUP_DIRECT_BINARY_STATUS: &str =
     "render_plan08_custom_shading_model_product_group_direct_binary_wgpu_passed_renderdoc_deferred";
 const PRODUCT_GROUP_CARGO_WRAPPER_STATUS: &str =
@@ -113,6 +115,9 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     let dynamic_shader_prewarm = read_runtime_src("dynamic_api/shader_prewarm.rs");
     let material_pass_product_custom = read_runtime_src(
         "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_shading_model.rs",
+    );
+    let material_pass_product_custom_png = read_runtime_src(
+        "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_product_png.rs",
     );
     let material_pass_product_custom_second_launch = read_runtime_src(
         "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_second_launch.rs",
@@ -257,6 +262,7 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
         "custom shading-model product material passes use staged prewarm cache through WGPU product submit",
         &(dynamic_shader_prewarm
             + &material_pass_product_custom
+            + &material_pass_product_custom_png
             + &material_pass_product_custom_second_launch
             + &material_pass_product_manifest
             + &material_pass_product_fixture
@@ -278,6 +284,10 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
             "assert_registry_material_pass_velocity_frame_shader_cache_hit_for_shading_model",
             "render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss",
             "render_product_custom_shading_model_deferred_lighting_readback_uses_project_include",
+            "export_custom_shading_model_deferred_lighting_product_png",
+            PRODUCT_READBACK_PNG_STATUS,
+            "runtime_render_plan08_custom_shading_model_deferred_lighting_20260704.png",
+            "save_side_by_side_product_frames",
             "assert_runtime_shader_cache_root_empty",
             "second custom shading-model product launch should still stay read-only against staged cache",
             "with_deferred_lighting_renderer",
@@ -351,6 +361,10 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
                 "Custom shading-model deferred-lighting product readback",
                 PRODUCT_READBACK_WGPU_STATUS,
                 "render_product_custom_shading_model_deferred_lighting_readback_uses_project_include",
+                "Custom shading-model deferred-lighting product readback PNG",
+                PRODUCT_READBACK_PNG_STATUS,
+                "export_custom_shading_model_deferred_lighting_product_png",
+                "runtime_render_plan08_custom_shading_model_deferred_lighting_20260704.png",
                 "submit_registry_material_passes_with_plugin_shading_model_capture",
                 "select_visible_registry_material_pass_camera",
                 "Custom shading-model product group direct-binary sweep",

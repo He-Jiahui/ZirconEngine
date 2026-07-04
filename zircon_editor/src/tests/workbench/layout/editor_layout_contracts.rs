@@ -1,7 +1,8 @@
 use crate::ui::workbench::autolayout::{
     compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
-    workbench_layout_defaults, workbench_layout_tier_for_width, EditorRegion, EditorRegionRole,
-    RegionBinding, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
+    workbench_layout_defaults, workbench_layout_tier_for_logical_width,
+    workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale, EditorRegion,
+    EditorRegionRole, RegionBinding, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
     WorkbenchConstraintTokenName, WorkbenchLayoutTier, WorkbenchShellRegionsAsset,
     WorkbenchShellRegionsAssetError, WorkbenchSkeleton, WORKBENCH_SHELL_REGIONS_ASSET_ID,
     WORKBENCH_SHELL_REGIONS_ASSET_KIND, WORKBENCH_SHELL_REGIONS_ASSET_VERSION,
@@ -153,6 +154,7 @@ fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
         &fixture.layout,
         &fixture.descriptors,
         shell_size,
+        1.0,
         &metrics,
         None,
     );
@@ -162,6 +164,7 @@ fn shell_regions_asset_loads_verified_workbench_skeleton_regions() {
         &fixture.layout,
         &fixture.descriptors,
         shell_size,
+        1.0,
         &metrics,
         Some(&extents),
     );
@@ -470,6 +473,7 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
         &fixture.layout,
         &fixture.descriptors,
         shell_size,
+        1.0,
         &metrics,
         None,
     );
@@ -479,6 +483,7 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
         &fixture.layout,
         &fixture.descriptors,
         shell_size,
+        1.0,
         &metrics,
         Some(&extents),
     );
@@ -500,20 +505,37 @@ fn region_size_tokens_feed_shell_autolayout_preferred_extents() {
 #[test]
 fn workbench_layout_tiers_classify_reference_capture_widths() {
     assert_eq!(
-        workbench_layout_tier_for_width(420.0),
+        workbench_layout_tier_for_logical_width(420.0),
         WorkbenchLayoutTier::Ultra
     );
     assert_eq!(
-        workbench_layout_tier_for_width(640.0),
+        workbench_layout_tier_for_logical_width(640.0),
         WorkbenchLayoutTier::Narrow
     );
     assert_eq!(
-        workbench_layout_tier_for_width(900.0),
+        workbench_layout_tier_for_logical_width(900.0),
         WorkbenchLayoutTier::Regular
     );
     assert_eq!(
-        workbench_layout_tier_for_width(1260.0),
+        workbench_layout_tier_for_logical_width(1260.0),
         WorkbenchLayoutTier::Wide
+    );
+}
+
+#[test]
+fn tier_uses_logical_width_consistent_across_scale() {
+    assert_eq!(workbench_logical_width_for_scale(3840.0, 2.0), 1920.0);
+    assert_eq!(
+        workbench_layout_tier_for_physical_width(3840.0, 2.0),
+        workbench_layout_tier_for_physical_width(1920.0, 1.0)
+    );
+    assert_eq!(
+        workbench_layout_tier_for_physical_width(1280.0, 2.0),
+        WorkbenchLayoutTier::Narrow
+    );
+    assert_eq!(
+        workbench_layout_tier_for_physical_width(1800.0, 2.0),
+        WorkbenchLayoutTier::Regular
     );
 }
 
@@ -596,6 +618,7 @@ fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(640.0, 420.0),
+        1.0,
         &metrics,
         None,
     );
@@ -605,6 +628,7 @@ fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(900.0, 620.0),
+        1.0,
         &metrics,
         None,
     );
@@ -623,6 +647,40 @@ fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
 }
 
 #[test]
+fn scaled_workbench_geometry_uses_logical_width_for_right_drawer_collapse() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let scaled_narrow = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1280.0, 840.0),
+        2.0,
+        &metrics,
+        None,
+    );
+    let scaled_regular = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        ShellSizePx::new(1800.0, 1240.0),
+        2.0,
+        &metrics,
+        None,
+    );
+
+    assert_eq!(
+        scaled_narrow.region_frame(ShellRegionId::Right).width,
+        metrics.rail_width
+    );
+    assert!(scaled_regular.region_frame(ShellRegionId::Right).width > metrics.rail_width);
+}
+
+#[test]
 fn workbench_window_minimums_allow_reference_capture_sizes() {
     let fixture = default_preview_fixture();
     let chrome = fixture.build_chrome();
@@ -634,6 +692,7 @@ fn workbench_window_minimums_allow_reference_capture_sizes() {
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(640.0, 420.0),
+        1.0,
         &metrics,
         None,
     );
@@ -643,6 +702,7 @@ fn workbench_window_minimums_allow_reference_capture_sizes() {
         &fixture.layout,
         &fixture.descriptors,
         ShellSizePx::new(900.0, 620.0),
+        1.0,
         &metrics,
         None,
     );

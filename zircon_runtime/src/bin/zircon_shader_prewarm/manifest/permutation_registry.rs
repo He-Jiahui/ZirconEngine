@@ -19,6 +19,7 @@ pub(crate) struct ShaderPrewarmPermutationRegistryOverlay {
     pub(crate) geometry_source_descriptors: BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
     pub(crate) shading_model_ids: BTreeMap<String, ShadingModelId>,
     pub(crate) shading_model_descriptors: BTreeMap<ShadingModelId, ShadingModelDescriptor>,
+    pub(crate) shader_modules: BTreeMap<String, String>,
 }
 
 impl ShaderPrewarmPermutationRegistryOverlay {
@@ -48,12 +49,14 @@ impl ShaderPrewarmPermutationRegistryOverlay {
         geometry_source_descriptors: &mut BTreeMap<GeometrySourceId, GeometrySourceDescriptor>,
         shading_model_ids: &mut BTreeMap<String, ShadingModelId>,
         shading_model_descriptors: &mut BTreeMap<ShadingModelId, ShadingModelDescriptor>,
+        shader_modules: &mut BTreeMap<String, String>,
     ) -> ShaderPrewarmPermutationRegistryResult<()> {
         let Self {
             geometry_source_ids: overlay_geometry_source_ids,
             geometry_source_descriptors: overlay_geometry_source_descriptors,
             shading_model_ids: overlay_shading_model_ids,
             shading_model_descriptors: overlay_shading_model_descriptors,
+            shader_modules: overlay_shader_modules,
         } = self;
         for (token, id) in overlay_geometry_source_ids {
             merge_geometry_source_id(geometry_sources, geometry_source_ids, token, id)?;
@@ -66,6 +69,9 @@ impl ShaderPrewarmPermutationRegistryOverlay {
         }
         for descriptor in overlay_shading_model_descriptors.into_values() {
             merge_shading_model_descriptor(shading_model_descriptors, descriptor)?;
+        }
+        for (import_path, content_hash) in overlay_shader_modules {
+            merge_shader_module(shader_modules, import_path, content_hash)?;
         }
         Ok(())
     }
@@ -110,6 +116,13 @@ impl ShaderPrewarmPermutationRegistryOverlay {
             )?;
             merge_shading_model_descriptor(&mut overlay.shading_model_descriptors, descriptor)?;
         }
+        for entry in document.shader_modules {
+            merge_shader_module(
+                &mut overlay.shader_modules,
+                entry.import_path,
+                entry.content_hash,
+            )?;
+        }
         Ok(overlay)
     }
 }
@@ -141,6 +154,8 @@ struct ShaderPrewarmPermutationRegistryDocument {
     shading_model_ids: Vec<ShaderPrewarmShadingModelIdRecord>,
     #[serde(default)]
     shading_model_descriptors: Vec<ShadingModelDescriptor>,
+    #[serde(default)]
+    shader_modules: Vec<ShaderPrewarmShaderModuleRecord>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -153,6 +168,12 @@ struct ShaderPrewarmGeometrySourceIdRecord {
 struct ShaderPrewarmShadingModelIdRecord {
     token: String,
     id: u8,
+}
+
+#[derive(Debug, Deserialize)]
+struct ShaderPrewarmShaderModuleRecord {
+    import_path: String,
+    content_hash: String,
 }
 
 fn geometry_source_id_from_registry(
@@ -315,6 +336,27 @@ fn merge_shading_model_descriptor(
     Ok(())
 }
 
+fn merge_shader_module(
+    shader_modules: &mut BTreeMap<String, String>,
+    import_path: String,
+    content_hash: String,
+) -> ShaderPrewarmPermutationRegistryResult<()> {
+    if let Some(existing_hash) = shader_modules.get(&import_path) {
+        if existing_hash != &content_hash {
+            return Err(
+                ShaderPrewarmPermutationRegistryError::DuplicateShaderModuleContentHash {
+                    import_path,
+                    existing_content_hash: existing_hash.clone(),
+                    new_content_hash: content_hash,
+                },
+            );
+        }
+        return Ok(());
+    }
+    shader_modules.insert(import_path, content_hash);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::ErrorKind;
@@ -410,6 +452,7 @@ mod tests {
         let mut geometry_source_descriptors = BTreeMap::new();
         let mut shading_model_ids = BTreeMap::new();
         let mut shading_model_descriptors = BTreeMap::new();
+        let mut shader_modules = BTreeMap::new();
         ShaderPrewarmPermutationRegistryOverlay::read(&registry_path)
             .unwrap()
             .merge_into(
@@ -418,6 +461,7 @@ mod tests {
                 &mut geometry_source_descriptors,
                 &mut shading_model_ids,
                 &mut shading_model_descriptors,
+                &mut shader_modules,
             )
             .unwrap();
 
@@ -468,6 +512,7 @@ mod tests {
         let mut geometry_source_descriptors = BTreeMap::new();
         let mut shading_model_ids = BTreeMap::new();
         let mut shading_model_descriptors = BTreeMap::new();
+        let mut shader_modules = BTreeMap::new();
         ShaderPrewarmPermutationRegistryOverlay::read(&registry_path)
             .unwrap()
             .merge_into(
@@ -476,6 +521,7 @@ mod tests {
                 &mut geometry_source_descriptors,
                 &mut shading_model_ids,
                 &mut shading_model_descriptors,
+                &mut shader_modules,
             )
             .unwrap();
 
@@ -521,6 +567,7 @@ mod tests {
         let mut geometry_source_descriptors = BTreeMap::new();
         let mut shading_model_ids = BTreeMap::new();
         let mut shading_model_descriptors = BTreeMap::new();
+        let mut shader_modules = BTreeMap::new();
         ShaderPrewarmPermutationRegistryOverlay::read(&registry_path)
             .unwrap()
             .merge_into(
@@ -529,6 +576,7 @@ mod tests {
                 &mut geometry_source_descriptors,
                 &mut shading_model_ids,
                 &mut shading_model_descriptors,
+                &mut shader_modules,
             )
             .unwrap();
 
@@ -548,6 +596,50 @@ mod tests {
             "zr_shading_toon_gbuffer.wgsl"
         );
         assert_eq!(descriptor.deferred_include, "zr_shading_toon_deferred.wgsl");
+
+        fs::remove_file(registry_path).ok();
+    }
+
+    #[test]
+    fn shader_prewarm_permutation_registry_merges_shader_modules() {
+        let registry_path = unique_registry_path();
+        fs::write(
+            &registry_path,
+            r#"{
+                "shader_modules": [
+                    {
+                        "import_path": "custom::toon::noise",
+                        "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    }
+                ]
+            }"#,
+        )
+        .unwrap();
+
+        let mut geometry_sources = Vec::new();
+        let mut geometry_source_ids = BTreeMap::new();
+        let mut geometry_source_descriptors = BTreeMap::new();
+        let mut shading_model_ids = BTreeMap::new();
+        let mut shading_model_descriptors = BTreeMap::new();
+        let mut shader_modules = BTreeMap::new();
+        ShaderPrewarmPermutationRegistryOverlay::read(&registry_path)
+            .unwrap()
+            .merge_into(
+                &mut geometry_sources,
+                &mut geometry_source_ids,
+                &mut geometry_source_descriptors,
+                &mut shading_model_ids,
+                &mut shading_model_descriptors,
+                &mut shader_modules,
+            )
+            .unwrap();
+
+        assert_eq!(
+            shader_modules
+                .get("custom::toon::noise")
+                .map(String::as_str),
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        );
 
         fs::remove_file(registry_path).ok();
     }

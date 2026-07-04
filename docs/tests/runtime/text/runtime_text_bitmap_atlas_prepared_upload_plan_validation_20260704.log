@@ -1,0 +1,21 @@
+Runtime Text Bitmap Atlas Prepared Upload Plan Validation - 2026-07-04
+
+Slice: bitmap_run/staged_upload.rs now exposes one prepared upload entry that builds page staging buffers and staged upload bindings from the same run plan.
+Code files:
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run.rs
+  zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs
+  zircon_runtime/src/graphics/text/atlas/mod.rs
+
+Assertions added:
+  prepared upload plans carry both staging pages and renderer-ready staged uploads on the success path.
+  prepared upload plans fail closed by emitting no staged uploads when staging has source-byte failures.
+  the staged upload entry continues to preserve staging_page_index, the exact GlyphAtlasUploadCommand, and page byte length.
+
+Local checks:
+  rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs : PASS
+  git diff --check -- zircon_runtime/src/graphics/text/atlas/bitmap_run.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs zircon_runtime/src/graphics/text/atlas/mod.rs : PASS (line-ending warnings only)
+  cargo/unit validation: DEFERRED because independent cargo/rustc validation lanes were already active in this workspace.
+
+Preview PNG: docs\tests\runtime\text\runtime_text_bitmap_atlas_prepared_upload_plan_preview_20260704.png
+Preview SHA256: 41457F4DE436BFE69AAEA8B2AC43E3BCBECBADF2962237CC769F2789F7401FE8

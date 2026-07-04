@@ -1,0 +1,161 @@
+use crate::core::math::UVec2;
+use crate::graphics::text::atlas::render_gpu_plan::{
+    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuBindGroupLayout,
+    GlyphAtlasGpuSamplerBindingType, GlyphAtlasGpuTextureSampleType,
+    GlyphAtlasGpuTextureViewDimension,
+};
+use crate::graphics::text::atlas::GlyphAtlasStorageFormat;
+
+use super::super::atlas_texture_upload::{
+    create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
+};
+
+const GLYPH_ATLAS_TEXTURE_LABEL: &str = "zircon-screen-space-ui-glyph-atlas";
+const GLYPH_ATLAS_TEXTURE_VIEW_LABEL: &str = "zircon-screen-space-ui-glyph-atlas-view";
+
+pub(super) struct GlyphAtlasBitmapAtlasResources {
+    texture: wgpu::Texture,
+    _view: wgpu::TextureView,
+    bind_group: wgpu::BindGroup,
+    size: UVec2,
+    layer_count: u32,
+    storage_format: GlyphAtlasStorageFormat,
+}
+
+impl GlyphAtlasBitmapAtlasResources {
+    pub(super) fn texture(&self) -> &wgpu::Texture {
+        &self.texture
+    }
+
+    pub(super) fn bind_group(&self) -> &wgpu::BindGroup {
+        &self.bind_group
+    }
+
+    pub(super) fn matches(
+        &self,
+        size: UVec2,
+        layer_count: u32,
+        storage_format: GlyphAtlasStorageFormat,
+    ) -> bool {
+        self.size == size
+            && self.layer_count == layer_count.max(1)
+            && self.storage_format == storage_format
+    }
+}
+
+pub(super) fn create_glyph_atlas_bitmap_bind_group_layout(
+    device: &wgpu::Device,
+    layout: GlyphAtlasGpuBindGroupLayout,
+) -> wgpu::BindGroupLayout {
+    let entries = glyph_atlas_wgpu_bind_group_layout_entries(layout);
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("zircon-screen-space-ui-glyph-atlas-bind-group-layout"),
+        entries: &entries,
+    })
+}
+
+pub(super) fn create_glyph_atlas_bitmap_sampler(device: &wgpu::Device) -> wgpu::Sampler {
+    device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("zircon-screen-space-ui-glyph-atlas-sampler"),
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
+        mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+        ..Default::default()
+    })
+}
+
+pub(super) fn create_glyph_atlas_bitmap_atlas_resources(
+    device: &wgpu::Device,
+    bind_group_layout: &wgpu::BindGroupLayout,
+    sampler: &wgpu::Sampler,
+    size: UVec2,
+    layer_count: u32,
+    storage_format: GlyphAtlasStorageFormat,
+) -> GlyphAtlasBitmapAtlasResources {
+    let layer_count = layer_count.max(1);
+    let layout = glyph_atlas_gpu_bind_group_layout();
+    let spec = glyph_atlas_texture_array_spec(
+        GLYPH_ATLAS_TEXTURE_LABEL,
+        GLYPH_ATLAS_TEXTURE_VIEW_LABEL,
+        storage_format,
+        size,
+        layer_count,
+    );
+    let resources = create_glyph_atlas_texture_array_resources(device, spec);
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("zircon-screen-space-ui-glyph-atlas-bind-group"),
+        layout: bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: layout.atlas_texture.binding,
+                resource: wgpu::BindingResource::TextureView(&resources.view),
+            },
+            wgpu::BindGroupEntry {
+                binding: layout.atlas_sampler.binding,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    });
+
+    GlyphAtlasBitmapAtlasResources {
+        texture: resources.texture,
+        _view: resources.view,
+        bind_group,
+        size,
+        layer_count,
+        storage_format,
+    }
+}
+
+pub(super) fn glyph_atlas_wgpu_bind_group_layout_entries(
+    layout: GlyphAtlasGpuBindGroupLayout,
+) -> [wgpu::BindGroupLayoutEntry; 2] {
+    [
+        wgpu::BindGroupLayoutEntry {
+            binding: layout.atlas_texture.binding,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                sample_type: glyph_atlas_wgpu_texture_sample_type(layout.atlas_texture.sample_type),
+                view_dimension: glyph_atlas_wgpu_texture_view_dimension(
+                    layout.atlas_texture.view_dimension,
+                ),
+                multisampled: layout.atlas_texture.multisampled,
+            },
+            count: None,
+        },
+        wgpu::BindGroupLayoutEntry {
+            binding: layout.atlas_sampler.binding,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Sampler(glyph_atlas_wgpu_sampler_binding_type(
+                layout.atlas_sampler.binding_type,
+            )),
+            count: None,
+        },
+    ]
+}
+
+fn glyph_atlas_wgpu_texture_sample_type(
+    sample_type: GlyphAtlasGpuTextureSampleType,
+) -> wgpu::TextureSampleType {
+    match sample_type {
+        GlyphAtlasGpuTextureSampleType::FloatFilterable => {
+            wgpu::TextureSampleType::Float { filterable: true }
+        }
+    }
+}
+
+fn glyph_atlas_wgpu_texture_view_dimension(
+    dimension: GlyphAtlasGpuTextureViewDimension,
+) -> wgpu::TextureViewDimension {
+    match dimension {
+        GlyphAtlasGpuTextureViewDimension::D2Array => wgpu::TextureViewDimension::D2Array,
+    }
+}
+
+fn glyph_atlas_wgpu_sampler_binding_type(
+    binding_type: GlyphAtlasGpuSamplerBindingType,
+) -> wgpu::SamplerBindingType {
+    match binding_type {
+        GlyphAtlasGpuSamplerBindingType::Filtering => wgpu::SamplerBindingType::Filtering,
+    }
+}

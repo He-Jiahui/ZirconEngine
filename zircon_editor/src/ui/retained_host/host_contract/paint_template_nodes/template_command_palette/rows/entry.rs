@@ -1,5 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneOptionData};
 use super::super::super::render_commands::HostPaintCommand;
+use super::indicator::push_command_row_match_indicator;
 use super::label::push_command_row_label;
 use super::style::command_row_style;
 use super::surface::push_command_row_surface;
@@ -14,6 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_co
 ) {
     let style = command_row_style(option);
     push_command_row_surface(commands, row_rect, clip, order, style, opacity);
+    push_command_row_match_indicator(commands, option, row_rect, clip, order + 1, opacity);
     push_command_row_label(
         commands,
         row_rect,

@@ -1,75 +1,62 @@
 use super::*;
 
+#[path = "exports/runtime_15_m3_parent.rs"]
+mod runtime_15_m3_parent;
+#[path = "exports/runtime_15_parent.rs"]
+mod runtime_15_parent;
+#[path = "exports/status_mirrors.rs"]
+mod status_mirrors;
+#[path = "exports/top_level.rs"]
+mod top_level;
+
+const EXPORT_CHILDREN: &[(&str, &str, &str, &[&str])] = &[
+    (
+        "runtime_15_m3_parent",
+        EXPORTS_RUNTIME_15_M3_PARENT_PATH,
+        "runtime_15_m3_child_groups_exports_runtime_15_m3_parent_is_child_owned",
+        &["#[path = \"m3/production_guard_support.rs\"]"],
+    ),
+    (
+        "runtime_15_parent",
+        EXPORTS_RUNTIME_15_PARENT_PATH,
+        "runtime_15_m3_child_groups_exports_runtime_15_parent_is_child_owned",
+        &["m3::PRODUCTION_GUARD_SUPPORT_STATUS_DOCS_EXPECTED_STATUS_OUTPUT_SLICES"],
+    ),
+    (
+        "status_mirrors",
+        EXPORTS_STATUS_MIRRORS_PATH,
+        EXPORTS_CHILD_SPLIT_GUARD_NAME,
+        &[EXPORTS_CHILD_SPLIT_STATUS_NAME, EXPORTS_CHILD_SPLIT_STATUS_ID],
+    ),
+    (
+        "top_level",
+        EXPORTS_TOP_LEVEL_PATH,
+        "runtime_15_m3_child_groups_exports_top_level_is_child_owned",
+        &["runtime_15::RUNTIME_15_M3_PRODUCTION_GUARD_SUPPORT_EXPECTED_SLICE_GUARDS_EXPECTED_STATUS_OUTPUT_SLICES"],
+    ),
+];
+
 #[test]
 fn runtime_15_status_output_m3_row_data_child_owner_split() {
-    let parent = read_runtime_src(TOP_LEVEL_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15 = read_runtime_src(RUNTIME_15_EXPECTED_STATUS_ROW_DATA_PATH);
-    let runtime_15_m3 = read_runtime_src(RUNTIME_15_M3_EXPECTED_STATUS_ROW_DATA_PATH);
+    let route_source = read_runtime_src(EXPORTS_GUARD_PATH);
 
-    assert_contains_all(
-        "top-level status rows include every Runtime 15 M3 child group",
-        &parent,
-        &[
-            "runtime_15::RUNTIME_15_M3_FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_REVIEW_GUARD_CODE_REVIEW_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_REVIEW_GUARD_STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_REVIEW_GUARD_TYPED_ERROR_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_UI_TESTS_FIRST_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_ASSET_BUDGET_TESTS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_SCENE_SCRIPT_TESTS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_UI_TESTS_SECOND_EXPECTED_STATUS_OUTPUT_SLICES",
-            "runtime_15::RUNTIME_15_M3_PRODUCTION_GUARD_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-        ],
-    );
-    assert_contains_all(
-        "Runtime 15 status row parent exposes M3 child groups",
-        &runtime_15,
-        &[
-            "pub(super) const RUNTIME_15_M3_FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_REVIEW_GUARD_CODE_REVIEW_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::REVIEW_GUARD_CODE_REVIEW_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_REVIEW_GUARD_STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::REVIEW_GUARD_STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_REVIEW_GUARD_TYPED_ERROR_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::REVIEW_GUARD_TYPED_ERROR_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const RUNTIME_15_M3_PRODUCTION_GUARD_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "m3::PRODUCTION_GUARD_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-        ],
-    );
-    assert_contains_all(
-        "Runtime 15 M3 status row parent is a child-group aggregator",
-        &runtime_15_m3,
-        &[
-            "#[path = \"m3/foundation_guards.rs\"]",
-            "#[path = \"m3/lock_poison_status.rs\"]",
-            "#[path = \"m3/module_convention_status.rs\"]",
-            "#[path = \"m3/review_guard_splits.rs\"]",
-            "#[path = \"m3/review_status_sync.rs\"]",
-            "#[path = \"m3/status_support.rs\"]",
-            "#[path = \"m3/ui_tests_second.rs\"]",
-            "#[path = \"m3/production_guard_support.rs\"]",
-            "pub(super) const FOUNDATION_GUARD_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const LOCK_POISON_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const MODULE_CONVENTION_STATUS_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const REVIEW_GUARD_CODE_REVIEW_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const REVIEW_GUARD_STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const REVIEW_GUARD_TYPED_ERROR_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const REVIEW_STATUS_SYNC_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-            "pub(super) const PRODUCTION_GUARD_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
-        ],
-    );
+    for (module_name, path, guard_name, labels) in EXPORT_CHILDREN {
+        let module_mount = format!("mod {module_name};");
+        assert_contains_all(
+            "M3 child-groups exports route mounts child owner",
+            &route_source,
+            &[
+                format!("#[path = \"exports/{module_name}.rs\"]").as_str(),
+                module_mount.as_str(),
+                *guard_name,
+            ],
+        );
+        let child_source = read_runtime_src(path);
+        assert_contains_all(path, &child_source, &[*guard_name]);
+        assert_contains_all(path, &child_source, labels);
+        assert!(
+            child_source.lines().count() < 100,
+            "{path} should stay below the exports child-owner budget"
+        );
+    }
 }

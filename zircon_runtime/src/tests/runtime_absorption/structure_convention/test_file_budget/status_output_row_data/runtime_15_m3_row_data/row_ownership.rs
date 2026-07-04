@@ -50,7 +50,8 @@ fn runtime_15_status_output_runtime_15_m3_row_data_is_child_owner() {
             "mod foundation_guards;",
             "#[path = \"m3/status_support.rs\"]",
             "mod status_support;",
-            "pub(super) const STATUS_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES",
+            "pub(super) const STATUS_SUPPORT_ROW_DATA_AND_BUDGET_RUNTIME_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES",
+            "pub(super) const STATUS_SUPPORT_ROW_DATA_AND_BUDGET_M3_M4_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES",
         ],
     );
     assert_contains_all(

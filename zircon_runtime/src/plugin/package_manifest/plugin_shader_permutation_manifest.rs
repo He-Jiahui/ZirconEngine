@@ -6,11 +6,15 @@ pub struct PluginShaderPermutationManifest {
     pub geometry_source_ids: Vec<PluginShaderPermutationIdManifest>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub shading_model_ids: Vec<PluginShaderPermutationIdManifest>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shader_modules: Vec<PluginShaderModuleManifest>,
 }
 
 impl PluginShaderPermutationManifest {
     pub fn is_empty(&self) -> bool {
-        self.geometry_source_ids.is_empty() && self.shading_model_ids.is_empty()
+        self.geometry_source_ids.is_empty()
+            && self.shading_model_ids.is_empty()
+            && self.shader_modules.is_empty()
     }
 }
 
@@ -25,6 +29,21 @@ impl PluginShaderPermutationIdManifest {
         Self {
             token: token.into(),
             id,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PluginShaderModuleManifest {
+    pub import_path: String,
+    pub source: String,
+}
+
+impl PluginShaderModuleManifest {
+    pub fn new(import_path: impl Into<String>, source: impl Into<String>) -> Self {
+        Self {
+            import_path: import_path.into(),
+            source: source.into(),
         }
     }
 }

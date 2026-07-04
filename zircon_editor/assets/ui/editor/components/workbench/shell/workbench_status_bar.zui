@@ -21,7 +21,7 @@ default_classes = ["workbench-status"]
 component = "HorizontalGroup"
 control_id = "WorkbenchWindowStatusBar"
 classes = ["workbench-status"]
-props = { status_right_offset_y = -0.5, status_right_text_color = "#7d8990" }
+props = { status_right_offset_y = -0.5, status_right_label_color = "#7d8990" }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
 children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_fill" }, { node = "status_task" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
 

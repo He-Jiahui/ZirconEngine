@@ -1,10 +1,14 @@
 use crate::core::framework::render::ViewProjectionMatrixPair;
+use crate::core::framework::render::{
+    SkyboxMode, SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT, SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH,
+    SAMPLED_EQUIRECT_ENVIRONMENT_MIP_COUNT,
+};
 use crate::core::math::{Mat4, RenderMat4, RenderVec3};
 
 use crate::graphics::scene::scene_renderer::temporal::velocity::velocity_camera_params::VelocityCameraParams;
 use crate::graphics::types::ViewportRenderFrame;
 
-use super::super::fallback::{render_mat4_or, render_vec3_or};
+use super::super::fallback::{render_mat4_or, render_vec3_or, render_vec4_or};
 use super::SceneUniform;
 
 impl SceneUniform {
@@ -24,6 +28,19 @@ impl SceneUniform {
         let view_proj_unjittered = matrix_pair.clip_from_world_unjittered;
         let (previous_view_proj_unjittered, motion_params) =
             previous_motion_view_projection(frame, &camera, view_proj_unjittered);
+        let skybox = &frame.environment().skybox;
+        let sky_params = skybox.procedural;
+        let environment_sample_params = match skybox.mode {
+            SkyboxMode::Disabled | SkyboxMode::ProceduralGradient => {
+                [skybox.mode as u32 as f32, 0.0, 0.0, 0.0]
+            }
+            SkyboxMode::SampledEquirectangular => [
+                skybox.mode as u32 as f32,
+                SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH as f32,
+                SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT as f32,
+                SAMPLED_EQUIRECT_ENVIRONMENT_MIP_COUNT as f32,
+            ],
+        };
 
         Self {
             view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
@@ -35,6 +52,32 @@ impl SceneUniform {
             previous_view_proj_unjittered,
             motion_params,
             jitter_params: jitter_params(&camera),
+            sky_horizon_color: render_vec4_or(
+                sky_params.horizon_color,
+                crate::core::math::Vec4::ZERO,
+            )
+            .to_array(),
+            sky_zenith_color: render_vec4_or(
+                sky_params.zenith_color,
+                crate::core::math::Vec4::ZERO,
+            )
+            .to_array(),
+            sky_ground_color: render_vec4_or(
+                sky_params.ground_color,
+                crate::core::math::Vec4::ZERO,
+            )
+            .to_array(),
+            environment_params: [
+                if skybox.is_enabled() { 1.0 } else { 0.0 },
+                skybox.intensity().max(0.0),
+                skybox.rotation_radians(),
+                if frame.environment().ibl_bake_key().is_some() {
+                    1.0
+                } else {
+                    0.0
+                },
+            ],
+            environment_sample_params,
         }
     }
 }
@@ -97,10 +140,10 @@ fn authored_ambient_color(
 mod tests {
     use super::SceneUniform;
     use crate::core::framework::render::{
-        FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderAmbientLightSnapshot,
-        RenderFrameExtract, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderWorldSnapshotHandle, TemporalJitterSample, ViewProjectionMatrixPair,
-        ViewportCameraSnapshot,
+        EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
+        RenderAmbientLightSnapshot, RenderFrameExtract, RenderOverlayExtract,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+        TemporalJitterSample, ViewProjectionMatrixPair, ViewportCameraSnapshot,
     };
     use crate::core::math::{Transform, UVec2, Vec2, Vec3, Vec4};
     use crate::graphics::types::ViewportRenderFrame;
@@ -214,6 +257,49 @@ mod tests {
         );
     }
 
+    #[test]
+    fn scene_uniform_exports_environment_sky_parameters() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.environment = EnvironmentExtract::procedural_default();
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_eq!(uniform.sky_horizon_color, [0.16, 0.19, 0.24, 1.0]);
+        assert_eq!(uniform.sky_zenith_color, [0.36, 0.46, 0.63, 1.0]);
+        assert_eq!(uniform.sky_ground_color, [0.09, 0.11, 0.14, 1.0]);
+        assert_eq!(uniform.environment_params, [1.0, 1.0, 0.0, 1.0]);
+        assert_eq!(uniform.environment_sample_params, [1.0, 0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn scene_uniform_exports_sampled_equirectangular_environment() {
+        let mut samples = [[0.0_f32; 4];
+            crate::core::framework::render::SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT];
+        samples[0] = [0.25, 0.5, 0.75, 1.0];
+        let mut sampled = crate::core::framework::render::SampledEquirectangularEnvironment::new(
+            samples,
+            9,
+            [1, 2, 3, 4],
+        );
+        sampled.intensity = 1.75;
+        sampled.rotation_radians = 0.5;
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.environment = EnvironmentExtract::sampled_equirectangular(sampled);
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_eq!(uniform.environment_params, [1.0, 1.75, 0.5, 1.0]);
+        assert_eq!(uniform.environment_sample_params, [2.0, 128.0, 64.0, 8.0]);
+    }
+
     fn empty_scene_snapshot() -> RenderSceneSnapshot {
         RenderSceneSnapshot {
             scene: RenderSceneGeometryExtract {
@@ -229,6 +315,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,

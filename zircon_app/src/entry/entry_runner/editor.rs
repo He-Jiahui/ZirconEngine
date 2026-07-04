@@ -1,3 +1,5 @@
+#[cfg(feature = "target-editor-host")]
+use std::env;
 use std::error::Error;
 
 #[cfg(feature = "target-editor-host")]
@@ -9,10 +11,10 @@ use zircon_editor::{
         EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
         EditorOperationSource,
     },
-    run_editor_with_startup_request,
+    run_editor_with_config,
     ui::host::EditorManager,
     ui::workbench::state::EditorState,
-    EditorGuiStartupRequest, EDITOR_MANAGER_NAME,
+    EditorGuiStartupRequest, EditorHostRunConfig, EDITOR_MANAGER_NAME,
 };
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime::{core::math::UVec2, scene::DefaultLevelManager};
@@ -26,6 +28,9 @@ use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 #[cfg(feature = "target-editor-host")]
 use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
 use super::EntryRunner;
+
+#[cfg(feature = "target-editor-host")]
+const EDITOR_EXIT_AFTER_FIRST_FRAME_ENV: &str = "ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME";
 
 impl EntryRunner {
     pub fn run_editor() -> Result<(), Box<dyn Error>> {
@@ -70,7 +75,11 @@ impl EntryRunner {
             let runtime = LoadedRuntime::load_default()?;
             let runtime_client =
                 std::sync::Arc::new(RuntimeSession::create_with_profile(runtime, b"editor")?);
-            let result = run_editor_with_startup_request(core, runtime_client, gui_startup_request);
+            let host_config = editor_host_run_config_with_first_frame_exit(
+                gui_startup_request,
+                editor_exit_after_first_frame_enabled(),
+            );
+            let result = run_editor_with_config(core, runtime_client, host_config);
             #[cfg(feature = "profiling")]
             if profile_capture.is_some() {
                 match zircon_runtime::core::diagnostics::profiling::stop_and_export_capture_from_env(
@@ -102,6 +111,24 @@ impl EntryRunner {
             request.into_control_request()?,
         ))
     }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn editor_host_run_config_with_first_frame_exit(
+    startup_request: Option<EditorGuiStartupRequest>,
+    exit_after_first_frame: bool,
+) -> EditorHostRunConfig {
+    let config = EditorHostRunConfig::new().with_startup_request(startup_request);
+    if exit_after_first_frame {
+        config.with_exit_after_first_presented_frame(true)
+    } else {
+        config
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn editor_exit_after_first_frame_enabled() -> bool {
+    env::var_os(EDITOR_EXIT_AFTER_FIRST_FRAME_ENV).is_some()
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -728,5 +755,17 @@ mod tests {
             request.into_control_request().unwrap(),
             EditorOperationControlRequest::QueryOperationStack
         ));
+    }
+
+    #[test]
+    fn first_frame_exit_flag_projects_into_editor_host_config() {
+        let startup_request = Some(EditorGuiStartupRequest::open_builtin_view(
+            "editor.material_component_lab",
+        ));
+        let config =
+            super::editor_host_run_config_with_first_frame_exit(startup_request.clone(), true);
+
+        assert_eq!(config.startup_request(), startup_request.as_ref());
+        assert!(config.exit_after_first_presented_frame());
     }
 }

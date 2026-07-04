@@ -8,6 +8,7 @@ use super::super::super::raster::CachedGlyphRasterFormat;
 const THIN_STROKE_HIGH_SAMPLE: u8 = 220;
 const THIN_STROKE_MAX_AVERAGE: u8 = 96;
 const THIN_STROKE_MIN_COVERAGE: u8 = 128;
+const MAX_COMBINED_SAMPLE_OFFSET_X: f32 = 1.999;
 
 pub(super) fn draw_glyph_row(
     frame: &mut HostRgbaFrame,
@@ -220,7 +221,7 @@ fn sampled_subpixel_coverage(
 
 fn normalized_sample_offset(offset: f32) -> f32 {
     if offset.is_finite() {
-        offset.clamp(0.0, 0.999)
+        offset.clamp(0.0, MAX_COMBINED_SAMPLE_OFFSET_X)
     } else {
         0.0
     }

@@ -32,20 +32,26 @@ fn runtime_15_typed_error_status_docs_are_folder_backed() {
         "typed-error status-doc parent delegates focused guard children",
         &status_docs_parent,
         &[
+            "#[path = \"status_docs/child_sources.rs\"]",
+            "mod child_sources;",
             "#[path = \"status_docs/delegation.rs\"]",
             "mod delegation;",
             "#[path = \"status_docs/doc_mirrors.rs\"]",
             "mod doc_mirrors;",
+            "#[path = \"status_docs/paths.rs\"]",
+            "mod paths;",
+            "#[path = \"status_docs/sources.rs\"]",
+            "mod sources;",
             "#[path = \"status_docs/status_maps.rs\"]",
             "mod status_maps;",
             "#[path = \"status_docs/status_mirrors.rs\"]",
             "mod status_mirrors;",
-            "pub(super) fn typed_error_status_doc_sources",
+            "pub(super) use child_sources::*;",
+            "pub(super) use paths::*;",
+            "pub(super) use sources::*;",
             "pub(super) fn assert_typed_error_status_docs_are_synced",
             "doc_mirrors::assert_typed_error_status_doc_mirrors_are_synced",
             "status_maps::assert_typed_error_status_maps_are_synced",
-            "typed_error_status_docs_child_sources",
-            "typed_error_status_docs_child_source_blob",
         ],
     );
     assert_contains_all(
@@ -60,12 +66,22 @@ fn runtime_15_typed_error_status_docs_are_folder_backed() {
     );
     for (_, child_path, anchor) in TYPED_ERROR_STATUS_DOCS_GUARD_CHILDREN {
         assert!(
-            status_docs_parent.contains(child_path),
-            "typed-error status-doc parent should inventory child path {child_path}"
+            status_docs_child_tree.contains(child_path),
+            "typed-error status-doc child tree should inventory child path {child_path}"
         );
         assert!(
             status_docs_child_tree.contains(anchor),
             "typed-error status-doc child {child_path} should own anchor {anchor}"
+        );
+    }
+    for (_, child_path, anchor) in TYPED_ERROR_STATUS_DOCS_SOURCE_HELPER_CHILDREN {
+        assert!(
+            status_docs_child_tree.contains(child_path),
+            "typed-error status-doc source helper tree should inventory child path {child_path}"
+        );
+        assert!(
+            status_docs_child_tree.contains(anchor),
+            "typed-error status-doc source helper child {child_path} should own anchor {anchor}"
         );
     }
 

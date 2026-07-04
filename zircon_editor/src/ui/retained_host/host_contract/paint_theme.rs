@@ -4,6 +4,14 @@ mod palette_projection;
 mod tokens;
 mod typography;
 
+use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
+
+pub(crate) fn apply_host_appearance_from_tokens(tokens: &EditorDesignTokens) {
+    apply_host_metrics_from_tokens(tokens);
+    apply_host_palette_from_tokens(tokens);
+    apply_host_text_preferences(project_host_text_preferences(tokens));
+}
+
 pub(crate) use metrics::apply_host_metrics_from_tokens;
 pub(in crate::ui::retained_host::host_contract) use metrics::{
     current_host_metrics, HostControlMetrics, METRICS,

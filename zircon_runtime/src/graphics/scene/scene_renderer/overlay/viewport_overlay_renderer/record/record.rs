@@ -42,6 +42,7 @@ impl ViewportOverlayRenderer {
             scene_bind_group,
             frame,
             prepared,
+            frame.render_region(),
         );
     }
 }

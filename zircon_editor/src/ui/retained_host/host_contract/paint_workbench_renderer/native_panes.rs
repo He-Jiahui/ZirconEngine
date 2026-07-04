@@ -2,12 +2,16 @@ mod assets;
 mod content;
 mod diagnostics;
 mod hierarchy;
+mod scrollbar;
 mod viewport;
 
 use super::super::data::{
     FrameRect, HostPaneInteractionStateData, HostViewportImageData, PaneData,
 };
 use super::super::paint_frame::HostRgbaFrame;
+
+#[cfg(test)]
+pub(crate) use scrollbar::paint_scrollbar_component_for_test;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_pane_debug_overlay(
     frame: &mut HostRgbaFrame,

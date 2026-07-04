@@ -1,19 +1,14 @@
 use super::super::super::data::FrameRect;
 
-const POPUP_ROW_ADORNMENT_RIGHT: f32 = 12.0;
-const POPUP_ROW_ADORNMENT_SIZE: f32 = 14.0;
-
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const POPUP_ROW_ADORNMENT_RESERVED_WIDTH: f32 =
-    30.0;
-
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn popup_row_adornment_rect(
     row_rect: &FrameRect,
 ) -> FrameRect {
+    let metrics = super::super::template_popup_rows::metrics::workbench_popup_row_metrics();
     FrameRect {
-        x: row_rect.x + row_rect.width - POPUP_ROW_ADORNMENT_RIGHT - POPUP_ROW_ADORNMENT_SIZE,
-        y: row_rect.y + (row_rect.height - POPUP_ROW_ADORNMENT_SIZE).max(0.0) * 0.5,
-        width: POPUP_ROW_ADORNMENT_SIZE,
-        height: POPUP_ROW_ADORNMENT_SIZE,
+        x: row_rect.x + row_rect.width - metrics.adornment_right - metrics.adornment_size,
+        y: row_rect.y + (row_rect.height - metrics.adornment_size).max(0.0) * 0.5,
+        width: metrics.adornment_size,
+        height: metrics.adornment_size,
     }
 }
 

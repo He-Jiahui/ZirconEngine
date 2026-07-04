@@ -29,6 +29,7 @@ related_code:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
+  - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
@@ -97,6 +98,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
+  - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
@@ -201,7 +203,7 @@ This document records the current accepted entry map for the M3 host cutover wor
 
 | Interface area | Canonical entry | Shared surface responsibility | Host responsibility |
 |---|---|---|---|
-| Top menu bar | `workbench_menu_chrome.zui` through `menu_chrome_nodes(...)` | Author top-row controls and stable `control_id` frames such as `WorkbenchMenuTopBar` and `MenuSlot*` | Inject current menu labels and expose hit frames at the host boundary |
+| Top menu bar | `workbench_menu_chrome.zui` through `menu_chrome_nodes(...)` plus `workbench/menu_bar/metrics.rs` | Author top-row controls and stable `control_id` frames such as `WorkbenchMenuTopBar` and `MenuSlot*` | Inject current menu labels, measure slot widths from runtime glyph width, and expose matching hit frames at the host boundary |
 | Menu popup | `workbench_menu_popup.zui` through `menu_popup_nodes(...)` | Author popup rows, label/shortcut slots, icon-bearing menu item stencils | Expand rows beyond authored stencils, clamp popup in M3/M4, dispatch menu action bindings |
 | Page chrome | `workbench_page_chrome.zui` through `page_chrome_nodes(...)` | Author page strip, project-path label, and page tab frames | Copy current page data and expose tab hit/drag frames |
 | Document, side, bottom, floating headers | `workbench_dock_header.zui` through dock-header projection functions | Author common tab/header shape, close buttons, subtitle frames and icon metadata | Project document/side/bottom/floating tab data without a per-pane hit table |
@@ -229,7 +231,7 @@ The viewport gizmo axis labels keep their authored colors through the Workbench 
 
 M3.1b keeps the remaining host pointer paths as shared surface bridges instead of host-only hit tables. The accepted bridge set is:
 
-- `menu_pointer`: owns menu button, popup, dismissal, scroll and item routes through `UiSurface`, `UiTreeNode` and `UiPointerDispatcher`. Matching layout and state sync input preserves the current menu pointer surface, while scroll, hover, popup, and submenu state changes still rebuild.
+- `menu_pointer`: owns menu button, popup, dismissal, scroll and item routes through `UiSurface`, `UiTreeNode` and `UiPointerDispatcher`. Top-level button hitboxes use the same runtime-measured menu-slot width as visual chrome. Matching layout and state sync input preserves the current menu pointer surface, while scroll, hover, popup, and submenu state changes still rebuild.
 - `activity_rail_pointer`: turns left/right rail buttons into a shared surface and routes tab activation through dispatcher effects. Its sync path skips surface rebuilds when the new rail layout equals the committed layout, so repeated projection syncs do not churn the pointer surface during pointer-heavy frames.
 - `host_page_pointer`: turns the main page strip into shared tab hit nodes; matching sync input preserves measured tab frames and the current pointer surface.
 - `drawer_header_pointer`: builds drawer header tab surfaces from current layout and measured frames, but still dispatches through shared pointer nodes. Matching sync input preserves the current measured-frame cache and pointer surface.

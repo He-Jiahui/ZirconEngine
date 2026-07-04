@@ -16,13 +16,13 @@ use super::style_selector::{
 use super::template_status_control_geometry::status_chip_text_rect;
 #[cfg(test)]
 use super::template_status_control_geometry::{
-    status_control_offset_rect, status_signal_icon_paint_rect, status_signal_icon_rect,
-    status_signal_text_gap,
+    status_control_offset_rect, status_icon_button_glyph_rect, status_signal_icon_paint_rect,
+    status_signal_icon_rect, status_signal_text_gap,
 };
 #[cfg(test)]
 use super::template_status_glyphs::StatusIconKind;
 #[cfg(test)]
-use chips::status_chip_text_color;
+use chips::status_chip_text_colors;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_status_control_commands;
 #[cfg(test)]
 use identity::{status_control_kind, StatusControlKind};

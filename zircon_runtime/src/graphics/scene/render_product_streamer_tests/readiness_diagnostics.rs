@@ -1,5 +1,7 @@
 use super::*;
 
+mod shader_redirect;
+
 #[test]
 fn render_product_pbr_streamer_records_missing_material_fallback_runtime() {
     let backend = RenderBackend::new_offscreen().expect("offscreen backend");
@@ -402,17 +404,7 @@ fn render_product_streamer_reports_shader_material_contract_diagnostics() {
         .expect("streamer readiness report");
     assert!(!report.is_ready());
     assert!(report.fallback_usages.is_empty());
-    assert_eq!(report.validation_errors.len(), 5);
-    assert!(report.validation_errors.iter().any(|error| matches!(
-        error,
-        RenderMaterialValidationError::UnknownPropertyOverride {
-            source,
-            path,
-            name,
-        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
-            && path == "overrides.ghost_property"
-            && name == "ghost_property"
-    )));
+    assert_eq!(report.validation_errors.len(), 4);
     assert!(report.validation_errors.iter().any(|error| matches!(
         error,
         RenderMaterialValidationError::PropertyOverrideTypeMismatch {

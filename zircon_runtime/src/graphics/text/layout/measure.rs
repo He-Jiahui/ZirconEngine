@@ -2,7 +2,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{layout::UiSize, surface::UiResolvedStyle};
 
 use crate::core::framework::render::{ShapedGlyph, ShapedGlyphRun};
-use crate::graphics::text::shaping::shape_horizontal_line;
+use crate::graphics::text::shaping::shape_horizontal_line_with_kerning as shape_backend_horizontal_line_with_kerning;
 use zircon_runtime_interface::ui::surface::{UiTextDirection, UiTextRange};
 
 use super::tab::tab_aligned_width;
@@ -54,19 +54,28 @@ pub(crate) fn measure_text_source_range_width(
     style: &UiResolvedStyle,
     range: UiTextRange,
 ) -> f32 {
+    measure_text_source_range_width_with_kerning(text, style, range, true)
+}
+
+pub(crate) fn measure_text_source_range_width_with_kerning(
+    text: &str,
+    style: &UiResolvedStyle,
+    range: UiTextRange,
+    include_kerning: bool,
+) -> f32 {
     if text.is_empty() || range.start >= range.end {
         return 0.0;
     }
 
-    let shaped = shape_unconstrained_line(text, style);
-    measured_width(&shaped, range.start, range.end, true)
+    let shaped = shape_unconstrained_line_with_kerning(text, style, include_kerning);
+    measured_width(&shaped, range.start, range.end, include_kerning)
 }
 
 pub(crate) fn measured_width(
     run: &ShapedGlyphRun,
     byte_start: usize,
     byte_end: usize,
-    _include_kerning: bool,
+    include_kerning: bool,
 ) -> f32 {
     if byte_start >= byte_end {
         return 0.0;
@@ -76,6 +85,10 @@ pub(crate) fn measured_width(
     if source_start >= source_end {
         return 0.0;
     }
+    debug_assert!(
+        include_kerning || !run.include_kerning,
+        "include_kerning=false requires an unkerned shaped run"
+    );
 
     run.lines
         .iter()
@@ -116,7 +129,15 @@ fn shape_line(text: &str, style: &UiResolvedStyle) -> TextLineMetrics {
 }
 
 fn shape_unconstrained_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphRun {
-    shape_horizontal_line(
+    shape_unconstrained_line_with_kerning(text, style, true)
+}
+
+fn shape_unconstrained_line_with_kerning(
+    text: &str,
+    style: &UiResolvedStyle,
+    include_kerning: bool,
+) -> ShapedGlyphRun {
+    shape_horizontal_line_with_kerning(
         text,
         style,
         UiTextDirection::Auto,
@@ -124,6 +145,32 @@ fn shape_unconstrained_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphR
             start: 0,
             end: text.len(),
         },
+        include_kerning,
+    )
+}
+
+fn shape_horizontal_line(
+    text: &str,
+    style: &UiResolvedStyle,
+    direction: UiTextDirection,
+    source_range: UiTextRange,
+) -> ShapedGlyphRun {
+    shape_horizontal_line_with_kerning(text, style, direction, source_range, true)
+}
+
+fn shape_horizontal_line_with_kerning(
+    text: &str,
+    style: &UiResolvedStyle,
+    direction: UiTextDirection,
+    source_range: UiTextRange,
+    include_kerning: bool,
+) -> ShapedGlyphRun {
+    shape_backend_horizontal_line_with_kerning(
+        text,
+        style,
+        direction,
+        source_range,
+        include_kerning,
     )
 }
 
@@ -258,6 +305,22 @@ mod tests {
         assert!(first > 0.0);
         assert!(second > 0.0);
         assert!((first + second - full).abs() < 0.1);
+    }
+
+    #[test]
+    fn measure_source_range_can_request_unkerned_backend_shape() {
+        let style = test_style();
+        let range = UiTextRange { start: 0, end: 2 };
+        let kerned = shape_unconstrained_line_with_kerning("AV", &style, true);
+        let unkerned = shape_unconstrained_line_with_kerning("AV", &style, false);
+        let kerned_width = measure_text_source_range_width_with_kerning("AV", &style, range, true);
+        let unkerned_width =
+            measure_text_source_range_width_with_kerning("AV", &style, range, false);
+
+        assert!(kerned.include_kerning);
+        assert!(!unkerned.include_kerning);
+        assert!((kerned_width - measured_width(&kerned, 0, 2, true)).abs() < 0.1);
+        assert!((unkerned_width - measured_width(&unkerned, 0, 2, false)).abs() < 0.1);
     }
 
     fn test_style() -> UiResolvedStyle {

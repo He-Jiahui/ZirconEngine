@@ -13,6 +13,7 @@ use zircon_runtime::core::framework::render::{
 mod asset_scan_errors;
 mod io;
 mod module_dependencies;
+mod raw_revision;
 mod resource_registry;
 
 use super::{
@@ -187,7 +188,14 @@ mode = "blend"
     assert_eq!(request.source_label, "res://shaders/example");
     assert!(request.wgsl_source.contains("fn base() {}"));
     assert!(request.wgsl_source.contains("fn variant() {}"));
-    assert_eq!(request.include_content_hashes.len(), 2);
+    assert!(
+        request.include_content_hashes.len() >= 2,
+        "compound shader package should keep hashes for its primary WGSL files"
+    );
+    assert!(
+        request.include_content_hashes.len() > 2,
+        "compound shader package should include module dependency hashes in the revision surface"
+    );
     assert_eq!(request.key.platform_token, "wgpu-runtime");
     assert_ne!(request.key.material_revision, 0);
     let passes = manifest
@@ -693,34 +701,6 @@ source_hash = "source-hash-b"
     assert_ne!(
         first_revision, second_revision,
         "zmeta source_hash edits must export a new shader prewarm material revision"
-    );
-    let _ = fs::remove_dir_all(root);
-}
-
-#[test]
-fn shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision() {
-    let root = std::env::temp_dir().join(format!(
-        "zircon_shader_prewarm_raw_revision_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&root);
-    fs::create_dir_all(&root).unwrap();
-    let shader_path = root.join("simple.wgsl");
-    fs::write(&shader_path, "fn simple_a() {}\n").unwrap();
-
-    let first_revision = asset_root_manifest(&root).unwrap().variants[0]
-        .key
-        .material_revision;
-    fs::write(&shader_path, "fn simple_b() {}\n").unwrap();
-    let second_revision = asset_root_manifest(&root).unwrap().variants[0]
-        .key
-        .material_revision;
-
-    assert_ne!(first_revision, 0);
-    assert_ne!(second_revision, 0);
-    assert_ne!(
-        first_revision, second_revision,
-        "raw shader source edits must export a new shader prewarm material revision"
     );
     let _ = fs::remove_dir_all(root);
 }

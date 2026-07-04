@@ -153,34 +153,58 @@ fn ordered_stage_pass_descriptors(
 ) -> Vec<RenderFeaturePassDescriptor> {
     let mut passes = stage_pass_descriptors(stage, descriptors);
     if stage == RenderPassStage::PostProcess {
-        order_post_process_bloom_before_uber(&mut passes);
+        order_post_process_bloom_after_scene_color_splits(&mut passes);
     }
     passes
 }
 
-fn order_post_process_bloom_before_uber(passes: &mut Vec<RenderFeaturePassDescriptor>) {
+fn order_post_process_bloom_after_scene_color_splits(
+    passes: &mut Vec<RenderFeaturePassDescriptor>,
+) {
     let Some(bloom_index) = passes
         .iter()
         .position(|pass| pass.executor_id.as_str() == "post.bloom-extract")
     else {
         return;
     };
-    let Some(uber_index) = passes
-        .iter()
-        .position(|pass| pass.executor_id.as_str() == "post.uber")
-    else {
-        return;
-    };
-    if bloom_index < uber_index {
-        return;
-    }
 
     let bloom = passes.remove(bloom_index);
-    let uber_index = passes
+    let after_latest_scene_color_split = passes
         .iter()
-        .position(|pass| pass.executor_id.as_str() == "post.uber")
-        .expect("post.uber pass position should survive removing bloom-extract");
-    passes.insert(uber_index, bloom);
+        .rposition(|pass| is_bloom_scene_color_input_producer(pass.executor_id.as_str()))
+        .map(|index| index + 1)
+        .unwrap_or(0);
+    let before_exposure = passes
+        .iter()
+        .position(|pass| is_bloom_downstream_post_process(pass.executor_id.as_str()))
+        .unwrap_or(passes.len());
+    let insert_index = before_exposure.max(after_latest_scene_color_split);
+    passes.insert(insert_index.min(passes.len()), bloom);
+}
+
+fn is_bloom_scene_color_input_producer(executor_id: &str) -> bool {
+    matches!(
+        executor_id,
+        "temporal.taa-resolve" | "post.depth-of-field" | "post.motion-blur"
+    )
+}
+
+fn is_bloom_downstream_post_process(executor_id: &str) -> bool {
+    matches!(
+        executor_id,
+        "post.exposure.histogram"
+            | "post.exposure.resolve"
+            | "post.screen-space-reflection-reflection-pyramid"
+            | "post.screen-space-reflection-reflection-pyramid-coarse"
+            | "post.screen-space-reflection-specular-occlusion"
+            | "post.screen-space-reflection-resolve"
+            | "post.scene-composite"
+            | "post.blur"
+            | "post.color-lut-bake"
+            | "post.uber"
+            | "post.upscale"
+            | "post.output-transfer"
+    )
 }
 
 fn author_pass_resource_access(

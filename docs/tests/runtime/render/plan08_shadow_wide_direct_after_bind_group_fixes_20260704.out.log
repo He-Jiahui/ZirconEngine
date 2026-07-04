@@ -1,0 +1,6 @@
+
+running 1 test
+test graphics::tests::render_product_shadow_wide::render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6540 filtered out; finished in 3.37s
+

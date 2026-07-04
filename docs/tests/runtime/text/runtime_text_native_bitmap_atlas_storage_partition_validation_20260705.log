@@ -1,0 +1,9 @@
+runtime_text_native_bitmap_atlas_storage_partition_rustfmt_static_visual_cargo_deferred_active_lanes
+PNG: 
+E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_native_bitmap_atlas_storage_partition_preview_20260705.png
+Rust touched: zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+Rust tests touched: zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests.rs; zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+Behavior: NativeBitmapAtlasFrame now exposes storage_submissions() partitioned by GlyphAtlasStorageFormat. Mixed R8/RGBA frames still keep replaces_glyphon=false until renderer owns multi-pass resources, but report mixed_storage_replacement_ready=true when partitions cover all visible glyphs and need no background composite.
+Static verification: rustfmt --edition 2021 --check passed; conflict scan passed; trailing whitespace scan passed.
+Cargo: deferred because active cargo/rustc lanes were present at validation time.
+Target policy: artifact intentionally written under docs/tests/runtime/text, not target.

@@ -52,7 +52,7 @@ fn mobility_validation_uses_direct_child_and_parent_scans() {
             && validate_mobility_change
                 .contains("if self.mobility(child) == Some(Mobility::Static)")
             && validate_mobility_change
-                .contains("\"cannot make node {entity} Dynamic while it owns Static children\"")
+                .contains("SceneError::DynamicMobilityWithStaticChildren { entity }")
             && !validate_mobility_change
                 .contains(".filter(|child| self.parent_of(*child) == Some(entity))")
             && !validate_mobility_change.contains(".any(|child|"),
@@ -62,8 +62,9 @@ fn mobility_validation_uses_direct_child_and_parent_scans() {
         validate_mobility_change.contains("if let Some(parent) = self.parent_of(entity)")
             && validate_mobility_change
                 .contains("if self.mobility(parent) == Some(Mobility::Dynamic)")
-            && validate_mobility_change
-                .contains("\"cannot make node {entity} Static under Dynamic parent\"")
+            && validate_mobility_change.contains("SceneError::StaticMobilityUnderDynamicParent")
+            && validate_mobility_change.contains("entity,")
+            && validate_mobility_change.contains("parent,")
             && !validate_mobility_change.contains(".is_some_and("),
         "Static mobility validation must use a direct parent branch"
     );

@@ -1,0 +1,14 @@
+runtime_text_editor_divider_label_bounds_runtime_measure_validation_20260704
+generated_at=2026-07-04T11:32:32
+preview=docs/tests/runtime/text/runtime_text_editor_divider_label_bounds_runtime_measure_preview_20260704.png
+preview_sha256=E09C262CA18DDB0AA8AE851E4E8AA320DA30CB59CED053014AC189747A3769F2
+font=C:\Windows\Fonts\Deng.ttf
+preview_font_size_px=14
+code_files=zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs;zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/horizontal.rs;zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+assertion=horizontal divider label bounds now use measure_runtime_text_width(label, divider_font_size(node, rect.height)) instead of label.chars().count() * font_size * 0.56
+cargo_status=deferred because cargo/rustc processes were active in the shared workspace
+metrics:
+- Old char-count gap, filename label label='editor base.zui' gap_width=136.80px glyph_width=88.00px right_padding=39.20px
+- New runtime measured gap, filename label label='editor base.zui' gap_width=107.20px glyph_width=88.00px right_padding=9.60px
+- Old char-count gap, wide glyph label label='WWWWWW' gap_width=66.24px glyph_width=77.00px right_padding=0.00px
+- New runtime measured gap, wide glyph label label='WWWWWW' gap_width=96.20px glyph_width=77.00px right_padding=9.60px

@@ -1,4 +1,11 @@
+#[path = "review_guard_maps/typed_error_maps.rs"]
+mod typed_error_maps;
+
 pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
+    if let Some(status) = typed_error_maps::expected_status_for_slice(slice) {
+        return Some(status);
+    }
+
     match slice {
         "Runtime 15 M3 code review findings test folder split" => {
             Some("runtime_15_code_review_findings_tests_folder_split_static_passed_cargo_deferred")
@@ -12,6 +19,12 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 P0 robustness structure guard folder-backed split" => Some(
             "runtime_15_p0_robustness_structure_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 P0 robustness root inventory child split" => Some(
+            "runtime_15_p0_robustness_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 P0 route ownership guard child split" => Some(
+            "runtime_15_p0_route_ownership_guard_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 P0 native fixture review guard leaf-owner split" => Some(
             "runtime_15_p0_native_fixture_review_guard_leaf_owner_split_static_passed_cargo_deferred",
         ),
@@ -20,6 +33,12 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         ),
         "Runtime 15 M3 F8 child-owner structure guard folder-backed split" => Some(
             "runtime_15_f8_child_owner_structure_guard_folder_backed_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 F8 child-owner root inventory child split" => Some(
+            "runtime_15_f8_child_owner_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 F8 route ownership guard child split" => Some(
+            "runtime_15_f8_route_ownership_guard_child_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 F8 descriptor review guard child-owner split" => Some(
             "runtime_15_f8_descriptor_review_guard_child_owner_split_static_passed_cargo_deferred",
@@ -30,14 +49,29 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 late API cleanup structure guard folder-backed split" => Some(
             "runtime_15_late_api_cleanup_structure_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 late API cleanup root inventory child split" => Some(
+            "runtime_15_late_api_cleanup_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 code review findings structure guard child-owner split" => Some(
             "runtime_15_code_review_findings_structure_guard_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 code review findings structure guard children folder-backed split" => Some(
             "runtime_15_code_review_findings_structure_guard_children_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings structure guard children budget-status child split" => {
+            Some("runtime_15_code_review_findings_structure_guard_children_budget_status_child_split_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 code review findings structure guard children root inventory child split" => {
+            Some("runtime_15_code_review_findings_structure_guard_children_root_inventory_child_split_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 structure guard plugin-importer child split" => Some(
+            "runtime_15_structure_guard_plugin_importer_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 P0 native fixture leaf-owner guard folder-backed split" => Some(
             "runtime_15_p0_native_fixture_leaf_owner_guard_folder_backed_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 P0 native fixture leaf-owner root inventory child split" => Some(
+            "runtime_15_p0_native_fixture_leaf_owner_root_inventory_child_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 code review findings status-doc guard child-owner split" => Some(
             "runtime_15_code_review_findings_status_docs_child_owner_split_static_passed_cargo_deferred",
@@ -45,6 +79,9 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 code review findings status-doc guard folder-backed split" => Some(
             "runtime_15_code_review_findings_status_docs_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings status-doc status-mirror child-owner split" => {
+            Some("runtime_15_code_review_findings_status_docs_status_mirror_child_owner_split_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings status-doc source anchors child-owner split" => Some(
             "runtime_15_code_review_findings_status_docs_source_anchors_child_owner_split_static_passed_cargo_deferred",
         ),
@@ -54,39 +91,78 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 code review findings status-doc status anchors child-owner split" => Some(
             "runtime_15_code_review_findings_status_docs_status_anchors_child_owner_split_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings status-doc status anchors folder-backed split" => Some(
+            "runtime_15_code_review_findings_status_docs_status_anchors_folder_backed_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 code review findings status-doc child-anchor list child split" => Some(
+            "runtime_15_code_review_findings_status_docs_child_anchor_list_child_split_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 code review findings status-doc root inventory child split" => Some(
+            "runtime_15_code_review_findings_status_docs_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 code review findings status-doc status anchor guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_status_docs_status_anchor_guard_folder_backed_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 code review findings status-doc status-anchor child-ownership child split" => {
+            Some("runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_child_split_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings folder-backed summary child-owner split" => Some(
             "runtime_15_code_review_findings_folder_backed_summary_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 code review findings folder-backed summary guard folder-backed split" => Some(
             "runtime_15_code_review_findings_folder_backed_summary_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings folder-backed summary child-ownership guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_folder_backed_summary_child_ownership_guard_folder_backed_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings source inventory child-owner split" => Some(
             "runtime_15_code_review_findings_source_inventory_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 code review findings source inventory folder-backed split" => Some(
             "runtime_15_code_review_findings_source_inventory_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings source inventory status-mirror child-owner split" => {
+            Some("runtime_15_code_review_findings_source_inventory_status_mirror_child_owner_split_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings direct assertions child-owner split" => Some(
             "runtime_15_code_review_findings_direct_assertions_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 code review findings direct assertions guard folder-backed split" => {
             Some("runtime_15_code_review_findings_direct_assertions_guard_folder_backed_static_passed_cargo_deferred")
         }
+        "Runtime 15 M3 code review findings direct assertions child-ownership guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings F12 direct assertions child-owner split" => Some(
             "runtime_15_code_review_findings_f12_direct_assertions_child_owner_split_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings F12 direct assertions guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_f12_direct_assertions_guard_folder_backed_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings root-parent direct assertions child-owner split" => {
             Some("runtime_15_code_review_findings_root_parent_direct_assertions_child_owner_split_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 code review findings root-parent direct assertions guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_root_parent_direct_assertions_guard_folder_backed_static_passed_cargo_deferred")
         }
         "Runtime 15 M3 code review findings render direct assertions child-owner split" => {
             Some("runtime_15_code_review_findings_render_direct_assertions_child_owner_split_static_passed_cargo_deferred")
         }
+        "Runtime 15 M3 code review findings render direct assertions guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_render_direct_assertions_guard_folder_backed_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings F8 direct assertions child-owner split" => Some(
             "runtime_15_code_review_findings_f8_direct_assertions_child_owner_split_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings F8 direct assertions guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_f8_direct_assertions_guard_folder_backed_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings P0 direct assertions child-owner split" => Some(
             "runtime_15_code_review_findings_p0_direct_assertions_child_owner_split_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 code review findings P0 direct assertions guard folder-backed split" => {
+            Some("runtime_15_code_review_findings_p0_direct_assertions_guard_folder_backed_static_passed_cargo_deferred")
+        }
         "Runtime 15 M3 code review findings structure guard folder-backed summary child-owner split" => {
             Some("runtime_15_code_review_findings_structure_guard_folder_backed_summary_child_owner_split_static_passed_cargo_deferred")
         }
@@ -105,14 +181,41 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 typed-error structure guard folder-backed split" => Some(
             "runtime_15_typed_error_structure_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 typed-error structure guard root inventory child split" => Some(
+            "runtime_15_typed_error_structure_guard_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 typed-error child-ownership guard folder-backed split" => Some(
+            "runtime_15_typed_error_child_ownership_guard_folder_backed_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 typed-error child-ownership root inventory child split" => Some(
+            "runtime_15_typed_error_child_ownership_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 typed-error structure assertions guard child-owner split" => Some(
             "runtime_15_typed_error_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 typed-error structure assertions guard folder-backed split" => Some(
             "runtime_15_typed_error_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 typed-error convergence mounts guard folder-backed split" => Some(
+            "runtime_15_typed_error_convergence_mounts_guard_folder_backed_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 typed-error convergence mounts root inventory child split" => Some(
+            "runtime_15_typed_error_convergence_mounts_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 typed-error native plugin loader structure guard child-owner split" => {
             Some("runtime_15_typed_error_native_plugin_loader_structure_guard_child_owner_split_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 typed-error native plugin loader structure guard folder-backed split" => {
+            Some("runtime_15_typed_error_native_plugin_loader_structure_guard_folder_backed_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 typed-error native plugin loader routes child split" => {
+            Some("runtime_15_typed_error_native_plugin_loader_routes_child_split_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 typed-error native plugin loader routes source helper child split" => {
+            Some("runtime_15_typed_error_native_plugin_loader_routes_source_helper_child_split_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 typed-error native plugin loader source helper child split" => {
+            Some("runtime_15_typed_error_native_plugin_loader_source_helper_child_split_static_passed_cargo_deferred")
         }
         "Runtime 15 M3 typed-error structure moved-guard absence child-owner split" => Some(
             "runtime_15_typed_error_structure_moved_guard_absence_child_owner_split_static_passed_cargo_deferred",
@@ -120,23 +223,47 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 typed-error moved-guard absence guard folder-backed split" => Some(
             "runtime_15_typed_error_moved_guard_absence_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 typed-error moved-guard absence root inventory child split" => Some(
+            "runtime_15_typed_error_moved_guard_absence_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 code review findings plugin-importer DX structure guard child-owner split" => Some(
             "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 plugin-importer DX structure guard folder-backed split" => Some(
             "runtime_15_plugin_importer_dx_structure_guard_folder_backed_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 plugin-importer DX structure guard root inventory child split" => Some(
+            "runtime_15_plugin_importer_dx_structure_guard_root_inventory_child_split_target_server_direct_binary_passed",
+        ),
         "Runtime 15 M3 plugin-importer DX status-doc guard child-owner split" => Some(
             "runtime_15_plugin_importer_dx_status_docs_child_owner_split_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 plugin-importer DX status-doc guard folder-backed split" => Some(
+            "runtime_15_plugin_importer_dx_status_docs_guard_folder_backed_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 plugin-importer DX status-doc root inventory child split" => Some(
+            "runtime_15_plugin_importer_dx_status_docs_root_inventory_child_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 plugin-importer DX source inventory guard child-owner split" => Some(
             "runtime_15_plugin_importer_dx_source_inventory_guard_child_owner_split_static_passed_cargo_deferred",
+        ),
+        "Runtime 15 M3 plugin-importer DX source inventory guard folder-backed split" => Some(
+            "runtime_15_plugin_importer_dx_source_inventory_guard_folder_backed_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 plugin-importer DX structure assertions guard child-owner split" => Some(
             "runtime_15_plugin_importer_dx_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
         ),
         "Runtime 15 M3 plugin-importer DX structure assertions guard folder-backed split" => {
             Some("runtime_15_plugin_importer_dx_structure_assertions_guard_folder_backed_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 plugin-importer DX review mounts guard folder-backed split" => {
+            Some("runtime_15_plugin_importer_dx_review_mounts_guard_folder_backed_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 plugin-importer D13 SDK structure assertions guard folder-backed split" => {
+            Some("runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_folder_backed_static_passed_cargo_deferred")
+        }
+        "Runtime 15 M3 plugin-importer D13 SDK parent-mount guard child split" => {
+            Some("runtime_15_plugin_importer_d13_sdk_parent_mounts_guard_child_split_static_passed_cargo_deferred")
         }
         "Runtime 15 M3 plugin-importer D13 SDK structure assertions guard child-owner split" => {
             Some("runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred")
@@ -186,81 +313,6 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 D5 editor authoring macro consumer guard" => {
             Some("d5_editor_authoring_macro_consumers_static_passed_cargo_deferred")
         }
-        "Runtime 15 M3 typed-error convergence guard child-owner split" => Some(
-            "runtime_15_typed_error_convergence_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 native plugin loader typed-error review guard child-owner split" => Some(
-            "runtime_15_native_plugin_loader_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 native ABI surfaces typed-error review guard child-owner split" => Some(
-            "runtime_15_native_abi_surfaces_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 native plugin descriptor ABI typed-error review guard child-owner split" => Some(
-            "runtime_15_native_plugin_descriptor_abi_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 UI input typed-error review guard child-owner split" => Some(
-            "runtime_15_ui_input_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 review guard status row-data child-owner split" => {
-            Some("runtime_15_review_guard_status_row_data_child_owner_split_static_passed_cargo_deferred")
-        }
-        "Runtime 15 M3 review guard row-data topic child-owner split" => {
-            Some("runtime_15_review_guard_row_data_topic_child_owner_split_static_passed_cargo_deferred")
-        }
-        "Runtime 15 M3 review-guard typed-error row-data child split" => Some(
-            "runtime_15_review_guard_typed_error_row_data_child_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 code-review row-data owner child split" => Some(
-            "runtime_15_code_review_rows_row_data_owner_child_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 typed-error structure row-data child split" => Some(
-            "runtime_15_typed_error_structure_row_data_child_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 code-review structure-guard row-data folder-backed split" => Some(
-            "runtime_15_code_review_structure_guard_row_data_folder_backed_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 code-review structure-guard root-and-children row-data child split" => {
-            Some("runtime_15_code_review_structure_guard_root_and_children_row_data_child_split_static_passed_cargo_deferred")
-        }
-        "Runtime 15 M3 code review findings status-row source child-tree sync" => Some(
-            "runtime_15_code_review_findings_status_row_source_child_tree_sync_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 typed-error structure status-doc guard child-owner split" => {
-            Some("runtime_15_typed_error_structure_status_docs_child_owner_split_static_passed_cargo_deferred")
-        }
-        "Runtime 15 M3 typed-error structure status-doc guard folder-backed split" => {
-            Some("runtime_15_typed_error_structure_status_docs_folder_backed_static_passed_cargo_deferred")
-        }
-        "Runtime 15 M3 typed-error source inventory guard child-owner split" => {
-            Some("runtime_15_typed_error_source_inventory_guard_child_owner_split_static_passed_cargo_deferred")
-        }
-        "Runtime 15 M3 native manifest sources typed-error review guard child-owner split" => Some(
-            "runtime_15_native_manifest_sources_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 script host typed-error review guard child-owner split" => Some(
-            "runtime_15_script_host_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 scene world typed-error review guard child-owner split" => Some(
-            "runtime_15_scene_world_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 asset loader typed-error review guard child-owner split" => Some(
-            "runtime_15_asset_loader_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 asset records typed-error review guard child-owner split" => Some(
-            "runtime_15_asset_records_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 shader prewarm CLI typed-error review guard child-owner split" => Some(
-            "runtime_15_shader_prewarm_cli_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 native live-host typed-error review guard child-owner split" => Some(
-            "runtime_15_native_live_host_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 native live-host lifecycle-paths typed-error review guard child-owner split" => Some(
-            "runtime_15_native_live_host_lifecycle_paths_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
-        "Runtime 15 M3 native live-host replay-runtime typed-error review guard child-owner split" => Some(
-            "runtime_15_native_live_host_replay_runtime_typed_error_review_guard_child_owner_split_static_passed_cargo_deferred",
-        ),
         "Runtime 15 M3 D12 runtime helper export macro review sync" => {
             Some("d12_runtime_export_macro_review_synced_static_passed_cargo_deferred")
         }
@@ -299,3 +351,12 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
 // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows.rs
 // plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows.rs
 // runtime_15_code_review_rows_row_data_owner_is_child_backed
+// Runtime 15 M3 plugin-importer row-data owner child split anchor mirror:
+// runtime_15_plugin_importer_row_data_owner_child_split_static_passed_cargo_deferred
+// plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs
+// plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/review_guards.rs
+// plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/status_docs.rs
+// plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/source_inventory.rs
+// plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/structure_assertions.rs
+// plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows/row_data_owner.rs
+// runtime_15_plugin_importer_rows_row_data_owner_is_child_backed

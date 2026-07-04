@@ -7,7 +7,11 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_runtime/src/lib.rs
   - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/run_config.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs
 implementation_files:
   - zircon_app/Cargo.toml
   - zircon_app/build.rs
@@ -15,6 +19,11 @@ implementation_files:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_runtime/src/lib.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/run_config.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs
 plan_sources:
   - user: 2026-05-22 continue Editor/runtime UI layout visual validation
   - user: UI Layout 架构评审与 Taffy 收敛计划
@@ -28,12 +37,18 @@ tests:
   - rebuilt source validation: target/editor-visual-check/editor-default-960x640-rebuilt-stack8m-20260522-043929.png
   - live editor build: cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
   - live editor screenshot: target/visual-layout/editor-live-window-900x620.png
+  - rustfmt --edition 2021 --check --config skip_children=true zircon_editor/src/ui/retained_host/run_config.rs zircon_editor/src/ui/retained_host/mod.rs zircon_editor/src/lib.rs zircon_editor/src/ui/retained_host/app.rs zircon_editor/src/ui/retained_host/host_contract/globals/state.rs zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs zircon_editor/src/ui/retained_host/host_contract/window/tests.rs zircon_app/src/entry/entry_runner/editor.rs zircon_app/src/entry/tests/profile_bootstrap.rs
+  - cargo test -p zircon_editor editor_host_run_config --lib --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-popup-preference-0704 --message-format short --color never -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor first_presented_frame_exit_policy_defaults_off_and_can_be_enabled --lib --no-default-features --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-popup-preference-0704 --message-format short --color never -- --nocapture --test-threads=1
+  - cargo test -p zircon_app first_frame_exit_flag_projects_into_editor_host_config --lib --no-default-features --features target-editor-host --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-popup-preference-0704 --message-format short --color never -- --nocapture --test-threads=1
+  - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1 --target-dir F:\cargo-targets\zircon-editor-popup-preference-0704 --message-format short --color never
+  - bounded editor startup smoke: ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME=1 F:\cargo-targets\zircon-editor-popup-preference-0704\debug\zircon_editor.exe ExitCode 0
 doc_type: module-detail
 ---
 
 # Zircon App Editor Host Entry
 
-`zircon_app` owns the process entry for the native editor host. `src/bin/editor.rs` delegates to `EntryRunner::run_editor_with_args`, which parses diagnostic and startup arguments, bootstraps the editor profile, loads the default runtime dynamic library, creates a runtime client, and hands control to `zircon_editor::run_editor_with_startup_request`.
+`zircon_app` owns the process entry for the native editor host. `src/bin/editor.rs` delegates to `EntryRunner::run_editor_with_args`, which parses diagnostic and startup arguments, bootstraps the editor profile, loads the default runtime dynamic library, creates a runtime client, and hands control to the retained editor host. Normal startup remains interactive; validation-only startup may use `zircon_editor::run_editor_with_config` to request a bounded first presented frame.
 
 ## Runtime Profile Build Boundary
 
@@ -42,6 +57,14 @@ The live Editor visual validation path builds the same `zircon_editor` binary us
 `zircon_app/src/entry/builtin_modules.rs` keeps the project manifest optional until the resolver path is known. When `EntryConfig.runtime_profile()` is set, the plugin-registration and feature-registration paths use the caller manifest when present and otherwise ask `RuntimeProfileDescriptor` for the profile default manifest. The feature-registration path clones the optional manifest before creating the fallback so later feature dependency reporting can still inspect the original optional manifest. This is entry/profile wiring only; it does not move runtime module ownership into `zircon_app`.
 
 The current live validation command is `cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation`. The 2026-05-25 closeout rerun of that command passed. The captured native window artifact is `target/visual-layout/editor-live-window-900x620.png`; the requested capture name is 900 x 620, while the actual OS window PNG reported `1296 x 759` and `86492` bytes.
+
+## Bounded First-Frame Startup Smoke
+
+The Frameworks02 editor startup smoke uses `ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME` as a validation-only policy. `zircon_app/src/entry/entry_runner/editor.rs` owns the environment projection, builds an `EditorHostRunConfig`, and passes that config to `zircon_editor::run_editor_with_config(...)`.
+
+`EditorHostRunConfig` stays in `zircon_editor/src/ui/retained_host/run_config.rs` so startup requests and validation flags do not accumulate in the retained-host root. `UiHostWindow` stores the default-off policy in host globals through `window/lifecycle.rs`, and `window/event_loop/redraw/present.rs` exits only after `presenter.present(...)` succeeds and refresh diagnostics have been updated. This keeps the smoke tied to an actual presented frame and does not change normal editor UX.
+
+The same target-editor-host validation also updated `profile_bootstrap.rs` to use `asset_manager.shared().pipeline_info()`. That preserves the current F18 asset-manager hard cutover and does not reintroduce a legacy `AssetManagerHandle.pipeline_info()` forwarding API.
 
 ## Windows Stack Reserve
 

@@ -1,8 +1,10 @@
+use crate::core::math::UVec2;
+use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::{
-    CompiledRenderGraph, PassFlags, QueueLane, RenderGraphAttachmentOps,
-    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
-    RenderGraphResourceDeclaration, RenderGraphResourceKind, RenderGraphResourceLifetime,
-    RenderPassId,
+    CompiledRenderGraph, PassFlags, QueueLane, RenderGraphAttachmentLoadOp,
+    RenderGraphAttachmentOps, RenderGraphPassResourceAccess, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphResourceDeclaration, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderPassId,
 };
 
 use super::RenderPassExecutorId;
@@ -266,8 +268,15 @@ impl<'a> RenderPassExecutionContext<'a> {
             self.gpu
                 .as_ref()
                 .map(|gpu| {
-                    gpu.camera_stack_attachment_policy()
-                        .apply_to_first_attachment_write(resource_name, graph_ops)
+                    let attachment_ops = gpu
+                        .camera_stack_attachment_policy()
+                        .apply_to_first_attachment_write(resource_name, graph_ops);
+                    preserve_physical_output_attachment_ops_for_partitioned_viewport(
+                        resource_name,
+                        attachment_ops,
+                        gpu.render_region(),
+                        gpu.viewport_size(),
+                    )
                 })
                 .unwrap_or(graph_ops),
         )
@@ -339,12 +348,45 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 }
 
+fn preserve_physical_output_attachment_ops_for_partitioned_viewport(
+    resource_name: &str,
+    attachment_ops: RenderGraphAttachmentOps,
+    render_region: ViewportRenderRegion,
+    target_size: UVec2,
+) -> RenderGraphAttachmentOps {
+    if attachment_ops.load != RenderGraphAttachmentLoadOp::Clear
+        || !gpu::writes_physical_output_resource(resource_name)
+        || render_region_covers_target(render_region, target_size)
+    {
+        return attachment_ops;
+    }
+    RenderGraphAttachmentOps {
+        load: RenderGraphAttachmentLoadOp::Load,
+        store: attachment_ops.store,
+    }
+}
+
+fn render_region_covers_target(render_region: ViewportRenderRegion, target_size: UVec2) -> bool {
+    let target_size = UVec2::new(target_size.x.max(1), target_size.y.max(1));
+    render_region.physical_position() == UVec2::ZERO && render_region.physical_size() == target_size
+}
+
 #[cfg(test)]
 mod tests {
-    use super::RenderPassExecutionContext;
+    use super::{
+        preserve_physical_output_attachment_ops_for_partitioned_viewport,
+        RenderPassExecutionContext,
+    };
+    use crate::core::framework::render::{
+        CameraRenderDescriptor, PostProcessGraphResourceNames, RenderViewportRect,
+        ViewportCameraSnapshot,
+    };
+    use crate::core::math::UVec2;
+    use crate::graphics::types::ViewportRenderRegion;
     use crate::graphics::RenderPassExecutorId;
     use crate::render_graph::{
-        QueueLane, RenderGraphAttachmentOps, RenderGraphBuilder, RenderGraphPassResourceAccess,
+        QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
+        RenderGraphAttachmentStoreOp, RenderGraphBuilder, RenderGraphPassResourceAccess,
         RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceKind,
     };
     use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
@@ -394,6 +436,52 @@ mod tests {
     }
 
     #[test]
+    fn partitioned_physical_output_clear_loads_existing_target_contents() {
+        let viewport_size = UVec2::new(640, 360);
+        let render_region = split_viewport_region(viewport_size);
+        let clear_discard = RenderGraphAttachmentOps::clear_discard();
+
+        assert_eq!(
+            preserve_physical_output_attachment_ops_for_partitioned_viewport(
+                PostProcessGraphResourceNames::FINAL_COLOR,
+                clear_discard,
+                render_region,
+                viewport_size,
+            ),
+            RenderGraphAttachmentOps {
+                load: RenderGraphAttachmentLoadOp::Load,
+                store: RenderGraphAttachmentStoreOp::Discard,
+            }
+        );
+    }
+
+    #[test]
+    fn full_physical_output_and_transient_resources_preserve_graph_attachment_ops() {
+        let viewport_size = UVec2::new(640, 360);
+        let full_region = ViewportRenderRegion::full_target(viewport_size);
+        let split_region = split_viewport_region(viewport_size);
+
+        assert_eq!(
+            preserve_physical_output_attachment_ops_for_partitioned_viewport(
+                PostProcessGraphResourceNames::FINAL_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+                full_region,
+                viewport_size,
+            ),
+            RenderGraphAttachmentOps::clear_store()
+        );
+        assert_eq!(
+            preserve_physical_output_attachment_ops_for_partitioned_viewport(
+                PostProcessGraphResourceNames::SCENE_COLOR,
+                RenderGraphAttachmentOps::clear_store(),
+                split_region,
+                viewport_size,
+            ),
+            RenderGraphAttachmentOps::clear_store()
+        );
+    }
+
+    #[test]
     fn metadata_context_reports_declared_texture_reads() {
         let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
             "opaque-mesh",
@@ -419,6 +507,16 @@ mod tests {
         assert!(context.reads_texture("shadow-atlas"));
         assert!(context.reads_transient_texture("shadow-atlas"));
         assert!(!context.reads_texture("scene-color"));
+    }
+
+    fn split_viewport_region(viewport_size: UVec2) -> ViewportRenderRegion {
+        let mut camera =
+            CameraRenderDescriptor::from_camera_payload(None, ViewportCameraSnapshot::default());
+        camera.viewport_rect = Some(RenderViewportRect::new(
+            UVec2::new(viewport_size.x / 2, 0),
+            UVec2::new(viewport_size.x / 2, viewport_size.y),
+        ));
+        ViewportRenderRegion::from_camera(Some(&camera), viewport_size)
     }
 
     #[test]

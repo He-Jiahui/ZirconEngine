@@ -42,6 +42,7 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_15_gameplay_host_tests_are_folder_backed --no-default-features --features core-min --locked: deferred in Runtime 15 M3 gameplay host test folder split
   - cargo test -p zircon_runtime --lib runtime_15_script_vm_gameplay_host_guard_is_child_owner --no-default-features --features core-min --locked: deferred in Runtime 15 M3 script VM gameplay host guard child-owner split
   - cargo test -p zircon_runtime --lib review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary --no-default-features --features core-min --locked: deferred while external cargo/rustc lanes are active
+  - cargo test -p zircon_runtime --lib script_held_entity_handle_reports_invalid_after_despawn --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-extension-registry-dotted-coremin-0704 -- --nocapture --test-threads=1: blocked during 2026-07-04 lib-test compile by unrelated render/Plan08 PBR helper drift before test execution
   - cargo check -p zircon_runtime --lib --message-format short --color never
 doc_type: module-detail
 ---
@@ -81,6 +82,10 @@ Runtime 15 E1/E2/F5 的当前切片新增 `script/vm/gameplay_host/error.rs`，�
 该 typed-error owner 保留 `SceneError`、`NavigationError` 与 `serde_json::Error` source，并用 `GameplayHostError::MissingEntity` 表达 host-local missing entity category。VM 可见边界仍返回 `ScriptHostError`，所以脚本调用方看到的 host-call 诊断形状不变；字符串化只发生在这个边界。
 
 守卫：`review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary` 检查 `mod error;`、`GameplayHostError` / `GameplayHostResult`、四个 domain owner 的无 String-error 回流，以及 Runtime 15 子计划、runtime index、结构规范、review findings、host ledger、module-convention 和 status-output expectations 的同步锚点。验证：scoped rustfmt/static scans 通过；Cargo 因并行 cargo/rustc lane active deferred，不计通过。
+
+Fresh 2026-07-04 Frameworks02 diagnostic-sync evidence: status `frameworks_02_m3_gameplay_host_stale_entity_typed_diagnostic_static_updated_cargo_blocked_render_pbr_helpers` keeps the stale script-held entity regression aligned with the typed-error owner above. `script_held_entity_handle_reports_invalid_after_despawn` still exercises the normal live-read, despawn, post-despawn `position_json == "null"`, and stale `set_position` write path. The guard now expects the `SceneError::MissingEntity` display text that reaches the VM boundary, `cannot update transform for missing entity`, and explicitly rejects the retired `missing node` wording. This does not add a gameplay-host fallback, compatibility branch, or alternate entity validation path; the rejection still comes from `World::update_transform`.
+
+Validation for that 2026-07-04 sync is intentionally narrow: touched-file rustfmt check passed, while the exact core-min Cargo filter was blocked before test execution by unrelated render/Plan08 compile drift in `graphics/tests/project_render/project_scenes.rs` (`pbr_matrix_axis_value`, `write_pbr_matrix_material`, `write_pbr_matrix_scene`, and `assert_pbr_matrix_environment_response` were missing in the current worktree). The exact test remains pending current-source Cargo execution after that render compile drift is resolved.
 
 ## Runtime 15 M3 gameplay host test folder split
 

@@ -1,8 +1,16 @@
 use super::*;
 
 use crate::ui::layouts::windows::workbench_host_window::HostMenuChromeItemData;
+use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::document_tabs::{
-    DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT,
+    document_tab_preferred_width_from_title_width, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH,
+    DOCUMENT_TAB_CLOSE_EXTENT, DOCUMENT_TAB_TITLE_FONT_SIZE,
+};
+use crate::ui::workbench::menu_bar::{
+    workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
+};
+use crate::ui::workbench::page_tabs::{
+    main_page_tab_preferred_width_from_title_width, MAIN_PAGE_TAB_TITLE_FONT_SIZE,
 };
 
 #[test]
@@ -54,11 +62,42 @@ fn dock_header_nodes_keep_document_tabs_readable_and_close_control_clean() {
     let close = node(&nodes, "DockTabClose0");
 
     assert_eq!(asset.text.as_str(), "Asset Browser");
-    assert!(asset.frame.width >= 160.0);
+    assert!(asset.frame.width >= DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH);
     assert!(visual.frame.width >= DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH);
     assert_eq!(close.surface_variant.as_str(), "");
     assert_eq!(close.frame.width, DOCUMENT_TAB_CLOSE_EXTENT);
     assert!(close.frame.x + close.frame.width <= asset.frame.x + asset.frame.width);
+}
+
+#[test]
+fn dock_header_nodes_measure_file_name_tabs_with_runtime_font_width() {
+    let tabs = model_rc(vec![
+        test_tab("editor base.zui", true, true),
+        test_tab("folder-open-line.svg", false, true),
+    ]);
+
+    let nodes = document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 900.0, 31.0);
+    let editor = node(&nodes, "DockTab0");
+    let folder = node(&nodes, "DockTab1");
+    let folder_close = node(&nodes, "DockTabClose1");
+
+    let expected_editor_width = document_tab_preferred_width_from_title_width(
+        measure_runtime_text_width("editor base.zui", DOCUMENT_TAB_TITLE_FONT_SIZE),
+        true,
+    );
+    let expected_folder_width = document_tab_preferred_width_from_title_width(
+        measure_runtime_text_width("folder-open-line.svg", DOCUMENT_TAB_TITLE_FONT_SIZE),
+        true,
+    );
+
+    assert_close(editor.frame.width, expected_editor_width);
+    assert_close(folder.frame.width, expected_folder_width);
+    assert_eq!(editor.font_size, DOCUMENT_TAB_TITLE_FONT_SIZE);
+    assert_eq!(folder.font_size, DOCUMENT_TAB_TITLE_FONT_SIZE);
+    assert!(
+        folder_close.frame.x + folder_close.frame.width <= folder.frame.x + folder.frame.width,
+        "close hitbox should stay inside the runtime-measured file-name tab"
+    );
 }
 
 #[test]
@@ -140,6 +179,36 @@ fn menu_chrome_nodes_project_extension_slots_beyond_authored_stencil() {
             slot_8.frame.x > slot_6.frame.x + slot_6.frame.width,
             "extension top-level menus should be projected after the authored menu stencil instead of being truncated at slot 6"
         );
+}
+
+#[test]
+fn menu_chrome_nodes_measure_top_level_slots_with_runtime_font_width() {
+    let menus = model_rc(vec![
+        test_menu("iiiiiiii"),
+        test_menu("WWWWWWWW"),
+        test_menu("folder-open-line.svg"),
+    ]);
+
+    let nodes = menu_chrome_nodes(&menus, 420.0, 29.0);
+    let narrow = node(&nodes, "MenuSlot0");
+    let wide = node(&nodes, "MenuSlot1");
+    let file_name = node(&nodes, "MenuSlot2");
+
+    let expected_narrow = menu_slot_width_from_runtime_text("iiiiiiii");
+    let expected_wide = menu_slot_width_from_runtime_text("WWWWWWWW");
+    let expected_file_name = menu_slot_width_from_runtime_text("folder-open-line.svg");
+
+    assert_close(narrow.frame.width, expected_narrow);
+    assert_close(wide.frame.width, expected_wide);
+    assert_close(file_name.frame.width, expected_file_name);
+    assert_eq!(narrow.font_size, WORKBENCH_MENU_SLOT_FONT_SIZE);
+    assert_eq!(wide.font_size, WORKBENCH_MENU_SLOT_FONT_SIZE);
+    assert!(
+        wide.frame.width > narrow.frame.width,
+        "same character count should still use glyph-aware runtime measurement"
+    );
+    assert_close(wide.frame.x, narrow.frame.x + narrow.frame.width + 2.0);
+    assert_close(file_name.frame.x, wide.frame.x + wide.frame.width + 2.0);
 }
 
 #[test]
@@ -313,6 +382,30 @@ fn fallback_page_chrome_preserves_clickable_tab_and_project_path_frames() {
     assert_eq!(second_tab.text_tone.as_str(), "subtle");
     assert_eq!(project_path.text.as_str(), "ZirconProject4");
     assert!(project_path.frame.width > 0.0);
+}
+
+#[test]
+fn fallback_page_chrome_measures_file_name_tabs_with_runtime_font_width() {
+    let tabs = model_rc(vec![
+        test_tab("editor base.zui", true, false),
+        test_tab("folder-open-line.svg", false, false),
+    ]);
+
+    let nodes = fallback_page_chrome_nodes(&tabs, &"ZirconProject4".into(), 1100.0, 0.0);
+    let editor = node(&nodes, "PageTab0");
+    let folder = node(&nodes, "PageTab1");
+
+    let expected_editor_width = main_page_tab_preferred_width_from_title_width(
+        measure_runtime_text_width("editor base.zui", MAIN_PAGE_TAB_TITLE_FONT_SIZE),
+    );
+    let expected_folder_width = main_page_tab_preferred_width_from_title_width(
+        measure_runtime_text_width("folder-open-line.svg", MAIN_PAGE_TAB_TITLE_FONT_SIZE),
+    );
+
+    assert_close(editor.frame.width, expected_editor_width);
+    assert_close(folder.frame.width, expected_folder_width);
+    assert_eq!(editor.font_size, MAIN_PAGE_TAB_TITLE_FONT_SIZE);
+    assert_eq!(folder.font_size, MAIN_PAGE_TAB_TITLE_FONT_SIZE);
 }
 
 #[test]
@@ -507,6 +600,20 @@ fn tab_chrome_fallback_detects_zero_height_or_zero_width_hits() {
     ));
 }
 
+fn assert_close(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() <= 0.01,
+        "expected {expected:.3}, got {actual:.3}",
+    );
+}
+
+fn menu_slot_width_from_runtime_text(label: &str) -> f32 {
+    workbench_menu_slot_width_from_label_width(measure_runtime_text_width(
+        label,
+        WORKBENCH_MENU_SLOT_FONT_SIZE,
+    ))
+}
+
 fn node(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> ViewTemplateNodeData {
     maybe_node(nodes, control_id)
         .unwrap_or_else(|| panic!("missing projected popup node {control_id}"))
@@ -548,5 +655,15 @@ fn test_menu_item(
         action_id: action_id.into(),
         enabled,
         children: ModelRc::default(),
+    }
+}
+
+fn test_menu(label: &str) -> HostMenuChromeMenuData {
+    HostMenuChromeMenuData {
+        label: label.into(),
+        popup_width_px: 224.0,
+        popup_height_px: 72.0,
+        popup_nodes: ModelRc::default(),
+        items: ModelRc::default(),
     }
 }

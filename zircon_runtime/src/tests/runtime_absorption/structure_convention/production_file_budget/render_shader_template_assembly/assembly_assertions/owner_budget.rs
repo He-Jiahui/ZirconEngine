@@ -14,6 +14,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         validation,
         tests,
         template_surface_module_tests,
+        template_standard_material_surface_tests,
         variant_cache_prewarm,
         pipeline_key,
         mesh_cache_state,
@@ -33,6 +34,7 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         non_material_rebuild,
         shadow_renderer,
         graph_gpu_context,
+        graph_gpu_reports,
         graph_stage_execution,
         ..
     } = sources;
@@ -65,6 +67,10 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         (
             "graphics/shader/template/tests/surface_modules.rs",
             template_surface_module_tests.as_str(),
+        ),
+        (
+            "graphics/shader/template/tests/standard_material_surface_template.rs",
+            template_standard_material_surface_tests.as_str(),
         ),
         (
             "graphics/shader/variant_cache/prewarm.rs",
@@ -141,6 +147,10 @@ pub(super) fn assert_render_shader_template_assembly_production_owners_stay_belo
         (
             "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs",
             graph_gpu_context.as_str(),
+        ),
+        (
+            "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs",
+            graph_gpu_reports.as_str(),
         ),
         (
             "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs",

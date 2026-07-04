@@ -1,0 +1,7 @@
+
+running 2 tests
+test graphics::pipeline::render_pipeline_asset::compile_tests::postprocess_routes::compile_filters_plugin_scene_velocity_pass_when_stack_does_not_use_scene_velocity ... ok
+test graphics::pipeline::render_pipeline_asset::compile_tests::postprocess_routes::compile_filters_plugin_scene_velocity_pass_without_post_process_stack ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 6461 filtered out; finished in 0.01s
+

@@ -10,6 +10,7 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
     let manifest = read_runtime_src("bin/zircon_shader_prewarm/manifest.rs");
     let paths = read_runtime_src("bin/zircon_shader_prewarm/manifest/paths.rs");
     let registry = read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry.rs");
+    let project_record_export = read_runtime_src("asset/project/shader_resource_records.rs");
     let registry_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs");
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
@@ -45,8 +46,18 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
         ],
     );
     assert_contains_all(
-        "resource registry owner generates staged shader-only records",
+        "resource registry owner delegates staged shader-only records to asset/project",
         &registry,
+        &[
+            "project_shader_resource_records_from_asset_root",
+            "project_shader_resource_records_from_asset_roots",
+            "ShaderResourceRecordExportError",
+            "impl From<ShaderResourceRecordExportError> for ShaderPrewarmResourceRegistryError",
+        ],
+    );
+    assert_contains_all(
+        "asset/project owner generates staged shader-only records",
+        &project_record_export,
         &[
             "shader_resource_records_from_asset_root",
             "shader_resource_records_from_asset_roots",
@@ -126,6 +137,10 @@ fn runtime_15_shader_prewarm_registry_auto_export_is_wired() {
         (
             "bin/zircon_shader_prewarm/manifest/resource_registry.rs",
             registry.as_str(),
+        ),
+        (
+            "asset/project/shader_resource_records.rs",
+            project_record_export.as_str(),
         ),
         (
             "bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs",

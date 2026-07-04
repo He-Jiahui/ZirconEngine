@@ -12,7 +12,8 @@ pub(super) fn push_status_chip_text(
     clip: &FrameRect,
     order: i32,
     label: &str,
-    color: [u8; 4],
+    label_color: [u8; 4],
+    value_color: [u8; 4],
     opacity: f32,
 ) {
     let base = status_chip_text_rect(rect);
@@ -20,12 +21,36 @@ pub(super) fn push_status_chip_text(
         StatusChipText::LabelAndValue { label, value } => {
             let value_rect = right_aligned_text_rect(base.clone(), &value);
             let label_rect = leading_label_rect(base, &value_rect);
-            push_text(commands, label_rect, clip, order, label, color, opacity);
-            push_text(commands, value_rect, clip, order, value, color, opacity);
+            push_text(
+                commands,
+                label_rect,
+                clip,
+                order,
+                label,
+                label_color,
+                opacity,
+            );
+            push_text(
+                commands,
+                value_rect,
+                clip,
+                order,
+                value,
+                value_color,
+                opacity,
+            );
         }
         StatusChipText::Value(value) => {
             let value_rect = right_aligned_text_rect(base, &value);
-            push_text(commands, value_rect, clip, order, value, color, opacity);
+            push_text(
+                commands,
+                value_rect,
+                clip,
+                order,
+                value,
+                value_color,
+                opacity,
+            );
         }
     }
 }

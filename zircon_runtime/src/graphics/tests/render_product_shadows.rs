@@ -226,6 +226,7 @@ fn test_extract() -> RenderFrameExtract {
                 rect_lights: Vec::new(),
             },
             overlays: Default::default(),
+            environment: crate::core::framework::render::EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,
@@ -259,6 +260,7 @@ fn shadow_frame(lighting: LightingExtract) -> ViewportRenderFrame {
                     rect_lights: lighting.rect_lights,
                 },
                 overlays: Default::default(),
+                environment: crate::core::framework::render::EnvironmentExtract::default(),
                 preview: PreviewEnvironmentExtract {
                     lighting_enabled: true,
                     skybox_enabled: false,

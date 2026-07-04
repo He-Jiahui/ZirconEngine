@@ -1,0 +1,20 @@
+runtime_text_editor_material_primitives_runtime_measure_validation_20260704
+preview=docs/tests/runtime/text/runtime_text_editor_material_primitives_runtime_measure_preview_20260704.png
+preview_sha256=6E7B3F91EC23A3769978768B66A8D4D1880AD103ABFDC1F63BA8823AF9A9EF09
+font_path=C:\Windows\Fonts\Deng.ttf
+code_files=
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/message.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/metrics.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/text.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/metrics.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/root_text.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs
+  zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs
+change=Alert, Avatar, Badge root text, and Badge overlay text/frame now use measure_runtime_text_width; stale width ratio constants removed.
+rustfmt_check=passed for Alert, Avatar, and Badge touched geometry/metrics files
+git_diff_check=passed with LF/CRLF warnings only for Alert, Avatar, and Badge touched geometry/metrics files
+cargo_test=deferred because other cargo/rustc processes were already active on this workstation
+measurement[Alert message text frame]=text='editor base.zui', old_ratio=0.56, padding=0.0, old_width=235.200, measured_width=175.000, delta=-60.200
+measurement[Avatar text frame]=text='WWW iii', old_ratio=0.58, padding=0.0, old_width=113.680, measured_width=103.000, delta=-10.680
+measurement[Badge root text frame]=text='WWW iii', old_ratio=0.56, padding=0.0, old_width=109.760, measured_width=103.000, delta=-6.760
+measurement[Badge overlay frame (+ padding)]=text='WWW iii', old_ratio=0.56, padding=12.0, old_width=133.760, measured_width=127.000, delta=-6.760

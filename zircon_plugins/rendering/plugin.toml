@@ -60,6 +60,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.post_process.runtime"
+description = "Runtime plugin module rendering.post_process.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_post_process_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -67,6 +68,7 @@ capabilities = ["runtime.feature.rendering.post_process"]
 
 [[optional_features.modules]]
 name = "rendering.post_process.editor"
+description = "Editor plugin module rendering.post_process.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_post_process_editor"
 target_modes = ["editor_host"]
@@ -87,6 +89,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.ssao.runtime"
+description = "Runtime plugin module rendering.ssao.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_ssao_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -94,6 +97,7 @@ capabilities = ["runtime.feature.rendering.ssao"]
 
 [[optional_features.modules]]
 name = "rendering.ssao.editor"
+description = "Editor plugin module rendering.ssao.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_ssao_editor"
 target_modes = ["editor_host"]
@@ -114,6 +118,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.contact_shadow.runtime"
+description = "Runtime plugin module rendering.contact_shadow.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_contact_shadow_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -121,6 +126,7 @@ capabilities = ["runtime.feature.rendering.contact_shadow"]
 
 [[optional_features.modules]]
 name = "rendering.contact_shadow.editor"
+description = "Editor plugin module rendering.contact_shadow.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_contact_shadow_editor"
 target_modes = ["editor_host"]
@@ -141,6 +147,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.decals.runtime"
+description = "Runtime plugin module rendering.decals.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_decals_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -148,6 +155,7 @@ capabilities = ["runtime.feature.rendering.decals"]
 
 [[optional_features.modules]]
 name = "rendering.decals.editor"
+description = "Editor plugin module rendering.decals.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_decals_editor"
 target_modes = ["editor_host"]
@@ -168,6 +176,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.reflection_probes.runtime"
+description = "Runtime plugin module rendering.reflection_probes.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_reflection_probes_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -175,6 +184,7 @@ capabilities = ["runtime.feature.rendering.reflection_probes"]
 
 [[optional_features.modules]]
 name = "rendering.reflection_probes.editor"
+description = "Editor plugin module rendering.reflection_probes.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_reflection_probes_editor"
 target_modes = ["editor_host"]
@@ -195,6 +205,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.baked_lighting.runtime"
+description = "Runtime plugin module rendering.baked_lighting.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_baked_lighting_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -202,6 +213,7 @@ capabilities = ["runtime.feature.rendering.baked_lighting"]
 
 [[optional_features.modules]]
 name = "rendering.baked_lighting.editor"
+description = "Editor plugin module rendering.baked_lighting.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_baked_lighting_editor"
 target_modes = ["editor_host"]
@@ -222,6 +234,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.ray_tracing_policy.runtime"
+description = "Runtime plugin module rendering.ray_tracing_policy.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_ray_tracing_policy_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -229,6 +242,7 @@ capabilities = ["runtime.feature.rendering.ray_tracing_policy"]
 
 [[optional_features.modules]]
 name = "rendering.ray_tracing_policy.editor"
+description = "Editor plugin module rendering.ray_tracing_policy.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_ray_tracing_policy_editor"
 target_modes = ["editor_host"]
@@ -249,6 +263,7 @@ primary = true
 
 [[optional_features.modules]]
 name = "rendering.shader_graph.runtime"
+description = "Runtime plugin module rendering.shader_graph.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_shader_graph_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -256,6 +271,7 @@ capabilities = ["runtime.feature.rendering.shader_graph"]
 
 [[optional_features.modules]]
 name = "rendering.shader_graph.editor"
+description = "Editor plugin module rendering.shader_graph.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_shader_graph_editor"
 target_modes = ["editor_host"]
@@ -286,6 +302,7 @@ primary = false
 
 [[optional_features.modules]]
 name = "rendering.vfx_graph.runtime"
+description = "Runtime plugin module rendering.vfx_graph.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_rendering_vfx_graph_runtime"
 target_modes = ["client_runtime", "editor_host"]
@@ -293,6 +310,7 @@ capabilities = ["runtime.feature.rendering.vfx_graph"]
 
 [[optional_features.modules]]
 name = "rendering.vfx_graph.editor"
+description = "Editor plugin module rendering.vfx_graph.editor"
 kind = "editor"
 crate_name = "zircon_plugin_rendering_vfx_graph_editor"
 target_modes = ["editor_host"]

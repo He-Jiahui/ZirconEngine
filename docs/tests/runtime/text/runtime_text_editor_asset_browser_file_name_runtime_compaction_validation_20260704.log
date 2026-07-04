@@ -1,0 +1,7 @@
+runtime_text_editor_asset_browser_file_name_runtime_compaction_validation_20260704
+image=E:\Git\ZirconEngine\docs\tests\runtime\text\runtime_text_editor_asset_browser_file_name_runtime_compaction_preview_20260704.png
+image_sha256=ADA594408056E5C989A42BCB07835A5040F936E3B969C06AE0AC1E4E17F20156
+scope=Asset Browser table/summary/thumbnail file-like display-name compaction now uses runtime measured glyph width instead of character-count budgets.
+proof=same-character-count narrow i and wide W file names are handled differently after measurement; old character budgets treat them identically.
+target_scan=NO_MATCHING_ASSET_BROWSER_FILE_NAME_COMPACTION_ARTIFACTS_IN_TARGETS
+log_sha256=5973B57232270774D9EC5534CEBF9938671DC2BD5CCBCA8509923C8B149309F2

@@ -1,0 +1,27 @@
+Runtime Text Source Metrics Auto Direction Fail-Closed Validation
+Date: 2026-07-04
+Slice: runtime_text_source_metrics_auto_direction_fail_closed_rustfmt_static_visual_cargo_deferred
+
+Implementation:
+- zircon_runtime/src/ui/text/geometry.rs line_accepts_source_measure now accepts source metrics only when the resolved layout, line, and single run are all explicit UiTextDirection::LeftToRight.
+- UiTextDirection::Auto no longer consumes measure_text_source_range_width for caret/range geometry; unresolved Auto falls back to resolved glyph_advances.
+- Added regressions source_geometry_with_source_metrics_rejects_unresolved_auto_direction and source_geometry_with_source_metrics_requires_ltr_line_and_run_direction.
+
+Checks:
+- rustfmt --edition 2021 --check zircon_runtime/src/ui/text/geometry.rs: pass
+- old Auto source-metrics allowance scan: old_auto_source_metric_allow_count=0
+- layout Auto rejection regression scan: layout_auto_reject_test_mentions=1
+- line/run LTR requirement regression scan: line_run_ltr_test_mentions=1
+- layout LTR guard scan: layout_ltr_guard_mentions=1
+- line LTR guard scan: line_ltr_guard_mentions=1
+- run LTR guard scan: run_ltr_guard_mentions=1
+- conflict marker scan: pass
+- trailing whitespace scan: pass
+- target artifact scan for runtime_text_source_metrics_auto_direction_fail_closed_preview_20260704.png and runtime_text_source_metrics_auto_direction_fail_closed_validation_20260704.log: target_artifact_match_count=0
+
+Visual Evidence:
+- docs/tests/runtime/text/runtime_text_source_metrics_auto_direction_fail_closed_preview_20260704.png
+- SHA256: BFEF6294BA5D6F98B336EE94861D162C1D573BADA7BC0B583B9B488E73BECE8E
+
+Cargo:
+- Focused Cargo remains deferred because external cargo/rustc lanes were active during this slice.

@@ -74,7 +74,7 @@ fn editor_bootstrap_registers_editor_and_primary_managers() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    assert!(asset_manager.pipeline_info().default_worker_count > 0);
+    assert!(asset_manager.shared().pipeline_info().default_worker_count > 0);
     assert!(level.snapshot().nodes().len() >= 3);
     assert_eq!(rendering_manager.backend_info().backend_name, "wgpu");
     input_manager.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));

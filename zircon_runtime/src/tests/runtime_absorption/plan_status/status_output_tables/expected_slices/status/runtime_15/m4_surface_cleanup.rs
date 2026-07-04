@@ -7,6 +7,16 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_m4_row_data_children_guard_folder_backed_static_passed_cargo_deferred")
         // Files: structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/delegation.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/row_ownership.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/status_mirrors.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/budgets.rs.
         // Guard: runtime_15_m4_row_data_children_guard_is_folder_backed.
+    } else if slice == "Runtime 15 M3 M4 row-data children status-mirror child split" {
+        Some("runtime_15_m4_row_data_children_status_mirror_child_split_static_passed_cargo_deferred")
+        // Files: structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/status_mirrors.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/status_mirrors/child_split_status.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/status_mirrors/historical_status.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/status_mirrors/folder_backed_status.rs.
+        // Guard: runtime_15_m4_row_data_children_status_mirror_children_are_child_owned.
+    } else if slice == "Runtime 15 M3 M4 row-data children root inventory child split" {
+        Some(
+            "runtime_15_m4_row_data_children_root_inventory_child_split_static_passed_cargo_deferred",
+        )
+        // Files: structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/root_paths.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/root_statuses.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/root_child_rows.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/root_owner_paths.rs; structure_convention/test_file_budget/status_output_row_data/runtime_15_m4_row_data_children/root_inventory.rs.
+        // Guard: runtime_15_m4_row_data_children_root_inventory_is_child_owned.
     } else if slice == "Runtime 15 M4 no oversized production files global gate" {
         Some("runtime_15_no_oversized_production_files_global_gate_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M4 core runtime service-list owner split" {

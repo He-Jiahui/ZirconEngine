@@ -13,6 +13,5 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_tooltip::select_workbench_tooltip_style;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_tooltip::{
-    WORKBENCH_TOOLTIP_BODY, WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_ICON,
-    WORKBENCH_TOOLTIP_SURFACE,
+    WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE,
 };

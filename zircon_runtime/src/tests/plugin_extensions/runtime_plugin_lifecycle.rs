@@ -183,7 +183,7 @@ fn runtime_plugin_feature_not_ready_blocks_finish() {
 
     assert!(!catalog.is_success());
     assert!(catalog.diagnostics().iter().any(|diagnostic| {
-        diagnostic == "runtime plugin feature `sound.occlusion` is not ready"
+        diagnostic == "runtime plugin feature `weather.occlusion` is not ready"
     }));
     assert_eq!(
         log.borrow().as_slice(),
@@ -203,7 +203,7 @@ fn runtime_plugin_activate_uses_descriptor_order_before_feature_activate() {
         "weather_base",
         "Weather Base",
         "zircon_plugin_weather_base_runtime",
-        ModuleDescriptor::new("weather.base.runtime", "Weather base runtime")
+        ModuleDescriptor::new("weather_base.runtime", "Weather base runtime")
             .with_init_level(InitLevel::Kernel),
         "base",
         &log,
@@ -212,9 +212,9 @@ fn runtime_plugin_activate_uses_descriptor_order_before_feature_activate() {
         "weather_simulation",
         "Weather Simulation",
         "zircon_plugin_weather_simulation_runtime",
-        ModuleDescriptor::new("weather.simulation.runtime", "Weather simulation runtime")
+        ModuleDescriptor::new("weather_simulation.runtime", "Weather simulation runtime")
             .with_init_level(InitLevel::Scene)
-            .with_module_dependency(ModuleDependencySpec::named("weather.base.runtime")),
+            .with_module_dependency(ModuleDependencySpec::named("weather_base.runtime")),
         "simulation",
         &log,
     );
@@ -250,7 +250,7 @@ fn runtime_plugin_deactivate_uses_reverse_descriptor_order_after_features() {
         "weather_base",
         "Weather Base",
         "zircon_plugin_weather_base_runtime",
-        ModuleDescriptor::new("weather.base.runtime", "Weather base runtime")
+        ModuleDescriptor::new("weather_base.runtime", "Weather base runtime")
             .with_init_level(InitLevel::Kernel),
         "base",
         &log,
@@ -259,9 +259,9 @@ fn runtime_plugin_deactivate_uses_reverse_descriptor_order_after_features() {
         "weather_simulation",
         "Weather Simulation",
         "zircon_plugin_weather_simulation_runtime",
-        ModuleDescriptor::new("weather.simulation.runtime", "Weather simulation runtime")
+        ModuleDescriptor::new("weather_simulation.runtime", "Weather simulation runtime")
             .with_init_level(InitLevel::Scene)
-            .with_module_dependency(ModuleDependencySpec::named("weather.base.runtime")),
+            .with_module_dependency(ModuleDependencySpec::named("weather_base.runtime")),
         "simulation",
         &log,
     );
@@ -299,7 +299,7 @@ fn runtime_plugin_activate_failure_records_catalog_diagnostic() {
         "weather_base",
         "Weather Base",
         "zircon_plugin_weather_base_runtime",
-        ModuleDescriptor::new("weather.base.runtime", "Weather base runtime")
+        ModuleDescriptor::new("weather_base.runtime", "Weather base runtime")
             .with_init_level(InitLevel::Kernel),
         "base",
         &log,
@@ -337,7 +337,7 @@ fn runtime_plugin_lifecycle_uses_module_descriptor_order() {
         "weather_base",
         "Weather Base",
         "zircon_plugin_weather_base_runtime",
-        ModuleDescriptor::new("weather.base.runtime", "Weather base runtime")
+        ModuleDescriptor::new("weather_base.runtime", "Weather base runtime")
             .with_init_level(InitLevel::Kernel),
         "base",
         &log,
@@ -346,9 +346,9 @@ fn runtime_plugin_lifecycle_uses_module_descriptor_order() {
         "weather_simulation",
         "Weather Simulation",
         "zircon_plugin_weather_simulation_runtime",
-        ModuleDescriptor::new("weather.simulation.runtime", "Weather simulation runtime")
+        ModuleDescriptor::new("weather_simulation.runtime", "Weather simulation runtime")
             .with_init_level(InitLevel::Scene)
-            .with_module_dependency(ModuleDependencySpec::named("weather.base.runtime")),
+            .with_module_dependency(ModuleDependencySpec::named("weather_base.runtime")),
         "simulation",
         &log,
     );
@@ -386,6 +386,7 @@ fn native_reports_register_manifest_module_descriptor_projection() {
     let package_report = RuntimePluginRegistrationReport::from_native_package_manifest(
         PluginPackageManifest::new("weather", "Weather")
             .with_capability("runtime.plugin.weather")
+            .with_supported_targets([RuntimeTargetMode::ClientRuntime])
             .with_runtime_module(
                 PluginModuleManifest::runtime(
                     "weather.base.runtime",
@@ -393,6 +394,7 @@ fn native_reports_register_manifest_module_descriptor_projection() {
                 )
                 .with_description("Weather base native module")
                 .with_init_level(InitLevel::Kernel)
+                .with_target_modes([RuntimeTargetMode::ClientRuntime])
                 .with_capabilities(["runtime.plugin.weather"]),
             )
             .with_runtime_module(
@@ -403,6 +405,7 @@ fn native_reports_register_manifest_module_descriptor_projection() {
                 .with_description("Weather simulation native module")
                 .with_init_level(InitLevel::Scene)
                 .with_module_dependency(ModuleDependencySpec::named("weather.base.runtime"))
+                .with_target_modes([RuntimeTargetMode::ClientRuntime])
                 .with_capabilities(["runtime.plugin.weather"]),
             ),
     );
@@ -427,6 +430,10 @@ fn native_reports_register_manifest_module_descriptor_projection() {
 
     let feature_report = RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(
         PluginFeatureBundleManifest::new("weather.storms", "Weather Storms", "weather")
+            .with_dependency(PluginFeatureDependency::primary(
+                "weather",
+                "runtime.plugin.weather",
+            ))
             .with_capability("runtime.feature.weather.storms")
             .with_runtime_module(
                 PluginModuleManifest::runtime(
@@ -436,6 +443,7 @@ fn native_reports_register_manifest_module_descriptor_projection() {
                 .with_description("Weather storms feature module")
                 .with_init_level(InitLevel::Scene)
                 .with_module_dependency(ModuleDependencySpec::named("weather.base.runtime"))
+                .with_target_modes([RuntimeTargetMode::ClientRuntime])
                 .with_capabilities(["runtime.feature.weather.storms"]),
             ),
         Some("weather".to_string()),
