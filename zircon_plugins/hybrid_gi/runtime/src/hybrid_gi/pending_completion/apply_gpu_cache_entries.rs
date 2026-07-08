@@ -7,7 +7,7 @@ impl HybridGiRuntimeState {
         let mut unique_cache_entries = Vec::new();
         let mut seen_probe_ids = BTreeSet::new();
         for (probe_id, slot) in cache_entries {
-            if !self.probe_scene_data().contains_key(probe_id) {
+            if !self.has_live_gpu_feedback_probe(*probe_id) {
                 continue;
             }
 

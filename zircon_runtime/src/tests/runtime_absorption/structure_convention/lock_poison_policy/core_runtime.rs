@@ -1,4 +1,4 @@
-use super::*;
+use super::support::*;
 
 #[path = "core_runtime/config_devtools.rs"]
 mod config_devtools;

@@ -4,6 +4,7 @@ use super::super::template_selection_control_geometry::{
     selection_label_gap, toggle_thumb_rect, toggle_track_rect, workbench_selection_control_metrics,
 };
 use super::labels::push_selection_label;
+use super::layers::{toggle_label_order, toggle_thumb_order};
 use super::style::{
     control_border_color, selection_text_color, toggle_thumb_color, toggle_track_color,
 };
@@ -29,7 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         node,
         label_rect,
         clip,
-        order + 1,
+        toggle_label_order(order),
         selection_text_color(node),
         opacity,
     );
@@ -48,7 +49,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     commands.push(HostPaintCommand::quad(
         thumb.clone(),
         Some(clip.clone()),
-        order + 2,
+        toggle_thumb_order(order),
         Some(toggle_thumb_color(node)),
         None,
         0.0,

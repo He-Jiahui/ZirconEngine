@@ -1,136 +1,29 @@
-type Slice = super::ExpectedStatusOutputSlice;
+use super::ExpectedStatusOutputSlice;
 
-pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
-    (
-        "Runtime 15 M3 production file budget guard child-owner split",
-        &[
-            "runtime_15_production_file_budget_guard_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/production_file_budget.rs",
-            "structure_convention/production_file_budget/module_layout.rs",
-            "runtime_15_production_file_budget_guard_child_owner_split",
-        ],
-    ),
-    (
-        "Runtime 15 M3 render shader template assembly guard WGSL contracts split",
-        &[
-            "runtime_15_render_shader_template_assembly_guard_wgsl_contracts_split_static_passed_cargo_deferred",
-            "structure_convention/production_file_budget/render_shader_template_assembly.rs",
-            "structure_convention/production_file_budget/render_shader_template_assembly/wgsl_contracts.rs",
-            "runtime_15_render_shader_template_wgsl_contracts_are_child_owner",
-        ],
-    ),
-    (
-        "Runtime 15 M3 status output variable evidence anchors",
-        &[
-            "runtime_15_status_output_variable_evidence_anchors_static_passed_cargo_deferred",
-            "plan_status/status_output_tables/expected_status_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
-            "runtime_15_expected_status_output_rows_accept_variable_evidence_anchors",
-        ],
-    ),
-    (
-        "Runtime 15 M3 status output evidence anchors guard folder-backed split",
-        &[
-            "runtime_15_status_output_evidence_anchors_guard_folder_backed_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/delegation.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/variable_evidence.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/status_mirrors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/budgets.rs",
-            "runtime_15_status_output_evidence_anchors_guard_is_folder_backed",
-            "runtime_15_expected_status_output_rows_accept_variable_evidence_anchors",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 evidence anchors status-mirror child split",
-        &[
-            "runtime_15_evidence_anchors_status_mirror_child_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/status_mirrors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/status_mirrors/child_split_status.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/status_mirrors/historical_status.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/status_mirrors/folder_backed_status.rs",
-            "runtime_15_evidence_anchors_status_mirror_children_are_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 evidence anchors root inventory child split",
-        &[
-            "runtime_15_evidence_anchors_root_inventory_child_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/root_paths.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/root_statuses.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/root_child_rows.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/root_owner_paths.rs",
-            "structure_convention/test_file_budget/status_output_row_data/evidence_anchors/root_inventory.rs",
-            "runtime_15_evidence_anchors_root_inventory_is_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 status output M3 row data child-owner split",
-        &[
-            "runtime_15_status_output_m3_row_data_child_owner_split_static_passed_cargo_deferred",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs",
-            "runtime_15_status_output_m3_row_data_child_owner_split",
-        ],
-    ),
-    (
-        "Runtime 15 M3 child-groups row-data guard folder-backed split",
-        &[
-            "runtime_15_m3_child_groups_row_data_guard_folder_backed_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/delegation.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/exports.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/row_ownership.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/status_mirrors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/budgets.rs",
-            "runtime_15_m3_child_groups_row_data_guard_is_folder_backed",
-            "runtime_15_status_output_m3_row_data_child_owner_split",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 child-groups row-data status-mirror child split",
-        &[
-            "runtime_15_m3_child_groups_row_data_status_mirror_child_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/status_mirrors.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/status_mirrors/child_split_status.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/status_mirrors/historical_status.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/status_mirrors/folder_backed_status.rs",
-            "runtime_15_m3_child_groups_row_data_status_mirror_children_are_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 child-groups root inventory child split",
-        &[
-            "runtime_15_m3_child_groups_root_inventory_child_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/root_paths.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/root_statuses.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/root_child_rows.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/root_owner_paths.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/root_inventory.rs",
-            "runtime_15_m3_child_groups_root_inventory_is_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 child-groups exports child split",
-        &[
-            "runtime_15_m3_child_groups_exports_child_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/exports.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/exports/top_level.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/exports/runtime_15_parent.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/exports/runtime_15_m3_parent.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_groups/exports/status_mirrors.rs",
-            "runtime_15_m3_child_groups_exports_status_mirrors_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-];
+#[path = "core_and_evidence/child_group_inventory_rows.rs"]
+mod child_group_inventory_rows;
+#[path = "core_and_evidence/child_group_row_data_rows.rs"]
+mod child_group_row_data_rows;
+#[path = "core_and_evidence/evidence_anchor_rows.rs"]
+mod evidence_anchor_rows;
+#[path = "core_and_evidence/production_file_budget_rows.rs"]
+mod production_file_budget_rows;
+
+pub(super) const PRODUCTION_FILE_BUDGET_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] = production_file_budget_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EVIDENCE_ANCHOR_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
+    evidence_anchor_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const CHILD_GROUP_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] = child_group_row_data_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const CHILD_GROUP_INVENTORY_ROOT_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    child_group_inventory_rows::ROOT_INVENTORY_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const CHILD_GROUP_INVENTORY_OWNER_PATH_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    child_group_inventory_rows::OWNER_PATH_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const CHILD_GROUP_INVENTORY_ROOT_PATH_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    child_group_inventory_rows::ROOT_PATH_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const CHILD_GROUP_INVENTORY_GUARD_INVENTORY_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    child_group_inventory_rows::GUARD_INVENTORY_EXPECTED_STATUS_OUTPUT_SLICES;

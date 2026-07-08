@@ -101,11 +101,12 @@ fn scene_runtime_prepare_collector_from_registration(
     registration: RuntimePrepareCollectorRegistration,
 ) -> SceneRendererRuntimePrepareCollector {
     Box::new(
-        move |device, queue, encoder, _streamer, frame, external_buffer_bindings| {
+        move |device, queue, encoder, streamer, frame, external_buffer_bindings| {
             let mut context = RuntimePrepareCollectorContext::new(
                 device,
                 queue,
                 encoder,
+                streamer,
                 frame,
                 external_buffer_bindings,
             );

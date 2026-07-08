@@ -1,226 +1,31 @@
-use super::ExpectedStatusOutputSlice;
+type Slice = super::ExpectedStatusOutputSlice;
 
-pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &[
-    (
-        "Runtime 15 M3 review guard status row-data child-owner split",
-        &[
-            "runtime_15_review_guard_status_row_data_child_owner_split_static_passed_cargo_deferred",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits.rs",
-            "runtime_15_status_output_m3_review_guard_row_data_is_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error structure status-doc guard child-owner split",
-        &[
-            "runtime_15_typed_error_structure_status_docs_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs.rs",
-            "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory guard child-owner split",
-        &[
-            "runtime_15_typed_error_source_inventory_guard_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs",
-            "runtime_15_typed_error_source_inventory_is_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory guard folder-backed split",
-        &[
-            "runtime_15_typed_error_source_inventory_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/paths.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/reads.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/status_mirrors.rs",
-            "runtime_15_typed_error_source_inventory_is_child_owner",
-            "runtime_15_typed_error_source_inventory_guard_is_folder_backed",
-            "runtime_15_typed_error_source_inventory_guard_folder_backed_status_is_current",
-            "runtime_15_typed_error_source_inventory_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory source helper child split",
-        &[
-            "runtime_15_typed_error_source_inventory_source_helper_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/source_helper_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/source_helper_status.rs",
-            "runtime_15_typed_error_source_inventory_source_helpers_are_child_backed",
-            "runtime_15_typed_error_source_inventory_source_helper_status_is_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory child sources folder-backed split",
-        &[
-            "runtime_15_typed_error_source_inventory_child_sources_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/root_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/source_helper_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/delegation_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/source_blobs.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/structure_guard.rs",
-            "runtime_15_typed_error_source_inventory_child_sources_are_folder_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory child sources structure guard child split",
-        &[
-            "runtime_15_typed_error_source_inventory_child_sources_structure_guard_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/structure_guard.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/structure_guard/route_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/structure_guard/status_mirrors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_sources/structure_guard/budgets.rs",
-            "runtime_15_typed_error_source_inventory_child_sources_structure_guard_is_child_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory child inventory folder-backed split",
-        &[
-            "runtime_15_typed_error_source_inventory_child_inventory_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/root_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/source_helper_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/delegation_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/folder_backed_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/folder_backed_ownership_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/status_current.rs",
-            "runtime_15_typed_error_source_inventory_child_inventory_is_folder_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory child inventory status-current child split",
-        &[
-            "runtime_15_typed_error_source_inventory_child_inventory_status_current_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/status_current.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/status_current/route_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/status_current/status_mirrors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/child_inventory/status_current/budgets.rs",
-            "runtime_15_typed_error_source_inventory_child_inventory_status_current_is_child_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory metadata child split",
-        &[
-            "runtime_15_typed_error_source_inventory_metadata_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/root_paths.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/child_inventory_paths.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/delegation_paths.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_slices.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/review_guard_paths.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_current.rs",
-            "runtime_15_typed_error_source_inventory_metadata_is_child_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory metadata status-current child split",
-        &[
-            "runtime_15_typed_error_source_inventory_metadata_status_current_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_current.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_current/route_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_current/status_mirrors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_current/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/metadata/status_current/source_blobs.rs",
-            "runtime_15_typed_error_source_inventory_metadata_status_current_is_child_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory delegation child split",
-        &[
-            "runtime_15_typed_error_source_inventory_delegation_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/parent_delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/source_inventory_mounts.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/source_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/status_current.rs",
-            "runtime_15_typed_error_source_inventory_guard_is_folder_backed",
-            "runtime_15_typed_error_source_inventory_delegation_is_child_backed",
-            "runtime_15_typed_error_source_inventory_delegation_status_is_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory delegation folder-backed child split",
-        &[
-            "runtime_15_typed_error_source_inventory_delegation_folder_backed_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/guard_body.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/status_current.rs",
-            "runtime_15_typed_error_source_inventory_guard_is_folder_backed",
-            "runtime_15_typed_error_source_inventory_delegation_folder_backed_is_child_owned",
-            "runtime_15_typed_error_source_inventory_delegation_folder_backed_status_is_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 typed-error source inventory delegation folder-backed ownership child split",
-        &[
-            "runtime_15_typed_error_source_inventory_delegation_folder_backed_ownership_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership/delegation_parent.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership/folder_backed_parent.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership/route_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory/delegation/folder_backed/child_ownership/status_current.rs",
-            "runtime_15_typed_error_source_inventory_delegation_folder_backed_is_child_owned",
-            "runtime_15_typed_error_source_inventory_delegation_folder_backed_ownership_is_child_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 review guard row-data topic child-owner split",
-        &[
-            "runtime_15_review_guard_row_data_topic_child_owner_split_static_passed_cargo_deferred",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows.rs",
-            "runtime_15_status_output_m3_review_guard_row_data_is_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 review-guard direct-assertion row-data child-owner split",
-        &[
-            "runtime_15_review_guard_direct_assertion_row_data_child_owner_split_static_passed_cargo_deferred",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows.rs",
-            "runtime_15_status_output_review_guard_direct_assertion_rows_are_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 review-guard typed-error row-data child split",
-        &[
-            "runtime_15_review_guard_typed_error_row_data_child_split_static_passed_cargo_deferred",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows/native_plugin_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows/runtime_surface_rows.rs",
-            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows/asset_shader_rows.rs",
-            "runtime_15_review_guard_typed_error_rows_are_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-];
+#[path = "status_support_rows/review_guard_rows.rs"]
+mod review_guard_rows;
+#[path = "status_support_rows/source_inventory_delegation_rows.rs"]
+mod source_inventory_delegation_rows;
+#[path = "status_support_rows/source_inventory_foundation_rows.rs"]
+mod source_inventory_foundation_rows;
+#[path = "status_support_rows/source_inventory_inventory_metadata_rows.rs"]
+mod source_inventory_inventory_metadata_rows;
+#[path = "status_support_rows/typed_error_status_doc_rows.rs"]
+mod typed_error_status_doc_rows;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    review_guard_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const REVIEW_GUARD_STATUS_SUPPORT_GUARD_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    review_guard_rows::STATUS_SUPPORT_GUARD_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const REVIEW_GUARD_TYPED_ERROR_GUARD_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    review_guard_rows::TYPED_ERROR_GUARD_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const REVIEW_GUARD_ROW_DATA_GUARD_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    review_guard_rows::ROW_DATA_GUARD_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const REVIEW_GUARD_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    review_guard_rows::ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const TYPED_ERROR_STATUS_DOC_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    typed_error_status_doc_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const SOURCE_INVENTORY_FOUNDATION_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    source_inventory_foundation_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const SOURCE_INVENTORY_INVENTORY_METADATA_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    source_inventory_inventory_metadata_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const SOURCE_INVENTORY_DELEGATION_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    source_inventory_delegation_rows::EXPECTED_STATUS_OUTPUT_SLICES;

@@ -25,23 +25,23 @@ const STRUCTURE_GUARD_TYPED_ERROR_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runt
 const TYPED_ERROR_CHILD_OWNER: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs";
 const TYPED_ERROR_TOP_LEVEL_DELEGATION_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/delegation.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/delegation.rs";
 const TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/child_ownership.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/child_ownership.rs";
 const TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_mirrors.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_mirrors.rs";
 const TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/budgets.rs";
-const TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/source_inventory.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/budgets.rs";
+const TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs";
 const TYPED_ERROR_STATUS_DOCS_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/status_docs.rs";
-const TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions.rs";
-const TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/convergence_mounts.rs";
-const TYPED_ERROR_STRUCTURE_DELEGATION_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/delegation.rs";
-const TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/child_ownership.rs";
-const TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/status_mirrors.rs";
-const TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/moved_guard_absence.rs";
-const TYPED_ERROR_NATIVE_STRUCTURE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners/structure_assertions/native_plugin_loader.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_docs.rs";
+const TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs";
+const TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts.rs";
+const TYPED_ERROR_STRUCTURE_DELEGATION_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/delegation.rs";
+const TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/child_ownership.rs";
+const TYPED_ERROR_STRUCTURE_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/status_mirrors.rs";
+const TYPED_ERROR_STRUCTURE_MOVED_GUARD_ABSENCE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence.rs";
+const TYPED_ERROR_NATIVE_STRUCTURE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader.rs";
 const REVIEW_GUARD_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
 const REVIEW_GUARD_DATE_MAP_PATH: &str =
@@ -98,17 +98,32 @@ fn typed_error_structure_guard_child_sources() -> Vec<(&'static str, String)> {
         .collect()
 }
 
-fn typed_error_structure_guard_child_source_blob() -> String {
+pub(super) fn typed_error_structure_guard_child_source_blob() -> String {
     let mut blob = String::new();
+    blob.push_str(&read_runtime_src(STRUCTURE_GUARD_TYPED_ERROR_CHILD_OWNER));
+    blob.push('\n');
     for (_, source) in typed_error_structure_guard_child_sources() {
         blob.push_str(&source);
         blob.push('\n');
     }
+    blob.push_str(&super::super::typed_error_child_owners::folder_backed_child_source_blob());
+    blob.push_str(&read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_statuses.rs",
+    ));
+    blob.push('\n');
     blob
 }
 
 fn review_guard_status_rows_source() -> String {
     super::review_guard_status_rows_source()
+}
+
+fn review_guard_status_map_source() -> String {
+    super::structure_guard_status_map_source()
+}
+
+fn review_guard_date_map_source() -> String {
+    super::structure_guard_date_map_source()
 }
 
 #[test]

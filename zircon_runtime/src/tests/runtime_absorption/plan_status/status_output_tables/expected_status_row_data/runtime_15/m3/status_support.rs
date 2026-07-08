@@ -1,5 +1,7 @@
 use super::ExpectedStatusOutputSlice;
 
+#[path = "status_support/anchor_mirror.rs"]
+mod anchor_mirror;
 #[path = "status_support/expected_slice_maps.rs"]
 mod expected_slice_maps;
 #[path = "status_support/priority_plan_docs.rs"]
@@ -9,12 +11,51 @@ mod row_data_and_budget;
 #[path = "status_support/runtime_index_anchors.rs"]
 mod runtime_index_anchors;
 
+// Parent-level mirrors for source guards that read this route file directly.
+// Runtime 15 M3 production file budget core runtime guard split.
+// Status: runtime_15_production_file_budget_core_runtime_guard_split_static_passed_cargo_deferred.
+// Files:
+// - structure_convention/production_file_budget.rs
+// - structure_convention/production_file_budget/core_runtime_service_lists.rs
+// Guard: runtime_15_production_file_budget_core_runtime_guard_is_child_owner.
+// Cargo gate deferred.
+// Runtime 15 M3 render shader template assembly guard support child-owner split.
+// Status: runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred.
+// Files:
+// - structure_convention/production_file_budget/render_shader_template_assembly.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/sources.rs
+// Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
+// Cargo gate deferred.
+// Runtime 15 M3 render shader template assembly assertion contract child-owner split.
+// Status: runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred.
+// Files:
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/template_contracts.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_cache_contracts.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_pipeline_shadow_graph_contracts.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/owner_budget.rs
+// Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
+// Cargo gate deferred.
+// Runtime 15 M3 mesh pipeline shader source tests child-owner split.
+// Status: runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred.
+// Files:
+// - graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+// - graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs
+// - graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
+// Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
+// Cargo gate deferred.
+
 pub(super) const ROW_DATA_AND_BUDGET_TEST_FILE_BUDGET_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] =
     row_data_and_budget::TEST_FILE_BUDGET_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const ROW_DATA_AND_BUDGET_RUNTIME_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] =
     row_data_and_budget::RUNTIME_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const ROW_DATA_AND_BUDGET_ANCHOR_MIRROR_ROW_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    row_data_and_budget::ANCHOR_MIRROR_ROW_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const ROW_DATA_AND_BUDGET_HUB_EDITOR_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] =
     row_data_and_budget::HUB_EDITOR_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES;
@@ -24,8 +65,26 @@ pub(super) const ROW_DATA_AND_BUDGET_RENDER_SHADER_SUPPORT_EXPECTED_STATUS_OUTPU
 pub(super) const ROW_DATA_AND_BUDGET_M3_M4_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] =
     row_data_and_budget::M3_M4_ROW_DATA_EXPECTED_STATUS_OUTPUT_SLICES;
-pub(super) const EXPECTED_SLICE_MAPS_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
-    expected_slice_maps::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_BASE_MAPS_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] = expected_slice_maps::BASE_MAPS_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_TOP_LEVEL_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    expected_slice_maps::TOP_LEVEL_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_ROUTE_METADATA_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    expected_slice_maps::ROUTE_METADATA_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_STRUCTURE_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    expected_slice_maps::STRUCTURE_SUPPORT_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_STATUS_SUPPORT_MAPS_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    expected_slice_maps::STATUS_SUPPORT_MAPS_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_REVIEW_GUARD_STRUCTURE_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    expected_slice_maps::REVIEW_GUARD_STRUCTURE_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const EXPECTED_SLICE_WARNING_CLEANUP_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    expected_slice_maps::WARNING_CLEANUP_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const RUNTIME_INDEX_ANCHORS_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] = runtime_index_anchors::EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const PRIORITY_PLAN_DOCS_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
@@ -40,106 +99,5 @@ pub(super) const PRIORITY_PLAN_DOCS_STATUS_FOLLOWUPS_EXPECTED_STATUS_OUTPUT_SLIC
     priority_plan_docs::STATUS_FOLLOWUPS_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const PRIORITY_PLAN_DOCS_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] = priority_plan_docs::ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES;
-
-pub(super) const STATUS_SUPPORT_ROW_DATA_ANCHOR_MIRROR: &str = r#"
-Runtime 15 M3 structure-support expected-slice guard body child split
-runtime_15_structure_support_expected_slice_guard_body_child_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice.rs
-runtime_15_structure_support_expected_slice_maps_are_child_owners
-runtime_15_review_guard_expected_slice_structure_guard_tests_are_child_owned
-Cargo gate deferred active Render Plan08 lane
-
-Runtime 15 M3 expected-slice module-layout guard body child split
-runtime_15_expected_slice_module_layout_guard_body_child_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/module_layout.rs
-structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body.rs
-runtime_15_status_output_expected_slice_guard_child_owner_split
-Cargo gate deferred active Render Plan08 lane
-
-Runtime 15 M3 runtime-15 expected-slice topic guard child-module split
-runtime_15_runtime_15_expected_slice_topic_guard_child_module_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/runtime_15_expected_slice_maps.rs
-runtime_15_status_output_runtime_15_expected_slice_maps_are_child_owners
-runtime_15_status_output_expected_slice_guard_maps_are_child_owners
-Cargo gate deferred active Render Plan08 lane
-
-Runtime 15 M3 status output expected-slice top-level map support child-owner split
-runtime_15_status_output_expected_slice_top_level_map_support_child_owner_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/sources.rs
-runtime_15_status_output_expected_slice_top_level_map_support_child_owners_are_folder_backed
-
-Runtime 15 M3 top-level expected-slice support-layout guard body child split
-runtime_15_top_level_expected_slice_support_layout_guard_body_child_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/support_layout.rs
-runtime_15_status_output_expected_slice_top_level_map_support_child_owners_are_folder_backed
-Cargo gate deferred active Render Plan08 lane
-
-Runtime 15 M3 top-level expected-slice assertion helper child split
-runtime_15_top_level_expected_slice_assertion_helper_child_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions/runtime_15_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions/pre_runtime_15_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions/line_budgets.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/top_level_maps/assertions/status_and_docs.rs
-runtime_15_status_output_expected_slice_top_level_map_support_child_owners_are_folder_backed
-Cargo gate deferred active Render Plan08 lane
-
-Runtime 15 M3 status-support expected-slice map child split
-runtime_15_status_support_expected_slice_map_child_split_static_passed_cargo_blocked_render_environment_exports
-plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs
-plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps.rs
-plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps.rs
-plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs
-plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps.rs
-plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps.rs
-runtime_15_status_support_expected_slice_maps_are_child_owned
-Cargo gate blocked by render environment exports
-
-Runtime 15 M3 review-guard expected-slice structure guard child-module split
-runtime_15_review_guard_expected_slice_structure_guard_child_module_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/typed_error_expected_slice.rs
-structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/status_support_expected_slice.rs
-runtime_15_review_guard_expected_slice_structure_guard_tests_are_child_owned
-Cargo gate deferred active Render Plan08 lane
-
-Runtime 15 M3 render shader template assembly guard support child-owner split
-runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred
-structure_convention/production_file_budget/render_shader_template_assembly.rs
-structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs
-structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs
-structure_convention/production_file_budget/render_shader_template_assembly/sources.rs
-runtime_15_render_shader_template_assembly_support_children_are_folder_backed
-
-Runtime 15 M3 render shader template assembly assertion contract child-owner split
-runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred
-structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs
-structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/template_contracts.rs
-structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_cache_contracts.rs
-structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_pipeline_shadow_graph_contracts.rs
-structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/owner_budget.rs
-runtime_15_render_shader_template_assembly_support_children_are_folder_backed
-
-Runtime 15 M3 mesh pipeline shader source tests child-owner split
-runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred
-graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
-graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs
-graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
-runtime_15_render_shader_template_assembly_support_children_are_folder_backed
-
-Runtime 15 M3 shader prewarm manifest guard child-owner split
-runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred
-structure_convention/test_file_budget/shader_prewarm_manifest.rs
-structure_convention/test_file_budget/shader_prewarm_manifest/manifest_contract.rs
-structure_convention/test_file_budget/shader_prewarm_manifest/geometry_source.rs
-structure_convention/test_file_budget/shader_prewarm_manifest/builtin_template_source.rs
-structure_convention/test_file_budget/shader_prewarm_manifest/asset_revision.rs
-runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed
-"#;
+pub(super) const STATUS_SUPPORT_ROW_DATA_ANCHOR_MIRROR: &str =
+    anchor_mirror::STATUS_SUPPORT_ROW_DATA_ANCHOR_MIRROR;

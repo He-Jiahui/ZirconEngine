@@ -1,6 +1,9 @@
 use crate::graphics::text::atlas::{
-    glyph_atlas_bitmap_texture_upload_request_plan, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapTextureUploadRequestPlan,
+    glyph_atlas_bitmap_texture_upload_request_plan,
+    glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
+    glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapTextureUploadRequestPlan, GlyphAtlasSet,
 };
 
 use super::binding::{
@@ -17,6 +20,12 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapTextur
     pub(in crate::graphics::scene::scene_renderer::ui) staging_failure_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) staged_upload_failure_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) skipped_staged_upload_failure_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) requeued_upload_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) missing_page_requeue_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) page_generation_mismatch_requeue_count:
+        usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) stale_page_generation_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) face_invalidated_count: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) upload_byte_len: usize,
     pub(in crate::graphics::scene::scene_renderer::ui) ready_to_write_texture: bool,
 }
@@ -34,6 +43,9 @@ impl GlyphAtlasBitmapTextureUploadFrameReport {
         self.binding_failure_count > 0
             || self.staging_failure_count > 0
             || self.staged_upload_failure_count > 0
+            || self.stale_page_generation_count > 0
+            || self.face_invalidated_count > 0
+            || self.requeued_upload_count > 0
     }
 }
 
@@ -49,11 +61,48 @@ impl GlyphAtlasBitmapTextureUploadFramePlan<'_> {
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_bitmap_texture_upload_frame_plan(
-    prepared_upload: &GlyphAtlasBitmapPreparedUploadPlan,
-) -> GlyphAtlasBitmapTextureUploadFramePlan<'_> {
+pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_bitmap_texture_upload_frame_plan<
+    'a,
+>(
+    prepared_upload: &'a GlyphAtlasBitmapPreparedUploadPlan,
+) -> GlyphAtlasBitmapTextureUploadFramePlan<'a> {
     let request_plan =
         glyph_atlas_bitmap_texture_upload_request_plan(&prepared_upload.staged_uploads);
+    glyph_atlas_bitmap_texture_upload_frame_plan_from_requests(prepared_upload, request_plan)
+}
+
+pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas<
+    'a,
+>(
+    prepared_upload: &'a GlyphAtlasBitmapPreparedUploadPlan,
+    atlas: &GlyphAtlasSet,
+) -> GlyphAtlasBitmapTextureUploadFramePlan<'a> {
+    let request_plan = glyph_atlas_bitmap_texture_upload_request_plan_with_atlas(
+        &prepared_upload.staged_uploads,
+        atlas,
+    );
+    glyph_atlas_bitmap_texture_upload_frame_plan_from_requests(prepared_upload, request_plan)
+}
+
+pub(in crate::graphics::scene::scene_renderer::ui) fn glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity<
+    'a,
+>(
+    prepared_upload: &'a GlyphAtlasBitmapPreparedUploadPlan,
+    atlas: &GlyphAtlasSet,
+    face_validity: GlyphAtlasBitmapFaceValidity,
+) -> GlyphAtlasBitmapTextureUploadFramePlan<'a> {
+    let request_plan = glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity(
+        &prepared_upload.staged_uploads,
+        atlas,
+        face_validity,
+    );
+    glyph_atlas_bitmap_texture_upload_frame_plan_from_requests(prepared_upload, request_plan)
+}
+
+fn glyph_atlas_bitmap_texture_upload_frame_plan_from_requests<'a>(
+    prepared_upload: &'a GlyphAtlasBitmapPreparedUploadPlan,
+    request_plan: GlyphAtlasBitmapTextureUploadRequestPlan,
+) -> GlyphAtlasBitmapTextureUploadFramePlan<'a> {
     let binding_plan = glyph_atlas_bitmap_texture_upload_binding_plan(
         &prepared_upload.staging.pages,
         &request_plan.requests,
@@ -112,6 +161,17 @@ fn glyph_atlas_bitmap_texture_upload_frame_report(
         staging_failure_count: prepared_upload.staging.failures.len(),
         staged_upload_failure_count: prepared_upload.staged_uploads.failures.len(),
         skipped_staged_upload_failure_count: request_plan.skipped_failure_count,
+        requeued_upload_count: request_plan.requeued_uploads.len(),
+        missing_page_requeue_count: requeue_reason_count(
+            request_plan,
+            GlyphAtlasBitmapRequeueReason::MissingPage,
+        ),
+        page_generation_mismatch_requeue_count: requeue_reason_count(
+            request_plan,
+            GlyphAtlasBitmapRequeueReason::PageGenerationMismatch,
+        ),
+        stale_page_generation_count: request_plan.stale_page_generation_count,
+        face_invalidated_count: request_plan.face_invalidated_count,
         upload_byte_len,
         ready_to_write_texture: false,
     };
@@ -120,4 +180,15 @@ fn glyph_atlas_bitmap_texture_upload_frame_report(
         ready_to_write_texture: report.binding_count > 0 && !report.has_failures(),
         ..report
     }
+}
+
+fn requeue_reason_count(
+    request_plan: &GlyphAtlasBitmapTextureUploadRequestPlan,
+    reason: GlyphAtlasBitmapRequeueReason,
+) -> usize {
+    request_plan
+        .requeued_uploads
+        .iter()
+        .filter(|requeue| requeue.reason == reason)
+        .count()
 }

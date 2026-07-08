@@ -1,6 +1,16 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
+use super::segments::{push_segments, GlyphSegmentSpec};
+
+const GEAR_SEGMENTS: [GlyphSegmentSpec; 5] = [
+    GlyphSegmentSpec::new(4, 2, 6, 1),
+    GlyphSegmentSpec::new(4, 11, 6, 1),
+    GlyphSegmentSpec::new(2, 4, 1, 6),
+    GlyphSegmentSpec::new(11, 4, 1, 6),
+    GlyphSegmentSpec::new(6, 6, 2, 2),
+];
+
 pub(in super::super) fn push_table_gear(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,
@@ -9,47 +19,5 @@ pub(in super::super) fn push_table_gear(
     color: [u8; 4],
     opacity: f32,
 ) {
-    for segment in [
-        FrameRect {
-            x: rect.x + 4.0,
-            y: rect.y + 2.0,
-            width: 6.0,
-            height: 1.0,
-        },
-        FrameRect {
-            x: rect.x + 4.0,
-            y: rect.y + 11.0,
-            width: 6.0,
-            height: 1.0,
-        },
-        FrameRect {
-            x: rect.x + 2.0,
-            y: rect.y + 4.0,
-            width: 1.0,
-            height: 6.0,
-        },
-        FrameRect {
-            x: rect.x + 11.0,
-            y: rect.y + 4.0,
-            width: 1.0,
-            height: 6.0,
-        },
-        FrameRect {
-            x: rect.x + 6.0,
-            y: rect.y + 6.0,
-            width: 2.0,
-            height: 2.0,
-        },
-    ] {
-        commands.push(HostPaintCommand::quad(
-            segment,
-            Some(clip.clone()),
-            order,
-            Some(color),
-            None,
-            0.0,
-            1.0,
-            opacity,
-        ));
-    }
+    push_segments(commands, rect, &GEAR_SEGMENTS, clip, order, color, opacity);
 }

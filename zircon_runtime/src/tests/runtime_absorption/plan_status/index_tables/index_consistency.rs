@@ -1,9 +1,10 @@
-use super::*;
+use super::super::support::{
+    first_backtick_value, frontmatter_status, index_section_between, leading_plan_id,
+    markdown_table_cells, referenced_plan_ids, runtime_index_row_for, runtime_subplan_sources,
+};
 
-#[test]
-fn runtime_index_problem_rows_reference_existing_subplans() {
-    let index_source = include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let subplan_ids: Vec<_> = runtime_subplan_sources()
+fn runtime_subplan_ids() -> Vec<String> {
+    runtime_subplan_sources()
         .into_iter()
         .map(|(filename, _)| {
             leading_plan_id(&filename)
@@ -12,7 +13,13 @@ fn runtime_index_problem_rows_reference_existing_subplans() {
                 })
                 .to_owned()
         })
-        .collect();
+        .collect()
+}
+
+#[test]
+fn runtime_index_problem_rows_reference_existing_subplans() {
+    let index_source = include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let subplan_ids = runtime_subplan_ids();
     let problem_section = index_section_between(index_source, "### 2.2 问题清单", "### 2.3");
     let mut observed_problem_ids = Vec::new();
 
@@ -56,16 +63,7 @@ fn runtime_index_problem_rows_reference_existing_subplans() {
 #[test]
 fn runtime_index_execution_dependencies_reference_existing_subplans() {
     let index_source = include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let subplan_ids: Vec<_> = runtime_subplan_sources()
-        .into_iter()
-        .map(|(filename, _)| {
-            leading_plan_id(&filename)
-                .unwrap_or_else(|| {
-                    panic!("runtime subplan filename `{filename}` should start with a two-digit id")
-                })
-                .to_owned()
-        })
-        .collect();
+    let subplan_ids = runtime_subplan_ids();
     let subplan_section = index_section_between(
         index_source,
         "## 3. 子计划地图与执行顺序",

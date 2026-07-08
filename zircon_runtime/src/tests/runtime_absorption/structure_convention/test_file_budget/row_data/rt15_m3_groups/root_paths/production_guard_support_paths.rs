@@ -1,0 +1,14 @@
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_CORE_AND_EVIDENCE_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_MODULE_LAYOUT_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/module_layout.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_REVIEW_GUARD_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_RUNTIME_ROW_DATA_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/runtime_row_data.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_STATUS_DOCS_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs.rs";
+pub(in super::super) const PRODUCTION_GUARD_SUPPORT_EXPECTED_SLICE_GUARDS_ROWS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/expected_slice_guards.rs";

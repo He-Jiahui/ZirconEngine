@@ -166,6 +166,7 @@ pub(super) fn slider_render_commands(
 struct SliderRenderState {
     family: UiPainterFamily,
     visual_state: UiPainterResolvedState,
+    surface_hot: bool,
 }
 
 impl SliderRenderState {
@@ -178,9 +179,12 @@ impl SliderRenderState {
             UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
                 .painter_state();
         let family = UiPainterFamily::Slider;
+        let surface_hot =
+            painter_state.hovered || painter_state.dragging || painter_state.drop_hovered;
         Self {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
+            surface_hot,
         }
     }
 
@@ -191,15 +195,16 @@ impl SliderRenderState {
         )
     }
 
-    fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Pressed
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+    fn pressed(self) -> bool {
+        matches!(self.visual_state, UiPainterResolvedState::Pressed)
+    }
+
+    fn focused(self) -> bool {
+        matches!(self.visual_state, UiPainterResolvedState::Focused)
+    }
+
+    fn thumb_halo(self) -> bool {
+        self.pressed() || self.focused() || self.surface_hot
     }
 }
 
@@ -311,7 +316,7 @@ fn push_thumb_command(
         .or_else(|| number_attribute(metadata, "layout_icon_size"))
         .unwrap_or(THUMB_SIZE)
         .max(1.0);
-    if state.hot() {
+    if state.thumb_halo() {
         commands.push(quad_command(
             node_id,
             centered_frame(center_x, center_y, THUMB_HALO_SIZE),
@@ -615,10 +620,7 @@ fn text_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderStat
 fn value_border<'a>(metadata: &'a UiTemplateNodeMetadata, state: &SliderRenderState) -> &'a str {
     if state.unavailable() {
         BORDER_DISABLED
-    } else if matches!(
-        state.visual_state,
-        UiPainterResolvedState::Focused | UiPainterResolvedState::Pressed
-    ) {
+    } else if state.pressed() {
         accent_color(metadata, state)
     } else {
         VALUE_BORDER

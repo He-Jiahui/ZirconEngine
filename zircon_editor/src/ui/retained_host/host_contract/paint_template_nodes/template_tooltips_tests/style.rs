@@ -22,10 +22,12 @@ fn workbench_tooltip_style_uses_shared_state_priority() {
     node.disabled = false;
     let pressed = select_workbench_tooltip_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
+    assert_ne!(pressed.border, WORKBENCH_TOOLTIP_BORDER);
 
     node.pressed = false;
     let focused = select_workbench_tooltip_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused.border, WORKBENCH_TOOLTIP_BORDER);
 }
 
 #[test]

@@ -7,6 +7,7 @@ use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapUploadCopy};
 pub(crate) struct GlyphAtlasBitmapUploadSourceBytes<'a> {
     pub(crate) source_index: usize,
     pub(crate) bytes: &'a [u8],
+    pub(crate) face_epoch: u64,
 }
 
 impl<'a> GlyphAtlasBitmapUploadSourceBytes<'a> {
@@ -14,6 +15,15 @@ impl<'a> GlyphAtlasBitmapUploadSourceBytes<'a> {
         Self {
             source_index,
             bytes,
+            face_epoch: 0,
+        }
+    }
+
+    pub(crate) fn with_face_epoch(source_index: usize, bytes: &'a [u8], face_epoch: u64) -> Self {
+        Self {
+            source_index,
+            bytes,
+            face_epoch,
         }
     }
 }
@@ -21,6 +31,7 @@ impl<'a> GlyphAtlasBitmapUploadSourceBytes<'a> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasBitmapPageUploadStaging {
     pub(crate) page_key: GlyphAtlasPageKey,
+    pub(crate) page_generation: u64,
     pub(crate) bytes_per_row: u32,
     pub(crate) bytes: Vec<u8>,
 }
@@ -103,6 +114,7 @@ where
         let page_staging = pages_by_key.entry(copy.page_key).or_insert_with(|| {
             GlyphAtlasBitmapPageUploadStaging {
                 page_key: copy.page_key,
+                page_generation: page.generation,
                 bytes_per_row: page.size.x.saturating_mul(bytes_per_pixel),
                 bytes: vec![0; page_byte_len],
             }

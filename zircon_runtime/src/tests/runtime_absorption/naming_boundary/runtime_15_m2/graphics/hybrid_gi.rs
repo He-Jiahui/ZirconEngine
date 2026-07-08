@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::super::super::{assert_contains_all, read_repo_text, read_text};
+use super::super::super::support::{assert_contains_all, read_repo_text, read_text};
 
 #[test]
 fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {

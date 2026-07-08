@@ -8,8 +8,8 @@ fn assert_structure_guard_children_status_mirror(
     date: &str,
     required_anchors: &[&str],
 ) {
-    let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
-    let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
+    let status_map = structure_guard_status_map_source();
+    let date_map = structure_guard_date_map_source();
     let structure_guard_rows = review_guard_status_rows_source();
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");

@@ -46,4 +46,8 @@ impl ProjectPaths {
     pub fn library_root(&self) -> &Path {
         &self.library_root
     }
+
+    pub fn runtime_cache_root(&self) -> &Path {
+        &self.library_root
+    }
 }

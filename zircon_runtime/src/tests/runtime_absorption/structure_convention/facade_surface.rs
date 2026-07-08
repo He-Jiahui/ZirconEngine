@@ -201,10 +201,10 @@ fn runtime_15_graphics_facade_visibility_review_findings_mirror_is_recorded() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation/core_rows.rs",
     );
     let expected_status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/core_cleanup.rs",
     );
     let expected_date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/core_cleanup.rs",
     );
 
     let slice = "Runtime 15 M1 graphics facade visibility review findings mirror";

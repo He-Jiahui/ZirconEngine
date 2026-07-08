@@ -92,3 +92,53 @@ fn status_icon_button_normal_state_is_flat_transparent() {
     assert_eq!(normal.border, TRANSPARENT);
     assert_eq!(normal.glyph, PALETTE.text_disabled);
 }
+
+#[test]
+fn focused_status_icon_button_keeps_flat_surface_and_muted_glyph() {
+    let mut node = status_icon_node("WorkbenchStatusTarget");
+    node.focused = true;
+
+    let focused = select_workbench_status_icon_button_style(&node);
+
+    assert_eq!(
+        focused.state,
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
+    );
+    assert_eq!(focused.background, TRANSPARENT);
+    assert_eq!(focused.border, PALETTE.focus_ring);
+    assert_eq!(focused.glyph, PALETTE.text_disabled);
+}
+
+#[test]
+fn focused_hovered_status_icon_button_uses_hover_surface_without_active_glyph() {
+    let mut node = status_icon_node("WorkbenchStatusTarget");
+    node.focused = true;
+    node.hovered = true;
+
+    let focused = select_workbench_status_icon_button_style(&node);
+
+    assert_eq!(
+        focused.state,
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
+    );
+    assert_eq!(focused.background, PALETTE.surface_hover);
+    assert_eq!(focused.border, PALETTE.focus_ring);
+    assert_eq!(focused.glyph, PALETTE.text_muted);
+}
+
+#[test]
+fn focused_checked_status_icon_button_keeps_selected_surface_and_active_glyph() {
+    let mut node = status_icon_node("WorkbenchStatusTarget");
+    node.focused = true;
+    node.checked = true;
+
+    let focused = select_workbench_status_icon_button_style(&node);
+
+    assert_eq!(
+        focused.state,
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
+    );
+    assert_eq!(focused.background, PALETTE.surface_selected);
+    assert_eq!(focused.border, PALETTE.focus_ring);
+    assert_eq!(focused.glyph, PALETTE.focus_ring);
+}

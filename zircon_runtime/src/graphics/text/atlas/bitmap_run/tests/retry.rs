@@ -46,6 +46,7 @@ fn render_text_atlas_bitmap_retry_plan_backpressures_due_retries_over_budget() {
         91,
         GlyphAtlasBitmapRetryBackpressurePolicy {
             max_due_retry_sources_per_frame: Some(1),
+            max_new_sources_per_frame: None,
             defer_excess_by_frames: 2,
         },
     );
@@ -118,6 +119,7 @@ fn render_text_atlas_bitmap_retry_frame_input_applies_backpressure_before_new_so
         101,
         GlyphAtlasBitmapRetryBackpressurePolicy {
             max_due_retry_sources_per_frame: Some(1),
+            max_new_sources_per_frame: None,
             defer_excess_by_frames: 1,
         },
     );
@@ -140,6 +142,41 @@ fn render_text_atlas_bitmap_retry_frame_input_applies_backpressure_before_new_so
                 retry_frame_index: 101,
             },
             GlyphAtlasBitmapRetrySourceOrigin::New { source_index: 0 },
+        ]
+    );
+}
+
+#[test]
+fn render_text_atlas_bitmap_retry_frame_input_backpressures_new_sources_over_budget() {
+    let first_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(6, 6), 8.0, 36);
+    let second_source = source(GlyphAtlasFormat::SubpixelMask, UVec2::new(6, 4), 24.0, 96);
+    let deferred_source = source(GlyphAtlasFormat::Color, UVec2::new(4, 4), 40.0, 64);
+
+    let frame_input = glyph_atlas_bitmap_retry_frame_input_with_backpressure(
+        [],
+        [first_source, second_source, deferred_source],
+        141,
+        GlyphAtlasBitmapRetryBackpressurePolicy {
+            max_due_retry_sources_per_frame: None,
+            max_new_sources_per_frame: Some(2),
+            defer_excess_by_frames: 3,
+        },
+    );
+
+    assert_eq!(frame_input.sources, vec![first_source, second_source]);
+    assert_eq!(frame_input.new_source_count, 2);
+    assert_eq!(frame_input.deferred_new_source_count, 1);
+    assert_eq!(frame_input.backpressured_new_source_count, 1);
+    assert_eq!(
+        frame_input.deferred_new_glyphs,
+        vec![queued_glyph(2, deferred_source, 144)]
+    );
+    assert_eq!(frame_input.next_retry_frame_index, Some(144));
+    assert_eq!(
+        frame_input.source_origins,
+        vec![
+            GlyphAtlasBitmapRetrySourceOrigin::New { source_index: 0 },
+            GlyphAtlasBitmapRetrySourceOrigin::New { source_index: 1 },
         ]
     );
 }

@@ -1,21 +1,56 @@
+#[cfg(test)]
 use super::super::measure::measure_line_width;
+use super::super::measure::measure_line_width_with_provider;
+#[cfg(test)]
+use crate::graphics::text::shaping::DirectTextShapeRunProvider;
+use crate::graphics::text::shaping::TextShapeRunProvider;
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
 const LINE_FIT_EPSILON: f32 = 0.01;
 
+#[cfg(test)]
 pub(crate) fn should_wrap_before_chunk(
     current_text: &str,
     next_text: &str,
     max_width: f32,
     style: &UiResolvedStyle,
 ) -> bool {
-    !current_text.is_empty() && !appended_text_fits(current_text, next_text, max_width, style)
+    let mut provider = DirectTextShapeRunProvider;
+    should_wrap_before_chunk_with_provider(current_text, next_text, max_width, style, &mut provider)
 }
 
+pub(crate) fn should_wrap_before_chunk_with_provider<P>(
+    current_text: &str,
+    next_text: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> bool
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    !current_text.is_empty()
+        && !appended_text_fits_with_provider(current_text, next_text, max_width, style, provider)
+}
+
+#[cfg(test)]
 pub(crate) fn line_text_fits(text: &str, max_width: f32, style: &UiResolvedStyle) -> bool {
     measure_line_width(text, style) <= max_width + LINE_FIT_EPSILON
 }
 
+pub(crate) fn line_text_fits_with_provider<P>(
+    text: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> bool
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    measure_line_width_with_provider(text, style, provider) <= max_width + LINE_FIT_EPSILON
+}
+
+#[cfg(test)]
 fn appended_text_fits(
     current_text: &str,
     next_text: &str,
@@ -26,6 +61,22 @@ fn appended_text_fits(
     candidate.push_str(current_text);
     candidate.push_str(next_text);
     line_text_fits(&candidate, max_width, style)
+}
+
+fn appended_text_fits_with_provider<P>(
+    current_text: &str,
+    next_text: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> bool
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let mut candidate = String::with_capacity(current_text.len() + next_text.len());
+    candidate.push_str(current_text);
+    candidate.push_str(next_text);
+    line_text_fits_with_provider(&candidate, max_width, style, provider)
 }
 
 #[cfg(test)]

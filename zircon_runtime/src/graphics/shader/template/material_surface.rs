@@ -29,6 +29,8 @@ struct StandardMaterialPropertyUniform {
 @group(2) @binding(9) var standard_material_emissive_tex: texture_2d<f32>;
 @group(2) @binding(10) var standard_material_emissive_sampler: sampler;
 
+const ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS: f32 = 0.001;
+
 fn standard_material_select_uv(uv0: vec2<f32>, uv1: vec2<f32>, channel: f32) -> vec2<f32> {
     if (channel >= 0.5) {
         return uv1;
@@ -64,6 +66,9 @@ fn standard_material_sampled_normal(input: ZrVertexOutput, normal_uv: vec2<f32>)
         input.normal_ws,
         vec3<f32>(0.0, 0.0, 1.0),
     );
+    if (!ZR_FEATURE_HAS_NORMAL_TEXTURE) {
+        return geometric_normal;
+    }
     let tangent = standard_material_normalize_or_fallback(
         input.tangent_ws,
         vec3<f32>(1.0, 0.0, 0.0),
@@ -162,7 +167,7 @@ fn standard_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
     surface.base_color = sampled_base;
     surface.normal_ws = standard_material_sampled_normal(input, normal_uv);
     surface.metallic = clamp(standard_material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);
-    surface.roughness = clamp(standard_material_properties.data0.y * metallic_roughness.g, 0.04, 1.0);
+    surface.roughness = clamp(standard_material_properties.data0.y * metallic_roughness.g, ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS, 1.0);
     surface.occlusion = clamp(standard_material_properties.data0.z * occlusion_sample, 0.0, 1.0);
     surface.emissive = max(standard_material_properties.data1.rgb, vec3<f32>(0.0)) * emissive_sample;
     surface.alpha_cutoff = standard_material_alpha_cutoff();
@@ -219,6 +224,9 @@ fn standard_material_shader_features(descriptor: &StandardMaterialDescriptor) ->
     }
     if descriptor.double_sided {
         bits |= ShaderFeatureBits::DOUBLE_SIDED;
+    }
+    if descriptor.normal_texture.is_some() {
+        bits |= ShaderFeatureBits::HAS_NORMAL_TEXTURE;
     }
     ShaderFeatureBits::new(bits)
 }

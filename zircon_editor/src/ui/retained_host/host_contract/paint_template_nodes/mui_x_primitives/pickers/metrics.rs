@@ -10,4 +10,3 @@ pub(super) const PICKER_POPUP_CELL_Y_FACTOR: f32 = 0.58;
 pub(super) const PICKER_POPUP_HEADER_HEIGHT: f32 = 5.0;
 pub(super) const PICKER_POPUP_MIN_HEIGHT: f32 = 8.0;
 pub(super) const PICKER_ROOT_BORDER_WIDTH: f32 = 1.0;
-pub(super) const PICKER_SECONDARY: [u8; 4] = [156, 39, 176, 255];

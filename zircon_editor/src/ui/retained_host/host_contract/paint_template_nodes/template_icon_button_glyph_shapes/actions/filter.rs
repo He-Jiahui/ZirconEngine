@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_filter_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,9 +20,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         color,
         opacity,
         &[
-            (3.0, 3.0, 10.0, 1.4),
-            (5.0, 6.0, 6.0, 1.4),
-            (7.0, 8.0, 2.0, 5.0),
+            seg(60, 60, 200, 28),
+            seg(100, 120, 120, 28),
+            seg(140, 160, 40, 100),
         ],
     );
 }

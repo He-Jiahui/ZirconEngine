@@ -4,6 +4,7 @@ use super::super::style_selector::WorkbenchSliderStyle;
 use super::super::template_slider_geometry::{
     centered_rect, slider_thumb_size, workbench_slider_metrics,
 };
+use super::layers::thumb_body_order;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_thumb(
     commands: &mut Vec<HostPaintCommand>,
@@ -35,7 +36,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
     commands.push(HostPaintCommand::quad(
         centered_rect(center_x, center_y, thumb_size),
         Some(clip.clone()),
-        order + 1,
+        thumb_body_order(order),
         Some(style.thumb),
         Some(style.thumb_outline),
         1.0,

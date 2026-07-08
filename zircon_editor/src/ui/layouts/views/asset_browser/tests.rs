@@ -1,6 +1,8 @@
 use super::*;
 use crate::ui::retained_host::measure_runtime_text_width;
-use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
+use crate::ui::workbench::snapshot::{
+    AssetItemSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
+};
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 
@@ -170,6 +172,84 @@ fn asset_browser_utility_tabs_use_compact_slate_tab_strip_geometry() {
     );
     assert_eq!(divider.frame.y, row.frame.y + 26.0);
     assert_eq!(content.frame.y, row.frame.y + 28.0);
+}
+
+#[test]
+fn asset_browser_projected_selection_does_not_impersonate_keyboard_focus() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        kind_filter: Some(ResourceKind::Texture),
+        utility_tab: AssetUtilityTab::Metadata,
+        selected_asset_uuid: Some("asset-01".to_string()),
+        visible_assets: (1..=6).map(|index| asset_item(index, index == 1)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+
+    for control_id in [
+        "AssetBrowserViewModeThumbButton",
+        "AssetBrowserKindTextureChip",
+        "AssetBrowserMetadataTabButton",
+        "AssetBrowserMetaPathPanel",
+        "AssetBrowserAdapterPanel",
+        "AssetBrowserDiagnosticsPanel",
+    ] {
+        let node = find_node(&nodes, control_id);
+        assert!(
+            node.selected,
+            "{control_id} should keep selected/active visual state"
+        );
+        assert!(
+            !node.focused,
+            "{control_id} should not synthesize keyboard focus from snapshot selection"
+        );
+    }
+
+    for control_id in [
+        "AssetBrowserViewModeListButton",
+        "AssetBrowserKindMaterialChip",
+        "AssetBrowserPreviewTabButton",
+        "AssetBrowserReferencesTabButton",
+        "AssetBrowserPluginsTabButton",
+        "AssetBrowserPreviewPanel",
+        "AssetBrowserPluginsPanel",
+    ] {
+        let node = find_node(&nodes, control_id);
+        assert!(
+            !node.selected,
+            "{control_id} should remain idle for the texture/metadata snapshot"
+        );
+        assert!(
+            !node.focused,
+            "{control_id} should not carry stale focus while idle"
+        );
+    }
+}
+
+#[test]
+fn asset_browser_utility_tab_projection_does_not_request_inset_surface() {
+    let snapshot = AssetWorkspaceSnapshot {
+        view_mode: AssetViewMode::Thumbnail,
+        kind_filter: Some(ResourceKind::Texture),
+        utility_tab: AssetUtilityTab::Metadata,
+        visible_assets: (1..=4).map(|index| asset_item(index, index == 1)).collect(),
+        ..AssetWorkspaceSnapshot::default()
+    };
+
+    let nodes = asset_browser_pane_nodes(&snapshot, UiSize::new(900.0, 620.0));
+    let metadata = find_node(&nodes, "AssetBrowserMetadataTabButton");
+    let preview = find_node(&nodes, "AssetBrowserPreviewTabButton");
+    let texture = find_node(&nodes, "AssetBrowserKindTextureChip");
+
+    assert!(metadata.selected);
+    assert_eq!(metadata.surface_variant.as_str(), "");
+    assert_eq!(metadata.text_tone.as_str(), "default");
+    assert!(!preview.selected);
+    assert_eq!(preview.surface_variant.as_str(), "");
+    assert_eq!(preview.text_tone.as_str(), "subtle");
+    assert!(texture.selected);
+    assert_eq!(texture.surface_variant.as_str(), "inset");
 }
 
 #[test]

@@ -391,6 +391,7 @@ mod tests {
         );
         let prepared = PreparedRuntimeSubmission::new(
             vec![5],
+            None,
             vec![9],
             RenderPluginRendererOutputs {
                 virtual_geometry: RenderVirtualGeometryReadbackOutputs {
@@ -478,6 +479,7 @@ mod tests {
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
+            environment_ibl_bake_request: None,
             graph,
         }
     }

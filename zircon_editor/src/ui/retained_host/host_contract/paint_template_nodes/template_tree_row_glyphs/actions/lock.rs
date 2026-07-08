@@ -1,9 +1,15 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
-use super::super::segments::{local_rect, push_segments};
+use super::super::segments::{push_segments, GlyphSegmentSpec, TREE_ACTION_GLYPH_GRID_UNITS};
 
 const TREE_LOCK_ICON: &str = "zircon_editor_shell/scene/lock.svg";
+const LOCK_SEGMENTS: [GlyphSegmentSpec; 4] = [
+    GlyphSegmentSpec::new(4, 6, 7, 6),
+    GlyphSegmentSpec::new(5, 3, 5, 1),
+    GlyphSegmentSpec::new(4, 4, 1, 3),
+    GlyphSegmentSpec::new(10, 4, 1, 3),
+];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_lock_action_glyph(
     commands: &mut Vec<HostPaintCommand>,
@@ -27,15 +33,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
 
     push_segments(
         commands,
+        rect,
+        TREE_ACTION_GLYPH_GRID_UNITS,
         clip,
         order,
         color,
         opacity,
-        &[
-            local_rect(rect, 4.0, 6.0, 7.0, 6.0),
-            local_rect(rect, 5.0, 3.0, 5.0, 1.0),
-            local_rect(rect, 4.0, 4.0, 1.0, 3.0),
-            local_rect(rect, 10.0, 4.0, 1.0, 3.0),
-        ],
+        &LOCK_SEGMENTS,
     );
 }

@@ -1,4 +1,4 @@
-use crate::core::framework::render::ProceduralSkyParams;
+use crate::core::framework::render::{ProceduralSkyParams, STANDARD_MATERIAL_MIN_ROUGHNESS};
 use crate::core::math::{Real, Vec3};
 
 pub(crate) fn procedural_sky_color_at_vertical(
@@ -14,7 +14,7 @@ pub(crate) fn procedural_sky_color_at_vertical(
 }
 
 pub(crate) fn roughness_from_smoothness(smoothness: Real) -> Real {
-    (1.0 - smoothness).clamp(0.04, 1.0)
+    (1.0 - smoothness).clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0)
 }
 
 #[cfg(test)]
@@ -40,7 +40,13 @@ mod tests {
     fn roughness_from_smoothness_clamps_for_pbr_sampling() {
         assert_eq!(roughness_from_smoothness(0.0), 1.0);
         assert_eq!(roughness_from_smoothness(0.5), 0.5);
-        assert_eq!(roughness_from_smoothness(1.0), 0.04);
-        assert_eq!(roughness_from_smoothness(2.0), 0.04);
+        assert_eq!(
+            roughness_from_smoothness(1.0),
+            STANDARD_MATERIAL_MIN_ROUGHNESS
+        );
+        assert_eq!(
+            roughness_from_smoothness(2.0),
+            STANDARD_MATERIAL_MIN_ROUGHNESS
+        );
     }
 }

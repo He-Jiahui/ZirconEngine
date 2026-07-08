@@ -2,6 +2,7 @@ mod actions;
 mod commands;
 mod identity;
 mod labels;
+mod layers;
 mod style;
 mod surface;
 

@@ -7,7 +7,9 @@ use super::super::{
     GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasShelfAllocator,
 };
 use super::failure::GlyphAtlasBitmapAllocationFailureReason;
-use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource};
+use super::types::{
+    GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSlotInvalidation, GlyphAtlasBitmapSource,
+};
 
 pub(super) fn allocate_bitmap_source(
     plan: &mut GlyphAtlasBitmapRunPlan,
@@ -91,9 +93,12 @@ fn reserve_bitmap_page(
     max_pages_per_format: usize,
     padding_px: u32,
 ) -> Result<GlyphAtlasPageKey, GlyphAtlasBitmapAllocationFailureReason> {
-    let reservation =
-        plan.atlas
-            .reserve_page_for_format(format, page_size, frame_index, max_pages_per_format);
+    let reservation = plan.atlas.reserve_rebuildable_page_for_format(
+        format,
+        page_size,
+        frame_index,
+        max_pages_per_format,
+    );
     let Some(page) = reservation.page else {
         return Err(GlyphAtlasBitmapAllocationFailureReason::PageReservationBlocked);
     };
@@ -104,6 +109,11 @@ fn reserve_bitmap_page(
         GlyphAtlasPageResidencyDecision::Evict(_)
     ) {
         plan.rebuilt_pages.push(page_key);
+        plan.slot_invalidations
+            .push(GlyphAtlasBitmapSlotInvalidation {
+                page_key,
+                page_generation: page.generation,
+            });
         mark_bitmap_dirty(
             &mut plan.dirty_pages,
             page_key,

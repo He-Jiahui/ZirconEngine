@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::super::template_chip_glyphs::{chip_has_chevron, CHIP_CHEVRON_RESERVE};
+use super::super::template_chip_glyphs::{chip_glyph_chevron_reserve, chip_has_chevron};
 use super::super::template_node_labels::template_node_label;
 use super::geometry::chip_label_rect;
 use super::metrics::{chip_font_size, chip_line_height, chip_text_right};
@@ -20,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
         return;
     }
     let right_reserve = if chip_has_chevron(node) {
-        CHIP_CHEVRON_RESERVE
+        chip_glyph_chevron_reserve()
     } else {
         chip_text_right()
     };

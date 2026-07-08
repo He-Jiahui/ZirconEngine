@@ -26,13 +26,13 @@ fn runtime_15_editor_retained_host_workbench_window_projection_tests_are_child_o
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let editor_workbench_doc = read_repo("docs/editor-and-tooling/editor-workbench-shell.md");
     let status_rows = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
+        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/hub_editor_support.rs",
     );
     let status_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
+        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/hub_editor_maps.rs",
     );
     let date_map = read_repo(
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
+        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/hub_editor_maps.rs",
     );
 
     assert_contains_all(

@@ -97,7 +97,8 @@ impl SceneRenderer {
                 RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
                     render_features,
                     render_pass_executors,
-            ),
+            )
+            .with_environment_ibl_bake_compute_executors(),
             last_render_graph_execution: RenderGraphExecutionRecord::default(),
             last_prepared_mesh_queue_stats: Default::default(),
             last_prepared_sprite_queue_stats: Default::default(),

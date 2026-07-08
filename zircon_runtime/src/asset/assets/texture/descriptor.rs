@@ -37,6 +37,8 @@ pub enum TextureDescriptorError {
     ArrayLayoutMissingMode,
     #[error("texture import setting `{key}` must be 1 for 3d textures")]
     ArrayLayerCountFor3d { key: &'static str },
+    #[error("cube texture layer count must be a non-zero multiple of six faces, found {layers}")]
+    CubeLayerCount { layers: u32 },
     #[error(
         "texture import settings `{array_key}` and `{depth_key}` must match for 1d/2d array textures"
     )]
@@ -283,15 +285,26 @@ impl TextureAssetDescriptor {
     }
 
     fn normalize_extent_fields(&mut self) {
-        if self.dimension == RenderImageDimension::D3 {
-            self.array_layer_count = 1;
-        } else {
-            let layers = self
-                .depth_or_array_layers
-                .max(self.array_layer_count)
-                .max(1);
-            self.depth_or_array_layers = layers;
-            self.array_layer_count = layers;
+        match self.dimension {
+            RenderImageDimension::D3 => {
+                self.array_layer_count = 1;
+            }
+            RenderImageDimension::Cube => {
+                let layers = self
+                    .depth_or_array_layers
+                    .max(self.array_layer_count)
+                    .max(6);
+                self.depth_or_array_layers = layers;
+                self.array_layer_count = layers;
+            }
+            RenderImageDimension::D1 | RenderImageDimension::D2 => {
+                let layers = self
+                    .depth_or_array_layers
+                    .max(self.array_layer_count)
+                    .max(1);
+                self.depth_or_array_layers = layers;
+                self.array_layer_count = layers;
+            }
         }
     }
 
@@ -306,6 +319,36 @@ impl TextureAssetDescriptor {
                 }
             }
             self.array_layer_count = 1;
+            return Ok(());
+        }
+
+        if self.dimension == RenderImageDimension::Cube {
+            match (keys.array_layer_count, keys.depth_or_array_layers) {
+                (Some(array_key), Some(depth_key)) => {
+                    if self.array_layer_count != self.depth_or_array_layers {
+                        return Err(TextureDescriptorError::MismatchedExtentSettings {
+                            array_key,
+                            depth_key,
+                        });
+                    }
+                }
+                (Some(_), None) => {
+                    self.depth_or_array_layers = self.array_layer_count;
+                }
+                (None, Some(_)) => {
+                    self.array_layer_count = self.depth_or_array_layers;
+                }
+                (None, None) => {
+                    self.normalize_extent_fields();
+                }
+            }
+            if !valid_cube_layer_count(self.array_layer_count)
+                || self.array_layer_count != self.depth_or_array_layers
+            {
+                return Err(TextureDescriptorError::CubeLayerCount {
+                    layers: self.array_layer_count.max(self.depth_or_array_layers),
+                });
+            }
             return Ok(());
         }
 
@@ -347,6 +390,10 @@ impl TextureAssetDescriptor {
             self.format = RGBA8_UNORM_FORMAT.to_string();
         }
     }
+}
+
+fn valid_cube_layer_count(layers: u32) -> bool {
+    layers != 0 && layers % 6 == 0
 }
 
 impl Default for TextureAssetDescriptor {
@@ -477,6 +524,40 @@ depth = 4
         assert_eq!(descriptor.dimension, RenderImageDimension::D3);
         assert_eq!(descriptor.depth_or_array_layers, 4);
         assert_eq!(descriptor.array_layer_count, 1);
+    }
+
+    #[test]
+    fn dimension_cube_defaults_to_six_faces() {
+        let settings = r#"dimension = "cube""#.parse::<toml::Table>().expect("valid toml");
+
+        let descriptor = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect("valid cube dimension");
+
+        assert_eq!(descriptor.dimension, RenderImageDimension::Cube);
+        assert_eq!(descriptor.depth_or_array_layers, 6);
+        assert_eq!(descriptor.array_layer_count, 6);
+    }
+
+    #[test]
+    fn dimension_cubemap_alias_requires_face_multiple_layers() {
+        let settings = r#"
+dimension = "cubemap"
+array_layers = 5
+"#
+        .parse::<toml::Table>()
+        .expect("valid toml");
+
+        let error = TextureAssetDescriptor::default()
+            .apply_import_settings(&settings)
+            .expect_err("invalid cube face count");
+
+        assert!(
+            error.to_string().contains(
+                "cube texture layer count must be a non-zero multiple of six faces, found 5"
+            ),
+            "unexpected error: {error}"
+        );
     }
 
     #[test]

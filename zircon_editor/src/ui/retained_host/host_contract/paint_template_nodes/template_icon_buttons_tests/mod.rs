@@ -1,3 +1,4 @@
+mod commands;
 mod geometry;
 mod identity;
 mod paint;

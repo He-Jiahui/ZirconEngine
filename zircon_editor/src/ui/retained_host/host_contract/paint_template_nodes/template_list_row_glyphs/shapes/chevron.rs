@@ -1,6 +1,12 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::segments::push_segments;
+use super::super::segments::{push_segments, GlyphSegmentSpec};
+
+const RIGHT_CHEVRON_SEGMENTS: [GlyphSegmentSpec; 3] = [
+    GlyphSegmentSpec::new(5, 3, 2, 3),
+    GlyphSegmentSpec::new(7, 6, 2, 2),
+    GlyphSegmentSpec::new(5, 8, 2, 3),
+];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_right_chevron(
     commands: &mut Vec<HostPaintCommand>,
@@ -12,26 +18,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ri
 ) {
     push_segments(
         commands,
-        &[
-            FrameRect {
-                x: rect.x + 5.0,
-                y: rect.y + 3.0,
-                width: 2.0,
-                height: 3.0,
-            },
-            FrameRect {
-                x: rect.x + 7.0,
-                y: rect.y + 6.0,
-                width: 2.0,
-                height: 2.0,
-            },
-            FrameRect {
-                x: rect.x + 5.0,
-                y: rect.y + 8.0,
-                width: 2.0,
-                height: 3.0,
-            },
-        ],
+        rect,
+        &RIGHT_CHEVRON_SEGMENTS,
         clip,
         order,
         color,

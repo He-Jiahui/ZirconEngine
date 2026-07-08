@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderPipelineHandle;
+use crate::core::framework::render::{IblBakeArtifactRequest, RenderPipelineHandle};
 use crate::graphics::feature::RenderFeatureCapabilityRequirement;
 use crate::render_graph::CompiledRenderGraph;
 
@@ -32,6 +32,7 @@ pub struct CompiledRenderPipeline {
     pub required_extract_sections: Vec<String>,
     pub capability_requirements: Vec<RenderFeatureCapabilityRequirement>,
     pub history_bindings: Vec<FrameHistoryBinding>,
+    pub environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
     pub graph: CompiledRenderGraph,
 }
 

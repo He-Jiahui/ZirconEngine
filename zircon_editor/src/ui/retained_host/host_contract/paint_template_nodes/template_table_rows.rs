@@ -2,6 +2,8 @@ mod actions;
 mod cells;
 mod commands;
 mod identity;
+mod layers;
+mod metrics;
 mod style;
 mod surface;
 

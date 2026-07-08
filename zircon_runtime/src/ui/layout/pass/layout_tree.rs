@@ -1,6 +1,8 @@
 use zircon_runtime_interface::ui::layout::{UiFrame, UiLayoutEngineSelectionReport, UiSize};
 use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
 
+use crate::ui::text::UiTextMeasureCache;
+
 use super::arrange::arrange_node;
 use super::engine::UiLayoutPassEngineContext;
 use super::measure::measure_node;
@@ -11,13 +13,21 @@ pub fn compute_layout_tree(
     tree: &mut UiTree,
     root_size: UiSize,
 ) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
+    compute_layout_tree_with_text_measure_cache(tree, root_size, None)
+}
+
+pub(crate) fn compute_layout_tree_with_text_measure_cache(
+    tree: &mut UiTree,
+    root_size: UiSize,
+    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
     apply_mui_responsive_layout(tree, root_size)?;
 
     let roots = tree.roots.clone();
     assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
     for root_id in &roots {
-        let _ = measure_node(tree, *root_id)?;
+        let _ = measure_node(tree, *root_id, text_measure_cache.as_deref_mut())?;
     }
 
     assert_layout_pass_stage(UiLayoutPassStage::BackendSelection, 2);

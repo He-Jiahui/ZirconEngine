@@ -1,19 +1,26 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::colors::{
-    AXIS_FIELD_BACKGROUND, AXIS_FIELD_DISABLED_BACKGROUND, AXIS_FIELD_HOVER_BACKGROUND,
-    AXIS_FIELD_PRESSED_BACKGROUND,
+    axis_field_disabled_background, axis_field_hover_background, axis_field_normal_background,
+    axis_field_palette, axis_field_pressed_background,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_background(
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {
+    axis_field_background_from_host(node, axis_field_palette())
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_background_from_host(
+    node: &TemplatePaneNodeData,
+    palette: super::super::super::paint_theme::HostMaterialPalette,
+) -> [u8; 4] {
     if node.disabled {
-        AXIS_FIELD_DISABLED_BACKGROUND
+        axis_field_disabled_background(palette)
     } else if node.pressed {
-        AXIS_FIELD_PRESSED_BACKGROUND
-    } else if node.hovered || node.focused || node.selected {
-        AXIS_FIELD_HOVER_BACKGROUND
+        axis_field_pressed_background(palette)
+    } else if node.hovered || node.selected {
+        axis_field_hover_background(palette)
     } else {
-        AXIS_FIELD_BACKGROUND
+        axis_field_normal_background(palette)
     }
 }

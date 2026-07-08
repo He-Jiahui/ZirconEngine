@@ -1,5 +1,4 @@
 mod overlay;
-mod palette;
 mod root;
 mod tokens;
 

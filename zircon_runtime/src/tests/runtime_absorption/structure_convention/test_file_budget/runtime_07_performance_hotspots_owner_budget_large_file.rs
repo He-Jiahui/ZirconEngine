@@ -14,8 +14,14 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
     let mirror_docs_child = read_runtime_src(
         "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs.rs",
     );
+    let mirror_docs_source_inventory = read_runtime_src(
+        "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/source_inventory.rs",
+    );
     let virtual_geometry_child = read_runtime_src(
         "tests/runtime_absorption/performance_hotspots/owner_budget/virtual_geometry_debug_snapshot.rs",
+    );
+    let sources_load = read_runtime_src(
+        "tests/runtime_absorption/performance_hotspots/owner_budget/sources/load.rs",
     );
 
     assert_contains_all(
@@ -29,9 +35,6 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
             "mod mirror_docs;",
             "mod virtual_geometry_debug_snapshot;",
             "fn runtime_15_runtime_07_performance_hotspots_guard_is_folder_backed",
-            "include_str!(\"owner_budget/large_file_gate.rs\")",
-            "include_str!(\"owner_budget/mirror_docs.rs\")",
-            "include_str!(\"owner_budget/virtual_geometry_debug_snapshot.rs\")",
         ],
     );
     assert!(
@@ -62,7 +65,17 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
         &mirror_docs_child,
         &[
             "fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts",
-            "EXPECTED_TEST_FILE_COUNT = 14",
+            "mirror_docs/source_inventory.rs",
+        ],
+    );
+    assert_contains_all(
+        "mirror-docs source-inventory child owns Runtime 07 audit input",
+        &mirror_docs_source_inventory,
+        &[
+            "EXPECTED_TEST_FILE_COUNT = 91",
+            "owner_budget/large_file_gate.rs",
+            "owner_budget/mirror_docs.rs",
+            "owner_budget/virtual_geometry_debug_snapshot.rs",
         ],
     );
     assert_contains_all(
@@ -71,6 +84,16 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
         &[
             "fn runtime_07_virtual_geometry_debug_snapshot_owner_split_keeps_contracts_folder_backed",
             "virtual_geometry_debug_snapshot_owner_split_static_passed_cargo_deferred",
+        ],
+    );
+    assert_contains_all(
+        "owner-budget source loader owns child source includes",
+        &sources_load,
+        &[
+            "owner_budget_large_file_gate: include_str!(\"../large_file_gate.rs\")",
+            "owner_budget_mirror_docs: include_str!(\"../mirror_docs.rs\")",
+            "owner_budget_virtual_geometry_debug_snapshot: include_str!(",
+            "\"../virtual_geometry_debug_snapshot.rs\"",
         ],
     );
 
@@ -88,8 +111,16 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
             mirror_docs_child.as_str(),
         ),
         (
+            "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/source_inventory.rs",
+            mirror_docs_source_inventory.as_str(),
+        ),
+        (
             "tests/runtime_absorption/performance_hotspots/owner_budget/virtual_geometry_debug_snapshot.rs",
             virtual_geometry_child.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/owner_budget/sources/load.rs",
+            sources_load.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -110,12 +141,30 @@ fn runtime_15_runtime_07_owner_budget_large_file_gate_is_child_owner() {
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
     );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-    );
+    let status_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/runtime07_script_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_owner_budget_maps.rs",
+        ),
+    ]
+    .join("\n");
+    let date_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_owner_budget_maps.rs",
+        ),
+    ]
+    .join("\n");
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

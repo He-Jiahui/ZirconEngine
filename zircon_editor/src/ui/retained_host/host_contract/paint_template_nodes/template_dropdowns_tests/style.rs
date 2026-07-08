@@ -44,6 +44,53 @@ fn workbench_dropdown_selector_uses_shared_state_priority() {
     );
 }
 
+#[test]
+fn focused_closed_workbench_dropdown_keeps_normal_surface_and_chevron() {
+    let palette = workbench_dropdown_palette();
+    let mut node = dropdown_node(false);
+    node.focused = true;
+
+    assert_eq!(
+        dropdown_visual_state(&node),
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(dropdown_surface(&node), palette.surface);
+    assert_eq!(dropdown_border(&node), palette.focus_border);
+    assert_eq!(dropdown_chevron_color(&node), palette.chevron);
+}
+
+#[test]
+fn focused_hovered_workbench_dropdown_uses_hover_surface_without_active_chevron() {
+    let palette = workbench_dropdown_palette();
+    let mut node = dropdown_node(false);
+    node.focused = true;
+    node.hovered = true;
+
+    assert_eq!(
+        dropdown_visual_state(&node),
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(dropdown_surface(&node), palette.hover_surface);
+    assert_eq!(dropdown_border(&node), palette.focus_border);
+    assert_eq!(dropdown_chevron_color(&node), palette.chevron);
+}
+
+#[test]
+fn focused_open_workbench_dropdown_keeps_open_surface_and_active_chevron() {
+    let palette = workbench_dropdown_palette();
+    let mut node = dropdown_node(true);
+    node.focused = true;
+    node.popup_open = true;
+
+    assert_eq!(
+        dropdown_visual_state(&node),
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(dropdown_surface(&node), palette.open_surface);
+    assert_eq!(dropdown_border(&node), palette.focus_border);
+    assert_eq!(dropdown_chevron_color(&node), palette.active_chevron);
+}
+
 fn dropdown_surface(node: &TemplatePaneNodeData) -> [u8; 4] {
     dropdown_style(node).surface
 }

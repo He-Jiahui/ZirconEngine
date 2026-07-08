@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_move_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,12 +20,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_mo
         color,
         opacity,
         &[
-            (7.2, 2.0, 1.6, 12.0),
-            (2.0, 7.2, 12.0, 1.6),
-            (6.0, 3.0, 4.0, 1.2),
-            (6.0, 12.0, 4.0, 1.2),
-            (3.0, 6.0, 1.2, 4.0),
-            (12.0, 6.0, 1.2, 4.0),
+            seg(144, 40, 32, 240),
+            seg(40, 144, 240, 32),
+            seg(120, 60, 80, 24),
+            seg(120, 240, 80, 24),
+            seg(60, 120, 24, 80),
+            seg(240, 120, 24, 80),
         ],
     );
 }
@@ -44,12 +46,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ro
         color,
         opacity,
         &[
-            (4.0, 3.0, 6.0, 1.3),
-            (3.0, 4.0, 1.3, 5.0),
-            (4.0, 10.5, 7.0, 1.3),
-            (11.0, 7.0, 1.3, 4.5),
-            (9.0, 2.0, 3.5, 1.3),
-            (11.0, 2.0, 1.3, 3.5),
+            seg(80, 60, 120, 26),
+            seg(60, 80, 26, 100),
+            seg(80, 210, 140, 26),
+            seg(220, 140, 26, 90),
+            seg(180, 40, 70, 26),
+            seg(220, 40, 26, 70),
         ],
     );
 }
@@ -70,12 +72,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sc
         color,
         opacity,
         &[
-            (3.0, 3.0, 5.0, 1.3),
-            (3.0, 3.0, 1.3, 5.0),
-            (8.0, 8.0, 5.0, 1.3),
-            (12.0, 8.0, 1.3, 5.0),
-            (4.0, 11.0, 8.0, 1.3),
-            (10.0, 5.0, 1.3, 7.0),
+            seg(60, 60, 100, 26),
+            seg(60, 60, 26, 100),
+            seg(160, 160, 100, 26),
+            seg(240, 160, 26, 100),
+            seg(80, 220, 160, 26),
+            seg(200, 100, 26, 140),
         ],
     );
 }

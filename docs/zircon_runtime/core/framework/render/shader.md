@@ -10,6 +10,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs
   - zircon_runtime/src/core/framework/render/environment/skybox.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/environment_brdf_lut.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/snapshot.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/page_payload.rs
@@ -81,6 +84,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/half_float.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/procedural_environment.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
@@ -319,6 +325,9 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs
   - zircon_runtime/src/core/framework/render/environment/skybox.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/framework/render/environment/environment_brdf_lut.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/shader/mod.rs
   - zircon_runtime/src/core/framework/render/shader/ide_env.rs
@@ -376,6 +385,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/half_float.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/procedural_environment.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
@@ -570,6 +582,11 @@ tests:
   - cargo test -p zircon_runtime --lib graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_metallic_smoothness_matrix_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-env-m4-pbr-matrix-0704 --message-format short --color never -- --ignored --exact --nocapture --test-threads=1 (2026-07-04 Plan 11 8x8 PBR metallic/smoothness matrix export: passed, 1/1; wrote docs/tests/runtime/shader/runtime_shader_pbr_metallic_smoothness_matrix_skybox_20260704.png, 1280x960, 109556 bytes, SHA256 E883A3BDF657025EAD16A7F39B1F8BE5D7FFCDA1FDEF0243A8636A05C217030D; same-name repo target and E/F/D cargo-target root scan returned 0)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-real-hdri-reflection-0704 --message-format short --color never (2026-07-04 Plan 11 real HDRI sampled environment reflection: passed with existing warnings)
   - E:\cargo-targets\zircon-real-hdri-reflection-0704-server\debug\deps\zircon_runtime-0a7825d39d44b0c4.exe graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_real_hdri_reflection_png --ignored --exact --nocapture --test-threads=1 (2026-07-04 Plan 11 real HDRI reflection export: passed, 1/1; wrote docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_reflection_20260704.png, 1280x960, 132232 bytes, SHA256 958E3B200EC56BCA16BF9596B1F05D872179F51CEB9A64925E10FC2D41792DEE; source HDR docs/tests/runtime/shader/assets/polyhaven_lakes_1k.hdr size 1464859, MD5 B615491D315A3D4E23BB09C2C96C9E03, SHA256 FAF3ECE79216E568A29F0D8FC176A795C66EB9C312C3CF3EE18D9AC04A71DECB; same-name repo target and E/F/D cargo-target root scan returned 0)
+  - cargo test -p zircon_runtime --lib source_cubemap_linear_sampling_bleeds_across_face_edges --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-hdr-pmrem-export-it-0705 --message-format short --color never -- --nocapture (2026-07-05 Plan 06 EC-M3d cross-face source-cubemap CPU sampling guard: passed, 1/1)
+  - CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_environment_source_cubemap_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-hdr-pmrem-export-it-0705 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-05 Plan 06 EC-M3d source-cubemap PMREM contract after cross-face/high-roughness changes: passed, 9/9)
+  - CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-hdr-pmrem-export-it-0705 --message-format short --color never -- --ignored --exact export_runtime_shader_pbr_real_hdri_2k_reflection_png --nocapture --test-threads=1 (2026-07-05 Plan 06 EC-M3d Poly Haven lakes 2K HDRI source-cubemap PMREM export: passed, 1/1; wrote docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_hdr_pmrem_reflection_20260705.png, 1280x960, 1009731 bytes, SHA256 920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0; source HDR docs/tests/runtime/shader/assets/polyhaven_lakes_2k.hdr size 5918432, SHA256 B2506E0EE912C4C599FF013566FBD3ECAAC2F4B176319D450CCE0DE5758FED98; same-name target and E:\cargo-targets scan returned 0)
+  - CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-png-metrics-0706 --message-format short --color never runtime_shader_pbr_real_hdri_2k_reflection_png_matches_plan06_metrics -- --exact --nocapture --test-threads=1 (2026-07-06 Plan 06 EC-M3e saved 2K HDRI PNG metrics regression: passed, 1/1, 0 ignored, 2 filtered; test body 0.23s, build 8m43s; reused docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_hdr_pmrem_reflection_20260705.png, 1009731 bytes, SHA256 920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0; same-name target and E:\cargo-targets scan returned 0)
+  - CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_environment_source_irradiance_cubemap_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-iem-contract-0706 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-06 Plan 06 EC-M2d CPU source IEM bridge: passed, 2/2 after adding root render facade exports; first focused run failed on missing facade re-export; no screenshot generated)
   - cargo test -p zircon_runtime --lib --no-run --no-default-features --features target-server --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shader-combined-validation-0704 --message-format short --color never (2026-07-04 shader prewarm combined WGPU module+pipeline validation owner split: passed with existing warnings)
   - E:\cargo-targets\zircon-shader-combined-validation-0704\debug\deps\zircon_runtime-6bef7a696c15c9a5.exe shader --nocapture (2026-07-04 shader/material focused lib filter after combined validation split: passed, 366 passed / 0 failed / 1 ignored / 6065 filtered)
   - python -m unittest tools.tests.test_zircon_build_shader_prewarm_wrapper_orchestration.ZirconBuildShaderPrewarmWrapperOrchestrationTests.test_public_runtime_wrapper_exports_project_plugin_registry_with_live_wgpu_pipelines (2026-07-04 public wrapper live WGPU prewarm: passed; report requested/written/failed 18/18/0, WGPU module validation 18/18, WGPU pipeline validation 18/18)
@@ -2745,13 +2762,71 @@ The product evidence is the ignored export `graphics::tests::project_render::pro
 
 This section does not mark cubemap import/prefiltering, reflection probe capture/blending, lightmaps, light probe grids, analytic fog, RenderDoc capture, or a broad product/perf sweep complete. Those remain Plan 11 later milestones.
 
-## 2026-07-04 Real HDRI Sampled Environment Reflection
+## 2026-07-04 Retired Real HDRI Sampled Environment Reflection
 
-Plan 11 now also has a real HDRI validation path for PBR environment reflection. The source asset is Poly Haven `lakes` 1K HDR, stored as `docs/tests/runtime/shader/assets/polyhaven_lakes_1k.hdr` with MD5 `B615491D315A3D4E23BB09C2C96C9E03` and SHA256 `FAF3ECE79216E568A29F0D8FC176A795C66EB9C312C3CF3EE18D9AC04A71DECB`. The test/export path decodes that HDR, reduces it to a fixed 16x8 equirectangular sample table, and sends it through `EnvironmentExtract`, `SceneUniform`, `zr_environment.wgsl`, and `skybox_procedural.wgsl`.
+This section is historical evidence for the rejected sampled-equirect bridge. The current real HDRI validation path is the source-cubemap GGX PMREM path documented in [source-cubemap.md](/E:/Git/ZirconEngine/docs/zircon_runtime/core/framework/render/environment/source-cubemap.md), and the runtime render contract no longer exposes the sampled-equirect environment type.
+
+The source asset is Poly Haven `lakes` 1K HDR, stored as `docs/tests/runtime/shader/assets/polyhaven_lakes_1k.hdr` with MD5 `B615491D315A3D4E23BB09C2C96C9E03` and SHA256 `FAF3ECE79216E568A29F0D8FC176A795C66EB9C312C3CF3EE18D9AC04A71DECB`. The retired test/export path decoded that HDR, reduced it to a fixed 16x8 equirectangular sample table, and sent it through the old environment transport.
 
 The accepted product evidence is `graphics::tests::project_render::project_scenes::export_runtime_shader_pbr_real_hdri_reflection_png`. It builds the same 8x8 standard PBR metallic/smoothness matrix, but uses `SkyboxMode::SampledEquirectangular` so the skybox and PBR indirect reflection read the real HDR-derived table. The accepted artifact is `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_reflection_20260704.png`, 1280x960, 132232 bytes, SHA256 `958E3B200EC56BCA16BF9596B1F05D872179F51CEB9A64925E10FC2D41792DEE`; the same-name scan under repo `target`, `E:\cargo-targets`, `F:\cargo-targets`, and `D:\cargo-targets` returned zero hits.
 
-This is intentionally a sampled equirectangular environment proof, not the final cubemap pipeline. It does not close Plan 13 cubemap asset import, GPU `texture_cube` binding, GGX prefilter mip generation, reflection probe capture/blending, or SH irradiance bake.
+This was intentionally a sampled equirectangular environment proof, not the final cubemap pipeline. It is superseded by the source-cubemap screenshots and does not close Plan 13 cubemap asset import, production RGBA16F PMREM storage, GPU/offline compute, reflection probe capture/blending, or SH irradiance bake.
+
+## 2026-07-05 Source Cubemap SH9 Diffuse Bridge
+
+Plan 06 EC-M2b now routes source-cubemap diffuse ambient through SH9 instead of sampling a rough low mip. `SourceCubemapMipChain` stores nine cosine-lobe-premultiplied coefficients projected from the regular source mip closest to 32x32 faces, with the same exact cubemap solid-angle weighting used by the PMREM CPU reference. `SceneUniform.environment_sh9` carries those coefficients to WGSL, and `zr_environment_sh9_eval(...)` evaluates the y-up basis before applying environment intensity.
+
+This row was closed before the EC-M2c float bridge below. Current source-cubemap specular now uses the CPU GGX PMREM/RGBA16F runtime path documented in the next section, while GPU/offline SH9/PMREM/BRDF baking, IEM, derived caches, seam tests, and quantitative 8x8 acceptance remain open. Evidence for the original SH9 row: `runtime_environment_source_cubemap_contract` passed 5/5, and the ignored HDRI export refreshed `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_ggx_pmrem_reflection_20260705.png` at 1280x960, 862851 bytes, SHA256 `D3A8077CAD3A7F0CBD83634F33EBBFA62422E3C75E2B65B34AA85A66FEDF0029`; same-name target/cargo-target scan returned zero hits.
+
+## 2026-07-06 Source Cubemap IEM CPU Bridge
+
+Plan 06 EC-M2d adds [source_irradiance_cubemap.rs](/E:/Git/ZirconEngine/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs) as the optional IEM CPU reference owner. It builds a fixed 32x32x6 face-major diffuse irradiance cube by direct cosine convolution over the source cubemap mip selected for diffuse irradiance, using the same exact solid-angle weights and cross-face sampling discipline as the SH9/source-cubemap path.
+
+This does not yet change runtime WGSL diffuse lighting: source-cubemap diffuse still consumes SH9 today. The IEM bridge exists so later GPU/offline bake, derived-cache, upload/binding, and shader-option work can compare against a concrete CPU artifact without adding more code to the large `source_cubemap.rs` file.
+
+Evidence: `rustfmt` passed for the new module, environment facades, and focused test. The first focused Cargo run failed on missing root `core::framework::render` facade exports for the new IEM symbols; after adding those exports, `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_environment_source_irradiance_cubemap_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-iem-contract-0706 --message-format short --color never -- --nocapture --test-threads=1` passed 2/2. A later Cargo wrapper recheck timed out at the tool boundary after 904s and is not counted as pass evidence; direct execution of the already-built test binary then passed 2/2 in 15.85s. This slice generated no screenshot.
+
+## 2026-07-05 HDR Source/PMREM Float Bridge
+
+Plan 06 EC-M2c separates sky/source sampling from specular reflection sampling. `SourceCubemapMipChain::source_texels()` now preserves the regular source mip pyramid for skybox and source lookups, while `SourceCubemapMipChain::texels()` remains the GGX PMREM output consumed by standard PBR reflections. The scene bind group carries both cube textures: binding 1 is the source cube, binding 4 is the specular PMREM cube, and binding 3 is an RG16F BRDF LUT for split-sum specular scale/bias.
+
+The runtime upload path now uses RGBA16F for both cube textures, with shared FP16 packing in `scene_renderer_core/half_float.rs`. The real-HDRI export helper preserves exposed linear HDR samples before cubemap construction instead of Reinhard tone-mapping them into 0..1, so bright HDR values can influence PMREM and BRDF-LUT reflection results. This section still leaves GPU/offline PMREM baking, derived artifact cache reuse, IEM, seam quantization, and full EC-M3 8x8 numerical acceptance open.
+
+Evidence: `cargo check -p zircon_runtime --lib --no-default-features --features core-min` passed; `runtime_environment_source_cubemap_contract` passed 6/6; `runtime_environment_brdf_lut_contract` passed 2/2; and the ignored HDRI export passed 1/1 after the shadow-map scene bind group fallback was brought to the same 5-binding ABI. The accepted artifact is `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_hdr_pmrem_reflection_20260705.png`, 1280x960, 845069 bytes, SHA256 `64D5873A09DDC348C15A2444221DF07961A47A34D5FB281B73F7122FEAB0782E`, 74903 unique colors; same-name target/cargo-target scan returned zero hits.
+
+## 2026-07-05 HDRI PBR Matrix Quantitative Guard
+
+Plan 06 EC-M3a now adds whole-matrix quantitative checks to the real-HDRI PBR export. The test still writes the accepted PNG under `docs/tests/runtime/shader`, but after saving it also samples all 64 metallic/smoothness cells and asserts broad luma response, smooth metal versus dielectric separation, metallic and smoothness group deltas, row/column response coverage, and absence of legacy 16x8 sampled-equirect grid boundaries in the skybox region.
+
+The same slice fixed the shared scene layout owner so `scene_bind_group_layout_entries()` is visible across the `scene_renderer` subtree while remaining private to that subsystem. This keeps renderer construction, prewarm validation, and focused pipeline tests on the same 5-binding scene layout: uniform, source cube, sampler, BRDF LUT, and specular PMREM cube.
+
+Evidence: `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-hdr-pmrem-export-it-0705 --message-format short --color never -- --ignored --exact export_runtime_shader_pbr_real_hdri_reflection_png --nocapture --test-threads=1` passed 1/1. The PNG remained 1280x960, 845069 bytes, SHA256 `64D5873A09DDC348C15A2444221DF07961A47A34D5FB281B73F7122FEAB0782E`, with 74903 unique colors; same-name target/cargo-target scan returned zero hits. The current matrix metrics were luma `124.501..233.256`, endpoint/group deltas `85.106` / `32.130` / `59.064`, responsive rows/columns `8/8` / `6/8`, and legacy grid vertical/horizontal means `0.02491` / `0.02711`. Full Plan 06 EC-M3 remains open for SSIM source-reference, strict high-frequency roughness monotonicity, cube seam quantization, and GPU/offline PMREM artifact validation.
+
+## 2026-07-05 PMREM Mip Progressive Blur Contract
+
+Plan 06 EC-M3b strengthens the source-cubemap PMREM contract directly. `runtime_environment_source_cubemap_contract.rs` now builds a 64-face high-frequency checker plus bright-spot HDR environment, measures luma variance across every PMREM mip, and asserts that rougher mips progressively reduce high-frequency energy. It also promotes the cmft final-mip discipline into a public contract by checking that the final 1x1 PMREM mip is averaged across all six faces.
+
+Evidence: `rustfmt --edition 2021 zircon_runtime\tests\runtime_environment_source_cubemap_contract.rs` passed. The first focused Cargo run timed out at the tool boundary during Windows cold compile while cargo/rustc continued in the background; after those processes naturally exited, the same command passed: `cargo test -p zircon_runtime --test runtime_environment_source_cubemap_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-cubemap-projection-check-0705 --message-format short --color never -- --nocapture --test-threads=1` ran 8/8 tests successfully, with a 3.56s test body and 7m53s total warmed run. This slice generated no screenshot; seam quantization, SSIM reference comparison, screenshot-level roughness monotonicity, and GPU/offline PMREM artifacts remain open.
+
+## 2026-07-05 PMREM Cube Seam Quantization Guard
+
+Plan 06 EC-M3c adds source PMREM cube-edge seam quantization. The focused contract test now derives adjacent faces through the public cubemap projection helpers, samples all four edges at mip0, an intermediate rough mip, and the rough PMREM mip, and asserts that mean and worst luma seam energy drop as the PMREM mip gets rougher. This keeps the seam test aligned with the actual face order and projection API instead of depending on a separate hand-written adjacency table.
+
+Evidence: `rustfmt --edition 2021 zircon_runtime\tests\runtime_environment_source_cubemap_contract.rs` passed. `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_environment_source_cubemap_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-cubemap-projection-check-0705 --message-format short --color never -- --nocapture --test-threads=1` passed 9/9, with a 4.74s test body and 7m18s total run. This slice generated no screenshot. Source CPU PMREM seam behavior is now covered; GPU/offline PMREM artifact seam comparison, SSIM reference comparison, and screenshot-level roughness monotonicity remain open.
+
+## 2026-07-05 Source Cubemap Cross-Face PMREM 2K HDRI
+
+Plan 06 EC-M3d responds to the visible blockiness in the 1K lakes HDRI cubemap and the rough reflection mip chain. The source sky remains a full-resolution source cube, while the reflection path uses the separate specular PMREM cube. CPU mip generation now resolves bilinear taps that cross cube-face edges by projecting the out-of-face tap direction back onto the neighboring face instead of clamping on the current face. This follows the cmft/cmftStudio neighbor/edge-fixup discipline while keeping the existing UE GGX roughness-to-mip, pdf, and solid-angle source-mip formulas.
+
+The PMREM bridge also raises high-roughness filtered importance sampling to 128 samples and treats repeated `roughness == 1.0` mips as a saturated tail: later saturated mips downsample from the previous PMREM level rather than independently resampling the source pyramid. This prevents high mip levels from reintroducing source-face blocks after the roughness mapping has already collapsed to the roughest lobe.
+
+Evidence: `source_cubemap_linear_sampling_bleeds_across_face_edges` passed 1/1; `runtime_environment_source_cubemap_contract` passed 9/9 after the cross-face/high-roughness changes; and `export_runtime_shader_pbr_real_hdri_2k_reflection_png` passed 1/1. The source asset is `docs/tests/runtime/shader/assets/polyhaven_lakes_2k.hdr`, 5,918,432 bytes, SHA256 `B2506E0EE912C4C599FF013566FBD3ECAAC2F4B176319D450CCE0DE5758FED98`. The accepted PNG is `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_hdr_pmrem_reflection_20260705.png`, 1280x960, 1,009,731 bytes, SHA256 `920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0`, 80,333 unique colors; same-name target and `E:\cargo-targets` scans returned zero hits. GPU/offline PMREM artifacts, derived cache, IEM, probe capture/blending, SSIM, RenderDoc/product capture, and 4K/16K offline bake acceptance remain open.
+
+## 2026-07-06 Saved HDRI PNG Metrics Regression
+
+Plan 06 EC-M3e adds a non-ignored regression for the accepted 2K HDRI PBR matrix screenshot. `runtime_shader_pbr_hdri_export.rs` now delegates reusable screenshot checks to `runtime_shader_pbr_hdri_export/hdri_metrics.rs`, which reads either a live `ViewportFrame` or a saved PNG byte buffer and runs the same sky variation, 64-cell metallic/smoothness matrix response, and legacy 16x8 grid-seam assertions. The new `runtime_shader_pbr_real_hdri_2k_reflection_png_matches_plan06_metrics` test reads `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_hdr_pmrem_reflection_20260705.png` directly, so the accepted artifact no longer depends only on the ignored manual export path for coverage.
+
+Evidence: `rustfmt --edition 2021 zircon_runtime\tests\runtime_shader_pbr_hdri_export.rs zircon_runtime\tests\runtime_shader_pbr_hdri_export\hdri_metrics.rs` passed. `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-png-metrics-0706 --message-format short --color never runtime_shader_pbr_real_hdri_2k_reflection_png_matches_plan06_metrics -- --exact --nocapture --test-threads=1` passed 1/1 with 0 ignored and 2 filtered tests; the test body was 0.23s after an 8m43s build, and stderr contained only existing workspace warnings. The PNG stayed in `docs/tests/runtime/shader`, 1,009,731 bytes, SHA256 `920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0`; same-name scans under `target` and `E:\cargo-targets` returned zero hits. This closes the saved-PNG regression gap, while strict high-frequency/roughness monotonicity, SSIM, RenderDoc/product capture, and GPU/offline PMREM artifacts remain open.
 
 ## Runtime 15 / Plan 08 Anchor Mirrors
 

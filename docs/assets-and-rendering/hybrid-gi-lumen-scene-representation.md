@@ -1,6 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/global_illumination.rs
+  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
@@ -29,8 +36,13 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/merge_plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
@@ -53,7 +65,39 @@ related_code:
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/trace_region_record.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/scene_frame.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_textures.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/generate_probe_trace_tiles.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_snapshot.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_neutral_readback_outputs.rs
+  - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/test_support/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
@@ -226,6 +270,7 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/trace_region_inheritance.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_neutral_readback_outputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_readback_outputs.rs
@@ -234,6 +279,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/write_hybrid_gi_buffers/write.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/hybrid_gi_trace_region_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode_hybrid_gi_trace_region_screen_data.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_intensity.rs
@@ -260,6 +306,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/hybrid_gi_visibility.rs
   - zircon_runtime/src/graphics/tests/boundary.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/hybrid_gi_visual_export.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
 implementation_files:
@@ -310,7 +357,27 @@ implementation_files:
   - zircon_runtime/src/graphics/hybrid_gi_extract_sources/trace_region_record.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/mod.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/scene_frame.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_inputs.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_textures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/test_support/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_renderer_test_promotion_guard.rs
@@ -472,6 +539,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/write_hybrid_gi_buffers/write.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/hybrid_gi_trace_region_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode_hybrid_gi_trace_region_screen_data.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_intensity.rs
@@ -497,6 +565,9 @@ plan_sources:
   - docs/superpowers/plans/2026-05-04-vg-hgi-shared-runtime-prepare-hook.md
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
   - docs/superpowers/plans/2026-05-01-shared-renderer-fixture-localization.md
+  - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph scene-depth MSAA handoff
+  - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI trace-schedule depth-source packet
+  - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph resolve trace depth-source attachment
 tests:
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
@@ -515,12 +586,32 @@ tests:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_visibility.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_renderer_test_promotion_guard.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked surface_cache_depth_samples -- --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked collect_inputs_preserves_scene_prepare_contract_for_renderer_consumption -- --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked export_hybrid_gi_scene_depth_source_sampling_wgpu_png -- --ignored --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime scene_depth_handoff_msaa_shader_resolves_depth_sample_count --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1
+  - cargo test --manifest-path zircon_runtime\Cargo.toml public_gpu_buffer_lookup_requires_compiled_pass_declaration_access --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1
+  - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never
+  - naga WGSL validation for zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
+  - naga WGSL validation for zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_scene_depth_source_sampling_wgpu_png --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --ignored --nocapture --test-threads=1
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime trace_schedule_shader_promotes_scene_depth_handoff_to_surface_cache_depth_packet --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1 (attempted twice, timed out, not counted as passed)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts -- --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures -- --nocapture
+  - docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png
+  - docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.txt
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --target-dir D:\zircon-render-workspace-validation
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/hybrid_gi_visual_export.rs
+  - docs/tests/runtime/render/plan18_hybrid_gi_lumen_style_seed_visual_20260707.png
+  - docs/tests/runtime/render/plan18_hybrid_gi_lumen_style_seed_visual_20260707.txt
+  - direct lib-test binary: hybrid_gi_probe_encoder 2/2, hybrid_gi_trace_region_encoder 2/2, export_hybrid_gi_lumen_style_seed_visual_png 1/1
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
   - cargo test -p zircon_runtime --locked scene::tests::world_basics::render_extract_separates_directional_point_and_spot_lights -- --exact
@@ -1239,6 +1330,12 @@ Hybrid GI renderer readback 现在也有插件内的中立 DTO 投影层：`Hybr
 
 Hybrid GI post-process 的 hierarchy irradiance/RT encode 都已开始拆成插件 runtime 可移动边界：`hybrid_gi_hierarchy_irradiance/mod.rs` 现在只保留生产 resolve orchestration 与 child-module wiring，原先同文件的 irradiance regression fixture 迁入 `hybrid_gi_hierarchy_irradiance/tests.rs`；runtime irradiance scene-truth/continuation selection 下沉到 `hybrid_gi_hierarchy_irradiance/runtime_irradiance_sources.rs`，scene-prepare surface-cache irradiance fallback 下沉到 `scene_prepare_irradiance_fallback.rs`，authored ancestor prepare irradiance inheritance 下沉到 `ancestor_prepare_inheritance.rs`。`hybrid_gi_hierarchy_rt_lighting/mod.rs` 则保留生产 resolve helper 与原模块入口，原先同文件的大型回归 fixture 迁入 `hybrid_gi_hierarchy_rt_lighting/tests.rs`；runtime RT source selection、scene-truth/continuation lineage selection、packed-or-legacy fallback、trace-region RT lighting 与 trace-region support 已拆进 `runtime_rt_sources.rs`，scene-prepare voxel cell/clipmap RGB 与 support 规则拆进 `scene_prepare_voxel_samples.rs`，current surface-cache proxy 与 scene-prepare RT fallback orchestration 拆进 `scene_prepare_rt_fallback.rs`，authored trace-region ancestor inheritance 拆进 `trace_region_inheritance.rs`。模块名和调用入口保持不变，但生产实现、测试合同和后续 surface-cache/voxel/runtime-lineage/inheritance helper 下沉已经有了独立承载边界。
 
+## 2026-07-07 Wgpu Post-Process Seed Visual Evidence
+
+`render_plan18_hybrid_gi_lumen_style_seed_visual_wgpu_png_passed_full_pipeline_deferred` closes the first visual seed proof for the runtime Wgpu post-process HGI path. The runtime `encode_hybrid_gi_probes` and `encode_hybrid_gi_trace_regions` leaf encoders now project enabled `RenderHybridGiExtract` data into the GPU buffers that `post_process.wgsl` already samples, instead of reporting zero probes/trace regions. The ignored `render_framework_bridge/hybrid_gi_visual_export.rs` test keeps the visual proof in the existing render-framework bridge test tree, uses a direct minimal HGI feature descriptor only for the test, and writes baseline/warm/cool evidence to `docs/tests/runtime/render/plan18_hybrid_gi_lumen_style_seed_visual_20260707.png`.
+
+Validation is intentionally scoped: direct lib-test binary runs passed the two probe encoder tests, the two trace-region encoder tests, and the ignored PNG exporter. The report records warm/cool center-channel separation (`warm_red=145.89`, `cool_red=144.51`, `warm_blue=179.72`, `cool_blue=180.73`). This proves current-frame extract-to-post-process color influence through Wgpu capture; it does not claim full Lumen surface cache, full HGI product asset parity, RenderDoc capture, temporal history, or Plan 18 advanced-lighting completion.
+
 ## Current Limits
 
 这仍然不是完整的 Lumen scene pipeline，当前限制需要明确记录：
@@ -1306,3 +1403,1066 @@ runtime/dist/editor packages: `segment1-critical-fixes-rerun2.status.json` passe
 package with ExitCode 0, `segment6-remaining-dist-editor-native.status.json` passed the HGI
 dist/editor package group with ExitCode 0, and the six segment status files together cover all 120
 `zircon_plugins` default workspace members with `MissingCount=0` and `ExtraCount=0`.
+
+## 2026-07-07 Wgpu Scene-Prepare Sideband Evidence
+
+Status anchor: `render_plan18_hybrid_gi_scene_prepare_wgpu_sideband_png_passed_gpu_pass_deferred`.
+
+This slice closes the scene-representation handoff from the Hybrid GI runtime provider into the
+renderer-neutral prepared/readback sideband used by Wgpu validation. `PluginHybridGiRuntimeState`
+now converts the `HybridGiScenePrepareFrame` into `RenderHybridGiScenePrepareReadbackOutputs`,
+including occupied atlas/capture slots, atlas/capture texel samples, voxel clipmap ids, occupancy
+counts, occupancy masks, voxel cell records, cell samples, dominant node records, and dominant
+sample records. The conversion is owned at the plugin runtime provider boundary and does not add a
+renderer facade, compatibility alias, or legacy probe/trace render path.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/Cargo.toml`
+- `zircon_plugins/Cargo.lock`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_representation_wgpu_sideband_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_representation_wgpu_sideband_20260707.txt`
+
+The report records a visible Wgpu frame (`visible_pixels=1813`, `min_luma=61.67`,
+`max_luma=124.00`) plus scene-sideband counters:
+`last_hybrid_gi_graph_executed_pass_count=4`, `last_hybrid_gi_scene_card_count=2`,
+`last_hybrid_gi_surface_cache_resident_page_count=1`,
+`last_hybrid_gi_surface_cache_feedback_card_count=1`,
+`last_hybrid_gi_scene_screen_probe_count=2`, `last_hybrid_gi_scene_radiance_cache_entry_count=2`,
+and `last_hybrid_gi_voxel_resident_clipmap_count=1`.
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never`
+- focused provider test `provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs` passed 1/1
+- ignored visual export `export_hybrid_gi_scene_representation_wgpu_png` passed 1/1
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed
+
+Remaining boundary: this is the prepared scene-sideband/readback milestone, not the final GPU GI
+product pass. Lumen-style GPU surface-cache capture/depth-copy, probe trace tile generation,
+voxel/product resolve, temporal accumulation, RenderDoc/product capture, and full CI remain open.
+
+## 2026-07-07 Wgpu Surface-Cache Depth And Probe Trace Tile Evidence
+
+Status anchor: `render_plan18_hybrid_gi_surface_cache_depth_trace_tiles_wgpu_png_passed_gpu_pass_deferred`.
+
+This slice adds the next renderer-neutral scene-prepare payloads needed before the full Lumen-style
+surface-cache and trace pipeline can be productized. `RenderHybridGiScenePrepareReadbackOutputs`
+now carries depth-copy samples, probe trace tile records, and the dispatch group count. The Hybrid GI
+provider derives those records from the current scene-prepare frame and HGI budgets, then projects the
+same counters through `HybridGiRuntimeStats`, `RenderStats`, diagnostics, and the Wgpu visual report.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_snapshot.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_neutral_readback_outputs.rs`
+- `zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs`
+- `zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_trace_tiles_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_trace_tiles_wgpu_20260707.txt`
+
+The report records a visible Wgpu frame (`visible_pixels=1813`, `max_luma=149.40`) plus the new
+sideband counters: `last_hybrid_gi_surface_cache_depth_sample_count=1`,
+`last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --nocapture --test-threads=1`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime neutral_outputs_project_hybrid_gi_gpu_readback --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --nocapture --test-threads=1`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --nocapture --test-threads=1`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_scene_depth_trace_tiles_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --ignored --nocapture --test-threads=1`
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never`
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check`
+
+Remaining boundary: this is still a deterministic scene-prepare/readback and stats sideband. Real GPU
+depth texture copy/DSRT ownership, ray tracing dispatch, final GI resolve/composite, RenderDoc product
+capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 Wgpu-Owned Surface-Cache Depth And Trace Tile Readback
+
+Status anchor: `render_plan18_hybrid_gi_gpu_owned_depth_trace_readback_wgpu_png_passed_gpu_pass_deferred`.
+
+This slice moves the Plan 18 depth/trace evidence from CPU-side sideband generation into GPU-owned
+Wgpu resources. `scene_prepare_depth_samples.rs` now owns the surface-cache depth atlas texture,
+upload buffer, and per-slot readback buffers. `scene_prepare_trace_tiles.rs` owns the probe trace tile
+storage buffer and readback buffer. `HybridGiGpuPendingReadback::collect` maps those buffers,
+decodes depth samples and trace tile records, and overwrites the scene-prepare snapshot before the
+neutral renderer DTO and stats projection run.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_buffers.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/new.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/collect.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_depth_trace_readback_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_depth_trace_readback_wgpu_20260707.txt`
+
+The report records a visible Wgpu frame (`visible_pixels=1813`, `max_luma=149.40`) and the GPU-owned
+resource marker `gpu_scene_prepare_depth_trace_readback=surface_cache_depth_texture+probe_trace_tile_buffer`,
+with `last_hybrid_gi_surface_cache_depth_sample_count=1`,
+`last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --nocapture --test-threads=1`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime neutral_outputs_project_hybrid_gi_gpu_readback --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --nocapture --test-threads=1`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --nocapture --test-threads=1`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_gpu_depth_trace_readback_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never -- --ignored --nocapture --test-threads=1`
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never`
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check`
+
+Remaining boundary: this is the GPU-owned readback handoff for depth/tile intermediates, not final
+Lumen-style GI. Real scene depth/DSRT source sampling, generated probe ray tracing dispatch, product
+resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal stability, and full
+CI remain open.
+
+## 2026-07-07 GPU Probe Trace Tile Generation And Indirect Args
+
+Status anchor: `render_plan18_hybrid_gi_gpu_trace_tile_generation_indirect_args_wgpu_png_passed_ray_dispatch_deferred`.
+
+This slice moves the probe trace tile schedule one step closer to the Lumen-style GPU pipeline.
+`scene_prepare_trace_tiles.rs` now keeps CPU-derived seed records separate from the GPU output tile
+buffer, creates a params buffer, creates an indirect args buffer, and dispatches
+`generate_probe_trace_tiles.wgsl`. The shader writes the trace tile records and indirect dispatch
+metadata; `HybridGiGpuPendingReadback::collect` decodes both readbacks before stats projection.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/generate_probe_trace_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_buffers.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/hybrid_gi_gpu_pending_readback/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/new.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/collect.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_generation_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_generation_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_generation=generate_probe_trace_tiles_compute+indirect_args_readback`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`. This remains a schedule-generation
+and readback gate; it is not the final probe ray tracing shader, GI resolve, or product composite.
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never`
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --nocapture`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_gpu_trace_tile_generation_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --ignored --nocapture`
+
+Remaining boundary: real scene depth/DSRT source sampling, probe ray tracing shader/dispatch,
+surface-cache/voxel GI resolve, product composite, Deferred/Forward+ parity, RenderDoc product
+capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 GPU Probe Trace Tile Dispatch To Trace Lighting Buffer
+
+Status anchor: `render_plan18_hybrid_gi_gpu_trace_tile_dispatch_wgpu_png_passed_resolve_deferred`.
+
+This slice consumes the GPU-generated probe trace tile schedule in a second compute pass. The
+`execute_prepare` path now calls `dispatch_probe_trace_tiles(...)` after the existing completion pass
+and before shared readback copies. `trace_probe_tiles.wgsl` binds resident probe inputs, pending
+probe inputs, the GPU-owned trace tile buffer, and `probe_trace_lighting_buffer`, then writes the
+trace-lighting count plus `(probe_id, packed_rgb)` records into the existing readback contract.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime trace_probe_tiles_shader_writes_trace_lighting_buffer_from_tile_schedule --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --nocapture`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --nocapture`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_gpu_trace_tile_dispatch_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --ignored --nocapture`
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_dispatch_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_dispatch_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_dispatch=trace_probe_tiles_compute+writes_probe_trace_lighting_buffer`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`. The Wgpu readback unit test separately
+asserts that the shader writes the trace-lighting header, probe id, and nonzero packed RGB payload.
+
+Remaining boundary: this is a tile-driven trace-lighting dispatch gate, not the final Lumen-style GI
+implementation. Real scene depth/DSRT source sampling, real ray marching/surface-cache sampling,
+voxel miss fallback, product GI resolve/composite, Deferred/Forward+ parity, RenderDoc product
+capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 Scene Screen Probe Prepare Sideband
+
+Status anchor: `render_plan18_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_png_passed_runtime_collector_execution_deferred`.
+
+This slice closes the gap between scene-representation screen-probe placement and the Hybrid GI
+prepare-frame contract. `HybridGiSceneRepresentation::screen_probe_runtime_descriptors()` now exposes
+the screen-probe slot, bounds, ray budget, and radiance-cache seed data. `collect_resident_probes(...)`
+adds those descriptors as transient `HybridGiPrepareProbe` work items whenever scene representation
+owns runtime placement, while keeping the persistent residency snapshot unchanged. `build_resolve_runtime`
+mirrors the same probe ids into quantized probe scene data so resolve-side consumers see the same
+scene-owned probes that prepare work items see.
+
+The provider converts the plugin prepare frame plus resolve runtime into neutral
+`RenderHybridGiPreparedFrame` data. That prepared frame now travels through
+`HybridGiRuntimePrepareOutput`, `PreparedRuntimeSubmission`, and `RenderPreparedRuntimeSidebands`
+without exposing plugin DTOs to `zircon_runtime` consumers.
+
+Implementation files:
+
+- `zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs`
+- `zircon_runtime/src/graphics/hybrid_gi_runtime_provider/prepare_output.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_resident_probes.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Validation:
+
+- `rustfmt --check` on touched runtime/plugin Rust files passed.
+- `cargo check --manifest-path zircon_runtime/Cargo.toml --lib --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-runtime-0707 --jobs 1` passed.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1` passed.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime provider_projects_scene_screen_probes_into_neutral_prepared_frame_sideband --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1 -- --nocapture` passed 1/1.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime hybrid_gi_runtime_state_projects_scene_screen_probes_into_prepare_work_items --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1 -- --nocapture` passed 1/1.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_png --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1 -- --ignored --nocapture` passed 1/1.
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_20260707.txt`
+
+The report records `gpu_scene_screen_probe_prepare_work_items=screen_probe_descriptors_to_transient_prepare_probes`,
+`neutral_hybrid_gi_prepared_frame_sideband=provider_prepare_output_resident_screen_probes+probe_scene_data`,
+`runtime_prepare_collector_execution=deferred_pending_streamer_and_gpu_readback_lifecycle`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_scene_screen_probe_count=2`, and
+`last_hybrid_gi_scene_radiance_cache_entry_count=2`.
+
+Remaining boundary: this is a prepared-frame sideband cutover, not final runtime-collector GPU
+execution. `RuntimePrepareCollectorContext` still lacks the material-capture/streamer source and
+pending GPU-readback lifecycle required to call `HybridGiGpuResources::execute_prepare` directly.
+Real scene depth/DSRT source sampling, real ray marching/surface-cache sampling, voxel miss fallback,
+product GI resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal
+stability, and full CI remain open.
+
+## 2026-07-07 Runtime Prepare Material Capture Context
+
+Status anchor: `render_plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_png_passed_gpu_owner_execution_deferred`.
+
+This slice moves the collector path one dependency closer to executing Hybrid GI prepare work
+directly from runtime prepare. `RuntimePrepareCollectorContext` now receives the renderer-owned
+`ResourceStreamer` when scene runtime prepare collectors are built, but the streamer itself remains
+private to `zircon_runtime`. The public collector surface exposes only:
+
+- `RuntimePrepareMaterialCaptureSeed`, a neutral copy of base color, emissive, metallic, roughness,
+  double-sided/alpha flags, alpha cutoff, and texture resource ids.
+- `material_capture_seed(...)`, which reads the material seed through the streamer.
+- `sample_texture_rgba(...)`, which forwards optional texture sampling for material-capture users.
+
+The material runtime's capture seed and the resource streamer's capture accessor are no longer
+test-only because the production runtime prepare path now needs them. They remain crate-private
+below the collector boundary; plugins and public render callers do not receive `ResourceStreamer`,
+`MaterialRuntime`, or internal scene-resource state.
+
+The 2026-07-08 runtime text/editor verification rechecked this boundary because a focused editor
+Cargo run was still blocked by stale test-only material-capture visibility. The fix kept the same
+owner line: production runtime prepare can reach the neutral DTO/accessors, while plugins still see
+only `RuntimePrepareCollectorContext` methods and not the streamer or material runtime internals.
+
+Validation:
+
+- Scoped `rustfmt --check --config skip_children=true` passed.
+- Runtime lib check passed with existing warning noise.
+- Hybrid GI runtime plugin check passed with existing warning noise.
+- Ignored Wgpu visual export `export_hybrid_gi_runtime_prepare_material_capture_context_wgpu_png`
+  passed 1/1.
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_20260707.txt`
+
+The report records
+`runtime_prepare_material_capture_context=collector_context_material_capture_seed+sample_texture_rgba_from_resource_streamer`
+and
+`runtime_prepare_collector_execution=material_capture_context_ready_pending_stateful_gpu_owner_and_async_readback_lifecycle`.
+
+Remaining boundary: the material-capture source is now available, but this is not yet direct
+Hybrid GI runtime collector GPU execution. The stateful GPU owner, pending async readback lifecycle,
+real scene depth/DSRT sampling, ray marching, voxel fallback, GI resolve/composite, Deferred/Forward+
+parity, RenderDoc/product capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 Runtime Prepare Collector GPU Owner Readback
+
+Status anchor: `render_plan18_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_png_passed_scene_prepare_reconstruction_deferred`.
+
+This slice closes the next runtime prepare collector gate. `hybrid-gi.runtime-prepare` is now a
+stateful collector owner that holds plugin-local `HybridGiGpuResources` and the previous frame's
+pending GPU readback. On each collection it first converts that pending readback into neutral plugin
+renderer outputs, then rebuilds the plugin's internal prepare/resolve inputs from the neutral
+prepared runtime sideband and dispatches `execute_prepare(...)` for the current frame.
+
+The lower runtime-state fix is intentionally shared rather than collector-specific:
+`HybridGiRuntimeState::has_live_gpu_feedback_probe(...)` accepts both persistent legacy
+`probe_scene_data()` ids and scene-representation screen-probe runtime descriptors. The GPU cache,
+irradiance, and trace-lighting completion paths now use that predicate, so screen probes created by
+scene representation survive feedback application and become visible in the next prepare/resolve
+snapshot.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/scene_representation.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/merge_plugin_renderer_outputs.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs`
+
+Validation:
+
+- Focused `hybrid_gi_runtime_state_accepts_scene_screen_probe_gpu_feedback` failed before the
+  shared runtime-state predicate and passed 1/1 after the fix.
+- Focused `runtime_prepare_collector` tests passed 2/2 with one ignored visual export.
+- Ignored Wgpu visual export `export_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_png`
+  passed 1/1.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked`
+  passed under `E:\cargo-targets\zircon-hgi-runtime-collector-gpu-owner-0707`.
+- Scoped `rustfmt --check --edition 2021` passed on the touched runtime/plugin Rust files.
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_20260707.txt`
+
+The report records `runtime_prepare_collector_execution=stateful_gpu_prepare_pending_readback_collected`,
+`validated_provider_prepared_frame_resident_screen_probe_count=2`,
+`validated_runtime_prepare_transient_screen_probe_count=2`,
+`last_hybrid_gi_cache_entry_count=2`, `last_hybrid_gi_scene_screen_probe_count=2`,
+`last_hybrid_gi_probe_trace_tile_count=2`, `visible_pixels=1813`, and `max_luma=149.40`.
+
+Not counted as green: broader runtime lib-test attempts for source-cubemap constants and
+plugin-output merge timed out or were stopped during compilation; they are not used as evidence for
+this Hybrid GI slice.
+
+Remaining boundary: runtime prepare collector GPU ownership is now connected, but this is not the
+final Lumen-style GI implementation. Real scene depth/DSRT sampling, ray marching over
+surface-cache data, voxel miss fallback, product GI resolve/composite, Deferred/Forward+ parity,
+RenderDoc/product capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 Runtime Stats Snapshot Projection Follow-Up
+
+The Hybrid GI scene-prepare sideband now remains visible through the submit-record stats boundary. `record_submission(...)` forwards `surface_cache_depth_sample_count`, `probe_trace_tile_count`, and `probe_trace_dispatch_group_count` from provider-owned `HybridGiRuntimeStats` into `HybridGiStatSnapshot`, and `update_stats/hybrid_gi_stats.rs` reads those values through named accessors when filling `RenderStats`. This keeps the provider runtime as the owner of scene/surface/voxel/probe-trace state while avoiding direct `zircon_runtime` access to plugin DTO fields. The change was required to unblock focused retained-text editor validation after the stats consumer had already been updated for those sideband fields.
+
+## 2026-07-07 Surface-Cache Texture Sampling In Trace Tile Dispatch
+
+Status anchor: `render_plan18_hybrid_gi_surface_cache_texture_sampling_wgpu_png_passed_ray_dispatch_deferred`.
+
+This slice is the first GPU trace-tile path that reads the scene-prepare surface-cache textures
+directly. The depth-copy resource owner now also exposes a texture view, the prepare execution
+buffers carry that view beside the atlas view, and `dispatch_probe_trace_tiles(...)` binds both
+textures into `trace_probe_tiles.wgsl`. Surface-cache trace tiles now store `atlas_slot_id` in the
+third tile word so the shader can map the tile to a texture coordinate inside the atlas/depth
+textures.
+
+The shader path samples the atlas and depth texture with `textureLoad`, quantizes the sampled
+surface-cache radiance to the existing packed RGB trace-lighting output, and keeps the previous
+deterministic tile fallback when the texture inputs are unavailable, invalid, or produce an absent
+sample. This keeps voxel-only and not-yet-ready surface-cache frames dispatchable while replacing the
+hash-only path for valid surface-cache tiles.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_buffers.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_texture_sampling_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_texture_sampling_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_surface_cache_sampling=trace_probe_tiles_compute+surface_cache_atlas_depth_texture_load`,
+`validated_surface_cache_depth_sample_count=1`,
+`validated_surface_cache_texture_sampling_shader=trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures_exact_rgb`,
+`visible_pixels=1813`, and `max_luma=149.40`.
+
+Validation:
+
+- Wgpu shader tests `trace_probe_tiles_shader_` passed 2/2.
+- Ignored Wgpu visual export `export_hybrid_gi_surface_cache_texture_sampling_wgpu_png` passed 1/1.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 --message-format short --color never` passed.
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Remaining boundary: this is texture sampling in the trace tile compute pass, not final Lumen-style
+GI. Real scene depth/DSRT source sampling, complete ray marching/cone tracing, voxel miss fallback,
+product GI resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal
+stability, and full CI remain open.
+
+## 2026-07-08 Voxel Cone-Trace Fallback In Trace Tile Dispatch
+
+Status anchor: `render_plan18_hybrid_gi_voxel_cone_trace_wgpu_png_passed_full_ray_marching_deferred`.
+
+This slice upgrades the existing surface-cache miss -> voxel descriptor path from exact single-cell
+lookup to a cone-style weighted aggregation inside the same trace tile shader owner.
+`trace_probe_tiles.wgsl` now computes a voxel-cell contribution weight from clipmap identity, cell
+distance from the trace tile sample id, quantized descriptor half extent, and occupancy count. Exact
+cell hits retain an extra weight, so the previous single descriptor fallback remains stable, while
+nearby voxel cells can now influence the trace-lighting RGB and far/different-clipmap cells are
+excluded.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/voxel_cone_trace.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_cone_trace_wgpu_20260708.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_cone_trace_wgpu_20260708.txt`
+
+The report records `gpu_probe_trace_tile_voxel_cone_trace=trace_probe_tiles_compute+weighted_voxel_cell_cone_aggregation`,
+`validated_voxel_cone_trace_shader=trace_probe_tiles_shader_cone_traces_multiple_voxel_cells_when_surface_cache_misses_exact_neighbor_weighted_rgb`,
+`product_debug_view=voxel_clipmap`, `visible_pixels=1813`, `max_luma=155.05`, and
+`last_hybrid_gi_voxel_resident_clipmap_count=1`.
+
+Validation:
+
+- Wgpu shader tests `trace_probe_tiles_shader_` passed 5/5, including surface-cache texture sample,
+  light seed, exact voxel descriptor fallback, and the new exact+neighbor cone aggregation case.
+- Ignored Wgpu visual export `export_hybrid_gi_voxel_cone_trace_wgpu_png` passed 1/1 and generated
+  the VoxelClipmap debug-view PNG/report under `docs/tests/runtime/render`.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+
+Not counted as green: the fresh-target focused Cargo attempt timed out after 604 seconds during
+compile and was stopped; the warmed-target rerun above is the counted 5/5 shader evidence. One exact
+filter run of the ignored PNG export matched 0 tests and is not counted as visual evidence.
+
+Remaining boundary: this is still a descriptor-space cone-style approximation in the trace tile
+fallback, not a complete screen-space ray march or Lumen global-distance-field trace. Deferred /
+Forward+ parity, RenderDoc product capture, temporal stability, full runtime tests, full CI, and the
+rest of Plan 18 remain open.
+
+## 2026-07-07 Voxel Miss Fallback In Trace Tile Dispatch
+
+Status anchor: `render_plan18_hybrid_gi_voxel_miss_fallback_wgpu_png_passed_ray_dispatch_deferred`.
+
+This slice wires the next fallback stage into the same trace tile compute owner. `trace_probe_tiles.wgsl`
+now returns explicit validity with sampled RGB: a valid surface-cache atlas/depth sample wins first,
+a matching scene-prepare voxel-cell descriptor wins second, and the old deterministic hash is reserved
+for frames where both data sources are absent or invalid. The voxel path reads
+`scene_prepare_descriptor_buffer` at binding 7, filters `SCENE_PREPARE_DESCRIPTOR_KIND_VOXEL_CELL`,
+and matches the GPU-generated tile's probe/sample identity before unpacking descriptor radiance.
+
+The Rust side keeps ownership local to the Hybrid GI prepare execution boundary. `create_buffers(...)`
+records `scene_prepare_descriptor_count`, `dispatch_probe_trace_tiles(...)` passes that count into
+params and binds the descriptor buffer beside the existing trace-lighting, tile, atlas, and depth
+resources. `execute.rs` only destructures the additional count so ownership remains explicit when the
+execution buffers are moved into pending readback output assembly.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_buffers.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_miss_fallback_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_miss_fallback_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_voxel_miss_fallback=trace_probe_tiles_compute+scene_prepare_voxel_cell_descriptor_radiance`,
+`validated_voxel_miss_fallback_shader=trace_probe_tiles_shader_uses_voxel_cell_descriptor_when_surface_cache_sample_is_invalid_exact_rgb`,
+`visible_pixels=1813`, `max_luma=149.40`, and `last_hybrid_gi_voxel_resident_clipmap_count=1`.
+
+Validation:
+
+- Wgpu shader tests `trace_probe_tiles_shader_` passed 3/3, including the exact voxel miss fallback RGB case.
+- Ignored Wgpu visual export `export_hybrid_gi_voxel_miss_fallback_wgpu_png` passed 1/1.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 --message-format short --color never` passed with existing warning noise.
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Remaining boundary: the trace tile shader now has a surface-cache miss -> voxel descriptor fallback,
+but this is still not final product GI. Real scene depth/DSRT source sampling, complete ray marching
+or cone tracing, product GI resolve/composite, Deferred/Forward+ parity, RenderDoc product capture,
+temporal stability, and full CI remain open.
+
+## 2026-07-07 Runtime Trace-Lighting Sideband Product Proof
+
+Status anchor: `render_plan18_hybrid_gi_runtime_trace_lighting_neutral_sideband_product_wgpu_png_passed`.
+
+This slice preserves probe-level runtime trace-lighting history across the neutral runtime sideband
+used by the public RenderFramework path. `RenderHybridGiPreparedFrame` now includes
+`probe_rt_lighting_rgb`; the Hybrid GI provider fills it from `HybridGiResolveRuntime`, and
+`HybridGiRuntimePrepareCollector` rebuilds the same probe trace-lighting map when converting the
+neutral prepared frame back into plugin-local `HybridGiResolveRuntime`.
+
+The structural side of the slice also splits the trace tile dispatch Wgpu shader tests out of
+`dispatch_probe_trace_tiles.rs` into `dispatch_probe_trace_tiles/tests.rs`, keeping the production
+dispatch owner focused on bind group/pipeline/resource dispatch behavior while the child owner holds
+GPU readback fixtures.
+
+Implementation files:
+
+- `zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs`
+- `zircon_runtime/src/core/framework/render/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_trace_lighting_product_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_trace_lighting_product_wgpu_20260707.txt`
+
+The report records `product_debug_view=none`,
+`runtime_trace_lighting_provider_history=completion_probe_trace_lighting_rgb_to_hybrid_gi_runtime_state`,
+`runtime_trace_lighting_neutral_sideband=provider_resolve_runtime_probe_rt_lighting_rgb_to_render_hybrid_gi_prepared_frame`,
+`runtime_trace_lighting_collector_rebuild=render_hybrid_gi_prepared_probe_rt_lighting_to_hybrid_gi_resolve_runtime`,
+`visible_pixels=1813`, `max_luma=149.40`, and `second_hybrid_gi_cache_entry_count=2`.
+
+Validation:
+
+- Provider trace-lighting sideband test passed 1/1.
+- Runtime prepare collector neutral rebuild test passed 1/1.
+- Wgpu shader tests `trace_probe_tiles_shader_` passed 3/3 from the new child test owner.
+- RenderFramework scene-representation stats test passed 1/1.
+- Ignored Wgpu product export `export_hybrid_gi_runtime_trace_lighting_product_resolve_wgpu_png` passed 1/1.
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Not counted as green: the runtime-crate focused sideband unit test timed out under default features,
+and a core-min rerun did not produce a usable test result. The production sideband types compiled
+through the plugin verification above, but the runtime-crate unit test is not claimed passed.
+
+Remaining boundary: this is a history transport/product-proof slice. It does not complete real scene
+depth/DSRT source sampling, complete ray marching or cone tracing, final GI resolve/composite
+quality, Deferred/Forward+ parity, RenderDoc product capture, temporal stability, or full CI.
+
+## 2026-07-07 Product Composite Scene-Seed Proof
+
+Status anchor: `render_plan18_hybrid_gi_product_composite_scene_seed_wgpu_png_passed`.
+
+This slice proves the first visible public product-frame path where scene lighting affects the
+Hybrid GI composite instead of only debug/readback counters. The GPU trace tile shader now receives
+a compact scene-light seed derived from directional, point, and spot lights. Valid surface-cache
+trace samples are multiplied by that seed before they are packed into `probe_trace_lighting_buffer`,
+so the prepared scene direct-light color can travel through trace dispatch and the neutral runtime
+trace-lighting sideband.
+
+The runtime-side fix is deliberately below the product export: `encode_hybrid_gi_probes(...)` now
+keeps authored `RenderHybridGiProbe` extraction as the first source, then appends non-duplicated
+screen probes from `RenderHybridGiPreparedFrame` when the public extract has no authored probes.
+Prepared probe scene data is dequantized into post-process probe position/radius, prepared
+irradiance fills the probe irradiance field, and `probe_rt_lighting_rgb` fills the hierarchy
+RT-lighting field with a non-zero weight. This closes the failure where the scene-representation
+path produced valid prepared screen probes but the final post-process composite saw
+`hybrid_gi_probe_count = 0`.
+
+Implementation files:
+
+- `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_product_composite_scene_seed_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_product_composite_scene_seed_wgpu_20260707.txt`
+
+The report records `product_debug_view=none`,
+`product_preview_direct_lighting=disabled_for_product_gi_seed_isolation`,
+`product_composite_source=scene_prepare_direct_light_seed_to_surface_cache_trace_to_global_illumination`,
+`warm_minus_cool_red=5.53`, `cool_minus_warm_blue=5.53`,
+`warm_hybrid_gi_probe_trace_tile_count=2`, `cool_hybrid_gi_probe_trace_tile_count=2`,
+`warm_hybrid_gi_scene_screen_probe_count=2`, and `cool_hybrid_gi_scene_screen_probe_count=2`.
+
+Validation:
+
+- Wgpu shader seed test `trace_probe_tiles_shader_applies_scene_light_seed_to_surface_cache_sample`
+  passed 1/1.
+- Ignored Wgpu product export `export_hybrid_gi_product_composite_scene_seed_wgpu_png` passed 1/1.
+- Runtime post-process encoder test
+  `hybrid_gi_probe_encoder_projects_prepared_runtime_screen_probe_sideband` passed 1/1.
+- RenderFramework scene-representation stats regression passed 1/1.
+- Previous ignored Wgpu product export
+  `export_hybrid_gi_runtime_trace_lighting_product_resolve_wgpu_png` passed 1/1.
+- Touched-file `rustfmt --check` passed for the runtime encoder, product export, trace dispatch, and
+  shader-test owners.
+
+Not counted as green: full runtime-crate formatting still reports unrelated pre-existing diffs in
+`zircon_runtime/src/core/framework/render/mod.rs` and
+`zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs`.
+
+Remaining boundary: this is a product composite proof, not the full Lumen-style GI implementation.
+Real scene depth/DSRT source sampling, complete ray marching/cone tracing quality, Deferred/Forward+
+parity, RenderDoc product capture, temporal stability, full CI, and the broader Plan 18 advanced
+lighting mechanisms remain open.
+
+## 2026-07-07 Scene Depth Source Sampling Proof
+
+Status anchor: `render_plan18_hybrid_gi_scene_depth_source_sampling_wgpu_png_passed_dsrt_pending`.
+
+This slice removes the previous hard dependency on the fallback `depth_rgba_from_bounds(...)` path
+for the Hybrid GI surface-cache depth texture. `collect_inputs(...)` now builds
+`HybridGiPrepareSurfaceCacheDepthSourceSample` records from scene-prepare card/page ownership and
+stores them in `HybridGiPrepareExecutionInputs`. The Wgpu depth texture owner consumes those source
+samples first and uses the older bounds-derived depth only when no source sample exists for an atlas
+slot. The texture layout also includes source-only atlas slots so the depth texture can still be
+allocated, uploaded, sampled, and read back when depth authority is present without a new atlas color
+write.
+
+The data remains renderer-neutral and plugin-local: it is a scene-owned source sample generated by
+the current scene representation, not a direct copy from the render graph `SCENE_DEPTH`/DSRT texture.
+Direct DSRT sampling still requires moving or mirroring Hybrid GI into a graph-stage pass where the
+scene-depth texture view is available.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/scene_frame.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_inputs.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_textures.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.txt`
+
+The report records `scene_depth_source_sampling=collect_inputs_scene_prepare_card_bounds_to_surface_cache_depth_source_rgba`,
+`scene_depth_source_precedence=surface_cache_depth_source_samples_preferred_over_bounds_fallback`,
+`wgpu_depth_upload=scene_prepare_surface_cache_depth_texture_upload_and_readback`,
+`trace_depth_consumer=trace_probe_tiles_compute_surface_cache_depth_texture_load`,
+`direct_dsrt_scene_depth_texture=deferred_graph_pass_pending`, and first-frame depth sample counts
+of 1 for both near/far source scenes.
+
+Validation:
+
+- `surface_cache_depth_samples` passed 2/2, covering source-sample precedence and fallback retention.
+- `collect_inputs_preserves_scene_prepare_contract_for_renderer_consumption` passed 1/1 with the new
+  depth-source DTO projection.
+- Ignored Wgpu product export `export_hybrid_gi_scene_depth_source_sampling_wgpu_png` passed 1/1 and
+  wrote the PNG/report above.
+- RenderFramework scene-representation stats regression passed 1/1.
+- Wgpu shader consumer test
+  `trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures` passed 1/1.
+
+Remaining boundary: this is not direct DSRT/scene-depth graph texture sampling. Complete DSRT
+handoff, ray marching/cone tracing quality, Deferred/Forward+ parity, RenderDoc product capture,
+temporal stability, full CI, and the broader Plan 18 advanced-lighting mechanisms remain open.
+
+## 2026-07-07 Graph Scene-Depth Handoff Proof
+
+Status anchor: `render_plan18_hybrid_gi_graph_scene_depth_handoff_wgpu_png_passed_msaa_pending`.
+
+This slice moves the previous deferred DSRT handoff into a real graph-stage Hybrid GI pass.
+`hybrid-gi-scene-prepare` is now declared as an AsyncCompute pass with fixed workload metadata,
+`scene-depth` texture read access, and `hybrid-gi-scene` buffer write access. At execution time the
+pass resolves those graph-declared resources through `RenderPassGpuExecutionContext` and dispatches
+`scene_depth_handoff.wgsl`, which reads the center depth from the graph `scene-depth` texture and
+writes a compact proof record into the HGI scene buffer.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/lib.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.txt`
+
+The report records
+`direct_dsrt_scene_depth_texture=hybrid_gi_scene_prepare_graph_executor_texture_depth_load_to_hybrid_gi_scene_buffer`,
+`near_last_hybrid_gi_graph_executed_pass_count=4`, and
+`far_last_hybrid_gi_graph_executed_pass_count=4`.
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --message-format short --color never` passed.
+- Ignored Wgpu export `export_hybrid_gi_scene_depth_source_sampling_wgpu_png` passed 1/1 and refreshed the PNG/report above.
+- Descriptor test `hybrid_gi_registration_contributes_render_feature_descriptor` passed 1/1, covering the AsyncCompute lane and workload metadata.
+- Executor contract test `hybrid_gi_plugin_registrations_execute_contract_bound_passes` passed 1/1.
+- Scoped `rustfmt --edition 2021` passed over touched Rust files.
+
+2026-07-08 follow-up: the previously uncounted runtime focused lookup test now passes under
+`--locked`, and the handoff body has been split into the child owner listed above. The GPU context
+now has resolver-backed descriptor lookup in addition to texture-view and buffer lookup.
+
+Remaining boundary: the 2026-07-07 graph handoff proved single-sample `texture_depth_2d` access.
+The 2026-07-08 MSAA follow-up proves `texture_depth_multisampled_2d` access and conservative
+sample resolve. The trace-schedule follow-up below promotes those proof words into an HGI trace
+depth-source packet; resolving that packet into product surface-cache/card lighting, complete ray
+marching/cone tracing quality, Deferred/Forward+ parity, RenderDoc product capture, temporal
+stability, full CI, and the broader Plan 18 advanced-lighting mechanisms remain open.
+
+## 2026-07-08 Graph Scene-Depth MSAA Handoff Proof
+
+Status anchor: `render_plan18_hybrid_gi_graph_scene_depth_handoff_msaa_wgpu_test_passed_product_surface_cache_pending`.
+
+This slice closes the MSAA branch for the graph scene-depth handoff proof without claiming a full
+Lumen surface-cache product path. `render_pass_executors.rs` now delegates the WGPU handoff body to
+`render_pass_executors/scene_depth_handoff.rs`, keeping the root executor contract file focused on
+pass declarations and validation. The child owner reads the pass-declared `scene-depth`
+`TextureDesc` through `RenderPassGpuExecutionContext::require_texture_desc(...)`, selects the
+single-sample shader for `sample_count <= 1`, and selects
+`scene_depth_handoff_msaa.wgsl` for multisampled depth textures.
+
+The runtime graph descriptor lookup now handles imported/fixed frame targets as well as owned
+transients: if the compiled graph declaration already carries `RenderGraphResourceDesc::Texture`,
+the GPU context returns that declared `TextureDesc`; only untyped external resources fall back to
+the owned-transient descriptor table. This keeps the frame-imported `scene-depth` target usable for
+sample-count driven executor routing.
+
+`scene_depth_handoff_msaa.wgsl` binds `texture_depth_multisampled_2d`, resolves the center pixel by
+taking the conservative minimum depth across all samples, and writes magic, width, height,
+quantized depth, and sample count into the `hybrid-gi-scene` proof buffer. The single-sample shader
+now writes sample count `1` in the same fifth word so readback consumers can distinguish both paths.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime scene_depth_handoff_msaa_shader_resolves_depth_sample_count --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1` passed 1/1. The test creates a 4x MSAA `Depth32Float` texture, clears it to 0.25, runs the compute handoff, and reads back the expected depth and sample-count words.
+- `cargo test --manifest-path zircon_runtime\Cargo.toml public_gpu_buffer_lookup_requires_compiled_pass_declaration_access --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1` passed 1/1, including the new 4x `scene-depth` descriptor assertion.
+- Ignored Wgpu export `export_hybrid_gi_scene_depth_source_sampling_wgpu_png` passed 1/1 again with the descriptor fallback in place and refreshed the existing PNG/report.
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+
+Visual evidence remains the graph scene-depth handoff export
+`docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png`; the
+existing export was rerun and visually checked, but this follow-up still does not create a new
+product-composite filename.
+
+## 2026-07-08 Graph Trace-Schedule Depth-Source Packet
+
+Status anchor: `render_plan18_hybrid_gi_graph_trace_schedule_depth_source_packet_check_passed_visual_refresh_pending`.
+
+This slice moves the previous scene-depth proof from a terminal buffer record into the next HGI
+graph boundary. `hybrid-gi-trace-schedule` now records a WGPU compute handoff when the graph
+executor receives GPU context: it requires `hybrid-gi-scene` as the read input, requires
+`hybrid-gi-trace` as the write output, and dispatches `trace_schedule_handoff.wgsl`. The shader
+validates the scene-depth handoff magic, width/height, and finite q24 depth, then writes a compact
+depth-source packet into `hybrid-gi-trace`: trace magic, packet count, dimensions, q24 depth,
+source sample count, packed RGBA depth-source bytes, validity, atlas/card slot 0, and the original
+handoff magic.
+
+The Lumen reference point for this boundary is the card-capture depth handoff and the later
+`LumenCardScene_DepthAtlas` consumers: Lumen copies captured depth into the surface-cache/card
+scene, then treats valid depth atlas samples as the authority for surface-cache world-position and
+lighting lookup. Zircon mirrors that responsibility at the current graph maturity level by turning
+the `hybrid-gi-scene` depth proof into a trace-stage packet rather than leaving it as proof-only
+state. The packet is intentionally small and deterministic so the following resolve/product pass
+can consume it without depending on the old authored probe path.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl`
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed with existing warning noise.
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed with existing warning noise.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+- `trace_schedule_handoff.wgsl` passed Naga WGSL parse/validation.
+- Targeted WGPU unit `trace_schedule_shader_promotes_scene_depth_handoff_to_surface_cache_depth_packet` was attempted twice and timed out at 600s while compiling/linking/running the test harness, so it is not counted as passed.
+
+Visual evidence remains the existing graph scene-depth handoff export
+`docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png` and
+report. The follow-up resolve slice reran the ignored Wgpu export successfully on 2026-07-08,
+refreshed the same PNG/report, and re-added trace-schedule packet markers to the report.
+
+Remaining boundary: `hybrid-gi-trace` now carries a surface-cache/card depth-source packet, but
+only the follow-up `hybrid-gi-resolve` attachment proof consumes it. Final post-process/product
+composite consumption, full WGPU unit execution, complete ray marching/cone tracing quality,
+Deferred/Forward+ parity, RenderDoc product capture, temporal stability, full CI, and the broader
+Plan 18 advanced-lighting mechanisms remain open.
+
+## 2026-07-08 Graph Resolve Trace Depth-Source Attachment
+
+Status anchor: `render_plan18_hybrid_gi_graph_resolve_trace_depth_source_attachment_check_passed_scene_depth_png_refreshed`.
+
+This slice connects the trace-stage packet to the next graph output without changing the existing
+resource contract for `hybrid-gi-lighting`. `hybrid-gi-resolve` now records a WGPU graphics pass
+when GPU context is present: it requires `hybrid-gi-trace` as a read buffer, resolves the
+pass-declared `hybrid-gi-lighting` texture view/desc as a write attachment, builds a fullscreen
+triangle pipeline, and draws `resolve_trace_depth_source.wgsl` into the lighting attachment. The
+shader validates the trace packet magic, packet count, and valid flag, then unpacks the packet's
+depth RGBA word as a visible proof color.
+
+The resolve path intentionally stays as a graphics attachment pass instead of converting
+`hybrid-gi-lighting` into a storage texture. That matches the current descriptor declaration,
+works with sRGB-capable color targets, and preserves the render graph's existing sample-count
+authority by using the target `TextureDesc.sample_count` in `wgpu::MultisampleState`.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl`
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed with existing warning noise.
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed with existing warning noise.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+- `trace_schedule_handoff.wgsl` and `resolve_trace_depth_source.wgsl` passed Naga WGSL parse/validation.
+- Ignored Wgpu export `export_hybrid_gi_scene_depth_source_sampling_wgpu_png` passed 1/1 and refreshed `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png` / `.txt`; the PNG was visually checked as non-empty.
+
+Remaining boundary: `hybrid-gi-lighting` is now written by graph resolve as a depth-source proof
+attachment, but final post-process/product composite still does not sample that attachment as the
+authoritative GI result. A dedicated product-frame PNG for this attachment, the focused WGPU
+resolve unit, real ray marching/cone trace quality, Deferred/Forward+ parity, RenderDoc product
+capture, temporal stability, full CI, and the broader Plan 18 advanced-lighting mechanisms remain
+open.
+
+## 2026-07-08 Graph Lighting History Copy Handoff
+
+Status anchor: `render_plan18_hybrid_gi_graph_lighting_history_copy_check_passed_product_composite_pending`.
+
+This slice keeps the graph-resolve proof alive long enough for runtime history handoff without
+forcing every built-in post-process graph to declare an optional HGI texture. The HGI plugin's own
+`hybrid-gi-history` pass now reads `hybrid-gi-lighting` and writes
+`history-global-illumination`, so `hybrid-gi-resolve` has a declared downstream reader for the
+lighting attachment. The executor still validates the pass contract; the actual history update is
+performed by the existing per-frame history copy stage after graph execution.
+
+`copy_global_illumination_history(...)` now prefers an owned graph texture named
+`hybrid-gi-lighting` when it is safe to copy: the source must be single-sample and non-depth. If
+that candidate is absent or not copyable, the copy path falls back to the existing post-process
+`global-illumination` transient, then to the fixed offscreen global-illumination target. This keeps
+MSAA and non-HGI graphs on the previous safe path while allowing the single-sample HGI graph
+attachment to feed the next frame's `FrameHistorySlot::GlobalIllumination`.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/lib.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/tests.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs`
+- `zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs`
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed with existing warning noise.
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never` passed with existing warning noise.
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime hybrid_gi_registration_contributes_render_feature_descriptor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture` passed 1/1.
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime hybrid_gi_executors_accept_declared_feature_pass_contexts --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture` passed 1/1 after clearing orphaned cargo/rustc processes from earlier timed-out parallel runs.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+- Runtime targeted test `cargo test -p zircon_runtime global_illumination_history_source --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture` timed out at 300s during root lib-test compilation and is not counted as passed.
+
+Visual evidence remains the refreshed graph scene-depth PNG
+`docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png`; this
+history-copy slice did not create a new product-composite screenshot. The report file now records
+the graph lighting history copy marker.
+
+Remaining boundary: the graph lighting attachment can now enter GI history when it is a safe
+single-sample copy source, but the current-frame final post-process/product composite still does
+not directly sample `hybrid-gi-lighting` as product GI. MSAA lighting targets still need an explicit
+single-sample resolve or a direct composite path. Product-frame visual validation, real ray
+marching/cone trace quality, Deferred/Forward+ parity, RenderDoc product capture, temporal
+stability, full CI, and the broader Plan 18 advanced-lighting mechanisms remain open.
+
+## 2026-07-08 Current-Frame Post Uber HGI Composite
+
+Status anchor: `render_plan18_hybrid_gi_current_frame_post_uber_wgpu_png_passed_msaa_resolve_pending`.
+
+This slice connects the graph-owned `hybrid-gi-lighting` product to the current frame's final
+post-process composite without increasing the post-process sampled texture binding count. The
+post-process graph now has a named `hybrid-gi-lighting` resource and a stack opt-in method that
+activates it when Hybrid GI is enabled; the original single-sample graph gate was removed in the
+follow-up MSAA product-route slice after `hybrid-gi-lighting` became a single-sample graph product.
+`post.uber` declares a read on that resource in the HGI path, while descriptor filtering removes it
+from ordinary post-process stacks so non-HGI graphs keep the previous binding contract.
+
+At execution time the graph post-process bridge resolves `hybrid-gi-lighting` only when it is a
+single-sample non-depth texture. `execute_post_process(...)` then reuses binding 9, previously the
+GI history texture slot, as either current-frame HGI lighting or previous GI history. The shader
+distinguishes the two cases with `params.hybrid_gi_counts.w`: when this current-frame flag is set,
+the sampled value is blended into indirect light immediately; otherwise the old history path
+continues to run from `params.hybrid_gi_counts.z`. The follow-up MSAA product-route slice keeps the
+scene graph MSAA resources multisampled while forcing only the HGI lighting product to single-sample,
+so the same `post.uber` path can be used for MSAA graphs.
+
+Implementation files:
+
+- `zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs`
+- `zircon_runtime/src/core/framework/render/post_process/stack.rs`
+- `zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs`
+- `zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs`
+- `zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Validation:
+
+- `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-current-composite-plugin-0708 --message-format short --color never` passed with existing warning noise.
+- Ignored Wgpu export `export_hybrid_gi_product_composite_scene_seed_wgpu_png` passed 1/1 and wrote `docs/tests/runtime/render/plan18_hybrid_gi_current_frame_post_uber_wgpu_20260708.png` / `.txt`; the PNG was visually checked as non-empty and shows warm/cool current-frame HGI differences.
+- The report records `current_frame_post_uber_input=hybrid-gi-lighting_graph_resource`, `render_graph_route=hybrid-gi-resolve_write_texture_hybrid-gi-lighting_to_post.uber_read_texture`, `shader_branch=params.hybrid_gi_counts.w_current_frame_source`, `warm_minus_cool_red=5.53`, and `cool_minus_warm_blue=5.53`.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+- Runtime targeted test `hybrid_gi_current_lighting_flag_is_encoded_separately_from_history` was started but stopped after roughly ten minutes of root lib-test compilation before the test executed; it is not counted as passed.
+
+Lumen reference routing: this mirrors the boundary where current-frame `CompositeTraces` /
+`ScreenProbeRadianceCurrentFrame` feeds diffuse indirect during final compose, while Zircon keeps
+the implementation inside the existing render graph plus post-process owner path instead of
+introducing a separate final-lighting pass in this slice.
+
+Remaining boundary: current-frame `hybrid-gi-lighting` now reaches `post.uber`; the follow-up MSAA
+route makes the HGI lighting product single-sample even when the graph itself is 4x MSAA. This is
+not full Plan 18 completion: real ray marching/cone trace quality, Deferred/Forward+ parity,
+RenderDoc product capture, temporal stability, full runtime test/full CI, and the broader
+advanced-lighting mechanisms remain open.
+
+## 2026-07-08 Current-Frame Post Uber HGI MSAA Product Route
+
+Status anchor:
+`render_plan18_hybrid_gi_current_frame_post_uber_msaa_single_sample_product_wgpu_png_passed`.
+
+This slice closes the previous MSAA routing gap in code by treating `hybrid-gi-lighting` as a
+single-sample post-process graph product instead of inheriting the graph MSAA sample count. The
+scene color/depth resources still use the requested graph sample count, but the HGI resolve output
+is now declared as a single-sample color texture that can be sampled by `post.uber` in the same
+current-frame path used by single-sample graphs. `build_frame_submission_context(...)` therefore no
+longer suppresses `with_hybrid_gi_lighting_input()` when effective graph MSAA is greater than one.
+
+Implementation files:
+
+- `zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs`
+- `zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/current_frame_post_uber_msaa.rs`
+
+Validation:
+
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+- The new compile contract test
+  `compile_keeps_hybrid_gi_lighting_single_sample_when_graph_msaa_is_enabled` was added to assert
+  `scene-color.sample_count == 4`, `hybrid-gi-lighting.sample_count == 1`, and
+  `post.uber` reads `hybrid-gi-lighting`.
+- Running that runtime targeted test timed out after roughly ten minutes while root lib-test was
+  still compiling; it did not execute and is not counted as green.
+- Ignored WGPU export `export_hybrid_gi_current_frame_post_uber_msaa_wgpu_png` passed 1/1 and wrote
+  `docs/tests/runtime/render/plan18_hybrid_gi_current_frame_post_uber_msaa_wgpu_20260708.png` /
+  `.txt`; the PNG was visually checked as non-empty and shows warm/cool current-frame HGI
+  separation under 4x graph MSAA.
+- The report records `graph_msaa_sample_count=4`, `hybrid_gi_lighting_sample_count=1`,
+  `current_frame_post_uber_input=hybrid-gi-lighting_single_sample_graph_product`,
+  `render_graph_route=hybrid-gi-resolve_write_texture_hybrid-gi-lighting_to_post.uber_read_texture`,
+  `warm_minus_cool_red=5.53`, and `cool_minus_warm_blue=5.53`.
+
+Remaining boundary: the MSAA product route is implemented and visually accepted, but this is still
+not full Plan 18 completion. Real ray marching/cone trace quality, Deferred/Forward+ parity,
+RenderDoc product capture, temporal stability, full runtime test/full CI, and the broader
+advanced-lighting mechanisms remain open.
+
+## 2026-07-08 Surface-Cache Ray March Before Voxel Fallback
+
+Status anchor:
+`render_plan18_hybrid_gi_surface_cache_ray_march_wgpu_png_passed_hzb_sdf_deferred`.
+
+This slice upgrades the trace-tile surface-cache consumer from exact texel sampling to a bounded
+atlas/depth ray walk. `trace_probe_tiles.wgsl` now validates the first surface-cache sample, derives
+an atlas-space step direction from `tile_sample_id`, samples up to four neighboring atlas/depth
+texels, rejects invalid alpha/depth and depth jumps, and blends near-depth radiance with decreasing
+step weight. Voxel descriptor/cone fallback remains the next stage only when the surface-cache path
+has no valid hit.
+
+The Lumen reference used for this boundary was `TraceScreen.hlsl` / `InternalTraceScreen(...)` for
+step-based depth thresholding and `CompositeTraces.hlsl` for reducing trace radiance into screen
+probe radiance. Zircon intentionally keeps this slice in surface-cache atlas space because the
+current render graph does not yet expose the complete HZB/screen-depth or global distance-field
+inputs required for full Lumen-style tracing.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_ray_march.rs`
+
+Validation:
+
+- RED/green WGPU readback coverage: `trace_probe_tiles_shader_marches_surface_cache_depth_before_voxel_fallback` first failed with old single-texel output `[150,60,15]`, then passed after the shader produced the expected weighted near-depth output `[111,84,21]`.
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib trace_probe_tiles_shader_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --test-threads=1 --nocapture` passed 6/6.
+- Ignored WGPU export `export_hybrid_gi_surface_cache_ray_march_wgpu_png` passed 1/1 and wrote `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_ray_march_wgpu_20260708.png` / `.txt`; the PNG was visually checked.
+- The report records `gpu_probe_trace_tile_surface_cache_ray_march=trace_probe_tiles_compute+atlas_depth_multi_step_march`, `validated_surface_cache_ray_march_shader=trace_probe_tiles_shader_marches_surface_cache_depth_before_voxel_fallback_weighted_near_depth_texels`, `visible_pixels=1813`, and `max_luma=155.05`.
+- Scoped `rustfmt --check` passed over touched Rust files.
+
+Line-count note: `trace_probe_tiles.wgsl=471`, `dispatch_probe_trace_tiles/tests.rs=749`,
+`hybrid_gi_render_framework_stats.rs=904`, and the new export child
+`surface_cache_ray_march.rs=84`; the screenshot export remains in a child owner so the parent stats
+file does not cross the 1000-line split threshold.
+
+Remaining boundary: this is surface-cache atlas/depth multi-step marching, not full HZB screen
+trace or Lumen SDF/global-distance-field tracing. Deferred/Forward+ parity, RenderDoc product
+capture, temporal stability, full runtime test/full CI, and broader Plan 18 advanced-lighting
+mechanisms remain open.

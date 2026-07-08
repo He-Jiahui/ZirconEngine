@@ -106,6 +106,62 @@ fn compile_preserves_compute_workload_from_feature_descriptor() {
 }
 
 #[test]
+fn compile_options_append_environment_ibl_bake_graph_passes() {
+    let request = crate::core::framework::render::IblBakeArtifactRequest::new(
+        crate::core::framework::render::ProceduralSkyParams::default_gradient().ibl_bake_key(),
+        16,
+        5,
+    )
+    .with_required_contents(crate::core::framework::render::IblBakeArtifactContents::SH9);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_environment_ibl_bake_request(request),
+        )
+        .unwrap();
+
+    let pass = compiled
+        .graph
+        .passes()
+        .iter()
+        .find(|pass| pass.name == crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS)
+        .expect("IBL SH9 graph pass should compile from environment bake request");
+
+    assert_eq!(compiled.environment_ibl_bake_request, Some(request));
+    assert_eq!(
+        compiled.pass_stage(crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS),
+        Some(RenderPassStage::AmbientOcclusion)
+    );
+    assert_eq!(
+        pass.executor_id.as_deref(),
+        Some(crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID)
+    );
+    assert_eq!(pass.queue, QueueLane::AsyncCompute);
+    assert_pass_reads(
+        &compiled,
+        crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS,
+        crate::graphics::scene::IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
+    );
+}
+
+#[test]
+fn compile_without_environment_ibl_request_keeps_bake_graph_absent() {
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile(&test_extract())
+        .unwrap();
+
+    assert!(compiled.environment_ibl_bake_request.is_none());
+    assert!(
+        !compiled
+            .graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS),
+        "IBL bake graph pass should be opt-in through compile options"
+    );
+}
+
+#[test]
 fn compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers() {
     let mut extract = test_extract();
     let mut descriptor =

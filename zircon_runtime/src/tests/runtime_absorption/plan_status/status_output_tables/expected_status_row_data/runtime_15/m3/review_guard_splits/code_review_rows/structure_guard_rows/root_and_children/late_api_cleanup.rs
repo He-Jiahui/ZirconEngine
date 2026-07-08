@@ -38,3 +38,17 @@ pub(super) const LATE_API_CLEANUP_ROOT_INVENTORY_CHILD_SPLIT: &[&str] = &[
     "runtime_15_late_api_cleanup_root_inventory_is_child_owned",
     "Cargo gate deferred",
 ];
+
+pub(super) const LATE_API_CLEANUP_SOURCE_STATUS_MAP_RECONCILIATION: &[&str] = &[
+    "runtime_15_late_api_cleanup_source_status_map_reconciliation_static_passed_cargo_deferred",
+    "Runtime 15 M3 late API cleanup source status-map reconciliation",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_child_rows.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_inventory.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/status_mirrors.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/late_api_rows.rs",
+    "runtime_15_late_api_cleanup_structure_guard_is_folder_backed",
+    "runtime_15_late_api_cleanup_root_inventory_is_child_owned",
+    "runtime_15_late_api_cleanup_structure_guard_folder_backed_status_is_current",
+    "Cargo gate deferred",
+];

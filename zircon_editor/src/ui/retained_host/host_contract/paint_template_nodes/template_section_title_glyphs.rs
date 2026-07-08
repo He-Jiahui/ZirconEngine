@@ -8,9 +8,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use identi
     section_title_icon, SectionTitleIcon,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    SECTION_ICON_GAP, SECTION_ICON_SIZE,
+    section_title_glyph_metrics, section_title_glyph_metrics_from_host,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use shapes::push_section_icon;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use style::{
-    section_icon_color, SECTION_TRANSFORM_GLYPH,
+    section_icon_color, section_title_glyph_palette_from_host,
 };

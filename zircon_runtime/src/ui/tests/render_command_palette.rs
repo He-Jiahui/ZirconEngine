@@ -87,6 +87,61 @@ focused_index = 0
     );
 }
 
+#[test]
+fn render_extract_command_palette_focused_row_keeps_neutral_popup_surface_until_hovered() {
+    let commands = commands_for_command_palette(
+        UiFrame::new(40.0, 32.0, 320.0, 160.0),
+        r##"
+open = true
+popup_open = true
+query = "build"
+placeholder = "Search commands"
+commands = [
+  { id = "build_project", label = "Build Project", source = "workbench", shortcut = "Ctrl+B" },
+  { id = "build_assets", label = "Build Assets", source = "workbench", shortcut = "Ctrl+Shift+B" },
+]
+filtered_commands = ["build_project", "build_assets"]
+focused_index = 0
+"##,
+    );
+
+    let focused_surface = commands
+        .iter()
+        .find(|command| {
+            command.kind == UiRenderCommandKind::Quad
+                && command.frame == UiFrame::new(48.0, 80.0, 304.0, 26.0)
+                && command.style.painter_family == UiPainterFamily::PopupRow
+        })
+        .expect("focused-only command palette row should keep a neutral popup row surface");
+    assert_eq!(
+        focused_surface.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_surface.style.background_color.as_deref(),
+        Some("#151b1f")
+    );
+    assert_eq!(
+        focused_surface.style.border_color.as_deref(),
+        Some("#303840")
+    );
+    assert_eq!(focused_surface.style.border_width, 1.0);
+    assert!(!commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(48.0, 80.0, 304.0, 26.0)
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.background_color.as_deref() == Some("#1a2429")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Build Project")
+            && command.frame == UiFrame::new(57.0, 85.0, 286.0, 16.0)
+            && command.style.foreground_color.as_deref() == Some("#c5d0d5")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Focused
+    }));
+}
+
 fn commands_for_command_palette(frame: UiFrame, attributes: &str) -> Vec<UiRenderCommand> {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.command_palette"));
     surface.tree.insert_root(

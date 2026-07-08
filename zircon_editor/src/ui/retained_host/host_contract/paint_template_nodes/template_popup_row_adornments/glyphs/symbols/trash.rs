@@ -1,7 +1,6 @@
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::render_commands::HostPaintCommand;
-use super::super::super::geometry::local_rect;
-use super::super::segments::push_segments;
+use super::super::segments::{popup_adornment_segment, push_segments};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_trash_adornment(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,16 +12,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
 ) {
     push_segments(
         commands,
+        rect,
         clip,
         order,
         color,
         opacity,
         &[
-            local_rect(rect, 3.0, 4.0, 8.0, 2.0),
-            local_rect(rect, 5.0, 2.0, 4.0, 2.0),
-            local_rect(rect, 4.0, 6.0, 6.0, 7.0),
-            local_rect(rect, 6.0, 7.0, 1.0, 5.0),
-            local_rect(rect, 8.0, 7.0, 1.0, 5.0),
+            popup_adornment_segment(3, 4, 8, 2),
+            popup_adornment_segment(5, 2, 4, 2),
+            popup_adornment_segment(4, 6, 6, 7),
+            popup_adornment_segment(6, 7, 1, 5),
+            popup_adornment_segment(8, 7, 1, 5),
         ],
     );
 }

@@ -4,11 +4,13 @@ use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
         UiResolvedStyle, UiResolvedTextLayout, UiTextAlign, UiTextDirection, UiTextOverflow,
-        UiTextRange, UiTextRenderMode, UiTextWrap,
+        UiTextRange, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
     },
 };
 
-use super::shaper::layout_text;
+use crate::graphics::text::shaping::TextShapeRunProvider;
+
+use super::shaper::{layout_text, layout_text_with_provider};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiTextLayoutResolution {
@@ -28,6 +30,7 @@ pub(crate) struct UiTextStyleKey {
     pub text_align: UiTextAlign,
     pub wrap: UiTextWrap,
     pub text_direction: UiTextDirection,
+    pub text_writing_mode: UiTextWritingMode,
     pub text_overflow: UiTextOverflowKey,
     pub rich_text: bool,
     pub text_render_mode: UiTextRenderMode,
@@ -72,6 +75,7 @@ impl UiTextStyleKey {
             text_align: style.text_align,
             wrap: style.wrap,
             text_direction: style.text_direction,
+            text_writing_mode: style.text_writing_mode,
             text_overflow: UiTextOverflowKey::from(style.text_overflow),
             rich_text: style.rich_text,
             text_render_mode: style.text_render_mode,
@@ -146,13 +150,40 @@ impl<'a> UiTextLayoutRequest<'a> {
 }
 
 pub(crate) fn resolve_text_layout(request: &UiTextLayoutRequest<'_>) -> UiTextLayoutResolution {
+    resolve_text_layout_inner(request, |resolved_text| {
+        layout_text(
+            resolved_text,
+            request.style,
+            request.frame,
+            request.clip_frame,
+        )
+    })
+}
+
+pub(crate) fn resolve_text_layout_with_provider<P>(
+    request: &UiTextLayoutRequest<'_>,
+    provider: &mut P,
+) -> UiTextLayoutResolution
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    resolve_text_layout_inner(request, |resolved_text| {
+        layout_text_with_provider(
+            resolved_text,
+            request.style,
+            request.frame,
+            request.clip_frame,
+            provider,
+        )
+    })
+}
+
+fn resolve_text_layout_inner(
+    request: &UiTextLayoutRequest<'_>,
+    layout: impl FnOnce(&str) -> UiResolvedTextLayout,
+) -> UiTextLayoutResolution {
     let resolved_text = request.resolved_text();
-    let layout = layout_text(
-        &resolved_text,
-        request.style,
-        request.frame,
-        request.clip_frame,
-    );
+    let layout = layout(&resolved_text);
     let size = UiSize::new(layout.measured_width, layout.measured_height);
     let first_baseline = layout
         .lines
@@ -214,6 +245,19 @@ mod tests {
         let key = UiTextStyleKey::from_style(&style);
 
         style.font_weight = 600;
+
+        assert_ne!(key, UiTextStyleKey::from_style(&style));
+    }
+
+    #[test]
+    fn style_key_encodes_text_writing_mode() {
+        let mut style = UiResolvedStyle {
+            text_writing_mode: UiTextWritingMode::HorizontalTb,
+            ..UiResolvedStyle::default()
+        };
+        let key = UiTextStyleKey::from_style(&style);
+
+        style.text_writing_mode = UiTextWritingMode::VerticalRl;
 
         assert_ne!(key, UiTextStyleKey::from_style(&style));
     }

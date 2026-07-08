@@ -1,4 +1,4 @@
-use crate::core::framework::render::PostProcessStackDescriptor;
+use crate::core::framework::render::{IblBakeArtifactRequest, PostProcessStackDescriptor};
 use crate::render_graph::QueueLane;
 
 use crate::graphics::feature::{
@@ -75,6 +75,20 @@ impl RenderPipelineCompileOptions {
     pub fn without_post_process_stack(mut self) -> Self {
         self.post_process_stack = None;
         self
+    }
+
+    pub fn with_environment_ibl_bake_request(mut self, request: IblBakeArtifactRequest) -> Self {
+        self.environment_ibl_bake_request = Some(request);
+        self
+    }
+
+    pub fn without_environment_ibl_bake_request(mut self) -> Self {
+        self.environment_ibl_bake_request = None;
+        self
+    }
+
+    pub fn environment_ibl_bake_request(&self) -> Option<&IblBakeArtifactRequest> {
+        self.environment_ibl_bake_request.as_ref()
     }
 
     pub fn graph_msaa_sample_count(&self, camera_msaa_samples: u32) -> u32 {

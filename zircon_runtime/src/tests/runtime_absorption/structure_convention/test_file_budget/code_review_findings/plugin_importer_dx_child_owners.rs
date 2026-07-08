@@ -1,28 +1,28 @@
 use super::super::*;
 
-#[path = "plugin_importer_dx_child_owners/budgets.rs"]
+#[path = "plugin_importer_dx_owners/budgets.rs"]
 mod budgets;
-#[path = "plugin_importer_dx_child_owners/child_ownership.rs"]
+#[path = "plugin_importer_dx_owners/child_ownership.rs"]
 mod child_ownership;
-#[path = "plugin_importer_dx_child_owners/delegation.rs"]
+#[path = "plugin_importer_dx_owners/delegation.rs"]
 mod delegation;
-#[path = "plugin_importer_dx_child_owners/root_child_rows.rs"]
+#[path = "plugin_importer_dx_owners/root_child_rows.rs"]
 mod root_child_rows;
-#[path = "plugin_importer_dx_child_owners/root_inventory.rs"]
+#[path = "plugin_importer_dx_owners/root_inventory.rs"]
 mod root_inventory;
-#[path = "plugin_importer_dx_child_owners/root_paths.rs"]
+#[path = "plugin_importer_dx_owners/root_paths.rs"]
 mod root_paths;
-#[path = "plugin_importer_dx_child_owners/root_sources.rs"]
+#[path = "plugin_importer_dx_owners/root_sources.rs"]
 mod root_sources;
-#[path = "plugin_importer_dx_child_owners/root_statuses.rs"]
+#[path = "plugin_importer_dx_owners/root_statuses.rs"]
 mod root_statuses;
-#[path = "plugin_importer_dx_child_owners/source_inventory.rs"]
+#[path = "plugin_importer_dx_owners/source_inventory.rs"]
 mod source_inventory;
-#[path = "plugin_importer_dx_child_owners/status_docs.rs"]
+#[path = "plugin_importer_dx_owners/status_docs.rs"]
 mod status_docs;
-#[path = "plugin_importer_dx_child_owners/status_mirrors.rs"]
+#[path = "plugin_importer_dx_owners/status_mirrors.rs"]
 mod status_mirrors;
-#[path = "plugin_importer_dx_child_owners/structure_assertions.rs"]
+#[path = "plugin_importer_dx_owners/structure_assertions.rs"]
 mod structure_assertions;
 
 pub(super) use root_child_rows::*;
@@ -40,6 +40,16 @@ pub(super) fn assert_plugin_importer_dx_line_budgets() {
 
 pub(super) fn plugin_importer_dx_review_guard_count() -> usize {
     source_inventory::plugin_importer_dx_review_guard_count()
+}
+
+pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn plugin_importer_dx_source_inventory_child_source_blob(
+) -> String {
+    source_inventory::plugin_importer_dx_source_inventory_child_source_blob()
+}
+
+pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn plugin_importer_dx_status_docs_structure_source_blob(
+) -> String {
+    status_docs::plugin_importer_dx_status_docs_structure_source_blob()
 }
 
 pub(super) fn assert_plugin_importer_dx_status_docs_are_synced() {

@@ -96,6 +96,41 @@ pub(crate) fn page_residency_decision(
         .unwrap_or(GlyphAtlasPageResidencyDecision::Blocked)
 }
 
+pub(crate) fn page_rebuild_residency_decision(
+    pages: &[GlyphAtlasResidentPage],
+    format: GlyphAtlasFormat,
+    max_pages_per_format: usize,
+) -> GlyphAtlasPageResidencyDecision {
+    if max_pages_per_format == 0 {
+        return GlyphAtlasPageResidencyDecision::Blocked;
+    }
+
+    let pages_for_format = pages
+        .iter()
+        .filter(|page| page.key().format == format)
+        .collect::<Vec<_>>();
+    if let Some(page) = pages_for_format
+        .iter()
+        .filter(|page| !page.referenced_in_frame)
+        .min_by(|left, right| {
+            left.last_used_frame
+                .cmp(&right.last_used_frame)
+                .then_with(|| left.key().cmp(&right.key()))
+        })
+    {
+        return GlyphAtlasPageResidencyDecision::Evict(page.key());
+    }
+
+    if pages_for_format.len() < max_pages_per_format {
+        return GlyphAtlasPageResidencyDecision::Allocate(GlyphAtlasPageKey::new(
+            format,
+            next_free_page_index(&pages_for_format, format),
+        ));
+    }
+
+    GlyphAtlasPageResidencyDecision::Blocked
+}
+
 pub(crate) fn apply_page_residency_decision(
     pages: &mut Vec<GlyphAtlasResidentPage>,
     decision: GlyphAtlasPageResidencyDecision,
@@ -104,9 +139,13 @@ pub(crate) fn apply_page_residency_decision(
 ) -> GlyphAtlasPageReservation {
     let page = match decision {
         GlyphAtlasPageResidencyDecision::Allocate(key)
-        | GlyphAtlasPageResidencyDecision::Evict(key) => {
-            Some(upsert_resident_page(pages, key, page_size, frame_index))
-        }
+        | GlyphAtlasPageResidencyDecision::Evict(key) => Some(upsert_resident_page(
+            pages,
+            decision,
+            key,
+            page_size,
+            frame_index,
+        )),
         GlyphAtlasPageResidencyDecision::Blocked => None,
     };
 
@@ -115,11 +154,13 @@ pub(crate) fn apply_page_residency_decision(
 
 fn upsert_resident_page(
     pages: &mut Vec<GlyphAtlasResidentPage>,
+    decision: GlyphAtlasPageResidencyDecision,
     key: GlyphAtlasPageKey,
     page_size: UVec2,
     frame_index: u64,
 ) -> GlyphAtlasPageSpec {
-    let spec = GlyphAtlasPageSpec::new(key, page_size);
+    let generation = page_generation_for_reservation(pages, decision, key);
+    let spec = GlyphAtlasPageSpec::new(key, page_size).with_generation(generation);
     if let Some(existing) = pages.iter_mut().find(|page| page.key() == key) {
         existing.replace_spec(spec.clone());
         existing.mark_used(frame_index);
@@ -127,6 +168,25 @@ fn upsert_resident_page(
         pages.push(GlyphAtlasResidentPage::reserved(spec.clone(), frame_index));
     }
     spec
+}
+
+fn page_generation_for_reservation(
+    pages: &[GlyphAtlasResidentPage],
+    decision: GlyphAtlasPageResidencyDecision,
+    key: GlyphAtlasPageKey,
+) -> u64 {
+    let current_generation = pages
+        .iter()
+        .find(|page| page.key() == key)
+        .map(|page| page.spec().generation)
+        .unwrap_or(0);
+
+    match decision {
+        GlyphAtlasPageResidencyDecision::Evict(_) => current_generation.saturating_add(1),
+        GlyphAtlasPageResidencyDecision::Allocate(_) | GlyphAtlasPageResidencyDecision::Blocked => {
+            current_generation
+        }
+    }
 }
 
 fn next_free_page_index(pages: &[&GlyphAtlasResidentPage], format: GlyphAtlasFormat) -> u32 {

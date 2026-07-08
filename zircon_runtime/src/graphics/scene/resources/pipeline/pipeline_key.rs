@@ -82,6 +82,9 @@ impl PipelineKey {
         if self.receive_shadows {
             bits |= ShaderFeatureBits::RECEIVE_SHADOWS;
         }
+        if self.has_normal_texture {
+            bits |= ShaderFeatureBits::HAS_NORMAL_TEXTURE;
+        }
         ShaderFeatureBits::new(bits)
     }
 }
@@ -123,6 +126,21 @@ mod tests {
         assert!(variant
             .features
             .contains(ShaderFeatureBits::RECEIVE_SHADOWS));
+        assert!(!variant
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
+    }
+
+    #[test]
+    fn pipeline_key_derives_normal_texture_shader_feature() {
+        let mut key = default_pipeline_key();
+        key.has_normal_texture = true;
+
+        let variant = key.shader_variant_key(ShaderPassType::Forward, "wgpu-test");
+
+        assert!(variant
+            .features
+            .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
     }
 
     #[test]

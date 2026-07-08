@@ -34,7 +34,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const WORK
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_normal_style(
     state: UiPainterResolvedState,
 ) -> WorkbenchTooltipStyle {
-    let palette = tooltip_palette();
+    tooltip_normal_style_from_palette(state, tooltip_palette())
+}
+
+pub(super) fn tooltip_normal_style_from_palette(
+    state: UiPainterResolvedState,
+    palette: WorkbenchTooltipPalette,
+) -> WorkbenchTooltipStyle {
     WorkbenchTooltipStyle {
         surface: palette.surface,
         border: palette.border,

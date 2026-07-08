@@ -46,6 +46,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
+  - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
@@ -138,6 +139,8 @@ plan_sources:
   - user: 2026-06-17 bind HZB executor-owned external buffers for render plan 01
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
   - user: 2026-06-17 continue Plan 01 required external texture import and materialization modularization
+  - user: 2026-07-06 implement WGPU-to-render-pipeline Plan 11 IBL bake storage view bridge
+  - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph scene-depth MSAA handoff
 tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/registry_contracts.rs::registry_rejects_unregistered_executor_ids
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/postprocess_context_guards.rs::taa_reactive_mask_clear_executor_requires_graph_resources_instead_of_nooping
@@ -153,6 +156,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::render_post_dynamic_resolution_scale_swap_releases_pool
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_creates_dense_transients_and_skips_sparse_reservations
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_exposes_owned_cube_storage_texture_array_views
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_reports_unbound_compiled_lifetimes
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_reports_unbound_external_lifetimes_without_failing
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_reports_unbound_typed_optional_external_without_failing
@@ -176,6 +180,8 @@ tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs::compile_rejects_conflicting_report_only_external_texture_and_buffer_binding
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs::tests::rg_resource_resolver_requires_pass_declared_access_before_physical_texture_lookup
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs::tests::resolver_backed_name_access_ignores_stale_context_resource_rows
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs::tests::public_gpu_buffer_lookup_requires_compiled_pass_declaration_access
+  - cargo test --manifest-path zircon_runtime\Cargo.toml public_gpu_buffer_lookup_requires_compiled_pass_declaration_access --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs::tests::hzb_external_fallback_buffers_satisfy_materialization_report
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs::tests::hzb_occlusion_cull_declares_execution_owned_external_buffers
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_hzb_as_half_power_of_two_mip_chain
@@ -198,6 +204,7 @@ tests:
   - cargo test -p zircon_runtime --lib compiled_scene --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-runtime-f16-0622-coremin --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib materialization_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
+  - cargo test -p zircon_runtime --lib materialization_exposes_owned_cube_storage_texture_array_views --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-wgpu-command-plan-0706 --message-format short --color never -- --nocapture --test-threads=1
 doc_type: module-detail
 ---
 
@@ -220,6 +227,26 @@ This keeps the graph-execution-local `require_texture_view(...)`, `require_buffe
 ## Pass-Scoped Resolver Lookup
 
 `RgResourceResolver` owns the pass-scoped declaration/access check that sits between compiled graph metadata and physical WGPU lookup. `RenderPassExecutionContext::require_texture_view_by_name(...)` first asks the resolver to prove that the current compiled pass declared the requested resource name and access kind, then resolves the physical view through `RenderGraphExecutionResources` by graph declaration instead of trusting a copied context row. The resolver also carries physical texture/buffer lookup helpers for the remaining executor migrations.
+
+The 2026-07-07 Hybrid GI graph scene-depth handoff made the public GPU context buffer lookup explicit.
+`RenderPassGpuExecutionContext::require_buffer(...)` now mirrors texture-view lookup by checking the
+compiled pass declaration through `RgResourceResolver` before returning a WGPU buffer. The first
+consumer is the HGI `hybrid-gi-scene-prepare` graph pass: it reads the pass-declared `scene-depth`
+texture view and writes the pass-declared `hybrid-gi-scene` buffer from a WGPU compute pass.
+
+The 2026-07-08 Hybrid GI MSAA follow-up adds descriptor lookup to the same resolver-backed path.
+`RenderGraphExecutionResources::require_texture_desc_for_declaration(...)` first returns the
+compiled graph declaration's `RenderGraphResourceDesc::Texture` descriptor, which covers
+frame-imported resources such as fixed `scene-depth`; untyped external resources fall back to
+`require_owned_texture_desc(...)`, which resolves a logical transient through its physical owned
+backing. `RenderPassGpuExecutionContext::require_texture_desc(...)` exposes the resulting cloned
+`TextureDesc` only after the current pass has declared the requested texture access, so executors can
+select shader variants from graph texture metadata without bypassing the compiled pass contract. The
+focused runtime regression now builds a 4x MSAA `scene-depth` texture, proves the descriptor sample
+count is visible to the declared read pass, proves the declared `hybrid-gi-scene` write buffer is
+accessible, and still rejects undeclared buffer read access. The command
+`cargo test --manifest-path zircon_runtime\Cargo.toml public_gpu_buffer_lookup_requires_compiled_pass_declaration_access --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1`
+passed 1/1.
 
 The first production cutover is deliberately narrow. Product post-process executor validation and terminal input/output selection now use resolver-backed name access, so stale `context.resources` rows copied into an execution context cannot authorize a post-process input. `RenderPassExecutionContext::with_gpu(...)` now propagates the same pass resolver into `RenderPassGpuExecutionContext`. Depth-prepass normal/depth writes, deferred G-buffer albedo/material writes plus depth reads, deferred lighting G-buffer/light-grid/background/scene-color lookups, shadow-atlas writes, HZB previous-history reads, mesh-stage color/depth attachments, mesh light-grid buffer reads, object and particle velocity attachments, TAA reactive-mask mesh color/depth attachments, sprite/preview-sky/UI/overlay surface bridge lookups, particle transparent bridge lookups, SSR-specific resolve/reflection-pyramid/coarse-pyramid/specular-occlusion bridge lookups, and root postprocess stack/effect/compute/terminal bridge lookups now resolve through `gpu/resource_lookup.rs` helpers after checking the compiled pass access declaration. Mesh light-grid buffers and optional shared post-process texture slots use optional resolver-backed helpers so passes that declare a resource fail on kind mismatches while shared executor variants that do not declare that resource keep their fallback texture behavior. HZB history uses a declared-optional helper: the compiled pass must declare the history read, but the first-frame physical texture may still fall back to the post-process white texture. The deferred scene bridge methods live in `gpu/deferred.rs`; the sprite, screen-space UI, preview-sky, and overlay bridge methods live in `gpu/surface.rs`; particle bridge methods live in `gpu/particle.rs`; root postprocess orchestration remains in `gpu/post_process.rs`; effect-chain, compute-resource, temporal, terminal, and SSR bridge methods live in `gpu/post_process/effects.rs`, `computed_resources.rs`, `temporal.rs`, `terminal.rs`, and `screen_space_reflection.rs`. The particles plugin executor no longer performs its own direct WGPU texture-view precheck before entering the runtime particle bridge. SSR passes also declare `light-list` as an external buffer read before the shared post-process bind group is recorded. Direct execution-resource lookup in GPU executor code is now confined to `gpu/resource_lookup.rs` helper fallback/internal calls; the remaining Plan 01 resolver hard-cutover work is non-HZB/non-shadow-atlas external ownership, focused resolver tests, and the larger structural split needed if raw physical lookups must be isolated beyond graph-execution scope.
 
@@ -281,11 +308,31 @@ Dynamic-resolution scale changes are validated against the same pool contract. T
 
 The screen-space reflection coarse pyramid resources remain view aliases into their parent pyramid mip levels. Parent textures may now be direct logical backings or slot-backed textures. `owned_texture_mip_view(...)` resolves through the logical-to-physical backing map before creating the mip view, so SSR aliases continue to work without requiring a separate owned texture for the coarse logical resource.
 
+## Custom Owned Texture Views
+
+Plan 11 IBL bake now needs storage texture views that are not the default sampled/render-attachment view bound at materialization time. `RenderGraphExecutionResources::owned_texture_view_with_descriptor(...)` resolves a logical graph texture name through its physical owned backing, validates the requested `wgpu::TextureViewDescriptor`, and then creates a fresh `wgpu::TextureView`.
+
+The validation is intentionally local to the resource table:
+
+- explicit view format must match the materialized WGPU texture format,
+- explicit view usage must be contained in the texture usage derived from the graph `TextureDesc`,
+- requested view dimension must be compatible with the graph texture dimension,
+- mip range must stay inside `TextureDesc.mip_levels`,
+- array-layer range must stay inside `TextureDesc.depth`.
+
+This keeps environment-specific planning in `environment/ibl_bake_wgpu_command_plan.rs` while allowing the generic graph resource table to expose a Cube texture backing as a mip-scoped `D2Array` storage view for PMREM and IEM compute passes. It does not create bind groups, compute pipelines, upload parameter buffers, allocate readback buffers, or submit command encoders.
+
+## Runtime Prepare Collector Scene Resource Boundary
+
+The 2026-07-07 editor command-palette validation exposed a crate-level compile blocker in `runtime_prepare_collector.rs`: production code needed `ResourceStreamer` and `MaterialCaptureSeed` while `graphics::scene::resources` was private to the scene module. `graphics::scene::mod.rs` now keeps `resources` visible only inside `crate::graphics`, and `runtime_prepare_collector.rs` imports those internal types through `graphics::scene::resources::{...}`. The 2026-07-08 closeout removed the stale test-only gates from `MaterialCaptureSeed`, `MaterialRuntime::capture_seed()`, and the material-capture accessor child because runtime prepare collectors now consume that neutral material/texture-sampling context in production. This is a boundary repair only; it does not make the `resources` folder public, does not change graph resource materialization, and does not add a renderer facade.
+
 ## Validation State
 
 The materialization and pool source tests cover compatible non-overlapping textures sharing one bucketed owned WGPU backing, descriptor-incompatible textures arriving in separate graph buckets and distinct bucketed physical labels, compatible non-overlapping buffers sharing one bucketed WGPU backing, transient pool reuse across frames, stale pool entry eviction, budget pressure evicting retained entries down to the configured byte cap, render-scale 0.5 to 1.0 to 0.5 switching retaining bounded descriptor buckets, and stale logical texture/buffer bindings being rejected when they are not part of the compiled live lifetime set. The runtime diagnostics contract also asserts the `render.graph.execution.transient_pool.*` count/byte series and `render.graph.materialization.stale_*` count rows when the lib-test crate can compile.
 
 `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never` passed on 2026-06-12 after the pool diagnostics bridge with existing warnings only. Earlier focused lib-test commands were blocked before running their filtered tests by unrelated `zircon_runtime` lib-test compile errors in `zircon_runtime/src/ui/tests/runtime_input_manager.rs` and `zircon_runtime/src/ui/tests/style_mapping.rs`; an earlier materialization test attempt was also blocked by the dirty `zircon_runtime/src/scene/tests/ecs_schedule.rs` test source. The stale-binding follow-up later compiled the focused lib-test binary with `cargo test -p zircon_runtime --lib materialization_validation_rejects_stale --no-run --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-stale-lifetime-validation-0618 --message-format short --color never` in 8m06s, then direct exact execution of `materialization_validation_rejects_stale_texture_binding_outside_live_lifetimes` and `materialization_validation_rejects_stale_buffer_binding_outside_live_lifetimes` both passed.
+
+On 2026-07-06, `materialization_exposes_owned_cube_storage_texture_array_views` passed through a real offscreen WGPU backend. The test materializes a `Rgba16Float` Cube transient texture with storage usage, creates mip2 as a `D2Array` storage texture view with six layers, and verifies that invalid mip ranges, invalid array ranges, and illegal view usages fail before `Texture::create_view(...)`.
 
 The 2026-06-17 RG-M2 budget follow-up passed `rustfmt --edition 2021` over the touched Rust files and `cargo check -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-transient-pool-budget-0617` twice: first in 573.2 seconds with the existing warning set, then again in 44.3 seconds after removing an unrelated unused compiled-cache re-export warning from the touched render pipeline module. `git diff --check -- <RG-M2 scoped files>` passed with only Git LF-to-CRLF notices. Focused pool and runtime-diagnostics tests remain deferred for the implementation-first phase.
 

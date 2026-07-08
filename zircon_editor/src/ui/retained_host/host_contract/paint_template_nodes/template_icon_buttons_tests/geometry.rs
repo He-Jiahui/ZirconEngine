@@ -41,3 +41,41 @@ fn panel_icon_button_honors_declared_offset_and_icon_size() {
     assert_eq!(glyph.width, 18.0);
     assert_eq!(glyph.height, 18.0);
 }
+
+#[test]
+fn panel_icon_button_defaults_to_unreal_icon16_size() {
+    let node = icon_node(
+        "WorkbenchMiniAdd",
+        "zircon_editor_shell/controls/add.svg",
+        false,
+        38.0,
+        38.0,
+    );
+
+    let paint_rect = icon_button_paint_rect(&node, &frame_rect(&node.frame));
+    let glyph = icon_glyph_rect(&node, &paint_rect, icon_button_context(&node));
+
+    assert!((glyph.x - 17.0).abs() < 0.001);
+    assert!((glyph.y - 17.0).abs() < 0.001);
+    assert_eq!(glyph.width, 16.0);
+    assert_eq!(glyph.height, 16.0);
+}
+
+#[test]
+fn rail_icon_button_defaults_to_unreal_large_icon24_size() {
+    let node = icon_node(
+        "WorkbenchRailAssets",
+        "zircon_editor_shell/rail/assets.svg",
+        false,
+        48.0,
+        48.0,
+    );
+
+    let paint_rect = icon_button_paint_rect(&node, &frame_rect(&node.frame));
+    let glyph = icon_glyph_rect(&node, &paint_rect, icon_button_context(&node));
+
+    assert!((glyph.x - 18.0).abs() < 0.001);
+    assert!((glyph.y - 18.0).abs() < 0.001);
+    assert_eq!(glyph.width, 24.0);
+    assert_eq!(glyph.height, 24.0);
+}

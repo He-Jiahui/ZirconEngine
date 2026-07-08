@@ -15,12 +15,13 @@ use super::copy_readbacks::copy_readbacks;
 use super::create_bind_group::create_bind_group;
 use super::create_buffers::create_buffers;
 use super::dispatch::dispatch;
+use super::dispatch_probe_trace_tiles::dispatch_probe_trace_tiles;
 use super::hybrid_gi_prepare_execution_buffers::HybridGiPrepareExecutionBuffers;
 use super::material_capture_source::HybridGiMaterialCaptureSource;
 use super::queue_params::queue_params;
 
 impl HybridGiGpuResources {
-    pub(super) fn execute_prepare(
+    pub(in crate::hybrid_gi::renderer) fn execute_prepare(
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -65,6 +66,17 @@ impl HybridGiGpuResources {
         );
         let bind_group = create_bind_group(self, device, &buffers);
         dispatch(self, encoder, &bind_group, &inputs);
+        dispatch_probe_trace_tiles(
+            device,
+            encoder,
+            &buffers,
+            &inputs,
+            prepare,
+            directional_lights,
+            point_lights,
+            spot_lights,
+            probe_budget,
+        );
         copy_readbacks(encoder, &buffers, &inputs);
         let HybridGiPrepareExecutionBuffers {
             cache_readback,
@@ -72,6 +84,7 @@ impl HybridGiGpuResources {
             pending_probe_buffer: _pending_probe_buffer,
             trace_region_buffer: _trace_region_buffer,
             scene_prepare_descriptor_buffer: _scene_prepare_descriptor_buffer,
+            scene_prepare_descriptor_count: _scene_prepare_descriptor_count,
             completed_probe_buffer: _completed_probe_buffer,
             completed_trace_buffer: _completed_trace_buffer,
             completed_probe_readback,
@@ -92,6 +105,18 @@ impl HybridGiGpuResources {
             scene_prepare_capture_views,
             scene_prepare_capture_upload_buffer,
             scene_prepare_capture_slot_sample_buffers,
+            scene_prepare_surface_cache_depth_texture,
+            scene_prepare_surface_cache_depth_upload_buffer,
+            scene_prepare_surface_cache_depth_slot_sample_buffers,
+            scene_prepare_probe_trace_tile_seed_buffer,
+            scene_prepare_probe_trace_tile_params_buffer,
+            scene_prepare_probe_trace_tile_buffer,
+            scene_prepare_probe_trace_tile_readback,
+            scene_prepare_probe_trace_indirect_args_buffer,
+            scene_prepare_probe_trace_indirect_args_readback,
+            scene_prepare_probe_trace_tile_word_count,
+            scene_prepare_probe_trace_tile_record_count,
+            scene_prepare_probe_trace_indirect_arg_word_count,
         ) = match scene_prepare_resources {
             Some(resources) => (
                 Some(resources.snapshot),
@@ -103,6 +128,18 @@ impl HybridGiGpuResources {
                 resources.capture_views,
                 resources.capture_upload_buffer,
                 resources.capture_slot_sample_buffers,
+                resources.surface_cache_depth_texture,
+                resources.surface_cache_depth_upload_buffer,
+                resources.surface_cache_depth_slot_sample_buffers,
+                resources.probe_trace_tile_seed_buffer,
+                resources.probe_trace_tile_params_buffer,
+                resources.probe_trace_tile_buffer,
+                resources.probe_trace_tile_readback,
+                resources.probe_trace_indirect_args_buffer,
+                resources.probe_trace_indirect_args_readback,
+                resources.probe_trace_tile_word_count,
+                resources.probe_trace_tile_record_count,
+                resources.probe_trace_indirect_arg_word_count,
             ),
             None => (
                 None,
@@ -114,6 +151,18 @@ impl HybridGiGpuResources {
                 Vec::new(),
                 None,
                 Vec::new(),
+                None,
+                None,
+                Vec::new(),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                0,
+                0,
+                0,
             ),
         };
 
@@ -137,6 +186,18 @@ impl HybridGiGpuResources {
             scene_prepare_capture_views,
             scene_prepare_capture_upload_buffer,
             scene_prepare_capture_slot_sample_buffers,
+            scene_prepare_surface_cache_depth_texture,
+            scene_prepare_surface_cache_depth_upload_buffer,
+            scene_prepare_surface_cache_depth_slot_sample_buffers,
+            scene_prepare_probe_trace_tile_seed_buffer,
+            scene_prepare_probe_trace_tile_params_buffer,
+            scene_prepare_probe_trace_tile_buffer,
+            scene_prepare_probe_trace_tile_readback,
+            scene_prepare_probe_trace_indirect_args_buffer,
+            scene_prepare_probe_trace_indirect_args_readback,
+            scene_prepare_probe_trace_tile_word_count,
+            scene_prepare_probe_trace_tile_record_count,
+            scene_prepare_probe_trace_indirect_arg_word_count,
         )))
     }
 }

@@ -1,0 +1,44 @@
+use super::*;
+
+pub(super) const EXPECTED_SLICE_BASE_AND_TOP_LEVEL_OWNER_PATHS: &[(&str, &str, usize)] = &[
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs",
+        STATUS_SUPPORT_EXPECTED_SLICE_MAPS_PATH,
+        80,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/base_maps.rs",
+        EXPECTED_SLICE_BASE_MAPS_PATH,
+        80,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support.rs",
+        EXPECTED_SLICE_TOP_LEVEL_SUPPORT_PATH,
+        35,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/support_layout_rows.rs",
+        EXPECTED_SLICE_TOP_LEVEL_SUPPORT_CHILDREN[0],
+        90,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/child_owner_rows.rs",
+        EXPECTED_SLICE_TOP_LEVEL_SUPPORT_CHILDREN[1],
+        85,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/maps_guard_rows.rs",
+        EXPECTED_SLICE_TOP_LEVEL_SUPPORT_CHILDREN[2],
+        95,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/naming_boundary_rows.rs",
+        EXPECTED_SLICE_TOP_LEVEL_SUPPORT_CHILDREN[3],
+        45,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/row_data_owner_rows.rs",
+        EXPECTED_SLICE_TOP_LEVEL_SUPPORT_CHILDREN[4],
+        35,
+    ),
+];

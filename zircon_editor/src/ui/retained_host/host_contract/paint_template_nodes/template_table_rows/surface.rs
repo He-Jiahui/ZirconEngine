@@ -1,11 +1,11 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::{is_table_selected, is_table_tail};
+use super::layers::separator_order;
+use super::metrics::table_row_surface_metrics;
 use super::style::{
     table_row_background, table_row_border, table_row_border_width, table_row_style,
 };
-
-const TABLE_ROW_RADIUS: f32 = 3.0;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_table_row_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -15,6 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     order: i32,
     opacity: f32,
 ) {
+    let metrics = table_row_surface_metrics();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
@@ -22,19 +23,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
         Some(table_row_background(node)),
         table_row_border(node),
         table_row_border_width(node),
-        TABLE_ROW_RADIUS,
+        metrics.radius,
         opacity,
     ));
     if !is_selected_row(node) {
         commands.push(HostPaintCommand::quad(
             FrameRect {
                 x: rect.x,
-                y: rect.y + (rect.height - 1.0).max(0.0),
+                y: rect.y + (rect.height - metrics.separator_height).max(0.0),
                 width: rect.width,
-                height: 1.0,
+                height: metrics.separator_height,
             },
             Some(clip.clone()),
-            order + 1,
+            separator_order(order),
             Some(table_row_style(node).separator),
             None,
             0.0,

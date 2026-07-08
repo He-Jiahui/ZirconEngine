@@ -1,8 +1,4 @@
-use crate::core::framework::render::ViewProjectionMatrixPair;
-use crate::core::framework::render::{
-    SkyboxMode, SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT, SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH,
-    SAMPLED_EQUIRECT_ENVIRONMENT_MIP_COUNT,
-};
+use crate::core::framework::render::{ProjectionMode, SkyboxMode, ViewProjectionMatrixPair};
 use crate::core::math::{Mat4, RenderMat4, RenderVec3};
 
 use crate::graphics::scene::scene_renderer::temporal::velocity::velocity_camera_params::VelocityCameraParams;
@@ -20,27 +16,33 @@ impl SceneUniform {
             RenderVec3::splat(0.55).extend(1.0).to_array()
         };
 
-        let matrix_pair = ViewProjectionMatrixPair::from_camera(
-            &camera,
-            frame.extract.view.effective_render_size(),
-        );
+        let matrix_pair =
+            ViewProjectionMatrixPair::from_camera(&camera, frame.render_region().local_size());
         let view_proj = matrix_pair.clip_from_world_jittered;
         let view_proj_unjittered = matrix_pair.clip_from_world_unjittered;
         let (previous_view_proj_unjittered, motion_params) =
             previous_motion_view_projection(frame, &camera, view_proj_unjittered);
         let skybox = &frame.environment().skybox;
         let sky_params = skybox.procedural;
+        let source_cubemap_environment = skybox.source_cubemap_environment();
         let environment_sample_params = match skybox.mode {
             SkyboxMode::Disabled | SkyboxMode::ProceduralGradient => {
                 [skybox.mode as u32 as f32, 0.0, 0.0, 0.0]
             }
-            SkyboxMode::SampledEquirectangular => [
-                skybox.mode as u32 as f32,
-                SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH as f32,
-                SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT as f32,
-                SAMPLED_EQUIRECT_ENVIRONMENT_MIP_COUNT as f32,
-            ],
+            SkyboxMode::SourceCubemap => source_cubemap_environment
+                .map(|environment| {
+                    [
+                        skybox.mode as u32 as f32,
+                        environment.mip_chain.face_size() as f32,
+                        environment.mip_chain.face_size() as f32,
+                        environment.mip_chain.mip_count() as f32,
+                    ]
+                })
+                .unwrap_or([skybox.mode as u32 as f32, 0.0, 0.0, 0.0]),
         };
+        let environment_sh9 = source_cubemap_environment
+            .map(|environment| environment.irradiance_sh9)
+            .unwrap_or([[0.0; 4]; 9]);
 
         Self {
             view_proj: render_mat4_or(view_proj, RenderMat4::IDENTITY).to_cols_array_2d(),
@@ -52,6 +54,10 @@ impl SceneUniform {
             previous_view_proj_unjittered,
             motion_params,
             jitter_params: jitter_params(&camera),
+            camera_world_position: render_vec3_or(camera.transform.translation, RenderVec3::ZERO)
+                .extend(1.0)
+                .to_array(),
+            camera_view_direction: camera_view_direction(&camera),
             sky_horizon_color: render_vec4_or(
                 sky_params.horizon_color,
                 crate::core::math::Vec4::ZERO,
@@ -78,6 +84,7 @@ impl SceneUniform {
                 },
             ],
             environment_sample_params,
+            environment_sh9,
         }
     }
 }
@@ -114,6 +121,25 @@ fn jitter_params(camera: &crate::core::framework::render::ViewportCameraSnapshot
             1.0
         } else {
             0.0
+        },
+    ]
+}
+
+fn camera_view_direction(
+    camera: &crate::core::framework::render::ViewportCameraSnapshot,
+) -> [f32; 4] {
+    let view_direction = render_vec3_or(
+        camera.transform.rotation * crate::core::math::Vec3::Z,
+        RenderVec3::Z,
+    )
+    .normalize_or_zero();
+    [
+        view_direction.x,
+        view_direction.y,
+        view_direction.z,
+        match camera.projection_mode {
+            ProjectionMode::Orthographic => 1.0,
+            ProjectionMode::Perspective => 0.0,
         },
     ]
 }
@@ -226,6 +252,35 @@ mod tests {
     }
 
     #[test]
+    fn scene_uniform_exports_camera_world_position() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.view.camera.transform = Transform::from_translation(Vec3::new(1.25, -2.5, 7.0));
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_eq!(uniform.camera_world_position, [1.25, -2.5, 7.0, 1.0]);
+        assert_eq!(uniform.camera_view_direction, [0.0, 0.0, 1.0, 0.0]);
+    }
+
+    #[test]
+    fn scene_uniform_marks_orthographic_camera_view_direction() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.view.camera.projection_mode = ProjectionMode::Orthographic;
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
+
+        let uniform = SceneUniform::from_frame(&frame);
+
+        assert_eq!(uniform.camera_view_direction, [0.0, 0.0, 1.0, 1.0]);
+    }
+
+    #[test]
     fn scene_uniform_inverse_view_projection_is_unjittered() {
         let mut extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(7),
@@ -258,6 +313,29 @@ mod tests {
     }
 
     #[test]
+    fn scene_uniform_uses_frame_render_region_size_for_projection_aspect() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(7),
+            empty_scene_snapshot(),
+        );
+        extract.view.camera.projection_mode = ProjectionMode::Orthographic;
+        extract.view.camera.ortho_size = 1.0;
+
+        assert_eq!(extract.view.effective_render_size(), UVec2::new(1, 1));
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(1280, 960));
+
+        let uniform = SceneUniform::from_frame(&frame);
+        let camera = frame.effective_camera();
+        let expected = ViewProjectionMatrixPair::from_camera(&camera, UVec2::new(1280, 960))
+            .clip_from_world_unjittered
+            .to_cols_array_2d();
+
+        assert_eq!(uniform.view_proj_unjittered, expected);
+        assert_close(uniform.view_proj_unjittered[0][0], 0.75);
+        assert_close(uniform.view_proj_unjittered[1][1], 1.0);
+    }
+
+    #[test]
     fn scene_uniform_exports_environment_sky_parameters() {
         let mut extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(7),
@@ -273,31 +351,35 @@ mod tests {
         assert_eq!(uniform.sky_ground_color, [0.09, 0.11, 0.14, 1.0]);
         assert_eq!(uniform.environment_params, [1.0, 1.0, 0.0, 1.0]);
         assert_eq!(uniform.environment_sample_params, [1.0, 0.0, 0.0, 0.0]);
+        assert_eq!(uniform.environment_sh9, [[0.0; 4]; 9]);
     }
 
     #[test]
-    fn scene_uniform_exports_sampled_equirectangular_environment() {
-        let mut samples = [[0.0_f32; 4];
-            crate::core::framework::render::SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT];
-        samples[0] = [0.25, 0.5, 0.75, 1.0];
-        let mut sampled = crate::core::framework::render::SampledEquirectangularEnvironment::new(
-            samples,
+    fn scene_uniform_exports_source_cubemap_environment() {
+        let mut source = crate::core::framework::render::SourceCubemapEnvironment::new(
+            crate::core::framework::render::build_source_cubemap_from_equirect(4, |_, _| {
+                [0.25, 0.5, 0.75, 1.0]
+            }),
             9,
             [1, 2, 3, 4],
         );
-        sampled.intensity = 1.75;
-        sampled.rotation_radians = 0.5;
+        source.intensity = 1.75;
+        source.rotation_radians = 0.5;
         let mut extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(7),
             empty_scene_snapshot(),
         );
-        extract.environment = EnvironmentExtract::sampled_equirectangular(sampled);
+        extract.environment = EnvironmentExtract::source_cubemap(source);
         let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
 
         let uniform = SceneUniform::from_frame(&frame);
 
         assert_eq!(uniform.environment_params, [1.0, 1.75, 0.5, 1.0]);
-        assert_eq!(uniform.environment_sample_params, [2.0, 128.0, 64.0, 8.0]);
+        assert_eq!(uniform.environment_sample_params, [3.0, 4.0, 4.0, 3.0]);
+        assert!(
+            uniform.environment_sh9[0][0] > 0.0,
+            "source cubemap should publish nonzero SH9 diffuse coefficients"
+        );
     }
 
     fn empty_scene_snapshot() -> RenderSceneSnapshot {

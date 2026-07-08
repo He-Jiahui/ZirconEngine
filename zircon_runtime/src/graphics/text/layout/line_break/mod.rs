@@ -1,9 +1,15 @@
 use self::glue::allows_glyph_fallback;
+#[cfg(test)]
 pub(crate) use self::greedy::{line_text_fits, should_wrap_before_chunk};
+pub(crate) use self::greedy::{
+    line_text_fits_with_provider, should_wrap_before_chunk_with_provider,
+};
 pub(crate) use self::soft_hyphen::LineBreakSuffix;
 pub(crate) use self::wrap_space::{trailing_wrap_space_byte_len, trim_leading_wrap_spaces};
 use super::kinsoku::apply_kinsoku_start_rules;
-use crate::graphics::text::shaping::shape_horizontal_line;
+#[cfg(test)]
+use crate::graphics::text::shaping::DirectTextShapeRunProvider;
+use crate::graphics::text::shaping::TextShapeRunProvider;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
 mod glue;
@@ -22,15 +28,28 @@ pub(crate) struct LineBreakChunk<'a> {
     pub break_suffix: Option<LineBreakSuffix>,
 }
 
+#[cfg(test)]
 pub(crate) fn line_break_chunks<'a>(
     text: &'a str,
     style: &UiResolvedStyle,
 ) -> Vec<LineBreakChunk<'a>> {
+    let mut provider = DirectTextShapeRunProvider;
+    line_break_chunks_with_provider(text, style, &mut provider)
+}
+
+pub(crate) fn line_break_chunks_with_provider<'a, P>(
+    text: &'a str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> Vec<LineBreakChunk<'a>>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     if text.is_empty() {
         return Vec::new();
     }
 
-    let shaped = shape_horizontal_line(
+    let shaped = provider.shape_horizontal_line_with_kerning(
         text,
         style,
         UiTextDirection::Auto,
@@ -38,6 +57,7 @@ pub(crate) fn line_break_chunks<'a>(
             start: 0,
             end: text.len(),
         },
+        true,
     );
     let mut chunks = Vec::new();
     let mut chunk_start = 0;
@@ -65,6 +85,7 @@ pub(crate) fn line_break_chunks<'a>(
     apply_kinsoku_start_rules(text, chunks)
 }
 
+#[cfg(test)]
 pub(crate) fn word_smart_line_break_chunks<'a>(
     text: &'a str,
     style: &UiResolvedStyle,
@@ -72,7 +93,19 @@ pub(crate) fn word_smart_line_break_chunks<'a>(
     smart::apply_word_smart_rules(text, line_break_chunks(text, style))
 }
 
+pub(crate) fn word_smart_line_break_chunks_with_provider<'a, P>(
+    text: &'a str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> Vec<LineBreakChunk<'a>>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    smart::apply_word_smart_rules(text, line_break_chunks_with_provider(text, style, provider))
+}
+
 impl<'a> LineBreakChunk<'a> {
+    #[cfg(test)]
     pub(crate) fn should_fallback_to_glyph_wrap(
         &self,
         candidate_text: &str,
@@ -84,6 +117,25 @@ impl<'a> LineBreakChunk<'a> {
             candidate_text,
             max_width,
             style,
+        )
+    }
+
+    pub(crate) fn should_fallback_to_glyph_wrap_with_provider<P>(
+        &self,
+        candidate_text: &str,
+        max_width: f32,
+        style: &UiResolvedStyle,
+        provider: &mut P,
+    ) -> bool
+    where
+        P: TextShapeRunProvider + ?Sized,
+    {
+        glyph_fallback::should_fallback_to_glyph_wrap_with_provider(
+            self.allow_glyph_fallback,
+            candidate_text,
+            max_width,
+            style,
+            provider,
         )
     }
 

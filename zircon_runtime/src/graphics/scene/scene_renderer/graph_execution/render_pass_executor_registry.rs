@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
+use crate::graphics::scene::scene_renderer::environment::ibl_bake_compute_executor::ibl_bake_compute_executor_registrations;
 use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::RenderFeatureDescriptor;
 
@@ -175,6 +176,13 @@ impl RenderPassExecutorRegistry {
         let mut registry = Self::with_builtin_noop_executors_for_render_features(render_features);
         registry.register_explicit_executors(executor_registrations);
         registry
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_environment_ibl_bake_compute_executors(
+        mut self,
+    ) -> Self {
+        self.register_explicit_executors(ibl_bake_compute_executor_registrations());
+        self
     }
 
     fn register_builtin_noop_allowlist_for_render_features(

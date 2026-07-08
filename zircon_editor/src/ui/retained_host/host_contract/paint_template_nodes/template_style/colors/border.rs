@@ -1,6 +1,7 @@
 use super::super::state::{button_interaction_state, is_button_disabled};
 use super::super::surface_roles::{
-    is_asset_preview_surface, is_asset_thumbnail_card_surface, is_content_panel_surface,
+    is_asset_preview_surface, is_asset_thumbnail_card_surface,
+    is_asset_thumbnail_name_area_surface, is_content_panel_surface,
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_style_color::{
@@ -35,7 +36,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn border_
     if asset_thumbnail_card_uses_selected_border(node) {
         return PALETTE.accent;
     }
-    if asset_preview_uses_muted_interaction_border(node) || content_panel_uses_muted_border(node) {
+    if asset_thumbnail_name_area_uses_muted_interaction_border(node)
+        || asset_preview_uses_muted_interaction_border(node)
+        || content_panel_uses_muted_border(node)
+    {
         return PALETTE.border;
     }
     if matches!(
@@ -66,6 +70,18 @@ fn asset_thumbnail_card_uses_selected_border(node: &TemplatePaneNodeData) -> boo
 
 fn asset_preview_uses_muted_interaction_border(node: &TemplatePaneNodeData) -> bool {
     is_asset_preview_surface(node)
+        && (node.selected
+            || node.checked
+            || matches!(
+                button_interaction_state(node),
+                ButtonInteractionState::Hover
+                    | ButtonInteractionState::Pressed
+                    | ButtonInteractionState::Focused
+            ))
+}
+
+fn asset_thumbnail_name_area_uses_muted_interaction_border(node: &TemplatePaneNodeData) -> bool {
+    is_asset_thumbnail_name_area_surface(node)
         && (node.selected
             || node.checked
             || matches!(

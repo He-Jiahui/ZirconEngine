@@ -82,7 +82,7 @@ fn wgpu_texture_dimension(dimension: TextureDimension) -> wgpu::TextureDimension
     }
 }
 
-fn wgpu_texture_format(format: TextureFormat) -> wgpu::TextureFormat {
+pub(super) fn wgpu_texture_format(format: TextureFormat) -> wgpu::TextureFormat {
     match format {
         TextureFormat::R8Unorm => wgpu::TextureFormat::R8Unorm,
         TextureFormat::R16Float => wgpu::TextureFormat::R16Float,
@@ -101,7 +101,10 @@ fn wgpu_texture_format(format: TextureFormat) -> wgpu::TextureFormat {
     }
 }
 
-fn wgpu_texture_usages(format: TextureFormat, usage: TextureUsage) -> wgpu::TextureUsages {
+pub(super) fn wgpu_texture_usages(
+    format: TextureFormat,
+    usage: TextureUsage,
+) -> wgpu::TextureUsages {
     let mut usages = wgpu::TextureUsages::empty();
     if usage.contains(TextureUsage::RENDER_ATTACHMENT) || usage.contains(TextureUsage::PRESENT) {
         usages |= wgpu::TextureUsages::RENDER_ATTACHMENT;

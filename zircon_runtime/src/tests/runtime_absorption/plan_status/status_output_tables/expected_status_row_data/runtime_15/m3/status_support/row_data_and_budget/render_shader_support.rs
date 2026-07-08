@@ -55,4 +55,17 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed",
         ],
     ),
+    (
+        "Runtime 15 M3 shader prewarm manifest current-child route sync",
+        &[
+            "runtime_15_shader_prewarm_manifest_current_child_route_sync_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/shader_prewarm_manifest.rs",
+            "structure_convention/test_file_budget/shader_prewarm_manifest/builtin_template_source.rs",
+            "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/render_shader_support.rs",
+            "expected_slices/status/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
+            "expected_slices/date/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
+            "runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed",
+            "runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired",
+        ],
+    ),
 ];

@@ -1,0 +1,20 @@
+pub(in super::super) const STATUS_SUPPORT_STATUS_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_DATE_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_STATUS_MAP_CHILD_GROUP_ROW_DATA_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/row_data_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_DATE_MAP_CHILD_GROUP_ROW_DATA_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/row_data_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_STATUS_MAP_ROOT_RUNTIME_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/root_runtime_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_DATE_MAP_ROOT_RUNTIME_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/root_runtime_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_STATUS_MAP_CHILD_GROUP_STATUS_DOC_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/status_doc_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_DATE_MAP_CHILD_GROUP_STATUS_DOC_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/status_doc_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_STATUS_MAP_PLAN_DOC_EXPECTED_SLICE_SUPPORT_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/expected_slice_support_maps.rs";
+pub(in super::super) const STATUS_SUPPORT_DATE_MAP_PLAN_DOC_EXPECTED_SLICE_SUPPORT_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/expected_slice_support_maps.rs";

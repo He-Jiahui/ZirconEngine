@@ -1,3 +1,4 @@
+use super::super::super::layers::{label_order, value_surface_order};
 use super::super::context::SliderCommandParts;
 use super::label::push_sequence_label;
 use super::thumbs::push_sequence_thumbs;
@@ -25,7 +26,15 @@ pub(in super::super) fn push_ready_slider_commands(
         style,
     } = context;
 
-    push_sequence_label(commands, &rect, clip, order + 3, label, &style, opacity);
+    push_sequence_label(
+        commands,
+        &rect,
+        clip,
+        label_order(order),
+        label,
+        &style,
+        opacity,
+    );
     push_sequence_track(
         commands,
         &track_rect,
@@ -55,7 +64,7 @@ pub(in super::super) fn push_ready_slider_commands(
         value_rect.as_ref(),
         &track_rect,
         clip,
-        order + 5,
+        value_surface_order(order),
         percent,
         range_min_percent,
         &style,

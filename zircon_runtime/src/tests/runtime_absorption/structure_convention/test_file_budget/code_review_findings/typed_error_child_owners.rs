@@ -1,28 +1,28 @@
 use super::super::*;
 
-#[path = "typed_error_child_owners/budgets.rs"]
+#[path = "typed_error_owners/budgets.rs"]
 mod budgets;
-#[path = "typed_error_child_owners/child_ownership.rs"]
+#[path = "typed_error_owners/child_ownership.rs"]
 mod child_ownership;
-#[path = "typed_error_child_owners/delegation.rs"]
+#[path = "typed_error_owners/delegation.rs"]
 mod delegation;
-#[path = "typed_error_child_owners/root_child_rows.rs"]
+#[path = "typed_error_owners/root_child_rows.rs"]
 mod root_child_rows;
-#[path = "typed_error_child_owners/root_inventory.rs"]
+#[path = "typed_error_owners/root_inventory.rs"]
 mod root_inventory;
-#[path = "typed_error_child_owners/root_paths.rs"]
+#[path = "typed_error_owners/root_paths.rs"]
 mod root_paths;
-#[path = "typed_error_child_owners/root_sources.rs"]
+#[path = "typed_error_owners/root_sources.rs"]
 mod root_sources;
-#[path = "typed_error_child_owners/root_statuses.rs"]
+#[path = "typed_error_owners/root_statuses.rs"]
 mod root_statuses;
-#[path = "typed_error_child_owners/source_inventory.rs"]
+#[path = "typed_error_owners/source_inventory.rs"]
 mod source_inventory;
-#[path = "typed_error_child_owners/status_docs.rs"]
+#[path = "typed_error_owners/status_docs.rs"]
 mod status_docs;
-#[path = "typed_error_child_owners/status_mirrors.rs"]
+#[path = "typed_error_owners/status_mirrors.rs"]
 mod status_mirrors;
-#[path = "typed_error_child_owners/structure_assertions.rs"]
+#[path = "typed_error_owners/structure_assertions.rs"]
 mod structure_assertions;
 
 pub(super) use root_child_rows::*;

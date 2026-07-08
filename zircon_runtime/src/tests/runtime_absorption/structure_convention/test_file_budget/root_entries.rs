@@ -11,8 +11,22 @@ fn runtime_15_root_entries_guard_child_owners_are_folder_backed() {
     let core_spine = read_runtime_src("tests/runtime_absorption/root_entries/core_spine.rs");
     let module_families =
         read_runtime_src("tests/runtime_absorption/root_entries/module_families.rs");
+    let module_family_navigation =
+        read_runtime_src("tests/runtime_absorption/root_entries/module_families/navigation.rs");
+    let module_family_animation_backlog = read_runtime_src(
+        "tests/runtime_absorption/root_entries/module_families/animation_backlog.rs",
+    );
+    let module_family_animation_status_json = read_runtime_src(
+        "tests/runtime_absorption/root_entries/module_families/animation_status_json.rs",
+    );
+    let module_family_root_seats =
+        read_runtime_src("tests/runtime_absorption/root_entries/module_families/root_seats.rs");
+    let module_family_mirror_docs =
+        read_runtime_src("tests/runtime_absorption/root_entries/module_families/mirror_docs.rs");
+    let module_family_split_layout =
+        read_runtime_src("tests/runtime_absorption/root_entries/module_families/split_layout.rs");
     let core_spine_mirror =
-        read_runtime_src("tests/runtime_absorption/core_spine_root_generated.rs");
+        read_runtime_src("tests/runtime_absorption/core_spine_root_generated/mirror_docs.rs");
     let core_spine_audit = read_repo(
         ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_boundary.py",
     );
@@ -29,10 +43,10 @@ fn runtime_15_root_entries_guard_child_owners_are_folder_backed() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
     );
     let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/foundation/lock_poison.rs",
     );
     let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation/lock_poison.rs",
     );
 
     assert_contains_all(
@@ -82,13 +96,16 @@ fn runtime_15_root_entries_guard_child_owners_are_folder_backed() {
     );
     assert_contains_all(
         "module-family child keeps Runtime 14 guards",
-        &module_families,
+        &format!(
+            "{module_families}\n{module_family_navigation}\n{module_family_animation_backlog}\n{module_family_animation_status_json}\n{module_family_root_seats}\n{module_family_mirror_docs}\n{module_family_split_layout}"
+        ),
         &[
             "runtime_navigation_boundary_file_set_requires_doc_update",
             "runtime_animation_backlog_boundary_requires_doc_update",
             "runtime_animation_status_json_boundary_sanitizes_non_finite_values",
             "runtime_14_module_family_root_seats_match_documented_judgements",
             "runtime_14_module_family_mirror_docs_match_structure_audit_counts",
+            "runtime_15_root_entries_module_families_guard_is_folder_backed",
         ],
     );
 
@@ -105,6 +122,30 @@ fn runtime_15_root_entries_guard_child_owners_are_folder_backed() {
         (
             "tests/runtime_absorption/root_entries/module_families.rs",
             module_families.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/root_entries/module_families/navigation.rs",
+            module_family_navigation.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/root_entries/module_families/animation_backlog.rs",
+            module_family_animation_backlog.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/root_entries/module_families/animation_status_json.rs",
+            module_family_animation_status_json.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/root_entries/module_families/root_seats.rs",
+            module_family_root_seats.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/root_entries/module_families/mirror_docs.rs",
+            module_family_mirror_docs.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/root_entries/module_families/split_layout.rs",
+            module_family_split_layout.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

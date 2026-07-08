@@ -1,5 +1,8 @@
-use super::palette::{workbench_slider_palette_from_host, WORKBENCH_SLIDER_TRACK_DISABLED};
+use super::palette::{
+    workbench_slider_palette, workbench_slider_palette_from_host, WORKBENCH_SLIDER_TRACK_DISABLED,
+};
 use super::selection::select_workbench_slider_style;
+use super::state::is_workbench_slider_state_hot;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use crate::ui::retained_host::primitives::Color;
@@ -66,4 +69,33 @@ fn slider_loading_state_uses_unavailable_visuals() {
     assert_eq!(style.label_text, PALETTE.text_disabled);
     assert_eq!(style.value_text, PALETTE.text_disabled);
     assert_eq!(style.tick, PALETTE.border_disabled);
+}
+
+#[test]
+fn focused_slider_keeps_neutral_value_border_with_focus_halo() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+
+    let style = select_workbench_slider_style(&node);
+    let palette = workbench_slider_palette();
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert!(!is_workbench_slider_state_hot(style.state));
+    assert_eq!(style.value_border, palette.value_border);
+    assert_eq!(style.thumb_halo, Some(palette.thumb_halo));
+}
+
+#[test]
+fn pressed_slider_keeps_active_value_border_and_hot_halo() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+    node.pressed = true;
+
+    let style = select_workbench_slider_style(&node);
+    let palette = workbench_slider_palette();
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert!(is_workbench_slider_state_hot(style.state));
+    assert_eq!(style.value_border, style.fill);
+    assert_eq!(style.thumb_halo, Some(palette.thumb_halo));
 }

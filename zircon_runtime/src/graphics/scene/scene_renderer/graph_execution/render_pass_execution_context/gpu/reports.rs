@@ -33,6 +33,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             ));
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn push_compute_dispatch_record(
+        &mut self,
+        dispatch: RenderGraphComputeDispatchRecord,
+    ) {
+        self.compute_dispatches.push(dispatch);
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn take_hzb_occlusion_cull_report(
         &mut self,
     ) -> Option<HzbOcclusionCullReport> {

@@ -109,6 +109,7 @@ fn wgpu_dimension(dimension: RenderImageDimension) -> wgpu::TextureDimension {
         RenderImageDimension::D1 => wgpu::TextureDimension::D1,
         RenderImageDimension::D2 => wgpu::TextureDimension::D2,
         RenderImageDimension::D3 => wgpu::TextureDimension::D3,
+        RenderImageDimension::Cube => wgpu::TextureDimension::D2,
     }
 }
 

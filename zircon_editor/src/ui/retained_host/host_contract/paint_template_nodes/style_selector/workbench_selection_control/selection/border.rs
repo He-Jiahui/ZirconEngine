@@ -17,7 +17,7 @@ pub(super) fn control_border(
     }
     match kind {
         WorkbenchSelectionControlKind::Checkbox => {
-            if is_hot(state) {
+            if state == UiPainterResolvedState::Focused || is_hot(state) {
                 palette.focus_ring
             } else if checked {
                 palette.accent
@@ -26,7 +26,7 @@ pub(super) fn control_border(
             }
         }
         WorkbenchSelectionControlKind::Radio => {
-            if is_hot(state) {
+            if state == UiPainterResolvedState::Focused || is_hot(state) {
                 palette.focus_ring
             } else if checked {
                 palette.radio_checked_border
@@ -35,7 +35,7 @@ pub(super) fn control_border(
             }
         }
         WorkbenchSelectionControlKind::Toggle => {
-            if is_hot(state) {
+            if state == UiPainterResolvedState::Focused || is_hot(state) {
                 palette.focus_ring
             } else if checked {
                 palette.toggle_checked_border

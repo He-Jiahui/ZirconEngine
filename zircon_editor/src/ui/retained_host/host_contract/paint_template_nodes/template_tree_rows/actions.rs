@@ -5,6 +5,9 @@ use super::super::template_tree_row_geometry::{tree_action_button_rect, tree_act
 use super::super::template_tree_row_glyphs::{
     push_tree_eye_action_glyph, push_tree_kebab_action_glyph, push_tree_lock_action_glyph,
 };
+use super::layers::{
+    primary_action_icon_order, secondary_action_icon_order, secondary_action_slot_order,
+};
 use super::style::tree_action_color;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_actions(
@@ -22,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         commands,
         &eye,
         clip,
-        order + 1,
+        primary_action_icon_order(order),
         tree_action_color(node),
         opacity,
     );
@@ -30,22 +33,34 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     let secondary_button = tree_action_button_rect(rect, 0);
     let secondary = tree_action_icon_rect(&secondary_button);
     if node.selected || node.checked {
-        push_tree_action_button_slot(commands, &secondary_button, clip, order + 2, opacity);
+        push_tree_action_button_slot(
+            commands,
+            &secondary_button,
+            clip,
+            secondary_action_slot_order(order),
+            opacity,
+        );
         push_tree_kebab_action_glyph(
             commands,
             &secondary,
             clip,
-            order + 3,
+            secondary_action_icon_order(order),
             tree_action_color(node),
             opacity,
         );
     } else if shows_tree_lock_action(node) {
-        push_tree_action_button_slot(commands, &secondary_button, clip, order + 2, opacity);
+        push_tree_action_button_slot(
+            commands,
+            &secondary_button,
+            clip,
+            secondary_action_slot_order(order),
+            opacity,
+        );
         push_tree_lock_action_glyph(
             commands,
             &secondary,
             clip,
-            order + 3,
+            secondary_action_icon_order(order),
             tree_action_color(node),
             opacity,
         );

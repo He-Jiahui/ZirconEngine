@@ -53,6 +53,20 @@ fn sampled_subpixel_coverage_averages_rgb_channels_independently() {
 }
 
 #[test]
+fn sampled_subpixel_coverage_applies_fallback_phase() {
+    let bitmap = [255, 0, 0, 0, 255, 0, 0, 0, 0, 0, 255, 0, 0, 0, 255, 0];
+
+    assert_eq!(
+        sampled_subpixel_coverage(&bitmap, 4, 1, 0, 0, 4.0, 0.0),
+        [128, 0, 128]
+    );
+    assert_eq!(
+        sampled_subpixel_coverage(&bitmap, 4, 1, 0, 0, 4.0, 0.5),
+        [255, 0, 0]
+    );
+}
+
+#[test]
 fn sampled_subpixel_coverage_preserves_native_rgb_channels() {
     let bitmap = [12, 34, 56, 0, 90, 120, 150, 0];
 

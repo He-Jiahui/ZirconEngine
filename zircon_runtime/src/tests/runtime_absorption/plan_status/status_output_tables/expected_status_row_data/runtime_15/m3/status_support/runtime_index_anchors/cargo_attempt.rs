@@ -1,0 +1,30 @@
+type Slice = super::Slice;
+
+pub(super) const RUNTIME_CARGO_ATTEMPT_STATUS_ANCHOR_SYNC: Slice = (
+    "Runtime 15 M3 Runtime Cargo attempt status anchor sync",
+    &[
+        "runtime_15_runtime_cargo_attempt_status_anchor_sync_static_passed_cargo_deferred",
+        "docs/plans/zircon_runtime/runtime/index.md",
+        "cargo_deferred_active_lane",
+        "cargo_blocked_external_compile_drift",
+        "cargo_recheck_blocked_external_ui_compile_drift",
+        "cargo_recheck_timeout_no_result",
+        "Runtime 14 Cargo 验证窗口探测",
+        "Runtime 14 animation Cargo gate 尝试",
+        "Runtime 14 animation Cargo gate 修复与复验阻塞",
+        "Runtime 14 animation runtime-status focused recheck timeout",
+        "cargo test -p zircon_runtime --lib animation --locked",
+        "runtime_status_reports_player_rig_and_gpu_readiness",
+        "共享 lib-test 编译层",
+        "SKINNED_MESH_MAX_JOINT_MATRICES",
+        "ViewportCameraSnapshot.temporal_jitter",
+        "31 passed; 3 failed",
+        "AnimationPlayerRuntimeStatus::sanitized_snapshot",
+        "UiInputDispatchDiagnostics.capture_started",
+        "default_interactions/table.rs:257",
+        "904s",
+        "无测试结果",
+        "cargo/rustc processes were stopped",
+        "runtime_15_runtime_cargo_attempt_status_index_anchors_are_locked",
+    ],
+);

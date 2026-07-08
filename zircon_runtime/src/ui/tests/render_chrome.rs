@@ -128,9 +128,10 @@ fn render_extract_chrome_uses_shared_unavailable_and_active_state_priority() {
         &mut surface,
         UiNodeId::new(2),
         "InspectorPanel",
-        UiFrame::new(8.0, 8.0, 180.0, 80.0),
+        UiFrame::new(8.0, 8.0, 180.0, 52.0),
         r##"
 title = "Inspector"
+background_color = "#151b1f"
 selected_background_color = "#184c54"
 focus_border_color = "#35c7d0"
 "##,
@@ -149,10 +150,28 @@ foreground_color = "#ffffff"
 "##,
         visible_state(),
     );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(4),
+        "Panel",
+        UiFrame::new(204.0, 8.0, 180.0, 52.0),
+        r##"
+title = "Selected"
+background_color = "#151b1f"
+selected_background_color = "#184c54"
+"##,
+        visible_state(),
+    );
 
     assert!(surface.component_states.set_focused(UiNodeId::new(2), true));
     surface
         .mark_component_state_render_dirty(UiNodeId::new(2))
+        .unwrap();
+    assert!(surface
+        .component_states
+        .set_selected(UiNodeId::new(4), true));
+    surface
+        .mark_component_state_render_dirty(UiNodeId::new(4))
         .unwrap();
     surface.rebuild();
 
@@ -163,9 +182,19 @@ foreground_color = "#ffffff"
     );
     assert_eq!(
         panel_surface.style.background_color.as_deref(),
-        Some("#184c54")
+        Some("#151b1f")
     );
     assert_eq!(panel_surface.style.border_color.as_deref(), Some("#35c7d0"));
+
+    let selected_surface = chrome_surface(&surface.render_extract.list.commands, UiNodeId::new(4));
+    assert_eq!(
+        selected_surface.style.painter_state,
+        UiPainterResolvedState::Selected
+    );
+    assert_eq!(
+        selected_surface.style.background_color.as_deref(),
+        Some("#184c54")
+    );
 
     let status_surface = chrome_surface(&surface.render_extract.list.commands, UiNodeId::new(3));
     assert_eq!(

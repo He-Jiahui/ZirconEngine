@@ -5,12 +5,15 @@ const MIN_TEXT_FONT_SIZE: f32 = 1.0;
 const FIT_SEARCH_STEPS: usize = 8;
 const FIT_WIDTH_EPSILON: f32 = 0.5;
 
-pub(super) fn resolve(
+pub(super) fn resolve<F>(
     text: &str,
     style: &UiResolvedStyle,
     max_width: f32,
-    measure: fn(&str, &UiResolvedStyle) -> UiSize,
-) -> UiResolvedStyle {
+    mut measure: F,
+) -> UiResolvedStyle
+where
+    F: FnMut(&str, &UiResolvedStyle) -> UiSize,
+{
     match style.text_overflow {
         UiTextOverflow::ShrinkToFit => fit_text_style(
             text,
@@ -18,7 +21,7 @@ pub(super) fn resolve(
             max_width,
             MIN_TEXT_FONT_SIZE,
             style.font_size.max(MIN_TEXT_FONT_SIZE),
-            measure,
+            &mut measure,
         ),
         UiTextOverflow::ClampFontSize { min_px, max_px } => {
             let (min_font_size, max_font_size) = normalized_font_size_bounds(min_px, max_px);
@@ -29,7 +32,7 @@ pub(super) fn resolve(
                 max_width,
                 min_font_size,
                 max_font_size,
-                measure,
+                &mut measure,
             )
         }
         _ => style.clone(),
@@ -63,7 +66,7 @@ fn fit_text_style(
     max_width: f32,
     min_font_size: f32,
     max_font_size: f32,
-    measure: fn(&str, &UiResolvedStyle) -> UiSize,
+    measure: &mut dyn FnMut(&str, &UiResolvedStyle) -> UiSize,
 ) -> UiResolvedStyle {
     let max_width = max_width.max(0.0);
     if text.is_empty() || max_width <= 0.0 {

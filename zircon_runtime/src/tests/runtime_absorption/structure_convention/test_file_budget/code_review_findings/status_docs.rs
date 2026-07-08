@@ -1,28 +1,28 @@
 use super::super::*;
 
-#[path = "status_docs/delegation.rs"]
+#[path = "status/delegation.rs"]
 mod delegation;
-#[path = "status_docs/root_children.rs"]
+#[path = "status/root_children.rs"]
 mod root_children;
-#[path = "status_docs/root_inventory.rs"]
+#[path = "status/root_inventory.rs"]
 mod root_inventory;
-#[path = "status_docs/root_paths.rs"]
+#[path = "status/root_paths.rs"]
 mod root_paths;
-#[path = "status_docs/root_row_sources.rs"]
+#[path = "status/root_row_sources.rs"]
 mod root_row_sources;
-#[path = "status_docs/root_statuses.rs"]
+#[path = "status/root_statuses.rs"]
 mod root_statuses;
-#[path = "status_docs/source_anchor_guard.rs"]
+#[path = "status/source_anchor_guard.rs"]
 mod source_anchor_guard;
-#[path = "status_docs/source_anchors.rs"]
+#[path = "status/source_anchors.rs"]
 mod source_anchors;
-#[path = "status_docs/status_anchor_guard.rs"]
+#[path = "status/status_anchor_guard.rs"]
 mod status_anchor_guard;
-#[path = "status_docs/status_anchors.rs"]
+#[path = "status/status_anchors.rs"]
 mod status_anchors;
-#[path = "status_docs/status_mirrors.rs"]
+#[path = "status/status_mirrors.rs"]
 mod status_mirrors;
-#[path = "status_docs/sync.rs"]
+#[path = "status/sync.rs"]
 mod sync;
 
 pub(super) use root_children::*;
@@ -35,4 +35,22 @@ pub(super) fn assert_code_review_findings_status_docs_are_synced() {
 
 pub(super) fn review_guard_status_rows_source() -> String {
     root_row_sources::review_guard_status_rows_source()
+}
+
+pub(super) fn review_guard_status_map_source() -> String {
+    root_row_sources::review_guard_status_map_source()
+}
+
+pub(super) fn review_guard_date_map_source() -> String {
+    root_row_sources::review_guard_date_map_source()
+}
+
+pub(super) fn status_doc_route_inventory_source() -> String {
+    format!(
+        "{}\n{}\n{}\n{}",
+        read_runtime_src(STATUS_DOC_PARENT_PATH),
+        read_runtime_src(STATUS_DOC_ROOT_PATHS_CHILD),
+        read_runtime_src(STATUS_DOC_ROOT_STATUSES_CHILD),
+        read_runtime_src(STATUS_DOC_ROOT_CHILDREN_CHILD)
+    )
 }

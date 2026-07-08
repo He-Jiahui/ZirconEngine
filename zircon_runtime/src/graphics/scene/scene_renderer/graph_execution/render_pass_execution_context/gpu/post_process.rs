@@ -138,6 +138,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             PostProcessGraphResourceNames::GLOBAL_ILLUMINATION,
             RenderGraphResourceAccessKind::Write,
         )?;
+        let current_hybrid_gi_lighting_view = optional_single_sample_color_texture_view(
+            resources,
+            resource_resolver,
+            PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+        )?;
         let screen_space_reflection_history_view = optional_texture_view_or_black(
             resources,
             resource_resolver,
@@ -187,6 +192,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             ambient_occlusion_view,
             contact_shadow_view,
             None,
+            current_hybrid_gi_lighting_view,
             history.map(|history| &history.global_illumination_view),
             history.map(|history| &history.screen_space_reflection_view),
             bloom_view,
@@ -364,6 +370,32 @@ fn optional_texture_view_or_white<'a>(
         resource_name,
         post_process.white_texture_view(),
     )
+}
+
+fn optional_single_sample_color_texture_view<'a>(
+    resources: &'a RenderGraphExecutionResources,
+    resource_resolver: Option<super::super::RgResourceResolver<'_>>,
+    resource_name: &str,
+) -> Result<Option<&'a wgpu::TextureView>, String> {
+    let Some(view) = RenderPassGpuExecutionContext::optional_texture_view_by_name(
+        resources,
+        resource_resolver,
+        resource_name,
+        RenderGraphResourceAccessKind::Read,
+    )?
+    else {
+        return Ok(None);
+    };
+    let desc = RenderPassGpuExecutionContext::require_texture_desc_by_name(
+        resources,
+        resource_resolver,
+        resource_name,
+        RenderGraphResourceAccessKind::Read,
+    )?;
+    if desc.sample_count != 1 || desc.format.is_depth() {
+        return Ok(None);
+    }
+    Ok(Some(view))
 }
 
 fn optional_texture_view_or<'a>(

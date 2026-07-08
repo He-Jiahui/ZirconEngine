@@ -60,6 +60,35 @@ fn runtime_font_family_is_resolved_from_font_preferences() {
 }
 
 #[test]
+fn system_ui_fontdb_query_prefers_editor_ui_family_stack_before_generic() {
+    let families = fontdb_families_for_request(EditorTypographyTokens::DEFAULT_UI_FAMILY);
+
+    assert_eq!(
+        families,
+        vec![
+            Family::Name("DengXian"),
+            Family::Name("等线"),
+            Family::Name("Microsoft YaHei UI"),
+            Family::Name("Segoe UI"),
+            Family::SansSerif,
+        ],
+        "default editor UI text should resolve through the explicit UI fallback stack before generic sans-serif"
+    );
+}
+
+#[test]
+fn explicit_fontdb_generic_families_remain_generic() {
+    assert_eq!(
+        fontdb_families_for_request("sans-serif"),
+        vec![Family::SansSerif]
+    );
+    assert_eq!(
+        fontdb_families_for_request("monospace"),
+        vec![Family::Monospace]
+    );
+}
+
+#[test]
 fn embedded_fallback_keeps_the_requested_runtime_family() {
     let request = HostTextFontRequest {
         face: HostTextFontFace::Ui,
@@ -70,6 +99,7 @@ fn embedded_fallback_keeps_the_requested_runtime_family() {
     let font = embedded_font_for_request(&request);
 
     assert_eq!(font.runtime_family, "requested-ui-family");
+    assert_eq!(font.collection_index, 0);
     assert!(font.font.is_some());
 }
 
@@ -86,6 +116,32 @@ fn unavailable_host_font_preserves_runtime_family_without_embedded_panic() {
     assert!(font.font.is_none());
     assert!(font.bytes.is_empty());
     assert_eq!(font.runtime_family, "requested-ui-family");
+    assert_eq!(font.collection_index, 0);
+}
+
+#[test]
+fn font_settings_preserve_collection_index_for_system_font_collections() {
+    let settings = font_settings_for_collection_index(3);
+
+    assert_eq!(settings.collection_index, 3);
+}
+
+#[test]
+fn host_font_cache_key_includes_collection_index_for_collection_faces() {
+    let request = HostTextFontRequest {
+        face: HostTextFontFace::Ui,
+        family: "DengXian".to_string(),
+        weight: 400,
+    };
+    let bytes = [0x00, 0x01, 0x02, 0x03];
+
+    let root_face_key = host_text_font_cache_key(&request, "DengXian", &bytes, 0);
+    let collection_face_key = host_text_font_cache_key(&request, "DengXian", &bytes, 1);
+
+    assert_ne!(
+        root_face_key, collection_face_key,
+        "glyph caches must separate different faces inside the same font collection"
+    );
 }
 
 #[test]

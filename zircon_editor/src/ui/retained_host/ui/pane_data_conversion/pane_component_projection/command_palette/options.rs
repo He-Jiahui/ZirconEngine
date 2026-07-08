@@ -56,6 +56,7 @@ pub(in crate::ui::retained_host::ui) fn projected_command_palette_structured_opt
                 loading: false,
                 id: entry.id.into(),
                 label: entry.label.into(),
+                description: entry.description.into(),
                 ..host_contract::TemplatePaneOptionData::default()
             })
             .collect(),

@@ -1,13 +1,13 @@
-use super::super::render_batch::glyph_atlas_draw_batch_plan;
-use super::super::render_contract::GlyphAtlasBlendMode;
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasRect, GlyphAtlasSamplingSemantics,
-    GlyphAtlasUploadMode,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasRect,
+    GlyphAtlasSamplingSemantics, GlyphAtlasSet, GlyphAtlasUploadMode,
 };
 use super::*;
 use crate::core::math::UVec2;
 
+mod dirty_upload;
+mod draw_batches;
 mod retry;
 
 #[test]
@@ -84,6 +84,48 @@ fn render_text_atlas_bitmap_run_reserves_new_page_on_shelf_overflow() {
         plan.dirty_pages[1].merged_rect(),
         Some(atlas_rect(0, 0, 12, 12))
     );
+}
+
+#[test]
+fn render_text_atlas_bitmap_run_rebuilds_persistent_page_and_invalidates_slots() {
+    let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0);
+    let atlas = GlyphAtlasSet::from_page(
+        GlyphAtlasPageSpec::new(page_key, UVec2::new(16, 16)).with_generation(2),
+    );
+
+    let plan = glyph_atlas_bitmap_run_plan_with_atlas_and_padding(
+        atlas,
+        [source(
+            GlyphAtlasFormat::AlphaMask,
+            UVec2::new(12, 12),
+            4.0,
+            144,
+        )],
+        UVec2::new(16, 16),
+        12,
+        1,
+        2,
+    );
+
+    assert!(plan.allocation_failures.is_empty());
+    assert_eq!(plan.atlas.page_count(), 1);
+    assert_eq!(
+        plan.atlas
+            .page(GlyphAtlasFormat::AlphaMask, 0)
+            .map(|page| page.generation),
+        Some(3)
+    );
+    assert_eq!(plan.rebuilt_pages, vec![page_key]);
+    assert_eq!(
+        plan.slot_invalidations,
+        vec![GlyphAtlasBitmapSlotInvalidation {
+            page_key,
+            page_generation: 3,
+        }]
+    );
+    assert_eq!(plan.upload_commands.len(), 1);
+    assert_eq!(plan.upload_commands[0].mode, GlyphAtlasUploadMode::FullPage);
+    assert_eq!(plan.upload_commands[0].rect, atlas_rect(0, 0, 16, 16));
 }
 
 #[test]
@@ -330,6 +372,7 @@ fn render_text_atlas_bitmap_staged_upload_plan_reports_short_page_bytes() {
     let staging = GlyphAtlasBitmapUploadStagingPlan {
         pages: vec![GlyphAtlasBitmapPageUploadStaging {
             page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+            page_generation: 0,
             bytes_per_row: 8,
             bytes: vec![0; 4],
         }],
@@ -417,6 +460,7 @@ fn render_text_atlas_bitmap_texture_upload_request_plan_projects_renderer_write_
         vec![GlyphAtlasBitmapTextureUploadRequest {
             staging_page_index: 0,
             page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+            page_generation: 0,
             origin_xy: UVec2::new(0, 0),
             origin_layer: 0,
             extent: UVec2::new(8, 2),
@@ -453,6 +497,92 @@ fn render_text_atlas_bitmap_texture_upload_request_plan_skips_failed_staged_uplo
     assert!(!request_plan.has_requests());
     assert_eq!(request_plan.requests.len(), 0);
     assert_eq!(request_plan.skipped_failure_count, 1);
+}
+
+#[test]
+fn render_text_atlas_bitmap_texture_upload_request_plan_requeues_stale_page_generation() {
+    let plan = glyph_atlas_bitmap_run_plan_with_padding(
+        [source(
+            GlyphAtlasFormat::AlphaMask,
+            UVec2::new(4, 2),
+            8.0,
+            8,
+        )],
+        UVec2::new(8, 4),
+        30,
+        1,
+        0,
+    );
+    let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+    let prepared = glyph_atlas_bitmap_prepared_upload_plan(
+        &plan,
+        [GlyphAtlasBitmapUploadSourceBytes::new(0, &bytes)],
+    );
+    let stale_atlas = GlyphAtlasSet::from_page(
+        GlyphAtlasPageSpec::new(
+            GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+            UVec2::new(8, 4),
+        )
+        .with_generation(1),
+    );
+
+    let request_plan = glyph_atlas_bitmap_texture_upload_request_plan_with_atlas(
+        &prepared.staged_uploads,
+        &stale_atlas,
+    );
+
+    assert!(request_plan.requests.is_empty());
+    assert_eq!(request_plan.stale_page_generation_count, 1);
+    assert_eq!(
+        request_plan.requeued_uploads,
+        vec![GlyphAtlasBitmapRequeuedUpload {
+            upload_command_index: 0,
+            page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+            requested_page_generation: 0,
+            current_page_generation: Some(1),
+            reason: GlyphAtlasBitmapRequeueReason::PageGenerationMismatch,
+        }]
+    );
+}
+
+#[test]
+fn render_text_atlas_bitmap_texture_upload_request_plan_requeues_invalid_face_uploads() {
+    let plan = glyph_atlas_bitmap_run_plan_with_padding(
+        [source(
+            GlyphAtlasFormat::AlphaMask,
+            UVec2::new(4, 2),
+            8.0,
+            8,
+        )],
+        UVec2::new(8, 4),
+        31,
+        1,
+        0,
+    );
+    let bytes = [1, 2, 3, 4, 5, 6, 7, 8];
+    let prepared = glyph_atlas_bitmap_prepared_upload_plan(
+        &plan,
+        [GlyphAtlasBitmapUploadSourceBytes::new(0, &bytes)],
+    );
+
+    let request_plan = glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity(
+        &prepared.staged_uploads,
+        &plan.atlas,
+        GlyphAtlasBitmapFaceValidity::Invalidated,
+    );
+
+    assert!(request_plan.requests.is_empty());
+    assert_eq!(request_plan.face_invalidated_count, 1);
+    assert_eq!(
+        request_plan.requeued_uploads,
+        vec![GlyphAtlasBitmapRequeuedUpload {
+            upload_command_index: 0,
+            page_key: GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0),
+            requested_page_generation: 0,
+            current_page_generation: Some(0),
+            reason: GlyphAtlasBitmapRequeueReason::FaceInvalidated,
+        }]
+    );
 }
 
 #[test]
@@ -519,31 +649,6 @@ fn render_text_atlas_bitmap_upload_staging_plan_reports_missing_or_mismatched_so
             },
         ]
     );
-}
-
-#[test]
-fn render_text_atlas_bitmap_run_promotes_full_page_dirty_to_full_upload() {
-    let plan = glyph_atlas_bitmap_run_plan_with_padding(
-        [source(
-            GlyphAtlasFormat::AlphaMask,
-            UVec2::new(16, 16),
-            8.0,
-            256,
-        )],
-        UVec2::new(16, 16),
-        23,
-        1,
-        0,
-    );
-
-    assert!(plan.allocation_failures.is_empty());
-    assert_eq!(plan.dirty_pages.len(), 1);
-    assert_eq!(plan.upload_commands.len(), 1);
-    assert_eq!(plan.upload_commands[0].mode, GlyphAtlasUploadMode::FullPage);
-    assert_eq!(plan.upload_commands[0].rect, atlas_rect(0, 0, 16, 16));
-    assert_eq!(plan.upload_commands[0].bytes_per_row, 16);
-    assert_eq!(plan.upload_commands[0].rows_per_image, 16);
-    assert_eq!(plan.upload_commands[0].upload_byte_len, 256);
 }
 
 #[test]
@@ -614,36 +719,6 @@ fn render_text_atlas_bitmap_run_records_failures_for_invalid_sources() {
                 GlyphAtlasBitmapAllocationFailureReason::OversizedGlyph
             ),
         ]
-    );
-}
-
-#[test]
-fn render_text_atlas_bitmap_run_feeds_draw_batches_without_rgba_semantic_merge() {
-    let plan = glyph_atlas_bitmap_run_plan_with_padding(
-        [
-            source(GlyphAtlasFormat::SubpixelMask, UVec2::new(8, 8), 8.0, 256),
-            source(GlyphAtlasFormat::Color, UVec2::new(8, 8), 22.0, 256),
-        ],
-        UVec2::new(32, 32),
-        17,
-        1,
-        2,
-    );
-    let draw_plan = glyph_atlas_draw_batch_plan(
-        plan.draw_glyphs,
-        GlyphAtlasScreenRect::new(0.0, 0.0, 64.0, 32.0),
-    );
-
-    assert_eq!(draw_plan.visible_glyph_count, 2);
-    assert_eq!(draw_plan.batches.len(), 2);
-    assert!(draw_plan.requires_background_composite);
-    assert_eq!(
-        draw_plan.batches[0].key.render_contract.blend_mode,
-        GlyphAtlasBlendMode::SubpixelBackgroundComposite
-    );
-    assert_eq!(
-        draw_plan.batches[1].key.render_contract.blend_mode,
-        GlyphAtlasBlendMode::SourceRgba
     );
 }
 

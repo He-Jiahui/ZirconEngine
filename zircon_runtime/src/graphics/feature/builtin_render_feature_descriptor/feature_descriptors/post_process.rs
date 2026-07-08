@@ -255,6 +255,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH)
             .read_texture(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
             .read_texture(PostProcessGraphResourceNames::COLOR_LUT)
+            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
             .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .read_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT)
             .write_texture_with_ops(

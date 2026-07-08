@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 use super::eye::push_eye_icon;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_eye_off_icon(
@@ -19,6 +21,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ey
         order + 1,
         color,
         opacity,
-        &[(3.0, 12.0, 10.0, 1.4)],
+        &[seg(60, 240, 200, 28)],
     );
 }

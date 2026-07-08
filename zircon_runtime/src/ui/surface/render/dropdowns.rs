@@ -142,6 +142,7 @@ pub(super) fn dropdown_render_commands(
 struct DropdownRenderState {
     family: UiPainterFamily,
     visual_state: UiPainterResolvedState,
+    surface_hot: bool,
 }
 
 impl DropdownRenderState {
@@ -154,9 +155,12 @@ impl DropdownRenderState {
             UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
                 .painter_state();
         let family = UiPainterFamily::Dropdown;
+        let surface_hot =
+            painter_state.hovered || painter_state.dragging || painter_state.drop_hovered;
         Self {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
+            surface_hot,
         }
     }
 
@@ -175,11 +179,24 @@ impl DropdownRenderState {
         matches!(self.visual_state, UiPainterResolvedState::Pressed)
     }
 
-    fn hot(self) -> bool {
+    fn focused(self) -> bool {
+        matches!(self.visual_state, UiPainterResolvedState::Focused)
+    }
+
+    fn surface_hot(self) -> bool {
+        self.surface_hot
+            || matches!(
+                self.visual_state,
+                UiPainterResolvedState::Hovered
+                    | UiPainterResolvedState::Dragging
+                    | UiPainterResolvedState::DropHovered
+            )
+    }
+
+    fn active_border(self) -> bool {
         matches!(
             self.visual_state,
             UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
                 | UiPainterResolvedState::Dragging
                 | UiPainterResolvedState::DropHovered
         )
@@ -320,7 +337,7 @@ fn surface_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRende
         color_attribute(metadata, "open_background_color").unwrap_or(SURFACE_OPEN)
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(SURFACE_PRESSED)
-    } else if state.hot() {
+    } else if state.surface_hot() {
         color_attribute(metadata, "hover_background_color").unwrap_or(SURFACE_HOVER)
     } else {
         color_attribute(metadata, "background_color").unwrap_or(SURFACE_IDLE)
@@ -330,7 +347,7 @@ fn surface_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRende
 fn border_color<'a>(metadata: &'a UiTemplateNodeMetadata, state: &DropdownRenderState) -> &'a str {
     if state.unavailable() {
         BORDER_DISABLED
-    } else if state.open() || state.hot() || state.pressed() {
+    } else if state.open() || state.pressed() || state.focused() || state.active_border() {
         color_attribute(metadata, "focus_border_color").unwrap_or(BORDER_FOCUS)
     } else {
         color_attribute(metadata, "border_color").unwrap_or(BORDER_IDLE)

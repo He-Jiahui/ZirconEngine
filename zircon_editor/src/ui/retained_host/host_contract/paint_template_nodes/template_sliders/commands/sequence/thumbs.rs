@@ -1,3 +1,4 @@
+use super::super::super::layers::{primary_thumb_order, range_min_thumb_order};
 use super::super::super::thumb::push_slider_thumb;
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
@@ -21,7 +22,7 @@ pub(super) fn push_sequence_thumbs(
             style,
             track_rect,
             clip,
-            order + 3,
+            range_min_thumb_order(order),
             range_min_percent,
             opacity,
         );
@@ -32,7 +33,7 @@ pub(super) fn push_sequence_thumbs(
         style,
         track_rect,
         clip,
-        order + 4,
+        primary_thumb_order(order),
         percent,
         opacity,
     );

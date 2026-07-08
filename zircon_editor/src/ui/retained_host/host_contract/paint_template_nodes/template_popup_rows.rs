@@ -1,6 +1,8 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 
+mod content;
+mod layers;
 mod menu;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) mod metrics;
 mod options;
@@ -14,6 +16,8 @@ use options::push_option_row_commands;
 use super::template_popup_row_adornments::{
     menu_item_has_flag, menu_row_adornment_kind, PopupRowAdornmentKind,
 };
+#[cfg(test)]
+use content::popup_row_content_style;
 #[cfg(test)]
 use menu::popup_menu_row_style;
 #[cfg(test)]

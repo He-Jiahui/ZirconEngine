@@ -11,9 +11,15 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests.rs",
-    );
+    let status_rows = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests/runtime_catalog_rows.rs",
+        ),
+    ]
+    .join("\n");
 
     assert_contains_all(
         "runtime plugin lifecycle parent mounts lifecycle fixture child owner",

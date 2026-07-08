@@ -183,6 +183,80 @@ menu_items = ["Delete|checked,hovered,pressed,danger,loading", "Simulate"]
 }
 
 #[test]
+fn render_extract_focused_context_menu_option_keeps_neutral_surface_until_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.popup_menu.focused_neutral",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 220.0, 140.0))
+            .with_state_flags(visible_state()),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/menu"))
+                .with_frame(UiFrame::new(12.0, 12.0, 160.0, 60.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "ContextMenu".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+open = true
+options = ["rename|label=Rename", "delete|label=Delete"]
+focused_index = 0
+"##,
+                    )
+                    .unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let focused_surface = commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(2)
+                && command.kind == UiRenderCommandKind::Quad
+                && command.style.painter_family == UiPainterFamily::PopupRow
+                && command.frame == UiFrame::new(12.0, 12.0, 160.0, 30.0)
+        })
+        .expect("focused-only popup row should keep a neutral focus surface");
+    assert_eq!(
+        focused_surface.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_surface.style.background_color.as_deref(),
+        Some("#151b1f")
+    );
+    assert_eq!(
+        focused_surface.style.border_color.as_deref(),
+        Some("#303840")
+    );
+    assert_eq!(focused_surface.style.border_width, 1.0);
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.frame == UiFrame::new(12.0, 12.0, 160.0, 30.0)
+            && command.style.background_color.as_deref() == Some("#1a2429")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Text
+            && command.text.as_deref() == Some("Rename")
+            && command.style.painter_family == UiPainterFamily::PopupRow
+            && command.style.painter_state == UiPainterResolvedState::Focused
+            && command.style.foreground_color.as_deref() == Some("#c5d0d5")
+    }));
+}
+
+#[test]
 fn render_extract_context_menu_options_use_popup_row_state_matrix() {
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.render.popup_menu.context_menu_states",

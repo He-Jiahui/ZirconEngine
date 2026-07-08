@@ -41,11 +41,14 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
         scene_uniform.find("previous_view_proj_unjittered").unwrap();
     let motion_params = scene_uniform.find("motion_params").unwrap();
     let jitter_params = scene_uniform.find("jitter_params").unwrap();
+    let camera_world_position = scene_uniform.find("camera_world_position").unwrap();
+    let camera_view_direction = scene_uniform.find("camera_view_direction").unwrap();
     let sky_horizon_color = scene_uniform.find("sky_horizon_color").unwrap();
     let sky_zenith_color = scene_uniform.find("sky_zenith_color").unwrap();
     let sky_ground_color = scene_uniform.find("sky_ground_color").unwrap();
     let environment_params = scene_uniform.find("environment_params").unwrap();
     let environment_sample_params = scene_uniform.find("environment_sample_params").unwrap();
+    let environment_sh9 = scene_uniform.find("environment_sh9").unwrap();
 
     assert!(
         view_proj < view_proj_unjittered
@@ -54,12 +57,15 @@ fn deferred_lighting_shader_matches_scene_uniform_layout() {
             && ambient_color < previous_view_proj_unjittered
             && previous_view_proj_unjittered < motion_params
             && motion_params < jitter_params
-            && jitter_params < sky_horizon_color
+            && jitter_params < camera_world_position
+            && camera_world_position < camera_view_direction
+            && camera_view_direction < sky_horizon_color
             && sky_horizon_color < sky_zenith_color
             && sky_zenith_color < sky_ground_color
             && sky_ground_color < environment_params
-            && environment_params < environment_sample_params,
-        "deferred lighting shader must match the Rust SceneUniform matrix, motion, jitter, and environment layout"
+            && environment_params < environment_sample_params
+            && environment_sample_params < environment_sh9,
+        "deferred lighting shader must match the Rust SceneUniform matrix, camera, motion, jitter, and environment layout"
     );
     assert!(!scene_uniform.contains("previous_view_proj:"));
     assert!(!scene_uniform.contains("light_dir"));
@@ -103,9 +109,28 @@ fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
         "scene.sky_ground_color.rgb",
         "scene.environment_params.w > 0.5",
         "scene.environment_sample_params.x",
-        "zr_environment_samples.samples[index].rgb",
+        "scene.environment_sh9[0].rgb",
+        "override ZR_ENV_DIFFUSE_IEM: bool = false;",
+        "@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;",
+        "@group(0) @binding(2) var zr_environment_sampler: sampler;",
+        "@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;",
+        "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;",
+        "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;",
+        "textureSampleLevel(",
+        "zr_environment_source_cube",
+        "zr_environment_specular_pmrem_cube",
+        "zr_environment_irradiance_cube",
         "fn zr_environment_mip_from_roughness",
+        "fn zr_environment_sh9_eval",
+        "fn zr_environment_irradiance_cube_color",
+        "fn zr_environment_env_brdf_lut",
         "fn zr_environment_env_brdf_approx",
+        "fn zr_environment_fix_cube_lookup",
+        "return clamp(roughness, 0.0, 1.0) * max(max_mip, 0.0);",
+        "zr_environment_fix_cube_lookup(rotated, clamped_lod)",
+        "camera_world_position: vec4<f32>",
+        "camera_view_direction: vec4<f32>",
+        "let view_dir = scene_view_dir_ws(world_position);",
         "let environment_lights = zr_environment_pbr_indirect(",
         "shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID",
         "let color = diffuse_color * ambient + direct_lights + environment_lights;",

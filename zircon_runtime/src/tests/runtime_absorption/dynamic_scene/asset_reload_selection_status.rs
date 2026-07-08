@@ -1,4 +1,4 @@
-use super::*;
+use super::sources::*;
 
 #[test]
 fn runtime_05_dynamic_scene_asset_reload_selection_and_status_anchors_stay_visible() {

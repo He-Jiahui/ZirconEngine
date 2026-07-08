@@ -1,7 +1,7 @@
 use super::super::super::template_style_color::resolved_style_color;
 use super::colors::declared_color;
 use super::palette::WorkbenchSliderPalette;
-use super::state::{is_unavailable_slider_state, is_workbench_slider_state_hot};
+use super::state::{is_unavailable_slider_state, slider_state_shows_thumb_halo};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -40,6 +40,6 @@ pub(super) fn slider_thumb_halo_color(
         None
     } else {
         declared_color(node.state_layer_color)
-            .or_else(|| is_workbench_slider_state_hot(state).then_some(palette.thumb_halo))
+            .or_else(|| slider_state_shows_thumb_halo(state).then_some(palette.thumb_halo))
     }
 }

@@ -11,8 +11,8 @@ use crate::hybrid_gi::types::{
     HybridGiResolveRuntime, HybridGiScenePrepareFrame,
 };
 use zircon_runtime::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderHybridGiExtract,
-    RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderOverlayExtract,
+    EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderOverlayExtract,
     RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
     ViewportCameraSnapshot,
 };
@@ -834,6 +834,7 @@ fn hierarchy_rt_lighting_with_descendant(descendant_runtime: [u8; 4]) -> [f32; 4
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -896,6 +897,7 @@ fn scene_prepare_rt_lighting_with_resources(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -959,6 +961,7 @@ fn scene_prepare_rt_lighting_with_exact_runtime(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1024,6 +1027,7 @@ fn scene_prepare_rt_lighting_with_exact_runtime_and_scene_driven_flag(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1104,6 +1108,7 @@ fn scene_prepare_rt_lighting_with_scene_driven_exact_and_descendant(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1199,6 +1204,7 @@ fn scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1292,6 +1298,7 @@ fn inherited_extract_probe_rt_lighting_with_zero_packed_hierarchy_rt() -> [f32; 
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1380,6 +1387,7 @@ fn inherited_trace_region_rt_lighting_with_scheduled_region_ids(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1478,6 +1486,7 @@ fn inherited_trace_region_rt_lighting_with_budget_excess_tail_payload() -> [f32;
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1543,6 +1552,7 @@ fn inherited_trace_region_rt_lighting_with_duplicate_region_payloads() -> [f32; 
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1629,6 +1639,7 @@ fn inherited_trace_region_rt_lighting_with_duplicate_child_probe_payloads() -> [
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -1701,6 +1712,7 @@ fn inherited_trace_region_rt_lighting_with_flat_runtime() -> [f32; 4] {
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,

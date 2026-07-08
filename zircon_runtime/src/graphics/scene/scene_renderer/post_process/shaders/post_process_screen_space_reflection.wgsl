@@ -4,6 +4,7 @@ struct ColorNeighborhood {
 };
 
 const SSR_HIT_REFINE_STEPS: u32 = 4u;
+const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 
 fn load_scene_normal(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
@@ -40,7 +41,7 @@ fn load_scene_material_roughness(coord: vec2<i32>, viewport_size: vec2<u32>) -> 
     if (max(material.r, max(material.g, material.b)) <= 0.001) {
         return 1.0;
     }
-    return clamp(max(material.g, 0.04), 0.04, 1.0);
+    return clamp(max(material.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS), ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
 }
 
 fn load_screen_space_reflection_ambient_occlusion(

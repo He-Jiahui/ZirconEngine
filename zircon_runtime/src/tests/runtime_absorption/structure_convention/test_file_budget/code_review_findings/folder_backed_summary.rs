@@ -30,9 +30,9 @@ pub(super) const ROOT_PARENT_DIRECT_ASSERTIONS_CHILD: &str =
 pub(super) const SOURCE_INVENTORY_CHILD: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory.rs";
 pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/folder_backed_summary_rows.rs";
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/folder_backed_summary_rows.rs";
 
 pub(super) const CODE_REVIEW_FINDINGS_LINE_BUDGET: usize = 800;
 pub(super) const FOLDER_BACKED_SUMMARY_GUARD_SPLIT_NAME: &str =

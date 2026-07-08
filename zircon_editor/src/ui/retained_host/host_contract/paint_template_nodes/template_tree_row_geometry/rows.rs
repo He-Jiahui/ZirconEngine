@@ -41,3 +41,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_gu
         + metrics.tree_guide_offset_x
         + level as f32 * metrics.tree_guide_step
 }
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_guide_rect(
+    rect: &FrameRect,
+    level: usize,
+) -> FrameRect {
+    let metrics = tree_metrics();
+    let vertical_extension = metrics.tree_guide_vertical_extension.max(0.0);
+    FrameRect {
+        x: tree_guide_x(rect, level),
+        y: rect.y - vertical_extension,
+        width: metrics.tree_guide_width.max(0.0),
+        height: (rect.height + vertical_extension * 2.0).max(0.0),
+    }
+}

@@ -1,10 +1,11 @@
 use super::super::render_contract::GlyphAtlasBlendMode;
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
-    GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasBitmapQueuedGlyph,
+    GlyphAtlasBitmapAllocationFailureReason, GlyphAtlasBitmapPlaceholderGlyph,
+    GlyphAtlasBitmapPlaceholderMode, GlyphAtlasBitmapQueuedGlyph,
     GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapRetrySourceOrigin,
     GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat, GlyphAtlasPageKey,
-    GlyphAtlasRect, GlyphAtlasUploadMode,
+    GlyphAtlasPageSpec, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasUploadMode,
 };
 use super::*;
 use crate::core::math::UVec2;
@@ -176,6 +177,43 @@ fn render_text_atlas_bitmap_submission_clips_placeholder_draw_plan() {
 }
 
 #[test]
+fn render_text_atlas_bitmap_submission_appends_worker_pending_placeholders() {
+    let mut plan = glyph_atlas_bitmap_render_submission_plan_with_padding(
+        [source(
+            GlyphAtlasFormat::AlphaMask,
+            UVec2::new(8, 4),
+            8.0,
+            32,
+        )],
+        UVec2::new(32, 32),
+        45,
+        1,
+        2,
+        UVec2::new(80, 32),
+        GlyphAtlasScreenRect::new(0.0, 0.0, 80.0, 32.0),
+    );
+
+    plan.append_placeholder_glyphs(
+        [
+            worker_pending_placeholder(1, 48.0, 46),
+            worker_pending_placeholder(2, 120.0, 46),
+        ],
+        GlyphAtlasScreenRect::new(0.0, 0.0, 80.0, 32.0),
+    );
+    let report = plan.submission_report();
+
+    assert_eq!(plan.run.glyphs.len(), 1);
+    assert_eq!(plan.run.placeholder_glyphs.len(), 2);
+    assert_eq!(plan.placeholder_draws.visible_placeholder_count, 1);
+    assert_eq!(plan.placeholder_draws.skipped_placeholder_count, 1);
+    assert_eq!(plan.placeholder_draws.draws[0].source_index, 1);
+    assert_eq!(report.placeholder_glyph_count, 2);
+    assert_eq!(report.visible_placeholder_count, 1);
+    assert_eq!(report.skipped_placeholder_count, 1);
+    assert!(report.has_placeholder_work());
+}
+
+#[test]
 fn render_text_atlas_bitmap_submission_report_summarizes_upload_and_gpu_work() {
     let plan = glyph_atlas_bitmap_render_submission_plan_with_padding(
         [
@@ -291,6 +329,36 @@ fn render_text_atlas_bitmap_submission_report_counts_full_page_uploads() {
     assert!(report.has_upload_work());
     assert!(report.has_upload_copy_work());
     assert!(report.has_gpu_work());
+}
+
+#[test]
+fn render_text_atlas_bitmap_submission_report_counts_slot_invalidations() {
+    let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0);
+    let atlas = GlyphAtlasSet::from_page(
+        GlyphAtlasPageSpec::new(page_key, UVec2::new(16, 16)).with_generation(4),
+    );
+    let plan = glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding(
+        atlas,
+        [source(
+            GlyphAtlasFormat::AlphaMask,
+            UVec2::new(12, 12),
+            4.0,
+            144,
+        )],
+        UVec2::new(16, 16),
+        60,
+        1,
+        2,
+        UVec2::new(48, 24),
+        GlyphAtlasScreenRect::new(0.0, 0.0, 48.0, 24.0),
+    );
+
+    let report = plan.submission_report();
+
+    assert_eq!(report.rebuilt_page_count, 1);
+    assert_eq!(report.slot_invalidation_count, 1);
+    assert_eq!(plan.run.slot_invalidations[0].page_key, page_key);
+    assert_eq!(plan.run.slot_invalidations[0].page_generation, 5);
 }
 
 #[test]
@@ -493,6 +561,20 @@ fn atlas_rect(x: u32, y: u32, width: u32, height: u32) -> GlyphAtlasRect {
         y,
         width,
         height,
+    }
+}
+
+fn worker_pending_placeholder(
+    source_index: usize,
+    x: f32,
+    retry_frame_index: u64,
+) -> GlyphAtlasBitmapPlaceholderGlyph {
+    GlyphAtlasBitmapPlaceholderGlyph {
+        source_index,
+        format: GlyphAtlasFormat::AlphaMask,
+        screen_rect: GlyphAtlasScreenRect::new(x, 6.0, 8.0, 12.0),
+        retry_frame_index,
+        mode: GlyphAtlasBitmapPlaceholderMode::TransparentQuad,
     }
 }
 

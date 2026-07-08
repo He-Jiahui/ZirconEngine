@@ -5,7 +5,6 @@ use super::super::super::super::paint_text::{
 use super::super::super::super::paint_theme::{
     HostTextPreferences, HostTextSmoothing, HostUtilityTabTextRole, PALETTE,
 };
-use super::super::super::style_selector::{OUTLINED_BORDER, OUTLINED_SURFACE, PRIMARY_SURFACE};
 use super::super::super::template_nodes::{
     paint_template_nodes_for_test, push_template_node_commands,
 };
@@ -32,7 +31,7 @@ fn primary_workbench_button_paints_low_emphasis_surface_and_center_text() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 152, 24, 24), PRIMARY_SURFACE);
+    assert_eq!(pixel_at(&bytes, 152, 24, 24), PALETTE.surface_pressed);
     assert!(changed_pixel_count(&bytes, 152, 48, 16, 56, 18) > 0);
     assert_eq!(pixel_at(&bytes, 152, 140, 24), [0, 0, 0, 255]);
 }
@@ -76,8 +75,8 @@ fn outlined_workbench_button_paints_dark_surface_and_border() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 152, 24, 24), OUTLINED_SURFACE);
-    assert_eq!(pixel_at(&bytes, 152, 72, 8), OUTLINED_BORDER);
+    assert_eq!(pixel_at(&bytes, 152, 24, 24), PALETTE.surface_pressed);
+    assert_eq!(pixel_at(&bytes, 152, 72, 8), PALETTE.border);
     assert!(changed_pixel_count(&bytes, 152, 42, 16, 70, 18) > 0);
 }
 
@@ -187,8 +186,8 @@ fn semantic_button_glyphs_prefer_shell_asset_pixels() {
             .unwrap_or_else(|| {
                 panic!("{control_id} should paint its semantic glyph as SVG pixels")
             });
-        assert_eq!(icon.width, 14);
-        assert_eq!(icon.height, 14);
+        assert_eq!(icon.width, 16);
+        assert_eq!(icon.height, 16);
         assert!(
             !icon.resource_key.starts_with("missing-icon:"),
             "{control_id} should resolve a real shell SVG asset, got {}",
@@ -232,10 +231,51 @@ fn editor_variant_button_uses_centered_button_text_path() {
     );
     assert_eq!(text_commands[0].font_size, 10.0);
     assert_eq!(text_commands[0].line_height, 12.0);
-    let expected_centered_x = 12.0 + (128.0 - text_commands[0].frame.width) * 0.5;
+    let runtime_width = measure_runtime_text_width("Asset Browser", text_commands[0].font_size);
+    let expected_centered_x = 12.0 + (128.0 - runtime_width) * 0.5;
     assert!(
         (text_x - expected_centered_x).abs() <= 0.5,
         "expected centered button text, got x={text_x}, expected {expected_centered_x}"
+    );
+}
+
+#[test]
+fn document_tab_button_centers_icon_and_title_ink_without_clip_guard_bias() {
+    let mut node =
+        positioned_button_node("DockTab0", "editor base.zui", "", 18.0, 8.0, 156.0, 30.0);
+    node.font_size = 12.0;
+    node.icon_name = "folder-open-outline".into();
+    let origin = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 220.0,
+        height: 52.0,
+    };
+    let clip = origin.clone();
+    let mut commands = Vec::new();
+
+    push_template_node_commands(&mut commands, &node, &origin, &clip, None, 0);
+
+    let icon = commands
+        .iter()
+        .find(|command| command.image_pixels.is_some())
+        .expect("document tab icon should render through the shell icon path");
+    let text = commands
+        .iter()
+        .find(|command| command.text.as_deref() == Some("editor base.zui"))
+        .expect("document tab title text command");
+    let runtime_width = measure_runtime_text_width("editor base.zui", text.font_size);
+    let visual_center = (icon.frame.x + text.frame.x + runtime_width) * 0.5;
+    let tab_center = node.frame.x.round() + node.frame.width.round() * 0.5;
+
+    assert!(!text.text_style.code);
+    assert!(
+        text.frame.width > runtime_width,
+        "text command keeps a clip guard, but the guard must not bias visual centering"
+    );
+    assert!(
+        (visual_center - tab_center).abs() <= 0.5,
+        "document tab icon+title ink should be centered without counting the clip guard: visual_center={visual_center}, tab_center={tab_center}"
     );
 }
 
@@ -500,7 +540,7 @@ fn selected_asset_browser_toolbar_chip_paints_segment_without_tab_underline() {
     let mut node =
         positioned_button_node("AssetBrowserKindAllChip", "All", "", 12.0, 8.0, 72.0, 24.0);
     node.selected = true;
-    node.focused = true;
+    node.focused = false;
     node.action_id = "workbench.asset.kind_filter.set".into();
 
     let bytes = paint_template_nodes_for_test(112, 48, model_rc(vec![node]));
@@ -543,7 +583,7 @@ fn selected_asset_browser_utility_tab_still_paints_slate_indicator() {
         24.0,
     );
     node.selected = true;
-    node.focused = true;
+    node.focused = false;
     node.action_id = "workbench.asset.utility_tab.set".into();
 
     let bytes = paint_template_nodes_for_test(112, 48, model_rc(vec![node]));
@@ -555,10 +595,30 @@ fn selected_asset_browser_utility_tab_still_paints_slate_indicator() {
 }
 
 #[test]
+fn focused_asset_browser_utility_tab_does_not_paint_selected_indicator() {
+    let mut node = positioned_button_node(
+        "AssetBrowserPreviewTabButton",
+        "Preview",
+        "",
+        12.0,
+        8.0,
+        72.0,
+        24.0,
+    );
+    node.focused = true;
+    node.action_id = "workbench.asset.utility_tab.set".into();
+
+    let bytes = paint_template_nodes_for_test(112, 48, model_rc(vec![node]));
+
+    assert_ne!(pixel_at(&bytes, 112, 48, 30), PALETTE.accent);
+    assert_ne!(pixel_at(&bytes, 112, 48, 8), PALETTE.focus_ring);
+}
+
+#[test]
 fn selected_page_tab_button_paints_slate_indicator_without_focus_frame() {
     let mut node = positioned_button_node("PageTab0", "Effect", "ghost", 12.0, 8.0, 72.0, 28.0);
     node.selected = true;
-    node.focused = true;
+    node.focused = false;
 
     let bytes = paint_template_nodes_for_test(112, 52, model_rc(vec![node]));
 
@@ -571,7 +631,7 @@ fn selected_page_tab_button_paints_slate_indicator_without_focus_frame() {
 fn selected_dock_tab_button_paints_slate_indicator_without_focus_frame() {
     let mut node = positioned_button_node("DockTab1", "Effect", "", 12.0, 8.0, 72.0, 28.0);
     node.selected = true;
-    node.focused = true;
+    node.focused = false;
 
     let bytes = paint_template_nodes_for_test(112, 52, model_rc(vec![node]));
 
@@ -593,7 +653,7 @@ fn selected_workbench_module_tab_paints_slate_indicator_without_focus_frame() {
     );
     node.selected = true;
     node.checked = true;
-    node.focused = true;
+    node.focused = false;
     node.action_id = "workbench.module.effect".into();
 
     let bytes = paint_template_nodes_for_test(112, 56, model_rc(vec![node]));

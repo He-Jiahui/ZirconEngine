@@ -107,3 +107,44 @@ fn selection_controls_checked_state_uses_low_emphasis_markers() {
     assert_eq!(toggle.border, PALETTE.separator_strong);
     assert_eq!(toggle.thumb, PALETTE.text_muted);
 }
+
+#[test]
+fn focused_unchecked_toggle_keeps_track_surface_with_focus_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+
+    let toggle =
+        select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Toggle);
+
+    assert_eq!(toggle.state, UiPainterResolvedState::Focused);
+    assert_eq!(toggle.surface, PALETTE.track);
+    assert_eq!(toggle.border, PALETTE.focus_ring);
+    assert_eq!(toggle.thumb, PALETTE.text_muted);
+}
+
+#[test]
+fn focused_hovered_unchecked_toggle_keeps_hover_surface_with_focus_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+    node.hovered = true;
+
+    let toggle =
+        select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Toggle);
+
+    assert_eq!(toggle.state, UiPainterResolvedState::Focused);
+    assert_eq!(toggle.surface, PALETTE.surface_hover);
+    assert_eq!(toggle.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn focused_unchecked_checkbox_keeps_idle_surface_with_focus_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+
+    let checkbox =
+        select_workbench_selection_control_style(&node, WorkbenchSelectionControlKind::Checkbox);
+
+    assert_eq!(checkbox.state, UiPainterResolvedState::Focused);
+    assert_eq!(checkbox.surface, PALETTE.popup);
+    assert_eq!(checkbox.border, PALETTE.focus_ring);
+}

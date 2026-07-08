@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, RenderMaterialTextureTransform,
-    SHADING_MODEL_GBUFFER_ALPHA_SCALE,
+    SHADING_MODEL_GBUFFER_ALPHA_SCALE, STANDARD_MATERIAL_MIN_ROUGHNESS,
 };
 use crate::graphics::scene::resources::MaterialRuntime;
 use wgpu::util::DeviceExt;
@@ -141,7 +141,7 @@ fn standard_material_uniform_contents_from_values(
 ) -> Vec<u8> {
     let mut values = [0.0_f32; 36];
     values[0] = finite_or(metallic, 0.0).clamp(0.0, 1.0);
-    values[1] = finite_or(roughness, 1.0).clamp(0.04, 1.0);
+    values[1] = finite_or(roughness, 1.0).clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
     values[2] = 1.0;
     values[3] = if unlit { 1.0 } else { 0.0 };
     values[4] = finite_or(emissive[0], 0.0).max(0.0);
@@ -209,7 +209,9 @@ fn finite_or(value: f32, fallback: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::RenderMaterialTextureTransform;
+    use crate::core::framework::render::{
+        RenderMaterialTextureTransform, STANDARD_MATERIAL_MIN_ROUGHNESS,
+    };
 
     use super::{standard_material_uniform_contents_from_values, STANDARD_TEXTURE_TRANSFORM_COUNT};
 
@@ -229,7 +231,7 @@ mod tests {
 
         assert_eq!(bytes.len(), 144);
         assert_eq!(f32_at(&bytes, 0), 1.0);
-        assert_eq!(f32_at(&bytes, 4), 0.04);
+        assert_eq!(f32_at(&bytes, 4), STANDARD_MATERIAL_MIN_ROUGHNESS);
         assert_eq!(f32_at(&bytes, 8), 1.0);
         assert_eq!(f32_at(&bytes, 12), 1.0);
         assert_eq!(f32_at(&bytes, 16), 0.25);

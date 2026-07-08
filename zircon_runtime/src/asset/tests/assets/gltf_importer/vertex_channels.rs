@@ -15,6 +15,10 @@ fn importer_preserves_gltf_skinning_channels_on_model_vertices() {
             assert_eq!(model.primitives.len(), 1);
             assert_eq!(model.primitives[0].vertices.len(), 3);
             assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+            assert!(
+                model.primitives[0].virtual_geometry.is_none(),
+                "skinned glTF primitives should not consume joint slots as automatic VG ordinals"
+            );
             assert_eq!(
                 model.primitives[0].mesh.as_ref().unwrap().locator,
                 label_uri(&root_uri, "Mesh0/Primitive0")

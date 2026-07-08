@@ -137,6 +137,13 @@ fn material_button_style_resolves_slint_state_layer_priority() {
         ("hovered".to_string(), Value::Boolean(true)),
     ]);
     let style = resolve_button_style_from_values(&values);
+    assert_eq!(style.interaction_state, ButtonInteractionState::Pressed);
+
+    let values = BTreeMap::from([
+        ("focused".to_string(), Value::Boolean(true)),
+        ("hovered".to_string(), Value::Boolean(true)),
+    ]);
+    let style = resolve_button_style_from_values(&values);
     assert_eq!(style.interaction_state, ButtonInteractionState::Focused);
 
     let values = BTreeMap::from([

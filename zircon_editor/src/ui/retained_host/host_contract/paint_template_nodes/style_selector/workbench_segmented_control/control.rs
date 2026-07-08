@@ -1,8 +1,9 @@
 use super::super::super::template_style_color::resolved_style_color;
+use super::metrics::workbench_segmented_selector_metrics;
 use super::model::WorkbenchSegmentedControlKind;
-use super::palette::WORKBENCH_SEGMENT_IDLE_BACKGROUND;
+use super::palette::workbench_segmented_control_palette;
+use super::state::segmented_node_is_hot;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control_background(
@@ -10,26 +11,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control
     kind: WorkbenchSegmentedControlKind,
     state: UiPainterResolvedState,
 ) -> Option<[u8; 4]> {
+    let palette = workbench_segmented_control_palette();
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            Some(PALETTE.surface_disabled)
+            Some(palette.disabled_background)
         }
-        UiPainterResolvedState::Pressed => Some(PALETTE.surface_pressed),
-        UiPainterResolvedState::Focused
-        | UiPainterResolvedState::Open
+        UiPainterResolvedState::Pressed => Some(palette.pressed_background),
+        UiPainterResolvedState::Focused => {
+            if segmented_node_is_hot(node) {
+                Some(palette.hot_background)
+            } else {
+                normal_control_background(node, kind)
+            }
+        }
+        UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
-        | UiPainterResolvedState::Hovered => Some(PALETTE.surface_hover),
+        | UiPainterResolvedState::Hovered => Some(palette.hot_background),
         UiPainterResolvedState::Checked
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Normal => match kind {
-            WorkbenchSegmentedControlKind::SegmentedControl => {
-                Some(WORKBENCH_SEGMENT_IDLE_BACKGROUND)
-            }
-            WorkbenchSegmentedControlKind::Tab => {
-                resolved_style_color(node.button_style.element.background_color.as_ref())
-            }
-        },
+        | UiPainterResolvedState::Normal => normal_control_background(node, kind),
     }
 }
 
@@ -37,21 +38,22 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control
     kind: WorkbenchSegmentedControlKind,
     state: UiPainterResolvedState,
 ) -> Option<[u8; 4]> {
+    let palette = workbench_segmented_control_palette();
     match kind {
         WorkbenchSegmentedControlKind::Tab => None,
         WorkbenchSegmentedControlKind::SegmentedControl => Some(match state {
             UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-                PALETTE.border_disabled
+                palette.disabled_border
             }
+            UiPainterResolvedState::Focused => palette.focus_border,
             UiPainterResolvedState::Pressed
-            | UiPainterResolvedState::Focused
             | UiPainterResolvedState::Open
             | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => PALETTE.accent,
+            | UiPainterResolvedState::DropHovered => palette.active_border,
             UiPainterResolvedState::Hovered
             | UiPainterResolvedState::Checked
             | UiPainterResolvedState::Selected
-            | UiPainterResolvedState::Normal => PALETTE.border,
+            | UiPainterResolvedState::Normal => palette.border,
         }),
     }
 }
@@ -60,7 +62,22 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn control
     kind: WorkbenchSegmentedControlKind,
 ) -> f32 {
     match kind {
-        WorkbenchSegmentedControlKind::SegmentedControl => 1.0,
+        WorkbenchSegmentedControlKind::SegmentedControl => {
+            workbench_segmented_selector_metrics().border_width
+        }
         WorkbenchSegmentedControlKind::Tab => 0.0,
+    }
+}
+
+fn normal_control_background(
+    node: &TemplatePaneNodeData,
+    kind: WorkbenchSegmentedControlKind,
+) -> Option<[u8; 4]> {
+    let palette = workbench_segmented_control_palette();
+    match kind {
+        WorkbenchSegmentedControlKind::SegmentedControl => Some(palette.idle_background),
+        WorkbenchSegmentedControlKind::Tab => {
+            resolved_style_color(node.button_style.element.background_color.as_ref())
+        }
     }
 }

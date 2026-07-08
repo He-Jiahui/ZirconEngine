@@ -616,20 +616,20 @@ impl UiPainterStyleSelector {
             UiPainterResolvedState::Loading
         } else if state.pressed {
             UiPainterResolvedState::Pressed
+        } else if state.dragging {
+            UiPainterResolvedState::Dragging
         } else if state.focused {
             UiPainterResolvedState::Focused
         } else if state.open {
             UiPainterResolvedState::Open
-        } else if state.dragging {
-            UiPainterResolvedState::Dragging
-        } else if state.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if state.hovered {
-            UiPainterResolvedState::Hovered
         } else if state.selected {
             UiPainterResolvedState::Selected
         } else if state.checked {
             UiPainterResolvedState::Checked
+        } else if state.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if state.hovered {
+            UiPainterResolvedState::Hovered
         } else {
             UiPainterResolvedState::Normal
         }
@@ -642,18 +642,18 @@ impl UiPainterStyleSelector {
             UiPainterResolvedState::Loading
         } else if state.pressed {
             UiPainterResolvedState::Pressed
-        } else if state.focused {
-            UiPainterResolvedState::Focused
         } else if state.dragging {
             UiPainterResolvedState::Dragging
-        } else if state.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if state.hovered {
-            UiPainterResolvedState::Hovered
+        } else if state.focused {
+            UiPainterResolvedState::Focused
         } else if state.selected {
             UiPainterResolvedState::Selected
         } else if state.checked {
             UiPainterResolvedState::Checked
+        } else if state.drop_hovered {
+            UiPainterResolvedState::DropHovered
+        } else if state.hovered {
+            UiPainterResolvedState::Hovered
         } else {
             UiPainterResolvedState::Normal
         }
@@ -666,10 +666,10 @@ impl UiPainterStyleSelector {
             UiPainterResolvedState::Loading
         } else if state.pressed {
             UiPainterResolvedState::Pressed
-        } else if state.focused {
-            UiPainterResolvedState::Focused
         } else if state.dragging {
             UiPainterResolvedState::Dragging
+        } else if state.focused {
+            UiPainterResolvedState::Focused
         } else if state.drop_hovered {
             UiPainterResolvedState::DropHovered
         } else if state.hovered {
@@ -686,6 +686,8 @@ impl UiPainterStyleSelector {
             UiPainterResolvedState::Loading
         } else if state.pressed {
             UiPainterResolvedState::Pressed
+        } else if state.dragging {
+            UiPainterResolvedState::Hovered
         } else if state.is_focus_visible() {
             UiPainterResolvedState::Focused
         } else if state.is_pointer_hot() || state.open {

@@ -35,10 +35,18 @@ fn tree_row_style_uses_shared_state_priority() {
     assert_eq!(pressed.text, PALETTE.text_muted);
 
     node.pressed = false;
+    node.hovered = false;
     let focused = tree_row_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused.background, Some(PALETTE.surface_hover));
+    assert_eq!(focused.background, None);
     assert_eq!(focused.border, Some(PALETTE.focus_ring));
+
+    node.focused = false;
+    node.hovered = true;
+    let hovered = tree_row_style(&node);
+    assert_eq!(hovered.state, UiPainterResolvedState::Hovered);
+    assert_eq!(hovered.background, Some(PALETTE.surface_hover));
+    assert_eq!(hovered.border, None);
 
     node.disabled = true;
     let disabled = tree_row_style(&node);

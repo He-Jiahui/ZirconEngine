@@ -36,6 +36,7 @@ impl ScenePostProcessResources {
             0,
             0,
             0,
+            false,
         );
         params.effect_blur_dof[1] = 0.0;
         params.effect_blur_dof[2] = 0.0;

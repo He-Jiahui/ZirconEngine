@@ -55,13 +55,19 @@ pub(super) fn create_glyph_atlas_bitmap_bind_group_layout(
 }
 
 pub(super) fn create_glyph_atlas_bitmap_sampler(device: &wgpu::Device) -> wgpu::Sampler {
-    device.create_sampler(&wgpu::SamplerDescriptor {
+    device.create_sampler(&glyph_atlas_bitmap_sampler_descriptor())
+}
+
+pub(super) fn glyph_atlas_bitmap_sampler_descriptor() -> wgpu::SamplerDescriptor<'static> {
+    wgpu::SamplerDescriptor {
         label: Some("zircon-screen-space-ui-glyph-atlas-sampler"),
-        mag_filter: wgpu::FilterMode::Linear,
-        min_filter: wgpu::FilterMode::Linear,
+        mag_filter: wgpu::FilterMode::Nearest,
+        min_filter: wgpu::FilterMode::Nearest,
         mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+        lod_min_clamp: 0.0,
+        lod_max_clamp: 0.0,
         ..Default::default()
-    })
+    }
 }
 
 pub(super) fn create_glyph_atlas_bitmap_atlas_resources(

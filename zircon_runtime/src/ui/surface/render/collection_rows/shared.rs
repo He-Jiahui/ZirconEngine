@@ -36,6 +36,7 @@ pub(super) struct RowRenderState {
     selected: bool,
     checked: bool,
     expanded: bool,
+    surface_hot: bool,
 }
 
 impl RowRenderState {
@@ -55,6 +56,20 @@ impl RowRenderState {
                 .unwrap_or(false);
         let expanded = component_flags.is_some_and(|flags| flags.expanded)
             || bool_attribute(metadata, "expanded").unwrap_or(false);
+        let surface_hot = component_flags.is_some_and(|flags| {
+            flags.hovered
+                || flags.drop_hovered
+                || flags.active_drag_target
+                || flags.dragging
+                || flags.popup_open
+        }) || bool_attribute(metadata, "hovered")
+            .or_else(|| bool_attribute(metadata, "hover"))
+            .or_else(|| bool_attribute(metadata, "drop_hovered"))
+            .or_else(|| bool_attribute(metadata, "active_drag_target"))
+            .or_else(|| bool_attribute(metadata, "dragging"))
+            .or_else(|| bool_attribute(metadata, "open"))
+            .or_else(|| bool_attribute(metadata, "popup_open"))
+            .unwrap_or(false);
         let mut painter_state =
             UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
                 .painter_state_with_value_checked();
@@ -71,6 +86,7 @@ impl RowRenderState {
             selected,
             checked,
             expanded,
+            surface_hot,
         }
     }
 
@@ -92,14 +108,14 @@ impl RowRenderState {
     }
 
     pub(super) fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Open
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+        self.surface_hot
+            || matches!(
+                self.visual_state,
+                UiPainterResolvedState::Hovered
+                    | UiPainterResolvedState::Open
+                    | UiPainterResolvedState::Dragging
+                    | UiPainterResolvedState::DropHovered
+            )
     }
 
     pub(super) fn focus_or_press(self) -> bool {

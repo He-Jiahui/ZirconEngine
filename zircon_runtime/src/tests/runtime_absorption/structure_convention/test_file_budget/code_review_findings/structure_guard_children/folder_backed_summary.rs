@@ -39,21 +39,30 @@ pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNER: &str =
 pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_DELEGATION_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/delegation.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/status_mirrors.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_DELEGATION_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/delegation.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_PARENT_ABSENCE_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/parent_absence.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_ENTRY_POINTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/entry_points.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/budgets.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_DIRECT_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/status_mirrors.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_F12_DIRECT_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_F12_DIRECT_ASSERTIONS_REVIEW_GUARD_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12/review_guard.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_F8_DIRECT_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_F8_DIRECT_ASSERTIONS_PARENT_MOUNTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8/parent_mounts.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_P0_DIRECT_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_P0_DIRECT_ASSERTIONS_PARENT_MOUNTS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0/parent_mounts.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_RENDER_DIRECT_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render.rs";
+pub(super) const FOLDER_BACKED_SUMMARY_RENDER_DIRECT_ASSERTIONS_REVIEW_GUARD_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render/review_guard.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_ROOT_PARENT_DIRECT_ASSERTIONS_CHILD_OWNER: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_SOURCE_INVENTORY_CHILD_OWNER: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_SOURCE_MODEL_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory/model.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/model.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_SOURCE_READS_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory/reads.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/reads.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_SOURCE_BUDGETS_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory/budgets.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/budgets.rs";
 pub(super) const FOLDER_BACKED_SUMMARY_SOURCE_DELEGATION_CHILD_OWNER: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory/delegation.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/delegation.rs";
 
 pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";

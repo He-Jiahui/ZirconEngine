@@ -5,6 +5,7 @@ use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::types::ViewportRenderRegion;
+use crate::rhi::TextureDesc;
 
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::scene_renderer_core::SceneRendererCore;
@@ -102,22 +103,18 @@ fn copy_global_illumination_history(
     graph_resources: &RenderGraphExecutionResources,
     history: &SceneFrameHistoryTextures,
 ) -> bool {
-    if let (Some(global_illumination), Some(desc)) = (
-        graph_resources.owned_texture(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
-        graph_resources.owned_texture_desc(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
-    ) {
-        if let Some(extent) = history_region_copy_extent(
-            UVec2::new(desc.width, desc.height),
-            target.size,
+    for resource_name in [
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+        PostProcessGraphResourceNames::GLOBAL_ILLUMINATION,
+    ] {
+        if copy_owned_global_illumination_history_source(
+            encoder,
+            target,
             render_region,
+            graph_resources,
+            history,
+            resource_name,
         ) {
-            let mut destination = history.global_illumination.as_image_copy();
-            destination.origin = history_region_copy_origin(render_region);
-            encoder.copy_texture_to_texture(
-                global_illumination.as_image_copy(),
-                destination,
-                extent,
-            );
             return true;
         }
     }
@@ -128,6 +125,41 @@ fn copy_global_illumination_history(
         texture_extent(target.render_size),
     );
     true
+}
+
+fn copy_owned_global_illumination_history_source(
+    encoder: &mut wgpu::CommandEncoder,
+    target: &OffscreenTarget,
+    render_region: ViewportRenderRegion,
+    graph_resources: &RenderGraphExecutionResources,
+    history: &SceneFrameHistoryTextures,
+    resource_name: &str,
+) -> bool {
+    let (Some(global_illumination), Some(desc)) = (
+        graph_resources.owned_texture(resource_name),
+        graph_resources.owned_texture_desc(resource_name),
+    ) else {
+        return false;
+    };
+    if !owned_global_illumination_history_source_is_copyable(desc) {
+        return false;
+    }
+    let Some(extent) = history_region_copy_extent(
+        UVec2::new(desc.width, desc.height),
+        target.size,
+        render_region,
+    ) else {
+        return false;
+    };
+
+    let mut destination = history.global_illumination.as_image_copy();
+    destination.origin = history_region_copy_origin(render_region);
+    encoder.copy_texture_to_texture(global_illumination.as_image_copy(), destination, extent);
+    true
+}
+
+fn owned_global_illumination_history_source_is_copyable(desc: &TextureDesc) -> bool {
+    desc.sample_count == 1 && !desc.format.is_depth()
 }
 
 fn screen_space_reflection_history_copy_extent(
@@ -227,8 +259,49 @@ mod tests {
     };
     use crate::core::math::UVec2;
     use crate::graphics::types::ViewportRenderRegion;
+    use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
-    use super::{history_region_copy_extent, history_region_copy_origin};
+    use super::{
+        history_region_copy_extent, history_region_copy_origin,
+        owned_global_illumination_history_source_is_copyable,
+    };
+
+    #[test]
+    fn global_illumination_history_source_accepts_single_sample_color_graph_output() {
+        let desc = TextureDesc::new(
+            "hybrid-gi-lighting",
+            64,
+            64,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
+        );
+
+        assert!(owned_global_illumination_history_source_is_copyable(&desc));
+    }
+
+    #[test]
+    fn global_illumination_history_source_rejects_msaa_or_depth_graph_output() {
+        let msaa = TextureDesc::new(
+            "hybrid-gi-lighting",
+            64,
+            64,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
+        )
+        .with_sample_count(4);
+        let depth = TextureDesc::new(
+            "hybrid-gi-lighting",
+            64,
+            64,
+            TextureFormat::Depth32Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
+        );
+
+        assert!(!owned_global_illumination_history_source_is_copyable(&msaa));
+        assert!(!owned_global_illumination_history_source_is_copyable(
+            &depth
+        ));
+    }
 
     #[test]
     fn history_region_copy_targets_selected_camera_region() {

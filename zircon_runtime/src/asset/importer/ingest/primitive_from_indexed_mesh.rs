@@ -80,15 +80,21 @@ pub(super) fn primitive_from_indexed_mesh(
         })
         .collect();
 
-    let virtual_geometry = cook_virtual_geometry_from_mesh(
-        &vertices,
-        indices,
-        VirtualGeometryCookConfig {
-            mesh_name: mesh_name.map(str::to_owned),
-            source_hint: Some(source_hint.to_string()),
-            ..VirtualGeometryCookConfig::default()
-        },
-    );
+    // Automatic VG payloads currently encode vertex ordinals in joint slots;
+    // skinned imports preserve those slots for authored joint data instead.
+    let virtual_geometry = if uses_skinning_channels(joint_weights) {
+        None
+    } else {
+        cook_virtual_geometry_from_mesh(
+            &vertices,
+            indices,
+            VirtualGeometryCookConfig {
+                mesh_name: mesh_name.map(str::to_owned),
+                source_hint: Some(source_hint.to_string()),
+                ..VirtualGeometryCookConfig::default()
+            },
+        )
+    };
 
     let mut primitive = ModelPrimitiveAsset {
         vertices,
@@ -103,6 +109,11 @@ pub(super) fn primitive_from_indexed_mesh(
 pub(super) fn backfill_virtual_geometry_for_model(model: &mut ModelAsset) {
     let source_hint = model.uri.to_string();
     for (primitive_index, primitive) in model.primitives.iter_mut().enumerate() {
+        // The VG ordinal assignment below would overwrite active skinning
+        // channels, so weighted primitives stay on the skinned mesh path.
+        if primitive.uses_skinning_channels() {
+            continue;
+        }
         if primitive.virtual_geometry.is_none() {
             primitive.virtual_geometry = cook_virtual_geometry_from_mesh(
                 &primitive.vertices,
@@ -116,4 +127,11 @@ pub(super) fn backfill_virtual_geometry_for_model(model: &mut ModelAsset) {
         }
         primitive.assign_virtual_geometry_vertex_ordinals();
     }
+}
+
+fn uses_skinning_channels(joint_weights: &[[f32; 4]]) -> bool {
+    joint_weights
+        .iter()
+        .flatten()
+        .any(|weight| weight.abs() > f32::EPSILON)
 }

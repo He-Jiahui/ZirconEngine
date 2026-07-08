@@ -22,6 +22,20 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         ],
     ),
     (
+        "Runtime 15 M3 status-output expected-slice legacy guard body folder-backed split",
+        &[
+            "runtime_15_status_output_expected_slice_legacy_guard_body_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body/budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body/folder_backed.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body/legacy_routes.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body/paths.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/legacy_maps/guard_body/status_mirrors.rs",
+            "runtime_15_status_output_expected_slice_legacy_guard_body_is_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
         "Runtime 15 M3 status output expected-slice legacy group child-owner split",
         &[
             "runtime_15_status_output_expected_slice_legacy_group_child_owner_split_static_passed_cargo_deferred",
@@ -39,6 +53,21 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "structure_convention/test_file_budget/status_output_expected_slices/module_layout.rs",
             "structure_convention/test_file_budget/status_output_expected_slices/legacy_group_maps.rs",
             "runtime_15_status_output_expected_slice_guard_child_owner_split",
+        ],
+    ),
+    (
+        "Runtime 15 M3 expected-slice module-layout guard body folder-backed split",
+        &[
+            "runtime_15_expected_slice_module_layout_guard_body_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body/budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body/child_ownership.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body/folder_backed.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body/paths.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body/route_mounts.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/module_layout/guard_body/status_mirrors.rs",
+            "runtime_15_expected_slice_module_layout_guard_body_is_folder_backed",
+            "Cargo gate deferred",
         ],
     ),
     (

@@ -86,13 +86,35 @@ pub use core_pipeline::{
     RenderQueueValue, SpritePhaseInput, RENDER_PHASES_BY_QUEUE_ORDER,
 };
 pub use environment::{
-    build_sampled_equirect_mip_chain, reflection_capture_mip_from_roughness,
-    reflection_capture_roughness_from_mip, EnvironmentExtract, IblBakeKey, ProceduralSkyParams,
-    SampledEquirectangularEnvironment, SampledEquirectangularSamples, SkyboxMode, SkyboxSettings,
-    EMPTY_SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLES, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,
-    SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT, SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH,
-    SAMPLED_EQUIRECT_ENVIRONMENT_HEIGHT, SAMPLED_EQUIRECT_ENVIRONMENT_MIP_COUNT,
-    SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT, SAMPLED_EQUIRECT_ENVIRONMENT_WIDTH,
+    append_rgb_as_rgba16f_texels, append_rgba16f_texels, build_environment_brdf_lut,
+    build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
+    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
+    cubemap_face_size_from_equirect_height, cubemap_scaled_uv_for_texel,
+    cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction, cubemap_texel_solid_angle,
+    decode_rgb_from_rgba16f_texels, decode_rgba16f_texels, encode_rgba16f_texels,
+    environment_brdf_lut_integrate, environment_brdf_lut_texel_index, equirect_uv_from_direction,
+    resolve_ibl_bake_artifact_payload, select_ibl_bake_artifact,
+    source_cubemap_environment_with_bake_artifact, source_cubemap_evaluate_irradiance_sh9,
+    source_cubemap_face_mip_offset, source_cubemap_face_size_from_equirect_height,
+    source_cubemap_irradiance_mip_level, source_cubemap_mip_chain_with_bake_artifact,
+    source_cubemap_mip_count, source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness,
+    source_cubemap_roughness_from_pmrem_mip, source_cubemap_sample_count,
+    source_cubemap_sample_irradiance_cube, CubemapFace, EnvironmentBrdfLutTexel,
+    EnvironmentExtract, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
+    IblBakeArtifactBlobError, IblBakeArtifactCandidate, IblBakeArtifactContents,
+    IblBakeArtifactDescriptor, IblBakeArtifactHeader, IblBakeArtifactHeaderError,
+    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactReadbackError,
+    IblBakeArtifactReadbackSectionKind, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
+    IblBakeArtifactResolvedPayload, IblBakeArtifactSelection, IblBakeArtifactSource, IblBakeKey,
+    ProceduralSkyParams, SkyboxMode, SkyboxSettings, SourceCubemapBakeArtifactError,
+    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9,
+    SourceCubemapMipChain, SourceCubemapUploadKey, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+    ENVIRONMENT_BRDF_LUT_SIZE, IBL_BAKE_ALGORITHM_VERSION, IBL_BAKE_ARTIFACT_HEADER_SIZE,
+    IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+    PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION, RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE, SOURCE_CUBEMAP_MAX_FACE_SIZE,
+    SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_ROUGHEST_MIP, SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
@@ -151,7 +173,7 @@ pub use material::{
     RenderMaterialTextureTransform, RenderMaterialValidationError, ShadingModelDescriptor,
     ShadingModelId, ShadingModelRegistrationError, StandardMaterialDescriptor,
     SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
-    SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
+    SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START, STANDARD_MATERIAL_MIN_ROUGHNESS,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use overlay::{
@@ -163,11 +185,12 @@ pub use overlay::{
 pub use plugin_renderer_outputs::{
     RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-    RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
-    RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelOccupancyMaskRecord,
-    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
-    RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
-    RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
+    RenderHybridGiTraceTileRecord, RenderHybridGiVoxelCellDominantNodeRecord,
+    RenderHybridGiVoxelCellRecord, RenderHybridGiVoxelCellSampleRecord,
+    RenderHybridGiVoxelOccupancyMaskRecord, RenderParticleGpuReadbackOutputs,
+    RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+    RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryPageReplacementRecord,
+    RenderVirtualGeometryReadbackOutputs,
 };
 pub use post_process::{
     interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, PostProcessEffectKind,
@@ -193,7 +216,12 @@ pub use post_process::{
     INTERMEDIATE_HDR_FORMAT_HIGH_QUALITY, MAX_COLOR_LOOKUP_TEXTURE_SIZE,
     MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT, TONEMAPPED_SDR_FORMAT,
 };
-pub use prepared_runtime_sidebands::RenderPreparedRuntimeSidebands;
+pub use prepared_runtime_sidebands::{
+    RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
+    RenderHybridGiPreparedProbeRtLighting, RenderHybridGiPreparedProbeSceneData,
+    RenderHybridGiPreparedTraceRegionSceneData, RenderHybridGiPreparedUpdateRequest,
+    RenderPreparedRuntimeSidebands,
+};
 pub use profile::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
     RENDER_PROFILE_CONFIG_KEY,

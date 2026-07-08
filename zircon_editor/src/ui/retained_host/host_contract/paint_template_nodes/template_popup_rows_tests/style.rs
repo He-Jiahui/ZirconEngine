@@ -27,7 +27,10 @@ fn popup_row_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.text_right, 10.0);
     assert_eq!(metrics.text_top, 2.0);
     assert_eq!(metrics.text_bottom, 5.0);
+    assert_eq!(metrics.min_text_rect_width, 1.0);
     assert!((metrics.min_text_rect_height - 13.75).abs() < 0.001);
+    assert_eq!(metrics.shortcut_left_ratio, 0.58);
+    assert_eq!(metrics.shortcut_width_ratio, 0.38);
     assert_eq!(metrics.surface_radius, 4.0);
     assert_eq!(metrics.outline_width, 2.0);
     assert_eq!(metrics.adornment_right, 13.0);
@@ -93,6 +96,15 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
     assert_eq!(selected.outline, Some(PALETTE.border));
     assert_ne!(selected.outline, Some(PALETTE.accent));
 
+    let focused_only = popup_option_row_style(&TemplatePaneOptionData {
+        focused: true,
+        ..option("focused", false, false, false, false)
+    });
+    assert_eq!(focused_only.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused_only.background, None);
+    assert_eq!(focused_only.outline, Some(PALETTE.border));
+    assert_eq!(focused_only.text, PALETTE.text);
+
     let focused = popup_option_row_style(&TemplatePaneOptionData {
         focused: true,
         hovered: true,
@@ -100,6 +112,7 @@ fn popup_row_style_selector_matches_runtime_extract_state_matrix_for_projected_r
     });
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
     assert_eq!(focused.background, Some(PALETTE.surface_hover));
+    assert_eq!(focused.outline, Some(PALETTE.border));
     assert_eq!(focused.text, PALETTE.text);
 
     let disabled = popup_option_row_style(&TemplatePaneOptionData {

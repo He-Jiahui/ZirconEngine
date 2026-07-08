@@ -59,7 +59,7 @@ pub use shading_model::{
     SHADING_MODEL_GBUFFER_ALPHA_SCALE, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
     SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START,
 };
-pub use standard_material::StandardMaterialDescriptor;
+pub use standard_material::{StandardMaterialDescriptor, STANDARD_MATERIAL_MIN_ROUGHNESS};
 pub use texture_slot_summary::{
     RenderMaterialTextureSlotFallback, RenderMaterialTextureSlotFallbackReason,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,

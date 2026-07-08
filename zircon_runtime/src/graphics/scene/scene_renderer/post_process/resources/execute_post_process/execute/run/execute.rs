@@ -30,6 +30,7 @@ impl ScenePostProcessResources {
         ao_view: &wgpu::TextureView,
         contact_shadow_view: &wgpu::TextureView,
         previous_scene_color_view: Option<&wgpu::TextureView>,
+        current_hybrid_gi_lighting_view: Option<&wgpu::TextureView>,
         previous_global_illumination_view: Option<&wgpu::TextureView>,
         previous_screen_space_reflection_history_view: Option<&wgpu::TextureView>,
         bloom_view: &wgpu::TextureView,
@@ -81,6 +82,7 @@ impl ScenePostProcessResources {
             reflection_probe_count,
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
+            current_hybrid_gi_lighting_view.is_some(),
         );
         if skip_depth_of_field {
             params.effect_blur_dof[1] = 0.0;
@@ -124,7 +126,7 @@ impl ScenePostProcessResources {
             ao_view,
             contact_shadow_view,
             previous_scene_color_view,
-            previous_global_illumination_view,
+            current_hybrid_gi_lighting_view.or(previous_global_illumination_view),
             previous_screen_space_reflection_history_view,
             Some(resolved_screen_space_reflection_history_view),
             Some(screen_space_reflection_specular_occlusion_view),

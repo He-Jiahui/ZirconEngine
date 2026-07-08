@@ -3,14 +3,14 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
 use super::super::template_icon_assets::push_icon_asset_pixels;
 use super::metrics::{dropdown_chevron_right, dropdown_chevron_size};
-use super::segments::push_segments;
+use super::segments::{push_segments, DropdownGlyphSegmentSpec};
 
 const DROPDOWN_CHEVRON_ICON: &str = "dropdown";
 
-const DROPDOWN_CHEVRON_SEGMENTS: &[(f32, f32, f32, f32)] = &[
-    (3.0, 5.0, 2.0, 2.0),
-    (5.0, 7.0, 2.0, 2.0),
-    (7.0, 5.0, 2.0, 2.0),
+const DROPDOWN_CHEVRON_SEGMENTS: &[DropdownGlyphSegmentSpec] = &[
+    DropdownGlyphSegmentSpec::new(3, 5, 2, 2),
+    DropdownGlyphSegmentSpec::new(5, 7, 2, 2),
+    DropdownGlyphSegmentSpec::new(7, 5, 2, 2),
 ];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dropdown_chevron(

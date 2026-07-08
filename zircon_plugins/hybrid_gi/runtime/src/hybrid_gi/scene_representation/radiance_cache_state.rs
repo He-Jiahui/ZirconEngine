@@ -85,6 +85,15 @@ impl HybridGiRadianceCacheState {
         self.entries.len()
     }
 
+    pub(in crate::hybrid_gi::scene_representation) fn radiance_rgb(
+        &self,
+        probe_id: u32,
+    ) -> Option<[u8; 3]> {
+        self.entries
+            .iter()
+            .find_map(|entry| (entry.probe_id == probe_id).then_some(entry.radiance_rgb))
+    }
+
     #[cfg(test)]
     pub(in crate::hybrid_gi::scene_representation) fn entries(
         &self,

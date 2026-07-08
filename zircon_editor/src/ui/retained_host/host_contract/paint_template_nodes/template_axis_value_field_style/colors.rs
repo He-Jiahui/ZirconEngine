@@ -1,8 +1,48 @@
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_BACKGROUND: [u8; 4] = [17, 22, 26, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_HOVER_BACKGROUND: [u8; 4] = [23, 30, 35, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_PRESSED_BACKGROUND: [u8; 4] = [18, 39, 47, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_DISABLED_BACKGROUND: [u8; 4] = [21, 25, 29, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_BORDER:
-    [u8; 4] = [38, 48, 55, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_HOVER_BORDER: [u8; 4] = [56, 70, 79, 255];
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const AXIS_FIELD_DISABLED_BORDER: [u8; 4] = [42, 49, 55, 255];
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_palette(
+) -> HostMaterialPalette {
+    current_host_palette()
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_normal_background(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.surface_inset
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_hover_background(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.surface_hover
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_pressed_background(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.surface_selected
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_disabled_background(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.surface_disabled
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_normal_border(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.border
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_hover_border(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.separator_strong
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_disabled_border(
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
+    palette.border_disabled
+}

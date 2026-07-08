@@ -10,16 +10,25 @@ use crate::graphics::text::atlas::render_gpu_plan::{
     GlyphAtlasGpuVertex,
 };
 use crate::graphics::text::atlas::{
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasSamplingSemantics, GlyphAtlasStorageFormat,
+    glyph_atlas_upload_command, GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
+    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapStagedUpload,
+    GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapUploadStagingPlan, GlyphAtlasFormat,
+    GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSamplingSemantics, GlyphAtlasSet,
+    GlyphAtlasStorageFormat, GlyphAtlasUploadMode,
 };
 
+use super::super::atlas_texture_upload::GlyphAtlasBitmapTextureUploadFrameReport;
 use super::pipeline::{glyph_atlas_wgpu_blend_state, glyph_atlas_wgpu_primitive_state};
 use super::renderer::{
     glyph_atlas_bitmap_renderer_prepare_report,
     glyph_atlas_bitmap_renderer_prepare_report_for_storage_passes,
-    GlyphAtlasBitmapRendererPrepareReport,
+    glyph_atlas_bitmap_renderer_prepare_report_with_face_invalidation,
+    glyph_atlas_bitmap_renderer_prepare_report_with_upload_report,
+    glyph_atlas_bitmap_renderer_texture_upload_frame_plan, GlyphAtlasBitmapRendererPrepareReport,
 };
-use super::resources::glyph_atlas_wgpu_bind_group_layout_entries;
+use super::resources::{
+    glyph_atlas_bitmap_sampler_descriptor, glyph_atlas_wgpu_bind_group_layout_entries,
+};
 use super::vertex::glyph_atlas_wgpu_vertex_buffer_layout;
 
 #[test]
@@ -99,6 +108,17 @@ fn glyph_atlas_bitmap_bind_group_entries_match_texture_array_contract() {
 }
 
 #[test]
+fn glyph_atlas_bitmap_sampler_matches_glyphon_nearest_sampling_contract() {
+    let descriptor = glyph_atlas_bitmap_sampler_descriptor();
+
+    assert_eq!(descriptor.mag_filter, wgpu::FilterMode::Nearest);
+    assert_eq!(descriptor.min_filter, wgpu::FilterMode::Nearest);
+    assert_eq!(descriptor.mipmap_filter, wgpu::MipmapFilterMode::Nearest);
+    assert_eq!(descriptor.lod_min_clamp, 0.0);
+    assert_eq!(descriptor.lod_max_clamp, 0.0);
+}
+
+#[test]
 fn glyph_atlas_bitmap_pipeline_state_tracks_render_contract_blend_modes() {
     assert_eq!(
         glyph_atlas_wgpu_blend_state(GlyphAtlasBlendMode::StandardAlpha),
@@ -112,11 +132,9 @@ fn glyph_atlas_bitmap_pipeline_state_tracks_render_contract_blend_modes() {
     let subpixel = glyph_atlas_wgpu_blend_state(GlyphAtlasBlendMode::SubpixelBackgroundComposite);
 
     assert_eq!(subpixel.color.src_factor, wgpu::BlendFactor::One);
-    assert_eq!(
-        subpixel.color.dst_factor,
-        wgpu::BlendFactor::OneMinusSrcAlpha
-    );
+    assert_eq!(subpixel.color.dst_factor, wgpu::BlendFactor::Zero);
     assert_eq!(subpixel.alpha.src_factor, wgpu::BlendFactor::One);
+    assert_eq!(subpixel.alpha.dst_factor, wgpu::BlendFactor::Zero);
 }
 
 #[test]
@@ -200,9 +218,14 @@ fn glyph_atlas_bitmap_prepare_report_aggregates_mixed_storage_passes() {
         pipeline_count: 1,
         requires_background_composite: false,
         upload_request_count: 1,
+        upload_requeued_count: 0,
+        upload_missing_page_requeue_count: 0,
+        upload_page_generation_mismatch_requeue_count: 0,
+        upload_face_invalidated_count: 0,
         upload_byte_len: 64,
         upload_ready_to_write_texture: true,
         upload_failure_count: 0,
+        invalidated_storage_pass_count: 0,
     };
     let color = GlyphAtlasBitmapRendererPrepareReport {
         atlas_storage_format: GlyphAtlasStorageFormat::Rgba8Unorm,
@@ -233,7 +256,166 @@ fn glyph_atlas_bitmap_prepare_report_aggregates_mixed_storage_passes() {
     assert_eq!(report.draw_command_count, 3);
     assert_eq!(report.pipeline_count, 3);
     assert_eq!(report.upload_request_count, 3);
+    assert_eq!(report.upload_requeued_count, 0);
+    assert_eq!(report.upload_missing_page_requeue_count, 0);
+    assert_eq!(report.upload_page_generation_mismatch_requeue_count, 0);
+    assert_eq!(report.upload_face_invalidated_count, 0);
     assert_eq!(report.upload_byte_len, 320);
     assert!(report.upload_ready_to_write_texture);
     assert_eq!(report.upload_failure_count, 0);
+    assert_eq!(report.invalidated_storage_pass_count, 0);
+}
+
+#[test]
+fn glyph_atlas_bitmap_prepare_report_aggregates_upload_requeue_counts() {
+    let alpha = GlyphAtlasBitmapRendererPrepareReport {
+        atlas_size: UVec2::new(64, 64),
+        atlas_layer_count: 1,
+        atlas_storage_format: GlyphAtlasStorageFormat::R8Unorm,
+        storage_pass_count: 1,
+        storage_pass_visible_glyph_count: 1,
+        mixed_atlas_storage_format: false,
+        atlas_resized: false,
+        vertex_count: 6,
+        vertex_buffer_byte_len: 312,
+        draw_command_count: 1,
+        pipeline_count: 1,
+        requires_background_composite: false,
+        upload_request_count: 0,
+        upload_requeued_count: 2,
+        upload_missing_page_requeue_count: 1,
+        upload_page_generation_mismatch_requeue_count: 1,
+        upload_face_invalidated_count: 0,
+        upload_byte_len: 0,
+        upload_ready_to_write_texture: false,
+        upload_failure_count: 2,
+        invalidated_storage_pass_count: 0,
+    };
+    let color = GlyphAtlasBitmapRendererPrepareReport {
+        atlas_storage_format: GlyphAtlasStorageFormat::Rgba8Unorm,
+        storage_pass_visible_glyph_count: 2,
+        upload_requeued_count: 1,
+        upload_missing_page_requeue_count: 0,
+        upload_page_generation_mismatch_requeue_count: 0,
+        upload_face_invalidated_count: 1,
+        upload_failure_count: 1,
+        ..alpha.clone()
+    };
+
+    let report = glyph_atlas_bitmap_renderer_prepare_report_for_storage_passes(&[alpha, color], 3);
+
+    assert_eq!(report.upload_request_count, 0);
+    assert_eq!(report.upload_requeued_count, 3);
+    assert_eq!(report.upload_missing_page_requeue_count, 1);
+    assert_eq!(report.upload_page_generation_mismatch_requeue_count, 1);
+    assert_eq!(report.upload_face_invalidated_count, 1);
+    assert_eq!(report.upload_failure_count, 3);
+    assert!(!report.upload_ready_to_write_texture);
+    assert!(report.mixed_atlas_storage_format);
+}
+
+#[test]
+fn glyph_atlas_bitmap_prepare_report_projects_upload_requeue_frame_report() {
+    let report = glyph_atlas_bitmap_renderer_prepare_report_with_upload_report(
+        GlyphAtlasBitmapRendererPrepareReport::default(),
+        GlyphAtlasBitmapTextureUploadFrameReport {
+            request_count: 0,
+            binding_count: 0,
+            binding_failure_count: 1,
+            staging_failure_count: 0,
+            staged_upload_failure_count: 0,
+            skipped_staged_upload_failure_count: 0,
+            requeued_upload_count: 2,
+            missing_page_requeue_count: 1,
+            page_generation_mismatch_requeue_count: 0,
+            stale_page_generation_count: 1,
+            face_invalidated_count: 1,
+            upload_byte_len: 0,
+            ready_to_write_texture: false,
+        },
+    );
+
+    assert_eq!(report.upload_request_count, 0);
+    assert_eq!(report.upload_requeued_count, 2);
+    assert_eq!(report.upload_missing_page_requeue_count, 1);
+    assert_eq!(report.upload_page_generation_mismatch_requeue_count, 0);
+    assert_eq!(report.upload_face_invalidated_count, 1);
+    assert_eq!(report.upload_failure_count, 3);
+    assert!(!report.upload_ready_to_write_texture);
+}
+
+#[test]
+fn glyph_atlas_bitmap_renderer_upload_plan_requeues_invalidated_face_uploads() {
+    let page_key = GlyphAtlasPageKey::new(GlyphAtlasFormat::AlphaMask, 0);
+    let page = GlyphAtlasPageSpec::new(page_key, UVec2::new(4, 4));
+    let command = glyph_atlas_upload_command(&page, GlyphAtlasUploadMode::FullPage, None, 16)
+        .expect("test page upload command");
+    let prepared_upload = GlyphAtlasBitmapPreparedUploadPlan {
+        staging: GlyphAtlasBitmapUploadStagingPlan {
+            pages: vec![GlyphAtlasBitmapPageUploadStaging {
+                page_key,
+                page_generation: page.generation,
+                bytes_per_row: 4,
+                bytes: vec![255; 16],
+            }],
+            failures: Vec::new(),
+        },
+        staged_uploads: GlyphAtlasBitmapStagedUploadPlan {
+            uploads: vec![GlyphAtlasBitmapStagedUpload {
+                staging_page_index: 0,
+                command,
+                staging_page_byte_len: 16,
+            }],
+            failures: Vec::new(),
+        },
+    };
+    let atlas = GlyphAtlasSet::from_page(page);
+
+    let report = glyph_atlas_bitmap_renderer_texture_upload_frame_plan(
+        &prepared_upload,
+        &atlas,
+        GlyphAtlasBitmapFaceValidity::Invalidated,
+    )
+    .report();
+
+    assert_eq!(report.request_count, 0);
+    assert_eq!(report.requeued_upload_count, 1);
+    assert_eq!(report.face_invalidated_count, 1);
+    assert!(!report.ready_to_write_texture);
+}
+
+#[test]
+fn glyph_atlas_bitmap_prepare_report_records_face_invalidated_storage_passes() {
+    let report = glyph_atlas_bitmap_renderer_prepare_report_with_face_invalidation(
+        GlyphAtlasBitmapRendererPrepareReport::default(),
+        2,
+    );
+
+    assert_eq!(report.invalidated_storage_pass_count, 2);
+    assert_eq!(report.storage_pass_visible_glyph_count, 0);
+}
+
+#[test]
+fn glyph_atlas_bitmap_prepare_report_aggregates_face_invalidated_storage_passes() {
+    let alpha = GlyphAtlasBitmapRendererPrepareReport {
+        atlas_size: UVec2::new(64, 64),
+        atlas_layer_count: 1,
+        atlas_storage_format: GlyphAtlasStorageFormat::R8Unorm,
+        storage_pass_count: 1,
+        storage_pass_visible_glyph_count: 1,
+        invalidated_storage_pass_count: 1,
+        ..GlyphAtlasBitmapRendererPrepareReport::default()
+    };
+    let color = GlyphAtlasBitmapRendererPrepareReport {
+        atlas_storage_format: GlyphAtlasStorageFormat::Rgba8Unorm,
+        storage_pass_visible_glyph_count: 2,
+        invalidated_storage_pass_count: 2,
+        ..alpha.clone()
+    };
+
+    let report = glyph_atlas_bitmap_renderer_prepare_report_for_storage_passes(&[alpha, color], 2);
+
+    assert_eq!(report.storage_pass_visible_glyph_count, 3);
+    assert_eq!(report.invalidated_storage_pass_count, 3);
+    assert!(report.mixed_atlas_storage_format);
 }

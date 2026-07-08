@@ -10,6 +10,7 @@ use crate::graphics::text::atlas::{
 };
 use ::swash::scale::image::{Content as SwashImageContent, Image as SwashImage};
 use ::swash::FontRef;
+use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin};
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -284,16 +285,78 @@ fn text_raster_swash_request_rejects_invalid_px_size_before_scaling() {
 fn text_raster_swash_subpixel_outline_request_uses_subpixel_render_format() {
     let request = SwashRasterRequest::subpixel_outline(0, 1, 16.0, true);
 
+    assert_eq!(request.sources(), &[SwashRasterSource::SubpixelOutline]);
+    assert_eq!(request.render_format, ::swash::zeno::Format::Subpixel);
     assert_eq!(
-        request.source.render_format(),
-        ::swash::zeno::Format::Subpixel
-    );
-    assert_eq!(
-        SwashRasterRequest::alpha_outline(0, 1, 16.0, true)
-            .source
-            .render_format(),
+        SwashRasterRequest::alpha_outline(0, 1, 16.0, true).render_format,
         ::swash::zeno::Format::Alpha
     );
+}
+
+#[test]
+fn text_raster_swash_glyphon_cache_key_preserves_offset_hint_sources_and_weight() {
+    let request = SwashRasterRequest::glyphon_cache_key(
+        2,
+        CacheKey {
+            font_id: fontdb::ID::default(),
+            glyph_id: 42,
+            font_size_bits: 17.5_f32.to_bits(),
+            x_bin: SubpixelBin::Three,
+            y_bin: SubpixelBin::Two,
+            font_weight: fontdb::Weight(650),
+            flags: CacheKeyFlags::DISABLE_HINTING,
+        },
+    );
+
+    assert_eq!(request.face_index, 2);
+    assert_eq!(request.glyph_id, 42);
+    assert_eq!(request.px_size, 17.5);
+    assert!(!request.hint);
+    assert_eq!(request.offset, Vec2::new(0.75, 0.5));
+    assert_eq!(request.render_format, ::swash::zeno::Format::Alpha);
+    assert_eq!(request.variation_weight, Some(650));
+    assert!(!request.fake_italic);
+    assert_eq!(
+        request.sources(),
+        &[
+            SwashRasterSource::ColorOutline { palette_index: 0 },
+            SwashRasterSource::ColorBitmap(SwashBitmapStrike::BestFit),
+            SwashRasterSource::AlphaOutline,
+        ]
+    );
+}
+
+#[test]
+fn text_raster_swash_glyphon_cache_key_applies_pixel_font_and_fake_italic_flags() {
+    let request = SwashRasterRequest::glyphon_cache_key(
+        0,
+        CacheKey {
+            font_id: fontdb::ID::default(),
+            glyph_id: 7,
+            font_size_bits: 12.0_f32.to_bits(),
+            x_bin: SubpixelBin::Three,
+            y_bin: SubpixelBin::Two,
+            font_weight: fontdb::Weight::NORMAL,
+            flags: CacheKeyFlags::PIXEL_FONT | CacheKeyFlags::FAKE_ITALIC,
+        },
+    );
+
+    assert_eq!(request.offset, Vec2::new(2.0, 1.0));
+    assert!(request.fake_italic);
+    assert!(request.fake_italic_transform().is_some());
+}
+
+#[test]
+fn text_raster_swash_request_rejects_invalid_offset_before_scaling() {
+    let mut rasterizer = SwashRasterizer::new();
+    let mut request = SwashRasterRequest::alpha_outline(0, 1, 16.0, true);
+    request.offset = Vec2::new(f32::NAN, 0.0);
+
+    let error = rasterizer
+        .rasterize(&[], request)
+        .expect_err("non-finite offsets should be rejected before parsing font data");
+
+    assert_eq!(error, SwashRasterError::InvalidOffset);
 }
 
 #[test]

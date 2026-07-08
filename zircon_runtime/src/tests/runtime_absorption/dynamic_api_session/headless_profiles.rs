@@ -1,4 +1,4 @@
-use super::shared::slice_between;
+use super::shared::slices::slice_between;
 
 #[test]
 fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() {

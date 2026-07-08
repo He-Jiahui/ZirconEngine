@@ -1,7 +1,7 @@
 use super::super::workbench_row_selection::selected_row_outline_color;
+use super::palette::{workbench_tree_row_palette, WorkbenchTreeRowPalette};
 use super::state::{is_focus_or_press, is_hot, is_unavailable_tree_row_state};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_row_background(
@@ -9,15 +9,22 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> Option<[u8; 4]> {
-    let palette = current_host_palette();
+    tree_row_background_from_palette(state, marked, workbench_tree_row_palette())
+}
+
+fn tree_row_background_from_palette(
+    state: UiPainterResolvedState,
+    marked: bool,
+    palette: WorkbenchTreeRowPalette,
+) -> Option<[u8; 4]> {
     if is_unavailable_tree_row_state(state) {
         None
     } else if marked {
-        Some(palette.surface_pressed)
+        Some(palette.marked_surface)
     } else if state == UiPainterResolvedState::Pressed {
-        Some(palette.surface_pressed)
+        Some(palette.marked_surface)
     } else if is_hot(state) {
-        Some(palette.surface_hover)
+        Some(palette.hot_surface)
     } else {
         None
     }
@@ -27,13 +34,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> Option<[u8; 4]> {
-    let palette = current_host_palette();
+    tree_row_border_from_palette(state, marked, workbench_tree_row_palette())
+}
+
+fn tree_row_border_from_palette(
+    state: UiPainterResolvedState,
+    marked: bool,
+    palette: WorkbenchTreeRowPalette,
+) -> Option<[u8; 4]> {
     if is_unavailable_tree_row_state(state) {
         None
     } else if marked {
         Some(selected_row_outline_color())
     } else if is_focus_or_press(state) {
-        Some(palette.focus_ring)
+        Some(palette.focus_border)
     } else {
         None
     }

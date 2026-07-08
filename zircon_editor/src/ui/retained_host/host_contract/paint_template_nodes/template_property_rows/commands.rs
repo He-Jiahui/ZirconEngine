@@ -4,6 +4,7 @@ use super::super::template_property_axis_values::property_axis_values;
 use super::fields::{push_axis_value_commands, push_scalar_value_commands};
 use super::identity::is_property_row;
 use super::labels::push_property_label_command;
+use super::layers::value_group_order;
 use super::layout::{property_label_width, property_value_area_rect};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_property_row_text_commands(
@@ -50,11 +51,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_pr
             &axis_values,
             &value_area,
             clip,
-            order + 1,
+            value_group_order(order),
             opacity,
         );
     } else {
-        push_scalar_value_commands(commands, clip, node, &value_area, order + 1, value, opacity);
+        push_scalar_value_commands(
+            commands,
+            clip,
+            node,
+            &value_area,
+            value_group_order(order),
+            value,
+            opacity,
+        );
     }
     true
 }

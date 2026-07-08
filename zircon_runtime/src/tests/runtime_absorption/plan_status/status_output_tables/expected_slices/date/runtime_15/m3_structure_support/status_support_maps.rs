@@ -1,100 +1,75 @@
+#[path = "status_support_maps/evidence_maps.rs"]
+mod evidence_maps;
+#[path = "status_support_maps/foundation_row_data_maps.rs"]
+mod foundation_row_data_maps;
+#[path = "status_support_maps/hub_editor_maps.rs"]
+mod hub_editor_maps;
+#[path = "status_support_maps/m2_row_data_maps.rs"]
+mod m2_row_data_maps;
+#[path = "status_support_maps/m3_m4_expected_slice_maps.rs"]
+mod m3_m4_expected_slice_maps;
 #[path = "status_support_maps/plan_doc_support_maps.rs"]
 mod plan_doc_support_maps;
+#[path = "status_support_maps/render_shader_maps.rs"]
+mod render_shader_maps;
+#[path = "status_support_maps/root_layout_ui_maps.rs"]
+mod root_layout_ui_maps;
 #[path = "status_support_maps/row_data_maps.rs"]
 mod row_data_maps;
+#[path = "status_support_maps/runtime_row_data_maps.rs"]
+mod runtime_row_data_maps;
+
+// Parent-level mirror for source guards that read this route file directly.
+// Runtime 15 M3 render shader template assembly guard support child-owner split.
+// Status: runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred.
+// Date: Some("2026-06-27").
+// Files:
+// - structure_convention/production_file_budget/render_shader_template_assembly.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/docs_anchors.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/sources.rs
+// Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
+// Runtime 15 M3 render shader template assembly assertion contract child-owner split.
+// Status: runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred.
+// Date: Some("2026-07-01").
+// Files:
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/template_contracts.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_cache_contracts.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_pipeline_shadow_graph_contracts.rs
+// - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/owner_budget.rs
+// Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
+// Runtime 15 M3 mesh pipeline shader source tests child-owner split.
+// Status: runtime_15_mesh_pipeline_shader_source_tests_child_owner_split_static_passed_cargo_deferred.
+// Date: Some("2026-07-01").
+// Files:
+// - graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+// - graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs
+// - graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
+// Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
+
+const REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard row-data guard folder-backed split";
+const REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_DATE: &str = "2026-07-02";
+const REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard row-data status-mirror child split";
+const REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_DATE: &str = "2026-07-04";
 
 pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
-    if let Some(date) = row_data_maps::expected_date_for_slice(slice) {
-        return Some(date);
+    if slice == REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_STATUS_NAME {
+        return Some(REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_DATE);
     }
-    if let Some(date) = plan_doc_support_maps::expected_date_for_slice(slice) {
-        return Some(date);
+    if slice == REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_NAME {
+        return Some(REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_DATE);
     }
-    match slice {
-        "Runtime 15 M3 test file budget root-layout child split" => Some("2026-06-23"),
-        "Runtime 15 M3 status output Runtime 15 row data split" => Some("2026-06-23"),
-        "Runtime 15 M3 Runtime 15 row-data guard folder-backed split" => Some("2026-07-03"),
-        "Runtime 15 M3 Runtime 15 row-data status-mirror child split" => Some("2026-07-04"),
-        "Runtime 15 M3 Runtime 15 row-data row-ownership child split" => Some("2026-07-04"),
-        "Runtime 15 M3 Runtime 15 row-data root inventory child split" => Some("2026-07-04"),
-        "Runtime 15 M3 status output Runtime 15 foundation row data split" => Some("2026-06-27"),
-        "Runtime 15 M3 foundation row-data topic child-owner split" => Some("2026-06-30"),
-        "Runtime 15 M3 foundation row-data 73-row docs sync" => Some("2026-07-01"),
-        "Runtime 15 M3 foundation row-data stale-count prose guard" => Some("2026-07-03"),
-        "Runtime 15 M3 foundation row-data priority-doc frontmatter sync" => Some("2026-07-03"),
-        "Runtime 15 M3 status output Runtime 15 M2 row data split" => Some("2026-06-29"),
-        "Runtime 15 M3 M2 row-data guard child-owner split" => Some("2026-06-30"),
-        "Runtime 15 M3 M2 row-data guard folder-backed split" => Some("2026-07-03"),
-        "Runtime 15 M3 M2 row-data status-mirror child split" => Some("2026-07-04"),
-        "Runtime 15 M3 M2 row-data root inventory child split" => Some("2026-07-04"),
-        "Runtime 15 M3 support Hub project-actions tests child-owner split" => Some("2026-06-27"),
-        "Runtime 15 M3 support Hub runtime-state tests child-owner split" => Some("2026-06-27"),
-        "Runtime 15 M3 support Hub view-model quick-actions/tests child-owner split" => {
-            Some("2026-06-27")
-        }
-        "Runtime 15 M3 editor retained-host workbench window projection tests child-owner split" => {
-            Some("2026-06-27")
-        }
-        "Runtime 15 M3 editor retained-host pane data conversion projection owner guard" => {
-            Some("2026-06-27")
-        }
-        "Runtime 15 M3 production file budget core runtime guard split" => Some("2026-06-23"),
-        "Runtime 15 M3 render shader template assembly guard support child-owner split" => {
-            Some("2026-06-27")
-        }
-        "Runtime 15 M3 render shader template assembly assertion contract child-owner split" => {
-            Some("2026-07-01")
-        }
-        "Runtime 15 M3 shader prewarm manifest guard child-owner split" => Some("2026-06-27"),
-        "Runtime 15 M3 status output Runtime 15 M4 row data split" => Some("2026-06-23"),
-        "Runtime 15 M3 Runtime 15 M4 row-data guard folder-backed split" => Some("2026-07-03"),
-        "Runtime 15 M3 Runtime 15 M4 row-data status-mirror child split" => Some("2026-07-04"),
-        "Runtime 15 M3 Runtime 15 M4 row-data root inventory child split" => Some("2026-07-04"),
-        "Runtime 15 M3 status output expected-slice maps split" => Some("2026-06-23"),
-        "Runtime 15 M3 status output Runtime 15 expected-slice child-owner split" => {
-            Some("2026-06-25")
-        }
-        "Runtime 15 M3 status output expected-slice guard maps child-owner split" => Some("2026-06-25"),
-        "Runtime 15 M3 status output expected-slice top-level map support child-owner split" => {
-            Some("2026-06-25")
-        }
-        "Runtime 15 M3 status output Runtime 15 M3 row data split" => Some("2026-06-23"),
-        "Runtime 15 M3 Runtime 15 M3 row-data guard folder-backed split" => Some("2026-07-03"),
-        "Runtime 15 M3 Runtime 15 M3 row-data status-mirror child split" => Some("2026-07-04"),
-        "Runtime 15 M3 Runtime 15 M3 row-data root inventory child split" => Some("2026-07-04"),
-        "Runtime 15 M3 test file budget root-layout status scan child split" => Some("2026-06-23"),
-        "Runtime 15 M3 test file budget root-layout folder-backed guard child split" => {
-            Some("2026-06-24")
-        }
-        "Runtime 15 M3 test file budget root-layout folder-backed support child-owner split" => {
-            Some("2026-06-25")
-        }
-        "Runtime 15 M3 root-layout status-output Runtime 15 row-data child-source sync" => {
-            Some("2026-07-03")
-        }
-        "Runtime 15 M3 test file budget parent guard child-owner split" => Some("2026-06-24"),
-        "Runtime 15 M3 historical oversized test roots closeout" => Some("2026-06-23"),
-        "Runtime 15 M3 asset test-budget guard child-owner split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI asset test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI asset surface index test folder split" => Some("2026-06-24"),
-        "Runtime 15 M3 UI asset MUI web form style test folder split" => Some("2026-06-24"),
-        "Runtime 15 M3 UI asset MUI X web style test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI asset MUI web style test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI taffy layout pass test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI runtime window input pump test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI runtime window event ABI child folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 test file budget root-layout UI child split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI widget text input keyboard test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI focus navigation test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI runtime input manager test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 UI runtime input ownership test folder split" => Some("2026-06-23"),
-        "Runtime 15 M3 production file budget guard child-owner split" => Some("2026-06-24"),
-        "Runtime 15 M3 status output variable evidence anchors" => Some("2026-06-24"),
-        "Runtime 15 M3 status output evidence anchors guard folder-backed split" => {
-            Some("2026-07-03")
-        }
-        "Runtime 15 M3 evidence anchors status-mirror child split" => Some("2026-07-04"),
-        "Runtime 15 M3 evidence anchors root inventory child split" => Some("2026-07-04"),
-        _ => None,
-    }
+    row_data_maps::expected_date_for_slice(slice)
+        .or_else(|| plan_doc_support_maps::expected_date_for_slice(slice))
+        .or_else(|| runtime_row_data_maps::expected_date_for_slice(slice))
+        .or_else(|| foundation_row_data_maps::expected_date_for_slice(slice))
+        .or_else(|| m2_row_data_maps::expected_date_for_slice(slice))
+        .or_else(|| hub_editor_maps::expected_date_for_slice(slice))
+        .or_else(|| render_shader_maps::expected_date_for_slice(slice))
+        .or_else(|| m3_m4_expected_slice_maps::expected_date_for_slice(slice))
+        .or_else(|| root_layout_ui_maps::expected_date_for_slice(slice))
+        .or_else(|| evidence_maps::expected_date_for_slice(slice))
 }

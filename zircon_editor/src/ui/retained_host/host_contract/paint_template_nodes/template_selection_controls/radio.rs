@@ -4,6 +4,7 @@ use super::super::template_selection_control_geometry::{
     centered_square, label_rect_after_mark, leading_mark_rect, radio_dot_size,
 };
 use super::labels::push_selection_label;
+use super::layers::{mark_content_order, mark_label_order};
 use super::style::{
     control_accent_color, radio_background, radio_border_color, selection_mark_label_color,
 };
@@ -33,7 +34,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ra
         commands.push(HostPaintCommand::quad(
             dot,
             Some(clip.clone()),
-            order + 1,
+            mark_content_order(order),
             Some(control_accent_color(node)),
             None,
             0.0,
@@ -46,7 +47,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ra
         node,
         label_rect_after_mark(node, rect, &mark),
         clip,
-        order + 2,
+        mark_label_order(order),
         selection_mark_label_color(node),
         opacity,
     );

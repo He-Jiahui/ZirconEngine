@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::{assert_contains_all, read_repo_text, read_text};
+use super::super::support::{assert_contains_all, read_repo_text, read_text};
 
 #[path = "asset_schema/material_asset_schema_v1.rs"]
 mod material_asset_schema_v1;

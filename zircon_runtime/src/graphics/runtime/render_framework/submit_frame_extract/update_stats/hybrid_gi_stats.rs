@@ -41,6 +41,11 @@ pub(super) fn update_hybrid_gi_stats(
         .stats
         .last_hybrid_gi_surface_cache_invalidated_page_count =
         hybrid_gi_stats.surface_cache_invalidated_page_count();
+    state.stats.last_hybrid_gi_surface_cache_depth_sample_count =
+        hybrid_gi_stats.surface_cache_depth_sample_count();
+    state.stats.last_hybrid_gi_probe_trace_tile_count = hybrid_gi_stats.probe_trace_tile_count();
+    state.stats.last_hybrid_gi_probe_trace_dispatch_group_count =
+        hybrid_gi_stats.probe_trace_dispatch_group_count();
     state.stats.last_hybrid_gi_voxel_resident_clipmap_count =
         hybrid_gi_stats.voxel_resident_clipmap_count();
     state.stats.last_hybrid_gi_voxel_dirty_clipmap_count =
@@ -68,6 +73,9 @@ pub(super) fn reset_hybrid_gi_stats(state: &mut RenderFrameworkState) {
     state
         .stats
         .last_hybrid_gi_surface_cache_invalidated_page_count = 0;
+    state.stats.last_hybrid_gi_surface_cache_depth_sample_count = 0;
+    state.stats.last_hybrid_gi_probe_trace_tile_count = 0;
+    state.stats.last_hybrid_gi_probe_trace_dispatch_group_count = [0; 3];
     state.stats.last_hybrid_gi_voxel_resident_clipmap_count = 0;
     state.stats.last_hybrid_gi_voxel_dirty_clipmap_count = 0;
     state.stats.last_hybrid_gi_voxel_invalidated_clipmap_count = 0;

@@ -142,3 +142,9 @@ It does not yet verify long-run wave spawning balance or skeletal animation
 playback. Current action-state evidence is transform-level facing/scale feedback
 plus dynamic state components; real glTF clip playback still belongs to a future
 animation importer milestone.
+
+## 2026-07-07 Project Scenes PBR Matrix Helper Split
+
+Status `runtime_15_production_file_budget_ui_ibl_project_owner_split_static_passed_cargo_check_offline_locked_blocked` keeps `graphics/tests/project_render/project_scenes.rs` as the product-test entry owner and moves the large PBR/HDRI matrix helper set into `graphics/tests/project_render/project_scenes/pbr_matrix.rs`. The child owns matrix dimensions, test output directories, source-cubemap environments, project writing, luma range helpers, and PBR/HDRI response assertions. The parent keeps the ignored export/product test functions so existing guard anchors and manual product filters remain stable without adding legacy aliases or facade shims.
+
+Verification passed scoped rustfmt, standalone structure-convention `production_file_budget` 104/104, and no-default-features runtime tests offline cargo check with warnings only. The locked Cargo gate is blocked by current non-slice `Cargo.lock` drift.

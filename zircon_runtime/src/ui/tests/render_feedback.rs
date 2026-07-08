@@ -416,6 +416,97 @@ action_color = "#e0a33a"
     }));
 }
 
+#[test]
+fn render_extract_focused_alert_keeps_tone_surface_and_border() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.feedback.alert.focus"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 360.0, 92.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Alert",
+        UiFrame::new(12.0, 12.0, 280.0, 32.0),
+        r##"
+message = "Focused warning"
+severity = "warning"
+focused = true
+background_color = "#453214"
+border_color = "#845e23"
+hover_background_color = "#664400"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Alert",
+        UiFrame::new(12.0, 52.0, 280.0, 32.0),
+        r##"
+message = "Pressed warning"
+severity = "warning"
+pressed = true
+pressed_background_color = "#103c4a"
+border_color = "#845e23"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let focused = feedback_surface(&surface.render_extract.list.commands, UiNodeId::new(2));
+    assert_eq!(focused.style.painter_state, UiPainterResolvedState::Focused);
+    assert_eq!(focused.style.background_color.as_deref(), Some("#453214"));
+    assert_eq!(focused.style.border_color.as_deref(), Some("#845e23"));
+
+    let pressed = feedback_surface(&surface.render_extract.list.commands, UiNodeId::new(3));
+    assert_eq!(pressed.style.painter_state, UiPainterResolvedState::Pressed);
+    assert_eq!(pressed.style.background_color.as_deref(), Some("#103c4a"));
+    assert_eq!(pressed.style.border_color.as_deref(), Some("#35c7d0"));
+}
+
+#[test]
+fn render_extract_focused_toast_keeps_surface_neutral_until_hovered() {
+    let focused_commands = commands_for_component(
+        "Toast",
+        UiFrame::new(0.0, 0.0, 260.0, 34.0),
+        r##"
+text = "Focused toast"
+focused = true
+background_color = "#153035"
+hover_background_color = "#183a3f"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    let focused = toast_surface(&focused_commands);
+    assert_eq!(focused.style.painter_state, UiPainterResolvedState::Focused);
+    assert_eq!(focused.style.background_color.as_deref(), Some("#153035"));
+    assert_eq!(focused.style.border_color.as_deref(), Some("#35c7d0"));
+
+    let hovered_commands = commands_for_component(
+        "Toast",
+        UiFrame::new(0.0, 0.0, 260.0, 34.0),
+        r##"
+text = "Hovered toast"
+focused = true
+hovered = true
+background_color = "#153035"
+hover_background_color = "#183a3f"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    let hovered = toast_surface(&hovered_commands);
+    assert_eq!(hovered.style.painter_state, UiPainterResolvedState::Focused);
+    assert_eq!(hovered.style.background_color.as_deref(), Some("#183a3f"));
+    assert_eq!(hovered.style.border_color.as_deref(), Some("#35c7d0"));
+}
+
 fn commands_for_component(
     component: &str,
     frame: UiFrame,
@@ -440,6 +531,27 @@ fn commands_for_component(
     );
     surface.rebuild();
     surface.render_extract.list.commands
+}
+
+fn feedback_surface(commands: &[UiRenderCommand], node_id: UiNodeId) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.node_id == node_id
+                && command.kind == UiRenderCommandKind::Quad
+                && command.style.painter_family == UiPainterFamily::Alert
+        })
+        .expect("feedback surface command")
+}
+
+fn toast_surface(commands: &[UiRenderCommand]) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.kind == UiRenderCommandKind::Quad
+                && command.style.painter_family == UiPainterFamily::Toast
+        })
+        .expect("toast surface command")
 }
 
 fn insert_control(

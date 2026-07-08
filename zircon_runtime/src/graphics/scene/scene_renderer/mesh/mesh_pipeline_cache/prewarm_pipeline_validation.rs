@@ -5,6 +5,7 @@ use crate::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmRequest,
 };
 use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
+use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
 use super::super::mesh_pass::MeshPassPipelineKind;
 use super::super::mesh_pipeline::{
@@ -121,20 +122,10 @@ fn shadow_validation_kind(key: &PipelineKey) -> MeshPassPipelineKind {
 }
 
 fn create_validation_scene_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    let scene_layout_entries = scene_bind_group_layout_entries();
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-shader-prewarm-validation-scene-layout"),
-        entries: &[wgpu::BindGroupLayoutEntry {
-            binding: 0,
-            visibility: wgpu::ShaderStages::VERTEX
-                | wgpu::ShaderStages::FRAGMENT
-                | wgpu::ShaderStages::COMPUTE,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            },
-            count: None,
-        }],
+        entries: &scene_layout_entries,
     })
 }
 

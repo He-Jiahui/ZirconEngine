@@ -1,7 +1,7 @@
 use super::super::workbench_row_selection::selected_row_outline_color;
+use super::palette::{workbench_list_row_palette, WorkbenchListRowPalette};
 use super::state::is_unavailable_list_row_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_row_background(
@@ -9,20 +9,27 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> Option<[u8; 4]> {
-    let palette = current_host_palette();
+    list_row_background_from_palette(state, marked, workbench_list_row_palette())
+}
+
+fn list_row_background_from_palette(
+    state: UiPainterResolvedState,
+    marked: bool,
+    palette: WorkbenchListRowPalette,
+) -> Option<[u8; 4]> {
     if is_unavailable_list_row_state(state) {
         None
     } else if marked {
-        Some(palette.surface_pressed)
+        Some(palette.marked_surface)
     } else {
         match state {
-            UiPainterResolvedState::Pressed => Some(palette.surface_pressed),
-            UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Open
+            UiPainterResolvedState::Pressed => Some(palette.marked_surface),
+            UiPainterResolvedState::Open
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
-            | UiPainterResolvedState::Hovered => Some(palette.surface_hover),
-            UiPainterResolvedState::Disabled
+            | UiPainterResolvedState::Hovered => Some(palette.hot_surface),
+            UiPainterResolvedState::Focused
+            | UiPainterResolvedState::Disabled
             | UiPainterResolvedState::Loading
             | UiPainterResolvedState::Checked
             | UiPainterResolvedState::Selected
@@ -35,7 +42,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> Option<[u8; 4]> {
-    let palette = current_host_palette();
+    list_row_border_from_palette(state, marked, workbench_list_row_palette())
+}
+
+fn list_row_border_from_palette(
+    state: UiPainterResolvedState,
+    marked: bool,
+    palette: WorkbenchListRowPalette,
+) -> Option<[u8; 4]> {
     if !is_unavailable_list_row_state(state) && marked {
         return Some(selected_row_outline_color());
     }
@@ -46,7 +60,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )
-    .then_some(palette.focus_ring)
+    .then_some(palette.focus_border)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_row_border_width(

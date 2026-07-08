@@ -2,7 +2,10 @@ use std::{collections::BTreeSet, time::Instant};
 
 use serde::{Deserialize, Serialize};
 
-use crate::ui::layout::{compute_incremental_layout_tree, compute_layout_tree};
+use crate::ui::layout::{
+    compute_incremental_layout_tree_with_text_measure_cache,
+    compute_layout_tree_with_text_measure_cache,
+};
 use crate::ui::surface::{
     build_arranged_tree,
     render::{
@@ -316,10 +319,20 @@ impl UiSurface {
     }
 
     fn rebuild_render_extract(&mut self, force_rebuild: bool) -> UiSurfaceRenderCacheStats {
+        self.rebuild_render_extract_with_text_frame(force_rebuild, true)
+    }
+
+    fn rebuild_render_extract_with_text_frame(
+        &mut self,
+        force_rebuild: bool,
+        begin_text_frame: bool,
+    ) -> UiSurfaceRenderCacheStats {
         if force_rebuild {
             self.render_cache = Default::default();
         }
-        self.text_measure_cache.begin_frame();
+        if begin_text_frame {
+            self.text_measure_cache.begin_frame();
+        }
         let extract =
             extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
                 &self.tree,
@@ -329,6 +342,7 @@ impl UiSurface {
             );
         let update = self.render_cache.update(extract, force_rebuild);
         self.render_extract = update.extract;
+        self.text_measure_cache.finish_frame();
         update.stats
     }
 
@@ -439,8 +453,13 @@ impl UiSurface {
         }
 
         if dirty.layout || dirty.style || dirty.text || dirty.visible_range {
+            self.text_measure_cache.begin_frame();
             let layout_start = Instant::now();
-            let layout_stats = compute_incremental_layout_tree(&mut self.tree, root_size)?;
+            let layout_stats = compute_incremental_layout_tree_with_text_measure_cache(
+                &mut self.tree,
+                root_size,
+                Some(&mut self.text_measure_cache),
+            )?;
             self.layout_engine_report = merge_incremental_layout_engine_report(
                 &self.layout_engine_report,
                 &layout_stats.layout_engine_report,
@@ -455,7 +474,7 @@ impl UiSurface {
             self.hit_test.rebuild_arranged(&self.arranged_tree);
             let hit_grid_elapsed_micros = elapsed_micros(hit_start);
             let render_start = Instant::now();
-            let render_stats = self.rebuild_render_extract(false);
+            let render_stats = self.rebuild_render_extract_with_text_frame(false, false);
             let render_elapsed_micros = elapsed_micros(render_start);
             let report = UiSurfaceRebuildReport {
                 dirty_flags: dirty,
@@ -518,17 +537,43 @@ impl UiSurface {
     pub fn compute_layout(&mut self, root_size: UiSize) -> Result<(), UiTreeError> {
         let dirty_flags = self.dirty_flags();
         let dirty_node_count = dirty_node_count(&self.tree);
+        self.text_measure_cache.begin_frame();
         let layout_start = Instant::now();
-        self.layout_engine_report = compute_layout_tree(&mut self.tree, root_size)?;
+        self.layout_engine_report = compute_layout_tree_with_text_measure_cache(
+            &mut self.tree,
+            root_size,
+            Some(&mut self.text_measure_cache),
+        )?;
         let layout_elapsed_micros = elapsed_micros(layout_start);
-        self.rebuild();
-        self.last_rebuild_report.layout_recomputed = true;
-        self.last_rebuild_report.layout_elapsed_micros = layout_elapsed_micros;
-        self.last_rebuild_report.dirty_flags = dirty_flags;
-        self.last_rebuild_report.dirty_node_count = dirty_node_count;
-        self.last_rebuild_report.layout_visited_node_count = self.tree.nodes.len();
-        self.last_rebuild_report.layout_geometry_changed_node_count = self.tree.nodes.len();
-        self.last_rebuild_report.layout_skipped_node_count = 0;
+        let arranged_start = Instant::now();
+        self.arranged_tree = build_arranged_tree(&self.tree);
+        let arranged_elapsed_micros = elapsed_micros(arranged_start);
+        let hit_start = Instant::now();
+        self.hit_test.rebuild_arranged(&self.arranged_tree);
+        let hit_grid_elapsed_micros = elapsed_micros(hit_start);
+        let render_start = Instant::now();
+        let render_stats = self.rebuild_render_extract_with_text_frame(true, false);
+        let render_elapsed_micros = elapsed_micros(render_start);
+        self.last_rebuild_report = UiSurfaceRebuildReport {
+            dirty_flags,
+            dirty_node_count,
+            layout_recomputed: true,
+            arranged_rebuilt: true,
+            hit_grid_rebuilt: true,
+            render_rebuilt: true,
+            layout_visited_node_count: self.tree.nodes.len(),
+            layout_geometry_changed_node_count: self.tree.nodes.len(),
+            layout_skipped_node_count: 0,
+            render_command_reused_count: render_stats.reused_command_count,
+            render_command_rebuilt_count: render_stats.rebuilt_command_count,
+            render_damage_rect_count: render_stats.damage_rect_count,
+            layout_elapsed_micros,
+            arranged_elapsed_micros,
+            hit_grid_elapsed_micros,
+            render_elapsed_micros,
+            ..self.rebuild_counts()
+        };
+        self.seed_popup_stack_from_tree_metadata();
         self.clear_dirty_flags();
         self.reset_pending_pool_report();
         Ok(())

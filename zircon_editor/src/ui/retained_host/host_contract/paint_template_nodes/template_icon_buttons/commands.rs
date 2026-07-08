@@ -1,8 +1,10 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_button_glyphs::push_icon_button_glyph;
+use super::content::icon_button_content_style;
 use super::geometry::{icon_button_paint_rect, icon_glyph_rect};
 use super::identity::is_workbench_icon_button;
+use super::layers::glyph_order;
 use super::style::{icon_button_context, icon_button_style};
 use super::surface::push_icon_button_surface;
 
@@ -22,15 +24,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
     let context = icon_button_context(node);
     let style = icon_button_style(node, context);
     push_icon_button_surface(commands, &rect, clip, order, style, opacity);
-    let glyph = icon_glyph_rect(node, &rect, context);
+    let content_style = icon_button_content_style(style);
+    let glyph = content_style.offset_glyph_rect(icon_glyph_rect(node, &rect, context));
     push_icon_button_glyph(
         commands,
         node,
         &glyph,
         clip,
-        order + 2,
-        style.glyph,
-        style.state,
+        glyph_order(order),
+        content_style.glyph,
         opacity,
     );
     true

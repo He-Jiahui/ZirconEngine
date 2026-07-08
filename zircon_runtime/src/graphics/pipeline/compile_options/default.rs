@@ -13,6 +13,7 @@ impl Default for RenderPipelineCompileOptions {
             enable_hzb_occlusion_culling: true,
             graph_msaa_sample_count: None,
             post_process_stack: None,
+            environment_ibl_bake_request: None,
         }
     }
 }

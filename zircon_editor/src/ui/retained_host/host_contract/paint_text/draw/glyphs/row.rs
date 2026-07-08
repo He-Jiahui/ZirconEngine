@@ -4,11 +4,10 @@ use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::super::paint_geometry::PixelRect;
 use super::super::super::blend::{blend_pixel, blend_pixel_channel_coverage};
 use super::super::super::raster::CachedGlyphRasterFormat;
-
-const THIN_STROKE_HIGH_SAMPLE: u8 = 220;
-const THIN_STROKE_MAX_AVERAGE: u8 = 96;
-const THIN_STROKE_MIN_COVERAGE: u8 = 128;
-const MAX_COMBINED_SAMPLE_OFFSET_X: f32 = 1.999;
+use super::metrics::{
+    averaged_channel_coverage, glyph_draw_pass_count, italic_pixel_offset, raster_sample_x_range,
+    raster_sample_y_range, uses_native_pixel_sampling,
+};
 
 pub(super) fn draw_glyph_row(
     frame: &mut HostRgbaFrame,
@@ -134,27 +133,21 @@ fn sampled_coverage(
     raster_scale: f32,
     sample_offset_x: f32,
 ) -> u8 {
-    if raster_width == 0 || raster_height == 0 || !raster_scale.is_finite() || raster_scale <= 1.0 {
+    if uses_native_pixel_sampling(raster_width, raster_height, raster_scale) {
         return bitmap
             .get(logical_row * raster_width + logical_column)
             .copied()
             .unwrap_or(0);
     }
 
-    let sample_offset_x = normalized_sample_offset(sample_offset_x);
-    let x0 = (((logical_column as f32) - sample_offset_x) * raster_scale).floor() as isize;
-    let x1 = ((((logical_column + 1) as f32) - sample_offset_x) * raster_scale).ceil() as isize;
-    let y0 = ((logical_row as f32) * raster_scale).floor() as usize;
-    let y1 = (((logical_row + 1) as f32) * raster_scale).ceil() as usize;
-
     let mut sum = 0_u32;
     let mut count = 0_u32;
     let mut max_coverage = 0_u8;
-    let x_start = x0.max(0) as usize;
-    let x_end = x1.max(0).min(raster_width as isize) as usize;
-    for sample_y in y0..y1.min(raster_height) {
+    let sample_x_range =
+        raster_sample_x_range(logical_column, raster_scale, sample_offset_x, raster_width);
+    for sample_y in raster_sample_y_range(logical_row, raster_scale, raster_height) {
         let row_start = sample_y * raster_width;
-        for sample_x in x_start..x_end {
+        for sample_x in sample_x_range.clone() {
             let coverage = bitmap[row_start + sample_x];
             sum += coverage as u32;
             max_coverage = max_coverage.max(coverage);
@@ -165,8 +158,7 @@ fn sampled_coverage(
     if count == 0 {
         0
     } else {
-        let average = ((sum as f32 / count as f32).round()).min(255.0) as u8;
-        thin_stroke_preserved_coverage(average, max_coverage)
+        averaged_channel_coverage(sum, count, max_coverage)
     }
 }
 
@@ -177,9 +169,9 @@ fn sampled_subpixel_coverage(
     logical_column: usize,
     logical_row: usize,
     raster_scale: f32,
-    _sample_offset_x: f32,
+    sample_offset_x: f32,
 ) -> [u8; 3] {
-    if raster_width == 0 || raster_height == 0 || !raster_scale.is_finite() || raster_scale <= 1.0 {
+    if uses_native_pixel_sampling(raster_width, raster_height, raster_scale) {
         let offset = (logical_row * raster_width + logical_column) * 4;
         return bitmap
             .get(offset..offset + 3)
@@ -187,17 +179,14 @@ fn sampled_subpixel_coverage(
             .unwrap_or([0, 0, 0]);
     }
 
-    let x0 = ((logical_column as f32) * raster_scale).floor() as usize;
-    let x1 = (((logical_column + 1) as f32) * raster_scale).ceil() as usize;
-    let y0 = ((logical_row as f32) * raster_scale).floor() as usize;
-    let y1 = (((logical_row + 1) as f32) * raster_scale).ceil() as usize;
-
     let mut sums = [0_u32; 3];
     let mut maxes = [0_u8; 3];
     let mut count = 0_u32;
-    for sample_y in y0..y1.min(raster_height) {
+    let sample_x_range =
+        raster_sample_x_range(logical_column, raster_scale, sample_offset_x, raster_width);
+    for sample_y in raster_sample_y_range(logical_row, raster_scale, raster_height) {
         let row_start = sample_y * raster_width * 4;
-        for sample_x in x0..x1.min(raster_width) {
+        for sample_x in sample_x_range.clone() {
             let offset = row_start + sample_x * 4;
             for channel in 0..3 {
                 let coverage = bitmap[offset + channel];
@@ -217,39 +206,6 @@ fn sampled_subpixel_coverage(
             averaged_channel_coverage(sums[2], count, maxes[2]),
         ]
     }
-}
-
-fn normalized_sample_offset(offset: f32) -> f32 {
-    if offset.is_finite() {
-        offset.clamp(0.0, MAX_COMBINED_SAMPLE_OFFSET_X)
-    } else {
-        0.0
-    }
-}
-
-fn averaged_channel_coverage(sum: u32, count: u32, max_coverage: u8) -> u8 {
-    let average = ((sum as f32 / count as f32).round()).min(255.0) as u8;
-    thin_stroke_preserved_coverage(average, max_coverage)
-}
-
-fn thin_stroke_preserved_coverage(average: u8, max_coverage: u8) -> u8 {
-    if average > 0 && average < THIN_STROKE_MAX_AVERAGE && max_coverage >= THIN_STROKE_HIGH_SAMPLE {
-        THIN_STROKE_MIN_COVERAGE.max(average)
-    } else {
-        average
-    }
-}
-
-fn italic_pixel_offset(style: UiTextRunPaintStyle, row: usize, height: usize) -> i32 {
-    if !style.emphasis || height == 0 {
-        return 0;
-    }
-    let top_bias = height.saturating_sub(row) as f32 / height.max(1) as f32;
-    (top_bias * 2.0).round() as i32
-}
-
-fn glyph_draw_pass_count(_style: UiTextRunPaintStyle) -> i32 {
-    1
 }
 
 #[cfg(test)]

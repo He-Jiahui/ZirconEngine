@@ -1,7 +1,7 @@
 use super::super::colors::declared_style_background;
 use super::super::model::WorkbenchSelectionControlKind;
 use super::super::palette::WorkbenchSelectionControlPalette;
-use super::super::state::{is_hot, is_unavailable_selection_state};
+use super::super::state::{is_hot, is_unavailable_selection_state, selection_node_is_hot};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -35,6 +35,8 @@ pub(super) fn control_surface(
                 palette.toggle_checked_surface
             } else if state == UiPainterResolvedState::Pressed {
                 palette.toggle_pressed_surface
+            } else if state == UiPainterResolvedState::Focused && selection_node_is_hot(node) {
+                palette.toggle_hover_surface
             } else if is_hot(state) {
                 palette.toggle_hover_surface
             } else {

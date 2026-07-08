@@ -12,6 +12,18 @@ fn runtime_15_core_scene_naming_ecs_owner_guards_are_child_owner() {
     let child = read_runtime_src(
         "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners.rs",
     );
+    let observer_callback_registry = read_runtime_src(
+        "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/observer_callback_registry.rs",
+    );
+    let query_state_many_item_array = read_runtime_src(
+        "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/query_state_many_item_array.rs",
+    );
+    let component_storage_component_results = read_runtime_src(
+        "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/component_storage_component_results.rs",
+    );
+    let split_layout = read_runtime_src(
+        "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/split_layout.rs",
+    );
 
     assert_contains_all(
         "Runtime 15 core-scene naming parent mounts scene-ECS child owner",
@@ -39,8 +51,22 @@ fn runtime_15_core_scene_naming_ecs_owner_guards_are_child_owner() {
     }
 
     assert_contains_all(
-        "Runtime 15 core-scene scene-ECS child owns ECS naming guards",
+        "Runtime 15 core-scene scene-ECS child mounts split ECS naming guards",
         &child,
+        &[
+            "use super::*;",
+            "mod component_storage_component_results;",
+            "mod observer_callback_registry;",
+            "mod query_state_many_item_array;",
+            "mod split_layout;",
+        ],
+    );
+
+    assert_contains_all(
+        "Runtime 15 core-scene scene-ECS child files own ECS naming guards",
+        &format!(
+            "{observer_callback_registry}\n{query_state_many_item_array}\n{component_storage_component_results}\n{split_layout}"
+        ),
         &[
             "use super::*;",
             "fn runtime_15_scene_ecs_observer_callback_registry_uses_owner_name",
@@ -60,6 +86,22 @@ fn runtime_15_core_scene_naming_ecs_owner_guards_are_child_owner() {
         (
             "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners.rs",
             child.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/observer_callback_registry.rs",
+            observer_callback_registry.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/query_state_many_item_array.rs",
+            query_state_many_item_array.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/component_storage_component_results.rs",
+            component_storage_component_results.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/split_layout.rs",
+            split_layout.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

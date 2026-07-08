@@ -29,6 +29,10 @@ pub(super) fn slider_thumb_halo_color(node: &TemplatePaneNodeData) -> Option<[u8
     slider_style(node).thumb_halo
 }
 
+pub(super) fn slider_value_border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
+    slider_style(node).value_border
+}
+
 pub(super) fn slider_visual_state(node: &TemplatePaneNodeData) -> UiPainterResolvedState {
     slider_style(node).state
 }

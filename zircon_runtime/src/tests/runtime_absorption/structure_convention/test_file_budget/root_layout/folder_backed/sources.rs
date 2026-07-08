@@ -151,10 +151,10 @@ pub(super) fn read_guard_sources() -> GuardSources {
         ),
         status_output_row_data_runtime_15: [
             read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data.rs",
+                "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_row_data.rs",
             ),
             read_runtime_src(
-                "tests/runtime_absorption/structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership.rs",
+                "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_row_data/row_ownership.rs",
             ),
         ]
         .join("\n"),

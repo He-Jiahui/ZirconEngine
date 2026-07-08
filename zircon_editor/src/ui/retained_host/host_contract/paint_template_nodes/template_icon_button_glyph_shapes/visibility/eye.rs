@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_eye_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,11 +20,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ey
         color,
         opacity,
         &[
-            (2.5, 7.0, 2.0, 2.0),
-            (4.5, 5.0, 7.0, 1.2),
-            (4.5, 10.0, 7.0, 1.2),
-            (11.5, 7.0, 2.0, 2.0),
-            (7.0, 7.0, 2.0, 2.0),
+            seg(50, 140, 40, 40),
+            seg(90, 100, 140, 24),
+            seg(90, 200, 140, 24),
+            seg(230, 140, 40, 40),
+            seg(140, 140, 40, 40),
         ],
     );
 }

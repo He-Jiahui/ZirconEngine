@@ -2,6 +2,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::{slider_value_label, workbench_slider_metrics};
+use super::super::layers::inner_text_order;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_value(
@@ -34,7 +35,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
             height: metrics.line_height,
         },
         Some(clip.clone()),
-        order + 1,
+        inner_text_order(order),
         label,
         style.value_text,
         metrics.font_size,

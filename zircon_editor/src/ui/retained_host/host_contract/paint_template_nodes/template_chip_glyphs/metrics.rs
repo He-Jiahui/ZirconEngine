@@ -1,6 +1,16 @@
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_CHEVRON_SIZE: f32 =
-    12.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_CHEVRON_RIGHT:
-    f32 = 8.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const CHIP_CHEVRON_RESERVE:
-    f32 = CHIP_CHEVRON_SIZE + CHIP_CHEVRON_RIGHT + 4.0;
+use super::super::template_chips::{chip_chevron_reserve, chip_chevron_right, chip_chevron_size};
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_glyph_chevron_size(
+) -> f32 {
+    chip_chevron_size()
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_glyph_chevron_right(
+) -> f32 {
+    chip_chevron_right()
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_glyph_chevron_reserve(
+) -> f32 {
+    chip_chevron_reserve()
+}

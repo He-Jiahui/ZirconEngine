@@ -4,8 +4,9 @@ use crate::hybrid_gi::renderer::{HybridGiGpuReadback, HybridGiScenePrepareResour
 use zircon_runtime::core::framework::render::{
     RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-    RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
-    RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelOccupancyMaskRecord,
+    RenderHybridGiTraceTileRecord, RenderHybridGiVoxelCellDominantNodeRecord,
+    RenderHybridGiVoxelCellRecord, RenderHybridGiVoxelCellSampleRecord,
+    RenderHybridGiVoxelOccupancyMaskRecord,
 };
 
 impl From<HybridGiGpuReadback> for RenderHybridGiReadbackOutputs {
@@ -61,6 +62,10 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
         let voxel_cell_dominant_nodes = neutral_voxel_cell_dominant_nodes(&snapshot);
         let voxel_cell_dominant_samples =
             neutral_voxel_cell_samples(snapshot.voxel_clipmap_cell_dominant_rgba_samples());
+        let surface_cache_depth_samples =
+            scene_prepare_samples(snapshot.surface_cache_depth_rgba_samples().to_vec());
+        let probe_trace_tiles = neutral_probe_trace_tiles(snapshot.probe_trace_tiles());
+        let probe_trace_dispatch = snapshot.probe_trace_dispatch();
         let occupied_atlas_slots = snapshot.occupied_atlas_slots().to_vec();
         let occupied_capture_slots = snapshot.occupied_capture_slots().to_vec();
         let (atlas_samples, capture_samples) = snapshot.into_surface_cache_samples();
@@ -70,6 +75,7 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
             occupied_capture_slots,
             atlas_samples: scene_prepare_samples(atlas_samples),
             capture_samples: scene_prepare_samples(capture_samples),
+            surface_cache_depth_samples,
             voxel_clipmap_ids,
             voxel_samples,
             voxel_occupancy,
@@ -78,6 +84,8 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
             voxel_cell_samples,
             voxel_cell_dominant_nodes,
             voxel_cell_dominant_samples,
+            probe_trace_tiles,
+            probe_trace_dispatch,
             texture_width: atlas_extent.0,
             texture_height: atlas_extent.1,
             texture_layers,
@@ -180,6 +188,20 @@ fn neutral_voxel_cell_dominant_nodes(
         .collect()
 }
 
+fn neutral_probe_trace_tiles(tiles: &[(u32, u32, u32, u32)]) -> Vec<RenderHybridGiTraceTileRecord> {
+    tiles
+        .iter()
+        .map(
+            |&(tile_id, probe_id, trace_region_id, ray_count)| RenderHybridGiTraceTileRecord {
+                tile_id,
+                probe_id,
+                trace_region_id,
+                ray_count,
+            },
+        )
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,6 +231,8 @@ mod tests {
             vec![(9, 2, 77)],
             vec![(9, 2, [130, 140, 150, 255])],
         );
+        scene_prepare.store_surface_cache_depth_samples(vec![(1, [96, 96, 96, 255])]);
+        scene_prepare.store_probe_trace_tiles(vec![(0, 9, 2, 32)], [1, 1, 1]);
 
         let readback = HybridGiGpuReadback::new(
             vec![(5, 7)],
@@ -293,6 +317,23 @@ mod tests {
                 rgba8: [130, 140, 150, 255],
             }]
         );
+        assert_eq!(
+            outputs.scene_prepare.surface_cache_depth_samples,
+            vec![RenderHybridGiScenePrepareSample {
+                index: 1,
+                rgba8: [96, 96, 96, 255],
+            }]
+        );
+        assert_eq!(
+            outputs.scene_prepare.probe_trace_tiles,
+            vec![RenderHybridGiTraceTileRecord {
+                tile_id: 0,
+                probe_id: 9,
+                trace_region_id: 2,
+                ray_count: 32,
+            }]
+        );
+        assert_eq!(outputs.scene_prepare.probe_trace_dispatch, [1, 1, 1]);
         assert_eq!(outputs.scene_prepare.texture_width, 64);
         assert_eq!(outputs.scene_prepare.texture_height, 32);
         assert_eq!(outputs.scene_prepare.texture_layers, 6);

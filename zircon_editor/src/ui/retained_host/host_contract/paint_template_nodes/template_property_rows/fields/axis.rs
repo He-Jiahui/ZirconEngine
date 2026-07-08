@@ -1,6 +1,7 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_property_axis_values::PropertyAxisValue;
 use super::super::super::template_row_metrics::workbench_row_palette;
+use super::super::layers::field_text_order;
 use super::super::layout::{axis_field_rect, axis_label_rect, value_text_rect};
 use super::super::text::text_command;
 use super::surface::push_property_value_field_surface;
@@ -39,7 +40,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
         commands.push(text_command(
             value_text_rect(&field_rect),
             clip,
-            order + 1,
+            field_text_order(order),
             axis_value.value.as_str(),
             palette.property_value_text,
             opacity,

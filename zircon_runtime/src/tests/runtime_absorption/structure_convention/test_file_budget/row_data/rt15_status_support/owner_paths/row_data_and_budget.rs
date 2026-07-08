@@ -1,0 +1,39 @@
+use super::*;
+
+pub(super) const STATUS_SUPPORT_ROW_DATA_AND_BUDGET_OWNER_PATHS: &[(&str, &str, usize)] = &[
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
+        STATUS_SUPPORT_ROWS_PATH,
+        120,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs",
+        STATUS_SUPPORT_ROW_DATA_AND_BUDGET_PATH,
+        80,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/test_file_budget.rs",
+        STATUS_SUPPORT_ROW_DATA_TEST_FILE_BUDGET_PATH,
+        100,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/runtime_row_data.rs",
+        STATUS_SUPPORT_ROW_DATA_RUNTIME_ROW_DATA_PATH,
+        140,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/hub_editor_support.rs",
+        STATUS_SUPPORT_ROW_DATA_HUB_EDITOR_SUPPORT_PATH,
+        90,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/render_shader_support.rs",
+        STATUS_SUPPORT_ROW_DATA_RENDER_SHADER_SUPPORT_PATH,
+        100,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/m3_m4_row_data.rs",
+        STATUS_SUPPORT_ROW_DATA_M3_M4_ROW_DATA_PATH,
+        100,
+    ),
+];

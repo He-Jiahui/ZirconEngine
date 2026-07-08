@@ -402,7 +402,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 status: in_progress
-last_refined: 2026-07-01
+last_refined: 2026-07-04
 ---
 
 # 05 scene/editor 边界收尾

@@ -117,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn runtime_prepare_collectors_replace_overlapping_feature_packets() {
+    fn runtime_prepare_collectors_merge_overlapping_feature_packets() {
         let (mut resources, device, queue, mut encoder, streamer, frame) =
             runtime_prepare_fixture();
         resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _, _| {
@@ -158,8 +158,8 @@ mod tests {
             .unwrap();
 
         let outputs = readbacks.outputs_for_test();
-        assert_eq!(outputs.virtual_geometry.page_table_entries, vec![2, 3]);
-        assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![20]);
+        assert_eq!(outputs.virtual_geometry.page_table_entries, vec![1, 2, 3]);
+        assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![10, 20]);
         assert_eq!(outputs.particles.alive_count, 7);
     }
 
@@ -324,11 +324,12 @@ mod tests {
             mapped_at_creation: false,
         });
         resources.register_runtime_prepare_collector(Box::new(
-            move |device, queue, encoder, _, frame, external_buffer_bindings| {
+            move |device, queue, encoder, streamer, frame, external_buffer_bindings| {
                 let mut context = RuntimePrepareCollectorContext::new(
                     device,
                     queue,
                     encoder,
+                    streamer,
                     frame,
                     external_buffer_bindings,
                 );
@@ -375,6 +376,11 @@ mod tests {
                     .page_request_ids,
                 vec![300, 301]
             );
+            let missing_material = crate::core::resource::ResourceId::from_stable_label(
+                "res://materials/runtime-prepare-missing.zmat",
+            );
+            assert!(context.material_capture_seed(&missing_material).is_none());
+            assert!(context.sample_texture_rgba(None, [0.5, 0.5]).is_none());
             self.called.store(true, Ordering::SeqCst);
             Ok(RenderPluginRendererOutputs::default())
         }

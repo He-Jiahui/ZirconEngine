@@ -1,13 +1,20 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::PALETTE;
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_text_color(
     node: &TemplatePaneNodeData,
 ) -> [u8; 4] {
+    axis_field_text_color_from_host(node, current_host_palette())
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_text_color_from_host(
+    node: &TemplatePaneNodeData,
+    palette: HostMaterialPalette,
+) -> [u8; 4] {
     if node.disabled {
-        PALETTE.text_disabled
+        palette.text_disabled
     } else if matches!(node.validation_level.as_str(), "error" | "danger") {
-        PALETTE.error
+        palette.error
     } else if node.value_color.a > 0 {
         [
             node.value_color.r,
@@ -16,6 +23,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_fi
             node.value_color.a,
         ]
     } else {
-        PALETTE.text
+        palette.text
     }
 }

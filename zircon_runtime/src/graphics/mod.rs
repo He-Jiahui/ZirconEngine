@@ -62,6 +62,7 @@ pub use runtime_builtin_graphics::{
 // Crate-visible bridge used by runtime preparation paths without widening the
 // public graphics API.
 pub(crate) use runtime_prepare_collector::RuntimePrepareExternalBufferBinding;
+pub use runtime_prepare_collector::RuntimePrepareMaterialCaptureSeed;
 pub use runtime_prepare_collector::{
     RuntimePrepareCollector, RuntimePrepareCollectorContext, RuntimePrepareCollectorFn,
     RuntimePrepareCollectorRegistration,

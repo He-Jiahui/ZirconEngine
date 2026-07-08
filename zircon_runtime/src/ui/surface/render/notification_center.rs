@@ -27,7 +27,6 @@ const HEADER_TEXT: &str = "#e7eef0";
 const MUTED_TEXT: &str = "#7f8f95";
 const ROW_SURFACE: &str = "#151e23";
 const ROW_UNREAD_SURFACE: &str = "#153035";
-const ROW_FOCUSED_SURFACE: &str = "#183a3f";
 const ROW_DISABLED_SURFACE: &str = "#252c31";
 const ROW_BORDER: &str = "#283842";
 const ACCENT: &str = "#35c7d0";
@@ -291,10 +290,10 @@ impl NotificationRow {
     fn paint_state(&self) -> UiPainterResolvedState {
         if self.disabled {
             UiPainterResolvedState::Disabled
-        } else if self.focused {
-            UiPainterResolvedState::Focused
         } else if self.selected {
             UiPainterResolvedState::Selected
+        } else if self.focused {
+            UiPainterResolvedState::Focused
         } else {
             UiPainterResolvedState::Normal
         }
@@ -303,8 +302,6 @@ impl NotificationRow {
     fn background(&self) -> &'static str {
         if self.disabled {
             ROW_DISABLED_SURFACE
-        } else if self.focused {
-            ROW_FOCUSED_SURFACE
         } else if self.unread {
             ROW_UNREAD_SURFACE
         } else {
@@ -313,7 +310,7 @@ impl NotificationRow {
     }
 
     fn border(&self) -> &'static str {
-        if self.selected {
+        if self.selected || self.focused {
             ACCENT
         } else {
             ROW_BORDER

@@ -1,0 +1,31 @@
+use super::*;
+
+#[test]
+fn runtime_15_foundation_guards_row_data_child_budgets_stay_focused() {
+    for (label, path, budget) in FOUNDATION_GUARDS_ROW_OWNER_PATHS {
+        let source = read_runtime_src(path);
+        let line_count = source.lines().count();
+        assert!(
+            line_count < *budget,
+            "{label} should stay below its child-owner budget of {budget} lines; got {line_count}"
+        );
+    }
+
+    for (_, child_path, _) in FOUNDATION_GUARDS_ROW_DATA_GUARD_CHILDREN {
+        let source = read_runtime_src(child_path);
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 180,
+            "{child_path} should stay focused after foundation-guards row-data guard folder-backed split; got {line_count} lines"
+        );
+    }
+
+    for (_, child_path, _) in RUNTIME_STRUCTURE_GUARD_CHILDREN {
+        let source = read_runtime_src(child_path);
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 100,
+            "{child_path} should stay focused after runtime-structure guard folder-backed split; got {line_count} lines"
+        );
+    }
+}

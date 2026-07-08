@@ -2,7 +2,7 @@ pub(crate) mod anti_alias;
 mod attachment_ops;
 mod core;
 mod deferred;
-mod environment;
+pub(in crate::graphics) mod environment;
 mod graph_execution;
 mod history;
 mod hzb;

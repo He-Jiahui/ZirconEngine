@@ -48,7 +48,7 @@ pub(super) fn alert_surface_color<'a>(
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color")
             .unwrap_or_else(|| alert_tone_surface(tone))
-    } else if state.hot() {
+    } else if state.pointer_hot() {
         color_attribute(metadata, "hover_background_color").unwrap_or_else(|| {
             color_attribute(metadata, "background_color").unwrap_or(alert_tone_surface(tone))
         })
@@ -64,7 +64,7 @@ pub(super) fn alert_border_color<'a>(
 ) -> &'a str {
     if state.unavailable() {
         DISABLED_BORDER
-    } else if state.focused() || state.pressed() {
+    } else if state.pressed() {
         color_attribute(metadata, "focus_border_color").unwrap_or(FOCUS_BORDER)
     } else {
         color_attribute(metadata, "border_color").unwrap_or_else(|| alert_tone_border(tone))
@@ -210,7 +210,7 @@ pub(super) fn toast_surface_color<'a>(
         DISABLED_SURFACE
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(TOAST_SURFACE_PRESSED)
-    } else if state.hot() {
+    } else if state.pointer_hot() {
         color_attribute(metadata, "hover_background_color").unwrap_or(TOAST_SURFACE_HOVER)
     } else {
         color_attribute(metadata, "background_color").unwrap_or(TOAST_SURFACE)

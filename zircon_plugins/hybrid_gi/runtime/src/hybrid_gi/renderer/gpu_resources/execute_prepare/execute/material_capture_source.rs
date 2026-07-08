@@ -2,22 +2,22 @@ use zircon_runtime::core::math::{Vec3, Vec4};
 use zircon_runtime::core::resource::ResourceId;
 
 #[derive(Clone, Copy, Debug)]
-pub(super) struct HybridGiMaterialCaptureSeed {
-    pub(super) base_color: Vec4,
-    pub(super) emissive: Vec3,
-    pub(super) metallic: f32,
-    pub(super) roughness: f32,
-    pub(super) double_sided: bool,
-    pub(super) alpha_blend: bool,
-    pub(super) alpha_cutoff: Option<f32>,
-    pub(super) base_color_texture: Option<ResourceId>,
-    pub(super) normal_texture: Option<ResourceId>,
-    pub(super) metallic_roughness_texture: Option<ResourceId>,
-    pub(super) occlusion_texture: Option<ResourceId>,
-    pub(super) emissive_texture: Option<ResourceId>,
+pub(in crate::hybrid_gi::renderer) struct HybridGiMaterialCaptureSeed {
+    pub(in crate::hybrid_gi::renderer) base_color: Vec4,
+    pub(in crate::hybrid_gi::renderer) emissive: Vec3,
+    pub(in crate::hybrid_gi::renderer) metallic: f32,
+    pub(in crate::hybrid_gi::renderer) roughness: f32,
+    pub(in crate::hybrid_gi::renderer) double_sided: bool,
+    pub(in crate::hybrid_gi::renderer) alpha_blend: bool,
+    pub(in crate::hybrid_gi::renderer) alpha_cutoff: Option<f32>,
+    pub(in crate::hybrid_gi::renderer) base_color_texture: Option<ResourceId>,
+    pub(in crate::hybrid_gi::renderer) normal_texture: Option<ResourceId>,
+    pub(in crate::hybrid_gi::renderer) metallic_roughness_texture: Option<ResourceId>,
+    pub(in crate::hybrid_gi::renderer) occlusion_texture: Option<ResourceId>,
+    pub(in crate::hybrid_gi::renderer) emissive_texture: Option<ResourceId>,
 }
 
-pub(super) trait HybridGiMaterialCaptureSource {
+pub(in crate::hybrid_gi::renderer) trait HybridGiMaterialCaptureSource {
     fn material_capture_seed(&self, id: &ResourceId) -> Option<HybridGiMaterialCaptureSeed>;
 
     fn sample_texture_rgba(&self, id: Option<ResourceId>, uv: [f32; 2]) -> Option<Vec4>;

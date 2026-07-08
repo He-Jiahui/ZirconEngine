@@ -1,17 +1,17 @@
 use super::super::super::data::FrameRect;
-use super::super::template_section_title_glyphs::{SECTION_ICON_GAP, SECTION_ICON_SIZE};
-use super::style::SECTION_LINE_HEIGHT;
-
-const SECTION_TEXT_LEFT: f32 = 8.0;
+use super::super::template_section_title_glyphs::section_title_glyph_metrics;
+use super::style::section_title_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_icon_rect(
     rect: &FrameRect,
 ) -> FrameRect {
+    let glyph_metrics = section_title_glyph_metrics();
+    let section_metrics = section_title_metrics();
     FrameRect {
-        x: rect.x + SECTION_TEXT_LEFT,
-        y: rect.y + (rect.height - SECTION_ICON_SIZE).max(0.0) * 0.5,
-        width: SECTION_ICON_SIZE,
-        height: SECTION_ICON_SIZE,
+        x: rect.x + section_metrics.text_left,
+        y: rect.y + (rect.height - glyph_metrics.icon_size).max(0.0) * 0.5,
+        width: glyph_metrics.icon_size,
+        height: glyph_metrics.icon_size,
     }
 }
 
@@ -19,16 +19,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section
     rect: &FrameRect,
     has_icon: bool,
 ) -> FrameRect {
+    let glyph_metrics = section_title_glyph_metrics();
+    let section_metrics = section_title_metrics();
     let x = if has_icon {
-        rect.x + SECTION_TEXT_LEFT + SECTION_ICON_SIZE + SECTION_ICON_GAP
+        rect.x + section_metrics.text_left + glyph_metrics.icon_size + glyph_metrics.icon_gap
     } else {
-        rect.x + SECTION_TEXT_LEFT
+        rect.x + section_metrics.text_left
     };
     FrameRect {
         x,
-        y: rect.y + (rect.height - SECTION_LINE_HEIGHT).max(0.0) * 0.5,
-        width: (rect.x + rect.width - x - SECTION_TEXT_LEFT).max(1.0),
-        height: SECTION_LINE_HEIGHT,
+        y: rect.y + (rect.height - section_metrics.line_height).max(0.0) * 0.5,
+        width: (rect.x + rect.width - x - section_metrics.text_left).max(1.0),
+        height: section_metrics.line_height,
     }
 }
 

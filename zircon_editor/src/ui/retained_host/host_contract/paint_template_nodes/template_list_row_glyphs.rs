@@ -68,7 +68,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
             ) {
                 return;
             }
-            shapes::push_disabled_diamond(commands, &adornment, clip, order, opacity);
+            shapes::push_disabled_diamond(
+                commands,
+                &adornment,
+                clip,
+                order,
+                palette.disabled_adornment_tint,
+                opacity,
+            );
         }
     }
 }

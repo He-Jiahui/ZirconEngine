@@ -28,5 +28,14 @@ pub(super) const LOCK_POISON_SCENE_SCRIPT_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] = lock_poison_scene_script_rows::EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const STATUS_SUPPORT_PRIORITY_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] = status_support_priority_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const STATUS_SUPPORT_PRIORITY_ROW_DATA_GUARD_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    status_support_priority_rows::ROW_DATA_GUARD_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const STATUS_SUPPORT_PRIORITY_PRIORITY_PLAN_DOCS_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    status_support_priority_rows::PRIORITY_PLAN_DOCS_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const STATUS_SUPPORT_PRIORITY_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    status_support_priority_rows::ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const ASSET_BUDGET_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
     asset_budget_rows::EXPECTED_STATUS_OUTPUT_SLICES;

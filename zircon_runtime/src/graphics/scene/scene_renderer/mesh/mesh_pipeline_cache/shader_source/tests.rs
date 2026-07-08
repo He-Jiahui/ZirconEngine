@@ -59,6 +59,9 @@ fn mesh_pipeline_standard_material_template_source_assembles_forward_base_source
         .contains("const ZR_FEATURE_DOUBLE_SIDED: bool = true;"));
     assert!(source
         .wgsl_source
+        .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;"));
+    assert!(source
+        .wgsl_source
         .contains("standard_material_shading_model_id"));
     assert!(source
         .wgsl_source
@@ -66,6 +69,24 @@ fn mesh_pipeline_standard_material_template_source_assembles_forward_base_source
     assert!(key
         .shader_feature_bits()
         .contains(ShaderFeatureBits::ALPHA_TEST));
+}
+
+#[test]
+fn mesh_pipeline_standard_material_template_source_derives_normal_texture_define() {
+    let mut key = default_pipeline_key();
+    key.has_normal_texture = true;
+
+    let source = match mesh_pipeline_standard_material_template_source(&key) {
+        Ok(source) => source,
+        Err(error) => panic!("standard material template assembly failed: {error:?}"),
+    };
+
+    assert!(source
+        .wgsl_source
+        .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = true;"));
+    assert!(key
+        .shader_feature_bits()
+        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
 }
 
 #[test]

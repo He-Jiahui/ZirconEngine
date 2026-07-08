@@ -5,7 +5,8 @@ use super::super::super::template_button_glyphs::{
 };
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::identity::button_key;
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use super::layout::content_centered_y;
+use super::metrics::{button_chevron_reserve, button_icon_gap, trailing_glyph_inset};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_glyph(
     node: &TemplatePaneNodeData,
@@ -15,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_
 
 pub(super) fn button_glyph_width(node: &TemplatePaneNodeData, glyph: ButtonGlyph) -> f32 {
     if has_leading_asset_icon(node) || has_leading_glyph(glyph) {
-        button_icon_size() + METRICS.button_icon_gap
+        button_icon_size() + button_icon_gap()
     } else {
         0.0
     }
@@ -23,7 +24,7 @@ pub(super) fn button_glyph_width(node: &TemplatePaneNodeData, glyph: ButtonGlyph
 
 pub(super) fn chevron_width(glyph: ButtonGlyph) -> f32 {
     if has_trailing_chevron(glyph) {
-        METRICS.button_chevron_reserve
+        button_chevron_reserve()
     } else {
         0.0
     }
@@ -45,7 +46,7 @@ pub(super) fn leading_glyph_rect(rect: &FrameRect, x: f32) -> FrameRect {
     let icon_size = button_icon_size();
     FrameRect {
         x,
-        y: rect.y + (rect.height - icon_size).max(0.0) * 0.5,
+        y: content_centered_y(rect, icon_size),
         width: icon_size,
         height: icon_size,
     }
@@ -54,8 +55,8 @@ pub(super) fn leading_glyph_rect(rect: &FrameRect, x: f32) -> FrameRect {
 pub(super) fn trailing_glyph_rect(rect: &FrameRect) -> FrameRect {
     let icon_size = button_icon_size();
     FrameRect {
-        x: rect.x + rect.width - METRICS.button_pad_x - icon_size,
-        y: rect.y + (rect.height - icon_size).max(0.0) * 0.5,
+        x: rect.x + rect.width - trailing_glyph_inset() - icon_size,
+        y: content_centered_y(rect, icon_size),
         width: icon_size,
         height: icon_size,
     }

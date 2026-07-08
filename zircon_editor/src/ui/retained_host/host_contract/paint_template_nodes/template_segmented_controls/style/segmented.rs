@@ -1,7 +1,9 @@
 use super::super::super::super::data::TemplatePaneNodeData;
+#[cfg(test)]
+use super::super::super::style_selector::WORKBENCH_SEGMENT_IDLE_BACKGROUND;
 use super::super::super::style_selector::{
     select_workbench_segmented_control_style, WorkbenchSegmentedControlKind as SegmentedStyleKind,
-    WorkbenchSegmentedControlStyle, WORKBENCH_SEGMENT_IDLE_BACKGROUND,
+    WorkbenchSegmentedControlStyle,
 };
 
 #[cfg(test)]

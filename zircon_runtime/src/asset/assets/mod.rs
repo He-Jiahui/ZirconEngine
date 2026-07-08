@@ -106,10 +106,16 @@ pub use sprite_atlas::{
     SpriteAtlasRect, SpriteAtlasUvRect, SpriteAtlasValidationError,
 };
 pub use texture::{
-    texture_asset_from_cube_lut, CubeLutParseError, TextureArrayLayout, TextureAsset,
-    TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult, TexturePayload,
+    decode_zcube_source_cubemap_texture, external_source_cubemap_container_info,
+    is_external_source_cubemap_container, is_zcube_source_cubemap_texture,
+    texture_asset_from_cube_lut, texture_asset_from_source_cubemap_zcube, CubeLutParseError,
+    ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
+    ExternalSourceCubemapContainerKind, TextureArrayLayout, TextureAsset, TextureAssetDescriptor,
+    TextureDescriptorError, TextureDescriptorResult, TexturePayload,
     TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    TextureUploadSupport, ZcubeSourceCubemap, ZcubeSourceCubemapError,
+    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    ZCUBE_SOURCE_CUBEMAP_FORMAT, ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
 };
 pub use ui::{
     ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiAssetDocumentResult,

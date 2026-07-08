@@ -1,5 +1,7 @@
 use super::super::resolved_state_for_node;
-use super::helpers::{declared_color, is_unavailable_status_state};
+use super::helpers::{
+    declared_color, is_unavailable_status_state, status_node_is_hot, status_node_is_selected,
+};
 use super::model::WorkbenchStatusChipStyle;
 use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
@@ -12,7 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     let palette = workbench_status_control_palette();
 
     WorkbenchStatusChipStyle {
-        background: status_chip_background(state, &palette),
+        background: status_chip_background(node, state, &palette),
         border: status_chip_border(state, &palette),
         label_text: status_chip_label_text_color(node, state, &palette),
         value_text: status_chip_value_text_color(node, state, &palette),
@@ -21,6 +23,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 }
 
 fn status_chip_background(
+    node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     palette: &WorkbenchStatusControlPalette,
 ) -> [u8; 4] {
@@ -32,8 +35,16 @@ fn status_chip_background(
         UiPainterResolvedState::Selected | UiPainterResolvedState::Checked => {
             palette.surface_selected
         }
-        UiPainterResolvedState::Focused
-        | UiPainterResolvedState::Open
+        UiPainterResolvedState::Focused => {
+            if status_node_is_selected(node) {
+                palette.surface_selected
+            } else if status_node_is_hot(node) {
+                palette.surface_hover
+            } else {
+                palette.flat_transparent
+            }
+        }
+        UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Hovered => palette.surface_hover,

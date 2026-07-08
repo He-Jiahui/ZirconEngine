@@ -5,9 +5,10 @@ use crate::core::framework::render::{
     RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
 };
 use crate::render_graph::{
-    CompiledRenderGraph, RenderGraphResourceDeclaration, RenderGraphResourceKind,
+    CompiledRenderGraph, RenderGraphResourceDeclaration, RenderGraphResourceDesc,
+    RenderGraphResourceKind,
 };
-use crate::rhi::{BufferDesc, TextureDesc};
+use crate::rhi::{BufferDesc, TextureDesc, TextureDimension};
 
 use super::TransientResourcePool;
 
@@ -142,6 +143,17 @@ impl RenderGraphExecutionResources {
             .and_then(|backing| self.owned_texture_descs.get(backing))
     }
 
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_owned_texture_desc(
+        &self,
+        name: &str,
+    ) -> Result<&TextureDesc, String> {
+        self.owned_texture_desc(name).ok_or_else(|| {
+            format!(
+                "render graph execution texture resource `{name}` is not an owned transient texture"
+            )
+        })
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn owned_texture_mip_view(
         &self,
         name: &str,
@@ -189,6 +201,28 @@ impl RenderGraphExecutionResources {
         Ok(texture.create_view(&texture_full_mip_view_descriptor(desc.mip_levels)))
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn owned_texture_view_with_descriptor(
+        &self,
+        name: &str,
+        descriptor: &wgpu::TextureViewDescriptor<'_>,
+    ) -> Result<wgpu::TextureView, String> {
+        let backing = self.owned_texture_backing(name).ok_or_else(|| {
+            format!(
+                "render graph execution texture resource `{name}` is not an owned transient texture"
+            )
+        })?;
+        let texture = self.owned_textures.get(backing).ok_or_else(|| {
+            format!(
+                "render graph execution texture resource `{name}` backing `{backing}` is missing"
+            )
+        })?;
+        let desc = self.owned_texture_descs.get(backing).ok_or_else(|| {
+            format!("render graph execution texture resource `{name}` is missing its descriptor")
+        })?;
+        validate_owned_texture_view_descriptor(name, desc, descriptor)?;
+        Ok(texture.create_view(descriptor))
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn owned_texture_mip_level_count(
         &self,
         name: &str,
@@ -217,6 +251,28 @@ impl RenderGraphExecutionResources {
             ));
         }
         self.require_texture_view(&declaration.name)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_texture_desc_for_declaration(
+        &self,
+        declaration: &RenderGraphResourceDeclaration,
+    ) -> Result<TextureDesc, String> {
+        if declaration.kind == RenderGraphResourceKind::TransientBuffer {
+            return Err(format!(
+                "render graph execution resource `{}` is a buffer declaration, not a texture descriptor",
+                declaration.name
+            ));
+        }
+        match &declaration.desc {
+            RenderGraphResourceDesc::Texture(desc) => Ok(desc.clone()),
+            RenderGraphResourceDesc::External => {
+                self.require_owned_texture_desc(&declaration.name).cloned()
+            }
+            RenderGraphResourceDesc::Buffer(_) => Err(format!(
+                "render graph execution resource `{}` is a buffer declaration, not a texture descriptor",
+                declaration.name
+            )),
+        }
     }
 
     pub(in crate::graphics::scene::scene_renderer::graph_execution) fn require_buffer(
@@ -441,6 +497,134 @@ fn texture_full_mip_view_descriptor(mip_level_count: u32) -> wgpu::TextureViewDe
         mip_level_count: Some(mip_level_count),
         ..Default::default()
     }
+}
+
+fn validate_owned_texture_view_descriptor(
+    name: &str,
+    texture_desc: &TextureDesc,
+    view_desc: &wgpu::TextureViewDescriptor<'_>,
+) -> Result<(), String> {
+    validate_owned_texture_view_format(name, texture_desc, view_desc)?;
+    validate_owned_texture_view_usage(name, texture_desc, view_desc)?;
+    validate_owned_texture_view_dimension(name, texture_desc, view_desc)?;
+    validate_owned_texture_view_mip_range(name, texture_desc, view_desc)?;
+    validate_owned_texture_view_array_range(name, texture_desc, view_desc)?;
+    Ok(())
+}
+
+fn validate_owned_texture_view_format(
+    name: &str,
+    texture_desc: &TextureDesc,
+    view_desc: &wgpu::TextureViewDescriptor<'_>,
+) -> Result<(), String> {
+    let expected_format = super::materialization::wgpu_texture_format(texture_desc.format);
+    if view_desc
+        .format
+        .is_some_and(|view_format| view_format != expected_format)
+    {
+        return Err(format!(
+            "render graph execution texture resource `{name}` view format {:?} does not match texture format {:?}",
+            view_desc.format.unwrap(),
+            expected_format
+        ));
+    }
+    Ok(())
+}
+
+fn validate_owned_texture_view_usage(
+    name: &str,
+    texture_desc: &TextureDesc,
+    view_desc: &wgpu::TextureViewDescriptor<'_>,
+) -> Result<(), String> {
+    let Some(requested_usage) = view_desc.usage else {
+        return Ok(());
+    };
+    let texture_usages =
+        super::materialization::wgpu_texture_usages(texture_desc.format, texture_desc.usage);
+    if !texture_usages.contains(requested_usage) {
+        return Err(format!(
+            "render graph execution texture resource `{name}` view usage {:?} is not allowed by texture usages {:?}",
+            requested_usage, texture_usages
+        ));
+    }
+    Ok(())
+}
+
+fn validate_owned_texture_view_dimension(
+    name: &str,
+    texture_desc: &TextureDesc,
+    view_desc: &wgpu::TextureViewDescriptor<'_>,
+) -> Result<(), String> {
+    let Some(view_dimension) = view_desc.dimension else {
+        return Ok(());
+    };
+    if texture_view_dimension_allowed(texture_desc.dimension, view_dimension) {
+        return Ok(());
+    }
+    Err(format!(
+        "render graph execution texture resource `{name}` view dimension {:?} is not compatible with texture dimension {:?}",
+        view_dimension, texture_desc.dimension
+    ))
+}
+
+fn texture_view_dimension_allowed(
+    texture_dimension: TextureDimension,
+    view_dimension: wgpu::TextureViewDimension,
+) -> bool {
+    match texture_dimension {
+        TextureDimension::D1 => matches!(view_dimension, wgpu::TextureViewDimension::D1),
+        TextureDimension::D2 => matches!(view_dimension, wgpu::TextureViewDimension::D2),
+        TextureDimension::D2Array => matches!(
+            view_dimension,
+            wgpu::TextureViewDimension::D2 | wgpu::TextureViewDimension::D2Array
+        ),
+        TextureDimension::D3 => matches!(view_dimension, wgpu::TextureViewDimension::D3),
+        TextureDimension::Cube => matches!(
+            view_dimension,
+            wgpu::TextureViewDimension::D2
+                | wgpu::TextureViewDimension::D2Array
+                | wgpu::TextureViewDimension::Cube
+                | wgpu::TextureViewDimension::CubeArray
+        ),
+    }
+}
+
+fn validate_owned_texture_view_mip_range(
+    name: &str,
+    texture_desc: &TextureDesc,
+    view_desc: &wgpu::TextureViewDescriptor<'_>,
+) -> Result<(), String> {
+    let base = view_desc.base_mip_level;
+    let count = view_desc
+        .mip_level_count
+        .unwrap_or_else(|| texture_desc.mip_levels.saturating_sub(base));
+    if count == 0 || base.saturating_add(count) > texture_desc.mip_levels {
+        return Err(format!(
+            "render graph execution texture resource `{name}` view mip range [{base}..{}) is outside mip_levels {}",
+            base.saturating_add(count),
+            texture_desc.mip_levels
+        ));
+    }
+    Ok(())
+}
+
+fn validate_owned_texture_view_array_range(
+    name: &str,
+    texture_desc: &TextureDesc,
+    view_desc: &wgpu::TextureViewDescriptor<'_>,
+) -> Result<(), String> {
+    let base = view_desc.base_array_layer;
+    let count = view_desc
+        .array_layer_count
+        .unwrap_or_else(|| texture_desc.depth.saturating_sub(base));
+    if count == 0 || base.saturating_add(count) > texture_desc.depth {
+        return Err(format!(
+            "render graph execution texture resource `{name}` view array range [{base}..{}) is outside depth/array_layers {}",
+            base.saturating_add(count),
+            texture_desc.depth
+        ));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

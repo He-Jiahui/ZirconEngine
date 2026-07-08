@@ -5,6 +5,7 @@ use super::super::paint_theme::{
 const PROPERTY_LABEL_ROW_MULTIPLIER: f32 = 3.5;
 const COMPONENT_PROPERTY_LABEL_ROW_MULTIPLIER: f32 = 4.0;
 const PROPERTY_LABEL_MAX_WIDTH_RATIO: f32 = 0.45;
+const TREE_GUIDE_OPACITY: f32 = 0.78;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchRowMetrics {
@@ -16,6 +17,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub text_inset_x: f32,
     pub text_inset_y: f32,
     pub right_reserve: f32,
+    pub list_adornment_size: f32,
+    pub list_adornment_right_inset: f32,
     pub selection_indicator_width: f32,
     pub tree_base_inset_x: f32,
     pub tree_disclosure_size: f32,
@@ -25,6 +28,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub tree_action_size: f32,
     pub tree_action_button_size: f32,
     pub tree_action_gap: f32,
+    pub tree_guide_width: f32,
+    pub tree_guide_vertical_extension: f32,
+    pub tree_guide_opacity: f32,
     pub tree_guide_step: f32,
     pub tree_guide_offset_x: f32,
     pub property_label_width: f32,
@@ -77,6 +83,8 @@ fn row_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchRowMetrics {
         text_inset_x: metrics.gap_m,
         text_inset_y: metrics.gap_s,
         right_reserve: metrics.button_chevron_reserve + metrics.gap_m,
+        list_adornment_size: metrics.font_large + metrics.border_width * 2.0,
+        list_adornment_right_inset: metrics.gap_l,
         selection_indicator_width: metrics.selection_indicator_width,
         tree_base_inset_x: metrics.button_pad_x,
         tree_disclosure_size: metrics.gap_l,
@@ -86,6 +94,9 @@ fn row_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchRowMetrics {
         tree_action_size,
         tree_action_button_size: tree_action_size + metrics.gap_s,
         tree_action_gap: metrics.gap_l + metrics.gap_s,
+        tree_guide_width: metrics.border_width,
+        tree_guide_vertical_extension: metrics.border_width,
+        tree_guide_opacity: TREE_GUIDE_OPACITY,
         tree_guide_step: metrics.button_chevron_reserve,
         tree_guide_offset_x: metrics.gap_s + metrics.border_width,
         property_label_width: metrics.row_height * PROPERTY_LABEL_ROW_MULTIPLIER,
@@ -152,6 +163,8 @@ mod tests {
         assert_eq!(metrics.text_inset_x, 9.0);
         assert_eq!(metrics.text_inset_y, 5.0);
         assert_eq!(metrics.right_reserve, 30.0);
+        assert_eq!(metrics.list_adornment_size, 18.0);
+        assert_eq!(metrics.list_adornment_right_inset, 13.0);
         assert_eq!(metrics.selection_indicator_width, 3.0);
         assert_eq!(metrics.tree_base_inset_x, 14.0);
         assert_eq!(metrics.tree_disclosure_size, 13.0);
@@ -159,6 +172,9 @@ mod tests {
         assert_eq!(metrics.tree_text_gap, 8.0);
         assert_eq!(metrics.tree_action_size, 18.0);
         assert_eq!(metrics.tree_action_button_size, 23.0);
+        assert_eq!(metrics.tree_guide_width, 1.5);
+        assert_eq!(metrics.tree_guide_vertical_extension, 1.5);
+        assert_eq!(metrics.tree_guide_opacity, 0.78);
         assert_eq!(metrics.tree_guide_step, 21.0);
         assert_eq!(metrics.tree_guide_offset_x, 6.5);
         assert_eq!(metrics.property_label_width, 105.0);

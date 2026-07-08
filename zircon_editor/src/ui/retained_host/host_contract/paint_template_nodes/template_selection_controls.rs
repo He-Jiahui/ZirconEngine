@@ -2,6 +2,7 @@ mod checkbox;
 mod commands;
 mod identity;
 mod labels;
+mod layers;
 mod radio;
 mod style;
 mod toggle;

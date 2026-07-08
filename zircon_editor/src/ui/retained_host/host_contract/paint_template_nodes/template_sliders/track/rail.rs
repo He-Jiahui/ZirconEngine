@@ -2,6 +2,7 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::{slider_fill_span, workbench_slider_metrics};
+use super::super::layers::track_fill_order;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_track(
     commands: &mut Vec<HostPaintCommand>,
@@ -38,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
             height: track_rect.height,
         },
         Some(clip.clone()),
-        order + 1,
+        track_fill_order(order),
         Some(style.fill),
         None,
         0.0,

@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::UiRenderCommandKind,
+    surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -153,6 +153,177 @@ checked = true
 }
 
 #[test]
+fn render_extract_checked_selection_controls_keep_active_visuals_when_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.selection_controls.checked_hover",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 180.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Checkbox",
+        UiFrame::new(8.0, 8.0, 120.0, 28.0),
+        r##"
+text = "Checked hot"
+checked = true
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Toggle",
+        UiFrame::new(8.0, 44.0, 110.0, 28.0),
+        r##"
+text = "Toggle hot"
+checked = true
+"##,
+        visible_state(),
+    );
+    assert!(surface.component_states.set_hovered(UiNodeId::new(2), true));
+    assert!(surface
+        .component_states
+        .set_drop_hovered(UiNodeId::new(2), true));
+    assert!(surface.component_states.set_hovered(UiNodeId::new(3), true));
+    assert!(surface
+        .component_states
+        .set_drop_hovered(UiNodeId::new(3), true));
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(18.0, 14.0, 16.0, 16.0)
+            && command.style.painter_family == UiPainterFamily::Checkbox
+            && command.style.painter_state == UiPainterResolvedState::Checked
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.as_deref() == Some("#2aa6b8")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(76.0, 49.0, 34.0, 18.0)
+            && command.style.painter_family == UiPainterFamily::Toggle
+            && command.style.painter_state == UiPainterResolvedState::Checked
+            && command.style.background_color.as_deref() == Some("#173942")
+            && command.style.border_color.as_deref() == Some("#414b54")
+    }));
+}
+
+#[test]
+fn render_extract_selection_controls_keep_focused_surface_neutral_until_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.selection_controls.focused_surface_neutral",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 220.0, 128.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Toggle",
+        UiFrame::new(8.0, 8.0, 110.0, 28.0),
+        r##"
+text = "Focus"
+background_color = "#10161a"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Toggle",
+        UiFrame::new(8.0, 44.0, 110.0, 28.0),
+        r##"
+text = "Hover"
+background_color = "#10161a"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(4),
+        "Checkbox",
+        UiFrame::new(8.0, 80.0, 120.0, 28.0),
+        r##"
+text = "Checkbox"
+background_color = "#10161a"
+border_color = "#323a41"
+"##,
+        visible_state(),
+    );
+    set_focused(&mut surface, UiNodeId::new(2));
+    set_focused(&mut surface, UiNodeId::new(3));
+    set_hovered(&mut surface, UiNodeId::new(3));
+    set_focused(&mut surface, UiNodeId::new(4));
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let focused_toggle = control_quad(
+        commands,
+        UiNodeId::new(2),
+        UiFrame::new(76.0, 13.0, 34.0, 18.0),
+    );
+    assert_eq!(
+        focused_toggle.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_toggle.style.background_color.as_deref(),
+        Some("#10161a")
+    );
+    assert_eq!(
+        focused_toggle.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+
+    let hovered_toggle = control_quad(
+        commands,
+        UiNodeId::new(3),
+        UiFrame::new(76.0, 49.0, 34.0, 18.0),
+    );
+    assert_eq!(
+        hovered_toggle.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        hovered_toggle.style.background_color.as_deref(),
+        Some("#1a2429")
+    );
+    assert_eq!(
+        hovered_toggle.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+
+    let focused_checkbox = control_quad(
+        commands,
+        UiNodeId::new(4),
+        UiFrame::new(18.0, 86.0, 16.0, 16.0),
+    );
+    assert_eq!(
+        focused_checkbox.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_checkbox.style.background_color.as_deref(),
+        Some("#10161a")
+    );
+    assert_eq!(
+        focused_checkbox.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+}
+
+#[test]
 fn render_extract_loading_selection_controls_use_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.render.selection_controls.loading",
@@ -265,6 +436,21 @@ foreground_color = "#ffffff"
     }));
 }
 
+fn control_quad(
+    commands: &[UiRenderCommand],
+    node_id: UiNodeId,
+    frame: UiFrame,
+) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.node_id == node_id
+                && command.kind == UiRenderCommandKind::Quad
+                && command.frame == frame
+        })
+        .expect("expected selection control quad")
+}
+
 fn insert_control(
     surface: &mut UiSurface,
     node_id: UiNodeId,
@@ -295,4 +481,12 @@ fn visible_state() -> UiStateFlags {
         enabled: true,
         ..UiStateFlags::default()
     }
+}
+
+fn set_focused(surface: &mut UiSurface, node_id: UiNodeId) {
+    assert!(surface.component_states.set_focused(node_id, true));
+}
+
+fn set_hovered(surface: &mut UiSurface, node_id: UiNodeId) {
+    assert!(surface.component_states.set_hovered(node_id, true));
 }

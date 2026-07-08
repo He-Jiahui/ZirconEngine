@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::super::{assert_contains_all, read_repo_text, read_text};
+use super::super::support::{assert_contains_all, read_repo_text, read_text};
 
 #[path = "graphics/gpu_model_embedded_primitive.rs"]
 mod gpu_model_embedded_primitive;

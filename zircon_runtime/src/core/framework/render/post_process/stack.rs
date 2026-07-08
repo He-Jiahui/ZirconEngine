@@ -469,6 +469,32 @@ impl PostProcessStackDescriptor {
             .expect("default post-process stack descriptor must validate")
     }
 
+    pub fn with_hybrid_gi_lighting_input(mut self) -> Self {
+        if !self
+            .initial_resources
+            .iter()
+            .any(|resource| resource == PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
+        {
+            self.initial_resources
+                .push(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string());
+        }
+        for effect in &mut self.effects {
+            if effect.kind != PostProcessEffectKind::Uber {
+                continue;
+            }
+            if !effect
+                .required_inputs
+                .iter()
+                .any(|resource| resource == PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
+            {
+                effect
+                    .required_inputs
+                    .push(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string());
+            }
+        }
+        self
+    }
+
     pub fn without_history_resources(&self) -> Self {
         let mut stack = self.clone();
         stack.initial_resources.retain(|resource| {

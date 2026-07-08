@@ -6,11 +6,14 @@ struct SceneUniform {
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
+    camera_world_position: vec4<f32>,
+    camera_view_direction: vec4<f32>,
     sky_horizon_color: vec4<f32>,
     sky_zenith_color: vec4<f32>,
     sky_ground_color: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_sh9: array<vec4<f32>, 9>,
 };
 struct MaterialPropertyUniform {
     data0: vec4<f32>,
@@ -95,6 +98,7 @@ const EPSILON: f32 = 0.000001;
 const ZR_SHADING_MODEL_UNLIT_ID: u32 = 0u;
 const ZR_SHADING_MODEL_BLINN_PHONG_ID: u32 = 1u;
 const ZR_SHADING_MODEL_STANDARD_PBR_ID: u32 = 2u;
+const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 
 fn decode_shading_model_id(encoded: f32) -> u32 {
     return u32(round(clamp(encoded, 0.0, 1.0) * 255.0));
@@ -266,6 +270,15 @@ fn normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
     return value / value_length;
 }
 
+fn scene_view_dir_ws(world_position: vec3<f32>) -> vec3<f32> {
+    let perspective_view_dir = normalize_or_zero(scene.camera_world_position.xyz - world_position);
+    return normalize_or_zero(mix(
+        perspective_view_dir,
+        scene.camera_view_direction.xyz,
+        clamp(scene.camera_view_direction.w, 0.0, 1.0),
+    ));
+}
+
 fn transform_material_uv(uv: vec2<f32>, transform: vec4<f32>) -> vec2<f32> {
     return uv * transform.xy + transform.zw;
 }
@@ -351,7 +364,7 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
     if (roughness <= 0.0) {
         roughness = 1.0;
     }
-    roughness = clamp(roughness * metallic_roughness.g, 0.04, 1.0);
+    roughness = clamp(roughness * metallic_roughness.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
     var occlusion = material_properties.data0.z;
     if (occlusion <= 0.0) {
         occlusion = 1.0;
@@ -507,10 +520,11 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     }
     let ambient = scene.ambient_color.rgb * material.occlusion;
     let diffuse_color = material_diffuse_color(material);
+    let view_dir = scene_view_dir_ws(input.world_position);
     let direct_lights = gpu_light_lighting(input.clip_position.xy, input.world_position, world_normal, material, diffuse_color, input.shadow_params);
     let environment_lights = zr_environment_pbr_indirect(
         world_normal,
-        vec3<f32>(0.0, 0.0, 1.0),
+        view_dir,
         material.roughness,
         material.metallic,
         diffuse_color,

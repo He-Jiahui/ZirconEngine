@@ -1,9 +1,12 @@
 use super::resolve::{resolve_style, resolve_text};
-use crate::ui::text::measure_text_size;
+use crate::ui::text::{measure_text_size, UiTextMeasureCache};
 use zircon_runtime_interface::ui::layout::UiSize;
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
-pub(crate) fn measure_text(metadata: Option<&UiTemplateNodeMetadata>) -> UiSize {
+pub(crate) fn measure_text_with_cache(
+    metadata: Option<&UiTemplateNodeMetadata>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
+) -> UiSize {
     let Some(text) = resolve_text(metadata) else {
         return UiSize::default();
     };
@@ -11,5 +14,9 @@ pub(crate) fn measure_text(metadata: Option<&UiTemplateNodeMetadata>) -> UiSize 
         return UiSize::default();
     }
 
-    measure_text_size(&text, &resolve_style(metadata))
+    let style = resolve_style(metadata);
+    match text_measure_cache {
+        Some(cache) => cache.measure_text_size(&text, &style),
+        None => measure_text_size(&text, &style),
+    }
 }

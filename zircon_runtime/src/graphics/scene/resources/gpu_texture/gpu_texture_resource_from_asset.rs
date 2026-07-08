@@ -64,7 +64,7 @@ impl GpuTextureResource {
             },
             mip_level_count,
             sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
+            dimension: wgpu_dimension(descriptor.dimension),
             format,
             usage: wgpu_texture_usages(&descriptor, format, true),
             view_formats: &[],
@@ -95,7 +95,7 @@ impl GpuTextureResource {
                 },
             );
         }
-        let view = texture.create_view(&rgba8_material_texture_view_descriptor());
+        let view = texture.create_view(&texture_view_descriptor(&descriptor));
         let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-texture-bind-group"),
@@ -214,7 +214,7 @@ impl GpuTextureResource {
                 depth_or_array_layers,
             },
         );
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = texture.create_view(&texture_view_descriptor(&descriptor));
         let sampler = device.create_sampler(&sampler_descriptor(&descriptor.sampler));
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-compressed-texture-bind-group"),
@@ -511,6 +511,7 @@ fn wgpu_dimension(dimension: RenderImageDimension) -> wgpu::TextureDimension {
         RenderImageDimension::D1 => wgpu::TextureDimension::D1,
         RenderImageDimension::D2 => wgpu::TextureDimension::D2,
         RenderImageDimension::D3 => wgpu::TextureDimension::D3,
+        RenderImageDimension::Cube => wgpu::TextureDimension::D2,
     }
 }
 
@@ -589,12 +590,37 @@ fn rgba8_mip_uploads(
     uploads
 }
 
-fn rgba8_material_texture_view_descriptor() -> wgpu::TextureViewDescriptor<'static> {
-    wgpu::TextureViewDescriptor {
-        dimension: Some(wgpu::TextureViewDimension::D2),
-        base_array_layer: 0,
-        array_layer_count: Some(1),
-        ..Default::default()
+fn texture_view_descriptor(
+    descriptor: &RenderImageDescriptor,
+) -> wgpu::TextureViewDescriptor<'static> {
+    match descriptor.dimension {
+        RenderImageDimension::D1 => wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D1),
+            ..Default::default()
+        },
+        RenderImageDimension::D2 => wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            base_array_layer: 0,
+            array_layer_count: Some(1),
+            ..Default::default()
+        },
+        RenderImageDimension::D3 => wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D3),
+            ..Default::default()
+        },
+        RenderImageDimension::Cube => {
+            let layer_count = descriptor.array_layer_count.max(6);
+            wgpu::TextureViewDescriptor {
+                dimension: Some(if layer_count > 6 {
+                    wgpu::TextureViewDimension::CubeArray
+                } else {
+                    wgpu::TextureViewDimension::Cube
+                }),
+                base_array_layer: 0,
+                array_layer_count: Some(layer_count),
+                ..Default::default()
+            }
+        }
     }
 }
 

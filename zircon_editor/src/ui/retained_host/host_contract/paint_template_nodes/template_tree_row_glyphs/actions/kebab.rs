@@ -1,9 +1,14 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
-use super::super::segments::{local_rect, push_segments};
+use super::super::segments::{push_segments, GlyphSegmentSpec, TREE_ACTION_GLYPH_GRID_UNITS};
 
 const TREE_MORE_ICON: &str = "zircon_editor_shell/toolbar/more-vertical.svg";
+const KEBAB_SEGMENTS: [GlyphSegmentSpec; 3] = [
+    GlyphSegmentSpec::new(6, 2, 2, 2),
+    GlyphSegmentSpec::new(6, 6, 2, 2),
+    GlyphSegmentSpec::new(6, 10, 2, 2),
+];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_kebab_action_glyph(
     commands: &mut Vec<HostPaintCommand>,
@@ -27,14 +32,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
 
     push_segments(
         commands,
+        rect,
+        TREE_ACTION_GLYPH_GRID_UNITS,
         clip,
         order,
         color,
         opacity,
-        &[
-            local_rect(rect, 6.0, 2.0, 2.0, 2.0),
-            local_rect(rect, 6.0, 6.0, 2.0, 2.0),
-            local_rect(rect, 6.0, 10.0, 2.0, 2.0),
-        ],
+        &KEBAB_SEGMENTS,
     );
 }

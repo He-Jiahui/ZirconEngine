@@ -14,6 +14,16 @@ fn render_text_atlas_allocates_missing_page_before_lru_eviction() {
 }
 
 #[test]
+fn render_text_atlas_rebuild_residency_prefers_unreferenced_page_before_allocation() {
+    let pages = vec![resident_page(GlyphAtlasFormat::AlphaMask, 0, 3, false)];
+
+    assert_eq!(
+        page_rebuild_residency_decision(&pages, GlyphAtlasFormat::AlphaMask, 3),
+        GlyphAtlasPageResidencyDecision::Evict(page_key(GlyphAtlasFormat::AlphaMask, 0))
+    );
+}
+
+#[test]
 fn render_text_atlas_evicts_lru_page() {
     let pages = vec![
         resident_page(GlyphAtlasFormat::Sdf, 0, 1, false),
@@ -56,13 +66,14 @@ fn render_text_atlas_residency_applies_eviction_as_page_rebuild() {
     );
     assert_eq!(
         reservation.page,
-        Some(GlyphAtlasPageSpec::new(
-            page_key(GlyphAtlasFormat::Color, 0),
-            UVec2::new(512, 512),
-        ))
+        Some(
+            GlyphAtlasPageSpec::new(page_key(GlyphAtlasFormat::Color, 0), UVec2::new(512, 512),)
+                .with_generation(1)
+        )
     );
     assert_eq!(pages.len(), 2);
     assert_eq!(pages[0].spec().size, UVec2::new(512, 512));
+    assert_eq!(pages[0].spec().generation, 1);
 }
 
 fn resident_page(

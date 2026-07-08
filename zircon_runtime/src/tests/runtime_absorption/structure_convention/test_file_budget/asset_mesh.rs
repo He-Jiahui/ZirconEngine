@@ -54,6 +54,7 @@ fn runtime_15_asset_mesh_tests_are_folder_backed() {
         "fn mesh_asset_management_record_wraps_id_and_strict_overview",
         "fn mesh_asset_management_record_set_summarizes_valid_and_invalid_rows",
         "fn model_primitive_converts_to_mesh_asset_with_builtin_attributes",
+        "fn static_virtual_geometry_primitive_converts_to_mesh_asset_with_ordinal_channels",
         "fn mesh_render_descriptor_uses_bounds_topology_and_indices",
         "fn mesh_asset_bounds_can_be_read_without_render_descriptor",
         "fn mesh_asset_try_render_descriptor_reports_validation_errors",
@@ -81,8 +82,8 @@ fn runtime_15_asset_mesh_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        19,
-        "asset mesh migrated child modules should preserve the original 19 parent tests"
+        20,
+        "asset mesh migrated child modules should preserve the current 20 parent tests"
     );
 
     assert_contains_all(
@@ -120,6 +121,7 @@ fn runtime_15_asset_mesh_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn model_primitive_converts_to_mesh_asset_with_builtin_attributes",
+            "fn static_virtual_geometry_primitive_converts_to_mesh_asset_with_ordinal_channels",
             "fn mesh_render_descriptor_uses_bounds_topology_and_indices",
             "fn default_importer_routes_zmesh_to_mesh_asset",
         ],

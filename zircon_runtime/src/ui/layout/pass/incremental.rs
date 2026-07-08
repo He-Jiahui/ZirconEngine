@@ -6,6 +6,8 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError},
 };
 
+use crate::ui::text::UiTextMeasureCache;
+
 use super::{
     arrange::arrange_node,
     child_frame::free_child_frame,
@@ -31,9 +33,10 @@ struct LayoutGeometry {
     clip_frame: Option<UiFrame>,
 }
 
-pub(crate) fn compute_incremental_layout_tree(
+pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     tree: &mut UiTree,
     root_size: UiSize,
+    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> Result<UiIncrementalLayoutStats, UiTreeError> {
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
     apply_mui_responsive_layout(tree, root_size)?;
@@ -46,7 +49,7 @@ pub(crate) fn compute_incremental_layout_tree(
     assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
     for root_id in &roots {
         collect_subtree_nodes(tree, *root_id, &mut visited)?;
-        measure_node(tree, *root_id)?;
+        measure_node(tree, *root_id, text_measure_cache.as_deref_mut())?;
     }
 
     assert_layout_pass_stage(UiLayoutPassStage::BackendSelection, 2);

@@ -19,6 +19,7 @@ pub(super) enum FeedbackKind {
 pub(super) struct FeedbackRenderState {
     pub(super) family: UiPainterFamily,
     pub(super) visual_state: UiPainterResolvedState,
+    pointer_hot: bool,
 }
 
 impl FeedbackRenderState {
@@ -36,9 +37,14 @@ impl FeedbackRenderState {
             FeedbackKind::Tooltip => UiPainterFamily::Tooltip,
             FeedbackKind::Toast => UiPainterFamily::Toast,
         };
+        let pointer_hot = painter_state.hovered
+            || painter_state.open
+            || painter_state.dragging
+            || painter_state.drop_hovered;
         Self {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
+            pointer_hot,
         }
     }
 
@@ -57,14 +63,7 @@ impl FeedbackRenderState {
         matches!(self.visual_state, UiPainterResolvedState::Focused)
     }
 
-    pub(super) fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Open
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+    pub(super) fn pointer_hot(self) -> bool {
+        self.pointer_hot
     }
 }

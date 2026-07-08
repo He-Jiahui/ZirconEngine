@@ -410,6 +410,84 @@ fn compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disab
 }
 
 #[test]
+fn compile_filters_hybrid_gi_lighting_from_uber_without_stack_input() {
+    let extract = test_extract();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_lighting_descriptor()])
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_post_process_stack(PostProcessStackDescriptor::default()),
+        )
+        .unwrap();
+
+    assert_pass_does_not_read(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+    );
+}
+
+#[test]
+fn compile_routes_hybrid_gi_lighting_into_uber_when_stack_requests_current_input() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::default().with_hybrid_gi_lighting_input();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_lighting_descriptor()])
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    assert_pass_writes(
+        &compiled,
+        "hybrid-gi-resolve",
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+    );
+    assert_pass_reads(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+    );
+    assert!(graph_pass_index(&compiled, "hybrid-gi-resolve") < graph_pass_index(&compiled, "uber"));
+}
+
+#[test]
+fn compile_keeps_hybrid_gi_lighting_single_sample_when_graph_msaa_is_enabled() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::default().with_hybrid_gi_lighting_input();
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features([hybrid_gi_lighting_descriptor()])
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_graph_msaa_sample_count(4)
+                .with_post_process_stack(stack),
+        )
+        .unwrap();
+
+    assert_pass_writes(
+        &compiled,
+        "hybrid-gi-resolve",
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+    );
+    assert_pass_reads(
+        &compiled,
+        "uber",
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+    );
+    assert_eq!(
+        texture_lifetime(&compiled, PostProcessGraphResourceNames::SCENE_COLOR).sample_count,
+        4
+    );
+    assert_eq!(
+        texture_lifetime(&compiled, PostProcessGraphResourceNames::HYBRID_GI_LIGHTING).sample_count,
+        1
+    );
+}
+
+#[test]
 fn compile_routes_output_transfer_through_fxaa_terminal_input() {
     let extract = test_extract();
     let stack = PostProcessStackDescriptor::from_extract_settings_with_anti_alias(
@@ -603,6 +681,21 @@ fn particle_velocity_descriptor() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_texture(PostProcessGraphResourceNames::SCENE_COLOR),
         ],
+    )
+}
+
+fn hybrid_gi_lighting_descriptor() -> RenderFeatureDescriptor {
+    RenderFeatureDescriptor::new(
+        "hybrid_gi",
+        vec!["view".to_string(), "lighting".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "hybrid-gi-resolve",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("hybrid-gi.resolve")
+        .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)],
     )
 }
 

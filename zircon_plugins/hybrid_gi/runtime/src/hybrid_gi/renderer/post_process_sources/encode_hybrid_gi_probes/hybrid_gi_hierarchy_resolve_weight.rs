@@ -258,9 +258,10 @@ mod tests {
         HybridGiScenePrepareFrame,
     };
     use zircon_runtime::core::framework::render::{
-        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderHybridGiExtract,
-        RenderHybridGiProbe, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+        EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
+        RenderHybridGiExtract, RenderHybridGiProbe, RenderOverlayExtract,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+        ViewportCameraSnapshot,
     };
     use zircon_runtime::core::math::{UVec2, Vec4};
 
@@ -381,6 +382,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::disabled(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -461,6 +463,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::disabled(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -544,6 +547,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::disabled(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -621,6 +625,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::disabled(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -692,6 +697,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::disabled(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,
@@ -761,6 +767,7 @@ mod tests {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::disabled(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: true,
                 skybox_enabled: false,

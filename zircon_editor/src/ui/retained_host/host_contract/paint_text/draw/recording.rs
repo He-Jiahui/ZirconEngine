@@ -4,17 +4,6 @@ use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::PixelRect;
 
-pub(super) fn clamped_text_metrics(
-    frame_height: f32,
-    font_size: f32,
-    line_height: f32,
-) -> (f32, f32) {
-    let max_text_height = frame_height.max(1.0);
-    let font_size = font_size.max(1.0).min(max_text_height);
-    let line_height = line_height.max(font_size).max(1.0).min(max_text_height);
-    (font_size, line_height)
-}
-
 pub(super) fn record_text_run(
     frame: &mut HostRgbaFrame,
     clip: &PixelRect,

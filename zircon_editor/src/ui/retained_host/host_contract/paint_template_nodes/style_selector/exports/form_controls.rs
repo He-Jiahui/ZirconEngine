@@ -1,12 +1,12 @@
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_button::{
     is_asset_browser_tab_like_button, is_asset_browser_toolbar_chip_button,
     is_asset_browser_utility_tab_button, is_tab_like_workbench_button,
-    select_workbench_button_style, WorkbenchButtonKind, WorkbenchButtonStyle, ADD_COMPONENT_GLYPH,
-    ADD_COMPONENT_TEXT,
+    select_workbench_button_style, WorkbenchButtonKind, WorkbenchButtonStyle,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_button::{
-    OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT, PRIMARY_SURFACE,
+    add_component_glyph_color_from_host, add_component_text_color_from_host,
+    workbench_button_border_width_from_host, workbench_button_transparent_surface,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_dropdown::{
     select_workbench_dropdown_style, workbench_dropdown_palette, WorkbenchDropdownStyle,
@@ -16,8 +16,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super:
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_segmented_control::{
     select_workbench_segmented_control_style, WorkbenchSegmentedControlKind,
-    WorkbenchSegmentedControlStyle, WORKBENCH_SEGMENT_IDLE_BACKGROUND,
+    WorkbenchSegmentedControlStyle,
 };
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_segmented_control::WORKBENCH_SEGMENT_IDLE_BACKGROUND;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use super::super::workbench_selection_control::{
     select_workbench_selection_control_style, WorkbenchSelectionControlKind,
     WorkbenchSelectionControlStyle,

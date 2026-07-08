@@ -539,7 +539,7 @@ impl PreviewEnvironmentExtract {
             fallback_skybox: match environment.skybox.mode {
                 SkyboxMode::Disabled => FallbackSkyboxKind::None,
                 SkyboxMode::ProceduralGradient => FallbackSkyboxKind::ProceduralGradient,
-                SkyboxMode::SampledEquirectangular => FallbackSkyboxKind::None,
+                SkyboxMode::SourceCubemap => FallbackSkyboxKind::None,
             },
             clear_color,
         }

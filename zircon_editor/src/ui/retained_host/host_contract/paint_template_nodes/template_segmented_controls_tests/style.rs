@@ -69,3 +69,42 @@ fn segmented_and_tab_styles_use_shared_state_priority() {
     assert_eq!(style.background, Some(PALETTE.surface_hover));
     assert_eq!(tab_text_color(&tab), PALETTE.text);
 }
+
+#[test]
+fn focused_segmented_control_keeps_idle_background_with_focus_border() {
+    let mut node = segmented_node();
+    node.focused = true;
+
+    let style = segmented_control_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.surface));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+}
+
+#[test]
+fn focused_hovered_segmented_control_keeps_hover_background_and_focus_border() {
+    let mut node = segmented_node();
+    node.focused = true;
+    node.hovered = true;
+
+    let style = segmented_control_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.surface_hover));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+}
+
+#[test]
+fn focused_tab_keeps_normal_background_without_active_border() {
+    let mut node = tab_node();
+    node.checked = false;
+    node.selected = false;
+    node.focused = true;
+
+    let style = tab_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, None);
+    assert_eq!(style.border, None);
+}

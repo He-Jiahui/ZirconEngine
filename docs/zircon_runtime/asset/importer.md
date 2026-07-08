@@ -269,7 +269,11 @@ plan_sources:
   - docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md
   - user: 2026-06-10 vampire roguelite animation state-machine follow-up
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
 tests:
+  - docs/tests/runtime/render/plan08_skinning_gltf_importer_channels_after_vg_skinning_split_20260705.out.log (2026-07-05 Plan 08 skinning/VG split: current-source focused glTF skinning channel regression passed 1/1)
+  - docs/tests/runtime/render/plan08_skinning_production_check_after_vg_skinning_split_20260705.err.log (2026-07-05 Plan 08 skinning/VG split: current-source production `cargo check -p zircon_runtime --lib` passed; exit stored beside the log)
+  - docs/tests/runtime/render/plan08_default_features_skinning_filter_direct_binary_after_vg_skinning_split_20260705.out.log (2026-07-05 Plan 08 skinning/VG split: direct generated-binary broad `skinning` filter passed 20/20; fresh current-source Cargo test wrapper remains blocked by active runtime text test compile drift)
   - zircon_runtime_interface/src/tests/resource_contracts.rs
   - project_asset_manager_runtime_accessors_recover_poisoned_locks
   - runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager
@@ -668,6 +672,11 @@ skins are present, and synthetic `Animation{n}/Skeleton` skeleton subassets for 
 files that do not define glTF skins. Machine-readable JSON `DataAsset` rows still record `Skin{n}`
 metadata and `Skin{n}/InverseBindMatrices`. The primitive `MeshAsset` payloads preserve glTF morph
 target position/normal/tangent displacement channels and attach node skin inverse bind matrices.
+Weighted skinned glTF primitives also preserve authored `JOINTS_0`/`WEIGHTS_0` channels through
+the root `ModelAsset` and labeled `MeshAsset` conversion path. Importer-side automatic Virtual
+Geometry cooking/backfill skips those weighted primitives because the current VG ordinal channel
+reuses joint-index slots; static, non-skinned primitives keep the existing automatic VG cook/backfill
+path.
 The split `gltf_importer` package now has a standalone distribution shape using
 `zircon_plugin_gltf_importer_dist` as the native ABI v3 wrapper while glTF/GLB parsing, labeled
 subassets, scene/material/skin/animation placeholder handling, descriptors, and runtime

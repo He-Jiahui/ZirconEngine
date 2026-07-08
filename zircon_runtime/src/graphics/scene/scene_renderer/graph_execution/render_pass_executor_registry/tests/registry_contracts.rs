@@ -1,4 +1,8 @@
 use super::*;
+use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
+    IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
+    IBL_BAKE_PMREM_EXECUTOR_ID,
+};
 
 #[test]
 fn registry_rejects_unregistered_executor_ids() {
@@ -133,6 +137,39 @@ fn builtin_registry_excludes_pluginized_advanced_executor_ids() {
 }
 
 #[test]
+fn builtin_registry_excludes_environment_ibl_bake_executor_ids_by_default() {
+    let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
+
+    for executor_id in [
+        IBL_BAKE_PMREM_EXECUTOR_ID,
+        IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
+        IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID,
+    ] {
+        assert!(
+            !registry.contains(&RenderPassExecutorId::new(executor_id)),
+            "IBL bake executor `{executor_id}` should require explicit opt-in until real GPU bake scheduling is wired"
+        );
+    }
+}
+
+#[test]
+fn explicit_ibl_bake_registry_extension_covers_environment_executor_ids() {
+    let registry = RenderPassExecutorRegistry::with_builtin_noop_executors()
+        .with_environment_ibl_bake_compute_executors();
+
+    for executor_id in [
+        IBL_BAKE_PMREM_EXECUTOR_ID,
+        IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
+        IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID,
+    ] {
+        assert!(
+            registry.contains(&RenderPassExecutorId::new(executor_id)),
+            "IBL bake executor `{executor_id}` should be available through explicit registry extension"
+        );
+    }
+}
+
+#[test]
 fn builtin_registry_covers_product_postprocess_executor_ids() {
     let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
 
@@ -233,6 +270,7 @@ fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
         required_extract_sections: Vec::new(),
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
+        environment_ibl_bake_request: None,
         graph: graph.compile().unwrap(),
     };
 
@@ -262,6 +300,7 @@ fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
         required_extract_sections: Vec::new(),
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
+        environment_ibl_bake_request: None,
         graph: graph.compile().unwrap(),
     };
 
@@ -310,6 +349,7 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
         required_extract_sections: Vec::new(),
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
+        environment_ibl_bake_request: None,
         graph: compiled_graph,
     };
 

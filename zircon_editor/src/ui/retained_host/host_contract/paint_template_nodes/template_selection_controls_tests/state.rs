@@ -5,7 +5,9 @@ use super::super::{
     selection_visual_state, selection_visual_unavailable, toggle_thumb_color, toggle_track_color,
     CHECKBOX_CHECKED_FILL, PALETTE,
 };
-use super::support::{node_with_role, resolved_background_foreground_and_border};
+use super::support::{
+    node_with_role, resolved_background_foreground_and_border, SELECTION_MARK_IDLE_FILL,
+};
 use zircon_runtime_interface::ui::style::{ResolvedButtonStyle, UiPainterResolvedState};
 
 #[test]
@@ -60,4 +62,33 @@ fn selection_control_loading_state_mutes_active_checked_visuals() {
     assert_eq!(control_accent_color(&node), PALETTE.text_disabled);
     assert_eq!(selection_text_color(&node), PALETTE.text_disabled);
     assert_eq!(selection_mark_label_color(&node), PALETTE.text_disabled);
+}
+
+#[test]
+fn focused_unchecked_selection_controls_keep_idle_surfaces_with_focus_border() {
+    let toggle = TemplatePaneNodeData {
+        focused: true,
+        ..node_with_role("Toggle", "toggle", "WorkbenchToggleOff")
+    };
+    let checkbox = TemplatePaneNodeData {
+        focused: true,
+        ..node_with_role("Checkbox", "checkbox", "WorkbenchCheckboxOff")
+    };
+
+    assert_eq!(toggle_track_color(&toggle), PALETTE.track);
+    assert_eq!(control_border_color(&toggle), PALETTE.focus_ring);
+    assert_eq!(checkbox_background(&checkbox), SELECTION_MARK_IDLE_FILL);
+    assert_eq!(checkbox_border_color(&checkbox), PALETTE.focus_ring);
+}
+
+#[test]
+fn focused_hovered_unchecked_toggle_keeps_hover_track_with_focus_border() {
+    let toggle = TemplatePaneNodeData {
+        focused: true,
+        hovered: true,
+        ..node_with_role("Toggle", "toggle", "WorkbenchToggleOff")
+    };
+
+    assert_eq!(toggle_track_color(&toggle), PALETTE.surface_hover);
+    assert_eq!(control_border_color(&toggle), PALETTE.focus_ring);
 }

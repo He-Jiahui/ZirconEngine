@@ -1,7 +1,7 @@
 use super::palette::{alert_container_color, alert_main_color};
 use super::variants::{alert_is_filled, alert_is_outlined};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 
 use super::super::super::resolved_style_color;
 
@@ -27,7 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_b
             if alert_is_outlined(node) {
                 alert_main_color(node)
             } else {
-                PALETTE.border
+                current_host_palette().border
             }
         })
     })

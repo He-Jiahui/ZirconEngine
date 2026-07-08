@@ -1,6 +1,18 @@
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::render_commands::HostPaintCommand;
-use super::super::super::segments::{local_rect, push_segments};
+use super::super::super::segments::{
+    push_segments, GlyphSegmentSpec, TREE_OBJECT_GLYPH_GRID_UNITS,
+};
+
+const CUBE_SEGMENTS: [GlyphSegmentSpec; 7] = [
+    GlyphSegmentSpec::new(3, 2, 8, 1),
+    GlyphSegmentSpec::new(2, 3, 1, 7),
+    GlyphSegmentSpec::new(11, 3, 1, 7),
+    GlyphSegmentSpec::new(3, 10, 8, 1),
+    GlyphSegmentSpec::new(6, 0, 1, 3),
+    GlyphSegmentSpec::new(6, 10, 1, 3),
+    GlyphSegmentSpec::new(2, 6, 10, 1),
+];
 
 pub(in super::super) fn push_cube_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -12,18 +24,12 @@ pub(in super::super) fn push_cube_icon(
 ) {
     push_segments(
         commands,
+        rect,
+        TREE_OBJECT_GLYPH_GRID_UNITS,
         clip,
         order,
         color,
         opacity,
-        &[
-            local_rect(rect, 3.0, 2.0, 8.0, 1.0),
-            local_rect(rect, 2.0, 3.0, 1.0, 7.0),
-            local_rect(rect, 11.0, 3.0, 1.0, 7.0),
-            local_rect(rect, 3.0, 10.0, 8.0, 1.0),
-            local_rect(rect, 6.0, 0.0, 1.0, 3.0),
-            local_rect(rect, 6.0, 10.0, 1.0, 3.0),
-            local_rect(rect, 2.0, 6.0, 10.0, 1.0),
-        ],
+        &CUBE_SEGMENTS,
     );
 }

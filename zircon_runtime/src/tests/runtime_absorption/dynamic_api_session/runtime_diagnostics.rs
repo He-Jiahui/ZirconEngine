@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use super::shared::{
+use super::shared::diagnostics::{
     EXPECTED_RUNTIME_10_RUNTIME_DIAGNOSTICS_ANCHORS,
     EXPECTED_RUNTIME_10_SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS,
 };

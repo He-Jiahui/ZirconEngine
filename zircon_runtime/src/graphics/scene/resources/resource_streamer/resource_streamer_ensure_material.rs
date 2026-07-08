@@ -367,12 +367,9 @@ impl ResourceStreamer {
             emissive: Vec3::from_array(descriptor.emissive),
             metallic: descriptor.metallic,
             roughness: descriptor.roughness,
-            #[cfg(test)]
             double_sided: descriptor.double_sided,
-            #[cfg(test)]
             alpha_blend,
             alpha_cutoff,
-            #[cfg(test)]
             lighting_model: lighting_model.clone(),
             shading_model_id,
             unlit,

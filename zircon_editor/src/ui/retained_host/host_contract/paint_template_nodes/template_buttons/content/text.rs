@@ -1,5 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
+use super::layout::content_centered_y;
 use super::metrics::button_label_line_height;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -21,7 +22,7 @@ pub(super) fn push_button_label(
     commands.push(HostPaintCommand::text(
         FrameRect {
             x,
-            y: rect.y + (rect.height - line_height).max(0.0) * 0.5 + y_offset,
+            y: content_centered_y(rect, line_height) + y_offset,
             width,
             height: line_height,
         },

@@ -96,6 +96,133 @@ fn hybrid_gi_runtime_state_exposes_scene_screen_probe_candidates() {
 }
 
 #[test]
+fn hybrid_gi_runtime_state_projects_scene_screen_probes_into_prepare_work_items() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 2,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: Vec::new(),
+        trace_regions: Vec::new(),
+    };
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    let prepare = state.build_prepare_frame();
+
+    assert_eq!(
+        prepare.resident_probes,
+        vec![
+            HybridGiPrepareProbe {
+                probe_id: 0,
+                slot: 0,
+                ray_budget: 1,
+                irradiance_rgb: prepare.resident_probes[0].irradiance_rgb,
+            },
+            HybridGiPrepareProbe {
+                probe_id: 1,
+                slot: 1,
+                ray_budget: 1,
+                irradiance_rgb: prepare.resident_probes[1].irradiance_rgb,
+            },
+        ]
+    );
+    assert!(
+        prepare
+            .resident_probes
+            .iter()
+            .all(|probe| probe.irradiance_rgb != [0, 0, 0]),
+        "expected screen probe prepare work items to carry scene radiance cache seeds"
+    );
+    assert!(prepare.pending_updates.is_empty());
+    assert_eq!(state.snapshot().resident_probe_count(), 0);
+
+    let resolve_runtime = state.build_resolve_runtime();
+    let first_probe_scene = resolve_runtime
+        .probe_scene_data(0)
+        .expect("first scene screen probe should be visible to GPU probe quantization");
+    let second_probe_scene = resolve_runtime
+        .probe_scene_data(1)
+        .expect("second scene screen probe should be visible to GPU probe quantization");
+
+    assert_eq!(first_probe_scene.position_x_q(), 1984);
+    assert_eq!(first_probe_scene.position_y_q(), 2048);
+    assert_eq!(first_probe_scene.position_z_q(), 2048);
+    assert_eq!(first_probe_scene.radius_q(), 96);
+    assert_eq!(second_probe_scene.position_x_q(), 2240);
+    assert_eq!(second_probe_scene.radius_q(), 48);
+}
+
+#[test]
+fn hybrid_gi_runtime_state_accepts_scene_screen_probe_gpu_feedback() {
+    let mut state = HybridGiRuntimeState::default();
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        quality: Default::default(),
+        trace_budget: 2,
+        card_budget: 1,
+        voxel_budget: 1,
+        debug_view: Default::default(),
+        probe_budget: 0,
+        tracing_budget: 0,
+        probes: Vec::new(),
+        trace_regions: Vec::new(),
+    };
+
+    state.register_scene_extract(
+        Some(&extract),
+        &[
+            mesh_at(11, "res://materials/a.mat", Vec3::new(-1.0, 0.0, 0.0), 2.0),
+            mesh_at(22, "res://materials/b.mat", Vec3::new(3.0, 0.0, 0.0), 1.0),
+        ],
+        &[directional_light(100, 1.0)],
+        &[],
+        &[],
+    );
+
+    state.apply_gpu_cache_entries(&[(0, 0), (1, 1), (9_999, 7)]);
+    state.complete_gpu_updates([], [], &[(0, [12, 34, 56])], &[(1, [210, 120, 60])], &[]);
+
+    assert_eq!(state.probe_slot(0), Some(0));
+    assert_eq!(state.probe_slot(1), Some(1));
+    assert_eq!(state.probe_slot(9_999), None);
+    assert_eq!(state.snapshot().cache_entry_count(), 2);
+    assert_eq!(state.snapshot().resident_probe_count(), 2);
+
+    let prepare = state.build_prepare_frame();
+    assert_eq!(
+        prepare
+            .resident_probes
+            .iter()
+            .find(|probe| probe.probe_id == 0)
+            .map(|probe| probe.irradiance_rgb),
+        Some([12, 34, 56]),
+        "expected scene screen probe GPU irradiance feedback to feed the next prepare frame"
+    );
+
+    let resolve_runtime = state.build_resolve_runtime();
+    assert_eq!(
+        resolve_runtime.probe_rt_lighting_rgb(1),
+        Some([210, 120, 60]),
+        "expected scene screen probe GPU trace lighting feedback to remain visible to resolve runtime"
+    );
+}
+
+#[test]
 fn hybrid_gi_runtime_state_builds_scene_clipmap_descriptors_from_mesh_bounds() {
     let mut state = HybridGiRuntimeState::default();
     let extract = hybrid_gi_settings(2, 2);

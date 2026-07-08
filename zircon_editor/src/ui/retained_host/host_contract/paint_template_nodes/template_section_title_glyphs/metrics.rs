@@ -1,4 +1,22 @@
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SECTION_ICON_SIZE: f32 =
-    14.0;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const SECTION_ICON_GAP: f32 =
-    8.0;
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchSectionTitleGlyphMetrics
+{
+    pub icon_size: f32,
+    pub icon_gap: f32,
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_glyph_metrics(
+) -> WorkbenchSectionTitleGlyphMetrics {
+    section_title_glyph_metrics_from_host(current_host_metrics())
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_glyph_metrics_from_host(
+    metrics: HostControlMetrics,
+) -> WorkbenchSectionTitleGlyphMetrics {
+    WorkbenchSectionTitleGlyphMetrics {
+        icon_size: metrics.font_large,
+        icon_gap: metrics.gap_m,
+    }
+}

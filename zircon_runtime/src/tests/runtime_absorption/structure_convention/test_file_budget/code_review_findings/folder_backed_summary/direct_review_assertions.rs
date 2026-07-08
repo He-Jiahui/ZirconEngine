@@ -45,6 +45,10 @@ pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
+pub(super) const REVIEW_GUARD_DIRECT_ASSERTION_STATUS_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/direct_assertion_rows.rs";
+pub(super) const REVIEW_GUARD_DIRECT_ASSERTION_DATE_MAP_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/direct_assertion_rows.rs";
 
 pub(super) const CODE_REVIEW_FINDINGS_LINE_BUDGET: usize = 800;
 pub(super) const DIRECT_REVIEW_ASSERTIONS_GUARD_SPLIT_NAME: &str =
@@ -118,5 +122,41 @@ pub(super) fn direct_review_assertion_child_source_blob() -> String {
         blob.push_str(&source);
         blob.push('\n');
     }
+    blob.push_str(&child_ownership::direct_assertion_child_ownership_child_source_blob());
+    blob.push('\n');
     blob
+}
+
+pub(super) fn direct_review_status_rows_source() -> String {
+    let mut source = String::new();
+    for path in [
+        REVIEW_GUARD_STATUS_ROWS_PATH,
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/core_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/f12_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/f8_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/p0_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/render_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/root_parent_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows/row_data_owner_rows.rs",
+    ] {
+        source.push_str(&read_runtime_src(path));
+        source.push('\n');
+    }
+    source
+}
+
+pub(super) fn direct_review_status_map_source() -> String {
+    format!(
+        "{}\n{}",
+        read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH),
+        read_runtime_src(REVIEW_GUARD_DIRECT_ASSERTION_STATUS_MAP_PATH)
+    )
+}
+
+pub(super) fn direct_review_date_map_source() -> String {
+    format!(
+        "{}\n{}",
+        read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH),
+        read_runtime_src(REVIEW_GUARD_DIRECT_ASSERTION_DATE_MAP_PATH)
+    )
 }

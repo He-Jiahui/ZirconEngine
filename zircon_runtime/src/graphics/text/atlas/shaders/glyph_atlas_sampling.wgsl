@@ -12,8 +12,7 @@ fn glyph_atlas_decode_subpixel_rgb_coverage(sample: vec4<f32>, colors: GlyphAtla
     let coverage = clamp(sample.rgb, vec3<f32>(0.0), vec3<f32>(1.0));
     let foreground_alpha = clamp(colors.foreground.a, 0.0, 1.0);
     let rgb = mix(colors.background.rgb, colors.foreground.rgb, coverage * foreground_alpha);
-    let alpha = foreground_alpha * max(max(coverage.r, coverage.g), coverage.b);
-    return vec4<f32>(rgb, alpha);
+    return vec4<f32>(rgb, colors.background.a);
 }
 
 fn glyph_atlas_distance_coverage(distance: f32) -> f32 {

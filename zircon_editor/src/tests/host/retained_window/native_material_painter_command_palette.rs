@@ -22,6 +22,7 @@ fn native_template_painter_draws_command_palette_panel_search_and_rows() {
         role: "CommandPalette".into(),
         component_role: "command-palette".into(),
         popup_open: true,
+        focused: true,
         search_query: "build".into(),
         structured_options: model_rc(vec![
             option("build_project", "Build Project", true, false, true),

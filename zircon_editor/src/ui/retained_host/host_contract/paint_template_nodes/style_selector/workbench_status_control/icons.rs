@@ -1,4 +1,5 @@
 use super::super::resolved_state_for_node;
+use super::helpers::{status_node_is_hot, status_node_is_selected, status_node_uses_active_glyph};
 use super::model::WorkbenchStatusIconButtonStyle;
 use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
@@ -12,14 +13,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     let palette = workbench_status_control_palette();
 
     WorkbenchStatusIconButtonStyle {
-        background: status_icon_button_background(state, &palette),
+        background: status_icon_button_background(node, state, &palette),
         border: status_icon_button_border(state, &palette),
-        glyph: status_icon_glyph_color(state, &palette),
+        glyph: status_icon_glyph_color(node, state, &palette),
         state,
     }
 }
 
 fn status_icon_button_background(
+    node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     palette: &WorkbenchStatusControlPalette,
 ) -> [u8; 4] {
@@ -31,8 +33,16 @@ fn status_icon_button_background(
             palette.surface_selected
         }
         UiPainterResolvedState::Pressed => palette.surface_pressed,
-        UiPainterResolvedState::Focused
-        | UiPainterResolvedState::Open
+        UiPainterResolvedState::Focused => {
+            if status_node_is_selected(node) {
+                palette.surface_selected
+            } else if status_node_is_hot(node) {
+                palette.surface_hover
+            } else {
+                palette.flat_transparent
+            }
+        }
+        UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Hovered => palette.surface_hover,
@@ -62,6 +72,7 @@ fn status_icon_button_border(
 }
 
 fn status_icon_glyph_color(
+    node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
     palette: &WorkbenchStatusControlPalette,
 ) -> [u8; 4] {
@@ -69,11 +80,19 @@ fn status_icon_glyph_color(
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => palette.text_disabled,
         UiPainterResolvedState::Selected
         | UiPainterResolvedState::Checked
-        | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered => palette.focus_ring,
+        UiPainterResolvedState::Focused => {
+            if status_node_uses_active_glyph(node) {
+                palette.focus_ring
+            } else if node.hovered {
+                palette.icon_color
+            } else {
+                palette.icon_muted
+            }
+        }
         UiPainterResolvedState::Hovered => palette.icon_color,
         UiPainterResolvedState::Normal => palette.icon_muted,
     }

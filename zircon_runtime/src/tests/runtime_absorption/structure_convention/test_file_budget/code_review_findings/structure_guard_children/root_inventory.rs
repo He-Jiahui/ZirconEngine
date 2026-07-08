@@ -4,8 +4,8 @@ use super::*;
 fn runtime_15_code_review_findings_structure_guard_children_root_inventory_is_child_owned() {
     let parent = read_runtime_src(STRUCTURE_GUARD_CHILD_OWNER);
     let status_rows = structure_guard_status_row_source();
-    let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
-    let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
+    let status_map = structure_guard_status_map_source();
+    let date_map = structure_guard_date_map_source();
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");

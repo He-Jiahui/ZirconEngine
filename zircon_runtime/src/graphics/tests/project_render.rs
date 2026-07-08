@@ -18,8 +18,8 @@ use crate::core::framework::render::{
     CapturedFrame, DisplayMode, EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract,
     ProjectionMode, RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework,
     RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderViewportHandle, RenderWorldSnapshotHandle, SampledEquirectangularEnvironment,
-    SceneViewportExtractRequest, ShaderAssetKind, ViewportCameraSnapshot, ViewportRenderSettings,
+    RenderViewportHandle, RenderWorldSnapshotHandle, SceneViewportExtractRequest, ShaderAssetKind,
+    SourceCubemapEnvironment, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::core::resource::ResourceHandle;
@@ -234,7 +234,7 @@ fn zr_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {
     );
     surface.normal_ws = material_sphere_normal(input);
     surface.metallic = clamp(zr_mat_metallic(), 0.0, 1.0);
-    surface.roughness = clamp(zr_mat_roughness(), 0.04, 1.0);
+    surface.roughness = clamp(zr_mat_roughness(), 0.001, 1.0);
     surface.occlusion = 1.0;
     surface.unlit = 1.0;
     surface.shading_model_id = 2u;

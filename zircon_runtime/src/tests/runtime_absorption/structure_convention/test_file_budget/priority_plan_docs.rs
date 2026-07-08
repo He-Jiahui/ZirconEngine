@@ -6,7 +6,10 @@ mod frontmatter_uniqueness;
 mod guard_tests;
 mod header_sections;
 mod plan_sources;
+mod status_sources;
 mod test_paths;
+
+pub(super) use status_sources::*;
 
 pub(super) const PRIORITY_PLAN_DOCS: &[(&str, &str)] = &[
     (

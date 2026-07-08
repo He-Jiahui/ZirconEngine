@@ -15,10 +15,12 @@ Runtime 15 M3 priority plan docs guard-test listing guard
 runtime_15_priority_plan_docs_guard_test_listing_guard_static_passed_cargo_deferred
 Runtime 15 M3 priority plan docs guard child-owner split
 runtime_15_priority_plan_docs_guard_child_owner_split_static_passed_cargo_deferred
+full priority-plan-doc child inventory
 Runtime 15 M3 priority plan docs child prose full inventory sync
 runtime_15_priority_plan_docs_child_prose_full_inventory_sync_static_passed_cargo_deferred
 Runtime 15 M3 priority plan docs guard-test child-owner split
 runtime_15_priority_plan_docs_guard_test_child_owner_split_static_passed_cargo_deferred
+full priority-plan-doc guard-test child inventory
 Runtime 15 M3 priority plan docs guard-test child prose full inventory sync
 runtime_15_priority_plan_docs_guard_test_child_prose_full_inventory_sync_static_passed_cargo_deferred
 Runtime 15 M3 priority plan docs moved guard path mirror

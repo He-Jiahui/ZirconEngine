@@ -38,6 +38,12 @@ pub(crate) struct GlyphAtlasBitmapUploadCopy {
     pub(crate) atlas_byte_offset: u64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct GlyphAtlasBitmapSlotInvalidation {
+    pub(crate) page_key: GlyphAtlasPageKey,
+    pub(crate) page_generation: u64,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct GlyphAtlasBitmapRunPlan {
     pub(crate) atlas: GlyphAtlasSet,
@@ -47,6 +53,7 @@ pub(crate) struct GlyphAtlasBitmapRunPlan {
     pub(crate) upload_copies: Vec<GlyphAtlasBitmapUploadCopy>,
     pub(crate) upload_commands: Vec<GlyphAtlasUploadCommand>,
     pub(crate) rebuilt_pages: Vec<GlyphAtlasPageKey>,
+    pub(crate) slot_invalidations: Vec<GlyphAtlasBitmapSlotInvalidation>,
     pub(crate) allocation_failures: Vec<GlyphAtlasBitmapAllocationFailure>,
     pub(crate) blocked_glyphs: Vec<GlyphAtlasBitmapQueuedGlyph>,
     pub(crate) placeholder_glyphs: Vec<GlyphAtlasBitmapPlaceholderGlyph>,

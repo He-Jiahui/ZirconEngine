@@ -20,6 +20,7 @@ pub(crate) struct GlyphAtlasBitmapRenderSubmissionReport {
     pub(crate) oversized_glyph_failure_count: usize,
     pub(crate) dirty_page_count: usize,
     pub(crate) rebuilt_page_count: usize,
+    pub(crate) slot_invalidation_count: usize,
     pub(crate) upload_command_count: usize,
     pub(crate) full_page_upload_count: usize,
     pub(crate) partial_upload_count: usize,
@@ -87,6 +88,7 @@ pub(crate) fn glyph_atlas_bitmap_render_submission_report(
             .min(),
         dirty_page_count: plan.run.dirty_pages.len(),
         rebuilt_page_count: plan.run.rebuilt_pages.len(),
+        slot_invalidation_count: plan.run.slot_invalidations.len(),
         upload_command_count: plan.run.upload_commands.len(),
         upload_copy_count: plan.run.upload_copies.len(),
         upload_copy_byte_len: plan

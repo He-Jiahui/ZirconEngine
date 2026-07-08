@@ -224,8 +224,8 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.history")
-            .read_texture("scene-color")
-            .write_external("history-global-illumination"),
+            .read_texture("hybrid-gi-lighting")
+            .write_external_texture("history-global-illumination"),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)

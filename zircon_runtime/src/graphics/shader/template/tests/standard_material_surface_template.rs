@@ -15,6 +15,9 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(surface_source
         .features
         .contains(ShaderFeatureBits::DOUBLE_SIDED));
+    assert!(!surface_source
+        .features
+        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
 
     let assembly = assemble_material_shader_template(
         MaterialShaderTemplateRequest::new(
@@ -39,10 +42,16 @@ fn render_shader_template_assembles_standard_material_surface_source() {
         .contains("standard_material_metallic_roughness_tex"));
     assert!(assembly
         .wgsl_source
+        .contains("ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS"));
+    assert!(assembly
+        .wgsl_source
         .contains("standard_material_normal_tex"));
     assert!(assembly
         .wgsl_source
         .contains("fn standard_material_sampled_normal"));
+    assert!(assembly
+        .wgsl_source
+        .contains("if (!ZR_FEATURE_HAS_NORMAL_TEXTURE)"));
     assert!(assembly
         .wgsl_source
         .contains("const ZR_STANDARD_MATERIAL_ALPHA_CUTOFF: f32 = 0.50000000;"));
@@ -84,13 +93,48 @@ fn render_shader_template_assembles_standard_material_surface_source() {
         .contains("environment_sample_params: vec4<f32>"));
     assert!(assembly
         .wgsl_source
-        .contains("@group(0) @binding(1) var<storage, read> zr_environment_samples"));
+        .contains("camera_world_position: vec4<f32>"));
     assert!(assembly
         .wgsl_source
-        .contains("zr_environment_samples.samples[index].rgb"));
+        .contains("camera_view_direction: vec4<f32>"));
+    assert!(assembly
+        .wgsl_source
+        .contains("environment_sh9: array<vec4<f32>, 9>"));
+    assert!(assembly
+        .wgsl_source
+        .contains("override ZR_ENV_DIFFUSE_IEM: bool = false;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(0) @binding(2) var zr_environment_sampler: sampler;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;"));
+    assert!(assembly.wgsl_source.contains(
+        "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;"
+    ));
+    assert!(assembly
+        .wgsl_source
+        .contains("@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"));
+    assert!(assembly.wgsl_source.contains("textureSampleLevel("));
+    assert!(assembly
+        .wgsl_source
+        .contains("zr_environment_specular_pmrem_cube"));
+    assert!(assembly
+        .wgsl_source
+        .contains("zr_environment_irradiance_cube"));
     assert!(assembly
         .wgsl_source
         .contains("fn zr_environment_mip_from_roughness"));
+    assert!(assembly.wgsl_source.contains("fn zr_environment_sh9_eval"));
+    assert!(assembly
+        .wgsl_source
+        .contains("fn zr_environment_irradiance_cube_color"));
+    assert!(assembly
+        .wgsl_source
+        .contains("fn zr_environment_env_brdf_lut"));
     assert!(assembly
         .wgsl_source
         .contains("fn zr_environment_env_brdf_approx"));
@@ -166,6 +210,15 @@ fn render_shader_template_assembles_standard_material_surface_source() {
         .contains("let environment_lights = zr_environment_pbr_indirect("));
     assert!(assembly
         .wgsl_source
+        .contains("fn zr_scene_view_dir_ws(position_ws: vec3<f32>) -> vec3<f32>"));
+    assert!(assembly
+        .wgsl_source
+        .contains("let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);"));
+    assert!(!assembly
+        .wgsl_source
+        .contains("surface.normal_ws,\n        vec3<f32>(0.0, 0.0, 1.0),"));
+    assert!(assembly
+        .wgsl_source
         .contains("surface.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID"));
     assert!(assembly.wgsl_source.contains("@location(2) uv0: vec2<f32>"));
     assert!(assembly
@@ -198,4 +251,36 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(assembly
         .wgsl_source
         .contains("const ZR_FEATURE_DOUBLE_SIDED: bool = true;"));
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;"));
+}
+
+#[test]
+fn render_shader_template_marks_standard_material_normal_texture_feature() {
+    let static_mesh = static_mesh_descriptor();
+    let mut material = standard_material_descriptor();
+    material.normal_texture = Some(AssetReference::from_locator(
+        ResourceLocator::parse("res://textures/material-normal.png").expect("normal locator"),
+    ));
+    let surface_source = standard_material_surface_source(&material);
+
+    assert!(surface_source
+        .features
+        .contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE));
+
+    let assembly = assemble_material_shader_template(
+        MaterialShaderTemplateRequest::new(
+            static_mesh,
+            ShaderPassType::Forward,
+            surface_source.source,
+            surface_source.entry_point,
+        )
+        .with_features(surface_source.features),
+    )
+    .expect("standard material template assembly with normal map");
+
+    assert!(assembly
+        .wgsl_source
+        .contains("const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = true;"));
 }

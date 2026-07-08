@@ -7,6 +7,9 @@ fn typed_error_top_level_child_tree() -> String {
         read_runtime_src(TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_SOURCE_INVENTORY_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_STATUS_DOCS_CHILD_OWNER),
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation.rs",
+        ),
         read_runtime_src(TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_TOP_LEVEL_STATUS_MIRRORS_CHILD_OWNER),
         read_runtime_src(TYPED_ERROR_TOP_LEVEL_BUDGETS_CHILD_OWNER),
@@ -16,26 +19,34 @@ fn typed_error_top_level_child_tree() -> String {
 
 pub(super) fn assert_typed_error_top_level_checks_are_current() {
     let parent = read_runtime_src(STRUCTURE_GUARD_TYPED_ERROR_CHILD_OWNER);
-    let typed_error_child = read_runtime_src(TYPED_ERROR_CHILD_OWNER);
+    let typed_error_parent = read_runtime_src(TYPED_ERROR_CHILD_OWNER);
+    let typed_error_child = format!(
+        "{}\n{}\n{}",
+        typed_error_parent,
+        read_runtime_src(
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_statuses.rs",
+        ),
+        super::super::super::typed_error_child_owners::folder_backed_child_source_blob(),
+    );
     let child_tree = typed_error_top_level_child_tree();
 
     assert_contains_all(
         "typed-error structure child owner keeps route inventory and helper delegation",
         &typed_error_child,
         &[
-            "#[path = \"typed_error_child_owners/delegation.rs\"]",
+            "#[path = \"typed_error_owners/delegation.rs\"]",
             "mod delegation;",
-            "#[path = \"typed_error_child_owners/child_ownership.rs\"]",
+            "#[path = \"typed_error_owners/child_ownership.rs\"]",
             "mod child_ownership;",
-            "#[path = \"typed_error_child_owners/status_mirrors.rs\"]",
+            "#[path = \"typed_error_owners/status_mirrors.rs\"]",
             "mod status_mirrors;",
-            "#[path = \"typed_error_child_owners/budgets.rs\"]",
+            "#[path = \"typed_error_owners/budgets.rs\"]",
             "mod budgets;",
-            "#[path = \"typed_error_child_owners/source_inventory.rs\"]",
+            "#[path = \"typed_error_owners/source_inventory.rs\"]",
             "mod source_inventory;",
-            "#[path = \"typed_error_child_owners/status_docs.rs\"]",
+            "#[path = \"typed_error_owners/status_docs.rs\"]",
             "mod status_docs;",
-            "#[path = \"typed_error_child_owners/structure_assertions.rs\"]",
+            "#[path = \"typed_error_owners/structure_assertions.rs\"]",
             "mod structure_assertions;",
             "structure_assertions::assert_typed_error_child_owners_are_folder_backed",
             "source_inventory::typed_error_children_source",
@@ -47,7 +58,7 @@ pub(super) fn assert_typed_error_top_level_checks_are_current() {
         ],
     );
     assert!(
-        !typed_error_child.contains(
+        !typed_error_parent.contains(
             "fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner"
         ),
         "typed-error historical structure guard should stay in child_ownership child"

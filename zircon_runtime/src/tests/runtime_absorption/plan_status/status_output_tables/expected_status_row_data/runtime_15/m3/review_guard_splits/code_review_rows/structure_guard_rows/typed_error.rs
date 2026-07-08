@@ -34,4 +34,21 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "Cargo gate deferred",
         ],
     ),
+    (
+        "Runtime 15 M3 code review findings structure guard typed-error structure assertions folder-backed split",
+        &[
+            "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions/source_trees.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions/current_checks.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions/folder_backed.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions/budgets.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure_assertions/status_mirrors.rs",
+            "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_are_child_owned",
+            "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_guard_is_folder_backed",
+            "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_children_stay_budgeted",
+            "runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_status_mirrors_are_current",
+            "Cargo gate deferred",
+        ],
+    ),
 ];

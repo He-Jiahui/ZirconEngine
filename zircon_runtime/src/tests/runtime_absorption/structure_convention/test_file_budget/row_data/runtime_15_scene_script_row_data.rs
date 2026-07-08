@@ -1,0 +1,40 @@
+use super::*;
+
+#[path = "runtime_15_scene_script_row_data/budgets.rs"]
+mod budgets;
+#[path = "runtime_15_scene_script_row_data/delegation.rs"]
+mod delegation;
+#[path = "runtime_15_scene_script_row_data/export_chain.rs"]
+mod export_chain;
+#[path = "runtime_15_scene_script_row_data/plugin_extension_tests.rs"]
+mod plugin_extension_tests;
+#[path = "runtime_15_scene_script_row_data/root_child_rows.rs"]
+mod root_child_rows;
+#[path = "runtime_15_scene_script_row_data/root_inventory.rs"]
+mod root_inventory;
+#[path = "runtime_15_scene_script_row_data/root_owner_paths.rs"]
+mod root_owner_paths;
+#[path = "runtime_15_scene_script_row_data/root_paths.rs"]
+mod root_paths;
+#[path = "runtime_15_scene_script_row_data/root_statuses.rs"]
+mod root_statuses;
+#[path = "runtime_15_scene_script_row_data/row_ownership.rs"]
+mod row_ownership;
+#[path = "runtime_15_scene_script_row_data/runtime_07_performance.rs"]
+mod runtime_07_performance;
+#[path = "runtime_15_scene_script_row_data/status_mirrors.rs"]
+mod status_mirrors;
+
+pub(super) use root_child_rows::*;
+pub(super) use root_owner_paths::*;
+pub(super) use root_paths::*;
+pub(super) use root_statuses::*;
+
+pub(super) fn scene_script_guard_child_source_blob() -> String {
+    let mut blob = String::new();
+    for (_, path, _) in SCENE_SCRIPT_ROW_DATA_GUARD_CHILDREN {
+        blob.push_str(&read_runtime_src(path));
+        blob.push('\n');
+    }
+    blob
+}

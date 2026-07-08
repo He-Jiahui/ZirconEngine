@@ -68,7 +68,8 @@ notifications = [
     assert!(commands.iter().any(|command| {
         command.kind == UiRenderCommandKind::Quad
             && command.frame == UiFrame::new(40.0, 114.0, 284.0, 48.0)
-            && command.style.background_color.as_deref() == Some("#183a3f")
+            && command.style.background_color.as_deref() == Some("#151e23")
+            && command.style.border_color.as_deref() == Some("#35c7d0")
             && command.style.painter_state == UiPainterResolvedState::Focused
     }));
     assert!(commands.iter().any(|command| {
@@ -84,6 +85,61 @@ notifications = [
         0,
         "NotificationCenter should suppress generic owner text rendering"
     );
+}
+
+#[test]
+fn render_extract_notification_center_keeps_focused_rows_neutral_until_selected() {
+    let focused_only = commands_for_notification_center(
+        UiFrame::new(20.0, 12.0, 260.0, 120.0),
+        r##"
+open = true
+notifications = [
+  { id = "compile", title = "Compile queued", message = "Waiting", severity = "info" }
+]
+focused_index = 0
+"##,
+    );
+
+    let focused_row =
+        notification_row_surface(&focused_only, UiFrame::new(28.0, 48.0, 244.0, 48.0));
+    assert_eq!(
+        focused_row.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_row.style.background_color.as_deref(),
+        Some("#151e23")
+    );
+    assert_eq!(focused_row.style.border_color.as_deref(), Some("#35c7d0"));
+    assert!(!focused_only.iter().any(|command| {
+        command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(28.0, 48.0, 244.0, 48.0)
+            && command.style.background_color.as_deref() == Some("#183a3f")
+    }));
+
+    let selected_and_focused = commands_for_notification_center(
+        UiFrame::new(20.0, 12.0, 260.0, 120.0),
+        r##"
+open = true
+selected_notification_id = "compile"
+focused_index = 0
+notifications = [
+  { id = "compile", title = "Compile queued", message = "Waiting", severity = "info", unread = true }
+]
+"##,
+    );
+
+    let selected_row =
+        notification_row_surface(&selected_and_focused, UiFrame::new(28.0, 48.0, 244.0, 48.0));
+    assert_eq!(
+        selected_row.style.painter_state,
+        UiPainterResolvedState::Selected
+    );
+    assert_eq!(
+        selected_row.style.background_color.as_deref(),
+        Some("#153035")
+    );
+    assert_eq!(selected_row.style.border_color.as_deref(), Some("#35c7d0"));
 }
 
 #[test]
@@ -129,6 +185,17 @@ fn commands_for_notification_center(frame: UiFrame, attributes: &str) -> Vec<UiR
         .unwrap();
     surface.rebuild();
     surface.render_extract.list.commands
+}
+
+fn notification_row_surface(commands: &[UiRenderCommand], frame: UiFrame) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.kind == UiRenderCommandKind::Quad
+                && command.frame == frame
+                && command.style.painter_family == UiPainterFamily::Toast
+        })
+        .expect("notification row surface should render")
 }
 
 fn visible_state() -> UiStateFlags {

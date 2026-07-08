@@ -3,8 +3,8 @@ use super::*;
 
 pub(super) fn assert_structure_guard_plugin_importer_status_mirrors_are_current() {
     let status_rows = structure_guard_status_row_source();
-    let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
-    let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
+    let status_map = super::super::structure_guard_status_map_source();
+    let date_map = super::super::structure_guard_date_map_source();
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");

@@ -1,11 +1,16 @@
 use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
+const ROW_DETAIL_LEFT_RATIO: f32 = 0.72;
+const ROW_DETAIL_WIDTH_RATIO: f32 = 0.24;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchCommandPaletteMetrics
 {
     pub panel_radius: f32,
     pub search_radius: f32,
     pub row_radius: f32,
+    pub border_width: f32,
+    pub min_frame_extent: f32,
     pub font_size: f32,
     pub line_height: f32,
     pub panel_padding_x: f32,
@@ -20,6 +25,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub row_height: f32,
     pub row_text_x: f32,
     pub row_text_y: f32,
+    pub row_detail_left_ratio: f32,
+    pub row_detail_width_ratio: f32,
     pub match_indicator_left: f32,
     pub match_indicator_width: f32,
     pub match_indicator_height: f32,
@@ -47,6 +54,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command
         panel_radius: metrics.radius_control + metrics.border_width * 2.0,
         search_radius: metrics.radius_control,
         row_radius: (metrics.radius_control - metrics.border_width).max(0.0),
+        border_width: metrics.border_width.max(0.0),
+        min_frame_extent: metrics.border_width.max(1.0),
         font_size,
         line_height,
         panel_padding_x: metrics.gap_l,
@@ -61,6 +70,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command
         row_height: metrics.row_height + metrics.border_width * 2.0,
         row_text_x: metrics.input_pad[0] + metrics.border_width,
         row_text_y: metrics.input_pad[2] + metrics.border_width * 2.0,
+        row_detail_left_ratio: ROW_DETAIL_LEFT_RATIO,
+        row_detail_width_ratio: ROW_DETAIL_WIDTH_RATIO,
         match_indicator_left: metrics.gap_s,
         match_indicator_width: metrics.selection_indicator_width.max(metrics.border_width),
         match_indicator_height: metrics.font_large.max(metrics.gap_l),

@@ -165,6 +165,7 @@ fn render_text_atlas_bitmap_retry_frame_submission_report_tracks_backpressured_r
         2,
         GlyphAtlasBitmapRetryBackpressurePolicy {
             max_due_retry_sources_per_frame: Some(1),
+            max_new_sources_per_frame: None,
             defer_excess_by_frames: 3,
         },
         UVec2::new(80, 32),
@@ -188,6 +189,47 @@ fn render_text_atlas_bitmap_retry_frame_submission_report_tracks_backpressured_r
     assert!(report.has_pending_retry_work());
     assert!(report.has_backpressured_retry_work());
     assert!(!report.has_blocked_retry_work());
+}
+
+#[test]
+fn render_text_atlas_bitmap_retry_frame_submission_report_tracks_backpressured_new_sources() {
+    let first_source = source(GlyphAtlasFormat::AlphaMask, UVec2::new(6, 6), 8.0, 36);
+    let deferred_source = source(GlyphAtlasFormat::SubpixelMask, UVec2::new(6, 4), 24.0, 96);
+
+    let plan = glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding(
+        [],
+        [first_source, deferred_source],
+        UVec2::new(32, 32),
+        241,
+        1,
+        2,
+        GlyphAtlasBitmapRetryBackpressurePolicy {
+            max_due_retry_sources_per_frame: None,
+            max_new_sources_per_frame: Some(1),
+            defer_excess_by_frames: 4,
+        },
+        UVec2::new(80, 32),
+        GlyphAtlasScreenRect::new(0.0, 0.0, 80.0, 32.0),
+    );
+
+    let report = plan.retry_submission_report();
+
+    assert_eq!(report.input_source_count, 1);
+    assert_eq!(report.new_source_count, 1);
+    assert_eq!(report.deferred_new_source_count, 1);
+    assert_eq!(report.backpressured_new_source_count, 1);
+    assert_eq!(report.submission_report.source_count, 1);
+    assert_eq!(report.submission_report.allocated_glyph_count, 1);
+    assert_eq!(report.completed_new_source_count, 1);
+    assert_eq!(report.next_blocked_glyph_count, 1);
+    assert_eq!(report.next_retry_frame_index, Some(245));
+    assert!(report.has_pending_retry_work());
+    assert!(report.has_backpressured_new_work());
+    assert!(!report.has_backpressured_retry_work());
+    assert_eq!(
+        plan.frame_outcome.next_blocked_glyphs,
+        vec![queued_glyph(1, deferred_source, 245)]
+    );
 }
 
 #[test]
@@ -242,6 +284,7 @@ fn render_text_atlas_bitmap_retry_frame_state_persists_deferred_and_backpressure
         2,
         GlyphAtlasBitmapRetryBackpressurePolicy {
             max_due_retry_sources_per_frame: Some(1),
+            max_new_sources_per_frame: None,
             defer_excess_by_frames: 5,
         },
         UVec2::new(96, 32),
@@ -347,6 +390,7 @@ fn render_text_atlas_bitmap_retry_frame_driver_applies_backpressure_and_commits_
         GlyphAtlasBitmapRetryFrameDriverConfig {
             backpressure_policy: GlyphAtlasBitmapRetryBackpressurePolicy {
                 max_due_retry_sources_per_frame: Some(1),
+                max_new_sources_per_frame: None,
                 defer_excess_by_frames: 4,
             },
             ..frame_driver_config(UVec2::new(32, 32), 1, 2)

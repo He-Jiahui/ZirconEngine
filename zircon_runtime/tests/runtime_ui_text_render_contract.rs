@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
-    RenderFramework, RenderOverlayExtract, RenderQualityProfile, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
+    RenderFrameExtract, RenderFramework, RenderOverlayExtract, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec4};
 use zircon_runtime::graphics::WgpuRenderFramework;
@@ -583,6 +583,7 @@ fn empty_extract(viewport_size: UVec2) -> RenderFrameExtract {
                 rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
+            environment: EnvironmentExtract::default(),
             preview: PreviewEnvironmentExtract {
                 lighting_enabled: false,
                 skybox_enabled: false,

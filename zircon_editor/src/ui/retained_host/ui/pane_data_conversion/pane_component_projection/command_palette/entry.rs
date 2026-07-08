@@ -2,6 +2,7 @@
 pub(super) struct CommandProjectionEntry {
     pub(super) id: String,
     pub(super) label: String,
+    pub(super) description: String,
     pub(super) disabled: bool,
     pub(super) filter_matched: bool,
 }
@@ -11,6 +12,7 @@ impl CommandProjectionEntry {
         Self {
             label: id.clone(),
             id,
+            description: String::new(),
             disabled: false,
             filter_matched: false,
         }

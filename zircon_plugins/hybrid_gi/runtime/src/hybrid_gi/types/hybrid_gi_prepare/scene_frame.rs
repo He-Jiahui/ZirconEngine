@@ -16,6 +16,13 @@ pub struct HybridGiPrepareSurfaceCachePageContent {
     pub capture_sample_rgba: [u8; 4],
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct HybridGiPrepareSurfaceCacheDepthSourceSample {
+    pub page_id: u32,
+    pub atlas_slot_id: u32,
+    pub depth_rgba: [u8; 4],
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct HybridGiScenePrepareFrame {
     pub card_capture_requests: Vec<HybridGiPrepareCardCaptureRequest>,

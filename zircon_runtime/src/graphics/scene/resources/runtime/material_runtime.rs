@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
 
-#[cfg(test)]
-use crate::core::framework::render::RenderMaterialLightingModel;
 use crate::core::framework::render::{
-    RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
+    RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
     RenderMaterialReadinessReport, RenderMaterialTextureTransform, RenderQueueValue,
     ShadingModelId,
 };
@@ -63,19 +61,15 @@ fn disabled_pass_bit(name: &str) -> u8 {
     }
 }
 
-#[cfg(test)]
 #[derive(Clone, Debug)]
 pub(crate) struct MaterialCaptureSeed {
     pub(crate) base_color: Vec4,
     pub(crate) emissive: Vec3,
     pub(crate) metallic: f32,
     pub(crate) roughness: f32,
-    #[cfg(test)]
     pub(crate) double_sided: bool,
-    #[cfg(test)]
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_cutoff: Option<f32>,
-    #[cfg(test)]
     pub(crate) lighting_model: RenderMaterialLightingModel,
     pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
@@ -106,12 +100,9 @@ pub(crate) struct MaterialRuntime {
     pub(crate) emissive: Vec3,
     pub(crate) metallic: f32,
     pub(crate) roughness: f32,
-    #[cfg(test)]
     pub(crate) double_sided: bool,
-    #[cfg(test)]
     pub(crate) alpha_blend: bool,
     pub(crate) alpha_cutoff: Option<f32>,
-    #[cfg(test)]
     pub(crate) lighting_model: RenderMaterialLightingModel,
     pub(crate) shading_model_id: ShadingModelId,
     pub(crate) unlit: bool,
@@ -145,7 +136,6 @@ pub(crate) struct MaterialRuntime {
     pub(crate) readiness_report: RenderMaterialReadinessReport,
 }
 
-#[cfg(test)]
 impl MaterialRuntime {
     pub(crate) fn capture_seed(&self) -> MaterialCaptureSeed {
         MaterialCaptureSeed {

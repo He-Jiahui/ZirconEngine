@@ -424,6 +424,10 @@ pub(super) fn format_defines_header(
             "const ZR_FEATURE_DOUBLE_SIDED: bool = {};",
             features.contains(ShaderFeatureBits::DOUBLE_SIDED)
         ),
+        format!(
+            "const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = {};",
+            features.contains(ShaderFeatureBits::HAS_NORMAL_TEXTURE)
+        ),
     ];
     for define in &geometry_source.shader_defines {
         lines.push(format_definition_value(define));

@@ -1,4 +1,4 @@
-use super::*;
+use super::support::read_repo_file;
 
 #[test]
 fn runtime_09_navigation_legacy_reply_rename_reduces_ui_input_debt() {

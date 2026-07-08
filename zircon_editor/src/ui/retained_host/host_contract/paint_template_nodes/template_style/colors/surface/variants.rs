@@ -1,12 +1,10 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::super::super::paint_theme::PALETTE;
-use super::super::super::super::template_style_color::{MUI_SNACKBAR_BG, MUI_TOOLTIP_BG};
 use zircon_runtime_interface::ui::style::ButtonVariant;
 
 pub(super) fn variant_surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     match node.surface_variant.as_str() {
-        "tooltip" => return MUI_TOOLTIP_BG,
-        "snackbar" => return MUI_SNACKBAR_BG,
+        "tooltip" | "snackbar" => return PALETTE.popup,
         "paper" | "paper-outlined" | "dialog" | "popover" => return PALETTE.popup,
         _ => {}
     }

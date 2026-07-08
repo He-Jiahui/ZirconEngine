@@ -7,6 +7,9 @@ use super::super::template_tree_row_glyphs::{
 use super::actions::push_tree_actions;
 use super::identity::is_workbench_tree_row;
 use super::labels::push_tree_label;
+use super::layers::{
+    action_slot_order, disclosure_order, indent_guides_order, label_order, object_icon_order,
+};
 use super::style::{tree_icon_color, tree_row_state, tree_secondary_color};
 use super::surface::{push_tree_indent_guides, push_tree_row_surface};
 
@@ -23,7 +26,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
     }
 
     push_tree_row_surface(commands, node, rect, clip, order, opacity);
-    push_tree_indent_guides(commands, node, rect, clip, order + 1, opacity);
+    push_tree_indent_guides(
+        commands,
+        node,
+        rect,
+        clip,
+        indent_guides_order(order),
+        opacity,
+    );
 
     let disclosure = tree_disclosure_rect(node, rect);
     push_tree_disclosure_glyph(
@@ -31,7 +41,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         node,
         &disclosure,
         clip,
-        order + 2,
+        disclosure_order(order),
         tree_secondary_color(node),
         opacity,
     );
@@ -42,12 +52,27 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         node,
         &icon,
         clip,
-        order + 3,
+        object_icon_order(order),
         tree_icon_color(node),
         tree_row_state(node),
         opacity,
     );
-    push_tree_label(commands, node, rect, &icon, clip, order + 4, opacity);
-    push_tree_actions(commands, node, rect, clip, order + 5, opacity);
+    push_tree_label(
+        commands,
+        node,
+        rect,
+        &icon,
+        clip,
+        label_order(order),
+        opacity,
+    );
+    push_tree_actions(
+        commands,
+        node,
+        rect,
+        clip,
+        action_slot_order(order),
+        opacity,
+    );
     true
 }

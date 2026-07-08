@@ -188,7 +188,7 @@ fn runtime_15_asset_pack_header_readers_are_panic_free() {
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/asset_tests.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/asset_tests/project_rows.rs",
     );
 
     assert_contains_all(

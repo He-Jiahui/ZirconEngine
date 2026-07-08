@@ -15,6 +15,7 @@ pub(super) struct GlyphAtlasBitmapTextureUploadBinding<'a> {
 pub(super) enum GlyphAtlasBitmapTextureUploadBindingFailureReason {
     MissingStagingPage,
     StagingPageKeyMismatch,
+    StagingPageGenerationMismatch,
     StagingPageRowStrideMismatch,
     StagingPageByteLengthMismatch,
     RequestRangeOutOfBounds,
@@ -61,6 +62,13 @@ pub(super) fn glyph_atlas_bitmap_texture_upload_binding_plan<'a>(
             failures.push(bitmap_upload_binding_failure(
                 request_index,
                 GlyphAtlasBitmapTextureUploadBindingFailureReason::StagingPageKeyMismatch,
+            ));
+            continue;
+        }
+        if staging_page.page_generation != request.page_generation {
+            failures.push(bitmap_upload_binding_failure(
+                request_index,
+                GlyphAtlasBitmapTextureUploadBindingFailureReason::StagingPageGenerationMismatch,
             ));
             continue;
         }

@@ -132,6 +132,7 @@ pub struct RenderHybridGiScenePrepareReadbackOutputs {
     pub occupied_capture_slots: Vec<u32>,
     pub atlas_samples: Vec<RenderHybridGiScenePrepareSample>,
     pub capture_samples: Vec<RenderHybridGiScenePrepareSample>,
+    pub surface_cache_depth_samples: Vec<RenderHybridGiScenePrepareSample>,
     pub voxel_clipmap_ids: Vec<u32>,
     pub voxel_samples: Vec<RenderHybridGiScenePrepareSample>,
     pub voxel_occupancy: Vec<u32>,
@@ -140,6 +141,8 @@ pub struct RenderHybridGiScenePrepareReadbackOutputs {
     pub voxel_cell_samples: Vec<RenderHybridGiVoxelCellSampleRecord>,
     pub voxel_cell_dominant_nodes: Vec<RenderHybridGiVoxelCellDominantNodeRecord>,
     pub voxel_cell_dominant_samples: Vec<RenderHybridGiVoxelCellSampleRecord>,
+    pub probe_trace_tiles: Vec<RenderHybridGiTraceTileRecord>,
+    pub probe_trace_dispatch: [u32; 3],
     pub texture_width: u32,
     pub texture_height: u32,
     pub texture_layers: u32,
@@ -149,6 +152,7 @@ impl RenderHybridGiScenePrepareReadbackOutputs {
     pub fn has_runtime_feedback_payload(&self) -> bool {
         !self.atlas_samples.is_empty()
             || !self.capture_samples.is_empty()
+            || !self.surface_cache_depth_samples.is_empty()
             || !self.voxel_samples.is_empty()
             || !self.voxel_occupancy.is_empty()
             || !self.voxel_occupancy_masks.is_empty()
@@ -156,6 +160,7 @@ impl RenderHybridGiScenePrepareReadbackOutputs {
             || !self.voxel_cell_samples.is_empty()
             || !self.voxel_cell_dominant_nodes.is_empty()
             || !self.voxel_cell_dominant_samples.is_empty()
+            || !self.probe_trace_tiles.is_empty()
     }
 }
 
@@ -163,6 +168,14 @@ impl RenderHybridGiScenePrepareReadbackOutputs {
 pub struct RenderHybridGiScenePrepareSample {
     pub index: u32,
     pub rgba8: [u8; 4],
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiTraceTileRecord {
+    pub tile_id: u32,
+    pub probe_id: u32,
+    pub trace_region_id: u32,
+    pub ray_count: u32,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -196,8 +209,9 @@ pub struct RenderHybridGiVoxelCellDominantNodeRecord {
 mod tests {
     use super::{
         RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
-        RenderHybridGiScenePrepareSample, RenderParticleGpuReadbackOutputs,
-        RenderPluginRendererOutputs, RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
+        RenderHybridGiScenePrepareSample, RenderHybridGiTraceTileRecord,
+        RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+        RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
         RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
         RenderVirtualGeometryVisBuffer64Entry,
     };
@@ -318,6 +332,30 @@ mod tests {
                     index: 4,
                     rgba8: [8, 16, 24, 255],
                 }],
+                ..RenderHybridGiScenePrepareReadbackOutputs::default()
+            },
+            ..RenderHybridGiReadbackOutputs::default()
+        };
+
+        assert!(outputs.scene_prepare.has_runtime_feedback_payload());
+        assert!(!outputs.is_empty());
+    }
+
+    #[test]
+    fn hybrid_gi_readback_outputs_report_depth_and_trace_tile_payloads() {
+        let outputs = RenderHybridGiReadbackOutputs {
+            scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
+                surface_cache_depth_samples: vec![RenderHybridGiScenePrepareSample {
+                    index: 2,
+                    rgba8: [96, 96, 96, 255],
+                }],
+                probe_trace_tiles: vec![RenderHybridGiTraceTileRecord {
+                    tile_id: 0,
+                    probe_id: 4,
+                    trace_region_id: 9,
+                    ray_count: 32,
+                }],
+                probe_trace_dispatch: [1, 1, 1],
                 ..RenderHybridGiScenePrepareReadbackOutputs::default()
             },
             ..RenderHybridGiReadbackOutputs::default()

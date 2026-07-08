@@ -1,16 +1,22 @@
 use crate::ui::retained_host::primitives::Color;
 
+use super::super::super::super::paint_theme::{current_host_palette, METRICS};
 use super::super::super::template_section_title_glyphs::{
-    section_icon_color, SectionTitleIcon, SECTION_TRANSFORM_GLYPH,
+    section_icon_color, section_title_glyph_metrics_from_host,
+    section_title_glyph_palette_from_host, SectionTitleIcon,
 };
-use super::super::style::{section_text_color, SECTION_MESH_TEXT};
+use super::super::style::{
+    section_text_color, section_title_metrics_from_host, section_title_palette_from_host,
+};
 use super::support::title_node;
 
 #[test]
 fn mesh_renderer_section_title_uses_audited_title_tone() {
+    let palette = section_title_palette_from_host(current_host_palette());
+
     assert_eq!(
         section_text_color(&title_node("WorkbenchMeshLabel", "Mesh Renderer")),
-        SECTION_MESH_TEXT
+        palette.mesh_text
     );
 }
 
@@ -23,10 +29,25 @@ fn section_title_uses_declared_title_tone() {
 }
 
 #[test]
-fn transform_section_title_uses_audited_icon_opacity() {
+fn transform_section_title_uses_projected_icon_tone() {
+    let palette = section_title_glyph_palette_from_host(current_host_palette());
+
     assert_eq!(
         section_icon_color(SectionTitleIcon::Transform),
-        SECTION_TRANSFORM_GLYPH
+        palette.transform_icon
     );
-    assert_eq!(SECTION_TRANSFORM_GLYPH[3], 97);
+    assert_eq!(section_icon_color(SectionTitleIcon::Cube), palette.icon);
+}
+
+#[test]
+fn section_title_metrics_project_from_host_metrics() {
+    let title_metrics = section_title_metrics_from_host(METRICS);
+    let glyph_metrics = section_title_glyph_metrics_from_host(METRICS);
+
+    assert_eq!(title_metrics.font_size, 13.0);
+    assert_eq!(title_metrics.line_height, 15.6);
+    assert_eq!(title_metrics.text_left, 8.0);
+    assert_eq!(title_metrics.strong_offset_x, 0.5);
+    assert_eq!(glyph_metrics.icon_size, 14.0);
+    assert_eq!(glyph_metrics.icon_gap, 8.0);
 }

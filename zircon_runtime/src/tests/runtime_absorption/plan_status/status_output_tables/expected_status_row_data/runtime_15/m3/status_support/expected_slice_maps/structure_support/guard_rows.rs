@@ -1,0 +1,87 @@
+type Slice = super::Slice;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
+    (
+        "Runtime 15 M3 structure-support expected-slice guard folder-backed split",
+        &[
+            "runtime_15_structure_support_expected_slice_guard_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/parent_mounts.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/status_mirrors.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/split_layout.rs",
+            "runtime_15_structure_support_expected_slice_maps_are_child_owners",
+            "runtime_15_structure_support_expected_slice_guard_is_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 structure-support expected-slice status mirrors folder-backed split",
+        &[
+            "runtime_15_structure_support_expected_slice_status_mirrors_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/status_mirrors.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/status_mirrors/folder_backed.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/status_mirrors/paths.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/status_mirrors/row_maps.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/status_mirrors/status_docs.rs",
+            "runtime_15_structure_support_expected_slice_status_mirrors_are_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 structure-support expected-slice literal ownership folder-backed split",
+        &[
+            "runtime_15_structure_support_expected_slice_literal_ownership_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/folder_backed.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/naming_literals.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/paths.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/review_literals.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/sources.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_mirrors.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_support_literals.rs",
+            "runtime_15_structure_support_expected_slice_literal_ownership_is_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 structure-support expected-slice literal ownership status mirrors folder-backed split",
+        &[
+            "runtime_15_structure_support_expected_slice_literal_ownership_status_mirrors_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_mirrors.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_mirrors/folder_backed.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_mirrors/paths.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_mirrors/row_maps.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/literal_ownership/status_mirrors/status_docs.rs",
+            "runtime_15_structure_support_expected_slice_literal_ownership_status_mirrors_are_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 structure-support expected-slice budgets folder-backed split",
+        &[
+            "runtime_15_structure_support_expected_slice_budgets_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets/folder_backed.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets/paths.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets/route_child_budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets/source_budgets.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice/budgets/status_docs.rs",
+            "runtime_15_structure_support_expected_slice_budgets_are_folder_backed",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
+        "Runtime 15 M3 structure-support expected-slice guard body child split",
+        &[
+            "runtime_15_structure_support_expected_slice_guard_body_child_split_static_passed_cargo_deferred",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps.rs",
+            "structure_convention/test_file_budget/status_output_expected_slices/maps/runtime_15_topics/review_guard_maps/structure_support_expected_slice.rs",
+            "runtime_15_structure_support_expected_slice_maps_are_child_owners",
+            "runtime_15_review_guard_expected_slice_structure_guard_tests_are_child_owned",
+            "Cargo gate deferred active Render Plan08 lane",
+        ],
+    ),
+];

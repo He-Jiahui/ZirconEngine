@@ -122,22 +122,24 @@ pub(super) fn push_popup_row_surface(
     if state.unavailable() {
         return;
     }
-    let background = if state.selected {
-        Some(POPUP_SELECTED_BACKGROUND)
-    } else if state.hot() {
-        Some(POPUP_HOVER_BACKGROUND)
+    let surface = if state.selected {
+        Some((POPUP_SELECTED_BACKGROUND, None, 0.0))
+    } else if state.surface_hot() {
+        Some((POPUP_HOVER_BACKGROUND, None, 0.0))
+    } else if state.focused_only() {
+        Some((POPUP_BACKGROUND, Some(POPUP_BORDER), 1.0))
     } else {
         None
     };
-    if let Some(background) = background {
+    if let Some((background, border, border_width)) = surface {
         commands.push(quad_command(
             node_id,
             row_frame,
             clip_frame,
             z_index,
             background,
-            None,
-            0.0,
+            border,
+            border_width,
             3.0,
             state.command_state,
             opacity,
@@ -226,6 +228,7 @@ pub(super) fn push_popup_row_label(
 #[derive(Clone, Copy, Debug)]
 pub(super) struct PopupRowPaintState {
     selected: bool,
+    surface_hot: bool,
     command_state: PopupCommandPaintState,
 }
 
@@ -239,6 +242,7 @@ impl PopupRowPaintState {
         loading: bool,
     ) -> Self {
         let family = UiPainterFamily::PopupRow;
+        let surface_hot = hovered || pressed;
         let painter_state = UiPainterState {
             hovered,
             pressed,
@@ -251,6 +255,7 @@ impl PopupRowPaintState {
         };
         Self {
             selected,
+            surface_hot,
             command_state: PopupCommandPaintState {
                 family,
                 visual_state: painter_state.resolved_state_for_family(family),
@@ -263,7 +268,7 @@ impl PopupRowPaintState {
             POPUP_MUTED_TEXT
         } else if danger {
             POPUP_DANGER_TEXT
-        } else if self.selected || self.hot() {
+        } else if self.selected || self.surface_hot() {
             POPUP_ACCENT_TEXT
         } else {
             POPUP_TEXT
@@ -277,15 +282,22 @@ impl PopupRowPaintState {
         )
     }
 
-    fn hot(self) -> bool {
+    fn surface_hot(self) -> bool {
+        self.surface_hot
+            || matches!(
+                self.command_state.visual_state,
+                UiPainterResolvedState::Hovered
+                    | UiPainterResolvedState::Pressed
+                    | UiPainterResolvedState::Open
+                    | UiPainterResolvedState::Dragging
+                    | UiPainterResolvedState::DropHovered
+            )
+    }
+
+    fn focused_only(self) -> bool {
         matches!(
             self.command_state.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Pressed
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Open
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
+            UiPainterResolvedState::Focused
         )
     }
 }

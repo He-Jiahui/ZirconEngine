@@ -20,13 +20,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chrome_
         }
         UiPainterResolvedState::Pressed => palette.surface_pressed,
         UiPainterResolvedState::Hovered => palette.surface_hover,
-        UiPainterResolvedState::Focused
-        | UiPainterResolvedState::Open
+        UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Selected
         | UiPainterResolvedState::Checked => palette.surface_selected,
-        UiPainterResolvedState::Normal => normal,
+        UiPainterResolvedState::Normal | UiPainterResolvedState::Focused => normal,
     })
 }
 

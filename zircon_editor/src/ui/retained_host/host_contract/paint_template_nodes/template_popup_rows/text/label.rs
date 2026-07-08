@@ -2,9 +2,10 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_popup_row_adornments::PopupRowAdornmentKind;
+use super::super::layers::popup_text_order;
 use super::super::metrics::workbench_popup_row_metrics;
-use super::super::surface::POPUP_ROW_ORDER_OFFSET;
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
+use super::geometry::popup_row_label_rect;
+use super::style::popup_row_text_command_style;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_popup_row_label(
     commands: &mut Vec<HostPaintCommand>,
@@ -20,26 +21,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_po
         return;
     }
     let metrics = workbench_popup_row_metrics();
-    let right_reserved = if adornment.is_some() {
-        metrics.adornment_reserved_width
-    } else {
-        metrics.text_right
-    };
+    let style = popup_row_text_command_style(color, &metrics);
     commands.push(HostPaintCommand::text(
-        FrameRect {
-            x: row_rect.x + metrics.text_left,
-            y: row_rect.y + metrics.text_top,
-            width: (row_rect.width - metrics.text_left - right_reserved).max(1.0),
-            height: (row_rect.height - metrics.text_top - metrics.text_bottom)
-                .max(metrics.min_text_rect_height),
-        },
+        popup_row_label_rect(row_rect, &metrics, adornment.is_some()),
         Some(clip.clone()),
-        order + POPUP_ROW_ORDER_OFFSET + 3,
+        popup_text_order(order),
         label,
-        color,
-        metrics.font_size,
-        metrics.line_height,
-        UiTextRunPaintStyle::default(),
+        style.color,
+        style.font_size,
+        style.line_height,
+        style.paint_style,
         opacity,
     ));
 }

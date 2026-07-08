@@ -2,7 +2,6 @@ use crate::hybrid_gi::renderer::HybridGiGpuReadback;
 use zircon_runtime::core::framework::render::{
     RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
 };
-use zircon_runtime::graphics::RuntimePrepareCollectorContext;
 
 use super::hybrid_gi_readback_outputs::HybridGiReadbackOutputs;
 
@@ -25,16 +24,6 @@ pub(in crate::hybrid_gi::renderer) fn plugin_renderer_outputs_from_hybrid_gi_rea
         hybrid_gi,
         ..RenderPluginRendererOutputs::default()
     }
-}
-
-pub(crate) fn runtime_prepare_renderer_outputs(
-    context: &RuntimePrepareCollectorContext<'_>,
-) -> RenderPluginRendererOutputs {
-    // Keep the collector honest: mirror only neutral provider sidebands and do
-    // not fabricate a concrete HybridGiGpuReadback when none exists.
-    plugin_renderer_outputs_from_hybrid_gi_readback(
-        context.prepared_hybrid_gi_readback_outputs().clone(),
-    )
 }
 
 #[cfg(test)]

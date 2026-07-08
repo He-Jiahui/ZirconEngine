@@ -25,7 +25,9 @@ pub struct ModelPrimitiveAsset {
 
 impl ModelPrimitiveAsset {
     pub fn assign_virtual_geometry_vertex_ordinals(&mut self) {
-        if self.virtual_geometry.is_none() {
+        // Virtual Geometry ordinals reuse joint index slots, so weighted
+        // skinned primitives must keep their authored skinning channels.
+        if self.virtual_geometry.is_none() || self.uses_skinning_channels() {
             return;
         }
 
@@ -49,6 +51,15 @@ impl ModelPrimitiveAsset {
         u32::from(joint_indices[VIRTUAL_GEOMETRY_VERTEX_ORDINAL_LOW_JOINT_SLOT])
             | (u32::from(joint_indices[VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_JOINT_SLOT])
                 << VIRTUAL_GEOMETRY_VERTEX_ORDINAL_HIGH_SHIFT)
+    }
+
+    pub fn uses_skinning_channels(&self) -> bool {
+        self.vertices.iter().any(|vertex| {
+            vertex
+                .joint_weights
+                .iter()
+                .any(|weight| weight.abs() > f32::EPSILON)
+        })
     }
 
     pub fn render_mesh_descriptor(&self) -> RenderMeshDescriptor {

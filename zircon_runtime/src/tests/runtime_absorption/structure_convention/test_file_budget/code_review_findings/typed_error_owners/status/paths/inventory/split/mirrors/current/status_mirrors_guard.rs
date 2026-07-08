@@ -1,0 +1,27 @@
+use super::super::super::super::super::root_paths::TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_CHILD;
+use super::super::super::super::super::status_slices::{
+    TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD,
+    TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_DATE,
+    TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_ID,
+    TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_NAME,
+};
+
+pub(in super::super) fn assert_typed_error_status_doc_paths_child_inventory_split_layout_status_mirrors_guard_status_is_current(
+) {
+    let anchors = [
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_NAME,
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_ID,
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_CHILD,
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD,
+        "Cargo gate deferred",
+    ];
+
+    super::support::assert_documents_and_maps(
+        "typed-error status-doc paths child-inventory split-layout status mirrors guard folder-backed split",
+        &anchors,
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_NAME,
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_ID,
+        TYPED_ERROR_STATUS_DOCS_PATHS_CHILD_INVENTORY_SPLIT_LAYOUT_STATUS_MIRRORS_GUARD_DATE,
+    );
+    super::super::status_documents::assert_frameworks_contain("Frameworks 02 plan", &anchors);
+}

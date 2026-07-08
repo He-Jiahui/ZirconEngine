@@ -83,6 +83,8 @@ pub(super) fn button_render_commands(
 struct ButtonRenderState {
     family: UiPainterFamily,
     visual_state: UiPainterResolvedState,
+    surface_hot: bool,
+    marked: bool,
 }
 
 impl ButtonRenderState {
@@ -107,9 +109,16 @@ impl ButtonRenderState {
         } else {
             UiPainterFamily::Button
         };
+        let surface_hot = painter_state.hovered
+            || painter_state.open
+            || painter_state.dragging
+            || painter_state.drop_hovered;
+        let marked = selected || checked;
         Self {
             family,
             visual_state: UiPainterStyleSelector::resolved_state_for_family(painter_state, family),
+            surface_hot,
+            marked,
         }
     }
 
@@ -121,10 +130,11 @@ impl ButtonRenderState {
     }
 
     fn selected(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Selected | UiPainterResolvedState::Checked
-        )
+        self.marked
+            || matches!(
+                self.visual_state,
+                UiPainterResolvedState::Selected | UiPainterResolvedState::Checked
+            )
     }
 
     fn focused(self) -> bool {
@@ -135,15 +145,15 @@ impl ButtonRenderState {
         matches!(self.visual_state, UiPainterResolvedState::Pressed)
     }
 
-    fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Open
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+    fn surface_hot(self) -> bool {
+        self.surface_hot
+            || matches!(
+                self.visual_state,
+                UiPainterResolvedState::Hovered
+                    | UiPainterResolvedState::Open
+                    | UiPainterResolvedState::Dragging
+                    | UiPainterResolvedState::DropHovered
+            )
     }
 }
 
@@ -356,7 +366,7 @@ fn background_color<'a>(
             ButtonKind::Danger => DANGER_SURFACE,
             ButtonKind::Secondary => SECONDARY_SURFACE_PRESSED,
         }
-    } else if state.hot() {
+    } else if state.selected() || state.surface_hot() {
         match button_kind(metadata) {
             ButtonKind::Primary => PRIMARY_SURFACE_HOVER,
             ButtonKind::Tertiary => SECONDARY_SURFACE_HOVER,
@@ -389,7 +399,7 @@ fn icon_button_background<'a>(
         color_attribute(metadata, "selected_background_color").unwrap_or(ICON_SELECTED_SURFACE)
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(SECONDARY_SURFACE_PRESSED)
-    } else if state.hot() {
+    } else if state.surface_hot() {
         color_attribute(metadata, "hover_background_color").unwrap_or(SECONDARY_SURFACE_HOVER)
     } else {
         color_attribute(metadata, "background_color").unwrap_or(ICON_PANEL_SURFACE)
@@ -448,7 +458,7 @@ fn icon_button_foreground<'a>(
 ) -> &'a str {
     if state.unavailable() {
         DISABLED_TEXT
-    } else if state.selected() || state.focused() || state.pressed() {
+    } else if state.selected() || state.pressed() {
         color_attribute(metadata, "selected_icon_color")
             .or_else(|| color_attribute(metadata, "icon_color"))
             .unwrap_or(FOCUS_BORDER)

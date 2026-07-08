@@ -251,6 +251,65 @@ layout_padding_bottom = 4.0
 }
 
 #[test]
+fn render_extract_text_field_keeps_focused_surface_when_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.text_fields.focused_hovered",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 260.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_text_field(
+        &mut surface,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 12.0, 180.0, 30.0),
+        r##"
+content = "Focused"
+focused = true
+hovered = true
+background_color = "#10161a"
+hover_background_color = "#1b1f23"
+focus_border_color = "#35c7d0"
+hover_border_color = "#323a41"
+"##,
+        focusable_state(),
+    );
+    insert_text_field(
+        &mut surface,
+        UiNodeId::new(3),
+        UiFrame::new(12.0, 52.0, 180.0, 30.0),
+        r##"
+content = "Hovered"
+hovered = true
+background_color = "#10161a"
+hover_background_color = "#1b1f23"
+border_color = "#262d33"
+hover_border_color = "#323a41"
+"##,
+        focusable_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_state == UiPainterResolvedState::Focused
+            && command.style.background_color.as_deref() == Some("#10161a")
+            && command.style.border_color.as_deref() == Some("#35c7d0")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(3)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_state == UiPainterResolvedState::Hovered
+            && command.style.background_color.as_deref() == Some("#1b1f23")
+            && command.style.border_color.as_deref() == Some("#323a41")
+    }));
+}
+
+#[test]
 fn render_extract_loading_text_field_uses_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.text_fields.loading"));
     surface.tree.insert_root(
@@ -328,6 +387,34 @@ foreground_color = "#c5d0d5"
             .is_none(),
         "loading text field paint should not expose focused editable decorations"
     );
+}
+
+fn insert_text_field(
+    surface: &mut UiSurface,
+    node_id: UiNodeId,
+    frame: UiFrame,
+    attributes: &str,
+    state_flags: UiStateFlags,
+) {
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(node_id, UiNodePath::new("root/text-field"))
+                .with_frame(frame)
+                .with_state_flags(state_flags)
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "InputField".to_string(),
+                    attributes: toml::from_str(attributes).unwrap(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::TextInput,
+                        value_property: Some("content".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
 }
 
 fn visible_state() -> UiStateFlags {

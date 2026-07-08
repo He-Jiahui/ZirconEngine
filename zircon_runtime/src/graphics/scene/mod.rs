@@ -7,13 +7,17 @@ mod render_product_material_property_tests;
 mod render_product_streamer_tests;
 #[cfg(test)]
 mod render_product_zshader_import_tests;
-mod resources;
+pub(in crate::graphics) mod resources;
 #[path = "scene_renderer/mod.rs"]
 mod scene_renderer;
 
-#[cfg(test)]
-pub(crate) use resources::ResourceStreamer;
-pub(crate) use resources::{default_pipeline_key, PipelineKey};
+pub(crate) use resources::{default_pipeline_key, PipelineKey, ResourceStreamer};
+pub(in crate::graphics) use scene_renderer::environment::ibl_bake_graph_plan::{
+    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
+    IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_CUBE_PASS,
+    IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID,
+    IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
+};
 pub use scene_renderer::SceneRenderer;
 #[cfg(test)]
 pub(crate) use scene_renderer::ViewportOverlayRenderer;

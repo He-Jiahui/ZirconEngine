@@ -6,9 +6,9 @@ use crate::hybrid_gi::types::{
     HybridGiResolveRuntime, HybridGiScenePrepareFrame,
 };
 use zircon_runtime::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderHybridGiExtract,
-    RenderHybridGiProbe, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract,
+    RenderHybridGiExtract, RenderHybridGiProbe, RenderOverlayExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{UVec2, Vec4};
 
@@ -299,6 +299,7 @@ fn hierarchy_irradiance_with_descendant(descendant_runtime: [u8; 4]) -> [f32; 4]
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -361,6 +362,7 @@ fn hierarchy_irradiance_with_scene_prepare_page_content(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -449,6 +451,7 @@ fn hierarchy_irradiance_with_duplicate_middle_probe_payloads() -> [f32; 4] {
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -532,6 +535,7 @@ fn hierarchy_irradiance_with_budgeted_scene_representation_and_extract_ancestor_
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -609,6 +613,7 @@ fn hierarchy_irradiance_with_flat_runtime_and_extract_ancestor_prepare() -> [f32
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -688,6 +693,7 @@ fn hierarchy_irradiance_with_exact_runtime_and_scene_driven_flag(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -768,6 +774,7 @@ fn hierarchy_irradiance_with_scene_driven_exact_and_descendant(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,
@@ -863,6 +870,7 @@ fn hierarchy_irradiance_with_scene_driven_lineage_and_scene_prepare_page(
             rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
+        environment: EnvironmentExtract::disabled(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: true,
             skybox_enabled: false,

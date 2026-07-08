@@ -1,3 +1,4 @@
+use super::super::super::layers::tick_order;
 use super::super::super::track::{push_slider_ticks, push_slider_track};
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
@@ -29,7 +30,7 @@ pub(super) fn push_sequence_track(
             commands,
             track_rect,
             clip,
-            order + 2,
+            tick_order(order),
             tick_count,
             style,
             opacity,

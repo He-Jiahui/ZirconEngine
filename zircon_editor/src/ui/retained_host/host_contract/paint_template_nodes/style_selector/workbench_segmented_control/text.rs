@@ -1,26 +1,27 @@
-use super::palette::WORKBENCH_SEGMENT_GROUP_LABEL_COLOR;
+use super::palette::workbench_segmented_control_palette;
 use super::state::is_unavailable_segmented_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_text_color(
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_segmented_control_palette();
     if is_unavailable_segmented_state(state) {
-        PALETTE.text_disabled
+        palette.disabled_text
     } else {
-        PALETTE.text
+        palette.selected_text
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn idle_text_color(
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_segmented_control_palette();
     if is_unavailable_segmented_state(state) {
-        PALETTE.text_disabled
+        palette.disabled_text
     } else {
-        PALETTE.text_muted
+        palette.idle_text
     }
 }
 
@@ -28,8 +29,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn group_l
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_segmented_control_palette();
     if is_unavailable_segmented_state(state) {
-        return PALETTE.text_disabled;
+        return palette.disabled_text;
     }
     let base = if node.label_color.a > 0 {
         [
@@ -39,7 +41,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn group_l
             node.label_color.a,
         ]
     } else {
-        WORKBENCH_SEGMENT_GROUP_LABEL_COLOR
+        palette.group_label
     };
     color_with_brightness(base, node.label_brightness)
 }

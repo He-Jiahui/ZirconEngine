@@ -3,8 +3,13 @@ use zircon_runtime_interface::ui::{
     surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange, UiTextRenderMode},
 };
 
+use crate::graphics::text::shaping::TextShapeRunProvider;
+
 use super::layout_engine::{
-    layout_text as shared_layout_text, measure_text_size as shared_measure_text_size,
+    layout_text as shared_layout_text,
+    layout_text_with_provider as shared_layout_text_with_provider,
+    measure_text_size as shared_measure_text_size,
+    measure_text_size_with_provider as shared_measure_text_size_with_provider,
     measure_text_source_range_width as shared_measure_text_source_range_width,
 };
 
@@ -145,6 +150,37 @@ impl UiTextShaper for UiSharedTextShaper {
     }
 }
 
+impl UiSharedTextShaper {
+    fn shape_text_with_provider<P>(
+        &self,
+        request: &UiTextShapeRequest<'_>,
+        provider: &mut P,
+    ) -> UiResolvedTextLayout
+    where
+        P: TextShapeRunProvider + ?Sized,
+    {
+        shared_layout_text_with_provider(
+            request.text,
+            request.style,
+            request.frame,
+            request.clip_frame,
+            provider,
+        )
+    }
+
+    fn measure_text_with_provider<P>(
+        &self,
+        text: &str,
+        style: &UiResolvedStyle,
+        provider: &mut P,
+    ) -> UiSize
+    where
+        P: TextShapeRunProvider + ?Sized,
+    {
+        shared_measure_text_size_with_provider(text, style, provider)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct UiTextShaperStack {
     shared: UiSharedTextShaper,
@@ -159,6 +195,50 @@ impl UiTextShaperStack {
 
     pub(crate) fn selection_for_style(&self, style: &UiResolvedStyle) -> UiTextShaperSelection {
         UiTextShaperSelection::for_style(style)
+    }
+
+    pub(crate) fn shape_text_with_provider<P>(
+        &self,
+        request: &UiTextShapeRequest<'_>,
+        provider: &mut P,
+    ) -> UiResolvedTextLayout
+    where
+        P: TextShapeRunProvider + ?Sized,
+    {
+        let selection = self.selection_for_style(request.style);
+
+        debug_assert_eq!(selection.requested_mode, request.style.text_render_mode);
+        debug_assert!(selection.fallback_reason.is_none());
+
+        match selection.active_backend {
+            UiTextBackendIntent::SharedTextService
+            | UiTextBackendIntent::NativeGlyphon
+            | UiTextBackendIntent::SdfAtlas => {
+                self.shared.shape_text_with_provider(request, provider)
+            }
+        }
+    }
+
+    pub(crate) fn measure_text_with_provider<P>(
+        &self,
+        text: &str,
+        style: &UiResolvedStyle,
+        provider: &mut P,
+    ) -> UiSize
+    where
+        P: TextShapeRunProvider + ?Sized,
+    {
+        let selection = self.selection_for_style(style);
+
+        debug_assert!(selection.fallback_reason.is_none());
+
+        match selection.active_backend {
+            UiTextBackendIntent::SharedTextService
+            | UiTextBackendIntent::NativeGlyphon
+            | UiTextBackendIntent::SdfAtlas => self
+                .shared
+                .measure_text_with_provider(text, style, provider),
+        }
     }
 }
 
@@ -217,8 +297,35 @@ pub fn layout_text(
     UiTextShaperStack::new().shape_text(&UiTextShapeRequest::new(text, style, frame, clip_frame))
 }
 
+pub(crate) fn layout_text_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    frame: UiFrame,
+    clip_frame: Option<UiFrame>,
+    provider: &mut P,
+) -> UiResolvedTextLayout
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    UiTextShaperStack::new().shape_text_with_provider(
+        &UiTextShapeRequest::new(text, style, frame, clip_frame),
+        provider,
+    )
+}
+
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
     UiTextShaperStack::new().measure_text(text, style)
+}
+
+pub(crate) fn measure_text_size_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> UiSize
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    UiTextShaperStack::new().measure_text_with_provider(text, style, provider)
 }
 
 pub(crate) fn measure_text_source_range_width(

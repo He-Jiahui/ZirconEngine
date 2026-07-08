@@ -8,6 +8,10 @@ use crate::graphics::feature::{
 use crate::graphics::pipeline::declarations::{
     CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineCompileOptions,
 };
+use crate::graphics::scene::{
+    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name, IBL_BAKE_IRRADIANCE_CUBE_PASS,
+    IBL_BAKE_IRRADIANCE_SH9_PASS,
+};
 use crate::render_graph::{
     CompiledRenderGraph, ExternalResource, RenderGraphAttachmentOps, RenderGraphBuilder,
     RenderPassId, RgBufferHandle, RgTextureHandle,
@@ -39,6 +43,7 @@ pub(super) fn author_render_graph(
         &authored_resources,
         options,
     )?;
+    let pass_stages = author_environment_ibl_bake_passes(&mut graph, pass_stages, options)?;
 
     Ok(AuthoredRenderGraph {
         pass_stages,
@@ -142,6 +147,42 @@ fn author_graph_passes(
             }
             previous = Some(pass);
         }
+    }
+
+    Ok(pass_stages)
+}
+
+fn author_environment_ibl_bake_passes(
+    graph: &mut RenderGraphBuilder,
+    mut pass_stages: Vec<CompiledRenderPipelinePassStage>,
+    options: &RenderPipelineCompileOptions,
+) -> Result<Vec<CompiledRenderPipelinePassStage>, String> {
+    let Some(request) = options.environment_ibl_bake_request() else {
+        return Ok(pass_stages);
+    };
+
+    append_ibl_bake_artifact_graph_plan(graph, request).map_err(|error| error.to_string())?;
+    let stage = RenderPassStage::AmbientOcclusion;
+    let contents = request.required_contents();
+    if contents.contains(crate::core::framework::render::IblBakeArtifactContents::PMREM) {
+        for mip_level in 0..request.mip_count() {
+            pass_stages.push(CompiledRenderPipelinePassStage::new(
+                ibl_bake_pmrem_pass_name(mip_level),
+                stage,
+            ));
+        }
+    }
+    if contents.contains(crate::core::framework::render::IblBakeArtifactContents::SH9) {
+        pass_stages.push(CompiledRenderPipelinePassStage::new(
+            IBL_BAKE_IRRADIANCE_SH9_PASS,
+            stage,
+        ));
+    }
+    if contents.contains(crate::core::framework::render::IblBakeArtifactContents::IEM) {
+        pass_stages.push(CompiledRenderPipelinePassStage::new(
+            IBL_BAKE_IRRADIANCE_CUBE_PASS,
+            stage,
+        ));
     }
 
     Ok(pass_stages)

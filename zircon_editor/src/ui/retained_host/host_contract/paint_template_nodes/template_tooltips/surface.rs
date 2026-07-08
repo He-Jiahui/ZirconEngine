@@ -1,5 +1,6 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
+use super::layers::bubble_order;
 use super::metrics::tooltip_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tooltip_surface(
@@ -31,7 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
     commands.push(HostPaintCommand::quad(
         bubble.clone(),
         Some(clip.clone()),
-        order + 1,
+        bubble_order(order),
         Some(surface),
         Some(border),
         metrics.border_width,

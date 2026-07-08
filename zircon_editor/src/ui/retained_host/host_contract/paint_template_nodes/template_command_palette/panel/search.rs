@@ -1,14 +1,15 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_assets::push_icon_asset_pixels;
-use super::super::layout::{
-    command_palette_metrics, search_icon_rect, search_rect, search_text_rect,
-};
+use super::super::layout::search_rect;
 use super::super::palette::command_palette_palette;
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
-const SEARCH_ICON: &str = "search";
-const SEARCH_PLACEHOLDER: &str = "Search commands";
+mod icon;
+mod surface;
+mod text;
+
+use icon::push_command_palette_search_icon;
+use surface::push_command_palette_search_surface;
+use text::push_command_palette_search_text;
 
 pub(super) fn push_command_palette_search_field(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,45 +19,18 @@ pub(super) fn push_command_palette_search_field(
     order: i32,
     opacity: f32,
 ) {
-    let metrics = command_palette_metrics();
     let palette = command_palette_palette();
     let search_rect = search_rect(rect);
-    commands.push(HostPaintCommand::quad(
-        search_rect.clone(),
-        Some(clip.clone()),
-        order,
-        Some(palette.search_surface),
-        Some(palette.search_border),
-        1.0,
-        metrics.search_radius,
-        opacity,
-    ));
-    let icon_rect = search_icon_rect(&search_rect);
-    push_icon_asset_pixels(
+    push_command_palette_search_surface(
         commands,
-        SEARCH_ICON,
-        &icon_rect,
+        node,
+        &search_rect,
         clip,
-        order + 1,
-        Some(palette.search_icon),
+        order,
         opacity,
+        &palette,
     );
+    push_command_palette_search_icon(commands, &search_rect, clip, order, opacity, &palette);
 
-    let query = node.search_query.as_str();
-    let (search_text, search_color) = if query.trim().is_empty() {
-        (SEARCH_PLACEHOLDER, palette.placeholder)
-    } else {
-        (query, palette.text)
-    };
-    commands.push(HostPaintCommand::text(
-        search_text_rect(&search_rect),
-        Some(clip.clone()),
-        order + 2,
-        search_text.to_string(),
-        search_color,
-        metrics.font_size,
-        metrics.line_height,
-        UiTextRunPaintStyle::default(),
-        opacity,
-    ));
+    push_command_palette_search_text(commands, node, &search_rect, clip, order, opacity, &palette);
 }

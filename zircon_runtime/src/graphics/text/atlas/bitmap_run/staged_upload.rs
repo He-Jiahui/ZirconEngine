@@ -2,7 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::core::math::UVec2;
 
-use super::super::{GlyphAtlasPageKey, GlyphAtlasUploadCommand, GlyphAtlasUploadMode};
+use super::super::{
+    GlyphAtlasPageKey, GlyphAtlasSet, GlyphAtlasUploadCommand, GlyphAtlasUploadMode,
+};
 use super::staging::{
     glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
     GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasBitmapUploadStagingPlan,
@@ -57,6 +59,7 @@ impl GlyphAtlasBitmapPreparedUploadPlan {
 pub(crate) struct GlyphAtlasBitmapTextureUploadRequest {
     pub(crate) staging_page_index: usize,
     pub(crate) page_key: GlyphAtlasPageKey,
+    pub(crate) page_generation: u64,
     pub(crate) origin_xy: UVec2,
     pub(crate) origin_layer: u32,
     pub(crate) extent: UVec2,
@@ -70,13 +73,38 @@ pub(crate) struct GlyphAtlasBitmapTextureUploadRequest {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasBitmapTextureUploadRequestPlan {
     pub(crate) requests: Vec<GlyphAtlasBitmapTextureUploadRequest>,
+    pub(crate) requeued_uploads: Vec<GlyphAtlasBitmapRequeuedUpload>,
     pub(crate) skipped_failure_count: usize,
+    pub(crate) stale_page_generation_count: usize,
+    pub(crate) face_invalidated_count: usize,
 }
 
 impl GlyphAtlasBitmapTextureUploadRequestPlan {
     pub(crate) fn has_requests(&self) -> bool {
         !self.requests.is_empty()
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum GlyphAtlasBitmapFaceValidity {
+    Valid,
+    Invalidated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum GlyphAtlasBitmapRequeueReason {
+    MissingPage,
+    PageGenerationMismatch,
+    FaceInvalidated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct GlyphAtlasBitmapRequeuedUpload {
+    pub(crate) upload_command_index: usize,
+    pub(crate) page_key: GlyphAtlasPageKey,
+    pub(crate) requested_page_generation: u64,
+    pub(crate) current_page_generation: Option<u64>,
+    pub(crate) reason: GlyphAtlasBitmapRequeueReason,
 }
 
 pub(crate) fn glyph_atlas_bitmap_prepared_upload_plan<'a, I>(
@@ -102,17 +130,68 @@ where
 pub(crate) fn glyph_atlas_bitmap_texture_upload_request_plan(
     staged_uploads: &GlyphAtlasBitmapStagedUploadPlan,
 ) -> GlyphAtlasBitmapTextureUploadRequestPlan {
-    let requests = staged_uploads
-        .uploads
-        .iter()
-        .copied()
-        .map(glyph_atlas_bitmap_texture_upload_request)
-        .collect();
+    glyph_atlas_bitmap_texture_upload_request_plan_for_current_atlas(
+        staged_uploads,
+        None,
+        GlyphAtlasBitmapFaceValidity::Valid,
+    )
+}
 
-    GlyphAtlasBitmapTextureUploadRequestPlan {
-        requests,
+pub(crate) fn glyph_atlas_bitmap_texture_upload_request_plan_with_atlas(
+    staged_uploads: &GlyphAtlasBitmapStagedUploadPlan,
+    atlas: &GlyphAtlasSet,
+) -> GlyphAtlasBitmapTextureUploadRequestPlan {
+    glyph_atlas_bitmap_texture_upload_request_plan_for_current_atlas(
+        staged_uploads,
+        Some(atlas),
+        GlyphAtlasBitmapFaceValidity::Valid,
+    )
+}
+
+pub(crate) fn glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity(
+    staged_uploads: &GlyphAtlasBitmapStagedUploadPlan,
+    atlas: &GlyphAtlasSet,
+    face_validity: GlyphAtlasBitmapFaceValidity,
+) -> GlyphAtlasBitmapTextureUploadRequestPlan {
+    glyph_atlas_bitmap_texture_upload_request_plan_for_current_atlas(
+        staged_uploads,
+        Some(atlas),
+        face_validity,
+    )
+}
+
+fn glyph_atlas_bitmap_texture_upload_request_plan_for_current_atlas(
+    staged_uploads: &GlyphAtlasBitmapStagedUploadPlan,
+    atlas: Option<&GlyphAtlasSet>,
+    face_validity: GlyphAtlasBitmapFaceValidity,
+) -> GlyphAtlasBitmapTextureUploadRequestPlan {
+    let mut plan = GlyphAtlasBitmapTextureUploadRequestPlan {
         skipped_failure_count: staged_uploads.failures.len(),
+        ..GlyphAtlasBitmapTextureUploadRequestPlan::default()
+    };
+
+    for (upload_command_index, upload) in staged_uploads.uploads.iter().copied().enumerate() {
+        if let Some(requeue) =
+            staged_upload_requeue(upload_command_index, upload, atlas, face_validity)
+        {
+            match requeue.reason {
+                GlyphAtlasBitmapRequeueReason::MissingPage
+                | GlyphAtlasBitmapRequeueReason::PageGenerationMismatch => {
+                    plan.stale_page_generation_count += 1;
+                }
+                GlyphAtlasBitmapRequeueReason::FaceInvalidated => {
+                    plan.face_invalidated_count += 1;
+                }
+            }
+            plan.requeued_uploads.push(requeue);
+            continue;
+        }
+
+        plan.requests
+            .push(glyph_atlas_bitmap_texture_upload_request(upload));
     }
+
+    plan
 }
 
 pub(crate) fn glyph_atlas_bitmap_staged_upload_plan(
@@ -164,6 +243,7 @@ fn glyph_atlas_bitmap_texture_upload_request(
     GlyphAtlasBitmapTextureUploadRequest {
         staging_page_index: upload.staging_page_index,
         page_key: command.page_key,
+        page_generation: command.page_generation,
         origin_xy: UVec2::new(command.rect.x, command.rect.y),
         origin_layer: command.page_key.page_index,
         extent: UVec2::new(command.rect.width, command.rect.height),
@@ -172,6 +252,69 @@ fn glyph_atlas_bitmap_texture_upload_request(
         rows_per_image: command.rows_per_image,
         upload_byte_len: command.upload_byte_len,
         staging_page_byte_len: upload.staging_page_byte_len,
+    }
+}
+
+fn staged_upload_requeue(
+    upload_command_index: usize,
+    upload: GlyphAtlasBitmapStagedUpload,
+    atlas: Option<&GlyphAtlasSet>,
+    face_validity: GlyphAtlasBitmapFaceValidity,
+) -> Option<GlyphAtlasBitmapRequeuedUpload> {
+    let current_page_generation =
+        atlas.and_then(|atlas| current_atlas_page_generation(upload, atlas));
+
+    if matches!(face_validity, GlyphAtlasBitmapFaceValidity::Invalidated) {
+        return Some(requeued_upload(
+            upload_command_index,
+            upload,
+            current_page_generation,
+            GlyphAtlasBitmapRequeueReason::FaceInvalidated,
+        ));
+    }
+
+    let atlas = atlas?;
+    match current_atlas_page_generation(upload, atlas) {
+        Some(current_generation) if current_generation == upload.command.page_generation => None,
+        Some(current_generation) => Some(requeued_upload(
+            upload_command_index,
+            upload,
+            Some(current_generation),
+            GlyphAtlasBitmapRequeueReason::PageGenerationMismatch,
+        )),
+        None => Some(requeued_upload(
+            upload_command_index,
+            upload,
+            None,
+            GlyphAtlasBitmapRequeueReason::MissingPage,
+        )),
+    }
+}
+
+fn current_atlas_page_generation(
+    upload: GlyphAtlasBitmapStagedUpload,
+    atlas: &GlyphAtlasSet,
+) -> Option<u64> {
+    atlas
+        .page(
+            upload.command.page_key.format,
+            upload.command.page_key.page_index,
+        )
+        .map(|page| page.generation)
+}
+
+fn requeued_upload(
+    upload_command_index: usize,
+    upload: GlyphAtlasBitmapStagedUpload,
+    current_page_generation: Option<u64>,
+    reason: GlyphAtlasBitmapRequeueReason,
+) -> GlyphAtlasBitmapRequeuedUpload {
+    GlyphAtlasBitmapRequeuedUpload {
+        upload_command_index,
+        page_key: upload.command.page_key,
+        requested_page_generation: upload.command.page_generation,
+        current_page_generation,
+        reason,
     }
 }
 

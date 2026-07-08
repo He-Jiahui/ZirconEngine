@@ -1,0 +1,373 @@
+use std::collections::BTreeSet;
+
+use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
+
+use super::super::super::super::buffer_helpers::{
+    buffer_size_for_words, create_readback_buffer, create_u32_storage_buffer,
+};
+use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
+use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
+
+const RAYS_PER_OCCUPIED_VOXEL_CELL: u32 = 8;
+const RAYS_PER_SURFACE_CACHE_TILE: u32 = 8;
+const PROBE_TRACE_TILE_WORDS_PER_RECORD: usize = 4;
+const PROBE_TRACE_TILE_GENERATION_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
+const PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT: usize = 4;
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct ProbeTraceTileGenerationParams {
+    record_count: u32,
+    _pad0: u32,
+    _pad1: u32,
+    _pad2: u32,
+}
+
+pub(super) struct ScenePrepareProbeTraceTileResources {
+    pub(super) probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_readback: Option<wgpu::Buffer>,
+    pub(super) probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_indirect_args_readback: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_word_count: usize,
+    pub(super) probe_trace_tile_record_count: usize,
+    pub(super) probe_trace_indirect_arg_word_count: usize,
+}
+
+pub(super) fn store_scene_prepare_probe_trace_tiles(
+    snapshot: &mut HybridGiScenePrepareResourcesSnapshot,
+    inputs: &HybridGiPrepareExecutionInputs,
+) {
+    let tiles = probe_trace_tiles(snapshot, inputs);
+    let dispatch = probe_trace_dispatch(tiles.len());
+    snapshot.store_probe_trace_tiles(tiles, dispatch);
+}
+
+pub(super) fn scene_prepare_probe_trace_tile_resources(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    snapshot: &HybridGiScenePrepareResourcesSnapshot,
+) -> ScenePrepareProbeTraceTileResources {
+    let words = probe_trace_tile_words(snapshot);
+    if words.is_empty() {
+        return ScenePrepareProbeTraceTileResources {
+            probe_trace_tile_seed_buffer: None,
+            probe_trace_tile_params_buffer: None,
+            probe_trace_tile_buffer: None,
+            probe_trace_tile_readback: None,
+            probe_trace_indirect_args_buffer: None,
+            probe_trace_indirect_args_readback: None,
+            probe_trace_tile_word_count: 0,
+            probe_trace_tile_record_count: 0,
+            probe_trace_indirect_arg_word_count: 0,
+        };
+    }
+
+    let probe_trace_tile_record_count = snapshot.probe_trace_tiles().len();
+    let probe_trace_tile_seed_buffer = create_u32_storage_buffer(
+        device,
+        "zircon-hybrid-gi-scene-prepare-probe-trace-tile-seeds",
+        &words,
+        wgpu::BufferUsages::STORAGE,
+    );
+    let probe_trace_tile_params_buffer = create_probe_trace_tile_generation_params_buffer(
+        device,
+        probe_trace_tile_record_count as u32,
+    );
+    let probe_trace_tile_buffer = create_u32_storage_buffer(
+        device,
+        "zircon-hybrid-gi-scene-prepare-probe-trace-tiles",
+        &vec![0; words.len()],
+        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+    );
+    let probe_trace_tile_readback = create_readback_buffer(
+        device,
+        "zircon-hybrid-gi-scene-prepare-probe-trace-tiles-readback",
+        words.len(),
+    );
+    let probe_trace_indirect_args_buffer = create_u32_storage_buffer(
+        device,
+        "zircon-hybrid-gi-scene-prepare-probe-trace-indirect-args",
+        &vec![0; PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT],
+        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::INDIRECT,
+    );
+    let probe_trace_indirect_args_readback = create_readback_buffer(
+        device,
+        "zircon-hybrid-gi-scene-prepare-probe-trace-indirect-args-readback",
+        PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT,
+    );
+    encode_probe_trace_tile_generation(
+        device,
+        encoder,
+        &probe_trace_tile_params_buffer,
+        &probe_trace_tile_seed_buffer,
+        &probe_trace_tile_buffer,
+        &probe_trace_indirect_args_buffer,
+        probe_trace_tile_record_count,
+    );
+    encoder.copy_buffer_to_buffer(
+        &probe_trace_tile_buffer,
+        0,
+        &probe_trace_tile_readback,
+        0,
+        buffer_size_for_words(words.len()),
+    );
+    encoder.copy_buffer_to_buffer(
+        &probe_trace_indirect_args_buffer,
+        0,
+        &probe_trace_indirect_args_readback,
+        0,
+        buffer_size_for_words(PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT),
+    );
+
+    ScenePrepareProbeTraceTileResources {
+        probe_trace_tile_seed_buffer: Some(probe_trace_tile_seed_buffer),
+        probe_trace_tile_params_buffer: Some(probe_trace_tile_params_buffer),
+        probe_trace_tile_buffer: Some(probe_trace_tile_buffer),
+        probe_trace_tile_readback: Some(probe_trace_tile_readback),
+        probe_trace_indirect_args_buffer: Some(probe_trace_indirect_args_buffer),
+        probe_trace_indirect_args_readback: Some(probe_trace_indirect_args_readback),
+        probe_trace_tile_word_count: words.len(),
+        probe_trace_tile_record_count,
+        probe_trace_indirect_arg_word_count: PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT,
+    }
+}
+
+fn create_probe_trace_tile_generation_params_buffer(
+    device: &wgpu::Device,
+    record_count: u32,
+) -> wgpu::Buffer {
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("zircon-hybrid-gi-scene-prepare-probe-trace-tile-generation-params"),
+        contents: bytemuck::bytes_of(&ProbeTraceTileGenerationParams {
+            record_count,
+            _pad0: 0,
+            _pad1: 0,
+            _pad2: 0,
+        }),
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+    })
+}
+
+fn encode_probe_trace_tile_generation(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    params_buffer: &wgpu::Buffer,
+    seed_buffer: &wgpu::Buffer,
+    output_buffer: &wgpu::Buffer,
+    indirect_args_buffer: &wgpu::Buffer,
+    record_count: usize,
+) {
+    if record_count == 0 {
+        return;
+    }
+
+    let bind_group_layout = create_probe_trace_tile_generation_bind_group_layout(device);
+    let pipeline = create_probe_trace_tile_generation_pipeline(device, &bind_group_layout);
+    let bind_group = create_probe_trace_tile_generation_bind_group(
+        device,
+        &bind_group_layout,
+        params_buffer,
+        seed_buffer,
+        output_buffer,
+        indirect_args_buffer,
+    );
+    let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+        label: Some("HybridGiGenerateProbeTraceTilesPass"),
+        timestamp_writes: None,
+    });
+    pass.set_pipeline(&pipeline);
+    pass.set_bind_group(0, &bind_group, &[]);
+    pass.dispatch_workgroups(
+        1,
+        1,
+        record_count as u32 / PROBE_TRACE_TILE_GENERATION_WORKGROUP_SIZE[2],
+    );
+}
+
+fn create_probe_trace_tile_generation_bind_group_layout(
+    device: &wgpu::Device,
+) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-bind-group-layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: false },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: false },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_probe_trace_tile_generation_pipeline(
+    device: &wgpu::Device,
+    bind_group_layout: &wgpu::BindGroupLayout,
+) -> wgpu::ComputePipeline {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-shader"),
+        source: wgpu::ShaderSource::Wgsl(
+            include_str!("../../../../shaders/generate_probe_trace_tiles.wgsl").into(),
+        ),
+    });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-pipeline-layout"),
+        bind_group_layouts: &[Some(bind_group_layout)],
+        immediate_size: 0,
+    });
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-pipeline"),
+        layout: Some(&pipeline_layout),
+        module: &shader,
+        entry_point: Some("cs_main"),
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
+        cache: None,
+    })
+}
+
+fn create_probe_trace_tile_generation_bind_group(
+    device: &wgpu::Device,
+    bind_group_layout: &wgpu::BindGroupLayout,
+    params_buffer: &wgpu::Buffer,
+    seed_buffer: &wgpu::Buffer,
+    output_buffer: &wgpu::Buffer,
+    indirect_args_buffer: &wgpu::Buffer,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-bind-group"),
+        layout: bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: params_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: seed_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: output_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: indirect_args_buffer.as_entire_binding(),
+            },
+        ],
+    })
+}
+
+fn probe_trace_tiles(
+    snapshot: &HybridGiScenePrepareResourcesSnapshot,
+    inputs: &HybridGiPrepareExecutionInputs,
+) -> Vec<(u32, u32, u32, u32)> {
+    let mut tiles = snapshot
+        .voxel_clipmap_cell_occupancy_counts()
+        .iter()
+        .filter(|(_, _, occupancy)| *occupancy > 0)
+        .map(|(clipmap_id, cell_id, occupancy)| {
+            (
+                0,
+                *clipmap_id,
+                *cell_id,
+                occupancy.saturating_mul(RAYS_PER_OCCUPIED_VOXEL_CELL),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if tiles.is_empty() {
+        tiles = surface_cache_trace_tiles(snapshot, inputs);
+    }
+
+    tiles
+        .into_iter()
+        .enumerate()
+        .map(|(tile_id, (_, probe_id, trace_region_id, ray_count))| {
+            (tile_id as u32, probe_id, trace_region_id, ray_count.max(1))
+        })
+        .collect()
+}
+
+fn surface_cache_trace_tiles(
+    snapshot: &HybridGiScenePrepareResourcesSnapshot,
+    inputs: &HybridGiPrepareExecutionInputs,
+) -> Vec<(u32, u32, u32, u32)> {
+    let known_slots = inputs
+        .scene_card_capture_requests
+        .iter()
+        .map(|request| (request.atlas_slot_id, request.card_id, request.page_id))
+        .chain(
+            inputs
+                .scene_surface_cache_page_contents
+                .iter()
+                .map(|page| (page.atlas_slot_id, page.owner_card_id, page.page_id)),
+        )
+        .collect::<BTreeSet<_>>();
+
+    snapshot
+        .occupied_atlas_slots()
+        .iter()
+        .filter_map(|slot_id| {
+            known_slots
+                .iter()
+                .find(|(known_slot_id, _, _)| known_slot_id == slot_id)
+                .map(|(atlas_slot_id, card_id, _)| {
+                    (0, *card_id, *atlas_slot_id, RAYS_PER_SURFACE_CACHE_TILE)
+                })
+        })
+        .collect()
+}
+
+fn probe_trace_dispatch(tile_count: usize) -> [u32; 3] {
+    if tile_count == 0 {
+        [0; 3]
+    } else {
+        [1, 1, tile_count as u32]
+    }
+}
+
+fn probe_trace_tile_words(snapshot: &HybridGiScenePrepareResourcesSnapshot) -> Vec<u32> {
+    let mut words =
+        Vec::with_capacity(snapshot.probe_trace_tiles().len() * PROBE_TRACE_TILE_WORDS_PER_RECORD);
+    for &(tile_id, probe_id, trace_region_id, ray_count) in snapshot.probe_trace_tiles() {
+        words.extend([tile_id, probe_id, trace_region_id, ray_count]);
+    }
+    words
+}

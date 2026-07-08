@@ -1,11 +1,17 @@
 use super::model::WorkbenchTooltipStyle;
-use super::palette::{tooltip_normal_style, tooltip_palette};
+use super::palette::{tooltip_normal_style_from_palette, tooltip_palette, WorkbenchTooltipPalette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_state_style(
     state: UiPainterResolvedState,
 ) -> WorkbenchTooltipStyle {
-    let palette = tooltip_palette();
+    tooltip_state_style_from_palette(state, tooltip_palette())
+}
+
+pub(super) fn tooltip_state_style_from_palette(
+    state: UiPainterResolvedState,
+    palette: WorkbenchTooltipPalette,
+) -> WorkbenchTooltipStyle {
     match state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
             WorkbenchTooltipStyle {
@@ -19,25 +25,26 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip
                 state,
             }
         }
-        UiPainterResolvedState::Pressed | UiPainterResolvedState::Focused => {
-            let mut style = tooltip_normal_style(state);
+        UiPainterResolvedState::Pressed => {
+            let mut style = tooltip_normal_style_from_palette(state, palette);
             style.border = palette.focused_border;
             style.icon = palette.focused_border;
             style.title = palette.title;
             style
         }
+        UiPainterResolvedState::Focused => tooltip_normal_style_from_palette(state, palette),
         UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
         | UiPainterResolvedState::Hovered => {
-            let mut style = tooltip_normal_style(state);
+            let mut style = tooltip_normal_style_from_palette(state, palette);
             style.border = palette.border;
             style.icon = palette.hover_icon;
             style
         }
         UiPainterResolvedState::Checked
         | UiPainterResolvedState::Selected
-        | UiPainterResolvedState::Normal => tooltip_normal_style(state),
+        | UiPainterResolvedState::Normal => tooltip_normal_style_from_palette(state, palette),
     }
 }
 

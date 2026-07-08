@@ -1,8 +1,9 @@
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 
 use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
+use super::metrics::workbench_button_border_width;
 use super::model::WorkbenchButtonStyle;
+use super::palette::workbench_button_command_palette;
 
 pub(super) fn is_prominent_workbench_command_button(node: &TemplatePaneNodeData) -> bool {
     !matches!(
@@ -30,19 +31,19 @@ fn muted_prominent_workbench_command_style(
     node: &TemplatePaneNodeData,
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
-    let active = node.selected || node.checked || node.focused || node.popup_open;
-    let palette = current_host_palette();
+    let active = node.selected || node.checked || node.popup_open;
+    let command_palette = workbench_button_command_palette();
     style.surface = if node.pressed {
-        palette.surface
+        command_palette.muted_pressed_surface
     } else if active || node.hovered {
-        palette.surface_hover
+        command_palette.muted_hot_surface
     } else {
-        palette.surface_pressed
+        command_palette.muted_rest_surface
     };
-    style.border = palette.border;
-    style.border_width = 1.0;
-    style.text = palette.accent;
-    style.glyph = palette.accent;
+    style.border = command_palette.muted_border;
+    style.border_width = workbench_button_border_width();
+    style.text = command_palette.muted_text;
+    style.glyph = command_palette.muted_text;
     style
 }
 
@@ -50,17 +51,17 @@ fn primary_import_workbench_command_style(
     node: &TemplatePaneNodeData,
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
-    let active = node.selected || node.checked || node.focused || node.popup_open;
-    let palette = current_host_palette();
+    let active = node.selected || node.checked || node.popup_open;
+    let command_palette = workbench_button_command_palette();
     let surface = if node.pressed || active || node.hovered {
-        palette.focus_ring
+        command_palette.primary_hot_surface
     } else {
-        palette.accent
+        command_palette.primary_rest_surface
     };
     style.surface = surface;
     style.border = surface;
-    style.border_width = 1.0;
-    style.text = palette.shell_background;
-    style.glyph = palette.shell_background;
+    style.border_width = workbench_button_border_width();
+    style.text = command_palette.primary_text;
+    style.glyph = command_palette.primary_text;
     style
 }

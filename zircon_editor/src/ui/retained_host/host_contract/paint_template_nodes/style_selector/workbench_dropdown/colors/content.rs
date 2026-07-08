@@ -1,5 +1,5 @@
 use super::super::palette::workbench_dropdown_palette;
-use super::super::state::is_unavailable_dropdown_state;
+use super::super::state::{dropdown_node_is_open, is_unavailable_dropdown_state};
 use super::declared::declared_color;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
@@ -32,10 +32,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dropdow
         color
     } else if matches!(
         state,
-        UiPainterResolvedState::Pressed
-            | UiPainterResolvedState::Focused
-            | UiPainterResolvedState::Open
+        UiPainterResolvedState::Pressed | UiPainterResolvedState::Open
     ) {
+        palette.active_chevron
+    } else if state == UiPainterResolvedState::Focused && dropdown_node_is_open(node) {
         palette.active_chevron
     } else {
         palette.chevron

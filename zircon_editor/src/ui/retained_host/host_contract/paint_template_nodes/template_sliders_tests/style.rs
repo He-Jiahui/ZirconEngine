@@ -8,8 +8,8 @@ use super::super::super::template_slider_geometry::{
 };
 use super::support::{
     pixel_at, positioned_slider_node, resolved_background, slider_accent, slider_thumb_color,
-    slider_thumb_halo_color, slider_thumb_outline_color, slider_track_color, slider_visual_hot,
-    slider_visual_state,
+    slider_thumb_halo_color, slider_thumb_outline_color, slider_track_color,
+    slider_value_border_color, slider_visual_hot, slider_visual_state,
 };
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
@@ -112,4 +112,27 @@ fn workbench_slider_uses_declared_thumb_colors() {
 
     assert_eq!(pixel_at(&bytes, 220, 101, 23), [183, 241, 248, 255]);
     assert_ne!(pixel_at(&bytes, 220, 96, 23), [0, 0, 0, 255]);
+}
+
+#[test]
+fn focused_workbench_slider_keeps_neutral_value_border_with_focus_halo() {
+    let mut node = positioned_slider_node("WorkbenchInputSlider", 0.5, 8.0, 8.0, 160.0, 30.0);
+    node.focused = true;
+
+    assert_eq!(slider_visual_state(&node), UiPainterResolvedState::Focused);
+    assert!(!slider_visual_hot(&node));
+    assert_eq!(slider_value_border_color(&node), PALETTE.border);
+    assert!(slider_thumb_halo_color(&node).is_some());
+}
+
+#[test]
+fn pressed_workbench_slider_keeps_active_value_border_and_hot_halo() {
+    let mut node = positioned_slider_node("WorkbenchInputSlider", 0.5, 8.0, 8.0, 160.0, 30.0);
+    node.focused = true;
+    node.pressed = true;
+
+    assert_eq!(slider_visual_state(&node), UiPainterResolvedState::Pressed);
+    assert!(slider_visual_hot(&node));
+    assert_eq!(slider_value_border_color(&node), SLIDER_FILL);
+    assert!(slider_thumb_halo_color(&node).is_some());
 }

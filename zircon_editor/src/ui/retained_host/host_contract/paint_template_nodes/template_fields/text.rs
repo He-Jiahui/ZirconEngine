@@ -32,7 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         FrameRect {
             x: rect.x + text_left,
             y: rect.y + (rect.height - metrics.line_height).max(0.0) * 0.5,
-            width: (rect.width - text_left - right_reserve).max(1.0),
+            width: (rect.width - text_left - right_reserve).max(metrics.min_text_rect_width),
             height: metrics.line_height,
         },
         Some(clip.clone()),

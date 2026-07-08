@@ -8,6 +8,7 @@ use crate::graphics::{
 };
 
 use super::super::super::super::deferred::DeferredSceneResources;
+use super::super::super::super::environment::IblBakeWgpuPipelineCache;
 use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
 use super::super::super::super::mesh::skinning::{
     create_empty_skinned_joint_palette_buffer, skinned_joint_palette_uniform_min_binding_size,
@@ -47,7 +48,7 @@ impl SceneRendererCore {
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Result<Self, GraphicsError> {
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
-        let scene_bind_group_bundle = create_scene_bind_group_bundle(device);
+        let scene_bind_group_bundle = create_scene_bind_group_bundle(device, queue);
         let skinned_joint_palette_fallback_buffer =
             create_empty_skinned_joint_palette_buffer(device);
         let texture_bind_group_layout = create_texture_bind_group_layout(device);
@@ -68,6 +69,7 @@ impl SceneRendererCore {
         for descriptor in plugin_geometry_sources {
             mesh_pipelines.register_geometry_source_descriptor(descriptor);
         }
+        let ibl_bake_pipeline_cache = IblBakeWgpuPipelineCache::new(device);
         let scene_clear = SceneRegionClearResources::new(device, target_format, DEPTH_FORMAT);
         let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
         let shadow_atlas_resources =
@@ -125,13 +127,15 @@ impl SceneRendererCore {
             texture_bind_group_layout,
             scene_bind_group_layout: scene_bind_group_bundle.layout,
             scene_uniform_buffer: scene_bind_group_bundle.uniform_buffer,
-            scene_environment_sample_buffer: scene_bind_group_bundle.environment_sample_buffer,
+            scene_environment_cubemap: scene_bind_group_bundle.environment_cubemap,
+            scene_environment_brdf_lut: scene_bind_group_bundle.environment_brdf_lut,
             scene_bind_group: scene_bind_group_bundle.bind_group,
             target_format,
             depth_format: DEPTH_FORMAT,
             mesh_command_generation: 0,
             material_texture_bind_group_layout,
             mesh_pipelines,
+            ibl_bake_pipeline_cache,
             cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
             gpu_scene,
             hzb_occlusion_culler,

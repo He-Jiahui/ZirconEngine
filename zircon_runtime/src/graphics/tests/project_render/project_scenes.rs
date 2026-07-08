@@ -1,12 +1,25 @@
 use super::*;
+use crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch;
+use crate::core::framework::render::{
+    build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
+    IblBakeArtifactContents,
+};
+use crate::graphics::scene::{
+    IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
+    IBL_BAKE_PMREM_EXECUTOR_ID,
+};
 use crate::graphics::ViewportFrame;
 
-const PBR_MATRIX_DIMENSION: usize = 8;
-const PBR_MATRIX_OUTPUT_SIZE: UVec2 = UVec2::new(1280, 960);
-const PBR_MATRIX_ORTHO_SIZE: f32 = 6.4;
-const PBR_MATRIX_STEP_X: f32 = 0.74;
-const PBR_MATRIX_STEP_Y: f32 = 0.68;
-const PBR_MATRIX_SPHERE_SCALE: f32 = 0.27;
+mod pbr_matrix;
+
+use pbr_matrix::{
+    assert_pbr_matrix_environment_response, assert_real_hdri_reflection_response,
+    assert_source_cubemap_product_capture_response, build_pbr_matrix_product_capture_snapshot,
+    ibl_executor_count, plan11_ibl_product_capture_quality_profile,
+    polyhaven_lakes_source_cubemap_environment, render_pbr_matrix_frame_with_environment,
+    render_test_output_dir, runtime_ibl_cache_source_cubemap_environment, shader_test_output_dir,
+    visible_luma_range, write_pbr_matrix_project, PBR_MATRIX_OUTPUT_SIZE,
+};
 
 #[test]
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
@@ -279,10 +292,10 @@ fn export_runtime_shader_pbr_real_hdri_reflection_png() {
     let frame = render_pbr_matrix_frame_with_environment(
         "graphics_pbr_real_hdri",
         "GraphicsPbrRealHdri",
-        EnvironmentExtract::sampled_equirectangular(polyhaven_lakes_sampled_environment()),
+        EnvironmentExtract::source_cubemap(polyhaven_lakes_source_cubemap_environment()),
     );
     let output = shader_test_output_dir()
-        .join("runtime_shader_pbr_real_hdri_lakes_pmrem_reflection_20260705.png");
+        .join("runtime_shader_pbr_real_hdri_lakes_hdr_pmrem_reflection_20260705.png");
     ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
         .expect("rendered real HDRI PBR frame should match output image dimensions")
         .save_with_format(&output, ImageFormat::Png)
@@ -290,50 +303,19 @@ fn export_runtime_shader_pbr_real_hdri_reflection_png() {
     assert_real_hdri_reflection_response(&frame);
 }
 
-fn render_pbr_matrix_frame_with_environment(
-    temp_label: &str,
-    project_name: &str,
-    environment: EnvironmentExtract,
-) -> ViewportFrame {
-    let root = unique_temp_project_root(temp_label);
+#[test]
+#[ignore = "manual product screenshot export for Plan 11 runtime IBL cache second launch"]
+fn export_runtime_render_ibl_cache_second_launch_dispatch_zero_png() {
+    let root = unique_temp_project_root("graphics_ibl_cache_second_launch");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
-    ProjectManifest::new(
-        project_name,
-        AssetUri::parse("res://scenes/pbr_matrix.scene.toml").unwrap(),
-        1,
-    )
-    .save(paths.manifest_path())
-    .unwrap();
+    write_pbr_matrix_project(&paths, "GraphicsIblCacheSecondLaunch");
 
-    write_uv_sphere_obj(
-        paths
-            .assets_root()
-            .join("models")
-            .join("pbr_matrix_sphere.obj"),
-        24,
-        48,
-    );
-    for row in 0..PBR_MATRIX_DIMENSION {
-        for column in 0..PBR_MATRIX_DIMENSION {
-            let metallic = pbr_matrix_axis_value(column);
-            let smoothness = pbr_matrix_axis_value(row);
-            write_pbr_matrix_material(
-                paths
-                    .assets_root()
-                    .join("materials")
-                    .join(format!("pbr_matrix_r{row}_c{column}.zmaterial")),
-                metallic,
-                smoothness,
-            );
-        }
-    }
-    write_pbr_matrix_scene(
-        paths
-            .assets_root()
-            .join("scenes")
-            .join("pbr_matrix.scene.toml"),
-    );
+    let environment =
+        EnvironmentExtract::source_cubemap(runtime_ibl_cache_source_cubemap_environment());
+    let request = environment
+        .source_cubemap_ibl_bake_request(IblBakeArtifactContents::PMREM_SH9_IEM)
+        .expect("source cubemap should request a runtime IBL bake artifact");
 
     let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
@@ -343,27 +325,119 @@ fn render_pbr_matrix_frame_with_environment(
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let cache_store = asset_manager
+        .ibl_bake_artifact_cache_store()
+        .expect("opened project should expose runtime IBL cache storage");
+    let cache_path = cache_store.runtime_cache_path(&request);
+    let _ = fs::remove_file(&cache_path);
 
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
-        settings: ViewportRenderSettings::default(),
-        active_camera_override: None,
-        camera: None,
-        viewport_size: Some(PBR_MATRIX_OUTPUT_SIZE),
-        virtual_geometry_debug: None,
-    });
-    snapshot.environment = environment;
-    snapshot.preview =
-        PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
-    snapshot.overlays = RenderOverlayExtract {
-        display_mode: DisplayMode::Shaded,
-        ..RenderOverlayExtract::default()
-    };
+    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = framework
+        .create_viewport(
+            crate::core::framework::render::RenderViewportDescriptor::new(PBR_MATRIX_OUTPUT_SIZE),
+        )
+        .unwrap();
+    framework
+        .set_quality_profile(viewport, plan11_ibl_product_capture_quality_profile())
+        .unwrap();
+    framework
+        .submit_frame_extract(
+            viewport,
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                build_pbr_matrix_product_capture_snapshot(&world, environment.clone()),
+            ),
+        )
+        .unwrap();
+    let first_stats = framework.query_stats().unwrap();
+    assert_eq!(
+        first_stats.last_pipeline,
+        Some(crate::core::framework::render::RenderPipelineHandle::new(1)),
+        "Plan 11 product Wgpu capture proof must use the Core3D forward pipeline"
+    );
+    let first_executor_ids = first_stats.last_graph_executed_executor_ids.clone();
+    let first_ibl_executor_count = ibl_executor_count(&first_executor_ids);
+    let first_compute_dispatch_count = first_stats.last_graph_compute_dispatch_count;
+    assert!(
+        first_ibl_executor_count > 0,
+        "first launch should execute IBL bake executors, ids={first_executor_ids:?}"
+    );
+    assert!(
+        cache_path.is_file(),
+        "first launch should write a runtime IBL cache artifact at {}",
+        cache_path.display()
+    );
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, PBR_MATRIX_OUTPUT_SIZE).unwrap();
+    let post_first_dispatch =
+        resolve_ibl_bake_artifact_runtime_dispatch(&cache_store, &request, &[])
+            .expect("runtime cache dispatch resolution after first launch should succeed");
+    assert_eq!(
+        post_first_dispatch.environment_compute_dispatch_count(),
+        0,
+        "cache hit should resolve to zero environment runtime compute dispatches"
+    );
+    assert!(
+        !post_first_dispatch.requires_runtime_compute(),
+        "cache hit should not require runtime IBL compute after first launch"
+    );
+
+    framework
+        .submit_frame_extract(
+            viewport,
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(2),
+                build_pbr_matrix_product_capture_snapshot(&world, environment),
+            ),
+        )
+        .unwrap();
+    let second_stats = framework.query_stats().unwrap();
+    assert_eq!(
+        second_stats.last_pipeline,
+        Some(crate::core::framework::render::RenderPipelineHandle::new(1)),
+        "second Plan 11 product Wgpu capture submit must stay on Core3D forward"
+    );
+    let second_executor_ids = second_stats.last_graph_executed_executor_ids.clone();
+    let second_ibl_executor_count = ibl_executor_count(&second_executor_ids);
+    let second_compute_dispatch_count = second_stats.last_graph_compute_dispatch_count;
+    assert_eq!(
+        second_ibl_executor_count, 0,
+        "second launch cache hit should omit IBL bake executors, ids={second_executor_ids:?}"
+    );
+
+    let second_frame = framework
+        .capture_frame(viewport)
+        .unwrap()
+        .expect("second product Wgpu frame should be available for capture");
+    assert_source_cubemap_product_capture_response(&second_frame);
+
+    let output = render_test_output_dir()
+        .join("plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_20260707.png");
+    ImageBuffer::<Rgba<u8>, _>::from_raw(
+        second_frame.width,
+        second_frame.height,
+        second_frame.rgba.clone(),
+    )
+    .expect("captured IBL second-launch frame should match output image dimensions")
+    .save_with_format(&output, ImageFormat::Png)
+    .expect("write Plan 11 runtime IBL cache second-launch Wgpu capture screenshot");
+
+    let report = format!(
+        "cache_path={}\nfirst_ibl_executor_count={first_ibl_executor_count}\nsecond_ibl_executor_count={second_ibl_executor_count}\nfirst_compute_dispatch_count={first_compute_dispatch_count}\nsecond_compute_dispatch_count={second_compute_dispatch_count}\npost_first_environment_dispatch_count={}\nfirst_pipeline={:?}\nsecond_pipeline={:?}\ncapture_report={:?}\ngraph_dump_present={}\n",
+        cache_path.display(),
+        post_first_dispatch.environment_compute_dispatch_count(),
+        first_stats.last_pipeline,
+        second_stats.last_pipeline,
+        second_frame.capture_report,
+        second_frame.graph_dump.is_some()
+    );
+    fs::write(
+        render_test_output_dir()
+            .join("plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_20260707.txt"),
+        report,
+    )
+    .expect("write Plan 11 runtime IBL cache second-launch Wgpu capture report");
 
     let _ = fs::remove_dir_all(root);
-    frame
 }
 
 #[test]
@@ -497,436 +571,4 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     );
 
     let _ = fs::remove_dir_all(root);
-}
-
-fn write_pbr_matrix_material(path: PathBuf, metallic: f32, smoothness: f32) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    let roughness = (1.0 - smoothness).clamp(0.04, 1.0);
-    let mut material = MaterialAsset {
-        name: Some(format!(
-            "PBR Matrix M{:.3} S{:.3}",
-            metallic.clamp(0.0, 1.0),
-            smoothness.clamp(0.0, 1.0)
-        )),
-        shader: asset_reference("builtin://shader/pbr.wgsl"),
-        parent: None,
-        options: Default::default(),
-        queue: None,
-        base_color: [0.78, 0.74, 0.66, 1.0],
-        base_color_texture: None,
-        normal_texture: None,
-        metallic,
-        roughness,
-        metallic_roughness_texture: None,
-        occlusion_texture: None,
-        emissive: [0.0, 0.0, 0.0],
-        emissive_texture: None,
-        alpha_mode: AlphaMode::Opaque,
-        double_sided: false,
-        property_values: Default::default(),
-        texture_slots: Default::default(),
-        validation_diagnostics: Vec::new(),
-    };
-    material.property_values.insert(
-        "lighting_model".to_string(),
-        toml::Value::String("pbr".to_string()),
-    );
-    material
-        .property_values
-        .insert("receive_shadows".to_string(), toml::Value::Boolean(false));
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
-}
-
-fn write_pbr_matrix_scene(path: PathBuf) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-
-    let mut entities = Vec::with_capacity(PBR_MATRIX_DIMENSION * PBR_MATRIX_DIMENSION + 2);
-    entities.push(SceneEntityAsset {
-        entity: 1,
-        name: "Camera".to_string(),
-        parent: None,
-        transform: TransformAsset {
-            translation: [0.0, 0.0, 8.0],
-            rotation: [0.0, 0.0, 0.0, 1.0],
-            scale: [1.0, 1.0, 1.0],
-        },
-        active: true,
-        render_layer_mask: 0x0000_0001,
-        mobility: SceneMobilityAsset::Dynamic,
-        camera: Some(SceneCameraAsset {
-            projection_mode: ProjectionMode::Orthographic,
-            ortho_size: PBR_MATRIX_ORTHO_SIZE,
-            z_near: 0.1,
-            z_far: 100.0,
-            post_process_settings: None,
-            ..SceneCameraAsset::default()
-        }),
-        mesh: None,
-        ambient_light: None,
-        directional_light: None,
-        point_light: None,
-        rect_light: None,
-        spot_light: None,
-        post_process_volume: None,
-        rigid_body: None,
-        collider: None,
-        joint: None,
-        animation_skeleton: None,
-        animation_player: None,
-        animation_sequence_player: None,
-        animation_graph_player: None,
-        animation_state_machine_player: None,
-        terrain: None,
-        tilemap: None,
-        prefab_instance: None,
-        script_bindings: Vec::new(),
-    });
-    entities.push(SceneEntityAsset {
-        entity: 2,
-        name: "Key Light".to_string(),
-        parent: None,
-        transform: TransformAsset {
-            translation: [0.0, 0.0, 0.0],
-            rotation: [0.0, 0.0, 0.0, 1.0],
-            scale: [1.0, 1.0, 1.0],
-        },
-        active: true,
-        render_layer_mask: 0x0000_0001,
-        mobility: SceneMobilityAsset::Dynamic,
-        camera: None,
-        mesh: None,
-        ambient_light: None,
-        directional_light: Some(SceneDirectionalLightAsset {
-            direction: [-0.35, -0.55, -0.76],
-            color: [1.0, 0.96, 0.88],
-            intensity: 1.25,
-        }),
-        point_light: None,
-        rect_light: None,
-        spot_light: None,
-        post_process_volume: None,
-        rigid_body: None,
-        collider: None,
-        joint: None,
-        animation_skeleton: None,
-        animation_player: None,
-        animation_sequence_player: None,
-        animation_graph_player: None,
-        animation_state_machine_player: None,
-        terrain: None,
-        tilemap: None,
-        prefab_instance: None,
-        script_bindings: Vec::new(),
-    });
-
-    let mut entity_id = 10_u64;
-    for row in 0..PBR_MATRIX_DIMENSION {
-        for column in 0..PBR_MATRIX_DIMENSION {
-            entities.push(SceneEntityAsset {
-                entity: entity_id,
-                name: format!(
-                    "PBR M{:.2} S{:.2}",
-                    pbr_matrix_axis_value(column),
-                    pbr_matrix_axis_value(row)
-                ),
-                parent: None,
-                transform: TransformAsset {
-                    translation: [pbr_matrix_world_x(column), pbr_matrix_world_y(row), 0.0],
-                    rotation: [0.0, 0.0, 0.0, 1.0],
-                    scale: [
-                        PBR_MATRIX_SPHERE_SCALE,
-                        PBR_MATRIX_SPHERE_SCALE,
-                        PBR_MATRIX_SPHERE_SCALE,
-                    ],
-                },
-                active: true,
-                render_layer_mask: 0x0000_0001,
-                mobility: SceneMobilityAsset::Dynamic,
-                camera: None,
-                mesh: Some(SceneMeshInstanceAsset {
-                    model: asset_reference("res://models/pbr_matrix_sphere.obj"),
-                    mesh: None,
-                    material: asset_reference(&format!(
-                        "res://materials/pbr_matrix_r{row}_c{column}.zmaterial"
-                    )),
-                    render_queue: 0,
-                    material_queue: 0,
-                    order_in_layer: 0,
-                    depth_bias: 0.0,
-                    morph_weights: Vec::new(),
-                    primitives: Vec::new(),
-                    lods: Vec::new(),
-                }),
-                ambient_light: None,
-                directional_light: None,
-                point_light: None,
-                rect_light: None,
-                spot_light: None,
-                post_process_volume: None,
-                rigid_body: None,
-                collider: None,
-                joint: None,
-                animation_skeleton: None,
-                animation_player: None,
-                animation_sequence_player: None,
-                animation_graph_player: None,
-                animation_state_machine_player: None,
-                terrain: None,
-                tilemap: None,
-                prefab_instance: None,
-                script_bindings: Vec::new(),
-            });
-            entity_id += 1;
-        }
-    }
-
-    fs::write(path, SceneAsset { entities }.to_toml_string().unwrap()).unwrap();
-}
-
-fn pbr_matrix_axis_value(index: usize) -> f32 {
-    index as f32 / (PBR_MATRIX_DIMENSION - 1) as f32
-}
-
-fn pbr_matrix_world_x(column: usize) -> f32 {
-    (column as f32 - (PBR_MATRIX_DIMENSION as f32 - 1.0) * 0.5) * PBR_MATRIX_STEP_X
-}
-
-fn pbr_matrix_world_y(row: usize) -> f32 {
-    ((PBR_MATRIX_DIMENSION as f32 - 1.0) * 0.5 - row as f32) * PBR_MATRIX_STEP_Y
-}
-
-fn assert_pbr_matrix_environment_response(frame: &ViewportFrame) {
-    let top_left_sky = average_region_rgb(frame, 24, 24, 80, 80);
-    assert!(
-        top_left_sky[2] > top_left_sky[0] + 16.0,
-        "procedural skybox should render a cool sky background, sampled RGB={top_left_sky:?}"
-    );
-
-    let center_rough_dielectric = pbr_matrix_cell_rgb(frame, 0, 0);
-    let center_smooth_dielectric = pbr_matrix_cell_rgb(frame, PBR_MATRIX_DIMENSION - 1, 0);
-    let center_smooth_metal =
-        pbr_matrix_cell_rgb(frame, PBR_MATRIX_DIMENSION - 1, PBR_MATRIX_DIMENSION - 1);
-    let center_rough_metal = pbr_matrix_cell_rgb(frame, 0, PBR_MATRIX_DIMENSION - 1);
-    let smooth_metal_blue_bias = center_smooth_metal[2] - center_smooth_metal[0];
-    let smooth_dielectric_blue_bias = center_smooth_dielectric[2] - center_smooth_dielectric[0];
-    let metal_smooth_delta = luma(center_smooth_metal) - luma(center_rough_metal);
-
-    assert!(
-        center_rough_dielectric
-            .iter()
-            .any(|channel| *channel > 24.0),
-        "rough dielectric matrix cell should be visible, sampled RGB={center_rough_dielectric:?}"
-    );
-    assert!(
-        smooth_metal_blue_bias > smooth_dielectric_blue_bias + 4.0,
-        "high metallic + smooth cell should pick up stronger sky reflection: smooth metal RGB={center_smooth_metal:?}, smooth dielectric RGB={center_smooth_dielectric:?}"
-    );
-    assert!(
-        metal_smooth_delta > 2.0,
-        "metal smoothness ramp should change reflected brightness: smooth metal RGB={center_smooth_metal:?}, rough metal RGB={center_rough_metal:?}"
-    );
-}
-
-fn assert_real_hdri_reflection_response(frame: &ViewportFrame) {
-    let upper_sky = average_region_rgb(frame, 40, 32, 96, 96);
-    let lower_sky = average_region_rgb(frame, 40, frame.height.saturating_sub(128), 96, 96);
-    let smooth_dielectric = pbr_matrix_cell_rgb(frame, PBR_MATRIX_DIMENSION - 1, 0);
-    let smooth_metal =
-        pbr_matrix_cell_rgb(frame, PBR_MATRIX_DIMENSION - 1, PBR_MATRIX_DIMENSION - 1);
-    let rough_metal = pbr_matrix_cell_rgb(frame, 0, PBR_MATRIX_DIMENSION - 1);
-
-    assert!(
-        color_distance(upper_sky, lower_sky) > 8.0,
-        "real HDRI skybox should show directional scene variation, upper={upper_sky:?}, lower={lower_sky:?}"
-    );
-    assert!(
-        color_distance(smooth_metal, smooth_dielectric) > 4.0,
-        "smooth metallic cells should visibly differ from dielectric cells under real HDRI, metal={smooth_metal:?}, dielectric={smooth_dielectric:?}"
-    );
-    assert!(
-        color_distance(smooth_metal, rough_metal) > 2.0,
-        "smoothness should change real HDRI reflection response, smooth={smooth_metal:?}, rough={rough_metal:?}"
-    );
-}
-
-fn polyhaven_lakes_sampled_environment() -> SampledEquirectangularEnvironment {
-    let path = shader_test_asset_dir().join("polyhaven_lakes_1k.hdr");
-    let bytes = fs::read(&path).expect("read Poly Haven lakes HDRI");
-    let image = image::load_from_memory_with_format(&bytes, ImageFormat::Hdr)
-        .expect("decode Poly Haven lakes HDRI")
-        .to_rgb32f();
-    let exposure = sampled_hdri_exposure(&image);
-    let samples = crate::core::framework::render::build_sampled_equirect_mip_chain(|x, y| {
-        let u = (x as f32 + 0.5)
-            / crate::core::framework::render::SAMPLED_EQUIRECT_ENVIRONMENT_BASE_WIDTH as f32;
-        let v = (y as f32 + 0.5)
-            / crate::core::framework::render::SAMPLED_EQUIRECT_ENVIRONMENT_BASE_HEIGHT as f32;
-        tone_map_hdr_sample(sample_hdri_bilinear(&image, u, v), exposure)
-    });
-
-    let mut environment =
-        SampledEquirectangularEnvironment::new(samples, 1, source_hash_words(&bytes));
-    environment.intensity = 1.45;
-    environment.rotation_radians = 0.0;
-    environment
-}
-
-fn sample_hdri_bilinear(image: &image::Rgb32FImage, u: f32, v: f32) -> [f32; 3] {
-    let width = image.width().max(1);
-    let height = image.height().max(1);
-    let texel_x = u.fract() * width as f32 - 0.5;
-    let texel_y = v.clamp(0.0, 1.0) * height as f32 - 0.5;
-    let x0 = texel_x.floor() as i32;
-    let y0 = texel_y.floor() as i32;
-    let tx = texel_x - texel_x.floor();
-    let ty = texel_y - texel_y.floor();
-    let x0u = ((x0 % width as i32 + width as i32) % width as i32) as u32;
-    let x1u = (x0u + 1) % width;
-    let y0u = (y0.clamp(0, height.saturating_sub(1) as i32)) as u32;
-    let y1u = (y0u + 1).min(height - 1);
-    let c00 = image.get_pixel(x0u, y0u).0;
-    let c10 = image.get_pixel(x1u, y0u).0;
-    let c01 = image.get_pixel(x0u, y1u).0;
-    let c11 = image.get_pixel(x1u, y1u).0;
-    [
-        lerp(lerp(c00[0], c10[0], tx), lerp(c01[0], c11[0], tx), ty),
-        lerp(lerp(c00[1], c10[1], tx), lerp(c01[1], c11[1], tx), ty),
-        lerp(lerp(c00[2], c10[2], tx), lerp(c01[2], c11[2], tx), ty),
-    ]
-}
-
-fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    a + (b - a) * t
-}
-
-fn sampled_hdri_exposure(image: &image::Rgb32FImage) -> f32 {
-    let step_x = (image.width() / 128).max(1);
-    let step_y = (image.height() / 64).max(1);
-    let mut sum = 0.0_f32;
-    let mut count = 0.0_f32;
-    let mut y = 0;
-    while y < image.height() {
-        let mut x = 0;
-        while x < image.width() {
-            sum += luma(image.get_pixel(x, y).0);
-            count += 1.0;
-            x += step_x;
-        }
-        y += step_y;
-    }
-    (0.45 / (sum / count.max(1.0)).max(0.0001)).clamp(0.02, 4.0)
-}
-
-fn tone_map_hdr_sample(rgb: [f32; 3], exposure: f32) -> [f32; 4] {
-    let mapped = rgb.map(|channel| {
-        let exposed = (channel.max(0.0) * exposure).min(64.0);
-        exposed / (1.0 + exposed)
-    });
-    [mapped[0], mapped[1], mapped[2], 1.0]
-}
-
-fn source_hash_words(bytes: &[u8]) -> [u32; 4] {
-    let mut state = [0x811c9dc5_u32, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];
-    for (index, byte) in bytes.iter().enumerate() {
-        let slot = index & 3;
-        state[slot] ^= u32::from(*byte);
-        state[slot] = state[slot].wrapping_mul(16_777_619);
-    }
-    state
-}
-
-fn pbr_matrix_cell_rgb(frame: &ViewportFrame, row: usize, column: usize) -> [f32; 3] {
-    let aspect = frame.width as f32 / frame.height as f32;
-    // ViewProjectionMatrixPair treats orthographic size as camera half-height.
-    let half_height = PBR_MATRIX_ORTHO_SIZE;
-    let half_width = half_height * aspect;
-    let center_x = ((pbr_matrix_world_x(column) + half_width) / (half_width * 2.0)
-        * frame.width as f32)
-        .round()
-        .clamp(0.0, frame.width.saturating_sub(1) as f32) as u32;
-    let center_y = ((half_height - pbr_matrix_world_y(row)) / (half_height * 2.0)
-        * frame.height as f32)
-        .round()
-        .clamp(0.0, frame.height.saturating_sub(1) as f32) as u32;
-    average_region_rgb(
-        frame,
-        center_x.saturating_sub(20),
-        center_y.saturating_sub(20),
-        40,
-        40,
-    )
-}
-
-fn average_region_rgb(frame: &ViewportFrame, x: u32, y: u32, width: u32, height: u32) -> [f32; 3] {
-    let x_end = x.saturating_add(width).min(frame.width);
-    let y_end = y.saturating_add(height).min(frame.height);
-    let frame_width = frame.width as usize;
-    let mut sum = [0.0_f32; 3];
-    let mut count = 0.0_f32;
-    for py in y as usize..y_end as usize {
-        for px in x as usize..x_end as usize {
-            let index = (py * frame_width + px) * 4;
-            sum[0] += frame.rgba[index] as f32;
-            sum[1] += frame.rgba[index + 1] as f32;
-            sum[2] += frame.rgba[index + 2] as f32;
-            count += 1.0;
-        }
-    }
-    if count <= 0.0 {
-        [0.0, 0.0, 0.0]
-    } else {
-        [sum[0] / count, sum[1] / count, sum[2] / count]
-    }
-}
-
-fn luma(rgb: [f32; 3]) -> f32 {
-    0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
-}
-
-fn color_distance(first: [f32; 3], second: [f32; 3]) -> f32 {
-    let dr = first[0] - second[0];
-    let dg = first[1] - second[1];
-    let db = first[2] - second[2];
-    (dr * dr + dg * dg + db * db).sqrt()
-}
-
-fn shader_test_asset_dir() -> PathBuf {
-    let asset_dir = shader_test_output_dir().join("assets");
-    fs::create_dir_all(&asset_dir).unwrap();
-    asset_dir
-}
-
-fn shader_test_output_dir() -> PathBuf {
-    let output_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("workspace root")
-        .join("docs")
-        .join("tests")
-        .join("runtime")
-        .join("shader");
-    fs::create_dir_all(&output_dir).unwrap();
-    output_dir
-}
-
-fn visible_luma_range(frame: &ViewportFrame, background: [u8; 4]) -> Option<(f32, f32)> {
-    let mut min_luma = f32::INFINITY;
-    let mut max_luma = f32::NEG_INFINITY;
-    for pixel in frame.rgba.chunks_exact(4) {
-        if pixel == background {
-            continue;
-        }
-        let luma = 0.2126 * pixel[0] as f32 + 0.7152 * pixel[1] as f32 + 0.0722 * pixel[2] as f32;
-        min_luma = min_luma.min(luma);
-        max_luma = max_luma.max(luma);
-    }
-
-    if min_luma.is_finite() && max_luma.is_finite() {
-        Some((min_luma, max_luma))
-    } else {
-        None
-    }
 }

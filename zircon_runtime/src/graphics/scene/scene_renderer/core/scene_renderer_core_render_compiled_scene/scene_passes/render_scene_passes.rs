@@ -13,6 +13,7 @@ use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::super::deferred::DeferredSceneResources;
+use super::super::super::super::environment::IblBakeWgpuPipelineCache;
 use super::super::super::super::mesh::MeshPipelineCache;
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
@@ -43,6 +44,7 @@ impl SceneRendererCore {
             execute_deferred_graph_stage(
                 &self.deferred,
                 Some(&mut self.mesh_pipelines),
+                &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -66,6 +68,7 @@ impl SceneRendererCore {
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
                     &self.sprite_renderer,
+                    &mut self.ibl_bake_pipeline_cache,
                     device,
                     queue,
                     encoder,
@@ -85,6 +88,7 @@ impl SceneRendererCore {
         } else {
             execute_mesh_graph_stage(
                 &mut self.mesh_pipelines,
+                &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -109,6 +113,7 @@ impl SceneRendererCore {
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
                     &self.sprite_renderer,
+                    &mut self.ibl_bake_pipeline_cache,
                     device,
                     queue,
                     encoder,
@@ -127,6 +132,7 @@ impl SceneRendererCore {
             }
             execute_mesh_graph_stage(
                 &mut self.mesh_pipelines,
+                &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -151,6 +157,7 @@ impl SceneRendererCore {
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
                     &self.sprite_renderer,
+                    &mut self.ibl_bake_pipeline_cache,
                     device,
                     queue,
                     encoder,
@@ -169,6 +176,7 @@ impl SceneRendererCore {
             }
             execute_mesh_graph_stage(
                 &mut self.mesh_pipelines,
+                &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -193,6 +201,7 @@ impl SceneRendererCore {
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
                     &self.sprite_renderer,
+                    &mut self.ibl_bake_pipeline_cache,
                     device,
                     queue,
                     encoder,
@@ -224,6 +233,7 @@ impl SceneRendererCore {
             let deferred_lighting_result = execute_deferred_graph_stage(
                 &self.deferred,
                 None,
+                &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -248,6 +258,7 @@ impl SceneRendererCore {
             deferred_lighting_result?;
             execute_mesh_graph_stage(
                 &mut self.mesh_pipelines,
+                &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
                 queue,
@@ -272,6 +283,7 @@ impl SceneRendererCore {
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
                     &self.sprite_renderer,
+                    &mut self.ibl_bake_pipeline_cache,
                     device,
                     queue,
                     encoder,
@@ -291,6 +303,7 @@ impl SceneRendererCore {
             if runtime_features.sprite_rendering_enabled {
                 execute_sprite_graph_stage(
                     &self.sprite_renderer,
+                    &mut self.ibl_bake_pipeline_cache,
                     device,
                     queue,
                     encoder,
@@ -316,6 +329,7 @@ impl SceneRendererCore {
 #[allow(clippy::too_many_arguments)]
 fn execute_mesh_graph_stage(
     mesh_pipelines: &mut MeshPipelineCache,
+    ibl_bake_pipeline_cache: &mut IblBakeWgpuPipelineCache,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -359,6 +373,7 @@ fn execute_mesh_graph_stage(
         sprite_renderer,
         Some(streamer),
         Some(mesh_pipelines),
+        Some(ibl_bake_pipeline_cache),
         Some(mesh_draw_lists),
         hzb_occlusion_culler,
         shadow_map_renderer,
@@ -374,6 +389,7 @@ fn execute_mesh_graph_stage(
 fn execute_deferred_graph_stage(
     deferred: &DeferredSceneResources,
     mesh_pipelines: Option<&mut MeshPipelineCache>,
+    ibl_bake_pipeline_cache: &mut IblBakeWgpuPipelineCache,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -419,6 +435,7 @@ fn execute_deferred_graph_stage(
         None,
         streamer,
         mesh_pipelines,
+        Some(ibl_bake_pipeline_cache),
         Some(mesh_draw_lists),
         hzb_occlusion_culler,
         shadow_map_renderer,
@@ -435,6 +452,7 @@ fn execute_deferred_graph_stage(
 #[allow(clippy::too_many_arguments)]
 fn execute_sprite_graph_stage(
     renderer: &SpriteRenderer,
+    ibl_bake_pipeline_cache: &mut IblBakeWgpuPipelineCache,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -472,6 +490,7 @@ fn execute_sprite_graph_stage(
         Some(renderer),
         Some(streamer),
         None,
+        Some(ibl_bake_pipeline_cache),
         None,
         None,
         None,

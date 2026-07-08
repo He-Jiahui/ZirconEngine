@@ -48,3 +48,39 @@ pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_rendere
         cache: None,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::SKY_SHADER;
+
+    #[test]
+    fn skybox_shader_reconstructs_camera_ray_before_source_cubemap_sampling() {
+        for expected in [
+            "fn skybox_world_direction_from_ndc",
+            "scene.inverse_view_proj",
+            "camera_forward + ndc.x * camera_right + ndc.y * camera_up",
+            "let direction = skybox_world_direction_from_ndc(ndc);",
+            "fn skybox_fix_cube_lookup",
+            "skybox_fix_cube_lookup(rotated, 0.0)",
+        ] {
+            assert!(
+                SKY_SHADER.contains(expected),
+                "skybox shader should use `{expected}` for camera-space cubemap lookup"
+            );
+        }
+    }
+
+    #[test]
+    fn skybox_shader_is_valid_wgsl() {
+        let module = naga::front::wgsl::parse_str(SKY_SHADER)
+            .unwrap_or_else(|error| panic!("{}", error.emit_to_string(SKY_SHADER)));
+        let mut validator = naga::valid::Validator::new(
+            naga::valid::ValidationFlags::all(),
+            naga::valid::Capabilities::all(),
+        );
+
+        validator
+            .validate(&module)
+            .expect("skybox shader should validate");
+    }
+}

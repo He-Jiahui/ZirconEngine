@@ -87,6 +87,7 @@ fn filter_no_stack_post_process_resources(
                 && resource.name != PostProcessGraphResourceNames::TAA_REACTIVE_MASK
                 && resource.name != PostProcessGraphResourceNames::COLOR_LUT
                 && resource.name != PostProcessGraphResourceNames::UPSCALED
+                && resource.name != PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
         });
     }
     descriptor

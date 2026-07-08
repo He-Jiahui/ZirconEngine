@@ -1,26 +1,28 @@
+use super::metrics::workbench_segmented_selector_metrics;
+use super::palette::workbench_segmented_control_palette;
 use super::state::is_unavailable_segmented_state;
-use super::WORKBENCH_SEGMENT_SELECTED_BACKGROUND;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_surface_color(
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_segmented_control_palette();
     if is_unavailable_segmented_state(state) {
-        PALETTE.surface_disabled
+        palette.disabled_background
     } else {
-        WORKBENCH_SEGMENT_SELECTED_BACKGROUND
+        palette.selected_background
     }
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selected_segment_border_color(
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_segmented_control_palette();
     if is_unavailable_segmented_state(state) {
-        PALETTE.border_disabled
+        palette.disabled_border
     } else {
-        PALETTE.accent
+        palette.selected_border
     }
 }
 
@@ -41,7 +43,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selecte
     if height > 0.0 {
         height
     } else {
-        METRICS.tab_underline_height
+        workbench_segmented_selector_metrics().selected_underline_height
     }
 }
 
@@ -49,8 +51,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selecte
     node: &TemplatePaneNodeData,
     state: UiPainterResolvedState,
 ) -> [u8; 4] {
+    let palette = workbench_segmented_control_palette();
     if is_unavailable_segmented_state(state) {
-        PALETTE.text_disabled
+        palette.disabled_text
     } else if node.selected_segment_underline_color.a > 0 {
         [
             node.selected_segment_underline_color.r,
@@ -59,7 +62,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selecte
             node.selected_segment_underline_color.a,
         ]
     } else {
-        PALETTE.accent
+        palette.selected_underline
     }
 }
 

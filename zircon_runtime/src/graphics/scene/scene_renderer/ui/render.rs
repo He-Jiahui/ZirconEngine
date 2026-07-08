@@ -1,6 +1,5 @@
 use std::ops::Range;
 
-use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -9,31 +8,21 @@ use zircon_runtime_interface::ui::surface::{
     UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
 };
 
+use crate::core::framework::render::SkyboxMode;
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
 use crate::graphics::types::ViewportRenderFrame;
-use crate::render_graph::RenderGraphAttachmentOps;
+use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
 
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-pub(super) struct ScreenSpaceUiVertex {
-    position: [f32; 2],
-    color: [f32; 4],
-}
+mod background;
+mod color;
+mod geometry;
 
-impl ScreenSpaceUiVertex {
-    pub(super) fn layout() -> wgpu::VertexBufferLayout<'static> {
-        const ATTRIBUTES: [wgpu::VertexAttribute; 2] =
-            wgpu::vertex_attr_array![0 => Float32x2, 1 => Float32x4];
-
-        wgpu::VertexBufferLayout {
-            array_stride: std::mem::size_of::<Self>() as wgpu::BufferAddress,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &ATTRIBUTES,
-        }
-    }
-}
+use background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
+use color::parse_color;
+pub(super) use geometry::ScreenSpaceUiVertex;
+use geometry::{frame_to_scissor, push_rect, ScreenSpaceUiScissor};
 
 struct PreparedScreenSpaceUi {
     vertex_buffer: Option<wgpu::Buffer>,
@@ -57,6 +46,7 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) source_range: Option<UiTextRange>,
     pub(super) glyph_advances: Vec<f32>,
     pub(super) color: [f32; 4],
+    pub(super) background_color: Option<[f32; 4]>,
     pub(super) font: Option<String>,
     pub(super) font_family: Option<String>,
     pub(super) font_weight: u16,
@@ -69,14 +59,6 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) style: UiTextRunPaintStyle,
 }
 
-#[derive(Clone, Copy)]
-struct ScreenSpaceUiScissor {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-}
-
 impl ScreenSpaceUiRenderer {
     pub(crate) fn record(
         &mut self,
@@ -87,7 +69,10 @@ impl ScreenSpaceUiRenderer {
         frame: &ViewportRenderFrame,
         attachment_ops: RenderGraphAttachmentOps,
     ) {
-        let Some(prepared) = prepare_screen_space_ui(device, frame) else {
+        let pass_clear_color = wgpu::Color::TRANSPARENT;
+        let Some(prepared) =
+            prepare_screen_space_ui(device, frame, attachment_ops, pass_clear_color)
+        else {
             self.last_text_prepare_report = Default::default();
             return;
         };
@@ -108,7 +93,7 @@ impl ScreenSpaceUiRenderer {
                 view: color_view,
                 depth_slice: None,
                 resolve_target: None,
-                ops: color_attachment_operations(attachment_ops, wgpu::Color::TRANSPARENT),
+                ops: color_attachment_operations(attachment_ops, pass_clear_color),
             })],
             depth_stencil_attachment: None,
             occlusion_query_set: None,
@@ -167,9 +152,17 @@ impl ScreenSpaceUiRenderer {
 fn prepare_screen_space_ui(
     device: &wgpu::Device,
     frame: &ViewportRenderFrame,
+    attachment_ops: RenderGraphAttachmentOps,
+    pass_clear_color: wgpu::Color,
 ) -> Option<PreparedScreenSpaceUi> {
     let extract = frame.ui.as_ref()?;
-    let plan = plan_screen_space_ui_batches(extract, frame.viewport_size);
+    let framebuffer_background_color =
+        framebuffer_background_color(frame, attachment_ops, pass_clear_color);
+    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
+        extract,
+        frame.viewport_size,
+        framebuffer_background_color,
+    );
 
     if plan.draws.is_empty()
         && plan.post_text_draws.is_empty()
@@ -211,6 +204,14 @@ fn plan_screen_space_ui_batches(
     extract: &UiRenderExtract,
     viewport_size: crate::core::math::UVec2,
 ) -> PlannedScreenSpaceUi {
+    plan_screen_space_ui_batches_with_framebuffer_background(extract, viewport_size, None)
+}
+
+fn plan_screen_space_ui_batches_with_framebuffer_background(
+    extract: &UiRenderExtract,
+    viewport_size: crate::core::math::UVec2,
+    framebuffer_background_color: Option<[f32; 4]>,
+) -> PlannedScreenSpaceUi {
     let viewport = UiFrame::new(
         0.0,
         0.0,
@@ -232,11 +233,15 @@ fn plan_screen_space_ui_batches(
         native_texts: Vec::new(),
         sdf_texts: Vec::new(),
     };
+    let mut backgrounds = ScreenSpaceUiBackgroundTracker::with_framebuffer_background(
+        viewport,
+        framebuffer_background_color,
+    );
 
     for command in &extract.list.commands {
         let scissor = command_scissor(command, viewport, full_scissor);
         let start = plan.vertices.len() as u32;
-        plan_command_batches(command, viewport, &mut plan);
+        plan_command_batches(command, viewport, &backgrounds, &mut plan);
         let end = plan.vertices.len() as u32;
         if end > start {
             plan.draws.push(ScreenSpaceUiDraw {
@@ -254,9 +259,76 @@ fn plan_screen_space_ui_batches(
                 scissor,
             });
         }
+        backgrounds.observe_command(command, viewport);
     }
 
     plan
+}
+
+fn framebuffer_background_color(
+    frame: &ViewportRenderFrame,
+    attachment_ops: RenderGraphAttachmentOps,
+    pass_clear_color: wgpu::Color,
+) -> Option<[f32; 4]> {
+    match attachment_ops.load {
+        RenderGraphAttachmentLoadOp::Clear => opaque_wgpu_color(pass_clear_color),
+        RenderGraphAttachmentLoadOp::Load => known_loaded_framebuffer_background_color(frame),
+    }
+}
+
+fn known_loaded_framebuffer_background_color(frame: &ViewportRenderFrame) -> Option<[f32; 4]> {
+    let overlays = frame.overlays();
+    let has_overlay_content = !overlays.selection.is_empty()
+        || !overlays.selection_anchors.is_empty()
+        || overlays.grid.as_ref().is_some_and(|grid| grid.visible)
+        || !overlays.handles.is_empty()
+        || !overlays.scene_gizmos.is_empty();
+    if frame.environment().skybox.mode != SkyboxMode::Disabled
+        || frame.preview().skybox_enabled
+        || !frame.meshes().is_empty()
+        || !frame.sprites().is_empty()
+        || loaded_frame_has_particle_content(frame)
+        || has_overlay_content
+    {
+        return None;
+    }
+
+    let clear = frame.preview().clear_color;
+    opaque_f32_color([clear.x, clear.y, clear.z, clear.w])
+}
+
+fn loaded_frame_has_particle_content(frame: &ViewportRenderFrame) -> bool {
+    let particles = &frame.extract.particles;
+    !particles.emitters.is_empty()
+        || !particles.sprites.is_empty()
+        || !particles.previous_sprites.is_empty()
+        || !particles.bounds.is_empty()
+        || particles
+            .gpu_frame
+            .as_ref()
+            .is_some_and(|gpu| gpu.alive_count > 0 || gpu.spawned_total > 0)
+}
+
+fn opaque_wgpu_color(color: wgpu::Color) -> Option<[f32; 4]> {
+    opaque_f32_color([
+        color.r as f32,
+        color.g as f32,
+        color.b as f32,
+        color.a as f32,
+    ])
+}
+
+fn opaque_f32_color(color: [f32; 4]) -> Option<[f32; 4]> {
+    if color.iter().all(|component| component.is_finite()) && color[3] >= 1.0 {
+        Some([
+            color[0].clamp(0.0, 1.0),
+            color[1].clamp(0.0, 1.0),
+            color[2].clamp(0.0, 1.0),
+            1.0,
+        ])
+    } else {
+        None
+    }
 }
 
 fn command_scissor(
@@ -274,6 +346,7 @@ fn command_scissor(
 fn plan_command_batches(
     command: &UiRenderCommand,
     viewport: UiFrame,
+    backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
     if command.opacity <= 0.0 {
@@ -334,7 +407,7 @@ fn plan_command_batches(
         )
         .unwrap_or([0.96, 0.96, 0.96, command.opacity]);
         push_text_decoration_vertices(command, viewport, &mut plan.vertices, true);
-        push_text_batches(command, frame, color, plan);
+        push_text_batches(command, frame, color, viewport, backgrounds, plan);
     }
 }
 
@@ -381,6 +454,8 @@ fn push_text_batches(
     command: &UiRenderCommand,
     fallback_frame: UiFrame,
     color: [f32; 4],
+    viewport: UiFrame,
+    backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
     if let Some(layout) = command
@@ -389,7 +464,14 @@ fn push_text_batches(
         .filter(|layout| !layout.lines.is_empty())
     {
         if !command.style.rich_text {
-            push_resolved_text_layout_line_batches(command, layout, color, plan);
+            push_resolved_text_layout_line_batches(
+                command,
+                layout,
+                color,
+                viewport,
+                backgrounds,
+                plan,
+            );
             return;
         }
     }
@@ -420,6 +502,8 @@ fn push_text_batches(
                     text_paint.writing_mode,
                     UiTextWrap::None,
                     run.style,
+                    viewport,
+                    backgrounds,
                     plan,
                 );
             }
@@ -450,6 +534,8 @@ fn push_text_batches(
                 layout.writing_mode,
                 command.style.wrap,
                 UiTextRunPaintStyle::default(),
+                viewport,
+                backgrounds,
                 plan,
             );
         }
@@ -475,6 +561,8 @@ fn push_text_batches(
             command.style.text_writing_mode,
             command.style.wrap,
             UiTextRunPaintStyle::default(),
+            viewport,
+            backgrounds,
             plan,
         );
     }
@@ -484,6 +572,8 @@ fn push_resolved_text_layout_line_batches(
     command: &UiRenderCommand,
     layout: &zircon_runtime_interface::ui::surface::UiResolvedTextLayout,
     color: [f32; 4],
+    viewport: UiFrame,
+    backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
     for line in &layout.lines {
@@ -504,6 +594,8 @@ fn push_resolved_text_layout_line_batches(
             layout.writing_mode,
             UiTextWrap::None,
             UiTextRunPaintStyle::default(),
+            viewport,
+            backgrounds,
             plan,
         );
     }
@@ -538,6 +630,8 @@ fn push_text_batch(
     writing_mode: UiTextWritingMode,
     wrap: UiTextWrap,
     style: UiTextRunPaintStyle,
+    viewport: UiFrame,
+    backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
     if text.is_empty() || frame.width <= 0.0 || frame.height <= 0.0 {
@@ -551,6 +645,7 @@ fn push_text_batch(
         source_range,
         glyph_advances,
         color,
+        background_color: text_batch_background_color(command, frame, viewport, backgrounds),
         font,
         font_family,
         font_weight: UiResolvedStyle::normalized_font_weight(font_weight),
@@ -612,110 +707,6 @@ fn push_border(
             viewport,
         );
     }
-}
-
-fn push_rect(
-    vertices: &mut Vec<ScreenSpaceUiVertex>,
-    frame: UiFrame,
-    color: [f32; 4],
-    viewport: UiFrame,
-) {
-    if frame.width <= 0.0 || frame.height <= 0.0 {
-        return;
-    }
-
-    let x0 = pixel_to_ndc_x(frame.x, viewport.width);
-    let x1 = pixel_to_ndc_x(frame.right(), viewport.width);
-    let y0 = pixel_to_ndc_y(frame.y, viewport.height);
-    let y1 = pixel_to_ndc_y(frame.bottom(), viewport.height);
-
-    vertices.extend_from_slice(&[
-        ScreenSpaceUiVertex {
-            position: [x0, y0],
-            color,
-        },
-        ScreenSpaceUiVertex {
-            position: [x1, y0],
-            color,
-        },
-        ScreenSpaceUiVertex {
-            position: [x1, y1],
-            color,
-        },
-        ScreenSpaceUiVertex {
-            position: [x0, y0],
-            color,
-        },
-        ScreenSpaceUiVertex {
-            position: [x1, y1],
-            color,
-        },
-        ScreenSpaceUiVertex {
-            position: [x0, y1],
-            color,
-        },
-    ]);
-}
-
-fn frame_to_scissor(frame: UiFrame) -> Option<ScreenSpaceUiScissor> {
-    let x = frame.x.max(0.0).floor() as u32;
-    let y = frame.y.max(0.0).floor() as u32;
-    let width = frame.width.max(0.0).ceil() as u32;
-    let height = frame.height.max(0.0).ceil() as u32;
-    (width > 0 && height > 0).then_some(ScreenSpaceUiScissor {
-        x,
-        y,
-        width,
-        height,
-    })
-}
-
-fn pixel_to_ndc_x(x: f32, width: f32) -> f32 {
-    (x / width.max(1.0)) * 2.0 - 1.0
-}
-
-fn pixel_to_ndc_y(y: f32, height: f32) -> f32 {
-    1.0 - (y / height.max(1.0)) * 2.0
-}
-
-fn parse_color(value: Option<&str>, fallback: [f32; 4], opacity: f32) -> Option<[f32; 4]> {
-    parse_hex_color(value.unwrap_or(""), opacity).or_else(|| {
-        (opacity > 0.0).then_some([fallback[0], fallback[1], fallback[2], fallback[3] * opacity])
-    })
-}
-
-fn parse_hex_color(value: &str, opacity: f32) -> Option<[f32; 4]> {
-    let hex = value.strip_prefix('#')?;
-    match hex.len() {
-        6 => {
-            let r = parse_hex_byte(&hex[0..2])?;
-            let g = parse_hex_byte(&hex[2..4])?;
-            let b = parse_hex_byte(&hex[4..6])?;
-            Some([
-                r as f32 / 255.0,
-                g as f32 / 255.0,
-                b as f32 / 255.0,
-                opacity,
-            ])
-        }
-        8 => {
-            let r = parse_hex_byte(&hex[0..2])?;
-            let g = parse_hex_byte(&hex[2..4])?;
-            let b = parse_hex_byte(&hex[4..6])?;
-            let a = parse_hex_byte(&hex[6..8])?;
-            Some([
-                r as f32 / 255.0,
-                g as f32 / 255.0,
-                b as f32 / 255.0,
-                (a as f32 / 255.0) * opacity,
-            ])
-        }
-        _ => None,
-    }
-}
-
-fn parse_hex_byte(value: &str) -> Option<u8> {
-    u8::from_str_radix(value, 16).ok()
 }
 
 #[cfg(test)]

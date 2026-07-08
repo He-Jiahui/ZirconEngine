@@ -2,14 +2,11 @@ use super::super::super::super::super::{
     data::{FrameRect, TemplatePaneNodeData},
     paint_text::measure_runtime_text_width,
 };
-use super::super::identity::{
-    chip_has_avatar, chip_has_icon, chip_is_deletable, chip_is_outlined, chip_is_small,
-};
+use super::super::identity::{chip_has_avatar, chip_has_icon, chip_is_deletable};
 use super::delete::chip_delete_edge;
 use super::leading::{chip_leading_edge, chip_leading_margin, chip_negative_slot_margin};
 use super::metrics::{
-    CHIP_LABEL_FONT_SIZE, CHIP_LABEL_OUTLINED_PADDING, CHIP_LABEL_PADDING,
-    CHIP_SMALL_LABEL_FONT_SIZE, CHIP_SMALL_LABEL_PADDING, CHIP_SMALL_OUTLINED_LABEL_PADDING,
+    chip_font_size, chip_label_base_padding, chip_label_line_height, chip_label_width, chip_label_y,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_label_frame(
@@ -18,34 +15,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_la
     label: &str,
 ) -> Option<(FrameRect, f32, f32)> {
     let font_size = chip_font_size(node);
-    let line_height = font_size * 1.5;
+    let line_height = chip_label_line_height(font_size);
     let left = rect.x + chip_label_left_padding(node);
     let right = rect.x + rect.width - chip_label_right_padding(node);
     if right <= left {
         return None;
     }
     let measured_width = measure_runtime_text_width(label, font_size);
-    let width = measured_width.min(right - left).max(1.0);
+    let width = chip_label_width(measured_width, right - left);
     Some((
         FrameRect {
             x: left,
-            y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+            y: chip_label_y(rect, line_height),
             width,
             height: line_height,
         },
         font_size,
         line_height,
     ))
-}
-
-fn chip_font_size(node: &TemplatePaneNodeData) -> f32 {
-    if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
-    } else if chip_is_small(node) {
-        CHIP_SMALL_LABEL_FONT_SIZE
-    } else {
-        CHIP_LABEL_FONT_SIZE
-    }
 }
 
 fn chip_label_left_padding(node: &TemplatePaneNodeData) -> f32 {
@@ -63,20 +50,6 @@ fn chip_label_right_padding(node: &TemplatePaneNodeData) -> f32 {
         base + chip_delete_edge(node) - chip_negative_slot_margin(node)
     } else {
         base
-    }
-}
-
-fn chip_label_base_padding(node: &TemplatePaneNodeData) -> f32 {
-    if chip_is_small(node) {
-        if chip_is_outlined(node) {
-            CHIP_SMALL_OUTLINED_LABEL_PADDING
-        } else {
-            CHIP_SMALL_LABEL_PADDING
-        }
-    } else if chip_is_outlined(node) {
-        CHIP_LABEL_OUTLINED_PADDING
-    } else {
-        CHIP_LABEL_PADDING
     }
 }
 
@@ -107,15 +80,17 @@ mod tests {
         let frame = chip_label_frame(&node, &rect(220.0), label)
             .expect("chip label has enough horizontal space")
             .0;
-        let expected_width = measure_runtime_text_width(label, 13.0)
-            .min(220.0 - chip_label_left_padding(&node) - chip_label_right_padding(&node))
-            .max(1.0);
+        let expected_width = chip_label_width(
+            measure_runtime_text_width(label, chip_font_size(&node)),
+            220.0 - chip_label_left_padding(&node) - chip_label_right_padding(&node),
+        );
 
         assert!(
             (frame.width - expected_width).abs() <= 0.01,
             "chip label frame must use runtime text measurement width"
         );
-        let old_heuristic_width = label.chars().count() as f32 * 13.0 * 0.56;
+        let old_heuristic_width =
+            chip_label_width(label.chars().count() as f32 * 13.0 * 0.56, 220.0);
         assert!(
             (expected_width - old_heuristic_width).abs() > 0.25,
             "fixture should catch regressions back to char-count width"

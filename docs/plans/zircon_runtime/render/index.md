@@ -55,6 +55,13 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/access/metadata.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/package_contributions/manifest_metadata.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
+  - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
+  - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/provider.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs
   - zircon_runtime/src/graphics/material/shading_models/include_sources.rs
   - zircon_runtime/src/graphics/material/shading_models/registry.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
@@ -523,7 +530,7 @@ trace 均包含 `submit_runtime_frame`、`render_frame_with_pipeline`、`DepthPr
 profiling-tracy 构建耗时与 full Runtime 07 gates 仍 pending。
 - **F4（P0）提交路径 viewport/VG `expect` 无降级**：`submit/{present_frame_extract,submit_runtime_frame,submit}.rs`、`prepare_runtime_submission/prepare.rs:66,104`。2026-06-22 已完成 production submit/prepare panic slice：`viewport_generation_guard.rs` 提供 `viewport_record_mut_after_generation_check(...)`，三条 submit lane 写回 viewport record 前均返回 `UnknownViewport` / `ViewportChanged` 而不是 panic；HGI/VG context 启用但 provider registration 缺席时返回 `RenderFrameworkError::UnsupportedCapability` 并清理 stale runtime state。2026-06-27 复核同步为 `render_submit_viewport_provider_errors_review_guard_static_passed_cargo_timeout_no_result_full_runtime07_pending`，新增 `review_f4_render_submit_capability_gaps_return_typed_errors` 锁定 `submit_frame_extract` production paths must return RenderFrameworkError，production submit/prepare 段不得回流裸 `.unwrap(`/`.expect(`；本轮 core-min 聚焦 Cargo 15 分钟 timeout no result，Runtime 07 FPS/profiling/full gates 仍 pending。
 - **F16（P1）`render_compiled_scene()` 单函数 ~533 行**：`scene_renderer/core/.../render/render.rs:80`，按 `bind_resources/execute_graph_stages/present` 拆。2026-06-22 已完成资源绑定、graph stage 执行、present/readback/pool-release 拆分：新增 `bind_compiled_scene_graph_resources.rs`、`execute_compiled_scene_graph_stages.rs`、`submit_compiled_scene_frame.rs`，`render.rs` 从 1217 行降到 409 行；core-min `cargo check`、`active_late_graph_stages_follow_compiled_pipeline_order` 聚焦测试 1/1 与 `compiled_scene` 过滤 22/22 均通过，F16 结构项闭合。2026-06-28 追加状态镜像守卫 `compiled_scene_render_split_review_guard_static_passed_cargo_deferred` / `review_f16_compiled_scene_render_path_uses_split_owners`：当前 `render.rs` 因后续 camera-stack 编排约 444 行但仍低于 500 行 orchestration budget，并锁定 resource binding、stage execution、submit/readback/pool-release 不回流。
-- **F11（P1）shading-model 插件注册路径半成品僵尸**（`#[allow(dead_code)]` 藏未接线 API）：`graphics/material/shading_models/registry.rs:24-60`。2026-06-22 已完成 dead API removal：未接线的 `register_plugin()` / `supported_channels()` / `len()` 与 `PluginIdBelowReservedRange` 删除，`resolve_token(...)` 作为 registry 内部 live helper 被 `resolve_lighting_model(...)` 消费；2026-06-27 已按 F11 要求在真实 owner 出现后接回 custom descriptor registration：`PluginPackageManifest.shading_models` 与 `RuntimeExtensionRegistry.shading_models` 承载 owner-tracked descriptor，`register_plugin_descriptor(...)` 仅保留 plugin-range guard。状态为 `render_shading_model_registry_dead_api_removed_coremin_passed` 与 `render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`；守卫为 `review_f11_shading_model_registry_has_no_dead_plugin_registration_surface` 与 `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired`。2026-06-27 `render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred` 已接通材质 custom lighting-model 到 selected plugin descriptor registry 的运行时消费；2026-07-01 `render_plan08_selected_plugin_shading_model_registration_inputs_static_guard_cargo_deferred` 又用 `plugin_registration_inputs_collect_shading_model_descriptors` 锁定 selected plugin `RuntimePluginRegistrationReport.extensions.shading_models` 进入 `RuntimeModuleRegistrationInputs::shading_models()`；2026-07-01 `render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred` 把 plugin descriptor/source set 接到 SceneRenderer Forward/GBuffer/deferred lighting runtime source assembly；2026-07-01 `render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred` 已用 authored plugin WGSL 验证 Forward/GBuffer runtime source 能创建 WGPU shader module。当前剩余项是 deferred lighting custom include WGPU pipeline/product 证据、产品/RenderDoc 验收、broader miss=0/product sweep 和 full CI。
+- **F11（P1）shading-model 插件注册路径半成品僵尸**（`#[allow(dead_code)]` 藏未接线 API）：`graphics/material/shading_models/registry.rs:24-60`。2026-06-22 已完成 dead API removal：未接线的 `register_plugin()` / `supported_channels()` / `len()` 与 `PluginIdBelowReservedRange` 删除，`resolve_token(...)` 作为 registry 内部 live helper 被 `resolve_lighting_model(...)` 消费；2026-06-27 已按 F11 要求在真实 owner 出现后接回 custom descriptor registration：`PluginPackageManifest.shading_models` 与 `RuntimeExtensionRegistry.shading_models` 承载 owner-tracked descriptor，`register_plugin_descriptor(...)` 仅保留 plugin-range guard。状态为 `render_shading_model_registry_dead_api_removed_coremin_passed` 与 `render_plan08_plugin_shading_model_descriptor_registration_typecheck_python_passed_libtest_blocked_by_ui_input_error`；守卫为 `review_f11_shading_model_registry_has_no_dead_plugin_registration_surface` 与 `runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired`。2026-06-27 `render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred` 已接通材质 custom lighting-model 到 selected plugin descriptor registry 的运行时消费；2026-07-01 `render_plan08_selected_plugin_shading_model_registration_inputs_static_guard_cargo_deferred` 又用 `plugin_registration_inputs_collect_shading_model_descriptors` 锁定 selected plugin `RuntimePluginRegistrationReport.extensions.shading_models` 进入 `RuntimeModuleRegistrationInputs::shading_models()`；2026-07-01 `render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred` 把 plugin descriptor/source set 接到 SceneRenderer Forward/GBuffer/deferred lighting runtime source assembly；2026-07-01 `render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred` 已用 authored plugin WGSL 验证 Forward/GBuffer runtime source 能创建 WGPU shader module。2026-07-05 状态校正：deferred lighting custom include WGPU pipeline 与 focused product readback/PNG/default-feature refresh 已由 `render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred`、`render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred`、`render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred` 和 `render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred` 关闭；当前剩余项缩窄为 RenderDoc/product capture、test-target/full CI、full live project/plugin registry export beyond focused fixtures、broader miss=0/product sweep，以及 broad `material` wrapper；fresh `skinning` wrapper 已由 `render_plan08_skinning_current_source_cargo_wrapper_passed_renderdoc_deferred` 关闭。
 - **F19（P1）scene renderer construction module rename**：`graphics/scene/scene_renderer/core/mod.rs:7,12` 原 `*_new` construction owner 命名读如迁移残留。2026-06-22 已硬切 `scene_renderer_core_construct` 与 `scene_renderer_construct`，所有 live caller、结构测试和 docs 路径直接指向新 owner，不保留旧目录、compat re-export 或 shim。状态为 `render_scene_renderer_construct_modules_coremin_passed`，守卫为 `review_f19_scene_renderer_construction_modules_use_construct_names`。
 - **F13（P1）runtime provider 样板重复**：`graphics/{hybrid_gi,virtual_geometry,solari}_runtime_provider/provider_registration.rs` 原先各自复制 provider ID、priority、provider trait-object 与 debug 实现；HGI/VG `runtime_update.rs` 原先各自复制 stats storage/constructor/getter；HGI/VG `runtime_feedback.rs` 原先各自复制 GPU completion + visibility feedback payload；HGI/VG `prepare_input.rs` 原先各自复制 optional extract + generation 存储/getter。2026-06-22 已完成 registration 子切片：新增 `graphics/runtime_provider/registration.rs`，`RuntimeProviderRegistration<P: ?Sized>` + `define_runtime_provider_registration!` 生成 HGI、Virtual Geometry、Solari 三套 public registration wrapper；状态为 `runtime_15_provider_registration_shared_owner_coremin_check_passed`，守卫为 `runtime_15_provider_registration_uses_shared_owner`。同日已完成 update stats 子切片：新增 `graphics/runtime_provider/update.rs`，`RuntimeProviderUpdate<S>` + `define_runtime_provider_update!` 生成 HGI/VG update wrapper，原 public API 名称和 `stats()` 返回形状不变；状态为 `runtime_15_provider_update_shared_stats_owner_coremin_check_passed`，守卫为 `runtime_15_provider_update_uses_shared_stats_owner`。同日已完成 Runtime 15 F13 provider feedback shared payload owner 子切片：新增 `graphics/runtime_provider/feedback.rs`，`RuntimeProviderFeedback<G, V>` 承接共同的 GPU completion 与 visibility feedback payload，HGI/VG public feedback surface 不变；状态为 `runtime_15_provider_feedback_shared_payload_owner_coremin_check_passed`，守卫为 `runtime_15_provider_feedback_uses_shared_payload_owner`。同日已完成 Runtime 15 F13 provider prepare input shared frame owner 子切片：新增 `graphics/runtime_provider/prepare_input.rs`，`RuntimeProviderPrepareInput<'a, E>` 承接共同的 optional extract 与 generation，HGI/VG public prepare-input surface 不变；状态为 `runtime_15_provider_prepare_input_shared_frame_owner_coremin_check_passed`，守卫为 `runtime_15_provider_prepare_input_uses_shared_extract_generation_owner`。同日 `Runtime 15 F13 full provider boilerplate audit` 已由 `runtime_15_no_duplicated_provider_boilerplate` 总守卫闭合，状态为 `runtime_15_provider_boilerplate_full_audit_coremin_check_passed`。
 
@@ -532,6 +539,42 @@ profiling-tracy 构建耗时与 full Runtime 07 gates 仍 pending。
 ## 9. 当前状态总览(2026-06-23)
 
 本总览不再维护计划级状态明细表。当前状态、未完成项与验收缺口已按计划迁入各子计划的 `## 状态与产出记录` 表，render 总索引只保留读取路由。
+
+2026-07-06 Plan 11 / Shader 06 IBL bake shader plan + per-mip PMREM WGPU contract 已写入 `11-environment-lighting.md` 与 `shader/06-environment-ibl-and-pbr-correctness.md`。状态锚为 `render_plan11_ibl_bake_shader_plan_per_mip_pmrem_core_min_and_focused_tests_passed_wgpu_command_deferred`;当前源码把 PMREM graph pass 拆为 `env.ibl_prefilter.mipN`,executor 从 `.mipN` 推导每 mip dispatch groups,shader plan 与 WGSL 使用 `texture_storage_2d_array<rgba16float, write>` 写 cubemap face array view,避免 WGPU 不存在的 `texture_storage_cube`。验证:`cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-shader-plan-check-0706 --message-format short --color never` 通过;focused lib tests `ibl_bake_graph_plan` 4/4、`ibl_bake_compute_executor` 4/4、`ibl_bake_shader_plan` 4/4 通过。真实 WGPU bind group/storage view 创建、compute command encoding、async readback/cache writeback、product dispatch=0、RenderDoc/product capture、optimized SH9 reduction、strict roughness/SSIM/seam gate 与 full CI 仍按 Plan 11 后续执行。
+
+2026-07-06 Plan 11 / Shader 06 IBL bake WGPU command/readback plan 已写入 `11-environment-lighting.md` 与 `shader/06-environment-ibl-and-pbr-correctness.md`。状态锚为 `render_plan11_ibl_bake_wgpu_command_readback_plan_focused_tests_passed_wgpu_execution_deferred`;当前源码新增 `graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs`,把 PMREM/SH9/IEM kernel plan 投影为 WGPU bind-group layout entries、per-mip `Rgba16Float` D2Array storage texture view、storage-buffer output 与 artifact byte-offset aware readback copy plan。聚焦 direct lib-test `ibl_bake_wgpu_command_plan` 4/4 通过;真实 WGPU bind group/resource allocation、compute pipeline cache、command encoder dispatch、queue submission、async readback dequeue、runtime cache writeback、product dispatch=0、RenderDoc/product capture、optimized SH9 reduction、strict roughness/SSIM/seam gate 与 full CI 仍按 Plan 11 后续执行。
+
+2026-07-06 Plan 11 / Shader 06 IBL bake WGPU compute pipeline dispatch bridge 已写入 `11-environment-lighting.md` 与 `shader/06-environment-ibl-and-pbr-correctness.md`。状态锚为 `render_plan11_ibl_bake_wgpu_dispatch_cargo_passed_readback_deferred`;当前源码新增 `graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs`,从 command plan 的 `wgsl_source` 创建 WGPU shader module/compute pipeline,用 live bind group 编码 PMREM storage-texture 与 SH9 storage-buffer dispatch,并能从 PMREM mip0 `RenderPassExecutionContext` 解析 materialized resources 后记录 dispatch audit。focused Cargo `ibl_bake_wgpu_dispatch` exit 0,4/4 passed、6984 filtered;直接复跑日志为 `docs/tests/runtime/render/plan11_ibl_wgpu_dispatch_direct_tests_20260706.out.log`。生产 scheduler、pipeline cache reuse、SH9/IEM graph-context coverage、async scheduling/readback/cache writeback、product dispatch=0、RenderDoc/product capture、optimized SH9 reduction、strict roughness/SSIM/seam gate 与 full CI 仍按 Plan 11 后续执行。
+
+2026-07-06 Plan 11 / Shader 06 IBL bake WGPU storage bind-group resource bridge 已写入 `11-environment-lighting.md` 与 `shader/06-environment-ibl-and-pbr-correctness.md`。状态锚为 `render_plan11_ibl_bake_wgpu_bind_group_direct_tests_passed_pipeline_encoding_deferred`;当前源码新增 `graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs`,可从 command plan 创建 storage-texture/storage-buffer bind group layout 与 bind group,并在调用 WGPU 前拒绝 PMREM/IEM command 绑定 SH9 buffer 等 output-kind mismatch。直接运行已生成 lib-test 程序 `E:\cargo-targets\zircon-ibl-wgpu-binding-0706\debug\deps\zircon_runtime-9b53a08da5f6e0e7.exe ibl_bake_wgpu_binding --nocapture --test-threads=1` exit 0,2/2 passed、6974 filtered;首轮 Cargo wrapper 超过工具窗口不计通过。生产 executor resource lookup、pipeline cache、command encoding/submission、async readback/cache writeback、product dispatch=0、RenderDoc/product capture、optimized SH9 reduction、strict roughness/SSIM/seam gate 与 full CI 仍按 Plan 11 后续执行。
+
+2026-07-06 Plan 11 / Shader 06 IBL bake owned Cube storage-view resource bridge 已写入 `11-environment-lighting.md` 与 `shader/06-environment-ibl-and-pbr-correctness.md`。状态锚为 `render_plan11_ibl_bake_owned_cube_storage_view_cargo_passed_command_encoding_deferred`;当前源码在 `graph_execution/render_graph_execution_resources.rs` 增加 `owned_texture_view_with_descriptor(...)`,使 materialized owned Cube transient texture 可按命令计划创建 mip-scoped `D2Array` + 6-layer + `STORAGE_BINDING` view,并校验 format/usage/dimension/mip/array 边界。聚焦 WGPU offscreen lib-test `materialization_exposes_owned_cube_storage_texture_array_views` 1/1 通过;真实 bind group creation、pipeline cache、command encoding/submission、async readback/cache writeback、product dispatch=0、RenderDoc/product capture、optimized SH9 reduction、strict roughness/SSIM/seam gate 与 full CI 仍按 Plan 11 后续执行。
+
+2026-07-06 Plan 11 / Shader 06 2K HDRI PMREM export current-source Cargo refresh 已写入 `11-environment-lighting.md` 与 `shader/06-environment-ibl-and-pbr-correctness.md`。状态锚为 `render_plan11_hdri_2k_pmrem_export_current_source_cargo_passed_renderdoc_deferred`;当前源码 Cargo wrapper 命令 `cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-hdr-pmrem-export-it-0705 --message-format short --color never -- --ignored --exact export_runtime_shader_pbr_real_hdri_2k_reflection_png --nocapture --test-threads=1` exit 0,日志报告 1/1 passed、1 filtered、测试本体 158.36s。生成 PNG `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_hdr_pmrem_reflection_20260705.png` 为 1,009,731 bytes,SHA256 `920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0`。本切片不改渲染生产代码;RenderDoc/product capture、strict source-cubemap contract fresh pass、GPU/offline PMREM/SH9/BRDF bake、derived cache、IEM、probe capture/blending、SSIM/seam 对拍和 full test-target/CI 仍按 Plan 11 后续执行。
+
+2026-07-06 Plan 11 / Shader 06 source-cubemap contract current-source Cargo refresh 关闭了上一段提到的 strict source-cubemap fresh-pass 缺口。状态锚为 `render_plan11_source_cubemap_contract_current_source_cargo_passed_renderdoc_deferred`;`CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_environment_source_cubemap_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-cubemap-projection-check-0705 --message-format short --color never -- --nocapture --test-threads=1` exit 0,日志 `docs/tests/runtime/render/plan11_source_cubemap_contract_current_source_cargo_rerun_20260706.out.log` 报告 9/9 passed、0 failed、0 filtered,测试本体 6.83s,总 elapsed 00:11:14.0717002。前一轮 0-test 和 1204s timeout 仍作为不计通过记录保留。RenderDoc/product capture、GPU/offline PMREM/SH9/BRDF bake、derived cache、IEM、probe capture/blending、SSIM/seam 对拍和 full test-target/CI 仍未关闭。
+
+2026-07-05 Plan 08 material filter WGPU prewarm scene-layout closeout 关闭了默认特性 `material` 过滤中的渲染管线阻断项。状态锚为 `render_plan08_material_filter_prewarm_scene_environment_layout_wgpu_passed_ui_material_layout_open`；`SampledEquirectangularEnvironment` 改用 `SharedSampledEquirectangularSamples`，避免 174,763-sample HDRI mip 表在 phase-ordering/测试路径按值复制导致栈溢出；`mesh_pipeline_cache/prewarm_pipeline_validation.rs` 与 mesh pipeline WGPU test-support scene layouts 现在与运行时 scene bind group 一致：binding0 scene uniform，binding1 `texture_cube<f32>` source environment，binding2 filtering sampler。聚焦证据：phase-ordering exact 1/1、neighbor filter 3/3、prewarm validation exact 1/1、project/plugin material-pass staged prewarm 9/9 with 2 ignored。宽 `material` rerun 仍失败 16 项，但失败全部在 `ui::tests::material_layout` 文本/布局度量分支；Render/WGPU material-prewarm 项已清零。UI material layout、RenderDoc/product capture、workspace/full CI 仍未关闭；`skinning` current-source Cargo wrapper 已由后续 `render_plan08_skinning_current_source_cargo_wrapper_passed_renderdoc_deferred` 关闭。
+
+2026-07-05 Plan 08 default-feature `skinning` VG/joint-channel split 关闭了该过滤器里暴露出的 render-asset 数据冲突。状态锚为 `render_plan08_skinning_filter_vg_joint_channel_split_direct_binary_passed_current_source_text_blocked`；自动 Virtual Geometry ordinal 当前复用 joint-index 槽，因此 `ModelPrimitiveAsset::assign_virtual_geometry_vertex_ordinals()` 不再改写带非零 skinning weight 的 primitive，`primitive_from_indexed_mesh(...)` 与 `backfill_virtual_geometry_for_model(...)` 也不再给加权 skinned primitive 自动 cook/backfill VG payload。聚焦 current-source Cargo 证明 glTF skinning channel regression 1/1 passed，current-source production `cargo check -p zircon_runtime --lib` 也通过；同一已构建 lib-test binary 证明 VG ordinal 3/3、static VG mesh conversion 1/1、authored skinning mesh conversion 1/1、broad `skinning` 20/20。新的 current-source Cargo test wrapper 当时仍被 active runtime text test compile drift 挡在测试执行前，日志为 `plan08_skinning_vg_ordinal_model_tests_after_skinning_channel_guard_20260705.err.log`；后续 `render_plan08_skinning_current_source_cargo_wrapper_passed_renderdoc_deferred` 已关闭 fresh `skinning` wrapper。UI material layout、RenderDoc/product capture、workspace/full CI 仍未关闭。
+
+2026-07-05 Plan 08 workspace production check 关闭了 full-CI 缺口里的生产编译部分，但没有声明测试目标或 RenderDoc 完成。状态锚为 `render_plan08_workspace_production_check_passed_renderdoc_environment_missing`；`cargo check --workspace --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-workspace-production-check-0705 --message-format short --color never` 通过，日志为 `docs/tests/runtime/render/plan08_workspace_production_check_20260705.{out,err,exit}.log/txt`，耗时 20m57s，退出码 0，只有仓库既有 warning。RenderDoc MCP 和本机命令探测同时确认当前没有运行中的 RenderDoc bridge，也找不到 `renderdoccmd` / `qrenderdoc`，所以 RenderDoc/product capture 仍未关闭。测试目标/full CI 仍受 active runtime text test compile drift 影响；宽 `material` 和更宽 Plan 08 验收仍需后续执行，fresh `skinning` Cargo wrapper 已由后续绿跑关闭。
+
+2026-07-05 Plan 08 material skip-UI reprobe 记录了当时的 test-target 阻塞，而不是完成项。状态锚为 `render_plan08_material_filter_skip_ui_layout_reprobe_blocked_runtime15_text_compile_drift`；当前源码运行 `cargo test -p zircon_runtime --lib material --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-default-broad-current-0704 --message-format short --color never -- --skip ui::tests::material_layout --nocapture --test-threads=1` 退出 101，日志为 `docs/tests/runtime/render/plan08_default_features_material_filter_skip_ui_layout_current_20260705.{out,err,exit}.log/txt`。该命令跳过了已知 UI material layout 文本 lane，但仍在测试启动前遇到 26 个编译错误：Runtime 15/code-review status-doc child-anchor 私有 re-export、`dynamic_api_session` 私有 helper/常量，以及 runtime text `GlyphAtlasBitmapQueuedGlyph` 测试导入漂移。它不证明 material 子集失败，也不关闭 broad `material` gate；后续 material skip-UI 子集和 fresh `skinning` wrapper 已分别由 `render_plan08_material_filter_skip_ui_current_source_render_subset_passed_ui_layout_open` 与 `render_plan08_skinning_current_source_cargo_wrapper_passed_renderdoc_deferred` 关闭，未跳过的 broad `material` 仍等待 UI/text lane 收敛。
+
+2026-07-05 Plan 08 material skip-UI current-source render subset closeout 用当前源码补上了上一段之后的 render/material-owned 子集证据。状态锚为 `render_plan08_material_filter_skip_ui_current_source_render_subset_passed_ui_layout_open`；第一次同类复跑 `docs/tests/runtime/render/plan08_material_skip_ui_after_5slot_current_source_20260705.err.log` 仍在测试启动前遇到 17 个 Runtime 15/code-review structure-support 错误，随后只在这些测试支撑 owner 内补齐 `lock_poison_policy/split_layout.rs` 的显式 child module path，以及 typed-error status-doc paths split-layout 的预算、状态行源和 review map 显式 import。计数证据来自 `cargo test -p zircon_runtime --lib material --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b --message-format short --color never -- --skip ui::tests::material_layout --nocapture --test-threads=1`；`docs/tests/runtime/render/plan08_material_skip_ui_after_structure_support_fix_20260705.out.log` 报告 310 个测试执行、307 passed、0 failed、3 ignored、6449 filtered。随后复用同一 current-source test binary 不跳过 UI 直接跑 broad `material`，`docs/tests/runtime/render/plan08_material_direct_binary_after_structure_support_fix_20260705.out.log` 报告 314 passed、16 failed、3 ignored，16 项全部仍在 `ui::tests::material_layout`。该结果关闭 five-slot scene layout 修复后的当前源码 render/material 子集 gate，但 broad unskipped `material` 仍因 UI 文本/layout lane 保持开放；RenderDoc/product capture、full test-target/CI 与 broader Plan 08 仍未关闭。
+
+2026-07-05 Plan 08 camera-target/post-process current-source product refresh 复用同一当前源码测试二进制直接复验两个产品组，状态锚为 `render_plan08_camera_targets_post_process_current_source_direct_binary_product_groups_passed_renderdoc_deferred`。`E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b\debug\deps\zircon_runtime-90029178d239f47b.exe graphics::tests::render_product_camera_targets --nocapture --test-threads=1` 在 `docs/tests/runtime/render/plan08_render_product_camera_targets_current_source_direct_binary_20260705.out.log` 通过 13/13、6746 filtered；`... graphics::tests::render_product_post_process --nocapture --test-threads=1` 在 `docs/tests/runtime/render/plan08_render_product_post_process_current_source_direct_binary_20260705.out.log` 通过 12/12、6747 filtered。该 slice 不改渲染代码，只确认当前 binary 下 camera primary/texture/custom target composition 和 post-process tonemap/LUT/blur/DOF/full-chain/scene-composite/terminal/volume 产品组仍绿；RenderDoc/product capture、full CI/test-target、broad `material` UI lane 和更宽产品覆盖仍未关闭。
+
+2026-07-05 Plan 08 broad `render_product_` current-source direct-binary refresh 复用同一当前源码 default-feature 测试二进制直接复验自动产品过滤器，状态锚为 `render_plan08_render_product_full_current_source_direct_binary_refresh_passed_renderdoc_deferred`。`E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b\debug\deps\zircon_runtime-90029178d239f47b.exe render_product_ --nocapture --test-threads=1` 在 `docs/tests/runtime/render/plan08_render_product_full_current_source_direct_binary_20260705.out.log` 报告 203 passed、0 failed、6 ignored、6550 filtered，exit 0，耗时 660.16s。该结果刷新当前 binary 的自动 render-product 覆盖，覆盖资产/框架/diagnostics/material streamer/advanced/AA/camera targets/mesh cache/morph/project-plugin/particle/post-process/shadow/Solari/sprite/submit/UI/world extract/Runtime15 guard 等产品面；6 个 ignored/manual PNG exports 已由后续 current-source ignored direct-binary refresh 覆盖，RenderDoc/product capture、full CI/test-target、broad `material` UI lane 和 automatic+ignored filters 之外产品覆盖仍未关闭。
+
+2026-07-05 Plan 08 `render_product_ --ignored` current-source PNG export refresh 复用同一当前源码测试二进制复验 6 个 ignored/manual PNG 导出测试，状态锚为 `render_plan08_render_product_ignored_png_current_source_direct_binary_refresh_passed_renderdoc_deferred`。`E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b\debug\deps\zircon_runtime-90029178d239f47b.exe render_product_ --ignored --nocapture --test-threads=1` 在 `docs/tests/runtime/render/plan08_render_product_ignored_png_current_source_direct_binary_20260705.out.log` 报告 6 passed、0 failed、6753 filtered，exit 0，耗时 36.22s。刷新 PNG SHA256：direct/skinned morph velocity 均为 `7B40FA8BA6EA60F7F24F3C5465F3C802B4119E26A8965DACECA08187FF665DE7`，custom deferred `21188825B3FCEC7089BC198CDF89B53527332583FFAF5B3755317BF11EAD66F2`，project/plugin material-pass `2FF919F50FDFFBAEB1544CAD9C14B7748FA8234C784175195AF3E550FB6151BB`，three shading-model parity `D493C941CBCF418A2C66F84F663881E9DA6B0984B023BAACEC254F094AB483B6`，VirtualGeometry page/cluster `0322783567544681379085E0C944EF40DD2E6453EE4AE0CB5897F12EBBEBDDE6`。RenderDoc/product capture、full CI/test-target、broad `material` UI lane 和 automatic+ignored filters 外产品覆盖仍未关闭。
+
+2026-07-05 Plan 08 broad `render_product_` current-source Cargo wrapper refresh 在 direct-binary 复验后补齐了更强的当前源码 Cargo wrapper 证据，状态锚为 `render_plan08_render_product_full_current_source_cargo_wrapper_refresh_passed_renderdoc_deferred`。`cargo test -p zircon_runtime --lib render_product_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b --message-format short --color never -- --nocapture --test-threads=1` 在 `docs/tests/runtime/render/plan08_render_product_full_current_source_cargo_wrapper_after_direct_refresh_20260705.out.log` 报告 203 passed、0 failed、6 ignored、6562 filtered，exit 0，测试体 637.58s；stderr 只有仓库既有 warning。RenderDoc 同轮复探仍不可用：MCP 0 running instances、bridge 无实例、本机无 `renderdoccmd`/`qrenderdoc`。该结果关闭 automatic `render_product_` 的当前源码 Cargo wrapper refresh；ignored PNG 已由单独 direct-binary refresh 覆盖，RenderDoc/product capture、full CI/test-target、broad `material` UI lane 和 automatic+ignored filters 外产品覆盖仍未关闭。
+
+2026-07-05 Plan 08 fresh `skinning` current-source support-visibility reprobe 推进了同一 test-target 阻塞,但该行本身没有关闭 wrapper gate。状态锚为 `render_plan08_skinning_current_source_test_support_visibility_reprobe_timeout_no_green`；第一次复跑 `cargo test -p zircon_runtime --lib skinning --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-default-broad-current-0704 --message-format short --color never -- --nocapture --test-threads=1` 从先前 39 个编译错误推进到 4 个 runtime-text handoff 可见性错误，日志为 `docs/tests/runtime/render/plan08_skinning_current_source_cargo_wrapper_after_test_support_visibility_20260705.{out,err,exit}.log/txt`。本轮只把 Runtime 15/status-doc、typed-error、dynamic API session 测试支撑 helper 暴露到其父 owner，把 native bitmap atlas 测试导入补齐，并把 `native_bitmap_atlas/handoff.rs` 的 enum/function 可见性限制到 `scene_renderer::ui::text` 模块边界；不改渲染生产行为。第二次复跑在 handoff 可见性修复后编译超过 604 秒未返回，`plan08_skinning_current_source_cargo_wrapper_after_handoff_visibility_20260705.exit.txt` 记录 timeout 且同名 Plan08 cargo/rustc 进程已停止；后续 `render_plan08_skinning_current_source_cargo_wrapper_passed_renderdoc_deferred` 已补齐绿跑。
+
+2026-07-05 Plan 08 fresh `skinning` current-source Cargo wrapper 后续绿跑已关闭该 gate。状态锚为 `render_plan08_skinning_current_source_cargo_wrapper_passed_renderdoc_deferred`；最终只补齐 `native_bitmap_atlas_glyphon_fallback_reason_for_report(...)` 到 `crate::graphics::scene::scene_renderer::ui::text` 的 narrow visibility，使 native atlas parent re-export 与 `text.rs` 消费边界一致。`cargo test -p zircon_runtime --lib skinning --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-default-broad-current-0704 --message-format short --color never -- --nocapture --test-threads=1` 在 `docs/tests/runtime/render/plan08_skinning_current_source_cargo_wrapper_after_handoff_fallback_visibility_20260705.{out,err,exit}.log/txt` 记录 exit 0，20/20 passed，0 failed，6724 filtered，build 20m19s。当前仍未关闭的是 broad `material`、RenderDoc/product capture、full test-target/CI 与 broader Plan 08 coverage。
 
 2026-07-04 Plan 08 render_product_mesh_cache current-source product group refresh 复验了当前源码二进制下自动 `graphics::tests::render_product_mesh_cache` 产品组。状态锚为 `render_plan08_render_product_mesh_cache_current_source_group_wgpu_passed_renderdoc_deferred`；本轮没有新增 renderer/test owner 代码，复用 `E:\cargo-targets\zircon-plan08-current-broader-sweep-0704\debug\deps\zircon_runtime-6bef7a696c15c9a5.exe` 直接运行 `graphics::tests::render_product_mesh_cache --nocapture --test-threads=1`，通过 25/25 automatic tests、6 ignored manual PNG exports、6387 filtered、101.86s。覆盖面从 staged-prewarm filter 扩到 morph、project/plugin registry material-pass/live-record bridges、custom shading-model product/deferred readback、static pre-mesh cache、Forward/Deferred parity、Base/material staged-prewarm second-launch 与 VirtualGeometry automatic/page-cluster product paths。证据日志为 `docs/tests/runtime/render/plan08_current_render_product_mesh_cache_group_20260704.{out,err}.log` 与 `.exit.txt`；同一二进制的 `render_product_ --list` 盘点到 209 个 render-product tests。RenderDoc/product capture、workspace/full CI、ignored/manual PNG export rerun 和 `render_product_mesh_cache` 外的 broader render-product coverage 仍未关闭。
 
@@ -1100,11 +1143,11 @@ profiling-tracy 构建耗时与 full Runtime 07 gates 仍 pending。
 
 2026-07-04 Plan 08 broad `render_product_` default-feature current-source rerun 将同一 broad 自动产品面推进到默认特性路径，状态锚为 `render_plan08_render_product_default_features_full_filter_wgpu_passed_renderdoc_deferred`。第一次默认特性 Cargo wrapper 在产品测试启动前停止，`plan08_default_features_render_product_full_filter_20260704.err.log` 记录低层共享 `SceneUniform` 默认值路径对 `[[f32; 4]; 128]` 环境采样数组触发 E0277；该日志只保留为失败证据。当前源码下共享 `SceneUniform` 手写 `Default` 后，同一目标目录复跑 `render_product_` 通过 203/203 automatic tests、0 failed、6 ignored、6349 filtered，test body 427.76s，计入日志为 `docs/tests/runtime/render/plan08_default_features_render_product_full_filter_after_scene_uniform_default_20260704.{out,err}.log` 和 `.exit.txt`。默认特性 broad rerun 与 ignored PNG export gate 均已补齐；RenderDoc/product capture、workspace/full CI 与非 render-product 覆盖仍未关闭。
 
-2026-07-01 Plan 08 Deferred lighting custom include WGPU pipeline validation 把 runtime source handoff 的最后一个 deferred lighting consumer 推进到真实 WGPU render-pipeline 创建证据。状态锚为 `render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred`；新增 `graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs` 子测试 owner，`custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source` 注册 Ready plugin Forward/GBuffer/deferred WGSL assets，使用 product `create_lighting_bind_group_layout(...)`、`GpuScene::new(...).scene_bind_group_layout()` 和 `create_lighting_pipeline(...)` 创建 deferred lighting pipeline，并在 WGPU validation scope 下确认无 validation error。Focused no-default-features Cargo test 通过 1/1。当前关闭的是 deferred lighting custom include runtime source assembly -> WGPU render-pipeline validation；产品场景/readback、RenderDoc/product capture、broader miss=0/product sweep 与 full CI 仍未关闭。
+2026-07-01 Plan 08 Deferred lighting custom include WGPU pipeline validation 把 runtime source handoff 的最后一个 deferred lighting consumer 推进到真实 WGPU render-pipeline 创建证据。状态锚为 `render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred`；新增 `graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs` 子测试 owner，`custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source` 注册 Ready plugin Forward/GBuffer/deferred WGSL assets，使用 product `create_lighting_bind_group_layout(...)`、`GpuScene::new(...).scene_bind_group_layout()` 和 `create_lighting_pipeline(...)` 创建 deferred lighting pipeline，并在 WGPU validation scope 下确认无 validation error。Focused no-default-features Cargo test 通过 1/1。当前关闭的是 deferred lighting custom include runtime source assembly -> WGPU render-pipeline validation；后续 focused product readback、PNG export 和 default-feature refresh 已由 `render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred`、`render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred` 与 `render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred` 补齐。RenderDoc/product capture、workspace/full CI 与 focused filter 之外的 broader product coverage 仍未关闭。
 
 2026-07-01 Plan 08 Custom shading-model runtime WGPU module validation 把上一条 runtime source handoff 推进到 authored plugin WGSL 的 WGPU shader-module 证据。状态锚为 `render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred`；新增 `graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs` 子测试 owner，`runtime_custom_shading_model_sources_compile_as_wgpu_modules` 注册 plugin-range `custom:toon` descriptor 与 Ready shader assets，驱动 `ResourceStreamer`、plugin `PipelineKey`、Forward source assembly 和 deferred GBuffer source assembly，再用 `device.create_shader_module(...)` 在 WGPU validation scope 下验证 `zr_shading_toon.wgsl` 与 `zr_gbuffer_encode_toon.wgsl` 注入后的 WGSL。Focused no-default-features Cargo test 通过 1/1；默认功能集重跑仍在 Windows lib-test compile/link 阶段超时无结果。当前关闭的是 Forward/GBuffer runtime source assembly -> WGPU module validation；deferred lighting custom include WGPU pipeline 已由后续 focused pipeline validation 关闭；产品场景/readback、RenderDoc/product capture、broader miss=0/product sweep 与 full CI 仍未关闭。
 
-2026-07-01 Plan 08 Runtime shading-model include source handoff 把上一条 project/plugin source set 接到 SceneRenderer 的运行时 pipeline source assembly。状态锚为 `render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred`；`ResourceStreamer` 现在通过 `shading_model_descriptor_for_pipeline_key(...)` 与 `shading_model_include_source_set()` 从 live `ShadingModelRegistry` 和 `ProjectAssetManager` 导出 descriptor/source set，Forward/Base mesh template creation 用 `with_runtime_shading_model_sources(...)` 喂给 `with_shading_model_forward_include_sources(...)`，deferred GBuffer cache creation 通过 graph/context 的 streamer handoff 喂给 `with_shading_model_gbuffer_include_sources(...)`，deferred lighting pipeline creation 通过 `create_lighting_pipeline(..., plugin_shading_models)` 动态调用 `assemble_deferred_lighting_shader_source(...)` 与 `with_shading_model_deferred_include_sources(...)`。当前关闭的是 runtime SceneRenderer/deferred source assembly handoff；后续缩窄为 deferred lighting custom include WGPU pipeline/product、RenderDoc/product capture、broader miss=0/product sweep 与 full CI。
+2026-07-01 Plan 08 Runtime shading-model include source handoff 把上一条 project/plugin source set 接到 SceneRenderer 的运行时 pipeline source assembly。状态锚为 `render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred`；`ResourceStreamer` 现在通过 `shading_model_descriptor_for_pipeline_key(...)` 与 `shading_model_include_source_set()` 从 live `ShadingModelRegistry` 和 `ProjectAssetManager` 导出 descriptor/source set，Forward/Base mesh template creation 用 `with_runtime_shading_model_sources(...)` 喂给 `with_shading_model_forward_include_sources(...)`，deferred GBuffer cache creation 通过 graph/context 的 streamer handoff 喂给 `with_shading_model_gbuffer_include_sources(...)`，deferred lighting pipeline creation 通过 `create_lighting_pipeline(..., plugin_shading_models)` 动态调用 `assemble_deferred_lighting_shader_source(...)` 与 `with_shading_model_deferred_include_sources(...)`。当前关闭的是 runtime SceneRenderer/deferred source assembly handoff；后续 deferred lighting WGPU pipeline、focused product readback/PNG 和 default-feature refresh 已由 2026-07-01 到 2026-07-04 的 focused 状态锚关闭。剩余项是 RenderDoc/product capture、workspace/full CI、full live project/plugin registry export beyond focused fixtures 与 broader miss=0/product sweep。
 
 2026-07-01 Plan 08 Project/plugin shading-model include source set 把项目/插件 Ready shader 资产导出的 WGSL 文本接到 Forward、deferred GBuffer 与 deferred lighting 三个请求级 source resolver。状态锚为 `render_plan08_shading_model_include_source_set_static_passed_cargo_deferred`；`ShadingModelIncludeSourceSet::from_project_asset_manager(...)` 从 `ProjectAssetManager.resource_manager().ready_records_for_kind(ResourceKind::Shader)` 解析 plugin `ShadingModelDescriptor` 的 `forward_include`、`gbuffer_encode_include` 与 `deferred_include`，跳过 built-in descriptor，并对 missing/duplicate/no-runtime-source/load failures 给出显式错误。`MaterialShaderTemplateRequest::with_shading_model_forward_include_sources(...)`、`DeferredGBufferShaderTemplateRequest::with_shading_model_gbuffer_include_sources(...)` 与 `DeferredLightingShaderSourceRequest::with_shading_model_deferred_include_sources(...)` 共享该 source set。当前关闭的是 project/plugin WGSL source export 到请求源的静态桥接；runtime SceneRenderer/deferred pipeline handoff、真实 custom shading-model Naga/WGPU compile、RenderDoc/product capture 与 broader miss=0 仍未关闭。
 
@@ -1249,3 +1292,758 @@ Evidence: focused IDE env, deferred material compile, and template/graph structu
 Plan 08 now mirrors the partial default-feature `material` support-first slice under `render_plan08_material_filter_default_features_support_fixes_partial_wgpu_blocked_runtime15_compile`. The accepted fixes cover render-graph materialization dependency declarations, `.zmaterial` v2 renderer data-asset fixtures through the shared material artifact generator, Runtime 15 stale texture fixture status mirrors, the current 24 asset material test children, and a Material Foundation catalog split that moves Avatar/AvatarGroup/Badge/ImageList descriptors from `data_display.rs` into `data_display_visuals.rs`.
 
 Evidence: focused materialization passed 29/29 in `docs/tests/runtime/render/plan08_material_filter_materialization_focused_after_graph_dependencies_20260704.out.log`; focused renderer data asset passed 4/4 in `docs/tests/runtime/render/plan08_material_filter_renderer_data_asset_focused_after_shader_layout_import_fix_20260704.out.log`; production `cargo check -p zircon_runtime --lib` passed with exit code 0 in `docs/tests/runtime/render/plan08_material_filter_production_check_after_catalog_split_20260704.{err,exit}.log/txt`; static checks confirmed the status anchors, test count, and catalog line counts. The broad material rerun after those fixes is not counted because `plan08_default_features_material_filter_after_graph_and_renderer_data_fixes_20260704.*` produced no exit file or test output. Current Cargo structure reruns stop earlier in active Runtime 15 typed-error/source-inventory compile drift (`plan08_material_filter_structure_guards_after_status_and_catalog_split_20260704.err.log`, `plan08_material_filter_structure_guards_after_typed_error_scope_fix_20260704.err.log`), so the broad `material` filter, `skinning`, RenderDoc/product capture, workspace/full CI, and active runtime-text UI material layout follow-ups remain open.
+
+### 2026-07-05 Material Filter Runtime 15 Structure-Guard Compile Closeout
+
+Plan 08 now mirrors `render_plan08_material_filter_runtime15_structure_guards_wgpu_passed_broad_material_open`. The material lane cleared the Runtime 15 compile drift that previously stopped focused structure guards before execution by tightening source-inventory visibility/scope, M3 child-group owner-path exports, native-plugin/moved-guard helper visibility, and status-doc delegation scope. This did not add render production behavior.
+
+Evidence: compile closeout `docs/tests/runtime/render/plan08_material_structure_guard_after_status_docs_delegation_scope_fix_20260705.exit.txt` is exit 0 but filtered 0 tests, so it is compile evidence only. Actual guards passed: `docs/tests/runtime/render/plan08_material_stale_texture_guard_actual_run_rerun_20260705.out.log` 1/1, `docs/tests/runtime/render/plan08_asset_material_folder_guard_20260705.out.log` 1/1, and `docs/tests/runtime/render/plan08_ui_material_foundation_folder_guard_20260705.out.log` 1/1. Broad default-feature `material`, `skinning`, runtime-text UI material layout, RenderDoc/product capture, workspace/full CI, and broader milestone coverage remain open.
+
+### 2026-07-05 Material Filter Scene Environment Five-Slot Closeout
+
+Plan 08 now mirrors `render_plan08_material_filter_scene_environment_5slot_shadow_prewarm_direct_binary_passed_ui_layout_open`. The scene renderer environment group0 layout is no longer copied in separate shadow/prewarm/test fixtures: `scene_renderer/environment/scene_bind_group_layout.rs` owns the five entries for scene uniform, source environment cube, filtering sampler, BRDF LUT, and specular PMREM cube. Scene renderer construction, prewarm pipeline validation, mesh pipeline WGPU test support, and depth/GBuffer/shadow pipeline creation consume that helper. `ShadowMapRenderer` now supplies retained fallback cube/LUT/PMREM resources so its scene bind group matches the full layout.
+
+Evidence: direct-binary shadow scene layout and prewarm WGPU validation passed 1/1 each, and representative material/deferred upper-layer probes passed 1/1 each in the `plan08_*_5slot_scene_layout*_20260705` logs. Broad direct-binary `material` after the fix is still red, but its graphics/WGPU/material-pass failures are gone; the two remaining Runtime 15 naming anchor mirror failures passed exact direct-binary reruns. A current-source Cargo wrapper rerun of the exact shadow guard timed out after 904s during lib-test compile/link and is not counted. The active `ui::tests::material_layout` text-metric lane remains the known broad-material blocker. RenderDoc/product capture, full CI, and broader Plan 08 coverage remain open.
+
+### 2026-07-05 Material Filter Skip-UI Current-Source Render Subset Closeout
+
+Plan 08 now mirrors `render_plan08_material_filter_skip_ui_current_source_render_subset_passed_ui_layout_open`. The current-source default-feature `material` filter was rerun with `--skip ui::tests::material_layout` to isolate the render/material-owned subset while the active UI text/layout lane remains open. The first cold rerun exposed 17 Runtime 15/code-review support compile errors rather than a render failure; the accepted fix only added explicit child module paths for `lock_poison_policy/split_layout.rs` and explicit owner imports in the typed-error status-doc paths split-layout `budgets.rs` / `status_mirrors.rs` children.
+
+Evidence: the counted rerun `docs/tests/runtime/render/plan08_material_skip_ui_after_structure_support_fix_20260705.out.log` reports `running 310 tests` and `test result: ok. 307 passed; 0 failed; 3 ignored; 0 measured; 6449 filtered out; finished in 203.91s` for `cargo test -p zircon_runtime --lib material --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b --message-format short --color never -- --skip ui::tests::material_layout --nocapture --test-threads=1`. The historical 17-error rerun remains in `plan08_material_skip_ui_after_5slot_current_source_20260705.*` and is not counted as a pass. A follow-up unskipped direct-binary run against the same built test binary is failure evidence only: `docs/tests/runtime/render/plan08_material_direct_binary_after_structure_support_fix_20260705.out.log` reports 314 passed, 16 failed, 3 ignored, with all failures under `ui::tests::material_layout`. The broad unskipped `material` wrapper remains open; RenderDoc/product capture, full CI/test-target, and broader Plan 08 coverage remain open.
+
+### 2026-07-05 Camera-Target And Post-Process Current-Source Product Refresh
+
+Plan 08 now mirrors `render_plan08_camera_targets_post_process_current_source_direct_binary_product_groups_passed_renderdoc_deferred`. This is a validation-only refresh using `E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b\debug\deps\zircon_runtime-90029178d239f47b.exe`; no renderer or product-test source changed in this slice.
+
+Evidence: `docs/tests/runtime/render/plan08_render_product_camera_targets_current_source_direct_binary_20260705.out.log` reports 13/13 passed for `graphics::tests::render_product_camera_targets`, covering primary-surface, texture-target, custom-target, viewport, ordering, material sampling, and composite product paths. `docs/tests/runtime/render/plan08_render_product_post_process_current_source_direct_binary_20260705.out.log` reports 12/12 passed for `graphics::tests::render_product_post_process`, covering tonemap/grading, LUT, blur, depth-of-field, full-chain, fog/SSR scene composite, terminal dynamic-resolution/FXAA, motion blur, and volume transition products. RenderDoc/product capture, full CI/test-target, broad unskipped `material`, and product coverage outside these two direct-binary groups remain open.
+
+### 2026-07-05 Broad Render Product Current-Source Direct-Binary Refresh
+
+Plan 08 now mirrors `render_plan08_render_product_full_current_source_direct_binary_refresh_passed_renderdoc_deferred`. This reuses the same current-source default-feature binary and does not modify renderer code or product test owners.
+
+Evidence: `docs/tests/runtime/render/plan08_render_product_full_current_source_direct_binary_20260705.exit.txt` records exit 0 for `E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b\debug\deps\zircon_runtime-90029178d239f47b.exe render_product_ --nocapture --test-threads=1`; stdout reports 203 passed, 0 failed, 6 ignored, and 6550 filtered in 660.16s. This is a current-binary refresh of the automatic `render_product_` surface after the material/five-slot/support fixes. The 6 ignored/manual PNG exports are covered by the separate current-source ignored direct-binary refresh, while RenderDoc/product capture, full CI/test-target, broad unskipped `material`, and product coverage outside automatic+ignored filters remain open.
+
+### 2026-07-05 Render Product Ignored PNG Current-Source Direct-Binary Refresh
+
+Plan 08 now mirrors `render_plan08_render_product_ignored_png_current_source_direct_binary_refresh_passed_renderdoc_deferred`. The same current-source default-feature binary ran `render_product_ --ignored --nocapture --test-threads=1` and `docs/tests/runtime/render/plan08_render_product_ignored_png_current_source_direct_binary_20260705.out.log` reports 6/6 passed with 6753 filtered.
+
+The refreshed PNG files under `docs/tests/runtime/render/` have these SHA256 values: direct morph velocity `7B40FA8BA6EA60F7F24F3C5465F3C802B4119E26A8965DACECA08187FF665DE7`, skinned morph velocity `7B40FA8BA6EA60F7F24F3C5465F3C802B4119E26A8965DACECA08187FF665DE7`, custom deferred lighting `21188825B3FCEC7089BC198CDF89B53527332583FFAF5B3755317BF11EAD66F2`, project/plugin material-pass `2FF919F50FDFFBAEB1544CAD9C14B7748FA8234C784175195AF3E550FB6151BB`, three shading-model parity `D493C941CBCF418A2C66F84F663881E9DA6B0984B023BAACEC254F094AB483B6`, and VirtualGeometry page/cluster `0322783567544681379085E0C944EF40DD2E6453EE4AE0CB5897F12EBBEBDDE6`. RenderDoc/product capture, full CI/test-target, broad unskipped `material`, and product coverage outside automatic+ignored filters remain open.
+
+### 2026-07-05 Broad Render Product Current-Source Cargo Wrapper Refresh
+
+Plan 08 now mirrors `render_plan08_render_product_full_current_source_cargo_wrapper_refresh_passed_renderdoc_deferred`. The Cargo wrapper command `cargo test -p zircon_runtime --lib render_product_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-plan08-material-skip-ui-current-0705b --message-format short --color never -- --nocapture --test-threads=1` exited 0; `docs/tests/runtime/render/plan08_render_product_full_current_source_cargo_wrapper_after_direct_refresh_20260705.out.log` reports 203 passed, 0 failed, 6 ignored, and 6562 filtered in 637.58s. The matching stderr contains repository-existing warnings only.
+
+RenderDoc was rechecked before leaving capture deferred: the MCP instance list returned count 0, bridge info reported no running instance, and local `renderdoccmd` / `qrenderdoc` discovery returned unavailable. This closes only the current-source Cargo-wrapper refresh for the automatic `render_product_` filter; ignored/manual PNG exports are covered by their separate direct-binary refresh, while RenderDoc/product capture, full CI/test-target, broad unskipped `material`, and product coverage outside automatic+ignored filters remain open.
+
+### 2026-07-06 Plan 11 IBL Runtime Dispatch Cache Integration
+
+Status anchor: `render_plan11_ibl_runtime_dispatch_cache_integration_cargo_passed_gpu_scheduler_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2q adds the asset-layer dispatch/cache integration contract. `asset/artifact/ibl_bake_artifact_runtime_dispatch.rs` reads runtime cache entries, merges them with asset-derived blobs, returns the resolved payload and environment compute dispatch count, and gates readback writeback so it only runs after a runtime-compute miss. The verified flow is first resolve misses to runtime compute, readback sections write `.zribl`, and the next same request resolves from runtime cache with dispatch=0. Asset-derived hits skip stray readback and leave runtime cache untouched. This still does not create GPU bake resources or schedule render-graph async readback jobs.
+
+Evidence: `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract runtime_environment_ibl_bake_artifact_runtime_dispatch --locked` exited 0 with 2/2 passed and 19 filtered. The full contract command `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --locked` also exited 0 with 21/21 passed, 0 failed, 0 ignored, and 0 filtered; stderr contained repository-existing warnings only. Remaining gates: GPU/offline PMREM/SH9/BRDF/IEM bake, render graph async scheduling, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL WGPU RGBA16F Region Readback Helper
+
+Status anchor: `render_plan11_ibl_wgpu_rgba16float_region_readback_helper_cargo_passed_gpu_bake_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2n adds a backend helper that can read a selected `Rgba16Float` texture region by mip/origin/extent and strip row padding. `read_texture_rgba16float_cube_mip_chain(...)` returns cubemap bytes in face-major, face-local mip order, matching the PMREM section layout used by source cubemaps and IBL artifacts. `SceneEnvironmentCubemap` source/specular/IEM textures now include `COPY_SRC`, enabling future runtime readback acquisition. This still does not schedule GPU bake work, read SH9 buffers, write cache artifacts, or prove product second-launch dispatch=0.
+
+Evidence: `cargo test -p zircon_runtime --lib read_texture_rgba16float_region --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-wgpu-readback-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_wgpu_rgba16float_region_readback_helper_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 2/2 passed, test body 0.00s, and elapsed 00:17:19.2055212. Remaining gates: GPU/offline PMREM/SH9/BRDF/IEM bake, SH9 buffer readback, asynchronous scheduling, runtime readback-to-cache integration, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL WGPU SH9 Buffer Readback Helper
+
+Status anchor: `render_plan11_ibl_wgpu_sh9_buffer_readback_helper_cargo_passed_gpu_bake_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2o adds a backend buffer readback primitive for IBL SH9 acquisition. `read_buffer_bytes(...)` handles aligned byte-range copy-to-buffer and map-read with the shared RenderDoc readback marker. `read_buffer_f32x4_array_bytes(...)` expresses WGSL `array<vec4<f32>>` output layout, and `read_buffer_sh9_f32x4_bytes(...)` fixes the SH9 readback size to 9 vec4 values, matching the artifact SH9 section's 144 bytes. This still does not produce SH9 compute output, assemble artifact sections, schedule asynchronous readback, or write cache artifacts.
+
+Evidence: `cargo test -p zircon_runtime --lib read_buffer_bytes --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-wgpu-buffer-readback-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_wgpu_buffer_readback_helper_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 2/2 passed, 6870 filtered, test body 0.00s, and elapsed 00:08:55.6792597. Remaining gates: GPU/offline PMREM/SH9/BRDF/IEM bake, asynchronous scheduling, runtime readback-to-cache integration, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL WGPU Artifact Sections Readback Helper
+
+Status anchor: `render_plan11_ibl_wgpu_artifact_sections_readback_helper_cargo_passed_scheduling_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2p adds a descriptor-driven WGPU acquisition bridge. `IblBakeArtifactWgpuReadbackResources` carries the descriptor plus PMREM texture, SH9 buffer, and optional IEM texture. `read_ibl_bake_artifact_wgpu_sections(...)` reads the resources required by descriptor contents and returns `IblBakeArtifactReadbackSections` for the existing render-core validation and asset-cache writeback path. This still assumes bake resources already exist; it does not schedule compute, wait on an async bake job, or trigger cache writeback by itself.
+
+Evidence: `cargo test -p zircon_runtime --lib read_ibl_bake_artifact_sections --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-wgpu-sections-readback-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_wgpu_artifact_sections_readback_helper_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 3/3 passed, 6874 filtered, test body 0.00s, and elapsed 00:09:11.9856058. Remaining gates: GPU/offline PMREM/SH9/BRDF/IEM bake, asynchronous scheduling, runtime readback-to-cache integration, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL Runtime Readback Writeback
+
+Status anchor: `render_plan11_ibl_runtime_readback_writeback_cargo_passed_gpu_acquisition_deferred`.
+
+Scope: Plan 11 / Shader 06 §4.7 now has a runtime readback-section writeback boundary. `ibl_bake_artifact_readback.rs` validates PMREM RGBA16F, SH9, and optional IEM RGBA16F section bytes against the artifact descriptor without depending on wgpu or file IO. `asset/artifact/ibl_bake_artifact_runtime_writeback.rs` skips stale descriptors without creating cache files, assembles current sections into an `IblBakeArtifactBlob`, writes through `IblBakeArtifactCacheStore`, and reports status/path/encoded length/payload length.
+
+Evidence: `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-writeback-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_runtime_readback_writeback_current_source_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 19/19 passed, test body 0.49s, and elapsed 00:17:45.8058804. This closes readback bytes to cache-artifact writeback only; GPU/offline bake, actual WGPU readback acquisition/scheduling, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI remain open.
+
+### 2026-07-06 Plan 11 IBL Artifact Payload Application To Source Cubemap
+
+Status anchor: `render_plan11_ibl_artifact_payload_apply_to_source_cubemap_cargo_passed_gpu_readback_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2i applies decoded IBL artifact payloads back into the runtime source-cubemap model without replacing display/source mips. `source_cubemap_artifact.rs` owns the bridge: `source_cubemap_mip_chain_with_bake_artifact(...)` validates face/mip layout and PMREM+SH9 content, preserves `source_texels()`, replaces specular PMREM texels, and applies SH9. `source_cubemap_environment_with_bake_artifact(...)` preserves `SourceCubemapEnvironment` source revision/hash, intensity, and rotation, and attaches optional IEM as `SourceCubemapIrradianceCube`. GPU/offline bake, readback writeback, importer/staged production, and product second-launch dispatch=0 proof remain open.
+
+Evidence: `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-apply-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_artifact_payload_apply_current_source_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 12/12 passed, test body 0.05s, and elapsed 00:07:33.5548958. Remaining gates: GPU/offline bake, runtime readback writeback, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL Artifact Resolved Payload Priority
+
+Status anchor: `render_plan11_ibl_artifact_resolved_payload_priority_cargo_passed_gpu_readback_deferred`.
+
+Scope: Plan 11 / Shader 06 §4.7 now has a blob-backed resolved-payload layer. `ibl_bake_artifact_resolution.rs` owns `IblBakeArtifactBlobCandidate`, `IblBakeArtifactResolvedPayload`, and `resolve_ibl_bake_artifact_payload(...)`, preserving asset-derived > runtime-cache > runtime-compute priority while returning an actual reusable payload for sources 1/2. A resolved miss reports no blob/payload and keeps runtime compute dispatch counting. File IO remains in `asset/artifact/ibl_bake_artifact_cache.rs`; source-cubemap application remains in `source_cubemap_artifact.rs`.
+
+Evidence: the first same-target Cargo run timed out after 20 minutes during cold Windows compilation and produced no usable log/binary, so it is not counted. The retry `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-resolve-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_artifact_resolved_payload_current_source_cargo_retry_20260706.{out,err}.log` and `.exit.txt`; stdout reports 15/15 passed, test body 0.08s, and elapsed 00:14:30.4501358. Remaining gates: GPU/offline bake, runtime readback writeback, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL Artifact Upload Key For WGPU Cubemap Refresh
+
+Status anchor: `render_plan11_ibl_artifact_upload_key_wgpu_refresh_cargo_passed_product_dispatch_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2l fixes the runtime WGPU environment-cubemap upload identity after artifact application. `SourceCubemapEnvironment::ibl_bake_key()` stays source-only so cache selection semantics do not change, while `SourceCubemapEnvironment::texture_upload_key()` includes the derived artifact payload hash. `SceneEnvironmentCubemap::ensure_uploaded(...)` now compares the full upload key before skipping source/specular/IEM cube uploads, so a current source can reuse a different PMREM/SH9/IEM artifact without leaving stale GPU textures.
+
+Evidence: `rustfmt --edition 2021 --check` passed for `skybox.rs`, `source_cubemap_artifact.rs`, `environment_cubemap.rs`, both render facades, and `runtime_environment_ibl_bake_artifact_contract.rs`. The first Cargo attempt exited `1073807364` with empty logs and is not counted; `docs/tests/runtime/render/plan11_ibl_artifact_upload_key_current_source_cargo_20260706.exit.txt` records that. The retry `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-resolve-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_artifact_upload_key_current_source_cargo_retry_20260706.{out,err}.log` and `.exit.txt`; stdout reports 16/16 passed, test body 0.06s, and elapsed 00:12:55.2297214. Remaining gates: GPU/offline bake, runtime readback writeback, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, probe capture/blending, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL Bake Artifact Payload, Blob, And Runtime Cache Store
+
+Status anchors: `render_plan11_ibl_bake_artifact_payload_roundtrip_cargo_passed_file_io_deferred`, `render_plan11_ibl_bake_artifact_blob_roundtrip_cargo_passed_filesystem_io_deferred`, and `render_plan11_ibl_bake_artifact_runtime_cache_store_cargo_passed_readback_deferred`.
+
+Scope: Plan 11 / Shader 06 §4.7 payload/container/cache implementation. `IblBakeArtifactPayload` fixes PMREM RGBA16F face-major all-mip bytes, SH9 9xvec4 f32 little-endian bytes, optional 32x32x6 IEM RGBA16F bytes, descriptor-sized payload length, and section ranges. `ibl_bake_artifact_blob.rs` wraps the 108B header plus descriptor-sized payload and rejects truncated headers, wrong payload lengths, and stale descriptors. `asset/artifact/ibl_bake_artifact_cache.rs` owns the `.zircon-cache/render/ibl/v{IBL_BAKE_ALGORITHM_VERSION}/.../*.zribl` runtime cache file entry, reads current blobs as runtime-cache candidates, and treats missing/stale/truncated blobs as non-fatal fallback states. This still does not perform GPU/offline bake, runtime readback writeback, importer/staged production, or product second-launch dispatch=0 proof.
+
+Evidence: `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-artifact-payload-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_bake_artifact_payload_roundtrip_current_source_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 9/9 passed, test body 0.03s, and elapsed 00:05:41.7209590. Remaining gates: GPU/offline bake, runtime readback writeback, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, and full CI.
+
+### 2026-07-06 Plan 11 IBL Bake Artifact Contract
+
+Status anchor: `render_plan11_ibl_bake_artifact_contract_cargo_passed_gpu_cache_deferred`.
+
+Scope: Plan 11 / Shader 06 §4.7 contract-only implementation. `ibl_bake_artifact.rs` adds artifact request, descriptor, header, candidate, and selection DTOs, algorithm-version invalidation, and source priority asset-derived > runtime-cache > runtime-compute with derived/cache hits reporting zero environment compute dispatches. This does not yet serialize payload bytes or perform GPU/offline bake/readback.
+
+Evidence: `cargo test -p zircon_runtime --test runtime_environment_ibl_bake_artifact_contract --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-iem-contract-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_ibl_bake_artifact_contract_current_source_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 3/3 passed, test body 0.00s, and elapsed 00:10:56.4688476. Remaining gates: payload roundtrip, GPU/offline bake, readback writeback, importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, and full CI.
+
+### 2026-07-06 Plan 11 2K HDRI Plan06 Metrics Current-Source Cargo Refresh
+
+Plan 11 / Shader 06 now mirrors `render_plan11_hdri_2k_plan06_metrics_current_source_cargo_passed_renderdoc_deferred`. The non-ignored exact guard loads `docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_hdr_pmrem_reflection_20260705.png` and replays the Plan06/EC-M3e quantitative checks for the 8x8 PBR matrix response, sky directional variation, metallic/roughness deltas, and legacy 16x8 sample-table seam rejection without regenerating the screenshot.
+
+Evidence: `cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-png-metrics-0706 --message-format short --color never runtime_shader_pbr_real_hdri_2k_reflection_png_matches_plan06_metrics -- --exact --nocapture --test-threads=1` exited 0. Logs are `docs/tests/runtime/render/plan11_hdri_2k_plan06_metrics_current_source_cargo_20260706.{out,err}.log` and `.exit.txt`; stdout reports 1 passed, 0 failed, 0 ignored, and 2 filtered in 0.38s; exit records elapsed 00:11:40.9052706, PNG bytes 1,009,731, and SHA256 `920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0`. This closes only the saved-2K-PNG Plan06 metric replay current-source Cargo refresh; RenderDoc/product capture, GPU/offline PMREM/SH9/BRDF bake, derived cache, IEM, probe capture/blending, SSIM/seam compare, 4K/16K offline bake, and full test-target/CI remain open.
+
+### 2026-07-06 Plan 11 IBL Bake Render-Graph Plan
+
+Status anchor: `render_plan11_ibl_bake_graph_plan_core_min_passed_executor_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2s adds a scene-renderer-internal graph declaration for IBL bake artifacts. `ibl_bake_graph_plan.rs` imports the source cubemap as a required external graph resource, declares PMREM/SH9/optional IEM storage outputs in artifact order, marks those outputs for readback, and fixes pass names, executor ids, pipeline labels, workgroup size, and dispatch extents for later WGPU compute executors. No default frame-path registration, PMREM/SH9/IEM WGSL kernels, readback queue, importer/staged artifact production, compatibility path, or product dispatch proof was added.
+
+Evidence: `rustfmt --edition 2021 --check zircon_runtime\src\graphics\scene\scene_renderer\environment\ibl_bake_graph_plan.rs zircon_runtime\src\graphics\scene\scene_renderer\environment\mod.rs` passed. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-graph-plan-check-0706 --message-format short --color never` passed. The focused lib-test wrapper for `ibl_bake_graph_plan` is blocked before target tests by current UI `UiStateFlags.focused/hovered` compile drift, so it is not counted as green. Remaining gates: real GPU/offline PMREM/SH9/BRDF/IEM bake production, executor registration, async scheduling/readback queue, runtime cache writeback from GPU outputs, derived importer/staged artifacts, product second-launch dispatch=0, RenderDoc/product capture, strict roughness/SSIM/seam screenshots, and full CI.
+
+### 2026-07-06 Plan 11 IBL Bake Compute Executor Plan Record
+
+Status anchor: `render_plan11_ibl_bake_compute_executor_plan_record_core_min_passed_gpu_kernel_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2t adds the opt-in executor side of the IBL bake graph contract. `ibl_bake_compute_executor.rs` provides explicit PMREM, SH9, and IEM executor registrations, validates source-read/output-write resource access, derives dispatch groups from compiled graph metadata, and records dispatches into `RenderGraphExecutionRecord` for workload audit. `RenderPassExecutorRegistry::with_environment_ibl_bake_compute_executors()` keeps this registration explicit; the builtin product registry still excludes the IBL bake executor ids. This does not compile WGSL, create bind groups, encode WGPU dispatch commands, read back outputs, or write cache artifacts.
+
+Evidence: targeted `rustfmt --edition 2021 --check` passed for the IBL graph/executor files plus touched registry/GPU report files. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-graph-plan-check-0706 --message-format short --color never` passed. `cargo test -p zircon_runtime --lib ibl_bake_compute_executor --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-graph-plan-check-0706 --message-format short --color never -- --nocapture --test-threads=1` passed 3/3 with 6902 filtered. Remaining gates: real PMREM/SH9/IEM WGSL compute, bind group/pipeline cache ownership, WGPU command encoding, async readback queue, runtime cache writeback from GPU outputs, staged/importer artifacts, product second-launch dispatch=0, RenderDoc/product capture, strict roughness/SSIM/seam screenshots, and full CI.
+
+### 2026-07-06 Plan 11 IBL Bake WGPU Compute Pipeline Dispatch Bridge
+
+Status anchor: `render_plan11_ibl_bake_wgpu_dispatch_cargo_passed_readback_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2ac adds the live WGPU compute pipeline, command encoder, and focused PMREM graph-context bridge for IBL bake commands. `ibl_bake_wgpu_dispatch.rs` creates shader modules from `IblBakeWgpuCommandPlan::wgsl_source`, creates compute pipelines using the command output bind-group layout, encodes compute passes with bind group 0 and command dispatch groups, and records a PMREM mip0 dispatch from `RenderPassExecutionContext` with materialized source/output resources. The helper rejects zero dispatch groups and malformed PMREM pass names before GPU lookup. This still does not own production scheduler integration, pipeline-cache reuse policy, async readback, or runtime cache writeback.
+
+Evidence: targeted `rustfmt --edition 2021 --check` passed for dispatch, binding, command-plan, and environment mod files. `cargo test -p zircon_runtime --lib ibl_bake_wgpu_dispatch --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-wgpu-dispatch-0706 --message-format short --color never -- --nocapture --test-threads=1` exited 0 with 4/4 passed and 6984 filtered. Direct rerun log `docs/tests/runtime/render/plan11_ibl_wgpu_dispatch_direct_tests_20260706.out.log` also reports 4/4 passed. Remaining gates: production scheduler integration, pipeline-cache ownership/reuse, SH9/IEM graph-context coverage, async readback queue, runtime cache writeback from GPU outputs, staged/importer artifacts, product second-launch dispatch=0, RenderDoc/product capture, strict roughness/SSIM/seam screenshots, optimized SH9 reduction, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL Runtime Graph Scheduler And Cache Writeback
+
+Status anchor: `render_plan11_ibl_runtime_scheduler_cache_writeback_core_min_cargo_passed_test_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2al wires the live source-cubemap IBL bake request into the product render-pipeline compile path. `build_frame_submission_context/environment_ibl_compile_options.rs` resolves the project runtime cache store and only carries `IblBakeArtifactRequest` into final compile options on a source-cubemap runtime cache miss. `render_pipeline_asset/pass_authoring.rs` appends the generated PMREM/SH9/IEM bake graph passes into the compiled graph before Lighting consumption, and the default `SceneRenderer` registry now includes the IBL compute executors.
+
+The submit closeout now passes `CompiledRenderPipeline::environment_ibl_bake_request` into `submit_compiled_scene_frame(...)`, then invokes runtime cache writeback after queue submission and before transient graph resources are released. Project cache-root lookup stays in the asset/project boundary through `ProjectAssetManager::ibl_bake_artifact_cache_store()`; graph declaration and WGPU executor ownership stay in the scene renderer environment modules.
+
+Evidence: targeted rustfmt passed for the touched Rust files. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-runtime-scheduler-0706 --message-format short --color never` exited 0; logs are `docs/tests/runtime/render/plan11_ibl_runtime_scheduler_cargo_check_20260706.raw.log` and `.exit.txt`. Validation PNG is `docs/tests/runtime/render/plan11_ibl_runtime_scheduler_validation_20260706.png`. Focused `cargo test -p zircon_runtime --lib environment_ibl ...` exceeded the 600s tool window during lib-test build/link and is not counted as green; timeout evidence is `docs/tests/runtime/render/plan11_ibl_runtime_scheduler_tests_20260706.*`.
+
+Remaining gates: focused scheduler tests after lib-test build clears, product second-launch dispatch=0 proof, RenderDoc/product capture, asset-derived artifact production, strict roughness/SSIM/seam validation, 4K/16K offline bake, and full CI.
+
+### 2026-07-07 Plan 11 IBL Product Wgpu Capture Nonblack Dispatch=0
+
+Status anchor: `render_plan11_ibl_product_wgpu_capture_nonblack_dispatch_zero_passed`.
+
+Scope: Plan 11 / Shader 06 EC-M2an closes the Wgpu product capture gap left by the first second-launch dispatch proof. The black framework capture was traced below `capture_frame` storage to the product pipeline selection: the reusable PBR matrix scene uses an orthographic camera, and current product defaults route orthographic cameras to the Core2D pipeline, so the compiled graph had no 3D mesh/skybox output. The product proof now builds a perspective Core3D capture snapshot for the same source-cubemap IBL matrix and keeps a low-noise quality profile for deterministic visual sampling.
+
+`project_render::export_runtime_render_ibl_cache_second_launch_dispatch_zero_png` now submits both frames through `WgpuRenderFramework`, asserts both use `RenderPipelineHandle(1)`, captures the second frame through `framework.capture_frame(...)`, and saves the PNG from that captured frame. The report keeps the runtime-cache proof: first submit executes IBL bake executors, the runtime cache resolves to zero environment compute dispatch after first launch, and the second submit omits IBL bake executors.
+
+Evidence: direct run of the built lib-test binary passed 1/1 with log `docs/tests/runtime/render/plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_test_20260707.raw.log` and `.exit.txt` exit 0. Report `docs/tests/runtime/render/plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_20260707.txt` records `first_ibl_executor_count=9`, `second_ibl_executor_count=0`, `post_first_environment_dispatch_count=0`, `first_compute_dispatch_count=12`, `second_compute_dispatch_count=3`, and `capture_report=FrameworkOffscreen` at 1280x960. Visual evidence is `docs/tests/runtime/render/plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_20260707.png`, visually inspected as nonblack. A small test-only import drift in `graphics/text/atlas/bitmap_run/tests.rs` was corrected by importing `GlyphAtlasSet` so the lib-test harness can compile.
+
+Remaining gates: RenderDoc product trace, asset-derived artifact production, strict roughness/SSIM/seam validation, 4K/16K offline bake, and full CI.
+
+### 2026-07-07 Plan 11 IBL Runtime Cache Product Second-Launch Dispatch=0
+
+Status anchor: `render_plan11_ibl_product_second_launch_dispatch_zero_framework_stats_scene_png_passed`.
+
+Scope: Plan 11 / Shader 06 EC-M2am adds a product-level regression for the source-cubemap runtime IBL cache path. The first `WgpuRenderFramework::submit_frame_extract(...)` on a project scene removes any stale `.zribl`, compiles the IBL bake graph on cache miss, executes PMREM/SH9/IEM bake executors, and writes the runtime cache artifact. The same project/source cubemap submitted again resolves the runtime cache hit and omits IBL bake executors from the product graph. The visible PNG is generated from the same project/source cubemap via the existing `SceneRenderer` product screenshot path because the framework `capture_frame` path is currently black for this project-render test.
+
+Evidence: ignored product test `export_runtime_render_ibl_cache_second_launch_dispatch_zero_png` passed under `cargo test -p zircon_runtime --lib ... -- --ignored --nocapture --test-threads=1`; final log is `docs/tests/runtime/render/plan11_ibl_product_second_launch_dispatch_zero_mixed_proof_test_20260707.raw.log` with `.exit.txt` exit 0. Report `docs/tests/runtime/render/plan11_ibl_product_second_launch_dispatch_zero_20260707.txt` records `first_ibl_executor_count=9`, `second_ibl_executor_count=0`, and `post_first_environment_dispatch_count=0`. Visual evidence is `docs/tests/runtime/render/plan11_ibl_product_second_launch_dispatch_zero_20260707.png`. Earlier full `--tests` compile timeout and failed direct/wgpu-capture attempts are retained as non-green process logs.
+
+Remaining gates: make Wgpu framework `capture_frame` nonblack for this product path or add RenderDoc product capture, asset-derived artifact production, strict roughness/SSIM/seam validation, 4K/16K offline bake, and full CI.
+
+### 2026-07-06 Plan 11 IBL Source Cubemap Graph Binding
+
+Status anchor: `render_plan11_ibl_source_cubemap_graph_binding_cargo_check_passed_test_deferred`.
+
+Scope: Plan 11 / Shader 06 EC-M2ak now binds the current frame source cubemap view into compiled scene graph resources as `environment.ibl.source_cubemap`. `bind_environment_ibl_graph_resources.rs` imports the borrowed source view only when the compiled graph declares the required external texture, preserves missing-resource reporting when no frame view exists, and keeps this input binding out of generic transient materialization. `render.rs` routes the uploaded `SceneEnvironmentCubemap::source_view()` into that helper after the scene environment upload path runs.
+
+Evidence: targeted rustfmt passed. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-runtime-writeback-0706 --message-format short --color never` exited 0; logs are `docs/tests/runtime/render/plan11_ibl_source_binding_cargo_check_20260706.{out,err}.log` and `.exit.txt`. Screenshot validation is `docs/tests/runtime/render/plan11_ibl_source_binding_validation_20260706.png`. Focused `environment_ibl_source_binder` lib-test exceeded the 600s tool window and is not counted as passing. Lumen reference audit covered `dev/LumenInUE5.5.4WithComputeShader/Res/Shader/LumenSceneLighting/Radiosity/*.hlsl`, where compute passes use 8x8x1 thread groups, input SRV/StructuredBuffer resources, and RWTexture outputs.
+
+Remaining gates: focused source-binder test pass after lib-test build clears, production scheduler/product graph injection, async readback/cache writeback, PMREM/IEM product artifact writeback, optimized SH9 reduction, product dispatch=0, RenderDoc/product capture, strict roughness/SSIM/seam screenshots, 4K/16K offline bake, and full CI.
+
+### 2026-07-07 Plan 18 / Hybrid GI Lumen-Style Seed Visual Export
+
+Status anchor: `render_plan18_hybrid_gi_lumen_style_seed_visual_wgpu_png_passed_full_pipeline_deferred`.
+
+Scope: this cross-plan slice makes the existing Wgpu post-process Hybrid GI path observable from runtime frame data. The post-process probe and trace-region encoders now project enabled `RenderHybridGiExtract` probes/trace regions into the GPU buffers consumed by `post_process.wgsl`, instead of returning zero counts. The test-only `render_framework_bridge::hybrid_gi_visual_export` path builds a minimal Hybrid GI render feature, submits baseline/warm/cool extracts through `WgpuRenderFramework`, captures the frames, and writes a three-panel PNG under `docs/tests/runtime/render`.
+
+Evidence: direct execution of the already built `zircon_runtime` lib-test binary passed `hybrid_gi_probe_encoder` 2/2, `hybrid_gi_trace_region_encoder` 2/2, and ignored exact test `graphics::tests::render_framework_bridge::hybrid_gi_visual_export::export_hybrid_gi_lumen_style_seed_visual_png` 1/1. Visual evidence is `docs/tests/runtime/render/plan18_hybrid_gi_lumen_style_seed_visual_20260707.png`; report `docs/tests/runtime/render/plan18_hybrid_gi_lumen_style_seed_visual_20260707.txt` records `warm_red=145.89`, `cool_red=144.51`, `warm_blue=179.72`, and `cool_blue=180.73`.
+
+Remaining gates: this is not full Plan 18 completion. Froxel fog, light cookies, clearcoat/anisotropy/transmission, OIT, irradiance volumes, planar reflection, SSS, full HGI surface-card/product assets, RenderDoc/product trace, temporal parity, and full CI remain open.
+
+### 2026-07-07 Hybrid GI Scene-Representation Wgpu Prepared Sideband
+
+Status anchor: `render_plan18_hybrid_gi_scene_prepare_wgpu_sideband_png_passed_gpu_pass_deferred`.
+
+Scope: Plan 18 / Hybrid GI Lumen-Style M1 now projects the plugin scene-prepare frame into
+renderer-neutral Wgpu sideband/readback outputs. The Hybrid GI provider exports surface-cache
+residency, atlas/capture samples, voxel clipmap occupancy, voxel cell samples, dominant sample
+metadata, and runtime feedback through `RenderHybridGiScenePrepareReadbackOutputs`; the Wgpu
+framework visual test submits a real Hybrid GI scene, captures the product frame, and records the
+scene-sideband stats.
+
+Evidence: `cargo check -p zircon_plugin_hybrid_gi_runtime` passed. Focused provider regression
+`provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs` passed 1/1.
+Ignored Wgpu visual export `export_hybrid_gi_scene_representation_wgpu_png` passed 1/1. Visual
+evidence is `docs/tests/runtime/render/plan18_hybrid_gi_scene_representation_wgpu_sideband_20260707.png`;
+the report at `docs/tests/runtime/render/plan18_hybrid_gi_scene_representation_wgpu_sideband_20260707.txt`
+records `visible_pixels=1813`, `last_hybrid_gi_scene_card_count=2`,
+`last_hybrid_gi_surface_cache_resident_page_count=1`, and
+`last_hybrid_gi_voxel_resident_clipmap_count=1`.
+
+Remaining gates: actual GPU surface-cache capture/depth-copy passes, probe trace tile generation,
+voxel cone-trace/product resolve, Deferred/Forward+ GI composite, temporal stability, RenderDoc
+capture, and full CI remain open.
+
+### 2026-07-07 Hybrid GI Surface-Cache Depth And Probe Trace Tile Wgpu Sideband
+
+Status anchor: `render_plan18_hybrid_gi_surface_cache_depth_trace_tiles_wgpu_png_passed_gpu_pass_deferred`.
+
+Scope: Plan 18 / Hybrid GI Lumen-Style M1 now carries the next scene-prepare intermediate products
+through the renderer-neutral Wgpu path. The neutral readback DTO includes surface-cache depth samples,
+probe trace tile records, and probe trace dispatch groups. The plugin provider derives those records
+from scene-prepare card/page/voxel data and current HGI budgets, and the runtime stats/diagnostics
+path exposes their counts without reaching into plugin-private DTO internals.
+
+Evidence: focused provider regression
+`provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs` passed 1/1;
+neutral readback regression `neutral_outputs_project_hybrid_gi_gpu_readback` passed 1/1;
+render-framework stats regression
+`render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts` passed
+1/1; ignored Wgpu visual export `export_hybrid_gi_scene_depth_trace_tiles_wgpu_png` passed 1/1.
+`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked`
+passed under `E:\cargo-targets\zircon-hgi-scene-sideband-0707`, and
+`cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Visual evidence is
+`docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_trace_tiles_wgpu_20260707.png`; the report
+at `docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_trace_tiles_wgpu_20260707.txt` records
+`visible_pixels=1813`, `last_hybrid_gi_surface_cache_depth_sample_count=1`,
+`last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`.
+
+Remaining gates: real GPU depth texture copy/DSRT ownership, trace ray dispatch, product GI
+resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal stability, and full
+CI remain open.
+
+### 2026-07-07 Hybrid GI GPU-Owned Surface-Cache Depth And Probe Trace Tile Readback
+
+Status anchor: `render_plan18_hybrid_gi_gpu_owned_depth_trace_readback_wgpu_png_passed_gpu_pass_deferred`.
+
+Scope: Plan 18 / Hybrid GI Lumen-Style M1 now moves the previous deterministic depth/tile sideband
+into Wgpu-owned resources. The prepare execution creates a `surface-cache-depth` texture with upload
+and per-slot readback buffers, plus a probe trace tile storage buffer and readback buffer. Pending
+GPU readback collection decodes those resources back into the scene-prepare snapshot before the
+renderer-neutral readback DTO and runtime stats are projected.
+
+Evidence: focused provider regression
+`provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs` passed 1/1;
+neutral readback regression `neutral_outputs_project_hybrid_gi_gpu_readback` passed 1/1;
+render-framework stats regression
+`render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts` passed
+1/1; ignored Wgpu visual export `export_hybrid_gi_gpu_depth_trace_readback_wgpu_png` passed 1/1.
+`cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked`
+passed under `E:\cargo-targets\zircon-hgi-scene-sideband-0707`, and
+`cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Visual evidence is
+`docs/tests/runtime/render/plan18_hybrid_gi_gpu_depth_trace_readback_wgpu_20260707.png`; the report
+at `docs/tests/runtime/render/plan18_hybrid_gi_gpu_depth_trace_readback_wgpu_20260707.txt` records
+`gpu_scene_prepare_depth_trace_readback=surface_cache_depth_texture+probe_trace_tile_buffer`,
+`visible_pixels=1813`, `last_hybrid_gi_surface_cache_depth_sample_count=1`,
+`last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`.
+
+Remaining gates: real scene depth/DSRT source sampling, generated probe ray tracing dispatch,
+product GI resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal
+stability, and full CI remain open.
+
+### 2026-07-07 Hybrid GI GPU Probe Trace Tile Generation And Indirect Args
+
+Status anchor: `render_plan18_hybrid_gi_gpu_trace_tile_generation_indirect_args_wgpu_png_passed_ray_dispatch_deferred`.
+
+Scope: Plan 18 / Hybrid GI Lumen-Style M1 now promotes the probe trace tile schedule from a
+CPU-copied storage buffer into a Wgpu compute-generated intermediate. `generate_probe_trace_tiles.wgsl`
+consumes scene-derived seed tile records, writes the GPU-owned tile buffer, and writes an indirect
+args buffer. Pending GPU readback collection decodes both the tile buffer and indirect args so
+`probe_trace_dispatch` is projected from GPU output instead of recomputed on the CPU.
+
+Evidence: `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 --message-format short --color never`
+passed, and `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+Focused render-framework stats regression
+`render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts` passed
+1/1; ignored Wgpu visual export `export_hybrid_gi_gpu_trace_tile_generation_wgpu_png` passed 1/1.
+
+Visual evidence is
+`docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_generation_wgpu_20260707.png`; the report
+at `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_generation_wgpu_20260707.txt` records
+`gpu_probe_trace_tile_generation=generate_probe_trace_tiles_compute+indirect_args_readback`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`.
+
+Remaining gates: real scene depth/DSRT source sampling, probe ray tracing shader/dispatch,
+surface-cache/voxel GI resolve, product composite, Deferred/Forward+ parity, RenderDoc product
+capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 GPU Probe Trace Tile Dispatch To Trace Lighting Buffer
+
+Status anchor: `render_plan18_hybrid_gi_gpu_trace_tile_dispatch_wgpu_png_passed_resolve_deferred`.
+
+This slice connects the generated probe trace tile schedule to the existing GPU trace-lighting
+readback buffer. `trace_probe_tiles.wgsl` reads resident/pending probe inputs plus the GPU-owned
+probe trace tile buffer, runs after the completion compute pass, and writes
+`probe_trace_lighting_buffer` before the shared readback copy. The pass is intentionally still a
+tile-driven trace-lighting dispatch gate; it does not yet perform real scene-depth/DSRT ray marching
+or final GI resolve/composite.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/Cargo.toml`
+- `zircon_plugins/Cargo.lock`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_dispatch_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_gpu_trace_tile_dispatch_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_dispatch=trace_probe_tiles_compute+writes_probe_trace_lighting_buffer`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`. The dedicated Wgpu readback unit test
+also validates that the shader writes the trace-lighting header, probe id, and a nonzero packed RGB
+payload.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime trace_probe_tiles_shader_writes_trace_lighting_buffer_from_tile_schedule --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --nocapture`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --nocapture`
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_gpu_trace_tile_dispatch_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-scene-sideband-0707 -- --ignored --nocapture`
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check`
+
+Remaining boundary: real scene depth/DSRT source sampling, real ray marching/surface-cache sampling,
+voxel miss fallback, product GI resolve/composite, Deferred/Forward+ parity, RenderDoc product
+capture, temporal stability, and full CI remain open.
+
+## 2026-07-07 Hybrid GI Scene Screen Probe Prepare Sideband
+
+Status anchor: `render_plan18_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_png_passed_runtime_collector_execution_deferred`.
+
+This slice routes scene-representation screen probes into the runtime prepare data path instead of
+leaving them as stats-only scene-representation state. When scene representation owns runtime probe
+placement, `collect_resident_probes(...)` appends screen-probe descriptors as transient
+`HybridGiPrepareProbe` work items without mutating persistent resident slots. `build_resolve_runtime`
+now mirrors those same screen-probe ids into quantized probe scene data, and the Hybrid GI provider
+exports the resulting prepare frame as renderer-neutral `RenderHybridGiPreparedFrame` through the
+public prepared runtime sideband.
+
+Implementation files:
+
+- `zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs`
+- `zircon_runtime/src/core/framework/render/mod.rs`
+- `zircon_runtime/src/graphics/hybrid_gi_runtime_provider/prepare_output.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs`
+- `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/collect_resident_probes.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_20260707.txt`
+
+The report records `gpu_scene_screen_probe_prepare_work_items=screen_probe_descriptors_to_transient_prepare_probes`,
+`neutral_hybrid_gi_prepared_frame_sideband=provider_prepare_output_resident_screen_probes+probe_scene_data`,
+`runtime_prepare_collector_execution=deferred_pending_streamer_and_gpu_readback_lifecycle`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_scene_screen_probe_count=2`, and
+`last_hybrid_gi_scene_radiance_cache_entry_count=2`.
+
+Validation:
+
+- `rustfmt --check` on the touched runtime/plugin Rust files passed.
+- `cargo check --manifest-path zircon_runtime/Cargo.toml --lib --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-runtime-0707 --jobs 1` passed with existing warning noise.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1` passed with existing warning noise.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime provider_projects_scene_screen_probes_into_neutral_prepared_frame_sideband --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1 -- --nocapture` passed 1/1.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime hybrid_gi_runtime_state_projects_scene_screen_probes_into_prepare_work_items --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1 -- --nocapture` passed 1/1.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_scene_screen_probe_prepare_sideband_wgpu_png --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-neutral-sideband-plugin-0707 --jobs 1 -- --ignored --nocapture` passed 1/1.
+
+Not counted as green: `cargo test --manifest-path zircon_runtime/Cargo.toml --lib prepare_output_carries_neutral_hybrid_gi_prepared_frame ...`
+timed out twice while compiling the broad runtime lib-test harness and was stopped. The plugin tests
+compiled the public neutral sideband types through provider output and covered the provider/runtime
+prepare projection path.
+
+Remaining boundary: public `RuntimePrepareCollectorContext` still does not directly execute
+`HybridGiGpuResources::execute_prepare` for this sideband because the collector path lacks the
+required material-capture/streamer source and pending GPU-readback lifecycle. Real scene depth/DSRT
+source sampling, real ray marching/surface-cache sampling, voxel miss fallback, product GI
+resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal stability, and full
+CI remain open.
+
+## 2026-07-07 Hybrid GI Runtime Prepare Material Capture Context
+
+Status anchor: `render_plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_png_passed_gpu_owner_execution_deferred`.
+
+This slice closes the first missing runtime prepare collector input needed before Hybrid GI can move
+from prepared sideband handoff toward direct `execute_prepare(...)` ownership. `RuntimePrepareCollectorContext`
+now receives the renderer-owned `ResourceStreamer` and exposes only neutral material-capture accessors:
+`material_capture_seed(...)` returns `RuntimePrepareMaterialCaptureSeed`, while `sample_texture_rgba(...)`
+forwards texture sampling without making the concrete streamer or material runtime public.
+
+Implementation files:
+
+- `zircon_runtime/src/graphics/runtime_prepare_collector.rs`
+- `zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs`
+- `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs`
+- `zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs`
+- `zircon_runtime/src/graphics/mod.rs`
+- `zircon_runtime/src/graphics/prelude.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_20260707.txt`
+
+The report records
+`runtime_prepare_material_capture_context=collector_context_material_capture_seed+sample_texture_rgba_from_resource_streamer`,
+`runtime_prepare_collector_execution=material_capture_context_ready_pending_stateful_gpu_owner_and_async_readback_lifecycle`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_scene_screen_probe_count=2`, and
+`last_hybrid_gi_probe_trace_tile_count=2`.
+
+Validation:
+
+- `rustfmt --check --config skip_children=true` passed on the touched runtime/plugin files.
+- `cargo check --manifest-path zircon_runtime/Cargo.toml --lib --message-format short --color never --target-dir E:\cargo-targets\zircon-runtime-prepare-material-capture-0707 --jobs 1` passed with existing warning noise.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-runtime-prepare-material-capture-plugin-0707 --jobs 1` passed with existing warning noise.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_runtime_prepare_material_capture_context_wgpu_png --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-runtime-prepare-material-capture-plugin-0707 --jobs 1 -- --ignored --nocapture` passed 1/1.
+
+Not counted as green: `cargo test --manifest-path zircon_runtime/Cargo.toml --lib collector_context_exposes_material_capture_streamer_accessors ...`
+timed out while compiling the broad runtime lib-test harness and was stopped.
+
+Remaining boundary: this is a material-capture context gate, not direct Hybrid GI runtime collector
+GPU execution. The stateful Hybrid GI GPU owner, pending readback lifecycle, real scene depth/DSRT
+source sampling, real ray marching/surface-cache sampling, voxel miss fallback, product GI
+resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal stability, and full
+CI remain open.
+
+## 2026-07-07 Hybrid GI Runtime Prepare Collector GPU Owner Readback
+
+Status anchor: `render_plan18_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_png_passed_scene_prepare_reconstruction_deferred`.
+
+This slice moves Hybrid GI prepare execution onto the public runtime prepare collector path. The
+collector is now stateful: it owns plugin-local `HybridGiGpuResources`, collects the previous
+pending GPU readback into renderer-neutral plugin outputs, reconstructs internal
+`HybridGiPrepareFrame` and `HybridGiResolveRuntime` from neutral prepared runtime sideband data, and
+then submits `execute_prepare(...)` for the current frame. The lower runtime-state layer also now
+accepts scene-representation screen probes as live GPU feedback targets, so GPU cache entries,
+irradiance, and trace-lighting updates are not discarded just because the probes were not authored
+as persistent legacy runtime probes.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/scene_representation.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/merge_plugin_renderer_outputs.rs`
+- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_20260707.txt`
+
+The report records `runtime_prepare_collector_execution=stateful_gpu_prepare_pending_readback_collected`,
+`validated_provider_prepared_frame_resident_screen_probe_count=2`,
+`validated_runtime_prepare_transient_screen_probe_count=2`,
+`last_hybrid_gi_cache_entry_count=2`, `last_hybrid_gi_scene_screen_probe_count=2`,
+`last_hybrid_gi_probe_trace_tile_count=2`, `visible_pixels=1813`, and `max_luma=149.40`.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib hybrid_gi_runtime_state_accepts_scene_screen_probe_gpu_feedback --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-hgi-runtime-collector-gpu-owner-0707 --jobs 1` first failed before the state fix, then passed 1/1 after the shared runtime-state predicate was added.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib runtime_prepare_collector --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-hgi-runtime-collector-gpu-owner-0707 --jobs 1 -- --nocapture` passed 2/2 with one ignored visual export.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib export_hybrid_gi_runtime_prepare_collector_gpu_owner_readback_wgpu_png --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-hgi-runtime-collector-gpu-owner-0707 --jobs 1 -- --ignored --nocapture` passed 1/1.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --message-format short --color never --target-dir E:\cargo-targets\zircon-hgi-runtime-collector-gpu-owner-0707 --jobs 1` passed with existing warning noise.
+- Scoped `rustfmt --check --edition 2021` passed on the touched runtime/plugin Rust files.
+
+Not counted as green: runtime-crate focused tests for source-cubemap constants and plugin-output
+merge were attempted under separate target dirs but timed out or were stopped during broad runtime
+lib-test compilation. They are not evidence for this Hybrid GI collector slice.
+
+Remaining boundary: this is direct runtime prepare collector GPU execution and readback collection,
+not final Lumen-style GI. Real scene depth/DSRT source sampling, real ray marching/surface-cache
+sampling, voxel miss fallback, product GI resolve/composite, Deferred/Forward+ parity, RenderDoc
+product capture, temporal stability, full CI, and the broader Plan 18 advanced-lighting families
+remain open.
+
+## 2026-07-07 Hybrid GI Surface-Cache Texture Sampling
+
+Status anchor: `render_plan18_hybrid_gi_surface_cache_texture_sampling_wgpu_png_passed_ray_dispatch_deferred`.
+
+This slice advances Plan 18 / Hybrid GI from tile-driven trace-lighting writes into the first
+texture-backed surface-cache sampling gate. `trace_probe_tiles.wgsl` now binds the scene-prepare
+surface-cache atlas and depth texture, derives the atlas texel from the GPU-generated trace tile's
+atlas slot, and writes trace lighting from the sampled atlas/depth pair when the texture inputs are
+valid. The dispatch keeps a deterministic fallback for voxel-only, unavailable, or invalid texture
+cases so existing trace scheduling remains fail-closed instead of breaking the prepare pass.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_buffers.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_texture_sampling_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_texture_sampling_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_surface_cache_sampling=trace_probe_tiles_compute+surface_cache_atlas_depth_texture_load`,
+`validated_surface_cache_depth_sample_count=1`,
+`validated_surface_cache_texture_sampling_shader=trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures_exact_rgb`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_probe_trace_dispatch_group_count=[1, 1, 2]`.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime trace_probe_tiles_shader_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 -- --nocapture` passed 2/2.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_surface_cache_texture_sampling_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 -- --ignored --nocapture` passed 1/1.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 --message-format short --color never` passed with existing warning noise.
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Remaining boundary: this is surface-cache texture sampling inside the trace tile dispatch, not the
+final Lumen-style GI product path. Real scene depth/DSRT source sampling, complete ray marching or
+cone tracing, voxel miss fallback, product GI resolve/composite, Deferred/Forward+ parity,
+RenderDoc product capture, temporal stability, and full CI remain open.
+
+## 2026-07-08 Hybrid GI Surface-Cache Ray March
+
+Status anchor: `render_plan18_hybrid_gi_surface_cache_ray_march_wgpu_png_passed_hzb_sdf_deferred`.
+
+This slice advances the trace-tile surface-cache hit path from a single atlas texel sample to a
+small atlas/depth multi-step march before voxel fallback. `trace_probe_tiles.wgsl` now derives a
+2D march direction from `tile_sample_id`, reads up to four surface-cache atlas/depth texels, rejects
+invalid alpha/depth and large depth jumps, and blends near-depth RGB by step distance. If the
+surface-cache texture is unavailable or the first valid sample cannot be established, the existing
+voxel descriptor/cone fallback still owns the miss path.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_ray_march.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_ray_march_wgpu_20260708.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_ray_march_wgpu_20260708.txt`
+
+The report records `gpu_probe_trace_tile_surface_cache_ray_march=trace_probe_tiles_compute+atlas_depth_multi_step_march`,
+`validated_surface_cache_ray_march_shader=trace_probe_tiles_shader_marches_surface_cache_depth_before_voxel_fallback_weighted_near_depth_texels`,
+`lumen_reference=TraceScreen_InternalTraceScreen_depth_threshold_steps_plus_CompositeTraces_trace_radiance_reduce`,
+`visible_pixels=1813`, `max_luma=155.05`, and `last_hybrid_gi_probe_trace_tile_count=2`.
+
+Validation:
+
+- New WGPU readback test `trace_probe_tiles_shader_marches_surface_cache_depth_before_voxel_fallback` was red before implementation: old single-texel output `[150,60,15]` did not match the expected weighted near-depth output `[111,84,21]`.
+- The same test passed after the shader change.
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib trace_probe_tiles_shader_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --test-threads=1 --nocapture` passed 6/6.
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib export_hybrid_gi_surface_cache_ray_march_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --ignored --test-threads=1 --nocapture` passed 1/1.
+- Scoped `rustfmt --check` passed over the touched Rust files.
+
+Remaining boundary: this is an atlas-space surface-cache/depth multi-step march in the current trace
+tile dispatch. It is not a full HZB-backed screen trace, not a Lumen global-distance-field or SDF
+march, and it does not close Deferred/Forward+ parity, RenderDoc product capture, temporal
+stability, full runtime tests, full CI, or the rest of Plan 18.
+
+## 2026-07-08 Hybrid GI Voxel Cone-Trace Fallback
+
+Status anchor: `render_plan18_hybrid_gi_voxel_cone_trace_wgpu_png_passed_full_ray_marching_deferred`.
+
+This slice advances the trace-tile voxel miss path from an exact single voxel-cell descriptor lookup
+to a small cone-style aggregation over nearby voxel-cell descriptors. `trace_probe_tiles.wgsl` now
+weights voxel-cell radiance by clipmap match, cell distance, descriptor half extent, and occupancy.
+Exact cell hits keep an extra weight so the existing single-cell miss fallback remains stable, while
+neighboring in-radius cells can contribute and far cells or different clipmaps are rejected.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/voxel_cone_trace.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_cone_trace_wgpu_20260708.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_cone_trace_wgpu_20260708.txt`
+
+The report records `gpu_probe_trace_tile_voxel_cone_trace=trace_probe_tiles_compute+weighted_voxel_cell_cone_aggregation`,
+`validated_voxel_cone_trace_shader=trace_probe_tiles_shader_cone_traces_multiple_voxel_cells_when_surface_cache_misses_exact_neighbor_weighted_rgb`,
+`visible_pixels=1813`, `max_luma=155.05`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_voxel_resident_clipmap_count=1`.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib trace_probe_tiles_shader_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --test-threads=1 --nocapture` passed 5/5.
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib export_hybrid_gi_voxel_cone_trace_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --ignored --test-threads=1 --nocapture` passed 1/1.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+
+Not counted as green: the first focused Cargo attempt on a fresh `E:\cargo-targets\zircon-hgi-voxel-cone-0708`
+target directory timed out after 604 seconds while compiling and was stopped. An initial exact-filter
+PNG export matched 0 tests, so it is not counted as screenshot evidence.
+
+Remaining boundary: this is descriptor-space cone-style voxel aggregation inside the current trace
+tile dispatch. It is not a full screen-space ray march or Lumen global distance-field march, and it
+does not close Deferred/Forward+ parity, RenderDoc product capture, temporal stability, full runtime
+tests, full CI, or the rest of Plan 18.
+
+## 2026-07-07 Hybrid GI Voxel Miss Fallback
+
+Status anchor: `render_plan18_hybrid_gi_voxel_miss_fallback_wgpu_png_passed_ray_dispatch_deferred`.
+
+This slice advances Plan 18 / Hybrid GI from surface-cache-only trace sampling to the next
+Lumen-style miss stage. `trace_probe_tiles.wgsl` now binds the scene-prepare descriptor buffer,
+receives descriptor count through dispatch params, and checks voxel-cell descriptors when the
+surface-cache atlas/depth sample is invalid. Matching voxel descriptors are keyed by tile probe id
+and sample id, with packed descriptor RGB becoming the trace-lighting output. The deterministic hash
+fallback remains only for frames where neither surface-cache nor voxel descriptor data is valid.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_buffers.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_miss_fallback_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_voxel_miss_fallback_wgpu_20260707.txt`
+
+The report records `gpu_probe_trace_tile_voxel_miss_fallback=trace_probe_tiles_compute+scene_prepare_voxel_cell_descriptor_radiance`,
+`validated_voxel_miss_fallback_shader=trace_probe_tiles_shader_uses_voxel_cell_descriptor_when_surface_cache_sample_is_invalid_exact_rgb`,
+`visible_pixels=1813`, `max_luma=149.40`, `last_hybrid_gi_probe_trace_tile_count=2`, and
+`last_hybrid_gi_voxel_resident_clipmap_count=1`.
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime trace_probe_tiles_shader_ --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 --message-format short --color never -- --nocapture` passed 3/3.
+- `cargo test --quiet --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime export_hybrid_gi_voxel_miss_fallback_wgpu_png --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 -- --ignored --nocapture` passed 1/1.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-surface-cache-sampling-0707 --message-format short --color never` passed with existing warning noise.
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Compile unblocker: the focused test harness also exposed an unrelated pending UI text atlas type
+inference issue in `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs`;
+the local counters now have explicit `usize` annotations matching their report fields. That change is
+not counted as Hybrid GI feature work.
+
+Remaining boundary: this completes the current trace-tile voxel miss fallback gate, not final
+Lumen-style GI. Real scene depth/DSRT source sampling, complete ray marching/cone tracing, product GI
+resolve/composite, Deferred/Forward+ parity, RenderDoc product capture, temporal stability, and full
+CI remain open.
+
+## 2026-07-07 Hybrid GI Runtime Trace-Lighting Sideband Product Proof
+
+Status anchor: `render_plan18_hybrid_gi_runtime_trace_lighting_neutral_sideband_product_wgpu_png_passed`.
+
+This slice keeps the public RenderFramework runtime prepare path from dropping probe trace-lighting
+history after the Wgpu trace tile dispatch. `RenderHybridGiPreparedFrame` now carries
+`probe_rt_lighting_rgb`, the Hybrid GI provider projects probe-level `HybridGiResolveRuntime`
+trace-lighting history into that neutral sideband, and the runtime prepare collector reconstructs
+the same probe trace-lighting map before submitting `execute_prepare(...)` for the next frame.
+The product-frame export uses `RenderHybridGiDebugView::None` and three submitted frames to cover
+provider completion, neutral sideband projection, and collector rebuild on the public path.
+
+Implementation files:
+
+- `zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs`
+- `zircon_runtime/src/core/framework/render/mod.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/provider.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+
+Visual evidence:
+
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_trace_lighting_product_wgpu_20260707.png`
+- `docs/tests/runtime/render/plan18_hybrid_gi_runtime_trace_lighting_product_wgpu_20260707.txt`
+
+The report records `product_debug_view=none`,
+`runtime_trace_lighting_neutral_sideband=provider_resolve_runtime_probe_rt_lighting_rgb_to_render_hybrid_gi_prepared_frame`,
+`runtime_trace_lighting_collector_rebuild=render_hybrid_gi_prepared_probe_rt_lighting_to_hybrid_gi_resolve_runtime`,
+`runtime_trace_lighting_public_path=render_framework_prepare_runtime_submission_to_runtime_prepare_collector`,
+`visible_pixels=1813`, `max_luma=149.40`, `first_hybrid_gi_probe_trace_tile_count=2`,
+`second_hybrid_gi_cache_entry_count=2`, and `last_hybrid_gi_scene_radiance_cache_entry_count=2`.
+
+Validation:
+
+- `provider_projects_probe_rt_lighting_history_into_neutral_prepared_frame_sideband` passed 1/1.
+- `neutral_prepared_frame_projects_to_gpu_prepare_inputs` passed 1/1.
+- `trace_probe_tiles_shader_` passed 3/3 after moving the shader tests into the child test owner.
+- `render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts` passed 1/1.
+- Ignored Wgpu product export `export_hybrid_gi_runtime_trace_lighting_product_resolve_wgpu_png` passed 1/1.
+- `cargo fmt --manifest-path zircon_plugins/hybrid_gi/runtime/Cargo.toml --check` passed.
+
+Not counted as green: `cargo test -p zircon_runtime prepared_runtime_sidebands_report_empty_only_without_payloads`
+timed out under default features, and the core-min rerun returned before producing a usable test
+result. The production runtime sideband compiled through the plugin tests, but this runtime-crate
+unit test is not claimed passed.
+
+Remaining boundary: this closes probe trace-lighting history transport through the public prepared
+sideband and collector path, not final Lumen-style GI quality. Real scene depth/DSRT source
+sampling, complete ray marching/cone tracing, final GI resolve/composite quality,
+Deferred/Forward+ parity, RenderDoc product capture, temporal stability, and full CI remain open.

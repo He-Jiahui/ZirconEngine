@@ -6,8 +6,9 @@ use ::swash::scale::{
     image::{Content as SwashImageContent, Image as SwashImage},
     Render, ScaleContext,
 };
+use ::swash::zeno::Vector as SwashVector;
 use ::swash::FontRef;
-use std::slice;
+use ::swash::{Setting as SwashSetting, Tag as SwashTag};
 
 pub(crate) struct SwashRasterizer {
     context: ScaleContext,
@@ -31,19 +32,31 @@ impl SwashRasterizer {
                 face_index: request.face_index,
             },
         )?;
-        let mut scaler = self
+        let mut scaler_builder = self
             .context
             .builder(font)
             .size(request.px_size)
-            .hint(request.hint)
-            .build();
-        let source = request.source.to_swash_source();
-        let mut render = Render::new(slice::from_ref(&source));
-        render.format(request.source.render_format());
+            .hint(request.hint);
+        if let Some(weight) = request.variation_weight {
+            if let Some(variation) = font.variations().find_by_tag(swash_weight_axis_tag()) {
+                scaler_builder = scaler_builder.variations(std::iter::once(SwashSetting {
+                    tag: swash_weight_axis_tag(),
+                    value: f32::from(weight).clamp(variation.min_value(), variation.max_value()),
+                }));
+            }
+        }
+        let mut scaler = scaler_builder.build();
+
+        let sources = request.swash_sources();
+        let mut render = Render::new(&sources[..request.source_count()]);
+        render
+            .format(request.render_format)
+            .offset(SwashVector::new(request.offset.x, request.offset.y))
+            .transform(request.fake_italic_transform());
         let image = render.render(&mut scaler, request.glyph_id).ok_or(
             SwashRasterError::MissingGlyphImage {
                 glyph_id: request.glyph_id,
-                source: request.source,
+                source: request.primary_source(),
             },
         )?;
 
@@ -77,6 +90,10 @@ impl SwashRasterizer {
             SwashRasterRequest::subpixel_outline(face_index, glyph_id, px_size, hint),
         )
     }
+}
+
+fn swash_weight_axis_tag() -> SwashTag {
+    SwashTag::from_be_bytes(*b"wght")
 }
 
 impl Default for SwashRasterizer {

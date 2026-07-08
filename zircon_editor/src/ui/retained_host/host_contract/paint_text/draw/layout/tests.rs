@@ -15,14 +15,14 @@ use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
 
 #[test]
 fn runtime_positioned_glyphs_use_runtime_grapheme_advances_when_widths_match() {
-    let text = "Wi";
+    let text = "editor";
     let host_glyphs = super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, 3.0, 2.0);
     let host_width = super::host_glyph_run_width(&host_glyphs, HostTextFontFace::Ui)
         .expect("host glyph run width");
     let first_host_advance = super::glyph_cursor_x(&host_glyphs[1], HostTextFontFace::Ui)
         - super::glyph_cursor_x(&host_glyphs[0], HostTextFontFace::Ui);
-    let second_adjusted_advance = (host_width - first_host_advance - 0.05).max(0.25);
-    let adjusted_advances = vec![first_host_advance + 0.05, second_adjusted_advance];
+    let second_adjusted_advance = (host_width - first_host_advance - 0.02).max(0.25);
+    let adjusted_advances = vec![first_host_advance + 0.02, second_adjusted_advance];
 
     let glyphs = runtime_positioned_glyphs(
         text,
@@ -52,7 +52,11 @@ fn runtime_positioned_glyphs_prefer_matching_shaped_glyph_positions() {
     let host_advances = host_advances_for_text(text, &host_glyphs);
     let mut shaped_glyphs =
         shaped_glyphs_from_host_layout(text, &host_glyphs, HostTextFontFace::Ui, start_x);
-    shaped_glyphs[1].x += 0.05;
+    let same_phase_shift = subvisible_same_retained_phase_shift(
+        super::glyph_cursor_x(&host_glyphs[1], HostTextFontFace::Ui),
+        HostTextSmoothing::Subpixel,
+    );
+    shaped_glyphs[1].x += same_phase_shift;
 
     let glyphs = runtime_positioned_glyphs(
         text,
@@ -69,9 +73,46 @@ fn runtime_positioned_glyphs_prefer_matching_shaped_glyph_positions() {
     assert!((glyphs[1].origin_x - (start_x + shaped_glyphs[1].x)).abs() < 0.01);
     assert!(
         (glyphs[1].origin_x - super::glyph_cursor_x(&host_glyphs[1], HostTextFontFace::Ui)).abs()
-            > 0.03,
+            > 0.02,
         "matching shaped glyph positions must not be discarded and recomputed from host advances"
     );
+}
+
+#[test]
+fn runtime_positioned_glyphs_reject_matching_shaped_positions_with_same_phase_visible_drift() {
+    let text = "editor";
+    let start_x = 3.0;
+    let mut host_glyphs =
+        super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, start_x, 2.0);
+    let initial_first_origin = super::glyph_cursor_x(&host_glyphs[0], HostTextFontFace::Ui);
+    host_glyphs[0].x += start_x - initial_first_origin;
+    let host_advances = host_advances_for_text(text, &host_glyphs);
+    let mut shaped_glyphs =
+        shaped_glyphs_from_host_layout(text, &host_glyphs, HostTextFontFace::Ui, start_x);
+    let same_phase_shift = visible_same_retained_phase_shift(
+        super::glyph_cursor_x(&host_glyphs[1], HostTextFontFace::Ui),
+        HostTextSmoothing::Subpixel,
+    );
+    shaped_glyphs[1].x += same_phase_shift;
+
+    let glyphs = runtime_positioned_glyphs(
+        text,
+        &host_advances,
+        &shaped_glyphs,
+        HostTextFontFace::Ui,
+        13.0,
+        start_x,
+        2.0,
+        HostTextSmoothing::Subpixel,
+    );
+
+    assert_eq!(glyphs.len(), host_glyphs.len());
+    for (projected, natural) in glyphs.iter().zip(host_glyphs.iter()) {
+        assert!(
+            (projected.x - natural.x).abs() < 0.01,
+            "same-phase shaped origins still fall back when the offset is visible in compact editor labels"
+        );
+    }
 }
 
 #[test]
@@ -102,7 +143,7 @@ fn runtime_positioned_glyphs_reject_matching_shaped_positions_with_local_jitter(
 }
 
 #[test]
-fn runtime_positioned_glyphs_accepts_matching_shaped_positions_that_shift_raster_phase() {
+fn runtime_positioned_glyphs_rejects_matching_shaped_positions_that_shift_raster_phase() {
     let text = "folder-open.svg";
     let start_x = 3.93;
     let host_glyphs = super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, start_x, 2.0);
@@ -123,16 +164,12 @@ fn runtime_positioned_glyphs_accepts_matching_shaped_positions_that_shift_raster
     );
 
     assert_eq!(glyphs.len(), host_glyphs.len());
-    let natural_origin = super::glyph_cursor_x(&host_glyphs[0], HostTextFontFace::Ui);
-    let shaped_origin = start_x + shaped_glyphs[0].x;
-    assert!(
-        (glyphs[0].origin_x - shaped_origin).abs() < 0.01,
-        "matching shaped positions should keep their pen origin even when the retained raster bin changes"
-    );
-    assert!(
-        (glyphs[0].origin_x - natural_origin).abs() > 0.03,
-        "this regression must cover the old fallback-to-natural-origin path"
-    );
+    for (projected, natural) in glyphs.iter().zip(host_glyphs.iter()) {
+        assert!(
+            (projected.x - natural.x).abs() < 0.01,
+            "matching shaped positions must still fall back when they move an editor-label glyph into a different retained raster phase"
+        );
+    }
 }
 
 #[test]
@@ -344,7 +381,10 @@ fn runtime_positioned_glyphs_rejects_one_eighth_pixel_tab_label_jitter() {
 fn runtime_positioned_glyphs_rejects_cumulative_subpixel_phase_drift() {
     let text = "editor base.zui";
     let start_x = 3.0;
-    let host_glyphs = super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, start_x, 2.0);
+    let mut host_glyphs =
+        super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, start_x, 2.0);
+    let first_origin = super::glyph_cursor_x(&host_glyphs[0], HostTextFontFace::Ui);
+    host_glyphs[0].x += start_x - first_origin;
     let graphemes = text.grapheme_indices(true).collect::<Vec<_>>();
     let host_advances =
         super::host_grapheme_advances(&host_glyphs, &graphemes, HostTextFontFace::Ui)
@@ -441,19 +481,25 @@ fn retained_text_run_carries_runtime_projected_spacing() {
 }
 
 #[test]
-fn runtime_phase_guard_uses_alpha_subpixel_bins_for_grayscale_glyphs() {
+fn runtime_phase_guard_uses_subpixel_bins_for_grayscale_glyphs_after_line_snap() {
     let text = "Wi";
     let probe_glyphs = super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, 0.0, 2.0);
     let probe_second_origin = super::glyph_cursor_x(&probe_glyphs[1], HostTextFontFace::Ui);
     let start_x = 20.49 - probe_second_origin.rem_euclid(1.0);
-    let host_glyphs = super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, start_x, 2.0);
+    let mut host_glyphs =
+        super::fontdue_glyph_layout(text, HostTextFontFace::Ui, 13.0, start_x, 2.0);
+    // Normalize the synthetic first glyph so this guard isolates the second glyph crossing.
+    let initial_first_origin = super::glyph_cursor_x(&host_glyphs[0], HostTextFontFace::Ui);
+    host_glyphs[0].x += start_x - initial_first_origin;
     let graphemes = text.grapheme_indices(true).collect::<Vec<_>>();
     let mut advances =
         super::host_grapheme_advances(&host_glyphs, &graphemes, HostTextFontFace::Ui)
             .expect("host grapheme advances");
     let first_origin = super::glyph_cursor_x(&host_glyphs[0], HostTextFontFace::Ui);
     let second_origin = super::glyph_cursor_x(&host_glyphs[1], HostTextFontFace::Ui);
-    advances[0] = second_origin.floor() + 0.51 - first_origin;
+    advances[0] = second_origin.floor() + 0.50 - start_x;
+    let projected_first_origin = start_x;
+    let projected_second_origin = start_x + advances[0];
 
     assert!(
         super::runtime_advances_preserve_retained_raster_bins(
@@ -464,7 +510,7 @@ fn runtime_phase_guard_uses_alpha_subpixel_bins_for_grayscale_glyphs() {
             start_x,
             HostTextSmoothing::Grayscale,
         ),
-        "grayscale alpha placement should keep the same 8-bin phase guard as subpixel positioning"
+        "grayscale editor labels should use retained 8-bin glyph phases after the line origin has snapped: first={first_origin}->{projected_first_origin}, second={second_origin}->{projected_second_origin}"
     );
     assert!(
         super::runtime_advances_preserve_retained_raster_bins(
@@ -475,12 +521,48 @@ fn runtime_phase_guard_uses_alpha_subpixel_bins_for_grayscale_glyphs() {
             start_x,
             HostTextSmoothing::Subpixel,
         ),
-        "20.49px and 20.51px share the retained 8-bin phase"
+        "20.49px and 20.50px should share the retained 8-bin phase while staying below the visible drift guard: first={first_origin}->{projected_first_origin}, second={second_origin}->{projected_second_origin}"
     );
 }
 
 #[test]
-fn retained_text_run_snaps_fractional_line_origin_before_glyph_spacing() {
+fn retained_text_run_keeps_subpixel_glyph_phases_for_grayscale_smoothing() {
+    let rect = FrameRect {
+        x: 44.875,
+        y: 4.0,
+        width: 220.0,
+        height: 22.0,
+    };
+    let layout = layout_text_run_with_smoothing(
+        &rect,
+        "editor base.zui",
+        13.0,
+        16.0,
+        HostTextFontFace::Ui,
+        HostTextSmoothing::Grayscale,
+    );
+    let distinct_nonzero_phases = layout
+        .glyphs
+        .iter()
+        .map(|glyph| {
+            super::super::placement::retained_glyph_placement_for_smoothing(
+                glyph.origin_x,
+                HostTextSmoothing::Grayscale,
+            )
+            .subpixel_offset
+        })
+        .filter(|phase| *phase > 0.0)
+        .map(|phase| (phase * 8.0).round() as i32)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert!(
+        distinct_nonzero_phases.len() >= 3,
+        "default grayscale editor labels should preserve per-glyph subpixel phases after snapping the line origin: phases={distinct_nonzero_phases:?}"
+    );
+}
+
+#[test]
+fn retained_text_run_snaps_fractional_line_origin_for_grayscale_smoothing() {
     let fractional_rect = FrameRect {
         x: 8.875,
         y: 4.0,
@@ -492,27 +574,29 @@ fn retained_text_run_snaps_fractional_line_origin_before_glyph_spacing() {
         ..fractional_rect
     };
 
-    let fractional = layout_text_run(
+    let fractional = layout_text_run_with_smoothing(
         &fractional_rect,
         "editor base.zui",
         13.0,
         16.0,
-        UiTextRunPaintStyle::default(),
+        HostTextFontFace::Ui,
+        HostTextSmoothing::Grayscale,
     );
-    let snapped = layout_text_run(
+    let integer = layout_text_run_with_smoothing(
         &snapped_rect,
         "editor base.zui",
         13.0,
         16.0,
-        UiTextRunPaintStyle::default(),
+        HostTextFontFace::Ui,
+        HostTextSmoothing::Grayscale,
     );
 
-    assert_eq!(fractional.display_text, snapped.display_text);
-    assert_eq!(fractional.glyphs.len(), snapped.glyphs.len());
-    for (left, right) in fractional.glyphs.iter().zip(snapped.glyphs.iter()) {
+    assert_eq!(fractional.display_text, integer.display_text);
+    assert_eq!(fractional.glyphs.len(), integer.glyphs.len());
+    for (left, right) in fractional.glyphs.iter().zip(integer.glyphs.iter()) {
         assert!(
             (left.origin_x - right.origin_x).abs() < 0.01,
-            "fractional editor label line origin should snap once before preserving glyph spacing: fractional={left:?}, snapped={right:?}"
+            "default grayscale editor labels should snap the fractional line origin once before glyph phase selection: fractional={left:?}, integer={right:?}"
         );
     }
 }
@@ -686,4 +770,32 @@ fn grapheme_range_for_byte_offset(text: &str, byte_offset: usize) -> UiTextRange
             start: text.len(),
             end: text.len(),
         })
+}
+
+fn subvisible_same_retained_phase_shift(origin_x: f32, smoothing: HostTextSmoothing) -> f32 {
+    for shift in [0.02_f32, -0.02, 0.015, -0.015, 0.01, -0.01] {
+        if super::super::placement::retained_glyph_placements_share_bin_for_smoothing(
+            origin_x,
+            origin_x + shift,
+            smoothing,
+        ) {
+            return shift;
+        }
+    }
+
+    panic!("test origin must have a subvisible same-phase shift");
+}
+
+fn visible_same_retained_phase_shift(origin_x: f32, smoothing: HostTextSmoothing) -> f32 {
+    for shift in [0.05_f32, -0.05, 0.04, -0.04] {
+        if super::super::placement::retained_glyph_placements_share_bin_for_smoothing(
+            origin_x,
+            origin_x + shift,
+            smoothing,
+        ) {
+            return shift;
+        }
+    }
+
+    panic!("test origin must have a visible same-phase shift");
 }

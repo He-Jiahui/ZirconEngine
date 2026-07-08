@@ -17,10 +17,31 @@ mod script_vm_runtime;
 
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
     runtime_07_performance::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const RUNTIME_07_PERFORMANCE_SPLIT_LAYOUT_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    runtime_07_performance::SPLIT_LAYOUT_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const RUNTIME_07_PERFORMANCE_OWNER_BUDGET_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    runtime_07_performance::OWNER_BUDGET_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const RUNTIME_07_PERFORMANCE_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    runtime_07_performance::ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const SCRIPT_VM_RUNTIME_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =
     script_vm_runtime::EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const PLUGIN_EXTENSION_TESTS_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] = plugin_extension_tests::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const PLUGIN_EXTENSION_TESTS_MANIFEST_PACKAGE_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    plugin_extension_tests::MANIFEST_PACKAGE_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const PLUGIN_EXTENSION_TESTS_RUNTIME_CATALOG_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    plugin_extension_tests::RUNTIME_CATALOG_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const PLUGIN_EXTENSION_TESTS_EXPORT_BUILD_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    plugin_extension_tests::EXPORT_BUILD_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const PLUGIN_EXTENSION_TESTS_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    plugin_extension_tests::ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const SCRIPT_VM_GAMEPLAY_SHADER_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] = script_vm_gameplay_shader::EXPECTED_STATUS_OUTPUT_SLICES;
 pub(super) const SCENE_ECS_TESTS_EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] =

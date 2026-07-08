@@ -79,15 +79,9 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let session_note =
         read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
+    let status_rows = priority_plan_doc_owner_row_source();
+    let status_map = priority_plan_doc_status_map_source();
+    let date_map = priority_plan_doc_date_map_source();
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
@@ -144,15 +138,9 @@ fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let session_note =
         read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
-    );
+    let status_rows = priority_plan_doc_owner_row_source();
+    let status_map = priority_plan_doc_status_map_source();
+    let date_map = priority_plan_doc_date_map_source();
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

@@ -3,7 +3,10 @@ use crate::ui::retained_host::host_contract::{
     paint_text::measure_runtime_text_width,
 };
 
-use super::metrics::{AVATAR_MIN_FONT_SIZE, AVATAR_TEXT_FONT_RATIO};
+use super::metrics::{
+    avatar_centered_text_x, avatar_centered_text_y, avatar_font_size, avatar_text_line_height,
+    avatar_text_width,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_text_frame(
     node: &TemplatePaneNodeData,
@@ -11,29 +14,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_
     label: &str,
 ) -> (FrameRect, f32, f32) {
     let font_size = avatar_font_size(node, rect);
-    let line_height = font_size;
-    let text_width = measure_runtime_text_width(label, font_size)
-        .min(rect.width)
-        .max(1.0);
+    let line_height = avatar_text_line_height(font_size);
+    let text_width = avatar_text_width(measure_runtime_text_width(label, font_size), rect.width);
     (
         FrameRect {
-            x: rect.x + (rect.width - text_width).max(0.0) * 0.5,
-            y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+            x: avatar_centered_text_x(rect, text_width),
+            y: avatar_centered_text_y(rect, line_height),
             width: text_width,
             height: line_height,
         },
         font_size,
         line_height,
     )
-}
-
-fn avatar_font_size(node: &TemplatePaneNodeData, rect: &FrameRect) -> f32 {
-    let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
-        node.font_size
-    } else {
-        rect.width.min(rect.height) * AVATAR_TEXT_FONT_RATIO
-    };
-    requested.max(AVATAR_MIN_FONT_SIZE).min(rect.height)
 }
 
 #[cfg(test)]
@@ -62,13 +54,13 @@ mod tests {
         let rect = rect(180.0);
         let label = "WWW iii";
         let (frame, font_size, _) = avatar_text_frame(&node, &rect, label);
-        let expected_width = measure_runtime_text_width(label, font_size)
-            .min(rect.width)
-            .max(1.0);
+        let expected_width =
+            avatar_text_width(measure_runtime_text_width(label, font_size), rect.width);
 
         assert!((frame.width - expected_width).abs() <= 0.01);
-        assert!((frame.x - (rect.x + (rect.width - expected_width) * 0.5)).abs() <= 0.01);
-        let old_heuristic_width = label.chars().count() as f32 * font_size * 0.58;
+        assert!((frame.x - avatar_centered_text_x(&rect, expected_width)).abs() <= 0.01);
+        let old_heuristic_width =
+            avatar_text_width(label.chars().count() as f32 * font_size * 0.58, rect.width);
         assert!((expected_width - old_heuristic_width).abs() > 0.25);
     }
 

@@ -13,6 +13,28 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         ],
     ),
     (
+        "Runtime 15 M3 lock poison policy route-owner split",
+        &[
+            "runtime_15_lock_poison_policy_route_owner_split_static_passed_cargo_deferred",
+            "structure_convention/lock_poison_policy.rs",
+            "structure_convention/lock_poison_policy/split_layout.rs",
+            "structure_convention/lock_poison_policy/support.rs",
+            "runtime_15_lock_poison_policy_guard_is_folder_backed",
+        ],
+    ),
+    (
+        "Runtime 15 M3 lock-poison split-layout guard folder-backed split",
+        &[
+            "runtime_15_lock_poison_split_layout_guard_folder_backed_static_passed_cargo_deferred",
+            "structure_convention/lock_poison_policy/split_layout.rs",
+            "structure_convention/lock_poison_policy/split_layout/folder_backing.rs",
+            "structure_convention/lock_poison_policy/split_layout/mounts.rs",
+            "structure_convention/lock_poison_policy/split_layout/budgets.rs",
+            "structure_convention/lock_poison_policy/split_layout/status_mirrors.rs",
+            "runtime_15_lock_poison_split_layout_guard_is_folder_backed",
+        ],
+    ),
+    (
         "Runtime 15 M3 core runtime lock poison guard child-owner split",
         &[
             "runtime_15_core_runtime_lock_poison_guard_child_owner_split_static_passed_cargo_deferred",

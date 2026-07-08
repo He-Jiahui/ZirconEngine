@@ -4,8 +4,16 @@ use super::*;
 fn runtime_15_p0_native_fixture_leaf_owner_root_inventory_is_child_owned() {
     let parent = read_runtime_src(STRUCTURE_GUARD_OWNER);
     let status_rows = p0_native_fixture_status_row_source();
-    let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP);
-    let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP);
+    let status_map = format!(
+        "{}\n{}",
+        read_runtime_src(REVIEW_GUARD_STATUS_MAP),
+        read_runtime_src(REVIEW_GUARD_P0_STATUS_MAP)
+    );
+    let date_map = format!(
+        "{}\n{}",
+        read_runtime_src(REVIEW_GUARD_DATE_MAP),
+        read_runtime_src(REVIEW_GUARD_P0_DATE_MAP)
+    );
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");

@@ -1,11 +1,10 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_text::measure_runtime_text_width;
-use super::super::super::super::paint_theme::METRICS;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::style::table_cell_color;
 use super::allocation::{table_column_alignment, TableColumnAlignment};
 use super::geometry::table_cell_rect;
-use super::metrics::{TABLE_CELL_FONT_SIZE, TABLE_COLUMN_RATIOS};
+use super::metrics::{table_cell_metrics, WorkbenchTableCellMetrics, TABLE_COLUMN_COUNT};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_table_cells(
@@ -17,32 +16,43 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
     opacity: f32,
     cells: &[String],
 ) {
-    for (index, cell) in cells.iter().take(TABLE_COLUMN_RATIOS.len()).enumerate() {
+    let metrics = table_cell_metrics();
+    for (index, cell) in cells.iter().take(TABLE_COLUMN_COUNT).enumerate() {
         let cell_rect = table_cell_rect(node, rect, index);
         if cell_rect.width <= 0.0 {
             continue;
         }
         commands.push(text_command(
-            text_frame_for_cell(cell_rect, cell, index),
+            text_frame_for_cell(cell_rect, cell, index, metrics),
             clip,
             order,
             cell,
             table_cell_color(node, index),
+            metrics,
             opacity,
         ));
     }
 }
 
-fn text_frame_for_cell(rect: FrameRect, text: &str, index: usize) -> FrameRect {
+fn text_frame_for_cell(
+    rect: FrameRect,
+    text: &str,
+    index: usize,
+    metrics: WorkbenchTableCellMetrics,
+) -> FrameRect {
     match table_column_alignment(index) {
         TableColumnAlignment::Left => rect,
-        TableColumnAlignment::Right => right_aligned_text_frame(rect, text),
+        TableColumnAlignment::Right => right_aligned_text_frame(rect, text, metrics),
     }
 }
 
-fn right_aligned_text_frame(rect: FrameRect, text: &str) -> FrameRect {
+fn right_aligned_text_frame(
+    rect: FrameRect,
+    text: &str,
+    metrics: WorkbenchTableCellMetrics,
+) -> FrameRect {
     let measured_width =
-        measure_runtime_text_width(text, TABLE_CELL_FONT_SIZE) + METRICS.text_clip_guard;
+        measure_runtime_text_width(text, metrics.font_size) + metrics.text_clip_guard;
     let width = measured_width.min(rect.width).max(0.0);
     FrameRect {
         x: rect.x + (rect.width - width).max(0.0),
@@ -57,6 +67,7 @@ fn text_command(
     order: i32,
     text: &str,
     color: [u8; 4],
+    metrics: WorkbenchTableCellMetrics,
     opacity: f32,
 ) -> HostPaintCommand {
     let clip = rect.clone();
@@ -66,8 +77,8 @@ fn text_command(
         order,
         text.to_string(),
         color,
-        TABLE_CELL_FONT_SIZE,
-        TABLE_CELL_FONT_SIZE * 1.2,
+        metrics.font_size,
+        metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     )

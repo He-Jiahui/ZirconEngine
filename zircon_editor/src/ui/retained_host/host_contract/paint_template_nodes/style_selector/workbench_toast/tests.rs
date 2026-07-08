@@ -30,3 +30,27 @@ fn toast_loading_state_uses_unavailable_visuals() {
     assert_eq!(style.action, PALETTE.text_disabled);
     assert_eq!(style.close, PALETTE.text_disabled);
 }
+
+#[test]
+fn focused_toast_keeps_neutral_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+
+    let style = select_workbench_toast_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.border, super::palette::WORKBENCH_TOAST_BORDER);
+    assert_ne!(style.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn open_toast_uses_active_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+    node.popup_open = true;
+
+    let style = select_workbench_toast_style(&node);
+
+    assert_eq!(style.state, UiPainterResolvedState::Open);
+    assert_eq!(style.border, PALETTE.focus_ring);
+}

@@ -1,20 +1,59 @@
+#[cfg(test)]
 use super::super::measure::measure_line_width;
+use super::super::measure::measure_line_width_with_provider;
+#[cfg(test)]
+use crate::graphics::text::shaping::DirectTextShapeRunProvider;
+use crate::graphics::text::shaping::TextShapeRunProvider;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
+#[cfg(test)]
 pub(super) fn should_fallback_to_glyph_wrap(
     allow_glyph_fallback: bool,
     candidate_text: &str,
     max_width: f32,
     style: &UiResolvedStyle,
 ) -> bool {
+    let mut provider = DirectTextShapeRunProvider;
+    should_fallback_to_glyph_wrap_with_provider(
+        allow_glyph_fallback,
+        candidate_text,
+        max_width,
+        style,
+        &mut provider,
+    )
+}
+
+pub(super) fn should_fallback_to_glyph_wrap_with_provider<P>(
+    allow_glyph_fallback: bool,
+    candidate_text: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> bool
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     allow_glyph_fallback
-        && !line_text_fits(candidate_text, max_width, style)
+        && !line_text_fits_with_provider(candidate_text, max_width, style, provider)
         && has_more_than_one_grapheme(candidate_text)
 }
 
+#[cfg(test)]
 fn line_text_fits(text: &str, max_width: f32, style: &UiResolvedStyle) -> bool {
     measure_line_width(text, style) <= max_width + 0.01
+}
+
+fn line_text_fits_with_provider<P>(
+    text: &str,
+    max_width: f32,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> bool
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    measure_line_width_with_provider(text, style, provider) <= max_width + 0.01
 }
 
 fn has_more_than_one_grapheme(text: &str) -> bool {

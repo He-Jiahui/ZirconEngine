@@ -1,7 +1,21 @@
 use super::model::WorkbenchPopupRowState;
+use super::palette::workbench_popup_row_palette_from_host;
 use super::selection::select_workbench_popup_row_style;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::{current_host_palette, PALETTE};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
+
+#[test]
+fn popup_row_palette_projects_from_host_palette() {
+    let host_palette = current_host_palette();
+    let palette = workbench_popup_row_palette_from_host(host_palette);
+
+    assert_eq!(palette.marked_background, host_palette.surface_pressed);
+    assert_eq!(palette.hot_background, host_palette.surface_hover);
+    assert_eq!(palette.text, host_palette.text);
+    assert_eq!(palette.text_muted, host_palette.text_muted);
+    assert_eq!(palette.text_disabled, host_palette.text_disabled);
+    assert_eq!(palette.danger_text, host_palette.error);
+}
 
 #[test]
 fn popup_row_selector_projects_full_semantic_state() {
@@ -46,6 +60,34 @@ fn popup_row_loading_state_uses_unavailable_visuals() {
     assert_eq!(loading_selected.text, PALETTE.text_disabled);
     assert_eq!(loading_selected.shortcut, PALETTE.text_disabled);
     assert_eq!(loading_selected.adornment, PALETTE.text_disabled);
+}
+
+#[test]
+fn popup_row_focused_only_keeps_normal_background_with_focus_outline() {
+    let focused = select_workbench_popup_row_style(WorkbenchPopupRowState {
+        focused: true,
+        ..WorkbenchPopupRowState::default()
+    });
+
+    assert_eq!(focused.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused.background, None);
+    assert_eq!(focused.outline, Some(PALETTE.border));
+    assert_eq!(focused.text, PALETTE.text);
+    assert_eq!(focused.adornment, PALETTE.text_muted);
+}
+
+#[test]
+fn popup_row_hovered_while_focused_still_uses_hover_fill() {
+    let hovered = select_workbench_popup_row_style(WorkbenchPopupRowState {
+        focused: true,
+        hovered: true,
+        ..WorkbenchPopupRowState::default()
+    });
+
+    assert_eq!(hovered.state, UiPainterResolvedState::Focused);
+    assert_eq!(hovered.background, Some(PALETTE.surface_hover));
+    assert_eq!(hovered.outline, Some(PALETTE.border));
+    assert_eq!(hovered.adornment, PALETTE.text);
 }
 
 #[test]

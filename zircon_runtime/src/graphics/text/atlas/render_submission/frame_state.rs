@@ -3,8 +3,10 @@ use crate::core::math::UVec2;
 use super::super::render_plan::GlyphAtlasScreenRect;
 use super::super::{
     GlyphAtlasBitmapQueuedGlyph, GlyphAtlasBitmapRetryBackpressurePolicy, GlyphAtlasBitmapSource,
+    GlyphAtlasSet,
 };
 use super::retry::{
+    glyph_atlas_bitmap_retry_frame_submission_plan_with_atlas_backpressure_and_padding,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_padding,
     GlyphAtlasBitmapRetryFrameSubmissionPlan,
@@ -14,12 +16,14 @@ use super::retry::{
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct GlyphAtlasBitmapRetryFrameState {
     blocked_glyphs: Vec<GlyphAtlasBitmapQueuedGlyph>,
+    pending_invalidated_blocked_glyph_count: usize,
 }
 
 /// Compact state telemetry for renderer frame-loop handoff.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasBitmapRetryFrameStateReport {
     pub(crate) queued_blocked_glyph_count: usize,
+    pub(crate) invalidated_blocked_glyph_count: usize,
     pub(crate) next_retry_frame_index: Option<u64>,
 }
 
@@ -56,11 +60,26 @@ impl GlyphAtlasBitmapRetryFrameState {
         self.blocked_glyphs = blocked_glyphs.into_iter().collect();
     }
 
+    pub(crate) fn discard_all_for_face_invalidation(&mut self) {
+        let invalidated_count = self.blocked_glyphs.len();
+        self.blocked_glyphs.clear();
+        self.pending_invalidated_blocked_glyph_count = self
+            .pending_invalidated_blocked_glyph_count
+            .saturating_add(invalidated_count);
+    }
+
     pub(crate) fn report(&self) -> GlyphAtlasBitmapRetryFrameStateReport {
         GlyphAtlasBitmapRetryFrameStateReport {
             queued_blocked_glyph_count: self.queued_blocked_glyph_count(),
+            invalidated_blocked_glyph_count: self.pending_invalidated_blocked_glyph_count,
             next_retry_frame_index: self.next_retry_frame_index(),
         }
+    }
+
+    pub(crate) fn take_report(&mut self) -> GlyphAtlasBitmapRetryFrameStateReport {
+        let report = self.report();
+        self.pending_invalidated_blocked_glyph_count = 0;
+        report
     }
 
     pub(crate) fn submission_plan_with_padding<S>(
@@ -115,12 +134,42 @@ impl GlyphAtlasBitmapRetryFrameState {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn submission_plan_with_atlas_backpressure_and_padding<S>(
+        &self,
+        atlas: GlyphAtlasSet,
+        frame_sources: S,
+        page_size: UVec2,
+        frame_index: u64,
+        max_pages_per_format: usize,
+        padding_px: u32,
+        backpressure_policy: GlyphAtlasBitmapRetryBackpressurePolicy,
+        viewport_size: UVec2,
+        clip_rect: GlyphAtlasScreenRect,
+    ) -> GlyphAtlasBitmapRetryFrameSubmissionPlan
+    where
+        S: IntoIterator<Item = GlyphAtlasBitmapSource>,
+    {
+        glyph_atlas_bitmap_retry_frame_submission_plan_with_atlas_backpressure_and_padding(
+            atlas,
+            self.blocked_glyphs.iter().copied(),
+            frame_sources,
+            page_size,
+            frame_index,
+            max_pages_per_format,
+            padding_px,
+            backpressure_policy,
+            viewport_size,
+            clip_rect,
+        )
+    }
+
     pub(crate) fn apply_submission_plan(
         &mut self,
         plan: &GlyphAtlasBitmapRetryFrameSubmissionPlan,
     ) -> GlyphAtlasBitmapRetryFrameStateReport {
         self.replace_blocked_glyphs(plan.frame_outcome.next_blocked_glyphs.iter().copied());
-        self.report()
+        self.take_report()
     }
 }
 

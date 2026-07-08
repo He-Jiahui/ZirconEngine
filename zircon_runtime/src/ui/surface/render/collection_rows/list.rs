@@ -90,6 +90,8 @@ fn background<'a>(metadata: &'a UiTemplateNodeMetadata, state: &RowRenderState) 
         Some(SURFACE_PRESSED)
     } else if state.hot() {
         Some(SURFACE_HOVER)
+    } else if state.focus_or_press() {
+        color_attribute(metadata, "background_color")
     } else {
         None
     }

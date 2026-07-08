@@ -1,6 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_row_metrics::{workbench_row_metrics, workbench_row_palette};
+use super::layers::selection_indicator_order;
 use super::style::{list_row_background, list_row_border, list_row_border_width};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_list_row_surface(
@@ -11,16 +12,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     order: i32,
     opacity: f32,
 ) {
-    let Some(background) = list_row_background(node) else {
+    let background = list_row_background(node);
+    let border = list_row_border(node);
+    if background.is_none() && border.is_none() {
         return;
-    };
+    }
     let metrics = workbench_row_metrics();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(background),
-        list_row_border(node),
+        background,
+        border,
         list_row_border_width(node),
         metrics.surface_radius,
         opacity,
@@ -30,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
         commands.push(HostPaintCommand::quad(
             selection_indicator_rect(rect, metrics.selection_indicator_width),
             Some(clip.clone()),
-            order + 1,
+            selection_indicator_order(order),
             Some(palette.selection_indicator),
             None,
             0.0,

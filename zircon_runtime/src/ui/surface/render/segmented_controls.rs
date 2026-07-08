@@ -80,6 +80,7 @@ struct SegmentedRenderState {
     family: UiPainterFamily,
     visual_state: UiPainterResolvedState,
     active: bool,
+    surface_hot: bool,
 }
 
 impl SegmentedRenderState {
@@ -101,10 +102,15 @@ impl SegmentedRenderState {
         painter_state.checked = checked;
         painter_state.selected = selected;
         let family = UiPainterFamily::Tab;
+        let surface_hot = painter_state.hovered
+            || painter_state.open
+            || painter_state.dragging
+            || painter_state.drop_hovered;
         Self {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
             active: selected,
+            surface_hot,
         }
     }
 
@@ -119,15 +125,12 @@ impl SegmentedRenderState {
         matches!(self.visual_state, UiPainterResolvedState::Pressed)
     }
 
-    fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Open
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+    fn focused(self) -> bool {
+        matches!(self.visual_state, UiPainterResolvedState::Focused)
+    }
+
+    fn surface_hot(self) -> bool {
+        self.surface_hot
     }
 }
 
@@ -472,7 +475,7 @@ fn segmented_background<'a>(
         SEGMENTED_DISABLED
     } else if state.pressed() {
         color_attribute(metadata, "pressed_background_color").unwrap_or(SEGMENTED_PRESSED)
-    } else if state.hot() {
+    } else if state.surface_hot() {
         color_attribute(metadata, "hover_background_color").unwrap_or(SEGMENTED_HOVER)
     } else {
         color_attribute(metadata, "background_color").unwrap_or(SEGMENTED_BACKGROUND)
@@ -485,7 +488,7 @@ fn segmented_border<'a>(
 ) -> &'a str {
     if state.unavailable() {
         "#334852"
-    } else if state.pressed() || state.hot() {
+    } else if state.pressed() || state.focused() || state.surface_hot() {
         color_attribute(metadata, "focus_border_color").unwrap_or(SEGMENTED_SELECTED_BORDER)
     } else {
         color_attribute(metadata, "border_color").unwrap_or(SEGMENTED_BORDER)
@@ -571,7 +574,7 @@ fn tab_background<'a>(
         Some(SEGMENTED_DISABLED)
     } else if state.pressed() {
         Some(color_attribute(metadata, "pressed_background_color").unwrap_or(SEGMENTED_PRESSED))
-    } else if state.hot() {
+    } else if state.surface_hot() {
         Some(color_attribute(metadata, "hover_background_color").unwrap_or(SEGMENTED_HOVER))
     } else {
         color_attribute(metadata, "background_color")

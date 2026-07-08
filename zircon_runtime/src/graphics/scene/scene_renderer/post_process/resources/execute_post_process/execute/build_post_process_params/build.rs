@@ -20,6 +20,7 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
     reflection_probe_count: u32,
     hybrid_gi_probe_count: u32,
     scheduled_trace_region_count: u32,
+    current_hybrid_gi_lighting_available: bool,
 ) -> PostProcessParams {
     let color_grading = color_grading(extract, features);
     let baked_lighting = baked_lighting(extract, features);
@@ -50,7 +51,9 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources) fn build
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
             u32::from(features.hybrid_global_illumination_enabled && history_available),
-            0,
+            u32::from(
+                features.hybrid_global_illumination_enabled && current_hybrid_gi_lighting_available,
+            ),
         ],
         anti_alias: [
             u32::from(
@@ -298,6 +301,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_eq!(
@@ -329,6 +333,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_eq!(
@@ -336,6 +341,31 @@ mod tests {
             "contact shadows must not masquerade as SSAO"
         );
         assert_eq!(params.lighting_flags[0], 1);
+    }
+
+    #[test]
+    fn hybrid_gi_current_lighting_flag_is_encoded_separately_from_history() {
+        let params = build_post_process_params(
+            UVec2::new(128, 96),
+            UVec2::new(8, 6),
+            ViewportRenderRegion::full_target(UVec2::new(128, 96)),
+            [0, 0],
+            &RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(1),
+                World::new().to_render_snapshot(),
+            ),
+            SceneRuntimeFeatureFlags {
+                hybrid_global_illumination_enabled: true,
+                ..SceneRuntimeFeatureFlags::default()
+            },
+            false,
+            0,
+            3,
+            2,
+            true,
+        );
+
+        assert_eq!(params.hybrid_gi_counts, [3, 2, 0, 1]);
     }
 
     #[test]
@@ -365,6 +395,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_eq!(params.viewport_and_clusters, [320, 180, 320, 40]);
@@ -444,6 +475,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_eq!(params.effect_flags[0], 2);
@@ -503,6 +535,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_near(params.effect_view_x[0], 0.0);
@@ -539,6 +572,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         extract.view.camera.temporal_jitter = TemporalJitterSample {
@@ -556,6 +590,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_eq!(jittered.effect_projection, unjittered.effect_projection);
@@ -587,6 +622,7 @@ mod tests {
             0,
             0,
             0,
+            false,
         );
 
         assert_near(params.effect_depth[0], 0.001);

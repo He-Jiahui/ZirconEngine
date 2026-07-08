@@ -14,6 +14,7 @@ pub(crate) enum GlyphAtlasUploadMode {
 pub(crate) struct GlyphAtlasUploadCommand {
     pub(crate) mode: GlyphAtlasUploadMode,
     pub(crate) page_key: GlyphAtlasPageKey,
+    pub(crate) page_generation: u64,
     pub(crate) sampling_semantics: GlyphAtlasSamplingSemantics,
     pub(crate) rect: GlyphAtlasRect,
     pub(crate) source_offset: u64,
@@ -62,6 +63,7 @@ pub(crate) fn glyph_atlas_upload_command(
     Some(GlyphAtlasUploadCommand {
         mode,
         page_key: page.key,
+        page_generation: page.generation,
         sampling_semantics: page.sampling_semantics,
         rect,
         source_offset,

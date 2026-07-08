@@ -2,7 +2,10 @@ use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_geometry::intersect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::layout::{command_palette_metrics, row_label_rect};
-use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
+
+mod style;
+
+use style::command_row_label_text_style;
 
 pub(super) fn push_command_row_label(
     commands: &mut Vec<HostPaintCommand>,
@@ -17,15 +20,16 @@ pub(super) fn push_command_row_label(
         return;
     }
     let metrics = command_palette_metrics();
+    let style = command_row_label_text_style(color, &metrics);
     commands.push(HostPaintCommand::text(
         row_label_rect(row_rect),
         Some(clip.clone()),
         order,
         text,
-        color,
-        metrics.font_size,
-        metrics.line_height,
-        UiTextRunPaintStyle::default(),
+        style.color,
+        style.font_size,
+        style.line_height,
+        style.paint_style,
         opacity,
     ));
 }

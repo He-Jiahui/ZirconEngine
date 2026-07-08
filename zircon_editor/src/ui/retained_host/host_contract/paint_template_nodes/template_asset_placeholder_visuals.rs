@@ -5,12 +5,16 @@ use super::super::paint_theme::{
 use super::render_commands::HostPaintCommand;
 use super::visual_assets::load_existing_icon_asset_pixels_for_size;
 
+mod preview_image;
+
+use self::preview_image::push_thumbnail_preview_image_command;
+
 const VISUAL_SURFACE_INSET_RATIO: f32 = 0.12;
 const TYPED_THUMBNAIL_SURFACE_INSET_RATIO: f32 = 0.055;
 const ASSET_THUMBNAIL_VISUAL_ROLE: &str = "asset-thumbnail-visual";
 const DEFAULT_THUMBNAIL_ICON_NAME: &str = "image";
 const THUMBNAIL_ICON_RATIO: f32 = 0.64;
-const TYPED_THUMBNAIL_PREVIEW_ICON_RATIO: f32 = 0.5;
+const TYPED_THUMBNAIL_PREVIEW_ICON_RATIO: f32 = 0.62;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct WorkbenchAssetVisualMetrics {
@@ -48,6 +52,11 @@ fn asset_visual_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchAsset
     let icon_min_edge = metric_edge(metrics.row_height);
     let icon_max_edge = metric_edge(metrics.row_height + metrics.gap_m).max(icon_min_edge);
 
+    let typed_preview_icon_min_edge =
+        metric_edge(metrics.row_height + metrics.gap_m).max(icon_min_edge);
+    let typed_preview_icon_max_edge =
+        metric_edge(metrics.row_height + metrics.gap_l * 2.0).max(typed_preview_icon_min_edge);
+
     WorkbenchAssetVisualMetrics {
         visual_surface_min_inset,
         visual_surface_max_inset,
@@ -57,8 +66,8 @@ fn asset_visual_metrics_from_host(metrics: HostControlMetrics) -> WorkbenchAsset
         border_width: metrics.border_width,
         icon_min_edge,
         icon_max_edge,
-        typed_preview_icon_min_edge: icon_min_edge,
-        typed_preview_icon_max_edge: icon_max_edge,
+        typed_preview_icon_min_edge,
+        typed_preview_icon_max_edge,
     }
 }
 
@@ -112,6 +121,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_as
         metrics.surface_radius,
         opacity,
     ));
+
+    if push_thumbnail_preview_image_command(commands, node, &inner_rect, clip, order + 1, opacity) {
+        return;
+    }
 
     if is_typed_thumbnail_visual(node) {
         push_typed_thumbnail_preview_commands(
@@ -391,6 +404,7 @@ mod tests {
     use crate::ui::layouts::common::model_rc;
     use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
     use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
+    use crate::ui::retained_host::primitives::{Image, Rgba8Pixel, SharedPixelBuffer};
 
     #[test]
     fn asset_thumbnail_visual_metrics_project_from_host_control_metrics() {
@@ -399,6 +413,7 @@ mod tests {
         host.border_width = 1.5;
         host.gap_s = 5.0;
         host.gap_m = 11.0;
+        host.gap_l = 13.0;
         host.row_height = 27.0;
 
         let metrics = asset_visual_metrics_from_host(host);
@@ -411,8 +426,8 @@ mod tests {
         assert_eq!(metrics.typed_surface_max_inset, 5.0);
         assert_eq!(metrics.icon_min_edge, 27);
         assert_eq!(metrics.icon_max_edge, 38);
-        assert_eq!(metrics.typed_preview_icon_min_edge, 27);
-        assert_eq!(metrics.typed_preview_icon_max_edge, 38);
+        assert_eq!(metrics.typed_preview_icon_min_edge, 38);
+        assert_eq!(metrics.typed_preview_icon_max_edge, 53);
     }
 
     #[test]
@@ -654,6 +669,41 @@ mod tests {
     }
 
     #[test]
+    fn asset_thumbnail_visual_prefers_projected_preview_image_over_semantic_icon() {
+        let rect = placeholder_rect();
+        let mut commands = Vec::new();
+        let mut node = placeholder_node("asset-preview-visual");
+        node.component_role = "asset-thumbnail-visual".into();
+        node.component_variant = "asset-texture".into();
+        node.media_source = "ui/editor/showcase_checker.svg".into();
+        node.has_preview_image = true;
+        node.preview_image = solid_preview_image([201, 42, 33, 255]);
+
+        push_asset_placeholder_visual_commands(&mut commands, &node, &rect, &rect, 0, 1.0);
+
+        let image_commands = commands
+            .iter()
+            .filter(|command| command.image_pixels.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            image_commands.len(),
+            1,
+            "real thumbnail preview should replace the semantic fallback icon, not add beside it"
+        );
+        let preview = image_commands[0]
+            .image_pixels
+            .as_ref()
+            .expect("asset preview command should carry retained preview pixels");
+        assert_eq!((preview.width, preview.height), (2, 2));
+        assert_eq!(&preview.rgba[0..4], &[201, 42, 33, 255]);
+        assert!(
+            image_commands[0].frame.width
+                > asset_visual_metrics_from_host(METRICS).icon_min_edge as f32,
+            "projected thumbnails should use the preview well instead of the generic icon size"
+        );
+    }
+
+    #[test]
     fn asset_placeholder_visual_paints_recessed_well_without_inner_outline() {
         let bytes = paint_template_nodes_for_test(
             112,
@@ -753,7 +803,7 @@ mod tests {
             x: 8.0,
             y: 8.0,
             width: 108.0,
-            height: 76.0,
+            height: 88.0,
         }
     }
 
@@ -779,5 +829,12 @@ mod tests {
             }
         }
         colors.len()
+    }
+
+    fn solid_preview_image(color: [u8; 4]) -> Image {
+        let pixels = [color, color, color, color].concat();
+        Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+            &pixels, 2, 2,
+        ))
     }
 }

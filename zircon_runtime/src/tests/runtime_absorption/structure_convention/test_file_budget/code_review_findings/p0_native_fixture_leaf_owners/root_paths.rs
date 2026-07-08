@@ -28,11 +28,17 @@ pub(super) const IMPORTER_LEAF: &str =
 
 pub(super) const REVIEW_GUARD_ROWS: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/review_guard_rows.rs";
+pub(super) const REVIEW_GUARD_P0_ROWS: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/review_guard_rows/p0_rows.rs";
 pub(super) const STRUCTURE_GUARD_ROWS: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children/p0_native_fixture.rs";
 pub(super) const STRUCTURE_GUARD_ROW_PARENT: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children.rs";
 pub(super) const REVIEW_GUARD_STATUS_MAP: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
+pub(super) const REVIEW_GUARD_P0_STATUS_MAP: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/p0_rows.rs";
 pub(super) const REVIEW_GUARD_DATE_MAP: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
+pub(super) const REVIEW_GUARD_P0_DATE_MAP: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/p0_rows.rs";

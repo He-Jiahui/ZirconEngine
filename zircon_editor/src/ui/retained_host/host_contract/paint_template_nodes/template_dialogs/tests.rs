@@ -1,5 +1,7 @@
+use super::identity::DialogKind;
 use super::metrics::dialog_metrics_from_host;
-use super::style::dialog_palette_from_host;
+use super::style::{dialog_border_color, dialog_palette_from_host};
+use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
 #[test]
@@ -74,4 +76,37 @@ fn dialog_palette_projects_from_host_palette() {
     assert_eq!(palette.disabled_surface, [130, 131, 132, 255]);
     assert_eq!(palette.disabled_border, [140, 141, 142, 255]);
     assert_eq!(palette.disabled_text, [150, 151, 152, 255]);
+}
+
+#[test]
+fn focused_dialog_keeps_neutral_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+
+    let border = dialog_border_color(&node, DialogKind::Dialog, false);
+
+    assert_eq!(border, PALETTE.border);
+    assert_ne!(border, PALETTE.focus_ring);
+}
+
+#[test]
+fn pressed_dialog_uses_active_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+    node.pressed = true;
+
+    let border = dialog_border_color(&node, DialogKind::Dialog, false);
+
+    assert_eq!(border, PALETTE.focus_ring);
+}
+
+#[test]
+fn open_dialog_uses_active_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+    node.popup_open = true;
+
+    let border = dialog_border_color(&node, DialogKind::Dialog, false);
+
+    assert_eq!(border, PALETTE.focus_ring);
 }

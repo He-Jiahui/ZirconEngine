@@ -2,42 +2,16 @@ use super::super::super::*;
 use super::*;
 
 pub(super) fn assert_review_guard_group_children_are_mounted() {
-    let f8_child_parent = read_runtime_src(F8_CHILD_OWNER);
     let f8_child = format!(
-        "{}\n{}\n{}\n{}\n{}",
-        f8_child_parent,
-        read_runtime_src(F8_DELEGATION_CHILD_OWNER),
-        read_runtime_src(F8_ROUTE_OWNERSHIP_CHILD_OWNER),
-        read_runtime_src(F8_STATUS_MIRRORS_CHILD_OWNER),
-        read_runtime_src(F8_BUDGETS_CHILD_OWNER)
+        "{}\n{}",
+        read_runtime_src(F8_CHILD_OWNER),
+        super::super::f8_child_owners::f8_structure_guard_child_source_blob(),
     );
-    let late_api_cleanup_parent = read_runtime_src(LATE_API_CLEANUP_CHILD_OWNER);
-    let late_api_cleanup_child = format!(
-        "{}\n{}\n{}\n{}\n{}",
-        late_api_cleanup_parent,
-        read_runtime_src(LATE_API_CLEANUP_DELEGATION_CHILD_OWNER),
-        read_runtime_src(LATE_API_CLEANUP_ROUTE_OWNERSHIP_CHILD_OWNER),
-        read_runtime_src(LATE_API_CLEANUP_STATUS_MIRRORS_CHILD_OWNER),
-        read_runtime_src(LATE_API_CLEANUP_BUDGETS_CHILD_OWNER)
-    );
-    let p0_child_parent = read_runtime_src(P0_CHILD_OWNER);
-    let p0_child = format!(
-        "{}\n{}\n{}\n{}\n{}",
-        p0_child_parent,
-        read_runtime_src(P0_DELEGATION_CHILD_OWNER),
-        read_runtime_src(P0_ROUTE_OWNERSHIP_CHILD_OWNER),
-        read_runtime_src(P0_STATUS_MIRRORS_CHILD_OWNER),
-        read_runtime_src(P0_BUDGETS_CHILD_OWNER)
-    );
-    let p0_native_fixture_leaf_parent = read_runtime_src(P0_NATIVE_FIXTURE_LEAF_OWNER);
-    let p0_native_fixture_leaf_child = format!(
-        "{}\n{}\n{}\n{}\n{}",
-        p0_native_fixture_leaf_parent,
-        read_runtime_src(P0_NATIVE_FIXTURE_DELEGATION_CHILD_OWNER),
-        read_runtime_src(P0_NATIVE_FIXTURE_LEAF_OWNERSHIP_CHILD_OWNER),
-        read_runtime_src(P0_NATIVE_FIXTURE_STATUS_MIRRORS_CHILD_OWNER),
-        read_runtime_src(P0_NATIVE_FIXTURE_BUDGETS_CHILD_OWNER)
-    );
+    let late_api_cleanup_child =
+        super::super::late_api_cleanup_child_owners::late_api_cleanup_structure_guard_child_source_blob();
+    let p0_child = super::super::p0_child_owners::p0_structure_guard_child_source_blob();
+    let p0_native_fixture_leaf_child =
+        super::super::p0_native_fixture_leaf_owners::p0_native_fixture_structure_guard_child_source_blob();
 
     assert_contains_all(
         "F8 structure child owner keeps F8 review guard ownership checks",
@@ -89,10 +63,10 @@ pub(super) fn assert_review_guard_group_children_are_mounted() {
             "Runtime 15 M3 P0 robustness structure guard folder-backed split",
             "runtime_15_p0_robustness_structure_guard_folder_backed_static_passed_cargo_deferred",
             "runtime_15_p0_robustness_structure_guard_is_folder_backed",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/route_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/status_mirrors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/budgets.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/delegation.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/status_mirrors.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/budgets.rs",
             "tests/runtime_absorption/code_review_findings/p0_robustness.rs",
             "tests/runtime_absorption/code_review_findings/p0_robustness/native_host_callbacks.rs",
             "tests/runtime_absorption/code_review_findings/p0_robustness/lock_poison.rs",

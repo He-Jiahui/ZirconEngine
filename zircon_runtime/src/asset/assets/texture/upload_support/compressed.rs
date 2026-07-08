@@ -78,6 +78,20 @@ fn unsupported_container_shape_reason(texture: &TextureAsset) -> Option<String> 
     {
         return Some("compressed texture array/cubemap upload is not implemented".to_string());
     }
+    if descriptor.dimension == RenderImageDimension::Cube {
+        if texture.width != texture.height {
+            return Some("compressed cube texture upload requires square faces".to_string());
+        }
+        if descriptor.array_layer_count == 0
+            || descriptor.depth_or_array_layers != descriptor.array_layer_count
+            || descriptor.array_layer_count % 6 != 0
+        {
+            return Some(
+                "compressed cube texture upload requires a non-zero multiple of six faces"
+                    .to_string(),
+            );
+        }
+    }
     None
 }
 

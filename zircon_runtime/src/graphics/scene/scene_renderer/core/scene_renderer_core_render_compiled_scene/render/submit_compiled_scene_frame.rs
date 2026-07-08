@@ -1,5 +1,6 @@
 #[cfg(test)]
 use crate::asset::{TextureAsset, TexturePayload};
+use crate::core::framework::render::IblBakeArtifactRequest;
 #[cfg(test)]
 use crate::core::framework::render::PostProcessGraphResourceNames;
 #[cfg(test)]
@@ -12,6 +13,7 @@ use crate::core::framework::render::{
 #[cfg(test)]
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::write_ibl_bake_runtime_cache_from_graph_resources;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources,
 };
@@ -19,6 +21,7 @@ use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::{
     MeshIndirectArgsReadback, MeshPassIndirectDrawExecutions,
 };
+use crate::graphics::types::GraphicsError;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
@@ -37,13 +40,14 @@ pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
     pub(super) graph_resources: &'a mut RenderGraphExecutionResources,
     pub(super) graph_execution_record: &'a mut RenderGraphExecutionRecord,
     pub(super) mesh_pass_indirect_draws: &'a MeshPassIndirectDrawExecutions,
+    pub(super) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
 }
 
 impl SceneRendererCore {
     pub(super) fn submit_compiled_scene_frame(
         &mut self,
         ctx: CompiledSceneFrameSubmissionContext<'_>,
-    ) {
+    ) -> Result<(), GraphicsError> {
         let CompiledSceneFrameSubmissionContext {
             device,
             queue,
@@ -53,6 +57,7 @@ impl SceneRendererCore {
             graph_resources,
             graph_execution_record,
             mesh_pass_indirect_draws,
+            environment_ibl_bake_request,
         } = ctx;
 
         let hzb_occlusion_indirect_args_readbacks = encode_hzb_occlusion_indirect_args_readbacks(
@@ -93,6 +98,13 @@ impl SceneRendererCore {
                 graph_execution_record,
             );
         }
+        attach_environment_ibl_runtime_cache_writeback(
+            device,
+            queue,
+            streamer,
+            environment_ibl_bake_request,
+            graph_resources,
+        )?;
         graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
         self.transient_resource_pool.end_frame();
         graph_execution_record.set_resource_report(
@@ -100,7 +112,36 @@ impl SceneRendererCore {
                 .resource_report()
                 .with_transient_pool_report(self.transient_resource_pool.last_frame_report()),
         );
+        Ok(())
     }
+}
+
+fn attach_environment_ibl_runtime_cache_writeback(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    streamer: &ResourceStreamer,
+    request: Option<IblBakeArtifactRequest>,
+    graph_resources: &RenderGraphExecutionResources,
+) -> Result<(), GraphicsError> {
+    let Some(request) = request else {
+        return Ok(());
+    };
+    let Some(store) = streamer.asset_manager().ibl_bake_artifact_cache_store() else {
+        return Ok(());
+    };
+    let dispatch =
+        crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+    let _report = write_ibl_bake_runtime_cache_from_graph_resources(
+        device,
+        queue,
+        &store,
+        &request,
+        &dispatch,
+        graph_resources,
+    )
+    .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+    Ok(())
 }
 
 #[cfg(test)]

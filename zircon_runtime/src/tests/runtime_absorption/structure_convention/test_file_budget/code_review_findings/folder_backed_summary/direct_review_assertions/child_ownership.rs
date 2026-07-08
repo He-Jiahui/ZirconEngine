@@ -1,27 +1,27 @@
 use super::super::super::super::*;
 use super::*;
 
-#[path = "child_ownership/budgets.rs"]
+#[path = "ownership/budgets.rs"]
 mod budgets;
-#[path = "child_ownership/delegation.rs"]
+#[path = "ownership/delegation.rs"]
 mod delegation;
-#[path = "child_ownership/entry_points.rs"]
+#[path = "ownership/entry_points.rs"]
 mod entry_points;
-#[path = "child_ownership/parent_absence.rs"]
+#[path = "ownership/parent_absence.rs"]
 mod parent_absence;
-#[path = "child_ownership/status_mirrors.rs"]
+#[path = "ownership/status_mirrors.rs"]
 mod status_mirrors;
 
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_DELEGATION_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/delegation.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/delegation.rs";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_PARENT_ABSENCE_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/parent_absence.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/parent_absence.rs";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_ENTRY_POINTS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/entry_points.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/entry_points.rs";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_BUDGETS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/budgets.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/budgets.rs";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS_MIRRORS_CHILD: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/status_mirrors.rs";
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/status_mirrors.rs";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_SLICE: &str =
     "Runtime 15 M3 code review findings direct assertions child-ownership guard folder-backed split";
 pub(super) const DIRECT_REVIEW_ASSERTIONS_CHILD_OWNERSHIP_STATUS: &str =

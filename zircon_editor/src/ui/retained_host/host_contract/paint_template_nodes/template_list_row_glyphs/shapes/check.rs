@@ -1,6 +1,12 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::segments::push_segments;
+use super::super::segments::{push_segments, GlyphSegmentSpec};
+
+const CHECK_MARK_SEGMENTS: [GlyphSegmentSpec; 3] = [
+    GlyphSegmentSpec::new(2, 7, 3, 2),
+    GlyphSegmentSpec::new(4, 9, 3, 2),
+    GlyphSegmentSpec::new(7, 4, 3, 7),
+];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_check_mark(
     commands: &mut Vec<HostPaintCommand>,
@@ -12,26 +18,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
 ) {
     push_segments(
         commands,
-        &[
-            FrameRect {
-                x: rect.x + 2.0,
-                y: rect.y + 7.0,
-                width: 3.0,
-                height: 2.0,
-            },
-            FrameRect {
-                x: rect.x + 4.0,
-                y: rect.y + 9.0,
-                width: 3.0,
-                height: 2.0,
-            },
-            FrameRect {
-                x: rect.x + 7.0,
-                y: rect.y + 4.0,
-                width: 3.0,
-                height: 7.0,
-            },
-        ],
+        rect,
+        &CHECK_MARK_SEGMENTS,
         clip,
         order,
         color,

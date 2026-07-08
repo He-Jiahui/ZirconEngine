@@ -66,6 +66,17 @@ fn swash_render_format_tracks_text_smoothing_preference() {
 }
 
 #[test]
+fn retained_text_raster_disables_swash_hinting_for_compact_editor_labels() {
+    assert!(!swash_hinting_for_size(8.5));
+    assert!(!swash_hinting_for_size(10.0));
+    assert!(
+        !swash_hinting_for_size(13.0),
+        "13px editor tab/file labels should keep unhinted swash bearings so glyphs do not snap left/right independently"
+    );
+    assert!(swash_hinting_for_size(13.01));
+}
+
+#[test]
 fn retained_text_raster_cache_separates_subpixel_bins_for_same_glyph() {
     let glyph_index = font_for_face(HostTextFontFace::Ui)
         .expect("ui retained-host font")
@@ -77,6 +88,26 @@ fn retained_text_raster_cache_separates_subpixel_bins_for_same_glyph() {
     assert!(!Arc::ptr_eq(&left.bitmap, &right.bitmap));
     assert_eq!(left.source, CachedGlyphRasterSource::Swash);
     assert_eq!(right.source, CachedGlyphRasterSource::Swash);
+}
+
+#[test]
+fn retained_text_raster_keeps_swash_for_tiny_editor_label_glyphs() {
+    let font = font_for_face(HostTextFontFace::Ui).expect("ui retained-host font");
+    for (text, px) in [
+        ("editor base.zui", 10.0_f32),
+        ("folder-op...line.svg", 8.5_f32),
+    ] {
+        for character in text.chars().filter(|character| !character.is_whitespace()) {
+            let glyph_index = font.lookup_glyph_index(character);
+            let raster = rasterize_cached_glyph(HostTextFontFace::Ui, glyph_index, px, 8.0, 0.875);
+
+            assert_eq!(
+                raster.source,
+                CachedGlyphRasterSource::Swash,
+                "tiny editor label glyph '{character}' in {text:?} at {px}px must keep the same swash rasterizer instead of mixing fallback bearings"
+            );
+        }
+    }
 }
 
 #[test]
@@ -121,6 +152,14 @@ fn fontdue_fallback_metrics_x_offset_is_relative_to_pen_origin() {
 fn fontdue_fallback_sample_offset_keeps_bitmap_left_fraction() {
     assert_eq!(fontdue_fallback_sample_offset_x(0.5, -0.375, -1), 1.125);
     assert_eq!(fontdue_fallback_sample_offset_x(0.25, 1.75, 1), 1.0);
+}
+
+#[test]
+fn visible_low_coverage_swash_masks_remain_usable() {
+    assert!(bitmap_has_visible_ink(&[1]));
+    assert!(bitmap_has_visible_ink(&[0, 64, 0]));
+    assert!(!bitmap_has_visible_ink(&[]));
+    assert!(!bitmap_has_visible_ink(&[0, 0, 0]));
 }
 
 #[test]

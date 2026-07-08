@@ -10,10 +10,13 @@ use crate::ui::workbench::snapshot::{
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::ViewTemplateNodeData;
+use super::{load_preview_image, ViewTemplateNodeData};
 use compact_layout::apply_asset_browser_compact_layout;
 use labels::{asset_state_label, resource_kind_label};
 use stack_layout::apply_asset_browser_standard_stack_layout;
+use state_marks::{
+    mark_panel_group_selected, mark_panel_selected, mark_toggle_state, mark_utility_tab_state,
+};
 use summary_nodes::sync_asset_browser_summary_nodes;
 use table_nodes::{
     apply_asset_browser_table_cells, asset_table_row_text, asset_table_rows, mark_asset_table_rows,
@@ -25,7 +28,9 @@ use utility_tabs::apply_asset_browser_utility_tab_typography;
 mod compact_layout;
 mod labels;
 mod name_compaction;
+mod name_lines;
 mod stack_layout;
+mod state_marks;
 mod summary_layout;
 mod summary_nodes;
 mod table_nodes;
@@ -419,22 +424,22 @@ fn apply_asset_browser_visual_state(
         "AssetBrowserViewModeThumbButton",
         snapshot.view_mode == AssetViewMode::Thumbnail,
     );
-    mark_toggle_state(
+    mark_utility_tab_state(
         nodes,
         "AssetBrowserPreviewTabButton",
         snapshot.utility_tab == AssetUtilityTab::Preview,
     );
-    mark_toggle_state(
+    mark_utility_tab_state(
         nodes,
         "AssetBrowserReferencesTabButton",
         snapshot.utility_tab == AssetUtilityTab::References,
     );
-    mark_toggle_state(
+    mark_utility_tab_state(
         nodes,
         "AssetBrowserMetadataTabButton",
         snapshot.utility_tab == AssetUtilityTab::Metadata,
     );
-    mark_toggle_state(
+    mark_utility_tab_state(
         nodes,
         "AssetBrowserPluginsTabButton",
         snapshot.utility_tab == AssetUtilityTab::Plugins,
@@ -708,36 +713,6 @@ fn selection_diagnostics_text(
     }
 }
 
-fn mark_toggle_state(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.selected = active;
-        node.focused = active;
-        node.surface_variant = if active { "inset".into() } else { "".into() };
-        node.text_tone = if active {
-            "default".into()
-        } else {
-            "subtle".into()
-        };
-    }
-}
-
-fn mark_panel_selected(nodes: &mut [ViewTemplateNodeData], control_id: &str, selected: bool) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.selected = selected;
-        node.focused = selected;
-    }
-}
-
-fn mark_panel_group_selected(
-    nodes: &mut [ViewTemplateNodeData],
-    control_ids: &[&str],
-    selected: bool,
-) {
-    for control_id in control_ids {
-        mark_panel_selected(nodes, control_id, selected);
-    }
-}
-
 fn update_panel_variant(
     nodes: &mut [ViewTemplateNodeData],
     control_id: &str,
@@ -769,11 +744,27 @@ fn update_asset_preview_visual_icon(
         if let Some(asset) = asset {
             node.component_role = "asset-thumbnail-visual".into();
             node.component_variant = asset_thumbnail_icon_name(asset.kind).into();
+            update_asset_preview_visual_image(node, asset);
         } else {
             node.component_role = "".into();
             node.component_variant = "".into();
+            clear_asset_preview_visual_image(node);
         }
     }
+}
+
+fn update_asset_preview_visual_image(node: &mut ViewTemplateNodeData, asset: &AssetItemSnapshot) {
+    let preview_image = load_preview_image(asset.preview_artifact_path.as_str(), "");
+    let preview_size = preview_image.size();
+    node.media_source = asset.preview_artifact_path.clone().into();
+    node.has_preview_image = preview_size.width > 0 && preview_size.height > 0;
+    node.preview_image = preview_image;
+}
+
+fn clear_asset_preview_visual_image(node: &mut ViewTemplateNodeData) {
+    node.media_source = "".into();
+    node.has_preview_image = false;
+    node.preview_image = Default::default();
 }
 
 fn retain_active_utility_tab_nodes(

@@ -26,4 +26,10 @@ pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_DATE: &str = "2026-07-04";
 pub(super) const P0_NATIVE_FIXTURE_ROOT_INVENTORY_GUARD: &str =
     "runtime_15_p0_native_fixture_leaf_owner_root_inventory_is_child_owned";
 
+pub(super) const P0_NATIVE_FIXTURE_SOURCE_STATUS_MAP_SLICE: &str =
+    "Runtime 15 M3 P0 native fixture source status-map reconciliation";
+pub(super) const P0_NATIVE_FIXTURE_SOURCE_STATUS_MAP_STATUS: &str =
+    "runtime_15_p0_native_fixture_source_status_map_reconciliation_static_passed_cargo_deferred";
+pub(super) const P0_NATIVE_FIXTURE_SOURCE_STATUS_MAP_DATE: &str = "2026-07-07";
+
 pub(super) const P0_NATIVE_FIXTURE_ROOT_CHILD_LINE_BUDGET: usize = 120;

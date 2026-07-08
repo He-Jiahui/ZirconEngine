@@ -1,0 +1,39 @@
+use super::*;
+
+pub(super) const FOUNDATION_ROW_DATA_GUARD_CHILDREN: &[(&str, &str, &str)] = &[
+    (
+        "delegation",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/delegation.rs",
+        FOLDER_BACKED_GUARD_NAME,
+    ),
+    (
+        "row_ownership",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/row_ownership.rs",
+        CHILD_OWNER_GUARD_NAME,
+    ),
+    (
+        "exports",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/exports.rs",
+        "runtime_15_foundation_row_data_exports_are_child_owned",
+    ),
+    (
+        "topic_rows",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/topic_rows.rs",
+        "runtime_15_foundation_topic_rows_are_child_owned",
+    ),
+    (
+        "root_inventory",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/root_inventory.rs",
+        "runtime_15_foundation_row_data_root_inventory_is_child_owned",
+    ),
+    (
+        "status_mirrors",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/status_mirrors.rs",
+        "runtime_15_foundation_row_data_folder_backed_status_mirrors_are_current",
+    ),
+    (
+        "budgets",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/budgets.rs",
+        "runtime_15_foundation_row_data_child_budgets_stay_focused",
+    ),
+];

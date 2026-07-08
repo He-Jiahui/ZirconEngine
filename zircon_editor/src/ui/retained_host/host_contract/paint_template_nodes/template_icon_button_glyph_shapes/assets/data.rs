@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_cube_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,12 +20,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_cu
         color,
         opacity,
         &[
-            (4.0, 3.0, 8.0, 1.2),
-            (3.0, 4.0, 1.2, 7.0),
-            (12.0, 4.0, 1.2, 7.0),
-            (4.0, 11.0, 8.0, 1.2),
-            (7.5, 2.0, 1.2, 10.0),
-            (3.0, 7.0, 10.0, 1.2),
+            seg(80, 60, 160, 24),
+            seg(60, 80, 24, 140),
+            seg(240, 80, 24, 140),
+            seg(80, 220, 160, 24),
+            seg(150, 40, 24, 200),
+            seg(60, 140, 200, 24),
         ],
     );
 }
@@ -44,11 +46,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_gr
         color,
         opacity,
         &[
-            (4.0, 4.0, 3.0, 3.0),
-            (10.0, 3.0, 3.0, 3.0),
-            (9.0, 10.0, 3.0, 3.0),
-            (6.0, 5.0, 5.0, 1.2),
-            (10.0, 6.0, 1.2, 5.0),
+            seg(80, 80, 60, 60),
+            seg(200, 60, 60, 60),
+            seg(180, 200, 60, 60),
+            seg(120, 100, 100, 24),
+            seg(200, 120, 24, 100),
         ],
     );
 }

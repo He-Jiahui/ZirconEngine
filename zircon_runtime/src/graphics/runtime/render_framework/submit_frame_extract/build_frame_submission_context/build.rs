@@ -22,6 +22,7 @@ use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::{
     compile_submission_pipeline, compile_submission_pipeline_with_options,
 };
+use super::environment_ibl_compile_options::compile_options_with_environment_ibl_bake_request;
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
 use super::target_resolution::resolve_camera_target_descriptor;
@@ -258,7 +259,7 @@ fn build_frame_submission_context_from_source(
         || (anti_alias_report.effective_mode == crate::core::framework::render::AntiAliasMode::Taa
             && taa_history_store_available);
     let upscale_required = render_size != effective_view_size;
-    let post_process_stack =
+    let mut post_process_stack =
         PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
             &effective_bloom,
             &effective_color_grading,
@@ -269,16 +270,24 @@ fn build_frame_submission_context_from_source(
             &anti_alias_report.effective_settings(),
             upscale_required,
         );
+    if hybrid_gi_enabled && effective_hybrid_gi_extract.is_some() {
+        post_process_stack = post_process_stack.with_hybrid_gi_lighting_input();
+    }
+    let compile_options = compile_options_with_environment_ibl_bake_request(
+        asset_manager.as_ref(),
+        effective_extract,
+        viewport_state
+            .compile_options()
+            .clone()
+            .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
+            .with_post_process_stack(post_process_stack.clone()),
+    )?;
     let compiled_pipeline = compile_submission_pipeline_with_options(
         framework,
         &viewport_state,
         effective_extract,
         compile_camera_target,
-        &viewport_state
-            .compile_options()
-            .clone()
-            .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
-            .with_post_process_stack(post_process_stack.clone()),
+        &compile_options,
     )?;
     let post_process_graph = post_process_stack.validated_graph();
     let temporal_jitter =

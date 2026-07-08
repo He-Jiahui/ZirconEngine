@@ -3,6 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::actions::push_table_action;
 use super::cells::{push_table_cells, table_cells};
 use super::identity::{is_table_row, is_workbench_table_row};
+use super::layers::{action_slot_order, cells_order};
 use super::surface::{push_table_row_surface, table_paint_rect};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_table_row_commands(
@@ -24,8 +25,23 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
 
     let rect = table_paint_rect(node, rect);
     push_table_row_surface(commands, node, &rect, clip, order, opacity);
-    push_table_cells(commands, node, &rect, clip, order + 2, opacity, &cells);
-    push_table_action(commands, node, &rect, clip, order + 3, opacity);
+    push_table_cells(
+        commands,
+        node,
+        &rect,
+        clip,
+        cells_order(order),
+        opacity,
+        &cells,
+    );
+    push_table_action(
+        commands,
+        node,
+        &rect,
+        clip,
+        action_slot_order(order),
+        opacity,
+    );
     true
 }
 

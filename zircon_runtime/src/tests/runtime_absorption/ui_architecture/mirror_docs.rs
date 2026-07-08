@@ -1,5 +1,3 @@
-use super::*;
-
 #[test]
 fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
     let architecture_doc = include_str!("../../../../../docs/zircon_runtime/ui/architecture.md");

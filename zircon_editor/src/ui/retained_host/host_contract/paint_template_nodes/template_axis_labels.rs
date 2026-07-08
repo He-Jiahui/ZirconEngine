@@ -1,4 +1,7 @@
 mod identity;
+mod layers;
+mod metrics;
+mod palette;
 mod scale_link;
 mod style;
 mod text;

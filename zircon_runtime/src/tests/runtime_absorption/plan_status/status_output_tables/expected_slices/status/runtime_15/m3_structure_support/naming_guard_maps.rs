@@ -18,6 +18,9 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         "Runtime 15 M3 core-scene naming ECS owner guard child-owner split" => Some(
             "runtime_15_core_scene_naming_ecs_owner_guard_child_owner_split_static_passed_cargo_deferred",
         ),
+        "Runtime 15 M3 core-scene naming ECS owner split-layout folder-backed split" => Some(
+            "runtime_15_core_scene_naming_ecs_owner_split_layout_folder_backed_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 asset-dynamic naming texture-container guard child-owner split" => Some(
             "runtime_15_asset_dynamic_texture_container_guard_child_owner_split_static_passed_cargo_deferred",
         ),

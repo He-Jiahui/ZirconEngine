@@ -3,11 +3,13 @@ use super::render_commands::HostPaintCommand;
 use super::template_list_row_glyphs::push_list_row_adornment;
 
 mod identity;
+mod layers;
 mod style;
 mod surface;
 mod text;
 
 use identity::is_workbench_list_row;
+use layers::{adornment_order, label_order};
 use style::list_row_adornment_color;
 use surface::push_list_row_surface;
 use text::push_list_row_label;
@@ -29,13 +31,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_li
     }
 
     push_list_row_surface(commands, node, rect, clip, order, opacity);
-    push_list_row_label(commands, node, rect, clip, order + 2, opacity);
+    push_list_row_label(commands, node, rect, clip, label_order(order), opacity);
     push_list_row_adornment(
         commands,
         node,
         rect,
         clip,
-        order + 3,
+        adornment_order(order),
         list_row_adornment_color(node),
         opacity,
     );

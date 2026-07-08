@@ -1,5 +1,6 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
+use super::super::layers::body_order;
 use super::super::metrics::tooltip_metrics;
 use super::body::push_tooltip_body;
 use super::title::push_tooltip_title;
@@ -31,7 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         node,
         bubble,
         clip,
-        order + 1,
+        body_order(order),
         text_width,
         body_color,
         opacity,

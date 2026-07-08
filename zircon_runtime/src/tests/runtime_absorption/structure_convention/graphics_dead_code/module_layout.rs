@@ -303,12 +303,24 @@ fn runtime_15_graphics_dead_code_guard_forbidden_attribute_literal_is_constant_b
     let status_rows = super::read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",
     );
-    let status_map = super::read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-    );
-    let date_map = super::read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-    );
+    let status_map = [
+        super::read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+        ),
+        super::read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/dead_code_guard_maps.rs",
+        ),
+    ]
+    .join("\n");
+    let date_map = [
+        super::read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+        ),
+        super::read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/dead_code_guard_maps.rs",
+        ),
+    ]
+    .join("\n");
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

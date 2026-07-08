@@ -7,7 +7,7 @@ use zircon_runtime::core::framework::render::{
     RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
-use zircon_runtime::core::math::{Transform, Vec4};
+use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use zircon_runtime::graphics::hybrid_gi_extract_sources::{
     hybrid_gi_extract_probe_records, hybrid_gi_extract_trace_region_records,
@@ -132,6 +132,42 @@ impl HybridGiCardCaptureRequest {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(in crate::hybrid_gi) struct HybridGiSceneScreenProbeRuntimeDescriptor {
+    probe_id: u32,
+    slot: u32,
+    bounds_center: Vec3,
+    bounds_radius: f32,
+    ray_budget: u32,
+    irradiance_rgb: [u8; 3],
+}
+
+impl HybridGiSceneScreenProbeRuntimeDescriptor {
+    pub(in crate::hybrid_gi) fn probe_id(&self) -> u32 {
+        self.probe_id
+    }
+
+    pub(in crate::hybrid_gi) fn slot(&self) -> u32 {
+        self.slot
+    }
+
+    pub(in crate::hybrid_gi) fn bounds_center(&self) -> Vec3 {
+        self.bounds_center
+    }
+
+    pub(in crate::hybrid_gi) fn bounds_radius(&self) -> f32 {
+        self.bounds_radius
+    }
+
+    pub(in crate::hybrid_gi) fn ray_budget(&self) -> u32 {
+        self.ray_budget
+    }
+
+    pub(in crate::hybrid_gi) fn irradiance_rgb(&self) -> [u8; 3] {
+        self.irradiance_rgb
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HybridGiSceneRepresentation {
     settings: HybridGiSceneRepresentationSettings,
@@ -216,6 +252,27 @@ impl HybridGiSceneRepresentation {
         &self,
     ) -> &[HybridGiCardCaptureRequest] {
         &self.card_capture_requests
+    }
+
+    pub(in crate::hybrid_gi) fn screen_probe_runtime_descriptors(
+        &self,
+    ) -> Vec<HybridGiSceneScreenProbeRuntimeDescriptor> {
+        self.screen_probes
+            .descriptors()
+            .iter()
+            .enumerate()
+            .map(|(slot, probe)| HybridGiSceneScreenProbeRuntimeDescriptor {
+                probe_id: probe.probe_id(),
+                slot: slot as u32,
+                bounds_center: probe.bounds_center(),
+                bounds_radius: probe.bounds_radius(),
+                ray_budget: probe.ray_budget(),
+                irradiance_rgb: self
+                    .radiance_cache
+                    .radiance_rgb(probe.probe_id())
+                    .unwrap_or([0, 0, 0]),
+            })
+            .collect()
     }
 
     #[cfg_attr(not(test), allow(dead_code))]

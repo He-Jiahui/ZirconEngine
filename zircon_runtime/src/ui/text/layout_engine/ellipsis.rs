@@ -1,6 +1,7 @@
 use crate::graphics::text::layout::{
-    ellipsize_text, measure_line_width, EllipsisPlacement, EllipsisSegment, ELLIPSIS,
+    ellipsize_text, measure_line_width_with_provider, EllipsisPlacement, EllipsisSegment, ELLIPSIS,
 };
+use crate::graphics::text::shaping::TextShapeRunProvider;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextRun, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRunKind,
 };
@@ -8,7 +9,7 @@ use zircon_runtime_interface::ui::surface::{
 use super::candidate_line::{append_segment, CandidateLine};
 use super::direction::resolve_direction;
 use super::range_mapping::source_subrange;
-use super::wrapping::line_text_fits;
+use super::wrapping::line_text_fits_with_provider;
 
 pub(super) fn merge_clipped_lines_for_tail_preserving_ellipsis(
     lines: &mut Vec<CandidateLine>,
@@ -30,12 +31,15 @@ pub(super) fn merge_clipped_lines_for_tail_preserving_ellipsis(
     }
 }
 
-pub(super) fn ellipsize_line(
+pub(super) fn ellipsize_line_with_provider<P>(
     line: &mut CandidateLine,
     max_width: f32,
     style: &UiResolvedStyle,
     overflow: UiTextOverflow,
-) {
+    provider: &mut P,
+) where
+    P: TextShapeRunProvider + ?Sized,
+{
     let mut text = String::new();
     let mut runs = Vec::new();
     let placement = match overflow {
@@ -45,7 +49,7 @@ pub(super) fn ellipsize_line(
         _ => EllipsisPlacement::End,
     };
     let segments = ellipsize_text(&line.text, max_width, placement, |candidate| {
-        measure_line_width(candidate, style)
+        measure_line_width_with_provider(candidate, style, provider)
     });
 
     for segment in segments {
@@ -159,12 +163,16 @@ fn push_ellipsis_fragment(
     });
 }
 
-pub(super) fn line_overflows_horizontally(
+pub(super) fn line_overflows_horizontally_with_provider<P>(
     line: &CandidateLine,
     max_width: f32,
     style: &UiResolvedStyle,
-) -> bool {
-    !line.text.is_empty() && !line_text_fits(&line.text, max_width, style)
+    provider: &mut P,
+) -> bool
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    !line.text.is_empty() && !line_text_fits_with_provider(&line.text, max_width, style, provider)
 }
 
 pub(super) fn is_ellipsis_overflow(overflow: UiTextOverflow) -> bool {

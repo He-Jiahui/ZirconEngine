@@ -1,12 +1,14 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::{METRICS, PALETTE};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::is_hot_workbench_table_row_state;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::identity::is_table_header;
+use super::super::layers::action_icon_order;
 use super::super::style::table_row_style;
 use super::geometry::{table_action_button_rect, table_action_icon_rect};
 use super::glyphs::{push_table_gear, push_table_kebab};
+use super::metrics::table_action_metrics;
+use super::palette::{table_action_palette, WorkbenchTableActionPalette};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 const TABLE_HEADER_ACTION_ICON: &str = "zircon_editor_shell/activity/settings.svg";
@@ -31,7 +33,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             TABLE_HEADER_ACTION_ICON,
             &action_rect,
             clip,
-            order + 1,
+            action_icon_order(order),
             Some(action_color),
             opacity,
         ) {
@@ -41,7 +43,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             commands,
             &action_rect,
             clip,
-            order + 1,
+            action_icon_order(order),
             action_color,
             opacity,
         );
@@ -55,7 +57,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             TABLE_ROW_ACTION_ICON,
             &action_rect,
             clip,
-            order + 1,
+            action_icon_order(order),
             Some(action_color),
             opacity,
         ) {
@@ -65,7 +67,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ta
             commands,
             &action_rect,
             clip,
-            order + 1,
+            action_icon_order(order),
             action_color,
             opacity,
         );
@@ -80,23 +82,25 @@ fn push_table_action_button_slot(
     data_row: bool,
     opacity: f32,
 ) {
+    let metrics = table_action_metrics();
+    let palette = table_action_palette();
     commands.push(HostPaintCommand::quad(
         rect.clone(),
         Some(clip.clone()),
         order,
-        Some(table_action_button_background(data_row)),
-        Some(PALETTE.border),
-        METRICS.border_width,
-        METRICS.radius_control,
+        Some(table_action_button_background(data_row, palette)),
+        Some(palette.slot_border),
+        metrics.border_width,
+        metrics.radius,
         opacity,
     ));
 }
 
-fn table_action_button_background(data_row: bool) -> [u8; 4] {
+fn table_action_button_background(data_row: bool, palette: WorkbenchTableActionPalette) -> [u8; 4] {
     if data_row {
-        PALETTE.surface_hover
+        palette.data_row_slot_surface
     } else {
-        PALETTE.surface_pressed
+        palette.header_slot_surface
     }
 }
 

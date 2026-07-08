@@ -38,7 +38,7 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/test_file_budget.rs",
     );
 
     assert_contains_all(
@@ -100,13 +100,13 @@ fn runtime_15_test_file_budget_parent_guard_child_owner_split() {
     assert_contains_all(
         "root-layout folder-backed support tracks the new child owners",
         &format!(
-            "{root_layout_folder}\n{root_layout_folder_assertions}\n{root_layout_folder_sources}"
+            "{root_layout_folder}\n{root_layout_folder_assertions}\n{root_layout_folder_sources}\n{root_layout_status_scan}"
         ),
         &[
             "structure_convention/test_file_budget/core_framework.rs",
             "structure_convention/test_file_budget/ui_v2_asset.rs",
             "structure_convention/test_file_budget/ui_shared_core.rs",
-            "fn runtime_15_test_file_budget_parent_guard_child_owner_split",
+            "runtime_15_test_file_budget_parent_guard_child_owner_split",
         ],
     );
     assert_contains_all(

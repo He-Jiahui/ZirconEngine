@@ -53,9 +53,9 @@ fn runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired(
         ],
     );
     assert_contains_all(
-        "scene facade exposes PipelineKey only crate-wide for dynamic API source building",
+        "scene facade exposes shader prewarm resource keys on the current crate-wide route",
         &scene_mod,
-        &["pub(crate) use resources::{default_pipeline_key, PipelineKey};"],
+        &["pub(crate) use resources::{default_pipeline_key, PipelineKey, ResourceStreamer};"],
     );
     assert_contains_all(
         "asset-root manifest uses dynamic template source only for builtin standard materials",

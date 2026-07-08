@@ -4,10 +4,10 @@ use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
-    FallbackSkyboxKind, OverlayLineSegment, OverlayPickShape, PreviewEnvironmentExtract,
-    ProjectionMode, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    EnvironmentExtract, FallbackSkyboxKind, OverlayLineSegment, OverlayPickShape,
+    PreviewEnvironmentExtract, ProjectionMode, RenderOverlayExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportExtractRequest,
+    ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::graphics::SceneRenderer;
@@ -302,6 +302,7 @@ fn overlay_only_snapshot(viewport_size: UVec2) -> RenderSceneSnapshot {
             }],
             ..RenderOverlayExtract::default()
         },
+        environment: EnvironmentExtract::default(),
         preview: PreviewEnvironmentExtract {
             lighting_enabled: false,
             skybox_enabled: false,

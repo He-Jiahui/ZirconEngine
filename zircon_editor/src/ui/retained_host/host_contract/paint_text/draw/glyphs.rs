@@ -1,3 +1,4 @@
+mod metrics;
 mod row;
 
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
@@ -9,10 +10,8 @@ use super::super::font::HostTextFontFace;
 use super::super::raster::rasterize_cached_glyph;
 use super::layout::RuntimeTextGlyph;
 use super::placement::retained_glyph_placement_for_smoothing;
+use metrics::{logical_raster_extent, TEXT_RASTER_SUPERSAMPLE};
 use row::draw_glyph_row;
-
-const TEXT_RASTER_SUPERSAMPLE: f32 = 8.0;
-const MAX_COMBINED_SAMPLE_OFFSET_X: f32 = 1.999;
 
 pub(super) fn draw_layout_glyphs(
     frame: &mut HostRgbaFrame,
@@ -42,13 +41,13 @@ fn draw_layout_glyph(
     } else {
         glyph.x
     };
-    let placement = retained_glyph_placement_for_smoothing(phase_x, smoothing);
+    let origin_placement = retained_glyph_placement_for_smoothing(phase_x, smoothing);
     let raster = rasterize_cached_glyph(
         font_face,
         glyph.glyph_index,
         glyph.px,
         TEXT_RASTER_SUPERSAMPLE,
-        placement.subpixel_offset,
+        origin_placement.subpixel_offset,
     );
     let metrics = &raster.metrics;
     let bitmap = raster.bitmap.as_ref();
@@ -61,7 +60,19 @@ fn draw_layout_glyph(
     if logical_width == 0 || logical_height == 0 {
         return;
     }
-    let glyph_x = retained_glyph_bitmap_pixel_x(glyph, placement.pixel_x, metrics.x_offset);
+    let layout_bitmap_left_x = if glyph.x.is_finite() {
+        glyph.x
+    } else {
+        phase_x + metrics.x_offset as f32
+    };
+    let layout_bitmap_left_placement =
+        retained_glyph_placement_for_smoothing(layout_bitmap_left_x, smoothing);
+    let glyph_x = retained_glyph_bitmap_pixel_x(
+        glyph,
+        layout_bitmap_left_placement.pixel_x,
+        origin_placement.pixel_x,
+        metrics.x_offset,
+    );
     let glyph_y = glyph.y.round() as i32 + metrics.y_offset;
     for row in 0..logical_height {
         let y = glyph_y + row as i32;
@@ -88,31 +99,18 @@ fn draw_layout_glyph(
     }
 }
 
-fn logical_raster_extent(raster_extent: usize, raster_scale: f32, sample_offset: f32) -> usize {
-    let raster_scale = if raster_scale.is_finite() && raster_scale > 1.0 {
-        raster_scale
-    } else {
-        1.0
-    };
-    let sample_offset = if sample_offset.is_finite() {
-        sample_offset.clamp(0.0, MAX_COMBINED_SAMPLE_OFFSET_X)
-    } else {
-        0.0
-    };
-    (raster_extent as f32 / raster_scale + sample_offset).ceil() as usize
-}
-
 fn retained_glyph_bitmap_pixel_x(
     glyph: &RuntimeTextGlyph,
-    placement_pixel_x: i32,
+    layout_bitmap_left_pixel_x: i32,
+    origin_pixel_x: i32,
     raster_metrics_x_offset: i32,
 ) -> i32 {
     if glyph.origin_x.is_finite() {
-        placement_pixel_x + raster_metrics_x_offset
+        origin_pixel_x + raster_metrics_x_offset
     } else if glyph.x.is_finite() {
-        placement_pixel_x
+        layout_bitmap_left_pixel_x
     } else {
-        placement_pixel_x + raster_metrics_x_offset
+        origin_pixel_x + raster_metrics_x_offset
     }
 }
 

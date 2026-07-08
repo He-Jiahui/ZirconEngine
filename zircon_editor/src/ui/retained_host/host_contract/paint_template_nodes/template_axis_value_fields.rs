@@ -3,6 +3,8 @@ use super::render_commands::HostPaintCommand;
 
 mod geometry;
 mod identity;
+mod layers;
+mod metrics;
 mod surface;
 mod text;
 
@@ -12,6 +14,7 @@ mod tests;
 
 use geometry::axis_field_rect;
 use identity::is_workbench_axis_value_field;
+use layers::value_text_order;
 use surface::push_axis_field_surface;
 use text::push_axis_field_value;
 
@@ -33,6 +36,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     }
 
     push_axis_field_surface(commands, node, &field, clip, order, opacity);
-    push_axis_field_value(commands, node, &field, clip, order + 1, opacity);
+    push_axis_field_value(
+        commands,
+        node,
+        &field,
+        clip,
+        value_text_order(order),
+        opacity,
+    );
     true
 }

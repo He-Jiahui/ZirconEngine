@@ -144,6 +144,7 @@ pub(super) fn parse_dimension(value: &str) -> TextureDescriptorResult<RenderImag
         "1d" | "d1" => Ok(RenderImageDimension::D1),
         "2d" | "d2" => Ok(RenderImageDimension::D2),
         "3d" | "d3" => Ok(RenderImageDimension::D3),
+        "cube" | "cubemap" => Ok(RenderImageDimension::Cube),
         _ => Err(TextureDescriptorError::unsupported("dimension", value)),
     }
 }

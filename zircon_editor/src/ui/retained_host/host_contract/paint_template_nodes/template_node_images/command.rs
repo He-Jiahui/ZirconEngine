@@ -32,14 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
     else {
         return;
     };
-    let tint = template_image_tint(
-        is_icon_node(node),
-        node.selected || node.focused || node.pressed,
-        node.disabled,
-        node.text_tone.as_str(),
-        node.validation_level.as_str(),
-        resolved_style_color(node.button_style.element.foreground_color.as_ref()),
-    );
+    let tint = template_node_image_tint(node);
     let image = {
         zircon_runtime::profile_scope!("editor", "host_painter", "template_node_image_pixels");
         template_image_pixels(
@@ -66,4 +59,60 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
         image.atlas,
         opacity,
     ));
+}
+
+fn template_node_image_tint(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
+    template_image_tint(
+        is_icon_node(node),
+        node.selected || node.checked || node.pressed || node.popup_open,
+        node.disabled,
+        node.text_tone.as_str(),
+        node.validation_level.as_str(),
+        resolved_style_color(node.button_style.element.foreground_color.as_ref()),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_template_nodes::visual_assets::{
+        ICON_TINT, ICON_TINT_ACTIVE,
+    };
+
+    fn icon_node() -> TemplatePaneNodeData {
+        TemplatePaneNodeData {
+            icon_name: "zircon_editor_shell/toolbar/compile.svg".into(),
+            ..TemplatePaneNodeData::default()
+        }
+    }
+
+    #[test]
+    fn focused_icon_image_does_not_use_active_tint() {
+        let node = TemplatePaneNodeData {
+            focused: true,
+            ..icon_node()
+        };
+
+        assert_eq!(template_node_image_tint(&node), Some(ICON_TINT));
+    }
+
+    #[test]
+    fn checked_icon_image_uses_active_tint_without_focus() {
+        let node = TemplatePaneNodeData {
+            checked: true,
+            ..icon_node()
+        };
+
+        assert_eq!(template_node_image_tint(&node), Some(ICON_TINT_ACTIVE));
+    }
+
+    #[test]
+    fn popup_open_icon_image_uses_active_tint_without_focus() {
+        let node = TemplatePaneNodeData {
+            popup_open: true,
+            ..icon_node()
+        };
+
+        assert_eq!(template_node_image_tint(&node), Some(ICON_TINT_ACTIVE));
+    }
 }

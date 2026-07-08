@@ -10,6 +10,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub border_width: f32,
     pub text_left: f32,
     pub text_right: f32,
+    pub chevron_size: f32,
+    pub chevron_right: f32,
+    pub chevron_reserve: f32,
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_chip_metrics(
@@ -21,6 +24,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
     metrics: HostControlMetrics,
 ) -> WorkbenchChipMetrics {
     let font_size = metrics.font_body;
+    let chevron_size = metrics.font_body + metrics.border_width * 2.0;
+    let chevron_right = metrics.gap_m;
     WorkbenchChipMetrics {
         font_size,
         line_height: metrics.line_height(font_size),
@@ -28,6 +33,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         border_width: metrics.border_width,
         text_left: metrics.gap_m + metrics.border_width * 2.0,
         text_right: metrics.gap_m,
+        chevron_size,
+        chevron_right,
+        chevron_reserve: chevron_size + chevron_right + metrics.gap_s,
     }
 }
 
@@ -56,6 +64,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_te
     workbench_chip_metrics().text_right
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_chevron_size() -> f32
+{
+    workbench_chip_metrics().chevron_size
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_chevron_right() -> f32
+{
+    workbench_chip_metrics().chevron_right
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_chevron_reserve(
+) -> f32 {
+    workbench_chip_metrics().chevron_reserve
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,5 +101,8 @@ mod tests {
         assert_eq!(metrics.border_width, 1.5);
         assert_eq!(metrics.text_left, 12.0);
         assert_eq!(metrics.text_right, 9.0);
+        assert_eq!(metrics.chevron_size, 14.0);
+        assert_eq!(metrics.chevron_right, 9.0);
+        assert_eq!(metrics.chevron_reserve, 28.0);
     }
 }

@@ -96,11 +96,29 @@ fn rgba8_mip_uploads_pack_layers_inside_each_mip_level() {
 
 #[test]
 fn rgba8_material_texture_view_keeps_current_d2_binding_contract() {
-    let view = rgba8_material_texture_view_descriptor();
+    let view = texture_view_descriptor(&test_descriptor(vec![RenderImageUsage::Sampled]));
 
     assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2));
     assert_eq!(view.base_array_layer, 0);
     assert_eq!(view.array_layer_count, Some(1));
+}
+
+#[test]
+fn cube_texture_view_uses_cube_dimension_and_all_faces() {
+    let mut descriptor = test_descriptor(vec![RenderImageUsage::Sampled]);
+    descriptor.dimension = RenderImageDimension::Cube;
+    descriptor.depth_or_array_layers = 6;
+    descriptor.array_layer_count = 6;
+
+    let view = texture_view_descriptor(&descriptor);
+
+    assert_eq!(
+        wgpu_dimension(descriptor.dimension),
+        wgpu::TextureDimension::D2
+    );
+    assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::Cube));
+    assert_eq!(view.base_array_layer, 0);
+    assert_eq!(view.array_layer_count, Some(6));
 }
 
 #[test]

@@ -811,7 +811,20 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
         indirect_light =
             (gi_light / probe_count)
             * params.hybrid_gi_color_and_intensity.w;
-        if (params.hybrid_gi_counts.z != 0u) {
+        if (params.hybrid_gi_counts.w != 0u) {
+            let current_frame_lighting_sample =
+                textureLoad(history_global_illumination_tex, coord_i32, 0);
+            let current_frame_luminance =
+                color_luminance(current_frame_lighting_sample.rgb);
+            let current_frame_blend = clamp(current_frame_luminance * 1.5, 0.0, 0.65);
+            indirect_light =
+                mix(
+                    indirect_light,
+                    current_frame_lighting_sample.rgb * params.hybrid_gi_color_and_intensity.w,
+                    current_frame_blend
+                );
+        }
+        if (params.hybrid_gi_counts.z != 0u && params.hybrid_gi_counts.w == 0u) {
             let global_illumination_history_sample =
                 textureLoad(history_global_illumination_tex, physical_coord_i32(coord_i32), 0);
             global_illumination_history = global_illumination_history_sample.rgb;

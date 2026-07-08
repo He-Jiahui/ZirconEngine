@@ -1,5 +1,5 @@
 use super::super::super::super::data::TemplatePaneNodeData;
-use super::metrics::{TABLE_COLUMN_DROP_ORDER, TABLE_COLUMN_MIN_WIDTHS, TABLE_COLUMN_RATIOS};
+use super::metrics::{table_column_metrics, WorkbenchTableColumnMetrics, TABLE_COLUMN_COUNT};
 
 const TABLE_LAYOUT_NARROW_VARIANT: &str = "layoutNarrow";
 
@@ -17,25 +17,27 @@ enum TableColumnLayoutTier {
 
 #[derive(Clone, Copy)]
 pub(super) struct TableColumnLayout {
-    widths: [f32; TABLE_COLUMN_RATIOS.len()],
+    widths: [f32; TABLE_COLUMN_COUNT],
 }
 
 pub(super) fn allocate_table_columns_for_node(
     node: &TemplatePaneNodeData,
     available_width: f32,
 ) -> TableColumnLayout {
-    allocate_table_columns(available_width, table_column_layout_tier(node))
+    let metrics = table_column_metrics();
+    allocate_table_columns(available_width, table_column_layout_tier(node), metrics)
 }
 
 fn allocate_table_columns(
     available_width: f32,
     layout_tier: TableColumnLayoutTier,
+    metrics: WorkbenchTableColumnMetrics,
 ) -> TableColumnLayout {
     let available_width = available_width.max(1.0);
     let mut visible = visible_columns_for_layout_tier(layout_tier);
-    drop_columns_until_minimums_fit(&mut visible, available_width);
-    let mut widths = proportional_visible_widths(visible, available_width);
-    clamp_visible_widths_to_minimums(&mut widths, visible, available_width);
+    drop_columns_until_minimums_fit(&mut visible, available_width, metrics);
+    let mut widths = proportional_visible_widths(visible, available_width, metrics);
+    clamp_visible_widths_to_minimums(&mut widths, visible, available_width, metrics);
     TableColumnLayout { widths }
 }
 
@@ -58,9 +60,9 @@ impl TableColumnLayout {
 
 fn visible_columns_for_layout_tier(
     layout_tier: TableColumnLayoutTier,
-) -> [bool; TABLE_COLUMN_RATIOS.len()] {
+) -> [bool; TABLE_COLUMN_COUNT] {
     match layout_tier {
-        TableColumnLayoutTier::Regular => [true; TABLE_COLUMN_RATIOS.len()],
+        TableColumnLayoutTier::Regular => [true; TABLE_COLUMN_COUNT],
         TableColumnLayoutTier::Narrow => [true, true, false, false],
     }
 }
@@ -79,9 +81,13 @@ fn component_variant_has_token(variant: &str, token: &str) -> bool {
         .any(|candidate| candidate == token)
 }
 
-fn drop_columns_until_minimums_fit(visible: &mut [bool; TABLE_COLUMN_RATIOS.len()], width: f32) {
-    for index in TABLE_COLUMN_DROP_ORDER {
-        if visible_minimum_width(*visible) <= width || only_name_column_visible(*visible) {
+fn drop_columns_until_minimums_fit(
+    visible: &mut [bool; TABLE_COLUMN_COUNT],
+    width: f32,
+    metrics: WorkbenchTableColumnMetrics,
+) {
+    for index in metrics.drop_order {
+        if visible_minimum_width(*visible, metrics) <= width || only_name_column_visible(*visible) {
             break;
         }
         visible[index] = false;
@@ -89,18 +95,20 @@ fn drop_columns_until_minimums_fit(visible: &mut [bool; TABLE_COLUMN_RATIOS.len(
 }
 
 fn proportional_visible_widths(
-    visible: [bool; TABLE_COLUMN_RATIOS.len()],
+    visible: [bool; TABLE_COLUMN_COUNT],
     available_width: f32,
-) -> [f32; TABLE_COLUMN_RATIOS.len()] {
-    let ratio_sum = TABLE_COLUMN_RATIOS
+    metrics: WorkbenchTableColumnMetrics,
+) -> [f32; TABLE_COLUMN_COUNT] {
+    let ratio_sum = metrics
+        .ratios
         .iter()
         .enumerate()
         .filter(|(index, _)| visible[*index])
         .map(|(_, ratio)| *ratio)
         .sum::<f32>()
         .max(f32::EPSILON);
-    let mut widths = [0.0; TABLE_COLUMN_RATIOS.len()];
-    for (index, ratio) in TABLE_COLUMN_RATIOS.iter().enumerate() {
+    let mut widths = [0.0; TABLE_COLUMN_COUNT];
+    for (index, ratio) in metrics.ratios.iter().enumerate() {
         if visible[index] {
             widths[index] = available_width * (*ratio / ratio_sum);
         }
@@ -109,22 +117,24 @@ fn proportional_visible_widths(
 }
 
 fn clamp_visible_widths_to_minimums(
-    widths: &mut [f32; TABLE_COLUMN_RATIOS.len()],
-    visible: [bool; TABLE_COLUMN_RATIOS.len()],
+    widths: &mut [f32; TABLE_COLUMN_COUNT],
+    visible: [bool; TABLE_COLUMN_COUNT],
     available_width: f32,
+    metrics: WorkbenchTableColumnMetrics,
 ) {
     for (index, width) in widths.iter_mut().enumerate() {
         if visible[index] {
-            *width = (*width).max(TABLE_COLUMN_MIN_WIDTHS[index]);
+            *width = (*width).max(metrics.min_widths[index]);
         }
     }
-    reclaim_overflow_from_flexible_columns(widths, visible, available_width);
+    reclaim_overflow_from_flexible_columns(widths, visible, available_width, metrics);
 }
 
 fn reclaim_overflow_from_flexible_columns(
-    widths: &mut [f32; TABLE_COLUMN_RATIOS.len()],
-    visible: [bool; TABLE_COLUMN_RATIOS.len()],
+    widths: &mut [f32; TABLE_COLUMN_COUNT],
+    visible: [bool; TABLE_COLUMN_COUNT],
     available_width: f32,
+    metrics: WorkbenchTableColumnMetrics,
 ) {
     let overflow = widths.iter().sum::<f32>() - available_width;
     if overflow <= 0.0 {
@@ -133,24 +143,28 @@ fn reclaim_overflow_from_flexible_columns(
     let flexible_width = widths
         .iter()
         .enumerate()
-        .filter(|(index, width)| visible[*index] && **width > TABLE_COLUMN_MIN_WIDTHS[*index])
-        .map(|(index, width)| *width - TABLE_COLUMN_MIN_WIDTHS[index])
+        .filter(|(index, width)| visible[*index] && **width > metrics.min_widths[*index])
+        .map(|(index, width)| *width - metrics.min_widths[index])
         .sum::<f32>();
     if flexible_width <= f32::EPSILON {
         return;
     }
     for (index, width) in widths.iter_mut().enumerate() {
-        if !visible[index] || *width <= TABLE_COLUMN_MIN_WIDTHS[index] {
+        if !visible[index] || *width <= metrics.min_widths[index] {
             continue;
         }
-        let excess = *width - TABLE_COLUMN_MIN_WIDTHS[index];
+        let excess = *width - metrics.min_widths[index];
         let reduction = overflow * (excess / flexible_width);
-        *width = (*width - reduction).max(TABLE_COLUMN_MIN_WIDTHS[index]);
+        *width = (*width - reduction).max(metrics.min_widths[index]);
     }
 }
 
-fn visible_minimum_width(visible: [bool; TABLE_COLUMN_RATIOS.len()]) -> f32 {
-    TABLE_COLUMN_MIN_WIDTHS
+fn visible_minimum_width(
+    visible: [bool; TABLE_COLUMN_COUNT],
+    metrics: WorkbenchTableColumnMetrics,
+) -> f32 {
+    metrics
+        .min_widths
         .iter()
         .enumerate()
         .filter(|(index, _)| visible[*index])
@@ -158,6 +172,6 @@ fn visible_minimum_width(visible: [bool; TABLE_COLUMN_RATIOS.len()]) -> f32 {
         .sum()
 }
 
-fn only_name_column_visible(visible: [bool; TABLE_COLUMN_RATIOS.len()]) -> bool {
+fn only_name_column_visible(visible: [bool; TABLE_COLUMN_COUNT]) -> bool {
     visible[0] && !visible[1] && !visible[2] && !visible[3]
 }

@@ -67,6 +67,32 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
             "hybrid-gi-history",
         ]
     );
+    let scene_prepare_pass = feature
+        .stage_passes
+        .iter()
+        .find(|pass| pass.pass_name == "hybrid-gi-scene-prepare")
+        .expect("hybrid GI scene prepare pass");
+    assert_eq!(
+        scene_prepare_pass.queue,
+        zircon_runtime::render_graph::QueueLane::AsyncCompute
+    );
+    let scene_depth_handoff_workload = scene_prepare_pass.compute_workload.as_ref().expect(
+        "hybrid GI scene prepare pass should declare graph depth handoff workload metadata",
+    );
+    assert_eq!(
+        scene_depth_handoff_workload.pipeline_label,
+        HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL
+    );
+    assert_eq!(
+        scene_depth_handoff_workload.workgroup_size,
+        HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE
+    );
+    assert_eq!(
+        scene_depth_handoff_workload.dispatch_extent,
+        zircon_runtime::render_graph::RenderGraphComputeDispatchExtent::Fixed(
+            HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS
+        )
+    );
     let trace_schedule_pass = feature
         .stage_passes
         .iter()
@@ -89,6 +115,16 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
         trace_workload.dispatch_extent,
         zircon_runtime::render_graph::RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
     );
+    let history_pass = feature
+        .stage_passes
+        .iter()
+        .find(|pass| pass.pass_name == "hybrid-gi-history")
+        .expect("hybrid GI history pass");
+    assert!(history_pass
+        .resources
+        .iter()
+        .any(|resource| resource.name == "hybrid-gi-lighting"
+            && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read));
     assert_eq!(report.extensions.render_pass_executors().len(), 4);
     assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
     assert_eq!(

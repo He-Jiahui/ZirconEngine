@@ -17,6 +17,7 @@ impl PostProcessGraphResourceNames {
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
     pub const CONTACT_SHADOW_OCCLUSION: &'static str = "contact-shadow-occlusion";
     pub const GLOBAL_ILLUMINATION: &'static str = "global-illumination";
+    pub const HYBRID_GI_LIGHTING: &'static str = "hybrid-gi-lighting";
     pub const LIGHT_LIST: &'static str = "light-list";
     pub const LIGHT_GRID_PARAMS: &'static str = "light-grid-params";
     pub const LIGHT_ZBINS: &'static str = "light-zbins";

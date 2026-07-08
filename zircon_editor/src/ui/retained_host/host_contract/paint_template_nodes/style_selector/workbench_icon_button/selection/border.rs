@@ -1,10 +1,12 @@
 use super::super::model::WorkbenchIconButtonContext;
-use super::super::palette::ICON_PANEL_BORDER;
+use super::super::palette::workbench_icon_button_palette;
 use super::super::state::is_unavailable_icon_button_state;
 use super::declared::declared_icon_button_border;
 use super::toolbar_chrome::icon_toolbar_normal_chrome_enabled;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
+use crate::ui::retained_host::host_contract::paint_theme::{
+    current_host_metrics, HostControlMetrics,
+};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_border(
@@ -13,11 +15,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
     state: UiPainterResolvedState,
     danger: bool,
 ) -> Option<[u8; 4]> {
+    let palette = workbench_icon_button_palette();
     if is_unavailable_icon_button_state(state) {
-        return (context == WorkbenchIconButtonContext::Panel).then_some(PALETTE.border_disabled);
+        return (context == WorkbenchIconButtonContext::Panel).then_some(palette.border_disabled);
     }
     if danger && context == WorkbenchIconButtonContext::Panel {
-        return declared_icon_button_border(node).or(Some(PALETTE.error));
+        return declared_icon_button_border(node).or(Some(palette.error));
     }
     match state {
         UiPainterResolvedState::Pressed
@@ -26,18 +29,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
         | UiPainterResolvedState::Checked
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
-        | UiPainterResolvedState::DropHovered => Some(PALETTE.focus_ring),
-        UiPainterResolvedState::Hovered => Some(PALETTE.border),
+        | UiPainterResolvedState::DropHovered => Some(palette.focus_ring),
+        UiPainterResolvedState::Hovered => Some(palette.border),
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
-            (context == WorkbenchIconButtonContext::Panel).then_some(PALETTE.border_disabled)
+            (context == WorkbenchIconButtonContext::Panel).then_some(palette.border_disabled)
         }
         UiPainterResolvedState::Normal => {
             if context == WorkbenchIconButtonContext::Panel {
-                declared_icon_button_border(node).or(Some(ICON_PANEL_BORDER))
+                declared_icon_button_border(node).or(Some(palette.panel_border))
             } else if context == WorkbenchIconButtonContext::Toolbar
                 && icon_toolbar_normal_chrome_enabled(node)
             {
-                Some(PALETTE.border)
+                Some(palette.border)
             } else {
                 None
             }
@@ -50,12 +53,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
     context: WorkbenchIconButtonContext,
     state: UiPainterResolvedState,
 ) -> f32 {
+    icon_border_width_from_host(node, context, state, current_host_metrics())
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_border_width_from_host(
+    node: &TemplatePaneNodeData,
+    context: WorkbenchIconButtonContext,
+    state: UiPainterResolvedState,
+    metrics: HostControlMetrics,
+) -> f32 {
     if context == WorkbenchIconButtonContext::Panel
         || (context == WorkbenchIconButtonContext::Toolbar
             && icon_toolbar_normal_chrome_enabled(node))
         || state != UiPainterResolvedState::Normal
     {
-        METRICS.border_width
+        metrics.border_width
     } else {
         0.0
     }

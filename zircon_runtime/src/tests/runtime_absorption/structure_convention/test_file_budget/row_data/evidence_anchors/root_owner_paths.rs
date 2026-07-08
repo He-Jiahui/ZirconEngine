@@ -1,0 +1,39 @@
+use super::*;
+
+pub(super) const EVIDENCE_ANCHOR_OWNER_PATHS: &[(&str, &str, usize)] = &[
+    (
+        "structure_convention/test_file_budget/row_data/evidence_anchors.rs",
+        EVIDENCE_ANCHORS_GUARD_PATH,
+        100,
+    ),
+    (
+        "structure_convention/test_file_budget/row_data/evidence_anchors/root_paths.rs",
+        ROOT_PATHS_PATH,
+        90,
+    ),
+    (
+        "structure_convention/test_file_budget/row_data/evidence_anchors/root_statuses.rs",
+        ROOT_STATUSES_PATH,
+        60,
+    ),
+    (
+        "structure_convention/test_file_budget/row_data/evidence_anchors/root_child_rows.rs",
+        ROOT_CHILD_ROWS_PATH,
+        90,
+    ),
+    (
+        "structure_convention/test_file_budget/row_data/evidence_anchors/root_owner_paths.rs",
+        ROOT_OWNER_PATHS_PATH,
+        120,
+    ),
+    (
+        "structure_convention/test_file_budget/row_data/evidence_anchors/root_inventory.rs",
+        ROOT_INVENTORY_GUARD_PATH,
+        100,
+    ),
+    (
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence.rs",
+        RUNTIME_15_M3_PRODUCTION_GUARD_SUPPORT_ROW_DATA_PATH,
+        200,
+    ),
+];

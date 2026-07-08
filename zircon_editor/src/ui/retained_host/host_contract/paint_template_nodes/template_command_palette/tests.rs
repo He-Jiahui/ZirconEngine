@@ -21,6 +21,8 @@ fn command_palette_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.panel_radius, 8.0);
     assert_eq!(metrics.search_radius, 5.0);
     assert_eq!(metrics.row_radius, 3.5);
+    assert_eq!(metrics.border_width, 1.5);
+    assert_eq!(metrics.min_frame_extent, 1.5);
     assert_eq!(metrics.font_size, 13.0);
     assert_eq!(metrics.line_height, 16.25);
     assert_eq!(metrics.panel_padding_x, 13.0);
@@ -35,6 +37,8 @@ fn command_palette_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.row_height, 30.0);
     assert_eq!(metrics.row_text_x, 8.5);
     assert_eq!(metrics.row_text_y, 7.0);
+    assert_eq!(metrics.row_detail_left_ratio, 0.72);
+    assert_eq!(metrics.row_detail_width_ratio, 0.24);
     assert_eq!(metrics.match_indicator_left, 5.0);
     assert_eq!(metrics.match_indicator_width, 2.0);
     assert_eq!(metrics.match_indicator_height, 15.0);
@@ -58,7 +62,8 @@ fn command_palette_palette_projects_from_host_palette() {
     assert_eq!(palette.panel_surface, [10, 11, 12, 255]);
     assert_eq!(palette.panel_border, [20, 21, 22, 255]);
     assert_eq!(palette.search_surface, [30, 31, 32, 255]);
-    assert_eq!(palette.search_border, [40, 41, 42, 255]);
+    assert_eq!(palette.search_idle_border, [20, 21, 22, 255]);
+    assert_eq!(palette.search_focus_border, [40, 41, 42, 255]);
     assert_eq!(palette.search_icon, [60, 61, 62, 255]);
     assert_eq!(palette.text, [50, 51, 52, 255]);
     assert_eq!(palette.placeholder, [60, 61, 62, 255]);

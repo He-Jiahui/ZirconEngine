@@ -3,6 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::template_chip_glyphs::{chip_has_chevron, push_chip_chevron};
 use super::geometry::pixel_aligned_rect;
 use super::identity::is_workbench_chip;
+use super::layers::{chevron_order, label_order};
 use super::style::chip_glyph_color;
 use super::surface::push_chip_surface;
 use super::text::push_chip_label;
@@ -24,13 +25,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
     }
 
     push_chip_surface(commands, node, &rect, clip, order, opacity);
-    push_chip_label(commands, node, &rect, clip, order + 2, opacity);
+    push_chip_label(commands, node, &rect, clip, label_order(order), opacity);
     if chip_has_chevron(node) {
         push_chip_chevron(
             commands,
             &rect,
             clip,
-            order + 3,
+            chevron_order(order),
             chip_glyph_color(node),
             opacity,
         );

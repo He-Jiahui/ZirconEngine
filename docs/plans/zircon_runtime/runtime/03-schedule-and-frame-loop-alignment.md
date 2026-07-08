@@ -27,7 +27,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-07-01
+last_refined: 2026-07-04
 ---
 
 # 03 调度与帧循环对齐

@@ -83,6 +83,47 @@ fn rgba8_upload_readiness_accepts_layered_shapes_with_complete_payloads() {
 }
 
 #[test]
+fn rgba8_upload_readiness_accepts_cube_faces_with_complete_payloads() {
+    let mut cube_descriptor = TextureAssetDescriptor::rgba8_srgb();
+    cube_descriptor.dimension = RenderImageDimension::Cube;
+    cube_descriptor.depth_or_array_layers = 6;
+    cube_descriptor.array_layer_count = 6;
+    let cube_texture = TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/skybox-cube.png").unwrap(),
+        2,
+        2,
+        vec![0_u8; 2 * 2 * 6 * 4],
+    )
+    .with_descriptor(cube_descriptor);
+
+    assert_eq!(
+        cube_texture
+            .upload_readiness(TextureUploadSupport::uncompressed_only())
+            .is_ready(),
+        true
+    );
+
+    let mut nonsquare_descriptor = TextureAssetDescriptor::rgba8_srgb();
+    nonsquare_descriptor.dimension = RenderImageDimension::Cube;
+    nonsquare_descriptor.depth_or_array_layers = 6;
+    nonsquare_descriptor.array_layer_count = 6;
+    let nonsquare_texture = TextureAsset::new_rgba8(
+        AssetUri::parse("res://textures/invalid-cube.png").unwrap(),
+        4,
+        2,
+        vec![0_u8; 4 * 2 * 6 * 4],
+    )
+    .with_descriptor(nonsquare_descriptor);
+
+    assert_eq!(
+        nonsquare_texture
+            .upload_readiness(TextureUploadSupport::uncompressed_only())
+            .unsupported_reason(),
+        Some("rgba8 cube texture upload requires square faces")
+    );
+}
+
+#[test]
 fn rgba8_upload_readiness_accepts_complete_mip_chain_payloads() {
     let mut descriptor = TextureAssetDescriptor::rgba8_srgb();
     descriptor.mip_count = 3;

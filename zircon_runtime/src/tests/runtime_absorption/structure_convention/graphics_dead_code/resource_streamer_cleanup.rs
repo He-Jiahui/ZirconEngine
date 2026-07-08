@@ -12,6 +12,7 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
     let material_capture = read_runtime_src(
         "graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs",
     );
+    let runtime_prepare_collector = read_runtime_src("graphics/runtime_prepare_collector.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -25,37 +26,34 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
         "MaterialRuntime and MaterialCaptureSeed should not hide production dead-code surfaces behind suppressions"
     );
     assert_contains_all(
-        "material runtime capture seed is test-only",
+        "material runtime capture seed stays crate-private for runtime prepare projection",
         &material_runtime,
         &[
-            "#[cfg(test)]",
             "pub(crate) struct MaterialCaptureSeed",
             "impl MaterialRuntime",
             "pub(crate) fn capture_seed(&self) -> MaterialCaptureSeed",
         ],
     );
     assert_contains_all(
-        "material capture seed re-export stays behind test cfg",
+        "material capture seed re-export stays crate-private",
         &runtime_mod,
         &[
             "pub(crate) use material_runtime::{MaterialDisabledPasses, MaterialRuntime};",
-            "#[cfg(test)]",
             "pub(crate) use material_runtime::MaterialCaptureSeed;",
         ],
     );
     assert_contains_all(
-        "resources facade keeps production material runtime separate from test capture seed",
+        "resources facade keeps material capture seed crate-private",
         &resources_mod,
         &[
             "pub(crate) use runtime::{MaterialDisabledPasses, MaterialRuntime};",
-            "#[cfg(test)]",
             "pub(crate) use runtime::MaterialCaptureSeed;",
         ],
     );
     assert_contains_all(
-        "resource streamer capture seed accessor is test-only",
+        "resource streamer capture seed accessor stays child-owned",
         &resource_streamer_accessors,
-        &["#[cfg(test)]", "mod material_capture;"],
+        &["mod material_capture;"],
     );
     assert_contains_all(
         "resource streamer material capture accessors are child-owned",
@@ -66,6 +64,20 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
             "pub(crate) fn sample_texture_rgba(",
             "fn sample_texture_asset_rgba(",
             "fn wrap01(",
+        ],
+    );
+    assert_contains_all(
+        "runtime prepare collector exposes neutral material capture projection",
+        &runtime_prepare_collector,
+        &[
+            "use crate::graphics::scene::resources::MaterialCaptureSeed;",
+            "use crate::graphics::scene::resources::ResourceStreamer;",
+            "streamer: &'a ResourceStreamer",
+            "pub fn material_capture_seed(",
+            "Option<RuntimePrepareMaterialCaptureSeed>",
+            "pub fn sample_texture_rgba(",
+            "pub struct RuntimePrepareMaterialCaptureSeed",
+            "fn from_material_capture_seed(seed: MaterialCaptureSeed) -> Self",
         ],
     );
 
@@ -84,6 +96,24 @@ fn runtime_15_material_runtime_capture_seed_cleanup() {
                 "Runtime 15 F12 material runtime capture seed cleanup",
                 "runtime_15_material_runtime_capture_seed_cleanup_coremin_check_passed",
                 "runtime_15_material_runtime_capture_seed_cleanup",
+            ],
+        );
+    }
+    for (label, source) in [
+        ("review findings supersession", review_findings.as_str()),
+        (
+            "structure convention supersession",
+            structure_convention.as_str(),
+        ),
+        ("render product supersession", render_product_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &[
+                "render_plan18_hybrid_gi_runtime_prepare_material_capture_context_wgpu_png_passed_gpu_owner_execution_deferred",
+                "RuntimePrepareMaterialCaptureSeed",
+                "MaterialCaptureSeed",
             ],
         );
     }

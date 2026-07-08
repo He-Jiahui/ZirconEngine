@@ -40,3 +40,21 @@ pub(super) const PLUGIN_IMPORTER_D13_REVIEW_GUARD_CHILD_OWNER_SPLIT: &[&str] = &
     "runtime_15_code_review_findings_tests_are_folder_backed",
     "Cargo gate deferred",
 ];
+
+pub(super) const PLUGIN_IMPORTER_D1_CAPABILITY_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer D1 capability single-source guard folder-backed split",
+    "runtime_15_plugin_importer_d1_capability_guard_folder_backed_static_passed_cargo_deferred",
+    "frameworks_02_m3_plugin_importer_d1_capability_guard_folder_backed_static_passed_cargo_deferred",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/runtime_roots.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/audit_surfaces.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/sdk_builder.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/status_docs.rs",
+    "tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/split_layout.rs",
+    "runtime_15_plugin_importer_d1_capability_guard_is_folder_backed",
+    "review_d1_plugin_capabilities_use_single_source_and_sdk_builder_mirror",
+    "D1_RUNTIME_CAPABILITY_ROOTS",
+    "PluginFeatureBundleBuilder",
+    "plugins_12_capability_single_source_conformance",
+    "Cargo gate deferred",
+];

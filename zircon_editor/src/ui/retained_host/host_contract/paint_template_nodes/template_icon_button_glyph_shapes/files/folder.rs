@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_folder_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,13 +20,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fo
         color,
         opacity,
         &[
-            (2.0, 5.0, 3.8, 1.1),
-            (5.0, 4.0, 4.4, 1.1),
-            (8.8, 5.0, 5.2, 1.1),
-            (2.0, 6.1, 1.1, 5.9),
-            (13.0, 6.1, 1.1, 5.9),
-            (3.0, 12.0, 10.0, 1.1),
-            (3.0, 7.6, 10.0, 1.0),
+            seg(40, 100, 76, 22),
+            seg(100, 80, 88, 22),
+            seg(176, 100, 104, 22),
+            seg(40, 122, 22, 118),
+            seg(260, 122, 22, 118),
+            seg(60, 240, 200, 22),
+            seg(60, 152, 200, 20),
         ],
     );
 }

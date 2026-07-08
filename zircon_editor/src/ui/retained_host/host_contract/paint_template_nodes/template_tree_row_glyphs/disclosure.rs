@@ -1,10 +1,20 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;
-use super::segments::{local_rect, push_segments};
+use super::segments::{push_segments, GlyphSegmentSpec, TREE_DISCLOSURE_GLYPH_GRID_UNITS};
 
 const TREE_DISCLOSURE_DOWN_ICON: &str = "zircon_editor_shell/toolbar/dropdown.svg";
 const TREE_DISCLOSURE_RIGHT_ICON: &str = "zircon_editor_shell/toolbar/chevron-right.svg";
+const DOWN_CHEVRON_SEGMENTS: [GlyphSegmentSpec; 3] = [
+    GlyphSegmentSpec::new(3, 4, 2, 2),
+    GlyphSegmentSpec::new(5, 6, 2, 2),
+    GlyphSegmentSpec::new(7, 4, 2, 2),
+];
+const RIGHT_CHEVRON_SEGMENTS: [GlyphSegmentSpec; 3] = [
+    GlyphSegmentSpec::new(4, 3, 2, 3),
+    GlyphSegmentSpec::new(6, 6, 2, 2),
+    GlyphSegmentSpec::new(4, 8, 2, 3),
+];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_disclosure_glyph(
     commands: &mut Vec<HostPaintCommand>,
@@ -54,15 +64,13 @@ fn push_down_chevron(
 ) {
     push_segments(
         commands,
+        rect,
+        TREE_DISCLOSURE_GLYPH_GRID_UNITS,
         clip,
         order,
         color,
         opacity,
-        &[
-            local_rect(rect, 3.0, 4.0, 2.0, 2.0),
-            local_rect(rect, 5.0, 6.0, 2.0, 2.0),
-            local_rect(rect, 7.0, 4.0, 2.0, 2.0),
-        ],
+        &DOWN_CHEVRON_SEGMENTS,
     );
 }
 
@@ -76,14 +84,12 @@ fn push_right_chevron(
 ) {
     push_segments(
         commands,
+        rect,
+        TREE_DISCLOSURE_GLYPH_GRID_UNITS,
         clip,
         order,
         color,
         opacity,
-        &[
-            local_rect(rect, 4.0, 3.0, 2.0, 3.0),
-            local_rect(rect, 6.0, 6.0, 2.0, 2.0),
-            local_rect(rect, 4.0, 8.0, 2.0, 3.0),
-        ],
+        &RIGHT_CHEVRON_SEGMENTS,
     );
 }

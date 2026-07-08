@@ -128,6 +128,7 @@ struct SelectionRenderState {
     checked: bool,
     selected: bool,
     visual_state: UiPainterResolvedState,
+    surface_hot: bool,
 }
 
 impl SelectionRenderState {
@@ -155,11 +156,14 @@ impl SelectionRenderState {
         painter_state.checked = checked;
         painter_state.selected = selected;
         let family = selection_painter_family(metadata);
+        let surface_hot =
+            painter_state.hovered || painter_state.dragging || painter_state.drop_hovered;
         Self {
             family,
             checked,
             selected,
             visual_state: painter_state.resolved_state_for_family(family),
+            surface_hot,
         }
     }
 
@@ -174,15 +178,20 @@ impl SelectionRenderState {
         )
     }
 
-    fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Pressed
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+    fn pressed(self) -> bool {
+        matches!(self.visual_state, UiPainterResolvedState::Pressed)
+    }
+
+    fn focused(self) -> bool {
+        matches!(self.visual_state, UiPainterResolvedState::Focused)
+    }
+
+    fn surface_hot(self) -> bool {
+        self.surface_hot
+    }
+
+    fn focus_border(self) -> bool {
+        self.pressed() || self.focused() || (!self.active() && self.surface_hot())
     }
 }
 
@@ -493,7 +502,7 @@ fn checkbox_border_color<'a>(
 ) -> &'a str {
     if state.unavailable() {
         MARK_DISABLED_BORDER
-    } else if state.hot() {
+    } else if state.focus_border() {
         BORDER_FOCUS
     } else if state.active() {
         ACCENT
@@ -521,7 +530,7 @@ fn radio_border_color<'a>(
 ) -> &'a str {
     if state.unavailable() {
         MARK_DISABLED_BORDER
-    } else if state.hot() {
+    } else if state.focus_border() {
         BORDER_FOCUS
     } else if state.active() {
         RADIO_CHECKED_BORDER
@@ -549,9 +558,9 @@ fn toggle_track_color<'a>(
         MARK_DISABLED_FILL
     } else if state.active() {
         SURFACE_SELECTED
-    } else if matches!(state.visual_state, UiPainterResolvedState::Pressed) {
+    } else if state.pressed() {
         TOGGLE_PRESSED
-    } else if state.hot() {
+    } else if state.surface_hot() {
         TOGGLE_HOVER
     } else {
         color_attribute(metadata, "background_color").unwrap_or(TOGGLE_TRACK_IDLE)
@@ -564,7 +573,7 @@ fn toggle_border_color<'a>(
 ) -> &'a str {
     if state.unavailable() {
         MARK_DISABLED_BORDER
-    } else if state.hot() {
+    } else if state.focus_border() {
         color_attribute(metadata, "border_color").unwrap_or(BORDER_FOCUS)
     } else if state.active() {
         TOGGLE_BORDER_ON

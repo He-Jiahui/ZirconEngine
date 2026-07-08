@@ -1,7 +1,9 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::backend::RenderBackend;
 use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
-use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
+use crate::rhi::{
+    BufferDesc, BufferUsage, TextureDesc, TextureDimension, TextureFormat, TextureUsage,
+};
 
 use super::super::render_graph_execution_resources::RenderGraphExecutionResources;
 use super::*;
@@ -398,6 +400,88 @@ fn materialization_exposes_owned_texture_mip_views() {
             .unwrap_err(),
         "render graph execution texture resource `mipped-pyramid` mip level 3 is outside mip_levels 3"
     );
+}
+
+#[test]
+fn materialization_exposes_owned_cube_storage_texture_array_views() {
+    let backend = RenderBackend::new_offscreen().unwrap();
+    let mut builder = RenderGraphBuilder::new("cube-storage-view-materialization");
+    let cube = builder.create_texture(
+        TextureDesc::new(
+            "environment.ibl.pmrem",
+            64,
+            64,
+            TextureFormat::Rgba16Float,
+            TextureUsage::STORAGE | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
+        )
+        .with_dimension(TextureDimension::Cube)
+        .with_depth(6)
+        .with_mip_levels(4),
+    );
+    let pass = builder.add_pass("env.ibl_prefilter.mip2", QueueLane::AsyncCompute);
+    builder.write_storage_texture(pass, cube).unwrap();
+    builder
+        .set_pass_flags(
+            pass,
+            PassFlags {
+                has_side_effects: true,
+                ..PassFlags::default()
+            },
+        )
+        .unwrap();
+    let graph = builder.compile().unwrap();
+    let mut resources = RenderGraphExecutionResources::new();
+
+    resources
+        .materialize_transient_resources(&backend.device, &graph)
+        .unwrap();
+
+    assert!(
+        resources
+            .owned_texture_view_with_descriptor(
+                "environment.ibl.pmrem",
+                &ibl_pmrem_storage_view_descriptor(2)
+            )
+            .is_ok(),
+        "IBL PMREM passes need a Cube backing exposed as one D2Array storage view per mip"
+    );
+    let mut invalid_mip = ibl_pmrem_storage_view_descriptor(4);
+    assert_eq!(
+        resources
+            .owned_texture_view_with_descriptor("environment.ibl.pmrem", &invalid_mip)
+            .unwrap_err(),
+        "render graph execution texture resource `environment.ibl.pmrem` view mip range [4..5) is outside mip_levels 4"
+    );
+    invalid_mip.base_mip_level = 2;
+    invalid_mip.array_layer_count = Some(7);
+    assert_eq!(
+        resources
+            .owned_texture_view_with_descriptor("environment.ibl.pmrem", &invalid_mip)
+            .unwrap_err(),
+        "render graph execution texture resource `environment.ibl.pmrem` view array range [0..7) is outside depth/array_layers 6"
+    );
+    invalid_mip.array_layer_count = Some(6);
+    invalid_mip.usage = Some(wgpu::TextureUsages::COPY_DST);
+    let error = resources
+        .owned_texture_view_with_descriptor("environment.ibl.pmrem", &invalid_mip)
+        .unwrap_err();
+    assert!(error.contains("view usage"), "{error}");
+    assert!(error.contains("COPY_DST"), "{error}");
+    assert!(error.contains("not allowed by texture usages"), "{error}");
+}
+
+fn ibl_pmrem_storage_view_descriptor(mip_level: u32) -> wgpu::TextureViewDescriptor<'static> {
+    wgpu::TextureViewDescriptor {
+        label: Some("test-ibl-pmrem-storage-view"),
+        format: Some(wgpu::TextureFormat::Rgba16Float),
+        dimension: Some(wgpu::TextureViewDimension::D2Array),
+        usage: Some(wgpu::TextureUsages::STORAGE_BINDING),
+        aspect: wgpu::TextureAspect::All,
+        base_mip_level: mip_level,
+        mip_level_count: Some(1),
+        base_array_layer: 0,
+        array_layer_count: Some(6),
+    }
 }
 
 #[test]

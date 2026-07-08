@@ -48,6 +48,10 @@ use super::selection_controls::{
 };
 use super::sliders::{slider_render_commands, slider_suppresses_owner_text};
 use super::text_fields::{text_field_render_commands, text_field_suppresses_owner_text};
+use super::text_prewarm::{
+    prewarm_render_command_text, prewarm_visible_owner_text,
+    resolve_missing_render_command_text_layouts,
+};
 use crate::ui::text::{
     resolve_text_layout, UiTextLayoutRequest, UiTextLayoutResolution, UiTextMeasureCache,
 };
@@ -83,7 +87,11 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
     component_states: Option<&UiSurfaceComponentStateStore>,
     mut text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiRenderExtract {
-    let commands = arranged_tree
+    if let Some(cache) = text_measure_cache.as_deref_mut() {
+        prewarm_visible_owner_text(tree, arranged_tree, component_states, cache);
+    }
+
+    let mut commands: Vec<UiRenderCommand> = arranged_tree
         .draw_order
         .iter()
         .copied()
@@ -334,6 +342,11 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
         })
         .collect();
 
+    if let Some(cache) = text_measure_cache.as_deref_mut() {
+        prewarm_render_command_text(&commands, cache);
+    }
+    resolve_missing_render_command_text_layouts(&mut commands, text_measure_cache.as_deref_mut());
+
     UiRenderExtract {
         tree_id: tree.tree_id.clone(),
         list: UiRenderList { commands },
@@ -345,7 +358,7 @@ pub(super) fn resolve_text_layout_with_cache(
     text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiTextLayoutResolution {
     match text_measure_cache {
-        Some(cache) => cache.resolve_or_shape(request).clone(),
+        Some(cache) => cache.resolve_or_shape(request),
         None => resolve_text_layout(request),
     }
 }

@@ -1,239 +1,30 @@
-use super::Slice;
+type Slice = super::Slice;
 
-pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
-    (
-        "Runtime 15 M3 code review findings direct assertions child-owner split",
-        &[
-            "runtime_15_code_review_findings_direct_assertions_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_f12_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_f8_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_p0_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_folder_backed_summary_is_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "render/F12 direct source checks delegated or owned",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings direct assertions guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_direct_assertions_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/status_mirrors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent.rs",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_children_are_child_owned",
-            "runtime_15_code_review_findings_direct_assertions_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_f12_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_f8_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_p0_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_render_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner",
-            "direct_review_assertion_child_sources",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings direct assertions child-ownership guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/parent_absence.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/entry_points.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership/status_mirrors.rs",
-            "runtime_15_code_review_findings_direct_assertions_children_are_child_owned",
-            "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_is_folder_backed",
-            "runtime_15_code_review_findings_direct_assertions_child_ownership_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_direct_assertions_child_ownership_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings F12 direct assertions child-owner split",
-        &[
-            "runtime_15_code_review_findings_f12_direct_assertions_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12.rs",
-            "runtime_15_code_review_findings_f12_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_folder_backed_summary_is_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "F12 direct source checks",
-            "review_f12_runtime_production_dead_code_suppression_is_globally_gated",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings F12 direct assertions guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_f12_direct_assertions_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12/review_guard.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f12/status_mirrors.rs",
-            "assert_f12_direct_sources_are_folder_backed",
-            "runtime_15_code_review_findings_f12_direct_assertions_guard_is_folder_backed",
-            "runtime_15_code_review_findings_f12_direct_assertions_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_f12_direct_assertions_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings root-parent direct assertions child-owner split",
-        &[
-            "runtime_15_code_review_findings_root_parent_direct_assertions_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent.rs",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_folder_backed_summary_is_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "code review root parent mount checks",
-            "review_f5_world_spawn_bundle_surface_uses_scene_error",
-            "review_f19_scene_renderer_construction_modules_use_construct_names",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings root-parent direct assertions guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_root_parent_direct_assertions_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent/parent_mounts.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent/backflow.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/root_parent/status_mirrors.rs",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_guard_is_folder_backed",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_root_parent_direct_assertions_children_line_budgets_are_current",
-            "assert_code_review_root_parent_is_folder_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings render direct assertions child-owner split",
-        &[
-            "runtime_15_code_review_findings_render_direct_assertions_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render.rs",
-            "runtime_15_code_review_findings_render_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_folder_backed_summary_is_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "render direct source checks",
-            "review_f16_compiled_scene_render_path_uses_split_owners",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings render direct assertions guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_render_direct_assertions_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render/review_guard.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/render/status_mirrors.rs",
-            "assert_render_direct_sources_are_folder_backed",
-            "runtime_15_code_review_findings_render_direct_assertions_guard_is_folder_backed",
-            "runtime_15_code_review_findings_render_direct_assertions_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_render_direct_assertions_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings F8 direct assertions child-owner split",
-        &[
-            "runtime_15_code_review_findings_f8_direct_assertions_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8.rs",
-            "runtime_15_code_review_findings_f8_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_folder_backed_summary_is_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "F8 direct source checks",
-            "review_f8_runtime_plugin_descriptor_public_constructor_is_retired",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings F8 direct assertions guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_f8_direct_assertions_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8/parent_mounts.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8/review_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/f8/status_mirrors.rs",
-            "assert_f8_direct_sources_are_folder_backed",
-            "runtime_15_code_review_findings_f8_direct_assertions_guard_is_folder_backed",
-            "runtime_15_code_review_findings_f8_direct_assertions_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_f8_direct_assertions_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings P0 direct assertions child-owner split",
-        &[
-            "runtime_15_code_review_findings_p0_direct_assertions_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0.rs",
-            "runtime_15_code_review_findings_p0_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_direct_assertions_are_child_owner",
-            "runtime_15_code_review_findings_folder_backed_summary_is_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "P0 direct source checks",
-            "review_priority_recommendation_tracks_current_remaining_work",
-            "78 review guards",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings P0 direct assertions guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_p0_direct_assertions_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0/parent_mounts.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0/review_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/p0/status_mirrors.rs",
-            "assert_p0_direct_sources_are_folder_backed",
-            "runtime_15_code_review_findings_p0_direct_assertions_guard_is_folder_backed",
-            "runtime_15_code_review_findings_p0_direct_assertions_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_p0_direct_assertions_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-];
+#[path = "direct_assertion_rows/core_rows.rs"]
+mod core_rows;
+#[path = "direct_assertion_rows/f12_rows.rs"]
+mod f12_rows;
+#[path = "direct_assertion_rows/f8_rows.rs"]
+mod f8_rows;
+#[path = "direct_assertion_rows/p0_rows.rs"]
+mod p0_rows;
+#[path = "direct_assertion_rows/render_rows.rs"]
+mod render_rows;
+#[path = "direct_assertion_rows/root_parent_rows.rs"]
+mod root_parent_rows;
+#[path = "direct_assertion_rows/row_data_owner_rows.rs"]
+mod row_data_owner_rows;
+
+pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = core_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const F12_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    f12_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const ROOT_PARENT_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    root_parent_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const RENDER_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    render_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const F8_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    f8_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const P0_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    p0_rows::EXPECTED_STATUS_OUTPUT_SLICES;
+pub(super) const ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] =
+    row_data_owner_rows::EXPECTED_STATUS_OUTPUT_SLICES;

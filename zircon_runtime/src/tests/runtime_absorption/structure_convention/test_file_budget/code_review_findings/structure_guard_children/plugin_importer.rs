@@ -72,6 +72,10 @@ pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILDREN: &[(&str, &str, &str)]
 
 pub(super) fn plugin_importer_structure_guard_child_source_blob() -> String {
     let mut blob = String::new();
+    blob.push_str(&read_runtime_src(
+        "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer.rs",
+    ));
+    blob.push('\n');
     for (_, child_path, _) in STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILDREN {
         blob.push_str(&read_runtime_src(child_path));
         blob.push('\n');

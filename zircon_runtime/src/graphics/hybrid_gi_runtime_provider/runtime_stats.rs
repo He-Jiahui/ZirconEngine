@@ -12,6 +12,9 @@ pub struct HybridGiRuntimeStats {
     surface_cache_feedback_card_count: usize,
     surface_cache_capture_slot_count: usize,
     surface_cache_invalidated_page_count: usize,
+    surface_cache_depth_sample_count: usize,
+    probe_trace_tile_count: usize,
+    probe_trace_dispatch_group_count: [usize; 3],
     voxel_resident_clipmap_count: usize,
     voxel_dirty_clipmap_count: usize,
     voxel_invalidated_clipmap_count: usize,
@@ -32,6 +35,9 @@ impl HybridGiRuntimeStats {
         surface_cache_feedback_card_count: usize,
         surface_cache_capture_slot_count: usize,
         surface_cache_invalidated_page_count: usize,
+        surface_cache_depth_sample_count: usize,
+        probe_trace_tile_count: usize,
+        probe_trace_dispatch_group_count: [usize; 3],
         voxel_resident_clipmap_count: usize,
         voxel_dirty_clipmap_count: usize,
         voxel_invalidated_clipmap_count: usize,
@@ -49,6 +55,9 @@ impl HybridGiRuntimeStats {
             surface_cache_feedback_card_count,
             surface_cache_capture_slot_count,
             surface_cache_invalidated_page_count,
+            surface_cache_depth_sample_count,
+            probe_trace_tile_count,
+            probe_trace_dispatch_group_count,
             voxel_resident_clipmap_count,
             voxel_dirty_clipmap_count,
             voxel_invalidated_clipmap_count,
@@ -101,6 +110,18 @@ impl HybridGiRuntimeStats {
 
     pub fn surface_cache_invalidated_page_count(&self) -> usize {
         self.surface_cache_invalidated_page_count
+    }
+
+    pub fn surface_cache_depth_sample_count(&self) -> usize {
+        self.surface_cache_depth_sample_count
+    }
+
+    pub fn probe_trace_tile_count(&self) -> usize {
+        self.probe_trace_tile_count
+    }
+
+    pub fn probe_trace_dispatch_group_count(&self) -> [usize; 3] {
+        self.probe_trace_dispatch_group_count
     }
 
     pub fn voxel_resident_clipmap_count(&self) -> usize {

@@ -6,7 +6,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_hot(
     matches!(
         state,
         UiPainterResolvedState::Hovered
-            | UiPainterResolvedState::Focused
             | UiPainterResolvedState::Open
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered

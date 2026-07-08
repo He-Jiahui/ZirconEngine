@@ -19,6 +19,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/scene_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
@@ -102,6 +103,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/scene_bind_group_layout.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
@@ -231,6 +233,7 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_shadow_captures_directional_tests.rs::runtime_15_render_product_shadow_captures_directional_tests_are_child_owner
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs::tests::shadow_atlas_view_filter_keeps_only_visible_source_entities
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs::tests::shadow_atlas_binds_forward_shadow_receiver_layout_slot
+  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs::tests::shadow_map_scene_bind_group_matches_environment_scene_layout (2026-07-05 direct binary passed 1/1; log docs/tests/runtime/render/plan08_shadow_scene_bind_group_environment_layout_direct_binary_20260705.out.log)
   - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_context_builds_shadow_views_for_atlas_light_slots
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs::tests::mesh_visibility_states_preserve_shadow_only_casters
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_batch_ref_emits_gpu_scene_instance_command
@@ -254,6 +257,7 @@ This module is the Plan 05 LS-M3/LS-M4 shadow foundation. The compiled graph dec
 
 - `shadow_map_renderer.rs` owns the atlas-slot replay path and per-slot scene uniform, but no longer owns fixed Shadow WGPU pipelines or inline shadow WGSL. Shadow replay asks `MeshPipelineCache::ensure_shadow_pipeline_for_variant(...)` for the command's `MeshPipelineVariantId`; `graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs` assembles `mesh_pipeline_shadow_template_source_for_geometry(...)`, feeds the shared disk/source-hash cache, and `graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs` creates the depth-only or alpha-mask WGPU pipeline from `graphics/shader/wgsl/zr_template_shadow.wgsl` / `graphics/shader/wgsl/zr_template_shadow_alpha.wgsl`. The renderer still records atlas slot depth passes by updating the scene uniform per planned slot, setting atlas viewport/scissor to the slot rect, and replaying the shadow command stream into the shared atlas view. Atlas slot passes carry Plan 04 `VisibilityViewKey` values for directional cascades, point faces, and spot shadows; when a matching view exists on the frame, replay skips shadow commands whose source entity is not visible in that shadow view. The old single-map receiver uniform, direct single-map recording path, and renderer-local inline shadow WGSL path have been deleted.
 - The atlas depth replay path uses the full mesh pipeline layout even when the pass writes only depth. It binds scene group 0, a fallback forward-shadow-receiver group 1, the command's standard material group 2, then GPUScene/geometry state before issuing indirect draws. This keeps opaque and alpha-mask shadow depth variants compatible with the same material/receiver layout used by forward, deferred, and prepass mesh pipelines instead of creating a shadow-only compatibility layout.
+- Scene group 0 for shadow replay follows the shared five-slot environment layout from `scene_bind_group_layout_entries()`: scene uniform, source environment cube, filtering sampler, BRDF LUT, and specular PMREM cube. `ShadowMapRenderer` owns retained 1x1 fallback cube/LUT/PMREM textures and a sampler for this depth-only path so `zircon-shadow-map-scene-bind-group` cannot drift from the runtime scene renderer or WGPU prewarm pipeline validation. Status: `render_plan08_material_filter_scene_environment_5slot_shadow_prewarm_direct_binary_passed_ui_layout_open`.
 - `shadow/atlas/allocator.rs` owns frame-local atlas slot planning only. It does not create WGPU textures or record shadow passes yet.
 - `shadow/atlas/bindings.rs` fixes the final group1 atlas binding ABI as 8/9/10/11. Forward and deferred lighting bind groups now include only the atlas receiver entries plus light-grid buffers; the old single-shadow receiver bindings are gone.
 - `shadow/atlas/resources.rs` owns the persistent WGPU atlas texture/view, comparison sampler, `shadow_slots` storage buffer, and `shadow_globals` uniform buffer. `SceneRendererCore` creates it and uploads the current `ShadowFramePlan` payload each render.

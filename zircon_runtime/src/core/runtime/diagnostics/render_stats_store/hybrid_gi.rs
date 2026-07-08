@@ -120,6 +120,38 @@ fn record_scene_and_surface_cache(store: &mut DiagnosticStore, stats: &RenderSta
         stats.last_hybrid_gi_surface_cache_invalidated_page_count,
         &["render", "hybrid_gi", "surface_cache", "invalidation"],
     );
+    record_count(
+        store,
+        "render.hybrid_gi.surface_cache.depth_sample_count",
+        frame_index,
+        stats.last_hybrid_gi_surface_cache_depth_sample_count,
+        &["render", "hybrid_gi", "surface_cache", "depth"],
+    );
+    record_count(
+        store,
+        "render.hybrid_gi.probe_trace.tile_count",
+        frame_index,
+        stats.last_hybrid_gi_probe_trace_tile_count,
+        &["render", "hybrid_gi", "probe_trace", "tile"],
+    );
+    for (axis, group_count) in stats
+        .last_hybrid_gi_probe_trace_dispatch_group_count
+        .iter()
+        .copied()
+        .enumerate()
+    {
+        record_count(
+            store,
+            match axis {
+                0 => "render.hybrid_gi.probe_trace.dispatch_group_count.x",
+                1 => "render.hybrid_gi.probe_trace.dispatch_group_count.y",
+                _ => "render.hybrid_gi.probe_trace.dispatch_group_count.z",
+            },
+            frame_index,
+            group_count,
+            &["render", "hybrid_gi", "probe_trace", "dispatch"],
+        );
+    }
 }
 
 fn record_voxel_cache(store: &mut DiagnosticStore, stats: &RenderStats) {

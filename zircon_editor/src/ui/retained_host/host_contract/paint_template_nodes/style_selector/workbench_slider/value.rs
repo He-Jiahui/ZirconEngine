@@ -18,10 +18,7 @@ pub(super) fn slider_value_border(
     if is_unavailable_slider_state(state) {
         return palette.border_disabled;
     }
-    if matches!(
-        state,
-        UiPainterResolvedState::Focused | UiPainterResolvedState::Pressed
-    ) {
+    if state == UiPainterResolvedState::Pressed {
         fill
     } else {
         palette.value_border

@@ -11,9 +11,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const MUTE
 
 const ROW_SURFACE: [u8; 4] = [21, 30, 35, 255];
 const ROW_UNREAD_SURFACE: [u8; 4] = [21, 48, 53, 255];
-const ROW_FOCUSED_SURFACE: [u8; 4] = [24, 58, 63, 255];
 const ROW_DISABLED_SURFACE: [u8; 4] = [37, 44, 49, 255];
 const ROW_BORDER: [u8; 4] = [40, 56, 66, 255];
+const ROW_FOCUSED_BORDER: [u8; 4] = [24, 58, 63, 255];
 const ACCENT: [u8; 4] = [53, 199, 208, 255];
 const ERROR: [u8; 4] = [239, 112, 102, 255];
 const SUCCESS: [u8; 4] = [66, 184, 131, 255];
@@ -24,8 +24,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_bac
 ) -> [u8; 4] {
     if option.disabled {
         ROW_DISABLED_SURFACE
-    } else if option.focused {
-        ROW_FOCUSED_SURFACE
     } else if option.unread {
         ROW_UNREAD_SURFACE
     } else {
@@ -38,6 +36,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn row_bor
 ) -> [u8; 4] {
     if option.selected {
         ACCENT
+    } else if option.focused {
+        ROW_FOCUSED_BORDER
     } else {
         ROW_BORDER
     }
@@ -61,5 +61,61 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severit
         "warning" => WARNING,
         "error" => ERROR,
         _ => ACCENT,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row() -> TemplatePaneOptionData {
+        TemplatePaneOptionData::default()
+    }
+
+    #[test]
+    fn focused_notification_row_keeps_normal_background() {
+        let option = TemplatePaneOptionData {
+            focused: true,
+            ..row()
+        };
+
+        assert_eq!(row_background(&option), ROW_SURFACE);
+        assert_eq!(row_border(&option), ROW_FOCUSED_BORDER);
+        assert_ne!(row_border(&option), ACCENT);
+    }
+
+    #[test]
+    fn focused_unread_notification_row_keeps_unread_background() {
+        let option = TemplatePaneOptionData {
+            focused: true,
+            unread: true,
+            ..row()
+        };
+
+        assert_eq!(row_background(&option), ROW_UNREAD_SURFACE);
+        assert_eq!(row_border(&option), ROW_FOCUSED_BORDER);
+    }
+
+    #[test]
+    fn selected_notification_row_still_uses_accent_border() {
+        let option = TemplatePaneOptionData {
+            selected: true,
+            focused: true,
+            ..row()
+        };
+
+        assert_eq!(row_border(&option), ACCENT);
+    }
+
+    #[test]
+    fn disabled_notification_row_keeps_disabled_background() {
+        let option = TemplatePaneOptionData {
+            disabled: true,
+            focused: true,
+            unread: true,
+            ..row()
+        };
+
+        assert_eq!(row_background(&option), ROW_DISABLED_SURFACE);
     }
 }

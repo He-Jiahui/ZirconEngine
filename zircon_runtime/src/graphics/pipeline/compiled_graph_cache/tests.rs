@@ -382,6 +382,7 @@ fn empty_compiled_pipeline(
         required_extract_sections: Vec::new(),
         capability_requirements: Vec::new(),
         history_bindings: Vec::new(),
+        environment_ibl_bake_request: None,
         graph: RenderGraphBuilder::new("cache-test").compile().unwrap(),
     }
 }

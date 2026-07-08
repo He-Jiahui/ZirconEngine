@@ -11,6 +11,28 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
     let mirror_docs_child = read_runtime_src(
         "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs.rs",
     );
+    let mirror_docs_source = [
+        mirror_docs_child.clone(),
+        read_runtime_src(
+            "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/audit_wiring.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/doc_mirrors.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/performance_guard.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/source_inventory.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/split_layout.rs",
+        ),
+    ]
+    .join("\n");
+    let sources_load = read_runtime_src(
+        "tests/runtime_absorption/performance_hotspots/owner_budget/sources/load.rs",
+    );
     let source_inventory = read_repo(
         ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py",
     );
@@ -26,7 +48,6 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
             "mod mirror_docs;",
             "mod virtual_geometry_debug_snapshot;",
             "fn runtime_15_runtime_07_performance_hotspots_guard_is_folder_backed",
-            "include_str!(\"owner_budget/mirror_docs.rs\")",
         ],
     );
     assert!(
@@ -37,12 +58,12 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
 
     assert_contains_all(
         "mirror-docs child owns Runtime 07 audit mirror contract",
-        &mirror_docs_child,
+        &mirror_docs_source,
         &[
             "fn runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts",
             "performance_hotpath_boundary",
-            "EXPECTED_TEST_FILE_COUNT = 14",
-            "expected_test_file_count = 14",
+            "EXPECTED_TEST_FILE_COUNT = 91",
+            "expected_test_file_count = 91",
             "large_file_m1_gate_status = classified-and-clear",
             "owner_budget/large_file_gate.rs",
             "owner_budget/mirror_docs.rs",
@@ -55,10 +76,20 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
         "Runtime 07 performance source inventory tracks owner-budget child owners",
         &source_inventory,
         &[
-            "EXPECTED_TEST_FILE_COUNT = 14",
+            "EXPECTED_TEST_FILE_COUNT = 91",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/large_file_gate.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs.rs",
             "zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/virtual_geometry_debug_snapshot.rs",
+        ],
+    );
+    assert_contains_all(
+        "owner-budget source loader owns mirror-doc child source include",
+        &sources_load,
+        &[
+            "owner_budget_large_file_gate: include_str!(\"../large_file_gate.rs\")",
+            "owner_budget_mirror_docs: include_str!(\"../mirror_docs.rs\")",
+            "owner_budget_virtual_geometry_debug_snapshot: include_str!(",
+            "\"../virtual_geometry_debug_snapshot.rs\"",
         ],
     );
 
@@ -70,6 +101,10 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
         (
             "tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs.rs",
             mirror_docs_child.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/performance_hotspots/owner_budget/sources/load.rs",
+            sources_load.as_str(),
         ),
     ] {
         let line_count = source.lines().count();
@@ -90,12 +125,30 @@ fn runtime_15_runtime_07_owner_budget_mirror_docs_is_child_owner() {
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs",
     );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-    );
+    let status_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/runtime07_script_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_owner_budget_maps.rs",
+        ),
+    ]
+    .join("\n");
+    let date_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/runtime07_script_maps/runtime07_owner_budget_maps.rs",
+        ),
+    ]
+    .join("\n");
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),

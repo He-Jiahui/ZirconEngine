@@ -11,7 +11,7 @@ impl HybridGiRuntimeState {
         evictable_probe_ids: &[u32],
     ) {
         for (probe_id, irradiance_rgb) in probe_irradiance_rgb {
-            if !self.probe_scene_data().contains_key(probe_id) {
+            if !self.has_live_gpu_feedback_probe(*probe_id) {
                 continue;
             }
 
@@ -19,7 +19,7 @@ impl HybridGiRuntimeState {
                 .insert(*probe_id, *irradiance_rgb);
         }
         for (probe_id, trace_lighting_rgb) in probe_trace_lighting_rgb {
-            if !self.probe_scene_data().contains_key(probe_id) {
+            if !self.has_live_gpu_feedback_probe(*probe_id) {
                 continue;
             }
 

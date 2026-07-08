@@ -42,6 +42,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/progress/entry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/progress/linear.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/preview_image.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/command.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/geometry.rs
@@ -1244,6 +1246,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/progress/entry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/progress/linear.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/preview_image.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/command.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/geometry.rs
@@ -2402,6 +2406,8 @@ plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-24 editor UI architecture screenshot validation and Project Overview button readability acceptance
 tests:
+  - cargo fmt -p zircon_editor --check (2026-07-05 Asset Browser preview-artifact routing: passed)
+  - git diff --check over Asset Browser preview-routing source/doc paths and target screenshot scan (2026-07-05: passed with existing CRLF warnings only; target scan clean; focused Cargo/screenshots deferred while other Cargo/rustc lanes were active)
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_runtime -p zircon_editor
   - cargo test -p zircon_editor --lib button_change_binding_label_prefers_authored_text_over_value --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
@@ -2679,7 +2685,7 @@ Current table-row ownership is folder-backed: `template_table_rows.rs` owns only
 
 Current table-row test ownership is folder-backed: `template_table_rows.rs` points test builds at `template_table_rows_tests/mod.rs`; `cells.rs` owns declared-option and legacy text parsing regressions, `paint.rs` owns selected/header/tail pixel coverage, `geometry.rs` owns row/content/cell offset regressions, `style.rs` owns shared state-priority regressions, and `support.rs` owns table fixtures plus pixel probes.
 
-Current template-node image ownership is folder-backed: `template_node_images.rs` owns only the structural image entry and re-export surface, while `template_node_images/identity.rs` owns image-source/icon/icon-only recognition, `geometry.rs` owns leading-icon sizing plus image/fitted rect placement, and `command.rs` owns tint/raster lookup plus `HostPaintCommand::image_pixels(...)` emission.
+Current template-node image ownership is folder-backed: `template_node_images.rs` owns only the structural image entry and re-export surface, while `template_node_images/identity.rs` owns image-source/icon/icon-only recognition, `geometry.rs` owns leading-icon sizing plus image/fitted rect placement, and `command.rs` owns tint/raster lookup plus `HostPaintCommand::image_pixels(...)` emission. Asset thumbnail visuals are intentionally excluded from the generic image-source predicate because `template_asset_placeholder_visuals.rs` owns the thumbnail well dispatch and `template_asset_placeholder_visuals/preview_image.rs` owns projected preview image painting inside that well before semantic fallback icons.
 
 Current template-node dispatch ownership is folder-backed: `template_nodes.rs` owns only module wiring, test entry re-exports, and the template-node command entry re-export; `template_nodes/commands.rs` owns per-node top-level command sequencing, frame-only/opacity gating, specialized dispatch handoff, and generic fallback handoff; `geometry.rs` owns frame translation, visibility, clip, and intersection gating; `ordering.rs` owns z/order and transition opacity; `specialized.rs` owns specialized component painter dispatch and dropdown popup anchoring; `fallback.rs` owns Material/MUI X fallback surface, image, text, and popup-row fallback sequencing.
 

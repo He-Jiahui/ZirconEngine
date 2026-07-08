@@ -1,0 +1,16 @@
+use super::*;
+
+#[test]
+fn runtime_15_review_guard_row_data_delegation_budgets_stay_focused() {
+    assert_runtime_15_review_guard_row_data_budgets(&[
+        (DELEGATION_GUARD_PATH, 35),
+        (DELEGATION_ROUTE_MOUNTS_CHILD_PATH, 80),
+        (DELEGATION_STATUS_INVENTORY_CHILD_PATH, 45),
+        (DELEGATION_CHILD_INVENTORY_CHILD_PATH, 45),
+        (DELEGATION_SPLIT_LAYOUT_CHILD_PATH, 40),
+        (DELEGATION_SPLIT_LAYOUT_ROUTE_MOUNTS_CHILD_PATH, 90),
+        (DELEGATION_SPLIT_LAYOUT_STATUS_CURRENT_CHILD_PATH, 120),
+        (DELEGATION_SPLIT_LAYOUT_BUDGETS_CHILD_PATH, 75),
+        (DELEGATION_SPLIT_LAYOUT_SPLIT_LAYOUT_CHILD_PATH, 170),
+    ]);
+}

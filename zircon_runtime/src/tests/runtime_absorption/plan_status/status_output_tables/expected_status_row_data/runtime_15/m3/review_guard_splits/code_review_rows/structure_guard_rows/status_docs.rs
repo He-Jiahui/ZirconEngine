@@ -1,155 +1,27 @@
 use super::Slice;
 
+#[path = "status_docs/core.rs"]
+mod core;
+#[path = "status_docs/source_anchors.rs"]
+mod source_anchors;
+#[path = "status_docs/status_anchor_guard.rs"]
+mod status_anchor_guard;
+#[path = "status_docs/status_anchors.rs"]
+mod status_anchors;
+
+#[rustfmt::skip]
 pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
-    (
-        "Runtime 15 M3 code review findings status-doc guard child-owner split",
-        &[
-            "runtime_15_code_review_findings_status_docs_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "runtime_15_code_review_findings_structure_guard_children_are_mounted",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_status_docs_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/sync.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchor_guard.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_mirrors.rs",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_source_anchors_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_status_anchors_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_status_mirrors_are_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc status-mirror child-owner split",
-        &[
-            "runtime_15_code_review_findings_status_docs_status_mirror_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/delegation.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_mirrors.rs",
-            "runtime_15_code_review_findings_status_docs_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_status_docs_status_mirrors_are_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc root inventory child split",
-        &[
-            "runtime_15_code_review_findings_status_docs_root_inventory_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/root_paths.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/root_statuses.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/root_row_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/root_children.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/root_inventory.rs",
-            "runtime_15_code_review_findings_status_docs_root_inventory_is_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc source anchors child-owner split",
-        &[
-            "runtime_15_code_review_findings_status_docs_source_anchors_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors.rs",
-            "runtime_15_code_review_findings_status_docs_source_anchors_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc source anchors folder-backed split",
-        &[
-            "runtime_15_code_review_findings_status_docs_source_anchors_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors/review_sources.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors/native_typed_error.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors/runtime_surface.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors/structure_owners.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors/status_mirrors.rs",
-            "runtime_15_code_review_findings_status_docs_source_anchors_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_source_anchors_folder_backed_status_is_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc status anchors child-owner split",
-        &[
-            "runtime_15_code_review_findings_status_docs_status_anchors_child_owner_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors.rs",
-            "runtime_15_code_review_findings_status_docs_status_anchors_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_are_child_owner",
-            "runtime_15_code_review_findings_tests_are_folder_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc status anchors folder-backed split",
-        &[
-            "runtime_15_code_review_findings_status_docs_status_anchors_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors/child_anchors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors/map_anchors.rs",
-            "runtime_15_code_review_findings_status_docs_status_child_anchors_are_child_owned",
-            "runtime_15_code_review_findings_status_docs_status_map_anchors_are_child_owned",
-            "runtime_15_code_review_findings_status_docs_status_anchors_are_folder_backed",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc child-anchor list child split",
-        &[
-            "runtime_15_code_review_findings_status_docs_child_anchor_list_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors/child_anchors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors/child_anchors/folder_backed_summary.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors/child_anchors/structure_guards.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchors/child_anchors/status_docs.rs",
-            "runtime_15_code_review_findings_status_docs_child_anchor_list_is_child_owned",
-            "runtime_15_code_review_findings_status_docs_status_child_anchors_are_child_owned",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc status anchor guard folder-backed split",
-        &[
-            "runtime_15_code_review_findings_status_docs_status_anchor_guard_folder_backed_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/folder_backing.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/status_mirrors.rs",
-            "runtime_15_code_review_findings_status_docs_status_anchors_are_child_owner",
-            "runtime_15_code_review_findings_status_docs_status_anchor_guard_is_folder_backed",
-            "runtime_15_code_review_findings_status_docs_status_anchor_guard_folder_backed_status_is_current",
-            "runtime_15_code_review_findings_status_docs_status_anchor_guard_children_line_budgets_are_current",
-            "Cargo gate deferred",
-        ],
-    ),
-    (
-        "Runtime 15 M3 code review findings status-doc status-anchor child-ownership child split",
-        &[
-            "runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_child_split_static_passed_cargo_deferred",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership/mounts.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership/moved_anchors.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership/forwarding.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership/budgets.rs",
-            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status_docs/status_anchor_guard/child_ownership/status_mirrors.rs",
-            "runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_is_child_backed",
-            "runtime_15_code_review_findings_status_docs_status_anchors_are_child_owner",
-            "Cargo gate deferred",
-        ],
-    ),
+    ("Runtime 15 M3 code review findings status-doc guard child-owner split", core::STATUS_DOC_GUARD_CHILD_OWNER_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc guard folder-backed split", core::STATUS_DOC_GUARD_FOLDER_BACKED_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc status-mirror child-owner split", core::STATUS_DOC_STATUS_MIRROR_CHILD_OWNER_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc map-source sync", core::STATUS_DOC_MAP_SOURCE_SYNC),
+    ("Runtime 15 M3 code review findings status-doc root inventory child split", core::STATUS_DOC_ROOT_INVENTORY_CHILD_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc source anchors child-owner split", source_anchors::STATUS_DOC_SOURCE_ANCHORS_CHILD_OWNER_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc source anchors folder-backed split", source_anchors::STATUS_DOC_SOURCE_ANCHORS_FOLDER_BACKED_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc status anchors child-owner split", status_anchors::STATUS_DOC_STATUS_ANCHORS_CHILD_OWNER_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc status anchors folder-backed split", status_anchors::STATUS_DOC_STATUS_ANCHORS_FOLDER_BACKED_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc child-anchor list child split", status_anchors::STATUS_DOC_CHILD_ANCHOR_LIST_CHILD_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc child-anchor route folder-backed split", status_anchors::STATUS_DOC_CHILD_ANCHOR_ROUTE_FOLDER_BACKED_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc status anchor guard folder-backed split", status_anchor_guard::STATUS_DOC_STATUS_ANCHOR_GUARD_FOLDER_BACKED_SPLIT),
+    ("Runtime 15 M3 code review findings status-doc status-anchor child-ownership child split", status_anchor_guard::STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_CHILD_SPLIT),
 ];

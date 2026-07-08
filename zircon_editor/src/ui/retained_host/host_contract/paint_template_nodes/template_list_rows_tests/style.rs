@@ -57,7 +57,22 @@ fn list_row_style_uses_shared_state_priority() {
     assert_eq!(pressed.border_width, 1.0);
 
     node.pressed = false;
+    node.hovered = false;
+    node.focused = true;
+    let focused = list_row_style(&node);
+    assert_eq!(focused.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused.background, None);
+    assert_eq!(focused.border, Some(PALETTE.focus_ring));
+    assert_eq!(focused.border_width, 1.0);
+
     node.focused = false;
+    node.hovered = true;
+    let hovered = list_row_style(&node);
+    assert_eq!(hovered.state, UiPainterResolvedState::Hovered);
+    assert_eq!(hovered.background, Some(PALETTE.surface_hover));
+    assert_eq!(hovered.border, None);
+    assert_eq!(hovered.border_width, 0.0);
+
     node.hovered = false;
     node.selected = true;
     node.checked = true;

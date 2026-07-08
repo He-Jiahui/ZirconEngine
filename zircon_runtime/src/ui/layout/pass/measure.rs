@@ -1,4 +1,4 @@
-use crate::ui::surface::measure_text;
+use crate::ui::{surface::measure_text_with_cache, text::UiTextMeasureCache};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{
@@ -19,6 +19,7 @@ const BUTTON_VERTICAL_PADDING: f32 = 8.0;
 pub(crate) fn measure_node(
     tree: &mut UiTree,
     node_id: UiNodeId,
+    mut text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> Result<DesiredSize, UiTreeError> {
     let (children, layout_boundary, constraints, container, template_metadata) = {
         let node = tree
@@ -38,7 +39,7 @@ pub(crate) fn measure_node(
 
     let mut child_desired = Vec::with_capacity(children.len());
     for child_id in &children {
-        let desired = measure_node(tree, *child_id)?;
+        let desired = measure_node(tree, *child_id, text_measure_cache.as_deref_mut())?;
         if tree
             .node(*child_id)
             .is_some_and(|child| child.effective_visibility().occupies_layout())
@@ -53,6 +54,7 @@ pub(crate) fn measure_node(
         container,
         &child_desired,
         template_metadata.as_ref(),
+        text_measure_cache.as_deref_mut(),
     );
     let desired = DesiredSize::new(
         desired_axis(layout_boundary, constraints.width, content_size.width),
@@ -93,9 +95,10 @@ fn measure_content_size(
     container: UiContainerKind,
     child_desired: &[(UiNodeId, DesiredSize)],
     metadata: Option<&UiTemplateNodeMetadata>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiSize {
     if child_desired.is_empty() {
-        return measure_leaf_content_size(metadata);
+        return measure_leaf_content_size(metadata, text_measure_cache);
     }
 
     let content_size = match container {
@@ -181,8 +184,11 @@ fn normalized_aspect_ratio(aspect_ratio: f32) -> Option<f32> {
         .filter(|ratio| *ratio > 0.0)
 }
 
-fn measure_leaf_content_size(metadata: Option<&UiTemplateNodeMetadata>) -> UiSize {
-    let text_size = measure_text(metadata);
+fn measure_leaf_content_size(
+    metadata: Option<&UiTemplateNodeMetadata>,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
+) -> UiSize {
+    let text_size = measure_text_with_cache(metadata, text_measure_cache);
     let Some(metadata) = metadata else {
         return text_size;
     };

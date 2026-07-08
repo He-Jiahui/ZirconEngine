@@ -4,8 +4,9 @@ use super::super::super::super::super::{
 };
 use super::anchor::badge_anchor_point;
 use super::metrics::{
-    BADGE_DOT_EDGE, BADGE_DOT_RADIUS, BADGE_FONT_SIZE, BADGE_STANDARD_HEIGHT,
-    BADGE_STANDARD_MIN_WIDTH, BADGE_STANDARD_PADDING_X, BADGE_STANDARD_RADIUS,
+    badge_centered_text_x, badge_centered_text_y, badge_overlay_font_size, badge_overlay_rect,
+    badge_overlay_size, badge_overlay_text_line_height, badge_text_width, BADGE_DOT_RADIUS,
+    BADGE_STANDARD_RADIUS,
 };
 use super::model::BadgeTextFrame;
 
@@ -15,22 +16,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
     display: &str,
     dot: bool,
 ) -> FrameRect {
-    let (width, height) = if dot {
-        (BADGE_DOT_EDGE, BADGE_DOT_EDGE)
+    let measured_text_width = if dot {
+        0.0
     } else {
-        (
-            (measure_runtime_text_width(display, BADGE_FONT_SIZE) + BADGE_STANDARD_PADDING_X * 2.0)
-                .max(BADGE_STANDARD_MIN_WIDTH),
-            BADGE_STANDARD_HEIGHT,
-        )
+        measure_runtime_text_width(display, badge_overlay_font_size())
     };
+    let (width, height) = badge_overlay_size(measured_text_width, dot);
     let (anchor_x, anchor_y) = badge_anchor_point(node, rect);
-    FrameRect {
-        x: (anchor_x - width * 0.5).round(),
-        y: (anchor_y - height * 0.5).round(),
-        width: width.round().max(1.0),
-        height: height.round().max(1.0),
-    }
+    badge_overlay_rect(anchor_x, anchor_y, width, height)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_overlay_radius(
@@ -47,18 +40,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_o
     display: &str,
     rect: &FrameRect,
 ) -> BadgeTextFrame {
-    let line_height = BADGE_FONT_SIZE;
-    let text_width = measure_runtime_text_width(display, BADGE_FONT_SIZE)
-        .min(rect.width)
-        .max(1.0);
+    let font_size = badge_overlay_font_size();
+    let line_height = badge_overlay_text_line_height(font_size);
+    let text_width = badge_text_width(measure_runtime_text_width(display, font_size), rect.width);
     BadgeTextFrame {
         rect: FrameRect {
-            x: rect.x + (rect.width - text_width).max(0.0) * 0.5,
-            y: rect.y + (rect.height - line_height).max(0.0) * 0.5,
+            x: badge_centered_text_x(rect, text_width),
+            y: badge_centered_text_y(rect, line_height),
             width: text_width,
             height: line_height,
         },
-        font_size: BADGE_FONT_SIZE,
+        font_size,
         line_height,
     }
 }
@@ -81,18 +73,18 @@ mod tests {
         let node = TemplatePaneNodeData::default();
         let display = "WWW iii";
         let frame = badge_overlay_frame(&node, &rect(), display, false);
-        let expected_width = (measure_runtime_text_width(display, BADGE_FONT_SIZE)
-            + BADGE_STANDARD_PADDING_X * 2.0)
-            .max(BADGE_STANDARD_MIN_WIDTH)
-            .round()
-            .max(1.0);
+        let (expected_width, _) = badge_overlay_size(
+            measure_runtime_text_width(display, badge_overlay_font_size()),
+            false,
+        );
+        let expected_width = expected_width.round();
 
         assert!((frame.width - expected_width).abs() <= 0.01);
-        let old_heuristic_width = (display.chars().count() as f32 * BADGE_FONT_SIZE * 0.56
-            + BADGE_STANDARD_PADDING_X * 2.0)
-            .max(BADGE_STANDARD_MIN_WIDTH)
-            .round()
-            .max(1.0);
+        let (old_heuristic_width, _) = badge_overlay_size(
+            display.chars().count() as f32 * badge_overlay_font_size() * 0.56,
+            false,
+        );
+        let old_heuristic_width = old_heuristic_width.round();
         assert!((expected_width - old_heuristic_width).abs() > 0.25);
     }
 
@@ -104,9 +96,10 @@ mod tests {
             ..rect()
         };
         let text_frame = badge_overlay_text_frame(display, &overlay);
-        let expected_width = measure_runtime_text_width(display, BADGE_FONT_SIZE)
-            .min(overlay.width)
-            .max(1.0);
+        let expected_width = badge_text_width(
+            measure_runtime_text_width(display, badge_overlay_font_size()),
+            overlay.width,
+        );
 
         assert!((text_frame.rect.width - expected_width).abs() <= 0.01);
     }

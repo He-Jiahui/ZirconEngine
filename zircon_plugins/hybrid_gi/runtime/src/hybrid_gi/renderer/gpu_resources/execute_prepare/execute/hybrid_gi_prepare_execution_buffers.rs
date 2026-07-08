@@ -10,6 +10,19 @@ pub(super) struct HybridGiPrepareScenePrepareResources {
     pub(super) capture_views: Vec<wgpu::TextureView>,
     pub(super) capture_upload_buffer: Option<wgpu::Buffer>,
     pub(super) capture_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+    pub(super) surface_cache_depth_texture: Option<wgpu::Texture>,
+    pub(super) surface_cache_depth_view: Option<wgpu::TextureView>,
+    pub(super) surface_cache_depth_upload_buffer: Option<wgpu::Buffer>,
+    pub(super) surface_cache_depth_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+    pub(super) probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_readback: Option<wgpu::Buffer>,
+    pub(super) probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
+    pub(super) probe_trace_indirect_args_readback: Option<wgpu::Buffer>,
+    pub(super) probe_trace_tile_word_count: usize,
+    pub(super) probe_trace_tile_record_count: usize,
+    pub(super) probe_trace_indirect_arg_word_count: usize,
 }
 
 pub(super) struct HybridGiPrepareExecutionBuffers {
@@ -18,6 +31,7 @@ pub(super) struct HybridGiPrepareExecutionBuffers {
     pub(super) pending_probe_buffer: wgpu::Buffer,
     pub(super) trace_region_buffer: wgpu::Buffer,
     pub(super) scene_prepare_descriptor_buffer: wgpu::Buffer,
+    pub(super) scene_prepare_descriptor_count: usize,
     pub(super) completed_probe_buffer: wgpu::Buffer,
     pub(super) completed_trace_buffer: wgpu::Buffer,
     pub(super) completed_probe_readback: wgpu::Buffer,

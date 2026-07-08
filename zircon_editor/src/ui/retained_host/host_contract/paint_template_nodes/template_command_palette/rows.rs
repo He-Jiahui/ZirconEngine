@@ -1,3 +1,4 @@
+mod detail;
 mod entry;
 mod indicator;
 mod label;

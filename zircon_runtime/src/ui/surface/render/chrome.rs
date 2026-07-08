@@ -164,6 +164,17 @@ impl ChromeRenderState {
                 | UiPainterResolvedState::DropHovered
         )
     }
+
+    fn selected_surface_active(self) -> bool {
+        matches!(
+            self.visual_state,
+            UiPainterResolvedState::Open
+                | UiPainterResolvedState::Selected
+                | UiPainterResolvedState::Checked
+                | UiPainterResolvedState::Dragging
+                | UiPainterResolvedState::DropHovered
+        )
+    }
 }
 
 fn chrome_kind(metadata: &UiTemplateNodeMetadata) -> Option<ChromeKind> {
@@ -335,7 +346,7 @@ fn surface_color<'a>(
         color_attribute(metadata, "open_background_color").unwrap_or(SURFACE_OPEN)
     } else if state.visual_state == UiPainterResolvedState::Hovered {
         color_attribute(metadata, "hover_background_color").unwrap_or(SURFACE_HOVER)
-    } else if state.active() {
+    } else if state.selected_surface_active() {
         color_attribute(metadata, "selected_background_color").unwrap_or(SURFACE_SELECTED)
     } else {
         color_attribute(metadata, "background_color").unwrap_or_else(|| default_surface(kind))

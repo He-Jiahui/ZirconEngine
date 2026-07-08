@@ -8,6 +8,8 @@ mod script_segment;
 #[cfg(test)]
 mod tests;
 
+use std::sync::Arc;
+
 use crate::core::framework::render::{ShapedGlyphRun, TextShapeRequest, TextShapingService};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
@@ -24,6 +26,39 @@ impl TextShapingService for SharedTextShapingService {
 
 pub(crate) fn shape_text(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
     SharedTextShapingService.shape_text(request)
+}
+
+pub(crate) trait TextShapeRunProvider {
+    fn shape_horizontal_line_with_kerning(
+        &mut self,
+        text: &str,
+        style: &UiResolvedStyle,
+        direction: UiTextDirection,
+        source_range: UiTextRange,
+        include_kerning: bool,
+    ) -> Arc<ShapedGlyphRun>;
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct DirectTextShapeRunProvider;
+
+impl TextShapeRunProvider for DirectTextShapeRunProvider {
+    fn shape_horizontal_line_with_kerning(
+        &mut self,
+        text: &str,
+        style: &UiResolvedStyle,
+        direction: UiTextDirection,
+        source_range: UiTextRange,
+        include_kerning: bool,
+    ) -> Arc<ShapedGlyphRun> {
+        Arc::new(shape_horizontal_line_with_kerning(
+            text,
+            style,
+            direction,
+            source_range,
+            include_kerning,
+        ))
+    }
 }
 
 pub(crate) fn shape_horizontal_line(

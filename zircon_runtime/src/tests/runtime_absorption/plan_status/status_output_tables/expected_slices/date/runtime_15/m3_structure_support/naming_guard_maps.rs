@@ -26,6 +26,9 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         | "Runtime 15 M3 banned-name graphics construction guard child-owner split"
         | "Runtime 15 M3 banned-name global module guard child-owner split" => Some("2026-06-30"),
         "Runtime 15 M3 UI platform-input guard child-owner split" => Some("2026-07-01"),
+        "Runtime 15 M3 core-scene naming ECS owner split-layout folder-backed split" => {
+            Some("2026-07-06")
+        }
         _ => None,
     }
 }

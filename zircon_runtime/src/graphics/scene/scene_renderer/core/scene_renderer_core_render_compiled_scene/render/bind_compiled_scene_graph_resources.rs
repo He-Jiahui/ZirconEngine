@@ -11,6 +11,7 @@ use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::CompiledRenderPipeline;
 
+use super::bind_environment_ibl_graph_resources::bind_environment_ibl_graph_resources;
 use super::bind_execution_owned_graph_resources::bind_execution_owned_graph_resources;
 use super::bind_frame_graph_resources::bind_frame_graph_resources;
 use super::bind_history_graph_resources::{
@@ -43,6 +44,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_atlas_resources: &ShadowAtlasResources,
     plugin_external_buffer_bindings: &[crate::graphics::RuntimePrepareExternalBufferBinding],
+    environment_source_cubemap_view: Option<&wgpu::TextureView>,
 ) -> Result<FinalTargetOutputSelection, GraphicsError> {
     let final_target_output = select_final_target_output(streamer, frame);
     let imported_final_target =
@@ -71,6 +73,11 @@ pub(super) fn bind_compiled_scene_graph_resources(
                 && flags.runtime_features.hybrid_global_illumination_enabled,
             exposure: flags.exposure_history_enabled,
         },
+    );
+    bind_environment_ibl_graph_resources(
+        &pipeline.graph,
+        environment_source_cubemap_view,
+        graph_resources,
     );
     graph_resources
         .materialize_transient_resources_with_pool(device, &pipeline.graph, transient_resource_pool)

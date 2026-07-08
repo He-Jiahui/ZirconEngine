@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
-use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::super::render_commands::HostPaintCommand;
+
+type ChartBarColors = [[u8; 4]; 3];
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bar_chart(
     commands: &mut Vec<HostPaintCommand>,
@@ -9,6 +11,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ba
     order: i32,
     opacity: f32,
 ) {
+    let [primary_bar, success_bar, warning_bar] =
+        chart_bar_colors_from_host(current_host_palette());
     push_chart_bar(
         commands,
         plot,
@@ -16,7 +20,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ba
         order + 2,
         0.18,
         0.72,
-        PALETTE.accent,
+        primary_bar,
         opacity,
     );
     push_chart_bar(
@@ -26,7 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ba
         order + 3,
         0.42,
         0.48,
-        PALETTE.success,
+        success_bar,
         opacity,
     );
     push_chart_bar(
@@ -36,9 +40,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ba
         order + 4,
         0.66,
         0.62,
-        PALETTE.warning,
+        warning_bar,
         opacity,
     );
+}
+
+fn chart_bar_colors_from_host(palette: HostMaterialPalette) -> ChartBarColors {
+    [palette.accent, palette.success, palette.warning]
 }
 
 fn push_chart_bar(
@@ -68,4 +76,23 @@ fn push_chart_bar(
         2.0,
         opacity,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+
+    #[test]
+    fn mui_x_chart_bar_colors_project_from_host_palette() {
+        let mut palette = PALETTE;
+        palette.accent = [10, 11, 12, 255];
+        palette.success = [20, 21, 22, 255];
+        palette.warning = [30, 31, 32, 255];
+
+        assert_eq!(
+            chart_bar_colors_from_host(palette),
+            [[10, 11, 12, 255], [20, 21, 22, 255], [30, 31, 32, 255]]
+        );
+    }
 }

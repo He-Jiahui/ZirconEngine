@@ -225,3 +225,52 @@ fn status_chip_normal_state_is_flat_transparent_status_text() {
     assert_eq!(normal.label_text, PALETTE.text_muted);
     assert_eq!(normal.value_text, PALETTE.text);
 }
+
+#[test]
+fn focused_status_chip_keeps_flat_surface_with_focus_border() {
+    let mut node = status_chip_node("WorkbenchStatusGrid", "Grid: 10 cm");
+    node.focused = true;
+
+    let focused = select_workbench_status_chip_style(&node);
+
+    assert_eq!(
+        focused.state,
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
+    );
+    assert_eq!(focused.background, TRANSPARENT);
+    assert_eq!(focused.border, PALETTE.focus_ring);
+    assert_eq!(focused.label_text, PALETTE.text_muted);
+    assert_eq!(focused.value_text, PALETTE.text);
+}
+
+#[test]
+fn focused_hovered_status_chip_uses_hover_surface() {
+    let mut node = status_chip_node("WorkbenchStatusGrid", "Grid: 10 cm");
+    node.focused = true;
+    node.hovered = true;
+
+    let focused = select_workbench_status_chip_style(&node);
+
+    assert_eq!(
+        focused.state,
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
+    );
+    assert_eq!(focused.background, PALETTE.surface_hover);
+    assert_eq!(focused.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn focused_selected_status_chip_keeps_selected_surface() {
+    let mut node = status_chip_node("WorkbenchStatusGrid", "Grid: 10 cm");
+    node.focused = true;
+    node.selected = true;
+
+    let focused = select_workbench_status_chip_style(&node);
+
+    assert_eq!(
+        focused.state,
+        zircon_runtime_interface::ui::style::UiPainterResolvedState::Focused
+    );
+    assert_eq!(focused.background, PALETTE.surface_selected);
+    assert_eq!(focused.border, PALETTE.focus_ring);
+}

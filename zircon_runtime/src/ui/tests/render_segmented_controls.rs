@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::UiRenderCommandKind,
+    surface::{UiRenderCommand, UiRenderCommandKind},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -171,6 +171,143 @@ options = ["left", "center", "right"]
 }
 
 #[test]
+fn render_extract_segmented_and_tab_keep_focused_surface_neutral_until_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.segmented_controls.focused_surface_neutral",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 136.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "SegmentedControl",
+        UiFrame::new(12.0, 8.0, 150.0, 30.0),
+        r##"
+options = ["left", "right"]
+background_color = "#10161a"
+border_color = "#323a41"
+hover_background_color = "#2a3036"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "SegmentedControl",
+        UiFrame::new(12.0, 44.0, 150.0, 30.0),
+        r##"
+options = ["left", "right"]
+background_color = "#10161a"
+border_color = "#323a41"
+hover_background_color = "#2a3036"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(4),
+        "Tab",
+        UiFrame::new(12.0, 84.0, 120.0, 28.0),
+        r##"
+text = "Details"
+background_color = "#10161a"
+hover_background_color = "#2a3036"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(5),
+        "Tab",
+        UiFrame::new(140.0, 84.0, 120.0, 28.0),
+        r##"
+text = "Preview"
+background_color = "#10161a"
+hover_background_color = "#2a3036"
+"##,
+        visible_state(),
+    );
+    set_focused(&mut surface, UiNodeId::new(2));
+    set_focused(&mut surface, UiNodeId::new(3));
+    set_hovered(&mut surface, UiNodeId::new(3));
+    set_focused(&mut surface, UiNodeId::new(4));
+    set_focused(&mut surface, UiNodeId::new(5));
+    set_hovered(&mut surface, UiNodeId::new(5));
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let focused_segment = surface_quad(
+        commands,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 8.0, 150.0, 30.0),
+    );
+    assert_eq!(
+        focused_segment.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_segment.style.background_color.as_deref(),
+        Some("#10161a")
+    );
+    assert_eq!(
+        focused_segment.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+
+    let hovered_segment = surface_quad(
+        commands,
+        UiNodeId::new(3),
+        UiFrame::new(12.0, 44.0, 150.0, 30.0),
+    );
+    assert_eq!(
+        hovered_segment.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        hovered_segment.style.background_color.as_deref(),
+        Some("#2a3036")
+    );
+    assert_eq!(
+        hovered_segment.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+
+    let focused_tab = surface_quad(
+        commands,
+        UiNodeId::new(4),
+        UiFrame::new(12.0, 84.0, 120.0, 28.0),
+    );
+    assert_eq!(
+        focused_tab.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_tab.style.background_color.as_deref(),
+        Some("#10161a")
+    );
+
+    let hovered_tab = surface_quad(
+        commands,
+        UiNodeId::new(5),
+        UiFrame::new(140.0, 84.0, 120.0, 28.0),
+    );
+    assert_eq!(
+        hovered_tab.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        hovered_tab.style.background_color.as_deref(),
+        Some("#2a3036")
+    );
+}
+
+#[test]
 fn render_extract_loading_tabs_and_segmented_controls_use_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new(
         "runtime.ui.render.segmented_controls.loading",
@@ -290,6 +427,21 @@ selected_foreground_color = "#e6f1f4"
     }));
 }
 
+fn surface_quad(
+    commands: &[UiRenderCommand],
+    node_id: UiNodeId,
+    frame: UiFrame,
+) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.node_id == node_id
+                && command.kind == UiRenderCommandKind::Quad
+                && command.frame == frame
+        })
+        .expect("expected segmented control surface quad")
+}
+
 fn insert_control(
     surface: &mut UiSurface,
     node_id: UiNodeId,
@@ -320,4 +472,12 @@ fn visible_state() -> UiStateFlags {
         enabled: true,
         ..UiStateFlags::default()
     }
+}
+
+fn set_focused(surface: &mut UiSurface, node_id: UiNodeId) {
+    assert!(surface.component_states.set_focused(node_id, true));
+}
+
+fn set_hovered(surface: &mut UiSurface, node_id: UiNodeId) {
+    assert!(surface.component_states.set_hovered(node_id, true));
 }

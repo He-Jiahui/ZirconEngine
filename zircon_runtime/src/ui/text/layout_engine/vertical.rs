@@ -1,4 +1,5 @@
 use crate::graphics::text::layout::TextLineMetrics;
+use crate::graphics::text::shaping::TextShapeRunProvider;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
@@ -7,27 +8,37 @@ use zircon_runtime_interface::ui::surface::{
 use super::super::rich_text::parse_source_runs;
 use super::direction::resolve_direction;
 use super::ellipsis::{
-    ellipsize_line, is_ellipsis_overflow, line_overflows_horizontally,
+    ellipsize_line_with_provider, is_ellipsis_overflow, line_overflows_horizontally_with_provider,
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
-use super::line_box::{resolve_line_widths, text_advance, MIN_TEXT_FONT_SIZE};
+use super::line_box::{resolve_line_widths_with_provider, text_advance, MIN_TEXT_FONT_SIZE};
 use super::visual_order;
-use super::wrapping::wrap_source_runs;
+use super::wrapping::wrap_source_runs_with_provider;
 
-pub(super) fn layout_vertical_text(
+pub(super) fn layout_vertical_text_with_provider<P>(
     text: &str,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     font_size: f32,
     metrics: TextLineMetrics,
-) -> UiResolvedTextLayout {
+    provider: &mut P,
+) -> UiResolvedTextLayout
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     let direction = resolve_direction(text, style.text_direction);
     let source_runs = parse_source_runs(text, style.rich_text);
     let column_advance = metrics.line_height.max(font_size.max(MIN_TEXT_FONT_SIZE));
     let column_width = font_size.max(MIN_TEXT_FONT_SIZE);
     let max_column_height = frame.height.max(text_advance(font_size));
-    let mut columns = wrap_source_runs(&source_runs, style.wrap, max_column_height, style);
+    let mut columns = wrap_source_runs_with_provider(
+        &source_runs,
+        style.wrap,
+        max_column_height,
+        style,
+        provider,
+    );
     let clip = clip_frame.unwrap_or(frame);
     let column_capacity = (frame.width.max(column_advance) / column_advance)
         .floor()
@@ -43,13 +54,32 @@ pub(super) fn layout_vertical_text(
         }
         columns.truncate(column_capacity);
         if let Some(last) = columns.last_mut() {
-            ellipsize_line(last, max_column_height, style, style.text_overflow);
+            ellipsize_line_with_provider(
+                last,
+                max_column_height,
+                style,
+                style.text_overflow,
+                provider,
+            );
         }
     }
     if is_ellipsis_overflow(style.text_overflow) {
         for column in &mut columns {
-            if !column.ellipsized && line_overflows_horizontally(column, max_column_height, style) {
-                ellipsize_line(column, max_column_height, style, style.text_overflow);
+            if !column.ellipsized
+                && line_overflows_horizontally_with_provider(
+                    column,
+                    max_column_height,
+                    style,
+                    provider,
+                )
+            {
+                ellipsize_line_with_provider(
+                    column,
+                    max_column_height,
+                    style,
+                    style.text_overflow,
+                    provider,
+                );
                 overflow_clipped = true;
             }
         }
@@ -62,8 +92,13 @@ pub(super) fn layout_vertical_text(
     let mut resolved_lines = Vec::new();
     for (index, column) in columns.iter().enumerate() {
         let is_last_column = index + 1 == columns.len();
-        let (measured_height, glyph_advances, content_height) =
-            resolve_line_widths(column, style, max_column_height.max(0.0), is_last_column);
+        let (measured_height, glyph_advances, content_height) = resolve_line_widths_with_provider(
+            column,
+            style,
+            max_column_height.max(0.0),
+            is_last_column,
+            provider,
+        );
         let column_height = if column.text.is_empty() {
             metrics.line_height
         } else {

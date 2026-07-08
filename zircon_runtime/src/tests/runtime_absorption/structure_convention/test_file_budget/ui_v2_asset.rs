@@ -1,10 +1,38 @@
 use super::*;
 
+const STYLE_RUNTIME_STATUS_NAME: &str = "Runtime 15 M3 UI v2 style-runtime test folder split";
+const STYLE_RUNTIME_STATUS_ID: &str =
+    "runtime_15_ui_v2_style_runtime_tests_folder_split_static_passed_cargo_deferred";
+const STYLE_RUNTIME_GUARD: &str = "runtime_15_ui_v2_style_runtime_tests_are_folder_backed";
+const STYLE_RUNTIME_CHILDREN: &[(&str, &str)] = &[
+    (
+        "static_resolution",
+        "ui/tests/v2_asset/style_runtime/static_resolution.rs",
+    ),
+    (
+        "runtime_pseudo_state",
+        "ui/tests/v2_asset/style_runtime/runtime_pseudo_state.rs",
+    ),
+    (
+        "resolved_pseudo_state",
+        "ui/tests/v2_asset/style_runtime/resolved_pseudo_state.rs",
+    ),
+    (
+        "property_mutation",
+        "ui/tests/v2_asset/style_runtime/property_mutation.rs",
+    ),
+    (
+        "style_overrides",
+        "ui/tests/v2_asset/style_runtime/style_overrides.rs",
+    ),
+];
+
 #[test]
 fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
     let parent = read_runtime_src("ui/tests/v2_asset.rs");
     let asset_loading = read_runtime_src("ui/tests/v2_asset/asset_loading.rs");
-    let style_runtime = read_runtime_src("ui/tests/v2_asset/style_runtime.rs");
+    let style_runtime_parent = read_runtime_src("ui/tests/v2_asset/style_runtime.rs");
+    let style_runtime_children = style_runtime_child_source_blob();
     let default_controls = read_runtime_src("ui/tests/v2_asset/default_controls.rs");
     let range_controls = read_runtime_src("ui/tests/v2_asset/range_controls.rs");
     let demo_and_builder = read_runtime_src("ui/tests/v2_asset/demo_and_builder.rs");
@@ -17,7 +45,7 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first/architecture_shared_rows.rs",
     );
 
     assert_contains_all(
@@ -61,7 +89,7 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
     );
     assert_contains_all(
         "UI v2 asset style runtime child owns cascade contracts",
-        &style_runtime,
+        &style_runtime_children,
         &[
             "fn ui_v2_style_specificity_and_pseudo_state_are_resolved",
             "fn ui_v2_surface_property_mutation_updates_runtime_style_baseline_metadata",
@@ -113,7 +141,10 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
     for (path, source) in [
         ("ui/tests/v2_asset.rs", parent.as_str()),
         ("ui/tests/v2_asset/asset_loading.rs", asset_loading.as_str()),
-        ("ui/tests/v2_asset/style_runtime.rs", style_runtime.as_str()),
+        (
+            "ui/tests/v2_asset/style_runtime.rs",
+            style_runtime_parent.as_str(),
+        ),
         (
             "ui/tests/v2_asset/default_controls.rs",
             default_controls.as_str(),
@@ -132,6 +163,14 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
         ),
         ("ui/tests/v2_asset/file_cache.rs", file_cache.as_str()),
     ] {
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
+        );
+    }
+    for (_, path) in STYLE_RUNTIME_CHILDREN {
+        let source = read_runtime_src(path);
         let line_count = source.lines().count();
         assert!(
             line_count < 800,
@@ -170,4 +209,95 @@ fn runtime_15_ui_v2_asset_tests_are_folder_backed() {
             "runtime_15_ui_v2_asset_tests_are_folder_backed",
         ],
     );
+}
+
+#[test]
+fn runtime_15_ui_v2_style_runtime_tests_are_folder_backed() {
+    let route = read_runtime_src("ui/tests/v2_asset/style_runtime.rs");
+    let child_sources = style_runtime_child_source_blob();
+    let runtime_15_plan =
+        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
+    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let session_note =
+        read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
+    let status_rows = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first/architecture_shared_rows.rs",
+    );
+    let status_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/ui_maps.rs",
+    );
+    let date_map = read_runtime_src(
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/ui_maps.rs",
+    );
+
+    assert_contains_all(
+        "UI v2 style runtime route mounts child test owners",
+        &route,
+        &[
+            "mod static_resolution;",
+            "mod runtime_pseudo_state;",
+            "mod resolved_pseudo_state;",
+            "mod property_mutation;",
+            "mod style_overrides;",
+        ],
+    );
+    for moved_test in [
+        "fn ui_v2_style_specificity_and_pseudo_state_are_resolved",
+        "fn ui_v2_surface_runtime_pseudo_state_restyles_from_retained_component_state",
+        "fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover",
+        "fn ui_v2_surface_property_mutation_updates_runtime_style_baseline_metadata",
+        "fn ui_v2_inline_style_overrides_cascade_values_in_style_overrides",
+    ] {
+        assert!(
+            !route.contains(moved_test),
+            "ui/tests/v2_asset/style_runtime.rs should delegate moved test {moved_test}"
+        );
+        assert!(
+            child_sources.contains(moved_test),
+            "style_runtime child sources should retain moved test {moved_test}"
+        );
+    }
+    for (_, path) in STYLE_RUNTIME_CHILDREN {
+        let source = read_runtime_src(path);
+        let line_count = source.lines().count();
+        assert!(
+            line_count < 800,
+            "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
+        );
+    }
+
+    for (label, source) in [
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("Runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("session note", session_note.as_str()),
+        ("status-output row data", status_rows.as_str()),
+        ("status map", status_map.as_str()),
+        ("date map", date_map.as_str()),
+    ] {
+        let expected_anchors: &[&str] = if label == "date map" {
+            &[STYLE_RUNTIME_STATUS_NAME, "2026-07-07"]
+        } else {
+            &[STYLE_RUNTIME_STATUS_NAME, STYLE_RUNTIME_STATUS_ID]
+        };
+        assert_contains_all(label, source, expected_anchors);
+    }
+    assert_contains_all(
+        "UI v2 style-runtime guard mirrors status anchors",
+        &format!("{runtime_15_plan}\n{runtime_index}\n{review_findings}\n{structure_convention}\n{module_doc}\n{session_note}\n{status_rows}"),
+        &[STYLE_RUNTIME_GUARD],
+    );
+}
+
+fn style_runtime_child_source_blob() -> String {
+    STYLE_RUNTIME_CHILDREN
+        .iter()
+        .map(|(_, path)| read_runtime_src(path))
+        .collect::<Vec<_>>()
+        .join("\n")
 }

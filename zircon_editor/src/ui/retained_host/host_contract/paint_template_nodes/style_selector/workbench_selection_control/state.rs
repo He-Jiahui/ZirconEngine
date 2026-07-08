@@ -1,4 +1,5 @@
 use super::model::WorkbenchSelectionControlKind;
+use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn family_for_kind(
@@ -27,8 +28,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_hot(
         state,
         UiPainterResolvedState::Hovered
             | UiPainterResolvedState::Pressed
-            | UiPainterResolvedState::Focused
             | UiPainterResolvedState::Dragging
             | UiPainterResolvedState::DropHovered
     )
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn selection_node_is_hot(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    node.hovered || node.pressed || node.dragging || node.drop_hovered || node.active_drag_target
 }

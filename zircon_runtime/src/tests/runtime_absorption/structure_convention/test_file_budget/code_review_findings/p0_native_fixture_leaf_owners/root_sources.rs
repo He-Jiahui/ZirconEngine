@@ -18,11 +18,34 @@ pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget:
     source
 }
 
+pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn p0_native_fixture_structure_guard_child_source_blob(
+) -> String {
+    let mut source = String::new();
+    source.push_str(&read_runtime_src(STRUCTURE_GUARD_OWNER));
+    source.push('\n');
+    for (path, child_source) in folder_backed_child_sources() {
+        source.push_str(path);
+        source.push('\n');
+        source.push_str(&child_source);
+        source.push('\n');
+    }
+    source.push_str(&read_runtime_src(P0_NATIVE_FIXTURE_ROOT_STATUSES_CHILD));
+    source.push('\n');
+    for path in [PARENT, SDK_MACRO_LEAF, IMPORTER_LEAF] {
+        source.push_str(path);
+        source.push('\n');
+        source.push_str(&read_runtime_src(path));
+        source.push('\n');
+    }
+    source
+}
+
 pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn p0_native_fixture_status_row_source(
 ) -> String {
     format!(
-        "{}\n{}\n{}",
+        "{}\n{}\n{}\n{}",
         read_runtime_src(REVIEW_GUARD_ROWS),
+        read_runtime_src(REVIEW_GUARD_P0_ROWS),
         read_runtime_src(STRUCTURE_GUARD_ROW_PARENT),
         read_runtime_src(STRUCTURE_GUARD_ROWS),
     )

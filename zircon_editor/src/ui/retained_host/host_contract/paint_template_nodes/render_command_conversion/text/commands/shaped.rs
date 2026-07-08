@@ -8,6 +8,8 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
     frame_from_ui, text_paint_style_from_font_weight,
 };
 
+use super::metrics::{resolved_font_size, resolved_line_height};
+
 pub(super) fn push_shaped_text_commands(
     output: &mut Vec<HostPaintCommand>,
     text: &UiTextPaint,
@@ -21,6 +23,21 @@ pub(super) fn push_shaped_text_commands(
     };
 
     for line in &shaped.lines {
+        if let Some(text_style) = uniform_cluster_text_style(line) {
+            output.push(HostPaintCommand::text(
+                frame_from_ui(line.frame),
+                clip_frame.clone(),
+                z_index,
+                line.text.clone(),
+                color,
+                resolved_font_size(text.font_size),
+                resolved_line_height(text.font_size, text.line_height),
+                text_style,
+                opacity,
+            ));
+            continue;
+        }
+
         if !line.clusters.is_empty() {
             push_shaped_line_cluster_commands(
                 output,
@@ -41,13 +58,33 @@ pub(super) fn push_shaped_text_commands(
             z_index,
             line.text.clone(),
             color,
-            text.font_size.max(1.0),
-            text.line_height.max(text.font_size).max(1.0),
+            resolved_font_size(text.font_size),
+            resolved_line_height(text.font_size, text.line_height),
             text_paint_style_from_font_weight(text.font_weight),
             opacity,
         ));
     }
     true
+}
+
+fn uniform_cluster_text_style(line: &UiShapedTextLine) -> Option<UiTextRunPaintStyle> {
+    let mut visible_cluster_count = 0;
+    let mut line_style = None;
+    for cluster in &line.clusters {
+        if cluster.text.is_empty() {
+            continue;
+        }
+
+        let cluster_style = UiTextRunPaintStyle::from_run_kind(cluster.kind);
+        if let Some(style) = line_style.replace(cluster_style) {
+            if style != cluster_style {
+                return None;
+            }
+        }
+        visible_cluster_count += 1;
+    }
+
+    (visible_cluster_count > 1).then_some(line_style?)
 }
 
 fn push_shaped_line_cluster_commands(
@@ -70,8 +107,8 @@ fn push_shaped_line_cluster_commands(
             z_index,
             cluster.text.clone(),
             color,
-            font_size.max(1.0),
-            line_height.max(font_size).max(1.0),
+            resolved_font_size(font_size),
+            resolved_line_height(font_size, line_height),
             UiTextRunPaintStyle::from_run_kind(cluster.kind),
             opacity,
         ));

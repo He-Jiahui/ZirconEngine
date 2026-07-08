@@ -1,4 +1,7 @@
-use super::*;
+use super::support::{
+    files_with_matching_line, matching_line_count, production_ui_file, read_repo_file,
+    rust_files_under, top_level_entry_names,
+};
 
 #[test]
 fn runtime_09_ui_architecture_doc_records_current_boundaries() {

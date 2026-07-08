@@ -1,5 +1,6 @@
 mod commands;
 mod identity;
+mod layers;
 mod text;
 mod thumb;
 mod track;

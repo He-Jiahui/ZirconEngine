@@ -55,7 +55,10 @@ pub(super) fn texture_desc_for(
     if !format.is_depth() {
         usage |= TextureUsage::STORAGE | TextureUsage::COPY_DST;
     }
-    let sample_count = if post_process_format.is_some() || name.contains("shadow") {
+    let sample_count = if post_process_format.is_some()
+        || is_single_sample_graph_product(name)
+        || name.contains("shadow")
+    {
         1
     } else {
         options.graph_msaa_sample_count(extract.view.camera.msaa_samples)
@@ -206,4 +209,8 @@ fn is_scene_color_resource(name: &str) -> bool {
         name,
         "scene-color" | "final-color" | "postprocess.terminal-aa-input" | "ambient-occlusion"
     ) || name.starts_with("gbuffer-")
+}
+
+fn is_single_sample_graph_product(name: &str) -> bool {
+    matches!(name, PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
 }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::core::math::UVec2;
 
 use super::render_plan::{GlyphAtlasDrawGlyph, GlyphAtlasScreenRect};
-use super::{GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasShelfAllocator};
+use super::{GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasSet, GlyphAtlasShelfAllocator};
 
 mod allocation;
 mod failure;
@@ -34,10 +34,14 @@ pub(crate) use retry::{
 };
 pub(crate) use staged_upload::{
     glyph_atlas_bitmap_prepared_upload_plan, glyph_atlas_bitmap_staged_upload_plan,
-    glyph_atlas_bitmap_texture_upload_request_plan, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapStagedUpload, GlyphAtlasBitmapStagedUploadFailure,
-    GlyphAtlasBitmapStagedUploadFailureReason, GlyphAtlasBitmapStagedUploadPlan,
-    GlyphAtlasBitmapTextureUploadRequest, GlyphAtlasBitmapTextureUploadRequestPlan,
+    glyph_atlas_bitmap_texture_upload_request_plan,
+    glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
+    glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,
+    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
+    GlyphAtlasBitmapRequeueReason, GlyphAtlasBitmapRequeuedUpload, GlyphAtlasBitmapStagedUpload,
+    GlyphAtlasBitmapStagedUploadFailure, GlyphAtlasBitmapStagedUploadFailureReason,
+    GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapTextureUploadRequest,
+    GlyphAtlasBitmapTextureUploadRequestPlan,
 };
 pub(crate) use staging::{
     glyph_atlas_bitmap_upload_staging_plan, GlyphAtlasBitmapPageUploadStaging,
@@ -45,8 +49,8 @@ pub(crate) use staging::{
     GlyphAtlasBitmapUploadStagingFailureReason, GlyphAtlasBitmapUploadStagingPlan,
 };
 pub(crate) use types::{
-    GlyphAtlasBitmapGlyph, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource,
-    GlyphAtlasBitmapUploadCopy,
+    GlyphAtlasBitmapGlyph, GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSlotInvalidation,
+    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadCopy,
 };
 
 pub(crate) const GLYPH_BITMAP_ATLAS_PADDING_PX: u32 = 2;
@@ -79,7 +83,52 @@ pub(crate) fn glyph_atlas_bitmap_run_plan_with_padding<I>(
 where
     I: IntoIterator<Item = GlyphAtlasBitmapSource>,
 {
-    let mut plan = GlyphAtlasBitmapRunPlan::default();
+    glyph_atlas_bitmap_run_plan_with_atlas_and_padding(
+        GlyphAtlasSet::default(),
+        sources,
+        page_size,
+        frame_index,
+        max_pages_per_format,
+        padding_px,
+    )
+}
+
+pub(crate) fn glyph_atlas_bitmap_run_plan_with_atlas<I>(
+    atlas: GlyphAtlasSet,
+    sources: I,
+    page_size: UVec2,
+    frame_index: u64,
+    max_pages_per_format: usize,
+) -> GlyphAtlasBitmapRunPlan
+where
+    I: IntoIterator<Item = GlyphAtlasBitmapSource>,
+{
+    glyph_atlas_bitmap_run_plan_with_atlas_and_padding(
+        atlas,
+        sources,
+        page_size,
+        frame_index,
+        max_pages_per_format,
+        GLYPH_BITMAP_ATLAS_PADDING_PX,
+    )
+}
+
+pub(crate) fn glyph_atlas_bitmap_run_plan_with_atlas_and_padding<I>(
+    mut atlas: GlyphAtlasSet,
+    sources: I,
+    page_size: UVec2,
+    frame_index: u64,
+    max_pages_per_format: usize,
+    padding_px: u32,
+) -> GlyphAtlasBitmapRunPlan
+where
+    I: IntoIterator<Item = GlyphAtlasBitmapSource>,
+{
+    atlas.begin_frame();
+    let mut plan = GlyphAtlasBitmapRunPlan {
+        atlas,
+        ..GlyphAtlasBitmapRunPlan::default()
+    };
     let mut allocators = BTreeMap::<GlyphAtlasPageKey, GlyphAtlasShelfAllocator>::new();
     let mut active_pages = BTreeMap::<GlyphAtlasFormat, GlyphAtlasPageKey>::new();
 

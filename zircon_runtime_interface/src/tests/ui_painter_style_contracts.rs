@@ -83,6 +83,147 @@ fn ui_painter_state_keeps_disabled_and_loading_priorities_explicit() {
 }
 
 #[test]
+fn ui_painter_state_keeps_drag_priority_above_focus() {
+    let focused_dragging = UiPainterState {
+        focused: true,
+        hovered: true,
+        dragging: true,
+        selected: true,
+        checked: true,
+        ..UiPainterState::normal()
+    };
+
+    for family in [
+        UiPainterFamily::Generic,
+        UiPainterFamily::IconButton,
+        UiPainterFamily::Dropdown,
+        UiPainterFamily::PopupRow,
+        UiPainterFamily::Alert,
+        UiPainterFamily::Tooltip,
+        UiPainterFamily::TextField,
+        UiPainterFamily::ListRow,
+        UiPainterFamily::TreeRow,
+        UiPainterFamily::TableRow,
+        UiPainterFamily::Tab,
+        UiPainterFamily::Toast,
+        UiPainterFamily::Chrome,
+    ] {
+        assert_selector(focused_dragging, family, UiPainterResolvedState::Dragging);
+    }
+
+    for family in [
+        UiPainterFamily::Toggle,
+        UiPainterFamily::Checkbox,
+        UiPainterFamily::Radio,
+        UiPainterFamily::Slider,
+    ] {
+        assert_selector(focused_dragging, family, UiPainterResolvedState::Dragging);
+    }
+
+    assert_selector(
+        focused_dragging,
+        UiPainterFamily::Button,
+        UiPainterResolvedState::Hovered,
+    );
+    assert_eq!(
+        focused_dragging.button_interaction_state(),
+        ButtonInteractionState::Hover
+    );
+}
+
+#[test]
+fn ui_painter_state_keeps_selection_identity_above_hover() {
+    let selected_hot = UiPainterState {
+        hovered: true,
+        drop_hovered: true,
+        selected: true,
+        ..UiPainterState::normal()
+    };
+
+    for family in [
+        UiPainterFamily::Generic,
+        UiPainterFamily::IconButton,
+        UiPainterFamily::Dropdown,
+        UiPainterFamily::PopupRow,
+        UiPainterFamily::Alert,
+        UiPainterFamily::Tooltip,
+        UiPainterFamily::TextField,
+        UiPainterFamily::ListRow,
+        UiPainterFamily::TreeRow,
+        UiPainterFamily::TableRow,
+        UiPainterFamily::Tab,
+        UiPainterFamily::Toast,
+        UiPainterFamily::Chrome,
+    ] {
+        assert_selector(selected_hot, family, UiPainterResolvedState::Selected);
+    }
+
+    for family in [
+        UiPainterFamily::Toggle,
+        UiPainterFamily::Checkbox,
+        UiPainterFamily::Radio,
+    ] {
+        assert_selector(selected_hot, family, UiPainterResolvedState::Selected);
+    }
+
+    let checked_hot = UiPainterState {
+        hovered: true,
+        drop_hovered: true,
+        checked: true,
+        ..UiPainterState::normal()
+    };
+
+    for family in [
+        UiPainterFamily::Generic,
+        UiPainterFamily::IconButton,
+        UiPainterFamily::Dropdown,
+        UiPainterFamily::PopupRow,
+        UiPainterFamily::Alert,
+        UiPainterFamily::Tooltip,
+        UiPainterFamily::TextField,
+        UiPainterFamily::ListRow,
+        UiPainterFamily::TreeRow,
+        UiPainterFamily::TableRow,
+        UiPainterFamily::Tab,
+        UiPainterFamily::Toast,
+        UiPainterFamily::Chrome,
+        UiPainterFamily::Toggle,
+        UiPainterFamily::Checkbox,
+        UiPainterFamily::Radio,
+    ] {
+        assert_selector(checked_hot, family, UiPainterResolvedState::Checked);
+    }
+
+    assert_selector(
+        selected_hot,
+        UiPainterFamily::Button,
+        UiPainterResolvedState::Focused,
+    );
+    assert_eq!(
+        selected_hot.button_interaction_state(),
+        ButtonInteractionState::Focused
+    );
+}
+
+#[test]
+fn ui_painter_state_keeps_open_above_selection_for_open_controls() {
+    let open_selected_hot = UiPainterState {
+        open: true,
+        hovered: true,
+        drop_hovered: true,
+        selected: true,
+        checked: true,
+        ..UiPainterState::normal()
+    };
+
+    assert_selector(
+        open_selected_hot,
+        UiPainterFamily::Dropdown,
+        UiPainterResolvedState::Open,
+    );
+}
+
+#[test]
 fn ui_painter_style_selector_is_canonical_for_all_workbench_families() {
     let disabled_over_everything = UiPainterState {
         disabled: true,

@@ -9,7 +9,15 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     let core_render_product = read_runtime_src("core/framework/tests/render_product_surface.rs");
     let core_phase_queue = read_runtime_src("core/framework/tests/phase_queue_summary.rs");
     let ui_v2_parent = read_runtime_src("ui/tests/v2_asset.rs");
-    let ui_v2_style = read_runtime_src("ui/tests/v2_asset/style_runtime.rs");
+    let ui_v2_style = [
+        read_runtime_src("ui/tests/v2_asset/style_runtime.rs"),
+        read_runtime_src("ui/tests/v2_asset/style_runtime/static_resolution.rs"),
+        read_runtime_src("ui/tests/v2_asset/style_runtime/runtime_pseudo_state.rs"),
+        read_runtime_src("ui/tests/v2_asset/style_runtime/resolved_pseudo_state.rs"),
+        read_runtime_src("ui/tests/v2_asset/style_runtime/property_mutation.rs"),
+        read_runtime_src("ui/tests/v2_asset/style_runtime/style_overrides.rs"),
+    ]
+    .join("\n");
     let ui_v2_file_cache = read_runtime_src("ui/tests/v2_asset/file_cache.rs");
     let ui_shared_parent = read_runtime_src("ui/tests/shared_core.rs");
     let ui_shared_layout = read_runtime_src("ui/tests/shared_core/layout_surface.rs");
@@ -26,7 +34,7 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/test_file_budget.rs",
     );
 
     assert_contains_all(
@@ -127,6 +135,11 @@ fn runtime_15_historical_oversized_test_roots_are_folder_backed() {
         "ui/tests/v2_asset/file_cache.rs",
         "ui/tests/v2_asset/range_controls.rs",
         "ui/tests/v2_asset/style_runtime.rs",
+        "ui/tests/v2_asset/style_runtime/static_resolution.rs",
+        "ui/tests/v2_asset/style_runtime/runtime_pseudo_state.rs",
+        "ui/tests/v2_asset/style_runtime/resolved_pseudo_state.rs",
+        "ui/tests/v2_asset/style_runtime/property_mutation.rs",
+        "ui/tests/v2_asset/style_runtime/style_overrides.rs",
         "ui/tests/shared_core.rs",
         "ui/tests/shared_core/box_flow.rs",
         "ui/tests/shared_core/input_visibility.rs",

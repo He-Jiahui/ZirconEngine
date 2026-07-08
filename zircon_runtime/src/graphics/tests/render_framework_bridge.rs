@@ -42,6 +42,7 @@ use super::plugin_render_feature_fixtures::{
 
 mod advanced_providers;
 mod history;
+mod hybrid_gi_visual_export;
 mod neural_compute;
 mod pipeline_profiles;
 mod stats;

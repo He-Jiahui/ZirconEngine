@@ -3,6 +3,9 @@ use super::super::sdf_upload::SdfAtlasUploadPageReport;
 use super::*;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
+#[path = "tests/native_bitmap_atlas.rs"]
+mod native_bitmap_atlas_tests;
+
 #[test]
 fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches() {
     let native = text_batch("Normal", UiTextRenderMode::Native);
@@ -123,8 +126,11 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
         ScreenSpaceUiNativePrepareReport {
             font_ids: ScreenSpaceUiTextFontIdReport::default(),
             bitmap_atlas: NativeBitmapAtlasPrepareReport {
+                frame_index: 0,
                 visible_raster_glyph_count: 2,
                 source_image_count: 1,
+                missing_raster_image_count: 0,
+                approximate_raster_image_count: 0,
                 unsupported_glyph_count: 1,
                 clipped_glyph_count: 0,
                 atlas_storage_format: Some(GlyphAtlasStorageFormat::R8Unorm),
@@ -133,6 +139,17 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 storage_submission_visible_glyph_count: 1,
                 mixed_storage_replacement_ready: false,
                 requires_background_composite: false,
+                background_composite_replacement_ready: false,
+                background_composite_glyph_count: 0,
+                missing_background_composite_glyph_count: 0,
+                source_cache: Default::default(),
+                retry_submission: Default::default(),
+                retry_state: Default::default(),
+                discarded_stale_retry_glyph_count: 0,
+                glyphon_fallback_reason: Some(
+                    native_bitmap_atlas::NativeBitmapAtlasGlyphonFallbackReason::UnsupportedGlyphFormat,
+                ),
+                first_frame_degradation: None,
                 replaces_glyphon: false,
                 submission: Default::default(),
             },
@@ -153,8 +170,11 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             sdf_fallback: ScreenSpaceUiTextSdfFallbackReport::default(),
             native_font_ids: ScreenSpaceUiTextFontIdReport::default(),
             native_bitmap_atlas: NativeBitmapAtlasPrepareReport {
+                frame_index: 0,
                 visible_raster_glyph_count: 2,
                 source_image_count: 1,
+                missing_raster_image_count: 0,
+                approximate_raster_image_count: 0,
                 unsupported_glyph_count: 1,
                 clipped_glyph_count: 0,
                 atlas_storage_format: Some(GlyphAtlasStorageFormat::R8Unorm),
@@ -163,6 +183,17 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 storage_submission_visible_glyph_count: 1,
                 mixed_storage_replacement_ready: false,
                 requires_background_composite: false,
+                background_composite_replacement_ready: false,
+                background_composite_glyph_count: 0,
+                missing_background_composite_glyph_count: 0,
+                source_cache: Default::default(),
+                retry_submission: Default::default(),
+                retry_state: Default::default(),
+                discarded_stale_retry_glyph_count: 0,
+                glyphon_fallback_reason: Some(
+                    native_bitmap_atlas::NativeBitmapAtlasGlyphonFallbackReason::UnsupportedGlyphFormat,
+                ),
+                first_frame_degradation: None,
                 replaces_glyphon: false,
                 submission: Default::default(),
             },
@@ -170,46 +201,6 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             sdf_atlas: atlas_report,
             sdf_renderer: sdf_report,
         }
-    );
-}
-
-#[test]
-fn native_bitmap_atlas_handoff_uses_single_storage_replacement() {
-    let report = NativeBitmapAtlasPrepareReport {
-        replaces_glyphon: true,
-        mixed_storage_replacement_ready: true,
-        ..NativeBitmapAtlasPrepareReport::default()
-    };
-
-    assert_eq!(
-        native_bitmap_atlas_handoff_for_report(&report),
-        NativeBitmapAtlasHandoff::SingleStorageReplacement
-    );
-}
-
-#[test]
-fn native_bitmap_atlas_handoff_routes_mixed_storage_to_renderer_submissions() {
-    let report = NativeBitmapAtlasPrepareReport {
-        mixed_storage_replacement_ready: true,
-        ..NativeBitmapAtlasPrepareReport::default()
-    };
-
-    assert_eq!(
-        native_bitmap_atlas_handoff_for_report(&report),
-        NativeBitmapAtlasHandoff::MixedStorageReplacement
-    );
-}
-
-#[test]
-fn native_bitmap_atlas_handoff_keeps_glyphon_for_background_composite() {
-    let report = NativeBitmapAtlasPrepareReport {
-        requires_background_composite: true,
-        ..NativeBitmapAtlasPrepareReport::default()
-    };
-
-    assert_eq!(
-        native_bitmap_atlas_handoff_for_report(&report),
-        NativeBitmapAtlasHandoff::GlyphonFallback
     );
 }
 
@@ -341,6 +332,7 @@ fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         source_range: None,
         glyph_advances: Vec::new(),
         color: [1.0, 1.0, 1.0, 1.0],
+        background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),
         font_family: Some("Zircon Sans".to_string()),
         font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,

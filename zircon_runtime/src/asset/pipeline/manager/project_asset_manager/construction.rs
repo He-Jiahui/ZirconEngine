@@ -6,6 +6,7 @@ use crate::core::CoreError;
 use super::super::builtins::resource_manager_with_builtins;
 use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
+use crate::asset::artifact::IblBakeArtifactCacheStore;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::{
     AssetWorkerPool, AssetWorkerPoolFrameSampler, AssetWorkerPoolOptions,
@@ -148,6 +149,13 @@ impl ProjectAssetManager {
 
     pub fn current_project_manager(&self) -> Option<ProjectManager> {
         self.project_read().clone()
+    }
+
+    pub fn ibl_bake_artifact_cache_store(&self) -> Option<IblBakeArtifactCacheStore> {
+        let project = self.project_read();
+        project
+            .as_ref()
+            .map(|project| IblBakeArtifactCacheStore::new(project.paths().runtime_cache_root()))
     }
 
     pub fn runtime_ref_count(&self, id: AssetId) -> Option<usize> {

@@ -136,6 +136,84 @@ fn icon_button_style_selector_uses_shared_state_priority() {
 }
 
 #[test]
+fn focused_toolbar_icon_button_keeps_normal_tile_and_glyph_with_focus_border() {
+    let mut node = icon_node(
+        "WorkbenchToolMove",
+        "zircon_editor_shell/toolbar/move.svg",
+        false,
+        40.0,
+        40.0,
+    );
+    node.focused = true;
+
+    let style = icon_button_style(&node, icon_button_context(&node));
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.surface));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.glyph, PALETTE.text);
+}
+
+#[test]
+fn focused_hovered_toolbar_icon_button_still_uses_hover_fill() {
+    let mut node = icon_node(
+        "WorkbenchToolMove",
+        "zircon_editor_shell/toolbar/move.svg",
+        false,
+        40.0,
+        40.0,
+    );
+    node.focused = true;
+    node.hovered = true;
+
+    let style = icon_button_style(&node, icon_button_context(&node));
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.surface_hover));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.glyph, PALETTE.text);
+}
+
+#[test]
+fn selected_focused_toolbar_icon_button_keeps_selected_surface_and_active_glyph() {
+    let mut node = icon_node(
+        "WorkbenchToolSelect",
+        "zircon_editor_shell/toolbar/select.svg",
+        true,
+        40.0,
+        40.0,
+    );
+    node.focused = true;
+
+    let style = icon_button_style(&node, icon_button_context(&node));
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, Some(PALETTE.surface_selected));
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.glyph, PALETTE.focus_ring);
+}
+
+#[test]
+fn focused_rail_icon_button_keeps_fillless_surface_and_muted_glyph() {
+    let mut node = icon_node(
+        "WorkbenchRailScene",
+        "zircon_editor_shell/activity/play.svg",
+        false,
+        48.0,
+        48.0,
+    );
+    node.focused = true;
+
+    let style = icon_button_style(&node, icon_button_context(&node));
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.background, None);
+    assert_eq!(style.border, Some(PALETTE.focus_ring));
+    assert_eq!(style.border_width, METRICS.border_width);
+    assert_eq!(style.glyph, PALETTE.text_muted);
+}
+
+#[test]
 fn asset_import_icon_button_uses_primary_accent_fill_with_theme_foreground() {
     let mut node = icon_node(
         "ImportModel",
@@ -159,6 +237,33 @@ fn asset_import_icon_button_uses_primary_accent_fill_with_theme_foreground() {
     assert_eq!(hovered.background, Some(PALETTE.focus_ring));
     assert_eq!(hovered.border, Some(PALETTE.focus_ring));
     assert_eq!(hovered.glyph, PALETTE.shell_background);
+}
+
+#[test]
+fn asset_import_icon_button_focus_keeps_primary_accent_fill() {
+    let mut node = icon_node(
+        "ImportModel",
+        "editor_pages/asset_browser/import_pipeline/import.svg",
+        false,
+        80.0,
+        28.0,
+    );
+    node.action_id = "workbench.asset.import_model".into();
+    node.component_variant = "workbench-icon-button".into();
+    node.focused = true;
+
+    let focused = icon_button_style(&node, icon_button_context(&node));
+
+    assert_eq!(focused.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused.background, Some(PALETTE.accent));
+    assert_eq!(focused.border, Some(PALETTE.accent));
+    assert_eq!(focused.glyph, PALETTE.shell_background);
+
+    node.hovered = true;
+    let focused_hovered = icon_button_style(&node, icon_button_context(&node));
+    assert_eq!(focused_hovered.state, UiPainterResolvedState::Focused);
+    assert_eq!(focused_hovered.background, Some(PALETTE.focus_ring));
+    assert_eq!(focused_hovered.border, Some(PALETTE.focus_ring));
 }
 
 #[test]

@@ -8,4 +8,5 @@ pub enum RenderImageDimension {
     #[default]
     D2,
     D3,
+    Cube,
 }

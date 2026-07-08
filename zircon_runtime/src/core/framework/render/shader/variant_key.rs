@@ -59,6 +59,7 @@ impl ShaderFeatureBits {
     pub const DOUBLE_SIDED: u32 = 1 << 2;
     pub const LOD_DITHER_CROSSFADE: u32 = 1 << 3;
     pub const INSTANCED_PREV_TRANSFORM: u32 = 1 << 4;
+    pub const HAS_NORMAL_TEXTURE: u32 = 1 << 5;
 
     pub const fn new(bits: u32) -> Self {
         Self(bits)

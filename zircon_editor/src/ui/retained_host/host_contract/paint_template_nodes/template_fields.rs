@@ -1,6 +1,7 @@
 mod commands;
 mod geometry;
 mod identity;
+mod layers;
 mod metrics;
 mod search;
 mod style;

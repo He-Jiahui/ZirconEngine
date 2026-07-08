@@ -1,5 +1,12 @@
 use super::*;
-use crate::core::math::UVec2;
+use crate::core::framework::render::{
+    EnvironmentExtract, GridOverlayExtract, PreviewEnvironmentExtract, RenderFrameExtract,
+    RenderOverlayExtract, RenderParticleGpuFrameExtract, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+};
+use crate::core::math::{UVec2, Vec4};
+use crate::graphics::types::ViewportRenderFrame;
+use crate::render_graph::RenderGraphAttachmentOps;
 use crate::ui::text::layout_text;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::surface::{
@@ -8,6 +15,8 @@ use zircon_runtime_interface::ui::surface::{
     UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
     UiTextRunKind, UiTextSelection, UiTextWrap, UiTextWritingMode,
 };
+
+mod background;
 
 #[test]
 fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
@@ -45,7 +54,268 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
     assert_eq!(plan.draws.len(), 1);
     assert_eq!(plan.native_texts.len(), 1);
     assert_eq!(plan.native_texts[0].font_weight, 650);
+    assert_eq!(
+        plan.native_texts[0].background_color,
+        Some([
+            0x11 as f32 / 255.0,
+            0x22 as f32 / 255.0,
+            0x33 as f32 / 255.0,
+            1.0,
+        ])
+    );
     assert!(plan.sdf_texts.is_empty());
+}
+
+#[test]
+fn screen_space_ui_plan_infers_text_background_from_prior_opaque_quad() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui"),
+            list: UiRenderList {
+                commands: vec![
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(12),
+                        kind: UiRenderCommandKind::Quad,
+                        frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: UiResolvedStyle {
+                            background_color: Some("#203040".to_string()),
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: None,
+                        image: None,
+                        opacity: 1.0,
+                    },
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(13),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                        clip_frame: None,
+                        z_index: 1,
+                        style: UiResolvedStyle {
+                            foreground_color: Some("#ddeeff".to_string()),
+                            text_render_mode: UiTextRenderMode::Native,
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: Some("Panel label".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    },
+                ],
+            },
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(
+        plan.native_texts[0].background_color,
+        Some([
+            0x20 as f32 / 255.0,
+            0x30 as f32 / 255.0,
+            0x40 as f32 / 255.0,
+            1.0,
+        ])
+    );
+}
+
+#[test]
+fn screen_space_ui_plan_keeps_inherited_background_unknown_after_transparent_overlay() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui"),
+            list: UiRenderList {
+                commands: vec![
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(14),
+                        kind: UiRenderCommandKind::Quad,
+                        frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: UiResolvedStyle {
+                            background_color: Some("#203040".to_string()),
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: None,
+                        image: None,
+                        opacity: 1.0,
+                    },
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(15),
+                        kind: UiRenderCommandKind::Quad,
+                        frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
+                        clip_frame: None,
+                        z_index: 1,
+                        style: UiResolvedStyle {
+                            background_color: Some("#ffffff80".to_string()),
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: None,
+                        image: None,
+                        opacity: 1.0,
+                    },
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(16),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                        clip_frame: None,
+                        z_index: 2,
+                        style: UiResolvedStyle {
+                            foreground_color: Some("#ddeeff".to_string()),
+                            text_render_mode: UiTextRenderMode::Native,
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: Some("Overlay label".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    },
+                ],
+            },
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].background_color, None);
+}
+
+#[test]
+fn screen_space_ui_plan_keeps_transparent_text_background_unknown_with_prior_quad() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui"),
+            list: UiRenderList {
+                commands: vec![
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(17),
+                        kind: UiRenderCommandKind::Quad,
+                        frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: UiResolvedStyle {
+                            background_color: Some("#203040".to_string()),
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: None,
+                        image: None,
+                        opacity: 1.0,
+                    },
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(18),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                        clip_frame: None,
+                        z_index: 1,
+                        style: UiResolvedStyle {
+                            background_color: Some("#11223380".to_string()),
+                            foreground_color: Some("#ddeeff".to_string()),
+                            text_render_mode: UiTextRenderMode::Native,
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: Some("Transparent label".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    },
+                ],
+            },
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].background_color, None);
+}
+
+#[test]
+fn screen_space_ui_plan_infers_text_background_from_framebuffer_background() {
+    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(19),
+                    kind: UiRenderCommandKind::Text,
+                    frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style: UiResolvedStyle {
+                        foreground_color: Some("#ddeeff".to_string()),
+                        text_render_mode: UiTextRenderMode::Native,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: Some("Clear label".to_string()),
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+        },
+        UVec2::new(200, 100),
+        Some([0.02, 0.03, 0.04, 1.0]),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(
+        plan.native_texts[0].background_color,
+        Some([0.02, 0.03, 0.04, 1.0])
+    );
+}
+
+#[test]
+fn screen_space_ui_plan_blocks_framebuffer_background_after_transparent_overlay() {
+    let plan = plan_screen_space_ui_batches_with_framebuffer_background(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui"),
+            list: UiRenderList {
+                commands: vec![
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(20),
+                        kind: UiRenderCommandKind::Quad,
+                        frame: UiFrame::new(0.0, 0.0, 180.0, 60.0),
+                        clip_frame: None,
+                        z_index: 0,
+                        style: UiResolvedStyle {
+                            background_color: Some("#ffffff80".to_string()),
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: None,
+                        image: None,
+                        opacity: 1.0,
+                    },
+                    UiRenderCommand {
+                        node_id: UiNodeId::new(21),
+                        kind: UiRenderCommandKind::Text,
+                        frame: UiFrame::new(16.0, 12.0, 80.0, 20.0),
+                        clip_frame: None,
+                        z_index: 1,
+                        style: UiResolvedStyle {
+                            foreground_color: Some("#ddeeff".to_string()),
+                            text_render_mode: UiTextRenderMode::Native,
+                            ..UiResolvedStyle::default()
+                        },
+                        text_layout: None,
+                        text: Some("Overlay label".to_string()),
+                        image: None,
+                        opacity: 1.0,
+                    },
+                ],
+            },
+        },
+        UVec2::new(200, 100),
+        Some([0.02, 0.03, 0.04, 1.0]),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].background_color, None);
 }
 
 #[test]

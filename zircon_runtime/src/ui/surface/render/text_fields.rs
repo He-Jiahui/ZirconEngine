@@ -84,6 +84,7 @@ pub(super) fn text_field_render_commands(
 struct TextFieldRenderState {
     family: UiPainterFamily,
     visual_state: UiPainterResolvedState,
+    surface_hot: bool,
 }
 
 impl TextFieldRenderState {
@@ -96,9 +97,12 @@ impl TextFieldRenderState {
             UiRenderPainterStateSource::new(Some(metadata), state_flags, component_state)
                 .painter_state();
         let family = UiPainterFamily::TextField;
+        let surface_hot =
+            painter_state.hovered || painter_state.dragging || painter_state.drop_hovered;
         Self {
             family,
             visual_state: painter_state.resolved_state_for_family(family),
+            surface_hot,
         }
     }
 
@@ -118,13 +122,7 @@ impl TextFieldRenderState {
     }
 
     fn hot(self) -> bool {
-        matches!(
-            self.visual_state,
-            UiPainterResolvedState::Hovered
-                | UiPainterResolvedState::Focused
-                | UiPainterResolvedState::Dragging
-                | UiPainterResolvedState::DropHovered
-        )
+        self.surface_hot
     }
 }
 

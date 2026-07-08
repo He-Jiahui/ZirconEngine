@@ -129,8 +129,28 @@ mod tests {
             .contains("let direct_lights = gpu_light_lighting(input.clip_position.xy"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_pbr_indirect"));
         assert!(FALLBACK_MESH_SHADER.contains("scene.environment_sample_params.x"));
-        assert!(FALLBACK_MESH_SHADER.contains("zr_environment_samples.samples[index].rgb"));
+        assert!(FALLBACK_MESH_SHADER.contains("scene.environment_sh9[0].rgb"));
+        assert!(FALLBACK_MESH_SHADER.contains("override ZR_ENV_DIFFUSE_IEM: bool = false;"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("@group(0) @binding(2) var zr_environment_sampler: sampler;"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;"));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;"
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains("textureSampleLevel("));
+        assert!(FALLBACK_MESH_SHADER.contains("zr_environment_source_cube"));
+        assert!(FALLBACK_MESH_SHADER.contains("zr_environment_specular_pmrem_cube"));
+        assert!(FALLBACK_MESH_SHADER.contains("zr_environment_irradiance_cube"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_mip_from_roughness"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_sh9_eval"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_irradiance_cube_color"));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_env_brdf_lut"));
         assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_env_brdf_approx"));
         assert!(FALLBACK_MESH_SHADER
             .contains("material.shading_model_id == ZR_SHADING_MODEL_STANDARD_PBR_ID"));
@@ -234,8 +254,9 @@ mod tests {
             FALLBACK_MESH_SHADER.contains("@group(2) @binding(10) var emissive_sampler: sampler;")
         );
         assert!(FALLBACK_MESH_SHADER.contains("material_properties.data0.x * metallic_roughness.b"));
-        assert!(FALLBACK_MESH_SHADER
-            .contains("roughness = clamp(roughness * metallic_roughness.g, 0.04, 1.0);"));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "roughness = clamp(roughness * metallic_roughness.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);"
+        ));
         assert!(FALLBACK_MESH_SHADER.contains(
             "let base_color_uv = transform_material_uv_channel(input.uv, input.uv1, material_properties.data2, material_properties.data7.x);"
         ));

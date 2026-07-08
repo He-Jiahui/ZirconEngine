@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_axis_value_field_style::axis_field_text_color;
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use super::metrics::axis_value_field_metrics;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_axis_field_value(
@@ -17,20 +17,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
         return;
     }
 
-    let line_height = METRICS.line_height(METRICS.font_body);
+    let metrics = axis_value_field_metrics();
     commands.push(HostPaintCommand::text(
         FrameRect {
-            x: field.x + METRICS.input_pad[0],
-            y: field.y + (field.height - line_height).max(0.0) * 0.5,
-            width: (field.width - METRICS.input_pad[0] * 2.0).max(1.0),
-            height: line_height,
+            x: field.x + metrics.text_inset_x,
+            y: field.y + (field.height - metrics.line_height).max(0.0) * 0.5,
+            width: (field.width - metrics.text_inset_x * 2.0).max(1.0),
+            height: metrics.line_height,
         },
         Some(clip.clone()),
         order,
         value.to_string(),
         axis_field_text_color(node),
-        METRICS.font_body,
-        line_height,
+        metrics.font_size,
+        metrics.line_height,
         UiTextRunPaintStyle::default(),
         opacity,
     ));

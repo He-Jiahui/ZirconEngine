@@ -107,7 +107,7 @@ impl HybridGiRuntimeState {
             probe_hierarchy_rt_lighting_rgb_and_weight.insert(probe_id, encoded);
         }
 
-        let probe_scene_data = self
+        let mut probe_scene_data = self
             .probe_scene_data()
             .iter()
             .filter_map(|(&probe_id, scene_data)| {
@@ -121,7 +121,25 @@ impl HybridGiRuntimeState {
                     ),
                 ))
             })
-            .collect();
+            .collect::<BTreeMap<_, _>>();
+        if self.scene_representation_owns_runtime() {
+            for probe in self
+                .scene_representation()
+                .screen_probe_runtime_descriptors()
+                .into_iter()
+                .filter(|probe| tracked_probe_ids.contains(&probe.probe_id()))
+            {
+                let bounds_center = probe.bounds_center();
+                probe_scene_data.entry(probe.probe_id()).or_insert_with(|| {
+                    HybridGiResolveProbeSceneData::new(
+                        quantize_signed(bounds_center.x),
+                        quantize_signed(bounds_center.y),
+                        quantize_signed(bounds_center.z),
+                        quantize_positive(probe.bounds_radius(), POSITIVE_RADIUS_SCALE),
+                    )
+                });
+            }
+        }
         let trace_region_scene_data = self
             .scheduled_trace_region_ids()
             .iter()
@@ -193,6 +211,15 @@ impl HybridGiRuntimeState {
     }
 
     fn tracked_runtime_probe_ids(&self) -> Vec<u32> {
+        let scene_screen_probe_ids = if self.scene_representation_owns_runtime() {
+            self.scene_representation()
+                .screen_probe_runtime_descriptors()
+                .into_iter()
+                .map(|probe| probe.probe_id())
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
         let seed_probe_ids = self
             .resident_probe_ids()
             .chain(self.pending_probe_ids())
@@ -208,6 +235,7 @@ impl HybridGiRuntimeState {
                     .into_iter()
                     .flatten(),
             )
+            .chain(scene_screen_probe_ids)
             .collect::<BTreeSet<_>>();
         let mut tracked_probe_ids = seed_probe_ids.clone();
         for probe_id in seed_probe_ids {
@@ -1113,6 +1141,14 @@ fn dequantize_signed(value: u32) -> f32 {
 
 fn dequantize_positive(value: u32, scale: f32) -> f32 {
     value as f32 / scale
+}
+
+fn quantize_signed(value: f32) -> u32 {
+    ((value * SIGNED_POSITION_SCALE).round() as i32).wrapping_add(SIGNED_POSITION_BIAS) as u32
+}
+
+fn quantize_positive(value: f32, scale: f32) -> u32 {
+    (value.max(0.0) * scale).round() as u32
 }
 
 fn preferred_surface_cache_sample_rgb_and_quality(

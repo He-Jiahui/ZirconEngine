@@ -13,7 +13,7 @@ impl SceneRendererCore {
         color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
     ) -> Result<(), GraphicsError> {
-        self.write_scene_uniform(queue, frame);
+        self.write_scene_uniform(device, queue, frame);
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-scene-encoder"),
         });

@@ -7,13 +7,15 @@ mod clip_rect;
 mod entry;
 mod glyphs;
 mod layout;
+mod metrics;
 mod placement;
 mod recording;
 
 use self::clip_rect::resolve_text_pixel_clip;
 use self::glyphs::draw_layout_glyphs;
 use self::layout::layout_text_run;
-use self::recording::{clamped_text_metrics, record_text_run};
+use self::metrics::clamped_text_metrics;
+use self::recording::record_text_run;
 
 pub(in crate::ui::retained_host::host_contract) use entry::{
     draw_text, draw_text_with_size_and_style,

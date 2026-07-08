@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::GPU_MATERIAL_UNIFORM_MIN_SIZE;
+use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
 const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
 const TEST_SKINNED_JOINT_MATRIX_BYTES: u64 = 64;
@@ -28,32 +29,10 @@ pub(crate) fn create_standard_mesh_pipeline_layout(
 }
 
 fn create_test_scene_layout(device: &wgpu::Device, label: &str) -> wgpu::BindGroupLayout {
+    let scene_layout_entries = scene_bind_group_layout_entries();
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some(&format!("zircon-test-{label}-scene-layout")),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX
-                    | wgpu::ShaderStages::FRAGMENT
-                    | wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-        ],
+        entries: &scene_layout_entries,
     })
 }
 

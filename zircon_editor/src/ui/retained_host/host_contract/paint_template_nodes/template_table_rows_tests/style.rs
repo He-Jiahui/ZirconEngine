@@ -19,10 +19,19 @@ fn workbench_table_row_style_uses_shared_state_priority() {
     assert_eq!(pressed.text_for_cell(0), PALETTE.text);
 
     node.pressed = false;
+    node.hovered = false;
     let focused = table_row_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused.background, TABLE_HOVER_BG);
+    assert_eq!(focused.background, PALETTE.surface_inset);
+    assert_ne!(focused.background, TABLE_HOVER_BG);
     assert_eq!(focused.border, Some(PALETTE.focus_ring));
+
+    node.focused = false;
+    node.hovered = true;
+    let hovered = table_row_style(&node);
+    assert_eq!(hovered.state, UiPainterResolvedState::Hovered);
+    assert_eq!(hovered.background, TABLE_HOVER_BG);
+    assert_eq!(hovered.border, None);
 
     node.disabled = true;
     let disabled = table_row_style(&node);

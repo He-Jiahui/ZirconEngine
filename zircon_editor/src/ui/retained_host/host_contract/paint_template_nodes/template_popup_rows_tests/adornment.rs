@@ -2,7 +2,9 @@ use super::super::super::style_selector::WORKBENCH_POPUP_ROW_DANGER_TEXT as POPU
 use super::super::super::template_popup_row_adornments::{
     menu_item_flag_value, PopupRowAdornmentKind,
 };
-use super::super::{menu_item_has_flag, menu_row_adornment_kind, popup_menu_row_style};
+use super::super::{
+    menu_item_has_flag, menu_row_adornment_kind, popup_menu_row_style, popup_row_content_style,
+};
 use super::support::menu_item;
 
 #[test]
@@ -28,9 +30,7 @@ fn menu_item_adornment_kind_reads_icon_danger_and_submenu_flags() {
         menu_row_adornment_kind(&save),
         Some(PopupRowAdornmentKind::Save)
     );
-    assert_eq!(popup_menu_row_style(&delete).text, POPUP_ROW_DANGER_TEXT);
-    assert_eq!(
-        popup_menu_row_style(&delete).adornment,
-        POPUP_ROW_DANGER_TEXT
-    );
+    let content_style = popup_row_content_style(&popup_menu_row_style(&delete));
+    assert_eq!(content_style.text, POPUP_ROW_DANGER_TEXT);
+    assert_eq!(content_style.adornment, POPUP_ROW_DANGER_TEXT);
 }

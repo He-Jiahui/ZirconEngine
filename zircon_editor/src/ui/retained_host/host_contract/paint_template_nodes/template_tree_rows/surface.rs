@@ -1,6 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::super::template_tree_row_geometry::{tree_guide_color, tree_guide_x, tree_row_radius};
+use super::super::template_tree_row_geometry::{
+    tree_guide_color, tree_guide_opacity, tree_guide_rect, tree_row_radius,
+};
 use super::style::{tree_row_background, tree_row_border, tree_row_border_width};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_row_surface(
@@ -36,22 +38,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
 ) {
     let depth = node.tree_depth.max(0) as usize;
     let guide_color = tree_guide_color();
+    let guide_opacity = tree_guide_opacity();
     for level in 0..depth {
-        let guide_x = tree_guide_x(rect, level);
         commands.push(HostPaintCommand::quad(
-            FrameRect {
-                x: guide_x,
-                y: rect.y - 1.0,
-                width: 1.0,
-                height: rect.height + 2.0,
-            },
+            tree_guide_rect(rect, level),
             Some(clip.clone()),
             order,
             Some(guide_color),
             None,
             0.0,
             0.0,
-            opacity * 0.78,
+            opacity * guide_opacity,
         ));
     }
 }

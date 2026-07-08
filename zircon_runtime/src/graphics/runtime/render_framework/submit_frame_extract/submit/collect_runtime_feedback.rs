@@ -126,6 +126,7 @@ fn append_hybrid_gi_scene_prepare_readback(
         occupied_capture_slots,
         atlas_samples,
         capture_samples,
+        surface_cache_depth_samples,
         voxel_clipmap_ids,
         voxel_samples,
         voxel_occupancy,
@@ -134,6 +135,8 @@ fn append_hybrid_gi_scene_prepare_readback(
         voxel_cell_samples,
         voxel_cell_dominant_nodes,
         voxel_cell_dominant_samples,
+        probe_trace_tiles,
+        probe_trace_dispatch,
         texture_width,
         texture_height,
         texture_layers,
@@ -147,6 +150,9 @@ fn append_hybrid_gi_scene_prepare_readback(
         .extend(occupied_capture_slots);
     renderer_outputs.atlas_samples.extend(atlas_samples);
     renderer_outputs.capture_samples.extend(capture_samples);
+    renderer_outputs
+        .surface_cache_depth_samples
+        .extend(surface_cache_depth_samples);
     renderer_outputs.voxel_clipmap_ids.extend(voxel_clipmap_ids);
     renderer_outputs.voxel_samples.extend(voxel_samples);
     renderer_outputs.voxel_occupancy.extend(voxel_occupancy);
@@ -163,6 +169,12 @@ fn append_hybrid_gi_scene_prepare_readback(
     renderer_outputs
         .voxel_cell_dominant_samples
         .extend(voxel_cell_dominant_samples);
+    renderer_outputs.probe_trace_tiles.extend(probe_trace_tiles);
+    renderer_outputs.probe_trace_dispatch = [
+        renderer_outputs.probe_trace_dispatch[0].max(probe_trace_dispatch[0]),
+        renderer_outputs.probe_trace_dispatch[1].max(probe_trace_dispatch[1]),
+        renderer_outputs.probe_trace_dispatch[2].max(probe_trace_dispatch[2]),
+    ];
     renderer_outputs.texture_width = renderer_outputs.texture_width.max(texture_width);
     renderer_outputs.texture_height = renderer_outputs.texture_height.max(texture_height);
     renderer_outputs.texture_layers = renderer_outputs.texture_layers.max(texture_layers);

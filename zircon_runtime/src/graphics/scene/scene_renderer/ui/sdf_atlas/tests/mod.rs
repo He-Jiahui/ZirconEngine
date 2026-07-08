@@ -26,6 +26,7 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         source_range: None,
         glyph_advances: Vec::new(),
         color: [1.0, 1.0, 1.0, 1.0],
+        background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),
         font_family: Some("Zircon Sans".to_string()),
         font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,

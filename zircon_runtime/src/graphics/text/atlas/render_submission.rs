@@ -6,6 +6,7 @@ mod report;
 mod retry;
 
 pub(crate) use frame_driver::{
+    glyph_atlas_bitmap_retry_frame_driver_submit_with_atlas_and_config,
     glyph_atlas_bitmap_retry_frame_driver_submit_with_config,
     GlyphAtlasBitmapRetryFrameDriverConfig, GlyphAtlasBitmapRetryFrameDriverOutput,
 };
@@ -18,6 +19,8 @@ pub(crate) use placeholder::{
 };
 pub(crate) use plan::{
     glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas_and_padding,
     glyph_atlas_bitmap_render_submission_plan_with_padding, GlyphAtlasBitmapRenderSubmissionPlan,
 };
 pub(crate) use report::{

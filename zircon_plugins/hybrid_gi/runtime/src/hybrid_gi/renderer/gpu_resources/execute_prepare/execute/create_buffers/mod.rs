@@ -1,6 +1,8 @@
+mod scene_prepare_depth_samples;
 mod scene_prepare_descriptors;
 mod scene_prepare_resources;
 mod scene_prepare_textures;
+mod scene_prepare_trace_tiles;
 mod scene_prepare_voxel_samples;
 
 use super::super::super::buffer_helpers::{
@@ -132,6 +134,7 @@ pub(super) fn create_buffers(
         pending_probe_buffer,
         trace_region_buffer,
         scene_prepare_descriptor_buffer,
+        scene_prepare_descriptor_count: scene_prepare_descriptors.len(),
         completed_probe_buffer,
         completed_trace_buffer,
         completed_probe_readback,

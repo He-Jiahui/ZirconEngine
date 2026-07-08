@@ -18,6 +18,7 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
         read_runtime_src("tests/runtime_absorption/dynamic_scene/session_load_query_path.rs");
     let asset_reload_selection_status =
         read_runtime_src("tests/runtime_absorption/dynamic_scene/asset_reload_selection_status.rs");
+    let sources = read_runtime_src("tests/runtime_absorption/dynamic_scene/sources.rs");
 
     assert_contains_all(
         "dynamic-scene absorption parent mounts folder-backed children and shared sources",
@@ -30,15 +31,22 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
             "mod session_capture_persistence;",
             "mod session_load_query_path;",
             "mod session_retention_mutation_merge;",
-            "const PATCH_SOURCE",
-            "const RUNTIME_05_PLAN",
-            "const DYNAMIC_SCENE_DOC",
+            "mod sources;",
         ],
     );
     assert_eq!(
         parent.matches("#[test]").count(),
         0,
         "tests/runtime_absorption/dynamic_scene.rs should only mount child owners and shared include_str sources"
+    );
+    assert_contains_all(
+        "dynamic-scene absorption sources child owns shared include_str constants",
+        &sources,
+        &[
+            "pub(super) const PATCH_SOURCE",
+            "pub(super) const RUNTIME_05_PLAN",
+            "pub(super) const DYNAMIC_SCENE_DOC",
+        ],
     );
     assert!(
         !parent.contains("fn runtime_05_dynamic_scene_patch_preview_api_stays_read_only"),
@@ -155,6 +163,10 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
         (
             "tests/runtime_absorption/dynamic_scene/asset_reload_selection_status.rs",
             asset_reload_selection_status.as_str(),
+        ),
+        (
+            "tests/runtime_absorption/dynamic_scene/sources.rs",
+            sources.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

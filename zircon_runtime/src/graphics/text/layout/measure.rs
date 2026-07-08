@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::{layout::UiSize, surface::UiResolvedStyle};
 
 use crate::core::framework::render::{ShapedGlyph, ShapedGlyphRun};
-use crate::graphics::text::shaping::shape_horizontal_line_with_kerning as shape_backend_horizontal_line_with_kerning;
+use crate::graphics::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use zircon_runtime_interface::ui::surface::{UiTextDirection, UiTextRange};
 
 use super::tab::tab_aligned_width;
@@ -17,30 +19,71 @@ pub(crate) struct TextLineMetrics {
 }
 
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
-    let metrics = line_metrics(style);
+    let mut provider = DirectTextShapeRunProvider;
+    measure_text_size_with_provider(text, style, &mut provider)
+}
+
+pub(crate) fn measure_text_size_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> UiSize
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let metrics = line_metrics_with_provider(style, provider);
     let width = text
         .lines()
-        .map(|line| measure_line_width(line, style))
+        .map(|line| measure_line_width_with_provider(line, style, provider))
         .fold(0.0_f32, f32::max);
     let line_count = text.lines().count().max(1) as f32;
     UiSize::new(width, metrics.line_height * line_count)
 }
 
 pub(crate) fn measure_line_width(text: &str, style: &UiResolvedStyle) -> f32 {
+    let mut provider = DirectTextShapeRunProvider;
+    measure_line_width_with_provider(text, style, &mut provider)
+}
+
+pub(crate) fn measure_line_width_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> f32
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     if text.is_empty() {
         return 0.0;
     }
 
     if !text.contains('\t') {
-        return shape_line(text, style).width;
+        return shape_line_with_provider(text, style, provider).width;
     }
 
-    let grapheme_widths = measured_grapheme_widths(text, style);
-    tab_aligned_width(text, &grapheme_widths, style, shape_line(" ", style).width)
+    let grapheme_widths = measured_grapheme_widths_with_provider(text, style, provider);
+    tab_aligned_width(
+        text,
+        &grapheme_widths,
+        style,
+        shape_line_with_provider(" ", style, provider).width,
+    )
 }
 
 pub(crate) fn measured_grapheme_widths(text: &str, style: &UiResolvedStyle) -> Vec<f32> {
-    let shaped = shape_unconstrained_line(text, style);
+    let mut provider = DirectTextShapeRunProvider;
+    measured_grapheme_widths_with_provider(text, style, &mut provider)
+}
+
+pub(crate) fn measured_grapheme_widths_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> Vec<f32>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let shaped = shape_unconstrained_line_with_provider(text, style, provider);
     text.grapheme_indices(true)
         .map(|(start, grapheme)| {
             let end = start + grapheme.len();
@@ -54,20 +97,55 @@ pub(crate) fn measure_text_source_range_width(
     style: &UiResolvedStyle,
     range: UiTextRange,
 ) -> f32 {
-    measure_text_source_range_width_with_kerning(text, style, range, true)
+    let mut provider = DirectTextShapeRunProvider;
+    measure_text_source_range_width_with_provider(text, style, range, &mut provider)
 }
 
+pub(crate) fn measure_text_source_range_width_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    range: UiTextRange,
+    provider: &mut P,
+) -> f32
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    measure_text_source_range_width_with_kerning_and_provider(text, style, range, true, provider)
+}
+
+#[cfg(test)]
 pub(crate) fn measure_text_source_range_width_with_kerning(
     text: &str,
     style: &UiResolvedStyle,
     range: UiTextRange,
     include_kerning: bool,
 ) -> f32 {
+    let mut provider = DirectTextShapeRunProvider;
+    measure_text_source_range_width_with_kerning_and_provider(
+        text,
+        style,
+        range,
+        include_kerning,
+        &mut provider,
+    )
+}
+
+pub(crate) fn measure_text_source_range_width_with_kerning_and_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    range: UiTextRange,
+    include_kerning: bool,
+    provider: &mut P,
+) -> f32
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     if text.is_empty() || range.start >= range.end {
         return 0.0;
     }
 
-    let shaped = shape_unconstrained_line_with_kerning(text, style, include_kerning);
+    let shaped =
+        shape_unconstrained_line_with_kerning_and_provider(text, style, include_kerning, provider);
     measured_width(&shaped, range.start, range.end, include_kerning)
 }
 
@@ -104,16 +182,29 @@ pub(crate) fn measured_width(
         .fold(0.0_f32, f32::max)
 }
 
-pub(crate) fn line_metrics(style: &UiResolvedStyle) -> TextLineMetrics {
+pub(crate) fn line_metrics_with_provider<P>(
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> TextLineMetrics
+where
+    P: TextShapeRunProvider + ?Sized,
+{
     let requested_line_height = resolved_line_height(style);
-    let mut metrics = shape_line(DEFAULT_METRICS_SAMPLE, style);
+    let mut metrics = shape_line_with_provider(DEFAULT_METRICS_SAMPLE, style, provider);
     metrics.line_height = requested_line_height.max(metrics.line_height);
     metrics.baseline = metrics.baseline.clamp(0.0, metrics.line_height);
     metrics
 }
 
-fn shape_line(text: &str, style: &UiResolvedStyle) -> TextLineMetrics {
-    let shaped = shape_unconstrained_line(text, style);
+fn shape_line_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> TextLineMetrics
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    let shaped = shape_unconstrained_line_with_provider(text, style, provider);
     shaped.lines.first().map_or(
         TextLineMetrics {
             width: 0.0,
@@ -128,16 +219,48 @@ fn shape_line(text: &str, style: &UiResolvedStyle) -> TextLineMetrics {
     )
 }
 
+#[cfg(test)]
 fn shape_unconstrained_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphRun {
     shape_unconstrained_line_with_kerning(text, style, true)
 }
 
+fn shape_unconstrained_line_with_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    provider: &mut P,
+) -> Arc<ShapedGlyphRun>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    shape_unconstrained_line_with_kerning_and_provider(text, style, true, provider)
+}
+
+#[cfg(test)]
 fn shape_unconstrained_line_with_kerning(
     text: &str,
     style: &UiResolvedStyle,
     include_kerning: bool,
 ) -> ShapedGlyphRun {
-    shape_horizontal_line_with_kerning(
+    let mut provider = DirectTextShapeRunProvider;
+    (*shape_unconstrained_line_with_kerning_and_provider(
+        text,
+        style,
+        include_kerning,
+        &mut provider,
+    ))
+    .clone()
+}
+
+fn shape_unconstrained_line_with_kerning_and_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    include_kerning: bool,
+    provider: &mut P,
+) -> Arc<ShapedGlyphRun>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    shape_horizontal_line_with_kerning_and_provider(
         text,
         style,
         UiTextDirection::Auto,
@@ -146,9 +269,11 @@ fn shape_unconstrained_line_with_kerning(
             end: text.len(),
         },
         include_kerning,
+        provider,
     )
 }
 
+#[cfg(test)]
 fn shape_horizontal_line(
     text: &str,
     style: &UiResolvedStyle,
@@ -158,6 +283,7 @@ fn shape_horizontal_line(
     shape_horizontal_line_with_kerning(text, style, direction, source_range, true)
 }
 
+#[cfg(test)]
 fn shape_horizontal_line_with_kerning(
     text: &str,
     style: &UiResolvedStyle,
@@ -165,7 +291,30 @@ fn shape_horizontal_line_with_kerning(
     source_range: UiTextRange,
     include_kerning: bool,
 ) -> ShapedGlyphRun {
-    shape_backend_horizontal_line_with_kerning(
+    let mut provider = DirectTextShapeRunProvider;
+    (*shape_horizontal_line_with_kerning_and_provider(
+        text,
+        style,
+        direction,
+        source_range,
+        include_kerning,
+        &mut provider,
+    ))
+    .clone()
+}
+
+fn shape_horizontal_line_with_kerning_and_provider<P>(
+    text: &str,
+    style: &UiResolvedStyle,
+    direction: UiTextDirection,
+    source_range: UiTextRange,
+    include_kerning: bool,
+    provider: &mut P,
+) -> Arc<ShapedGlyphRun>
+where
+    P: TextShapeRunProvider + ?Sized,
+{
+    provider.shape_horizontal_line_with_kerning(
         text,
         style,
         direction,

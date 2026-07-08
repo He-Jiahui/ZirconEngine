@@ -23,9 +23,9 @@ pub(crate) use grapheme::{
 };
 pub(crate) use hit_test::{hit_test_text_layout, UiTextHitTest};
 pub(crate) use layout_engine::resolve_text_direction;
-pub(crate) use measure_cache::UiTextMeasureCache;
 #[cfg(test)]
 pub(crate) use measure_cache::UiWidthBucket;
+pub(crate) use measure_cache::{UiTextMeasureCache, UiTextShapePrewarmRequest};
 pub(crate) use resolved_layout::{
     resolve_text_layout, UiPreeditSpan, UiTextLayoutRequest, UiTextLayoutResolution,
 };

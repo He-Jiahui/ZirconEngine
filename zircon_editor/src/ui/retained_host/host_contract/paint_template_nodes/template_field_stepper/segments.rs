@@ -1,18 +1,46 @@
 use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_segments(
+const STEPPER_GLYPH_GRID_WIDTH_UNITS: f32 = 50.0;
+const STEPPER_GLYPH_GRID_HEIGHT_UNITS: f32 = 80.0;
+
+#[derive(Clone, Copy)]
+struct FieldStepperGlyphSegmentSpec {
+    x_units: u8,
+    y_units: u8,
+    width_units: u8,
+    height_units: u8,
+}
+
+impl FieldStepperGlyphSegmentSpec {
+    const fn new(x_units: u8, y_units: u8, width_units: u8, height_units: u8) -> Self {
+        Self {
+            x_units,
+            y_units,
+            width_units,
+            height_units,
+        }
+    }
+}
+
+const STEPPER_GLYPH_SEGMENTS: &[FieldStepperGlyphSegmentSpec] = &[
+    FieldStepperGlyphSegmentSpec::new(20, 10, 10, 10),
+    FieldStepperGlyphSegmentSpec::new(10, 20, 30, 7),
+    FieldStepperGlyphSegmentSpec::new(10, 55, 30, 7),
+    FieldStepperGlyphSegmentSpec::new(20, 65, 10, 10),
+];
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_stepper_glyph_segments(
     commands: &mut Vec<HostPaintCommand>,
     origin: &FrameRect,
     clip: &FrameRect,
     order: i32,
     color: [u8; 4],
     opacity: f32,
-    segments: &[(f32, f32, f32, f32)],
 ) {
-    for (x, y, width, height) in segments {
+    for segment in STEPPER_GLYPH_SEGMENTS {
         commands.push(HostPaintCommand::quad(
-            scaled_rect(origin, *x, *y, *width, *height),
+            segment_rect(origin, *segment),
             Some(clip.clone()),
             order,
             Some(color),
@@ -24,13 +52,59 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     }
 }
 
-fn scaled_rect(origin: &FrameRect, x: f32, y: f32, width: f32, height: f32) -> FrameRect {
-    let scale_x = origin.width / 10.0;
-    let scale_y = origin.height / 16.0;
+fn segment_rect(origin: &FrameRect, segment: FieldStepperGlyphSegmentSpec) -> FrameRect {
+    let unit_width = origin.width / STEPPER_GLYPH_GRID_WIDTH_UNITS;
+    let unit_height = origin.height / STEPPER_GLYPH_GRID_HEIGHT_UNITS;
     FrameRect {
-        x: origin.x + x * scale_x,
-        y: origin.y + y * scale_y,
-        width: (width * scale_x).max(1.0),
-        height: (height * scale_y).max(1.0),
+        x: origin.x + f32::from(segment.x_units) * unit_width,
+        y: origin.y + f32::from(segment.y_units) * unit_height,
+        width: (f32::from(segment.width_units) * unit_width).max(1.0),
+        height: (f32::from(segment.height_units) * unit_height).max(1.0),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_close(actual: f32, expected: f32) {
+        assert!(
+            (actual - expected).abs() <= 0.001,
+            "expected {expected}, got {actual}"
+        );
+    }
+
+    #[test]
+    fn segment_rect_scales_from_stepper_glyph_grid() {
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 20.0,
+            height: 16.0,
+        };
+
+        let segment = segment_rect(&rect, FieldStepperGlyphSegmentSpec::new(20, 10, 10, 10));
+
+        assert_close(segment.x, 18.0);
+        assert_close(segment.y, 22.0);
+        assert_close(segment.width, 4.0);
+        assert_close(segment.height, 2.0);
+    }
+
+    #[test]
+    fn segment_rect_preserves_stepper_subpixel_stroke_height() {
+        let rect = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 10.0,
+            height: 16.0,
+        };
+
+        let segment = segment_rect(&rect, FieldStepperGlyphSegmentSpec::new(10, 20, 30, 7));
+
+        assert_close(segment.x, 2.0);
+        assert_close(segment.y, 4.0);
+        assert_close(segment.width, 6.0);
+        assert_close(segment.height, 1.4);
     }
 }

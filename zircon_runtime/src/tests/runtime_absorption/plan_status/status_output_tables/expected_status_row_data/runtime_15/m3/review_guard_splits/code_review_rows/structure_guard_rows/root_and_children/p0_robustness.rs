@@ -61,3 +61,18 @@ pub(super) const P0_ROUTE_OWNERSHIP_GUARD_CHILD_SPLIT: &[&str] = &[
     "review_priority_recommendation_tracks_current_remaining_work",
     "Cargo gate deferred",
 ];
+
+pub(super) const P0_SOURCE_STATUS_MAP_RECONCILIATION: &[&str] = &[
+    "runtime_15_p0_source_status_map_reconciliation_static_passed_cargo_deferred",
+    "Runtime 15 M3 P0 source status-map reconciliation",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/root_paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/root_child_rows.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/root_inventory.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/status_mirrors.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/route_ownership/status_mirrors.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/p0_rows.rs",
+    "runtime_15_p0_robustness_structure_guard_is_folder_backed",
+    "runtime_15_p0_robustness_root_inventory_is_child_owned",
+    "runtime_15_p0_route_ownership_status_mirrors_are_current",
+    "Cargo gate deferred",
+];

@@ -156,7 +156,7 @@ const EXPECTED_NUMBER_TOKENS: &[(&str, f64)] = &[
 const EXPECTED_M2_STRING_TOKENS: &[(&str, &str)] = &[
     (
         "slint_material_state_layer_priority",
-        "disabled>focus>pressed>drag>hover>default",
+        "disabled>pressed>drag>focus>hover>default",
     ),
     (
         "slint_material_state_layer_disabled_uses_focus_opacity",

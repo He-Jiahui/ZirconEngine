@@ -5,9 +5,12 @@ use super::super::super::style_selector::{
 
 pub(super) fn command_row_style(option: &TemplatePaneOptionData) -> WorkbenchPopupRowStyle {
     select_workbench_popup_row_style(WorkbenchPopupRowState {
+        hovered: option.hovered,
+        pressed: option.pressed,
         focused: option.focused,
         disabled: option.disabled,
         selected: option.selected || option.special,
+        loading: option.loading,
         ..WorkbenchPopupRowState::default()
     })
 }

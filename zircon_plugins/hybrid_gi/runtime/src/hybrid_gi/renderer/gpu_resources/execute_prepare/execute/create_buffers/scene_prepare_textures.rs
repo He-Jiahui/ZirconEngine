@@ -50,6 +50,7 @@ pub(super) fn scene_prepare_texture_layout(
         persisted_surface_cache_page_has_present_atlas_sample,
         |page_content| page_content.atlas_slot_id,
     ))
+    .chain(occupied_depth_source_slots(inputs))
     .collect::<BTreeSet<_>>()
     .into_iter()
     .collect::<Vec<_>>();
@@ -225,6 +226,18 @@ fn occupied_surface_cache_page_slots(
         .iter()
         .filter(|page_content| presence(page_content))
         .map(projection)
+        .collect::<Vec<_>>();
+    slots.sort_unstable();
+    slots.dedup();
+    slots
+}
+
+fn occupied_depth_source_slots(inputs: &HybridGiPrepareExecutionInputs) -> Vec<u32> {
+    let mut slots = inputs
+        .scene_surface_cache_depth_source_samples
+        .iter()
+        .filter(|sample| sample.atlas_slot_id != u32::MAX && sample.depth_rgba[3] > 0)
+        .map(|sample| sample.atlas_slot_id)
         .collect::<Vec<_>>();
     slots.sort_unstable();
     slots.dedup();

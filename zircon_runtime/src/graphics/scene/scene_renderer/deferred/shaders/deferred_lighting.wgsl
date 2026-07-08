@@ -6,12 +6,17 @@ struct SceneUniform {
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
+    camera_world_position: vec4<f32>,
+    camera_view_direction: vec4<f32>,
     sky_horizon_color: vec4<f32>,
     sky_zenith_color: vec4<f32>,
     sky_ground_color: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_sh9: array<vec4<f32>, 9>,
 };
+
+const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
 @group(1) @binding(0) var gbuffer_albedo_tex: texture_2d<f32>;
@@ -75,6 +80,15 @@ fn normalize_or_zero(value: vec3<f32>) -> vec3<f32> {
         return vec3<f32>(0.0, 0.0, 0.0);
     }
     return value / value_length;
+}
+
+fn scene_view_dir_ws(world_position: vec3<f32>) -> vec3<f32> {
+    let perspective_view_dir = normalize_or_zero(scene.camera_world_position.xyz - world_position);
+    return normalize_or_zero(mix(
+        perspective_view_dir,
+        scene.camera_view_direction.xyz,
+        clamp(scene.camera_view_direction.w, 0.0, 1.0),
+    ));
 }
 
 fn light_radiance(light: ZrGpuLightData) -> vec3<f32> {
@@ -226,12 +240,12 @@ fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u3
 
 fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32) -> vec4<f32> {
     let metallic = clamp(material.r, 0.0, 1.0);
-    let roughness = clamp(max(material.g, 0.04), 0.04, 1.0);
+    let roughness = clamp(max(material.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS), ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
     let occlusion = clamp(max(material.b, 0.0), 0.0, 1.0);
     let receive_shadows = decode_receive_shadows(material.a);
-    let view_dir = vec3<f32>(0.0, 0.0, 1.0);
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
     let world_position = reconstruct_world_position(coord, depth);
+    let view_dir = scene_view_dir_ws(world_position);
     let ambient = scene.ambient_color.rgb * occlusion;
     let diffuse_color = deferred_diffuse_color(albedo, metallic, shading_model_id);
     let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id, receive_shadows);

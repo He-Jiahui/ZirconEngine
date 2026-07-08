@@ -20,6 +20,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_gu
     workbench_row_palette().tree_guide
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_guide_opacity() -> f32
+{
+    tree_metrics().tree_guide_opacity
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_line_height() -> f32 {
     tree_metrics().text_line_height
 }

@@ -3,7 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::template_axis_value_field_style::{
     axis_field_background, axis_field_border, axis_field_border_width,
 };
-use crate::ui::retained_host::host_contract::paint_theme::METRICS;
+use super::metrics::axis_value_field_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_axis_field_surface(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,6 +13,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
     order: i32,
     opacity: f32,
 ) {
+    let metrics = axis_value_field_metrics();
     commands.push(HostPaintCommand::quad(
         field.clone(),
         Some(clip.clone()),
@@ -20,7 +21,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
         Some(axis_field_background(node)),
         Some(axis_field_border(node)),
         axis_field_border_width(node),
-        METRICS.radius_control,
+        metrics.radius,
         opacity,
     ));
 }

@@ -8,6 +8,10 @@ use super::super::super::super::{
     paint_text::{font_face_for_paint_style, runtime_text_style_for_face},
 };
 
+mod metrics;
+
+use self::metrics::{center_aligned_text_x, measured_text_width, right_aligned_text_x};
+
 const STRONG_TEXT_FONT_WEIGHT_THRESHOLD: u16 = 600;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn aligned_text_x(
@@ -16,11 +20,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn aligned
     style: &UiResolvedStyle,
 ) -> f32 {
     let measure_style = retained_runtime_measure_style(style);
-    let measured_width = measure_text_size(text, &measure_style).width.max(0.0);
+    let measured_width = measured_text_width(measure_text_size(text, &measure_style).width);
     match resolved_text_align(style.text_align, style.text_direction) {
         UiTextAlign::Left | UiTextAlign::Justify => frame.x,
-        UiTextAlign::Center => frame.x + (frame.width - measured_width).max(0.0) * 0.5,
-        UiTextAlign::Right => frame.x + (frame.width - measured_width).max(0.0),
+        UiTextAlign::Center => center_aligned_text_x(frame.x, frame.width, measured_width),
+        UiTextAlign::Right => right_aligned_text_x(frame.x, frame.width, measured_width),
         UiTextAlign::Start | UiTextAlign::End => unreachable!("resolved align is physical"),
     }
 }
@@ -109,9 +113,9 @@ mod tests {
         let right_style = style(UiTextAlign::Right, UiTextDirection::LeftToRight);
         let left = frame.x;
         let right = frame.x + frame.width
-            - measure_text_size("abc", &retained_runtime_measure_style(&right_style))
-                .width
-                .max(0.0);
+            - measured_text_width(
+                measure_text_size("abc", &retained_runtime_measure_style(&right_style)).width,
+            );
 
         assert_eq!(
             aligned_text_x(
@@ -173,7 +177,7 @@ mod tests {
         assert_ne!(runtime_width.round(), legacy_width.round());
         assert_eq!(
             aligned_text_x(&frame, text, &style),
-            frame.x + (frame.width - runtime_width).max(0.0) * 0.5
+            center_aligned_text_x(frame.x, frame.width, runtime_width)
         );
     }
 
@@ -184,7 +188,7 @@ mod tests {
         style.font_family = Some("serif".to_string());
         let text = "editor base.zui";
         let measure_style = retained_runtime_measure_style(&style);
-        let runtime_width = measure_text_size(text, &measure_style).width.max(0.0);
+        let runtime_width = measured_text_width(measure_text_size(text, &measure_style).width);
 
         assert_eq!(
             measure_style.font_family.as_deref(),
@@ -193,7 +197,7 @@ mod tests {
         assert_ne!(measure_style.font_family, style.font_family);
         assert_eq!(
             aligned_text_x(&frame, text, &style),
-            frame.x + (frame.width - runtime_width).max(0.0)
+            right_aligned_text_x(frame.x, frame.width, runtime_width)
         );
     }
 

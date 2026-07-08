@@ -3,6 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::content::push_button_content;
 use super::geometry::button_paint_rect;
 use super::identity::{button_kind, is_workbench_button};
+use super::layers::content_order;
 use super::style::button_opacity;
 use super::surface::push_button_surface;
 
@@ -25,6 +26,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     let kind = button_kind(node);
     let opacity = button_opacity(node, opacity);
     push_button_surface(commands, node, &rect, clip, order, kind, opacity);
-    push_button_content(commands, node, &rect, clip, order + 2, kind, opacity);
+    push_button_content(
+        commands,
+        node,
+        &rect,
+        clip,
+        content_order(order),
+        kind,
+        opacity,
+    );
     true
 }

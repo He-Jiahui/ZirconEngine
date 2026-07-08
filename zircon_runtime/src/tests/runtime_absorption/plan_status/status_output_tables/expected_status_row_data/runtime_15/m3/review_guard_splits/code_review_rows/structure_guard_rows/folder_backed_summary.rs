@@ -90,6 +90,20 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         ],
     ),
     (
+        "Runtime 15 M3 code review findings source inventory map-source sync",
+        &[
+            "runtime_15_code_review_findings_source_inventory_map_source_sync_static_passed_cargo_deferred",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory.rs",
+            "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/source_inventory/status_mirrors.rs",
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/source_inventory_rows.rs",
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/source_inventory_rows.rs",
+            "source_inventory_status_map_source",
+            "source_inventory_date_map_source",
+            "runtime_15_code_review_findings_source_inventory_status_mirrors_are_child_owner",
+            "Cargo gate deferred",
+        ],
+    ),
+    (
         "Runtime 15 M3 code review findings structure guard folder-backed summary child-owner split",
         &[
             "runtime_15_code_review_findings_structure_guard_folder_backed_summary_child_owner_split_static_passed_cargo_deferred",

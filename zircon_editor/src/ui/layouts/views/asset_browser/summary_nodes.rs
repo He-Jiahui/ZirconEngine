@@ -5,7 +5,7 @@ use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWork
 
 use super::labels::{asset_state_label, summary_resource_kind_label};
 use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
-use super::thumbnail_nodes::asset_display_name_lines;
+use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
 
 const SUMMARY_NAME_CONTROL_ID: &str = "AssetBrowserContentPreviewName";
 const SUMMARY_NAME_CONTINUATION_CONTROL_ID: &str = "AssetBrowserContentPreviewNameContinuation";
@@ -142,7 +142,14 @@ fn summary_display_name_lines(asset: &AssetItemSnapshot) -> (String, String) {
         );
     }
 
-    asset_display_name_lines(name)
+    split_display_name_lines(
+        name,
+        RuntimeNameLineSplit {
+            max_width: SUMMARY_FILE_NAME_MAX_WIDTH,
+            primary_font_size: SUMMARY_NAME_FONT_SIZE,
+            continuation_font_size: SUMMARY_NAME_CONTINUATION_FONT_SIZE,
+        },
+    )
 }
 
 fn is_file_like_summary_name(display_name: &str, extension: &str) -> bool {
@@ -305,6 +312,53 @@ mod tests {
         assert_eq!(continuation.font_size, 9.0);
         assert_eq!(continuation.font_weight, 500);
         assert_eq!(continuation.text_tone.as_str(), "muted");
+    }
+
+    #[test]
+    fn summary_nodes_keep_width_fitting_short_wide_names_on_single_line() {
+        let wide_name = "WWWWWWWWWWWWWWWWWW";
+        assert!(
+            measure_runtime_text_width(wide_name, SUMMARY_NAME_FONT_SIZE)
+                <= SUMMARY_FILE_NAME_MAX_WIDTH + 0.01
+        );
+        let snapshot = AssetWorkspaceSnapshot {
+            selected_asset_uuid: Some("asset-a".to_string()),
+            visible_assets: vec![AssetItemSnapshot {
+                uuid: "asset-a".to_string(),
+                locator: "res://a".to_string(),
+                display_name: wide_name.to_string(),
+                file_name: wide_name.to_string(),
+                extension: String::new(),
+                kind: ResourceKind::Data,
+                preview_artifact_path: String::new(),
+                dirty: false,
+                diagnostics: Vec::new(),
+                selected: false,
+                resource_state: None,
+                resource_revision: Some(42),
+            }],
+            ..AssetWorkspaceSnapshot::default()
+        };
+        let mut nodes = vec![ViewTemplateNodeData {
+            node_id: "asset_browser.content_preview.name".into(),
+            control_id: "AssetBrowserContentPreviewName".into(),
+            role: "Label".into(),
+            frame: ViewTemplateFrameData::default(),
+            ..ViewTemplateNodeData::default()
+        }];
+
+        append_asset_browser_summary_nodes(&mut nodes, &snapshot);
+
+        let name = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserContentPreviewName")
+            .expect("summary name node should exist");
+        let continuation = nodes
+            .iter()
+            .find(|node| node.control_id == "AssetBrowserContentPreviewNameContinuation")
+            .expect("summary continuation node should exist");
+        assert_eq!(name.text.as_str(), wide_name);
+        assert!(continuation.text.is_empty());
     }
 
     #[test]

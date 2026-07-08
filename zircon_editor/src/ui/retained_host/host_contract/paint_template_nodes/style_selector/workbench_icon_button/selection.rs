@@ -9,14 +9,21 @@ mod toolbar_chrome;
 use super::super::resolved_state_for_node;
 use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};
 use super::model::{WorkbenchIconButtonContext, WorkbenchIconButtonStyle};
+use super::palette::workbench_icon_button_palette;
+use super::state::{icon_button_node_is_hot, icon_button_node_is_selected};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+use crate::ui::retained_host::host_contract::paint_theme::current_host_metrics;
 use background::icon_background;
 use border::{icon_border, icon_border_width};
 use danger::is_danger_icon;
 use glyph::icon_glyph_color;
 use radius::icon_radius;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
+
+#[cfg(test)]
+pub(super) use border::icon_border_width_from_host;
+#[cfg(test)]
+pub(super) use radius::icon_radius_from_host;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_icon_button_style(
     node: &TemplatePaneNodeData,
@@ -36,17 +43,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     };
 
     match workbench_command_visual_role(node) {
-        WorkbenchCommandVisualRole::PrimaryImport => primary_import_icon_button_style(style),
+        WorkbenchCommandVisualRole::PrimaryImport => primary_import_icon_button_style(node, style),
         WorkbenchCommandVisualRole::None | WorkbenchCommandVisualRole::MutedProminent => style,
     }
 }
 
 fn primary_import_icon_button_style(
+    node: &TemplatePaneNodeData,
     mut style: WorkbenchIconButtonStyle,
 ) -> WorkbenchIconButtonStyle {
+    let palette = workbench_icon_button_palette();
     let surface = match style.state {
         UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => return style,
-        UiPainterResolvedState::Normal => PALETTE.accent,
+        UiPainterResolvedState::Normal => palette.accent,
+        UiPainterResolvedState::Focused
+            if !icon_button_node_is_selected(node) && !icon_button_node_is_hot(node) =>
+        {
+            palette.accent
+        }
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
         | UiPainterResolvedState::Selected
@@ -54,11 +68,11 @@ fn primary_import_icon_button_style(
         | UiPainterResolvedState::Open
         | UiPainterResolvedState::Dragging
         | UiPainterResolvedState::DropHovered
-        | UiPainterResolvedState::Hovered => PALETTE.focus_ring,
+        | UiPainterResolvedState::Hovered => palette.focus_ring,
     };
     style.background = Some(surface);
     style.border = Some(surface);
-    style.border_width = 1.0;
-    style.glyph = PALETTE.shell_background;
+    style.border_width = current_host_metrics().border_width;
+    style.glyph = palette.shell_background;
     style
 }

@@ -11,6 +11,7 @@ use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePa
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::cluster_dimensions_for_size;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
+use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphComputeWorkloadDispatchContext, RenderGraphExecutionRecord,
     RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutorId,
@@ -87,6 +88,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     sprite_renderer: Option<&SpriteRenderer>,
     streamer: Option<&ResourceStreamer>,
     mut mesh_pipelines: Option<&mut MeshPipelineCache>,
+    mut ibl_bake_pipeline_cache: Option<&mut IblBakeWgpuPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
@@ -121,6 +123,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             sprite_renderer,
             streamer,
             mesh_pipelines.as_deref_mut(),
+            ibl_bake_pipeline_cache.as_deref_mut(),
             mesh_draw_lists,
             hzb_occlusion_culler,
             shadow_map_renderer,
@@ -193,6 +196,7 @@ fn execute_graph_pass(
     sprite_renderer: Option<&SpriteRenderer>,
     streamer: Option<&ResourceStreamer>,
     mesh_pipelines: Option<&mut MeshPipelineCache>,
+    ibl_bake_pipeline_cache: Option<&mut IblBakeWgpuPipelineCache>,
     mesh_draw_lists: Option<RenderPassMeshCommandLists<'_>>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_map_renderer: Option<&ShadowMapRenderer>,
@@ -277,6 +281,9 @@ fn execute_graph_pass(
         (mesh_pipelines, streamer, mesh_draw_lists)
     {
         gpu = gpu.with_mesh_renderer(mesh_pipelines, streamer, mesh_draw_lists);
+    }
+    if let Some(ibl_bake_pipeline_cache) = ibl_bake_pipeline_cache {
+        gpu = gpu.with_ibl_bake_pipeline_cache(ibl_bake_pipeline_cache);
     }
     if let Some(hzb_occlusion_culler) = hzb_occlusion_culler {
         gpu = gpu.with_hzb_occlusion_culler(hzb_occlusion_culler);

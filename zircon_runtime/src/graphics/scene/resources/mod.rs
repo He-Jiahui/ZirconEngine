@@ -20,6 +20,5 @@ pub(in crate::graphics::scene::resources) use output_target_texture::OutputTarge
 pub(crate) use pipeline::{default_pipeline_key, PipelineKey};
 pub(in crate::graphics::scene::resources) use post_process_lut_texture::PostProcessLutTextureResource;
 pub(crate) use resource_streamer::ResourceStreamer;
-#[cfg(test)]
 pub(crate) use runtime::MaterialCaptureSeed;
 pub(crate) use runtime::{MaterialDisabledPasses, MaterialRuntime};

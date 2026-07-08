@@ -1,0 +1,444 @@
+// Staged Plan 11 acquisition helpers land before the runtime bake scheduler consumes them.
+
+use crate::core::framework::render::{
+    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+};
+use crate::graphics::backend::render_backend::{
+    read_buffer_sh9_f32x4_bytes, read_texture_rgba16float_cube_mip_chain,
+};
+use crate::graphics::types::GraphicsError;
+
+#[derive(Clone, Copy)]
+pub(crate) struct IblBakeArtifactWgpuReadbackResources<'a> {
+    descriptor: IblBakeArtifactDescriptor,
+    pmrem_texture: Option<&'a wgpu::Texture>,
+    irradiance_sh9_buffer: Option<&'a wgpu::Buffer>,
+    irradiance_cube_texture: Option<&'a wgpu::Texture>,
+}
+
+impl<'a> IblBakeArtifactWgpuReadbackResources<'a> {
+    pub const fn new(descriptor: IblBakeArtifactDescriptor) -> Self {
+        Self {
+            descriptor,
+            pmrem_texture: None,
+            irradiance_sh9_buffer: None,
+            irradiance_cube_texture: None,
+        }
+    }
+
+    pub const fn descriptor(&self) -> IblBakeArtifactDescriptor {
+        self.descriptor
+    }
+
+    pub const fn requires_pmrem_texture(&self) -> bool {
+        self.descriptor
+            .contents()
+            .contains(IblBakeArtifactContents::PMREM)
+    }
+
+    pub const fn requires_irradiance_sh9_buffer(&self) -> bool {
+        self.descriptor
+            .contents()
+            .contains(IblBakeArtifactContents::SH9)
+    }
+
+    pub const fn requires_irradiance_cube_texture(&self) -> bool {
+        self.descriptor
+            .contents()
+            .contains(IblBakeArtifactContents::IEM)
+    }
+
+    pub fn with_pmrem_texture(mut self, texture: &'a wgpu::Texture) -> Self {
+        self.pmrem_texture = Some(texture);
+        self
+    }
+
+    pub fn with_irradiance_sh9_buffer(mut self, buffer: &'a wgpu::Buffer) -> Self {
+        self.irradiance_sh9_buffer = Some(buffer);
+        self
+    }
+
+    pub fn with_irradiance_cube_texture(mut self, texture: &'a wgpu::Texture) -> Self {
+        self.irradiance_cube_texture = Some(texture);
+        self
+    }
+}
+
+pub(crate) fn read_ibl_bake_artifact_wgpu_sections(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    resources: IblBakeArtifactWgpuReadbackResources<'_>,
+) -> Result<IblBakeArtifactReadbackSections, GraphicsError> {
+    let descriptor = resources.descriptor;
+    let mut sections = IblBakeArtifactReadbackSections::new(descriptor);
+
+    if resources.requires_pmrem_texture() {
+        let texture = required_wgpu_readback_resource(resources.pmrem_texture, "PMREM texture")?;
+        sections = sections.with_pmrem_rgba16f_bytes(read_texture_rgba16float_cube_mip_chain(
+            device,
+            queue,
+            texture,
+            descriptor.face_size(),
+            descriptor.mip_count(),
+        )?);
+    }
+
+    if resources.requires_irradiance_sh9_buffer() {
+        let buffer =
+            required_wgpu_readback_resource(resources.irradiance_sh9_buffer, "SH9 buffer")?;
+        sections =
+            sections.with_irradiance_sh9_bytes(read_buffer_sh9_f32x4_bytes(device, queue, buffer)?);
+    }
+
+    if resources.requires_irradiance_cube_texture() {
+        let texture = required_wgpu_readback_resource(
+            resources.irradiance_cube_texture,
+            "irradiance cube texture",
+        )?;
+        sections =
+            sections.with_irradiance_cube_rgba16f_bytes(read_texture_rgba16float_cube_mip_chain(
+                device,
+                queue,
+                texture,
+                SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+                1,
+            )?);
+    }
+
+    Ok(sections)
+}
+
+fn required_wgpu_readback_resource<'a, T>(
+    resource: Option<&'a T>,
+    label: &'static str,
+) -> Result<&'a T, GraphicsError> {
+    resource.ok_or_else(|| {
+        GraphicsError::BufferMap(format!(
+            "missing required IBL bake readback resource: {label}"
+        ))
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::required_wgpu_readback_resource;
+    use crate::core::framework::render::{
+        build_source_cubemap_from_equirect, cubemap_direction_from_scaled_uv,
+        cubemap_face_scaled_uv_from_direction, cubemap_scaled_uv_for_texel,
+        source_cubemap_face_mip_offset, source_cubemap_mip_chain_with_bake_artifact,
+        source_cubemap_mip_size, CubemapFace, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+        IblBakeArtifactPayload, ProceduralSkyParams, SourceCubemapMipChain,
+    };
+    use crate::graphics::backend::RenderBackend;
+    use crate::graphics::types::GraphicsError;
+    use wgpu::util::DeviceExt;
+
+    const RGBA16F_BYTES_PER_TEXEL: usize = 8;
+
+    #[test]
+    fn readback_resources_preserve_descriptor() {
+        let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+        let descriptor =
+            IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9_IEM);
+
+        let resources = super::IblBakeArtifactWgpuReadbackResources::new(descriptor);
+
+        assert_eq!(resources.descriptor(), descriptor);
+    }
+
+    #[test]
+    fn readback_resources_report_required_wgpu_inputs_from_descriptor_contents() {
+        let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+        let pmrem_sh9 =
+            IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+        let pmrem_sh9_iem =
+            IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9_IEM);
+
+        let resources = super::IblBakeArtifactWgpuReadbackResources::new(pmrem_sh9);
+
+        assert!(resources.requires_pmrem_texture());
+        assert!(resources.requires_irradiance_sh9_buffer());
+        assert!(!resources.requires_irradiance_cube_texture());
+
+        let resources = super::IblBakeArtifactWgpuReadbackResources::new(pmrem_sh9_iem);
+
+        assert!(resources.requires_pmrem_texture());
+        assert!(resources.requires_irradiance_sh9_buffer());
+        assert!(resources.requires_irradiance_cube_texture());
+    }
+
+    #[test]
+    fn required_readback_resource_reports_missing_label() {
+        let error = required_wgpu_readback_resource::<u32>(None, "SH9 buffer")
+            .expect_err("missing resource should fail");
+
+        assert!(matches!(
+            error,
+            GraphicsError::BufferMap(message) if message.contains("SH9 buffer")
+        ));
+    }
+
+    #[test]
+    fn readback_sections_preserve_pmrem_seams_after_wgpu_texture_roundtrip() {
+        let Ok(backend) = RenderBackend::new_offscreen() else {
+            return;
+        };
+        let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+        let pmrem = build_source_cubemap_from_equirect(32, synthetic_seam_stress_environment);
+        let descriptor = IblBakeArtifactDescriptor::current(
+            key,
+            pmrem.face_size(),
+            pmrem.mip_count(),
+            IblBakeArtifactContents::PMREM_SH9,
+        );
+        let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &pmrem, None)
+            .expect("PMREM/SH9 payload should encode");
+        let pmrem_range = payload.pmrem_rgba16f_byte_range().expect("pmrem range");
+        let sh9_range = payload.irradiance_sh9_byte_range().expect("sh9 range");
+        let pmrem_texture = create_pmrem_texture(&backend.device, descriptor);
+        upload_pmrem_payload_to_texture(
+            &backend.queue,
+            &pmrem_texture,
+            descriptor,
+            &payload.bytes()[pmrem_range],
+        );
+        let sh9_buffer = backend
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("ibl-readback-seam-sh9-buffer"),
+                contents: &payload.bytes()[sh9_range],
+                usage: wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::STORAGE,
+            });
+
+        let sections = super::read_ibl_bake_artifact_wgpu_sections(
+            &backend.device,
+            &backend.queue,
+            super::IblBakeArtifactWgpuReadbackResources::new(descriptor)
+                .with_pmrem_texture(&pmrem_texture)
+                .with_irradiance_sh9_buffer(&sh9_buffer),
+        )
+        .expect("WGPU PMREM/SH9 readback should produce artifact sections");
+        let readback_payload = sections
+            .into_payload()
+            .expect("readback sections should assemble into a current payload");
+        assert_eq!(readback_payload.bytes(), payload.bytes());
+
+        let applied = source_cubemap_mip_chain_with_bake_artifact(&pmrem, &readback_payload)
+            .expect("readback payload should apply to the matching source cubemap");
+        let mid_mip = applied.mip_count().saturating_sub(3);
+        let rough_mip = applied.mip_count().saturating_sub(2);
+        let expected_mid = pmrem_seam_luma_stats(&pmrem, mid_mip);
+        let expected_rough = pmrem_seam_luma_stats(&pmrem, rough_mip);
+        let applied_base = pmrem_seam_luma_stats(&applied, 0);
+        let applied_mid = pmrem_seam_luma_stats(&applied, mid_mip);
+        let applied_rough = pmrem_seam_luma_stats(&applied, rough_mip);
+
+        assert_stats_close(expected_mid, applied_mid, 0.003);
+        assert_stats_close(expected_rough, applied_rough, 0.003);
+        assert!(
+            applied_mid.mean < applied_base.mean * 0.9,
+            "WGPU-readback PMREM mid mip should still reduce seam energy, base={applied_base:?} mid={applied_mid:?} rough={applied_rough:?}"
+        );
+        assert!(
+            applied_rough.max < applied_base.max * 0.75,
+            "WGPU-readback PMREM rough mip should reduce worst seam delta, base={applied_base:?} mid={applied_mid:?} rough={applied_rough:?}"
+        );
+    }
+
+    fn create_pmrem_texture(
+        device: &wgpu::Device,
+        descriptor: IblBakeArtifactDescriptor,
+    ) -> wgpu::Texture {
+        device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("ibl-readback-seam-pmrem-texture"),
+            size: wgpu::Extent3d {
+                width: descriptor.face_size(),
+                height: descriptor.face_size(),
+                depth_or_array_layers: 6,
+            },
+            mip_level_count: descriptor.mip_count(),
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba16Float,
+            usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        })
+    }
+
+    fn upload_pmrem_payload_to_texture(
+        queue: &wgpu::Queue,
+        texture: &wgpu::Texture,
+        descriptor: IblBakeArtifactDescriptor,
+        pmrem_bytes: &[u8],
+    ) {
+        for face in CubemapFace::ALL {
+            for mip_level in 0..descriptor.mip_count() {
+                let mip_size = source_cubemap_mip_size(descriptor.face_size(), mip_level);
+                let unpadded_bytes_per_row = mip_size as usize * RGBA16F_BYTES_PER_TEXEL;
+                let padded_bytes_per_row = unpadded_bytes_per_row
+                    .next_multiple_of(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize);
+                let mut padded = vec![0; padded_bytes_per_row * mip_size as usize];
+                let source_offset = source_cubemap_face_mip_offset(
+                    descriptor.face_size(),
+                    descriptor.mip_count(),
+                    face,
+                    mip_level,
+                ) * RGBA16F_BYTES_PER_TEXEL;
+                for row in 0..mip_size as usize {
+                    let source_row =
+                        source_offset + row * mip_size as usize * RGBA16F_BYTES_PER_TEXEL;
+                    let target_row = row * padded_bytes_per_row;
+                    padded[target_row..target_row + unpadded_bytes_per_row].copy_from_slice(
+                        &pmrem_bytes[source_row..source_row + unpadded_bytes_per_row],
+                    );
+                }
+                queue.write_texture(
+                    wgpu::TexelCopyTextureInfo {
+                        texture,
+                        mip_level,
+                        origin: wgpu::Origin3d {
+                            x: 0,
+                            y: 0,
+                            z: face.index() as u32,
+                        },
+                        aspect: wgpu::TextureAspect::All,
+                    },
+                    &padded,
+                    wgpu::TexelCopyBufferLayout {
+                        offset: 0,
+                        bytes_per_row: Some(padded_bytes_per_row as u32),
+                        rows_per_image: Some(mip_size),
+                    },
+                    wgpu::Extent3d {
+                        width: mip_size,
+                        height: mip_size,
+                        depth_or_array_layers: 1,
+                    },
+                );
+            }
+        }
+    }
+
+    fn synthetic_seam_stress_environment(u: f32, v: f32) -> [f32; 4] {
+        let wave_a = (std::f32::consts::TAU * u * 17.0).sin();
+        let wave_b = (std::f32::consts::TAU * (u * 11.0 + v * 7.0)).cos();
+        let wave_c = (std::f32::consts::PI * v * 9.0).sin();
+        let luma = 0.55 + wave_a * 0.22 + wave_b * 0.16 + wave_c * 0.12;
+        [luma, luma * 0.85, luma * 0.7, 1.0]
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    struct SeamLumaStats {
+        mean: f32,
+        max: f32,
+    }
+
+    fn pmrem_seam_luma_stats(cubemap: &SourceCubemapMipChain, mip_level: u32) -> SeamLumaStats {
+        let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
+        let mut sum = 0.0;
+        let mut max = 0.0_f32;
+        let mut count = 0.0;
+
+        for face in CubemapFace::ALL {
+            for side in CubeEdgeSide::ALL {
+                let sample_start = if mip_size > 2 { 1 } else { 0 };
+                let sample_end = if mip_size > 2 {
+                    mip_size.saturating_sub(1)
+                } else {
+                    mip_size
+                };
+                for index in sample_start..sample_end {
+                    let (x, y) = side.edge_texel(index, mip_size);
+                    let current = cubemap.texel(face, mip_level, x, y);
+                    let (neighbor_face, neighbor_x, neighbor_y) =
+                        side.neighbor_texel(face, index, mip_size);
+                    let neighbor = cubemap.texel(neighbor_face, mip_level, neighbor_x, neighbor_y);
+                    let delta = (luma(current) - luma(neighbor)).abs();
+                    sum += delta;
+                    max = max.max(delta);
+                    count += 1.0;
+                }
+            }
+        }
+
+        SeamLumaStats {
+            mean: sum / count,
+            max,
+        }
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum CubeEdgeSide {
+        Left,
+        Right,
+        Top,
+        Bottom,
+    }
+
+    impl CubeEdgeSide {
+        const ALL: [Self; 4] = [Self::Left, Self::Right, Self::Top, Self::Bottom];
+
+        fn edge_texel(self, index: u32, size: u32) -> (u32, u32) {
+            match self {
+                Self::Left => (0, index),
+                Self::Right => (size.saturating_sub(1), index),
+                Self::Top => (index, 0),
+                Self::Bottom => (index, size.saturating_sub(1)),
+            }
+        }
+
+        fn neighbor_texel(
+            self,
+            face: CubemapFace,
+            index: u32,
+            size: u32,
+        ) -> (CubemapFace, u32, u32) {
+            let edge_uv = match self {
+                Self::Left => [
+                    -1.0 - 1.0 / size as f32,
+                    cubemap_scaled_uv_for_texel(0, index, size)[1],
+                ],
+                Self::Right => [
+                    1.0 + 1.0 / size as f32,
+                    cubemap_scaled_uv_for_texel(size.saturating_sub(1), index, size)[1],
+                ],
+                Self::Top => [
+                    cubemap_scaled_uv_for_texel(index, 0, size)[0],
+                    -1.0 - 1.0 / size as f32,
+                ],
+                Self::Bottom => [
+                    cubemap_scaled_uv_for_texel(index, size.saturating_sub(1), size)[0],
+                    1.0 + 1.0 / size as f32,
+                ],
+            };
+            let direction = cubemap_direction_from_scaled_uv(face, edge_uv);
+            let (neighbor_face, neighbor_uv) = cubemap_face_scaled_uv_from_direction(direction);
+            (
+                neighbor_face,
+                texel_coord_from_scaled_axis(neighbor_uv[0], size),
+                texel_coord_from_scaled_axis(neighbor_uv[1], size),
+            )
+        }
+    }
+
+    fn texel_coord_from_scaled_axis(scaled_axis: f32, size: u32) -> u32 {
+        (((scaled_axis * 0.5 + 0.5) * size as f32 - 0.5).round() as i32)
+            .clamp(0, size.saturating_sub(1) as i32) as u32
+    }
+
+    fn luma(texel: [f32; 4]) -> f32 {
+        0.2126 * texel[0] + 0.7152 * texel[1] + 0.0722 * texel[2]
+    }
+
+    fn assert_stats_close(expected: SeamLumaStats, actual: SeamLumaStats, tolerance: f32) {
+        assert!(
+            (expected.mean - actual.mean).abs() <= tolerance,
+            "mean seam delta changed across WGPU readback: expected={expected:?} actual={actual:?}"
+        );
+        assert!(
+            (expected.max - actual.max).abs() <= tolerance,
+            "max seam delta changed across WGPU readback: expected={expected:?} actual={actual:?}"
+        );
+    }
+}

@@ -25,7 +25,7 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
             "pub(crate) fn layout_text",
             "mod range_mapping;",
             "mod wrapping;",
-            "use wrapping::wrap_source_runs;",
+            "use wrapping::wrap_source_runs_with_provider;",
             "text_advance, MIN_TEXT_FONT_SIZE",
             "#[cfg(test)]",
             "mod tests;",

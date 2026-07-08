@@ -4,6 +4,7 @@ use super::types::{GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapSource};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct GlyphAtlasBitmapRetryBackpressurePolicy {
     pub(crate) max_due_retry_sources_per_frame: Option<usize>,
+    pub(crate) max_new_sources_per_frame: Option<usize>,
     pub(crate) defer_excess_by_frames: u64,
 }
 
@@ -17,6 +18,7 @@ impl GlyphAtlasBitmapRetryBackpressurePolicy {
     pub(crate) fn unlimited() -> Self {
         Self {
             max_due_retry_sources_per_frame: None,
+            max_new_sources_per_frame: None,
             defer_excess_by_frames: 1,
         }
     }
@@ -38,10 +40,13 @@ pub(crate) struct GlyphAtlasBitmapRetryFrameInput {
     pub(crate) sources: Vec<GlyphAtlasBitmapSource>,
     pub(crate) source_origins: Vec<GlyphAtlasBitmapRetrySourceOrigin>,
     pub(crate) deferred_glyphs: Vec<GlyphAtlasBitmapQueuedGlyph>,
+    pub(crate) deferred_new_glyphs: Vec<GlyphAtlasBitmapQueuedGlyph>,
     pub(crate) retried_source_count: usize,
     pub(crate) new_source_count: usize,
     pub(crate) deferred_retry_count: usize,
     pub(crate) backpressured_retry_count: usize,
+    pub(crate) deferred_new_source_count: usize,
+    pub(crate) backpressured_new_source_count: usize,
     pub(crate) next_retry_frame_index: Option<u64>,
 }
 
@@ -53,6 +58,7 @@ pub(crate) struct GlyphAtlasBitmapRetryFrameOutcome {
     pub(crate) blocked_retried_source_count: usize,
     pub(crate) blocked_new_source_count: usize,
     pub(crate) deferred_retry_count: usize,
+    pub(crate) deferred_new_source_count: usize,
     pub(crate) unmapped_blocked_source_count: usize,
     pub(crate) next_retry_frame_index: Option<u64>,
 }
@@ -125,6 +131,20 @@ where
     }
 
     for (source_index, source) in frame_sources.into_iter().enumerate() {
+        if !new_source_budget_allows(backpressure_policy, input.new_source_count) {
+            let retry_frame_index =
+                deferred_new_source_retry_frame_index(frame_index, backpressure_policy);
+            input.backpressured_new_source_count += 1;
+            input.deferred_new_source_count += 1;
+            update_next_retry_frame_index(&mut input.next_retry_frame_index, retry_frame_index);
+            input.deferred_new_glyphs.push(GlyphAtlasBitmapQueuedGlyph {
+                source_index,
+                source,
+                retry_frame_index,
+            });
+            continue;
+        }
+
         input.sources.push(source);
         input
             .source_origins
@@ -142,9 +162,13 @@ pub(crate) fn glyph_atlas_bitmap_retry_frame_outcome(
     let mut outcome = GlyphAtlasBitmapRetryFrameOutcome {
         next_blocked_glyphs: input.deferred_glyphs.clone(),
         deferred_retry_count: input.deferred_glyphs.len(),
+        deferred_new_source_count: input.deferred_new_glyphs.len(),
         next_retry_frame_index: input.next_retry_frame_index,
         ..GlyphAtlasBitmapRetryFrameOutcome::default()
     };
+    outcome
+        .next_blocked_glyphs
+        .extend(input.deferred_new_glyphs.iter().copied());
 
     for glyph in &run_plan.glyphs {
         match input.source_origins.get(glyph.source_index).copied() {
@@ -241,6 +265,16 @@ fn retry_budget_allows(
     }
 }
 
+fn new_source_budget_allows(
+    policy: GlyphAtlasBitmapRetryBackpressurePolicy,
+    scheduled_new_source_count: usize,
+) -> bool {
+    match policy.max_new_sources_per_frame {
+        Some(max_new_source_count) => scheduled_new_source_count < max_new_source_count,
+        None => true,
+    }
+}
+
 fn backpressured_retry_frame_index(
     previous_retry_frame_index: u64,
     frame_index: u64,
@@ -248,6 +282,13 @@ fn backpressured_retry_frame_index(
 ) -> u64 {
     let defer_frames = policy.defer_excess_by_frames.max(1);
     previous_retry_frame_index.max(frame_index.saturating_add(defer_frames))
+}
+
+fn deferred_new_source_retry_frame_index(
+    frame_index: u64,
+    policy: GlyphAtlasBitmapRetryBackpressurePolicy,
+) -> u64 {
+    frame_index.saturating_add(policy.defer_excess_by_frames.max(1))
 }
 
 fn update_next_retry_frame_index(next_retry_frame_index: &mut Option<u64>, retry_frame_index: u64) {

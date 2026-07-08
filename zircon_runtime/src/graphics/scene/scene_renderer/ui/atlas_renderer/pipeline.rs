@@ -67,16 +67,8 @@ pub(super) fn glyph_atlas_wgpu_blend_state(blend_mode: GlyphAtlasBlendMode) -> w
             wgpu::BlendState::ALPHA_BLENDING
         }
         GlyphAtlasBlendMode::SubpixelBackgroundComposite => wgpu::BlendState {
-            color: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::One,
-                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                operation: wgpu::BlendOperation::Add,
-            },
-            alpha: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::One,
-                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                operation: wgpu::BlendOperation::Add,
-            },
+            color: wgpu::BlendComponent::REPLACE,
+            alpha: wgpu::BlendComponent::REPLACE,
         },
     }
 }

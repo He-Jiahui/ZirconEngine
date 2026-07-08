@@ -2,6 +2,7 @@ mod commands;
 mod fields;
 mod identity;
 mod labels;
+mod layers;
 mod layout;
 mod text;
 

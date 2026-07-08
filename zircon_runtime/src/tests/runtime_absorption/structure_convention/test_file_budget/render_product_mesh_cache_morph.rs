@@ -21,12 +21,24 @@ fn runtime_15_render_product_mesh_cache_morph_tests_are_child_owners() {
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs",
     );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
-    );
+    let status_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/asset_budget_maps.rs",
+        ),
+    ]
+    .join("\n");
+    let date_map = [
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs",
+        ),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/asset_budget_maps.rs",
+        ),
+    ]
+    .join("\n");
 
     assert_contains_all(
         "morph product parent mounts velocity child owners and keeps shared fixtures",

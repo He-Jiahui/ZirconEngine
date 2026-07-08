@@ -28,6 +28,8 @@ fn command_entry_from_string(value: &str) -> Option<CommandProjectionEntry> {
         let value = value.trim();
         match key {
             "label" | "text" | "title" | "name" => entry.label = value.to_string(),
+            "description" | "subtitle" | "hint" | "shortcut" | "keybinding" | "keys"
+            | "accelerator" => entry.description = value.to_string(),
             "disabled" => entry.disabled = matches!(value, "true" | "1" | "yes"),
             _ => {}
         }
@@ -46,6 +48,19 @@ fn command_entry_from_table(
     Some(CommandProjectionEntry {
         label: first_string_value(values, &["label", "text", "title", "name", "value_text"])
             .unwrap_or_else(|| id.clone()),
+        description: first_string_value(
+            values,
+            &[
+                "description",
+                "subtitle",
+                "hint",
+                "shortcut",
+                "keybinding",
+                "keys",
+                "accelerator",
+            ],
+        )
+        .unwrap_or_default(),
         disabled: values.get("disabled").and_then(bool_value).unwrap_or(false)
             || values.get("enabled").and_then(bool_value) == Some(false),
         filter_matched: false,

@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::{UiRenderCommandKind, UiVisualAssetRef},
+    surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -137,6 +137,179 @@ corner_radius = 6.0
 }
 
 #[test]
+fn render_extract_button_and_icon_button_keep_focused_surface_neutral_until_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.buttons.focused_neutral"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 360.0, 132.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Button",
+        UiFrame::new(12.0, 12.0, 132.0, 30.0),
+        r##"
+text = "Compile"
+button_color = "primary"
+focused = true
+background_color = "#10161a"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Button",
+        UiFrame::new(12.0, 56.0, 132.0, 30.0),
+        r##"
+text = "Compile"
+button_color = "primary"
+focused = true
+hovered = true
+background_color = "#10161a"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(4),
+        "IconButton",
+        UiFrame::new(176.0, 12.0, 40.0, 40.0),
+        r##"
+icon = "transform"
+focused = true
+background_color = "#1f2529"
+hover_background_color = "#20282d"
+focus_border_color = "#35c7d0"
+icon_color = "#a4aeb4"
+selected_icon_color = "#2aa6b8"
+layout_icon_size = 18.0
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(5),
+        "IconButton",
+        UiFrame::new(176.0, 64.0, 40.0, 40.0),
+        r##"
+icon = "transform"
+focused = true
+hovered = true
+background_color = "#1f2529"
+hover_background_color = "#20282d"
+focus_border_color = "#35c7d0"
+icon_color = "#a4aeb4"
+selected_icon_color = "#2aa6b8"
+layout_icon_size = 18.0
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(6),
+        "ToggleButton",
+        UiFrame::new(236.0, 12.0, 96.0, 30.0),
+        r##"
+text = "Snap"
+selected = true
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let focused_button = control_surface(commands, UiNodeId::new(2), UiPainterFamily::Button);
+    assert_eq!(
+        focused_button.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_button.style.background_color.as_deref(),
+        Some("#10161a")
+    );
+    assert_eq!(
+        focused_button.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.background_color.as_deref() == Some("#263d43")
+    }));
+
+    let focused_hovered_button =
+        control_surface(commands, UiNodeId::new(3), UiPainterFamily::Button);
+    assert_eq!(
+        focused_hovered_button.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_hovered_button.style.background_color.as_deref(),
+        Some("#263d43")
+    );
+    assert_eq!(
+        focused_hovered_button.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+
+    let focused_icon = control_surface(commands, UiNodeId::new(4), UiPainterFamily::IconButton);
+    assert_eq!(
+        focused_icon.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_icon.style.background_color.as_deref(),
+        Some("#1f2529")
+    );
+    assert_eq!(focused_icon.style.border_color.as_deref(), Some("#35c7d0"));
+    assert_eq!(
+        control_icon(commands, UiNodeId::new(4))
+            .style
+            .foreground_color
+            .as_deref(),
+        Some("#a4aeb4")
+    );
+
+    let focused_hovered_icon =
+        control_surface(commands, UiNodeId::new(5), UiPainterFamily::IconButton);
+    assert_eq!(
+        focused_hovered_icon.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_hovered_icon.style.background_color.as_deref(),
+        Some("#20282d")
+    );
+    assert_eq!(
+        control_icon(commands, UiNodeId::new(5))
+            .style
+            .foreground_color
+            .as_deref(),
+        Some("#a4aeb4")
+    );
+
+    let selected_toggle = control_surface(commands, UiNodeId::new(6), UiPainterFamily::Button);
+    assert_eq!(
+        selected_toggle.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        selected_toggle.style.background_color.as_deref(),
+        Some("#20282d")
+    );
+    assert_eq!(
+        selected_toggle.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+}
+
+#[test]
 fn render_extract_loading_button_and_icon_button_use_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.buttons.loading"));
     surface.tree.insert_root(
@@ -261,4 +434,26 @@ fn visible_state() -> UiStateFlags {
         enabled: true,
         ..UiStateFlags::default()
     }
+}
+
+fn control_surface(
+    commands: &[UiRenderCommand],
+    node_id: UiNodeId,
+    family: UiPainterFamily,
+) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.node_id == node_id
+                && command.kind == UiRenderCommandKind::Quad
+                && command.style.painter_family == family
+        })
+        .expect("control surface command should be rendered")
+}
+
+fn control_icon(commands: &[UiRenderCommand], node_id: UiNodeId) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| command.node_id == node_id && command.kind == UiRenderCommandKind::Image)
+        .expect("control icon command should be rendered")
 }

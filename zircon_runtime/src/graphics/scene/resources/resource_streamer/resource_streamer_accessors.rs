@@ -25,7 +25,6 @@ use crate::core::framework::render::{
 use crate::core::resource::ResourceId;
 use crate::graphics::shader::ShaderTemplateInclude;
 
-#[cfg(test)]
 mod material_capture;
 #[cfg(test)]
 mod material_diagnostics;

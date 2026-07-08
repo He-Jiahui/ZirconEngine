@@ -51,10 +51,10 @@ fn render_text_atlas_rgba_storage_does_not_choose_color_shader_by_storage_alone(
 #[test]
 fn render_text_atlas_sampling_shader_declares_subpixel_rgb_decode() {
     assert!(GLYPH_ATLAS_SAMPLING_SHADER.contains("glyph_atlas_decode_subpixel_rgb_coverage"));
-    assert!(GLYPH_ATLAS_SAMPLING_SHADER.contains("max(max(coverage.r, coverage.g), coverage.b)"));
     assert!(
         GLYPH_ATLAS_SAMPLING_SHADER.contains("mix(colors.background.rgb, colors.foreground.rgb")
     );
+    assert!(GLYPH_ATLAS_SAMPLING_SHADER.contains("vec4<f32>(rgb, colors.background.a)"));
 }
 
 #[test]

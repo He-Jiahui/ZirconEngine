@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::{assert_contains_all, read_repo_text};
+use super::super::support::{assert_contains_all, read_repo_text};
 
 #[test]
 fn runtime_15_editor_workbench_authority_label_uses_editor_name() {

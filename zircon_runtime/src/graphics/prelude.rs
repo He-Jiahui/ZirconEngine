@@ -10,7 +10,7 @@ pub use super::{
     RenderPassExecutor, RenderPassExecutorId, RenderPassExecutorRegistration, RenderPassStage,
     RenderPipelineAsset, RenderPipelineCompileOptions, RenderPipelineCompileReport,
     RuntimePrepareCollector, RuntimePrepareCollectorContext, RuntimePrepareCollectorFn,
-    RuntimePrepareCollectorRegistration, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,
-    ViewportRenderRegion, WgpuRenderFramework, GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME,
-    RENDER_FRAMEWORK_NAME,
+    RuntimePrepareCollectorRegistration, RuntimePrepareMaterialCaptureSeed, SceneRenderer,
+    ViewportFrame, ViewportFrameTextureHandle, ViewportRenderRegion, WgpuRenderFramework,
+    GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };

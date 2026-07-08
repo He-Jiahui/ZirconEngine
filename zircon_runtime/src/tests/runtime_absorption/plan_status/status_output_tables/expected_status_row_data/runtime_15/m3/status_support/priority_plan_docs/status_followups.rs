@@ -5,6 +5,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         "Runtime 15 M3 foundation row-data priority-doc frontmatter sync",
         &[
             "runtime_15_foundation_row_data_priority_doc_frontmatter_sync_static_passed_cargo_deferred",
+            "Runtime 15 M3 foundation row-data stale-count prose guard",
             "structure_convention/test_file_budget/status_output_row_data/runtime_15_foundation_row_data_status_docs/row_count.rs",
             "runtime_15_foundation_row_data_priority_doc_frontmatter_records_stale_count_guard",
             "runtime_15_foundation_row_data_stale_count_prose_guard_static_passed_cargo_deferred",

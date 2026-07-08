@@ -1,15 +1,17 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
     RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
+use zircon_runtime::core::math::Vec3;
 use zircon_runtime::graphics::hybrid_gi_extract_sources::{
     enabled_hybrid_gi_extract, hybrid_gi_extract_uses_scene_representation_budget,
 };
 
 use crate::hybrid_gi::types::{
-    HybridGiPrepareFrame, HybridGiResolveRuntime, HybridGiScenePrepareFrame,
+    HybridGiPrepareFrame, HybridGiPrepareSurfaceCacheDepthSourceSample, HybridGiResolveRuntime,
+    HybridGiScenePrepareFrame,
 };
 
 use super::super::extract_scene_sources::extract_trace_region_ids;
@@ -23,6 +25,8 @@ fn persisted_surface_cache_page_has_present_sample(
 ) -> bool {
     page_content.capture_sample_rgba[3] > 0 || page_content.atlas_sample_rgba[3] > 0
 }
+
+const SCENE_DEPTH_SOURCE_WORLD_Z_HALF_RANGE: f32 = 64.0;
 
 pub(super) fn collect_inputs(
     prepare: &HybridGiPrepareFrame,
@@ -84,6 +88,10 @@ pub(super) fn collect_inputs(
     let scene_surface_cache_page_contents = scene_prepare
         .map(|prepare| prepare.surface_cache_page_contents.clone())
         .unwrap_or_default();
+    let scene_surface_cache_depth_source_samples = scene_surface_cache_depth_source_samples(
+        &scene_card_capture_requests,
+        &scene_surface_cache_page_contents,
+    );
     let scene_card_capture_request_page_ids = scene_card_capture_requests
         .iter()
         .map(|request| request.page_id)
@@ -116,6 +124,7 @@ pub(super) fn collect_inputs(
         pending_probe_inputs,
         trace_region_inputs,
         scene_card_capture_requests,
+        scene_surface_cache_depth_source_samples,
         scene_surface_cache_page_contents,
         scene_card_capture_descriptor_count,
         scene_voxel_clipmaps,
@@ -125,6 +134,62 @@ pub(super) fn collect_inputs(
         point_lights: point_lights.to_vec(),
         spot_lights: spot_lights.to_vec(),
     }
+}
+
+fn scene_surface_cache_depth_source_samples(
+    card_capture_requests: &[crate::hybrid_gi::types::HybridGiPrepareCardCaptureRequest],
+    surface_cache_page_contents: &[crate::hybrid_gi::types::HybridGiPrepareSurfaceCachePageContent],
+) -> Vec<HybridGiPrepareSurfaceCacheDepthSourceSample> {
+    let mut depth_source_by_slot = surface_cache_page_contents
+        .iter()
+        .filter(|page_content| {
+            page_content.atlas_slot_id != u32::MAX
+                && persisted_surface_cache_page_has_present_sample(page_content)
+        })
+        .map(|page_content| {
+            (
+                page_content.atlas_slot_id,
+                HybridGiPrepareSurfaceCacheDepthSourceSample {
+                    page_id: page_content.page_id,
+                    atlas_slot_id: page_content.atlas_slot_id,
+                    depth_rgba: depth_source_rgba_from_scene_bounds(
+                        page_content.bounds_center,
+                        page_content.bounds_radius,
+                    ),
+                },
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    depth_source_by_slot.extend(
+        card_capture_requests
+            .iter()
+            .filter(|request| request.atlas_slot_id != u32::MAX)
+            .map(|request| {
+                (
+                    request.atlas_slot_id,
+                    HybridGiPrepareSurfaceCacheDepthSourceSample {
+                        page_id: request.page_id,
+                        atlas_slot_id: request.atlas_slot_id,
+                        depth_rgba: depth_source_rgba_from_scene_bounds(
+                            request.bounds_center,
+                            request.bounds_radius,
+                        ),
+                    },
+                )
+            }),
+    );
+
+    depth_source_by_slot.into_values().collect()
+}
+
+fn depth_source_rgba_from_scene_bounds(bounds_center: Vec3, bounds_radius: f32) -> [u8; 4] {
+    let near_z = bounds_center.z - bounds_radius.max(0.0);
+    let normalized = ((near_z + SCENE_DEPTH_SOURCE_WORLD_Z_HALF_RANGE)
+        / (SCENE_DEPTH_SOURCE_WORLD_Z_HALF_RANGE * 2.0))
+        .clamp(0.0, 1.0);
+    let encoded = (normalized * 254.0).round() as u8;
+    [encoded, encoded, encoded, u8::MAX]
 }
 
 fn runtime_has_scene_truth(resolve_runtime: Option<&HybridGiResolveRuntime>) -> bool {
@@ -252,6 +317,14 @@ mod tests {
         assert_eq!(
             inputs.scene_surface_cache_page_contents,
             scene_prepare.surface_cache_page_contents
+        );
+        assert_eq!(
+            inputs.scene_surface_cache_depth_source_samples,
+            vec![HybridGiPrepareSurfaceCacheDepthSourceSample {
+                page_id: 22,
+                atlas_slot_id: 3,
+                depth_rgba: [132, 132, 132, 255],
+            }]
         );
         assert_eq!(inputs.scene_card_capture_descriptor_count, 1);
         assert_eq!(inputs.scene_voxel_clipmaps, scene_prepare.voxel_clipmaps);

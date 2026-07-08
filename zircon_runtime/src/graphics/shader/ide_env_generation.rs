@@ -67,6 +67,7 @@ const ZR_GEOMETRY_SOURCE_TOKEN: u32 = 0u;
 const ZR_FEATURE_ALPHA_TEST: bool = false;
 const ZR_FEATURE_RECEIVE_SHADOWS: bool = false;
 const ZR_FEATURE_DOUBLE_SIDED: bool = false;
+const ZR_FEATURE_HAS_NORMAL_TEXTURE: bool = false;
 "#;
 
 pub fn write_shader_ide_env_for_project(

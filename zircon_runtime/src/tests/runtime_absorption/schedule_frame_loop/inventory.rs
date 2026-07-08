@@ -1,0 +1,48 @@
+pub(super) const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
+    "src/dynamic_api/session.rs",
+    "src/dynamic_api/session/profile.rs",
+    "src/dynamic_api/session/extract.rs",
+    "src/dynamic_api/runtime_loop.rs",
+    "src/dynamic_api/session/hud.rs",
+    "src/dynamic_api/session/menu.rs",
+    "src/scene/level_system.rs",
+    "src/scene/module/world_driver.rs",
+    "src/scene/ecs/system_stage.rs",
+    "src/scene/ecs/schedule_stage_plan.rs",
+    "src/scene/ecs/schedule_runner.rs",
+    "src/scene/ecs/schedule_parallel_executor.rs",
+    "src/scene/ecs/scene_system_descriptor.rs",
+    "src/scene/ecs/scene_system_registry.rs",
+    "src/core/runtime/handle/time.rs",
+    "src/core/runtime/time.rs",
+    "src/core/runtime/frame_clock.rs",
+    "src/core/framework/time/clock.rs",
+    "src/core/framework/time/fixed_step_plan.rs",
+];
+
+pub(super) const EXPECTED_RUNTIME_03_GUARD_FILES: &[&str] = &[
+    "src/scene/tests/ecs_schedule.rs",
+    "src/scene/tests/ecs_schedule/fixed_update.rs",
+    "src/scene/tests/ecs_schedule/parallel_executor.rs",
+    "src/scene/tests/ecs_schedule_parallel_executor_structure.rs",
+    "src/dynamic_api/tests/session_profiles.rs",
+    "src/tests/time.rs",
+    "src/tests/runtime_absorption/schedule_frame_loop.rs",
+    "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
+];
+
+pub(super) const EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
+    "schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration",
+    "session_ui_extract_remains_documented_dynamic_session_side_path",
+    "world_driver_consumes_runtime_time_advance_without_advancing_clocks_again",
+    "level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps",
+    "level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained",
+    "level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance",
+    "fixed_step_plan_reports_overstep_fraction_in_unit_range",
+    "schedule_parallel_executor_can_run_parallel_batches_serially_with_report",
+    "schedule_parallel_execution_report_records_diagnostic_counts",
+    "schedule_parallel_report_keeps_run_batches_compatible",
+    "schedule_parallel_disabled_path_runs_serial_batches_with_fallback_counts",
+    "representative_schedule_produces_multi_system_parallel_batches",
+    "parallel_and_serial_execution_reach_identical_world_state",
+];

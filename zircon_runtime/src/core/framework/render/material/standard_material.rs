@@ -8,6 +8,8 @@ use super::{
     RenderMaterialLightingModel, RenderMaterialTextureTransform,
 };
 
+pub const STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StandardMaterialDescriptor {
     pub name: Option<String>,

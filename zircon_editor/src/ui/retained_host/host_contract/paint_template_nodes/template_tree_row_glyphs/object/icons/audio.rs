@@ -1,6 +1,17 @@
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::render_commands::HostPaintCommand;
-use super::super::super::segments::{local_rect, push_segments};
+use super::super::super::segments::{
+    push_segments, GlyphSegmentSpec, TREE_OBJECT_GLYPH_GRID_UNITS,
+};
+
+const AUDIO_SEGMENTS: [GlyphSegmentSpec; 6] = [
+    GlyphSegmentSpec::new(2, 5, 3, 4),
+    GlyphSegmentSpec::new(5, 3, 2, 8),
+    GlyphSegmentSpec::new(8, 4, 1, 2),
+    GlyphSegmentSpec::new(10, 3, 1, 4),
+    GlyphSegmentSpec::new(8, 8, 1, 2),
+    GlyphSegmentSpec::new(10, 7, 1, 4),
+];
 
 pub(in super::super) fn push_audio_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -12,17 +23,12 @@ pub(in super::super) fn push_audio_icon(
 ) {
     push_segments(
         commands,
+        rect,
+        TREE_OBJECT_GLYPH_GRID_UNITS,
         clip,
         order,
         color,
         opacity,
-        &[
-            local_rect(rect, 2.0, 5.0, 3.0, 4.0),
-            local_rect(rect, 5.0, 3.0, 2.0, 8.0),
-            local_rect(rect, 8.0, 4.0, 1.0, 2.0),
-            local_rect(rect, 10.0, 3.0, 1.0, 4.0),
-            local_rect(rect, 8.0, 8.0, 1.0, 2.0),
-            local_rect(rect, 10.0, 7.0, 1.0, 4.0),
-        ],
+        &AUDIO_SEGMENTS,
     );
 }

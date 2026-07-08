@@ -4,6 +4,14 @@ use zircon_runtime::render_graph::{
     RenderGraphResourceKind,
 };
 
+mod resolve_trace_handoff;
+mod scene_depth_handoff;
+mod trace_schedule_handoff;
+
+use resolve_trace_handoff::record_resolve_trace_handoff;
+use scene_depth_handoff::record_scene_depth_handoff;
+use trace_schedule_handoff::record_trace_schedule_handoff;
+
 #[derive(Clone, Copy, Debug)]
 struct RenderPassExecutorContract {
     pass_name: &'static str,
@@ -75,15 +83,19 @@ const READ_ONLY_TEXTURE_INPUT_KINDS: &[RenderGraphResourceKind] = &[
     RenderGraphResourceKind::External,
     RenderGraphResourceKind::TransientTexture,
 ];
+const SCENE_DEPTH_RESOURCE: &str = "scene-depth";
+const HYBRID_GI_SCENE_RESOURCE: &str = "hybrid-gi-scene";
+const HYBRID_GI_TRACE_RESOURCE: &str = "hybrid-gi-trace";
+const HYBRID_GI_LIGHTING_RESOURCE: &str = "hybrid-gi-lighting";
 
 const SCENE_PREPARE_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::any_of(
-        "scene-depth",
+        SCENE_DEPTH_RESOURCE,
         READ_ONLY_TEXTURE_INPUT_KINDS,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
-        "hybrid-gi-scene",
+        HYBRID_GI_SCENE_RESOURCE,
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Write,
     ),
@@ -91,12 +103,12 @@ const SCENE_PREPARE_RESOURCES: &[ExpectedResource] = &[
 
 const TRACE_SCHEDULE_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::new(
-        "hybrid-gi-scene",
+        HYBRID_GI_SCENE_RESOURCE,
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
-        "hybrid-gi-trace",
+        HYBRID_GI_TRACE_RESOURCE,
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Write,
     ),
@@ -104,21 +116,21 @@ const TRACE_SCHEDULE_RESOURCES: &[ExpectedResource] = &[
 
 const RESOLVE_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::new(
-        "hybrid-gi-trace",
+        HYBRID_GI_TRACE_RESOURCE,
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
-        "hybrid-gi-lighting",
+        HYBRID_GI_LIGHTING_RESOURCE,
         RenderGraphResourceKind::TransientTexture,
         RenderGraphResourceAccessKind::Write,
     ),
 ];
 
 const HISTORY_RESOURCES: &[ExpectedResource] = &[
-    ExpectedResource::any_of(
-        "scene-color",
-        READ_ONLY_TEXTURE_INPUT_KINDS,
+    ExpectedResource::new(
+        HYBRID_GI_LIGHTING_RESOURCE,
+        RenderGraphResourceKind::TransientTexture,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
@@ -131,7 +143,7 @@ const HISTORY_RESOURCES: &[ExpectedResource] = &[
 const SCENE_PREPARE_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract {
     pass_name: "hybrid-gi-scene-prepare",
     executor_id: "hybrid-gi.scene-prepare",
-    declared_queue: QueueLane::Graphics,
+    declared_queue: QueueLane::AsyncCompute,
     flags: PassFlags {
         allow_culling: true,
         has_side_effects: false,
@@ -175,19 +187,31 @@ const HISTORY_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract 
 pub(crate) fn hybrid_gi_scene_prepare_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    validate_context(context, &SCENE_PREPARE_CONTRACT)
+    validate_context(context, &SCENE_PREPARE_CONTRACT)?;
+    if context.gpu().is_none() {
+        return Ok(());
+    }
+    record_scene_depth_handoff(context)
 }
 
 pub(crate) fn hybrid_gi_trace_schedule_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    validate_context(context, &TRACE_SCHEDULE_CONTRACT)
+    validate_context(context, &TRACE_SCHEDULE_CONTRACT)?;
+    if context.gpu().is_none() {
+        return Ok(());
+    }
+    record_trace_schedule_handoff(context)
 }
 
 pub(crate) fn hybrid_gi_resolve_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    validate_context(context, &RESOLVE_CONTRACT)
+    validate_context(context, &RESOLVE_CONTRACT)?;
+    if context.gpu().is_none() {
+        return Ok(());
+    }
+    record_resolve_trace_handoff(context)
 }
 
 pub(crate) fn hybrid_gi_history_executor(
@@ -361,16 +385,11 @@ mod tests {
     }
 
     #[test]
-    fn hybrid_gi_read_only_scene_textures_accept_external_or_transient_graph_resources() {
+    fn hybrid_gi_read_only_scene_depth_accepts_external_or_transient_graph_resources() {
         let mut scene_prepare = context_for_contract(&SCENE_PREPARE_CONTRACT);
         scene_prepare.resources[0].kind = RenderGraphResourceKind::TransientTexture;
         hybrid_gi_scene_prepare_executor(&mut scene_prepare)
             .unwrap_or_else(|error| panic!("scene-depth transient texture failed: {error}"));
-
-        let mut history = context_for_contract(&HISTORY_CONTRACT);
-        history.resources[0].kind = RenderGraphResourceKind::TransientTexture;
-        hybrid_gi_history_executor(&mut history)
-            .unwrap_or_else(|error| panic!("scene-color transient texture failed: {error}"));
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use super::*;
+use super::sources::*;
 
 #[test]
 fn runtime_05_dynamic_scene_session_capture_persistence_anchors_stay_visible() {

@@ -1,4 +1,5 @@
 pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_GUARD_CHILD_OWNER_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer DX structure assertions guard child-owner split",
     "runtime_15_plugin_importer_dx_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
@@ -13,6 +14,7 @@ pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_GUARD_CHILD_OWNER_SPLIT
 ];
 
 pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer DX structure assertions guard folder-backed split",
     "runtime_15_plugin_importer_dx_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts.rs",
@@ -28,6 +30,7 @@ pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPL
 ];
 
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer DX review mounts guard folder-backed split",
     "runtime_15_plugin_importer_dx_review_mounts_guard_folder_backed_static_passed_cargo_deferred",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/review_mounts/paths.rs",
@@ -44,6 +47,7 @@ pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_GUARD_FOLDER_BACKED_SPLIT: &[&
 ];
 
 pub(super) const PLUGIN_IMPORTER_D13_SDK_STRUCTURE_ASSERTIONS_GUARD_FOLDER_BACKED_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer D13 SDK structure assertions guard folder-backed split",
     "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_folder_backed_static_passed_cargo_deferred",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk/paths.rs",
@@ -76,6 +80,7 @@ pub(super) const PLUGIN_IMPORTER_D13_SDK_PARENT_MOUNTS_GUARD_CHILD_SPLIT: &[&str
 ];
 
 pub(super) const PLUGIN_IMPORTER_D13_SDK_STRUCTURE_ASSERTIONS_GUARD_CHILD_OWNER_SPLIT: &[&str] = &[
+    "Runtime 15 M3 plugin-importer D13 SDK structure assertions guard child-owner split",
     "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_child_owner_split_static_passed_cargo_deferred",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions/d13_sdk.rs",

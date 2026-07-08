@@ -5,8 +5,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_asse
 ) -> bool {
     matches!(
         node.surface_variant.as_str(),
-        "asset-preview" | "asset-preview-visual" | "asset-thumbnail-name-area"
+        "asset-preview" | "asset-preview-visual"
     )
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_asset_thumbnail_name_area_surface(
+    node: &TemplatePaneNodeData,
+) -> bool {
+    node.surface_variant.as_str() == "asset-thumbnail-name-area"
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_content_panel_surface(

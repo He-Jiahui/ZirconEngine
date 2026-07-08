@@ -6,6 +6,8 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
     frame_from_ui, parse_style_color,
 };
 
+use super::metrics::{resolved_font_size, resolved_line_height};
+
 pub(super) fn push_text_run_commands(
     output: &mut Vec<HostPaintCommand>,
     text: &UiTextPaint,
@@ -26,8 +28,8 @@ pub(super) fn push_text_run_commands(
             z_index,
             run.text.clone(),
             run_color,
-            run.font_size.max(1.0),
-            run.line_height.max(run.font_size).max(1.0),
+            resolved_font_size(run.font_size),
+            resolved_line_height(run.font_size, run.line_height),
             run.style,
             opacity,
         ));

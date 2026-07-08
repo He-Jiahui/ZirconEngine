@@ -42,7 +42,7 @@ fn structure_guard_children_budget_child_sources() -> Vec<(&'static str, String)
         .collect()
 }
 
-fn structure_guard_children_budget_child_source_blob() -> String {
+pub(super) fn structure_guard_children_budget_child_source_blob() -> String {
     let mut blob = String::new();
     for (_, source) in structure_guard_children_budget_child_sources() {
         blob.push_str(&source);

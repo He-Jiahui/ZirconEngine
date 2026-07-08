@@ -2,6 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::field_paint_rect;
 use super::identity::{is_stepper_field, is_workbench_field};
+use super::layers::{SEARCH_GLYPH_OFFSET, STEPPER_OFFSET, TEXT_OFFSET};
 use super::style::{field_opacity, field_style};
 use super::surface::push_field_surface;
 use super::text::push_field_text;
@@ -31,7 +32,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         node,
         &rect,
         clip,
-        order + 1,
+        order + SEARCH_GLYPH_OFFSET,
         opacity,
         style.text,
     );
@@ -40,7 +41,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
             commands,
             &rect,
             clip,
-            order + 2,
+            order + STEPPER_OFFSET,
             opacity,
             &style,
         );
@@ -50,7 +51,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_fi
         node,
         &rect,
         clip,
-        order + 3,
+        order + TEXT_OFFSET,
         stepper,
         opacity,
         &style,

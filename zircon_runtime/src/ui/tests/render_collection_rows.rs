@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::{UiRenderCommandKind, UiVisualAssetRef},
+    surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -171,6 +171,162 @@ icon = "folder"
 }
 
 #[test]
+fn render_extract_collection_rows_keep_selected_identity_when_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.collection_rows.selected_hover",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 320.0, 96.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(20),
+        "ListRow",
+        UiFrame::new(12.0, 16.0, 200.0, 28.0),
+        r##"
+label = "Hovered Selected"
+selected = true
+background_color = "#0d4149"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(21),
+        "TableRow",
+        UiFrame::new(12.0, 52.0, 240.0, 28.0),
+        r##"
+label = "Hovered Checked"
+checked = true
+background_color = "#0d4149"
+"##,
+        visible_state(),
+    );
+    assert!(surface
+        .component_states
+        .set_hovered(UiNodeId::new(20), true));
+    assert!(surface
+        .component_states
+        .set_drop_hovered(UiNodeId::new(20), true));
+    assert!(surface
+        .component_states
+        .set_hovered(UiNodeId::new(21), true));
+    assert!(surface
+        .component_states
+        .set_drop_hovered(UiNodeId::new(21), true));
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(20)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::ListRow
+            && command.style.painter_state == UiPainterResolvedState::Selected
+            && command.style.background_color.as_deref() == Some("#0d4149")
+    }));
+    assert!(commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(21)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.style.painter_family == UiPainterFamily::TableRow
+            && command.style.painter_state == UiPainterResolvedState::Checked
+            && command.style.background_color.as_deref() == Some("#0d4149")
+    }));
+}
+
+#[test]
+fn render_extract_collection_rows_keep_focused_background_neutral_until_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.render.collection_rows.focus_hover",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 360.0, 148.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(30),
+        "ListRow",
+        UiFrame::new(12.0, 12.0, 200.0, 28.0),
+        r##"
+label = "Focused List"
+background_color = "#101820"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(31),
+        "TreeRow",
+        UiFrame::new(12.0, 48.0, 240.0, 24.0),
+        r##"
+label = "Focused Tree"
+background_color = "#101820"
+icon = "folder"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(32),
+        "TableRow",
+        UiFrame::new(12.0, 80.0, 280.0, 28.0),
+        r##"
+cells = ["Focused Asset", "Mesh", "12 KB", "Now"]
+background_color = "#0d1114"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(33),
+        "ListRow",
+        UiFrame::new(12.0, 116.0, 200.0, 28.0),
+        r##"
+label = "Focused Hovered"
+background_color = "#101820"
+"##,
+        visible_state(),
+    );
+    for node_id in [
+        UiNodeId::new(30),
+        UiNodeId::new(31),
+        UiNodeId::new(32),
+        UiNodeId::new(33),
+    ] {
+        assert!(surface.component_states.set_focused(node_id, true));
+        surface.mark_component_state_render_dirty(node_id).unwrap();
+    }
+    assert!(surface
+        .component_states
+        .set_hovered(UiNodeId::new(33), true));
+    surface
+        .mark_component_state_render_dirty(UiNodeId::new(33))
+        .unwrap();
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    for (node_id, family, background) in [
+        (UiNodeId::new(30), UiPainterFamily::ListRow, "#101820"),
+        (UiNodeId::new(31), UiPainterFamily::TreeRow, "#101820"),
+        (UiNodeId::new(32), UiPainterFamily::TableRow, "#0d1114"),
+    ] {
+        let surface = row_surface(commands, node_id, family);
+        assert_eq!(surface.style.painter_state, UiPainterResolvedState::Focused);
+        assert_eq!(surface.style.background_color.as_deref(), Some(background));
+        assert_eq!(surface.style.border_color.as_deref(), Some("#35c7d0"));
+    }
+
+    let hovered = row_surface(commands, UiNodeId::new(33), UiPainterFamily::ListRow);
+    assert_eq!(hovered.style.painter_state, UiPainterResolvedState::Focused);
+    assert_eq!(hovered.style.background_color.as_deref(), Some("#1a2429"));
+}
+
+#[test]
 fn render_extract_loading_collection_rows_use_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.collection_rows.loading"));
     surface.tree.insert_root(
@@ -314,6 +470,23 @@ value_color = "#aab5ba"
             && command.style.painter_state == UiPainterResolvedState::Loading
             && command.style.foreground_color.as_deref() == Some("#59656c")
     }));
+}
+
+fn row_surface(
+    commands: &[UiRenderCommand],
+    node_id: UiNodeId,
+    family: UiPainterFamily,
+) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.node_id == node_id
+                && command.kind == UiRenderCommandKind::Quad
+                && command.style.painter_family == family
+                && command.frame.width > 1.0
+                && command.frame.height > 1.0
+        })
+        .expect("row surface command")
 }
 
 fn insert_control(

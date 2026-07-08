@@ -1,5 +1,6 @@
 mod colors;
 mod model;
+mod palette;
 mod selection;
 mod state;
 mod surface;

@@ -4,24 +4,27 @@ use zircon_runtime::{
     core::framework::render::ShapedGlyph,
     ui::surface::{layout_text, shape_text_line},
 };
-use zircon_runtime_interface::ui::{
-    layout::UiFrame,
-    surface::{UiTextOverflow, UiTextRunPaintStyle, UiTextWrap},
-};
+use zircon_runtime_interface::ui::surface::{UiTextOverflow, UiTextRunPaintStyle, UiTextWrap};
 
 use super::super::super::data::FrameRect;
 use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
 use super::super::font::{
     font_face_for_paint_style, font_for_face, runtime_text_style_for_face, HostTextFontFace,
 };
+use super::metrics::runtime_text_layout_frame;
 use super::placement::{
     retained_glyph_left_offset_px, retained_glyph_placements_share_bin_for_smoothing,
     retained_text_origin_for_smoothing,
 };
 
-const TOTAL_ADVANCE_TOLERANCE_PX: f32 = 1.0;
-const TOTAL_ADVANCE_TOLERANCE_RATIO: f32 = 0.15;
-const RETAINED_GLYPH_ADVANCE_TOLERANCE_PX: f32 = 0.0625;
+mod metrics;
+
+use self::metrics::{
+    advances_include_positive_width, centered_line_y, empty_grapheme_advance_px,
+    empty_runtime_line_frame_x, glyph_origin_matches_without_visible_drift,
+    glyph_origin_preserves_monotonic_order, grapheme_advances_match, missing_glyph_left_offset_px,
+    missing_host_advance, non_negative_advance, total_advances_match,
+};
 
 pub(super) struct PaintTextLayout {
     pub(super) display_text: String,
@@ -61,7 +64,7 @@ fn layout_text_run_with_smoothing(
     smoothing: HostTextSmoothing,
 ) -> PaintTextLayout {
     let line = runtime_single_line_text(rect, text, font_size, line_height, font_face);
-    let text_y = rect.y + ((rect.height - line_height).max(0.0) * 0.5);
+    let text_y = centered_line_y(rect.y, rect.height, line_height);
     let text_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
     let glyphs = runtime_positioned_glyphs(
         line.text.as_str(),
@@ -129,6 +132,7 @@ fn runtime_positioned_glyphs(
         shaped_glyphs,
         font_face,
         x,
+        smoothing,
     ) {
         return positioned;
     }
@@ -172,6 +176,7 @@ fn runtime_positioned_glyphs_from_shaped_positions(
     shaped_glyphs: &[ShapedGlyph],
     font_face: HostTextFontFace,
     start_x: f32,
+    smoothing: HostTextSmoothing,
 ) -> Option<Vec<RuntimeTextGlyph>> {
     if glyphs.is_empty() || glyphs.len() != shaped_glyphs.len() {
         return None;
@@ -179,8 +184,7 @@ fn runtime_positioned_glyphs_from_shaped_positions(
 
     let host_width = host_glyph_run_width(glyphs, font_face)?;
     let shaped_width = shaped_glyph_run_width(shaped_glyphs)?;
-    let tolerance = TOTAL_ADVANCE_TOLERANCE_PX.max(host_width * TOTAL_ADVANCE_TOLERANCE_RATIO);
-    if host_width <= 0.0 || shaped_width <= 0.0 || (host_width - shaped_width).abs() > tolerance {
+    if !total_advances_match(shaped_width, host_width) {
         return None;
     }
 
@@ -190,6 +194,15 @@ fn runtime_positioned_glyphs_from_shaped_positions(
     if !shaped_positions_match_host_advances(glyphs, shaped_glyphs, font_face) {
         return None;
     }
+    if !shaped_positions_preserve_retained_raster_bins(
+        glyphs,
+        shaped_glyphs,
+        font_face,
+        start_x,
+        smoothing,
+    ) {
+        return None;
+    }
 
     let mut previous_origin = None;
     glyphs
@@ -197,13 +210,8 @@ fn runtime_positioned_glyphs_from_shaped_positions(
         .zip(shaped_glyphs)
         .map(|(host, shaped)| {
             let origin_x = start_x + shaped.x + shaped.offset_x;
-            if !origin_x.is_finite() {
+            if !glyph_origin_preserves_monotonic_order(origin_x, previous_origin) {
                 return None;
-            }
-            if let Some(previous) = previous_origin {
-                if origin_x + RETAINED_GLYPH_ADVANCE_TOLERANCE_PX < previous {
-                    return None;
-                }
             }
             previous_origin = Some(origin_x);
             Some(RuntimeTextGlyph {
@@ -215,6 +223,31 @@ fn runtime_positioned_glyphs_from_shaped_positions(
             })
         })
         .collect()
+}
+
+fn shaped_positions_preserve_retained_raster_bins(
+    glyphs: &[GlyphPosition],
+    shaped_glyphs: &[ShapedGlyph],
+    font_face: HostTextFontFace,
+    start_x: f32,
+    smoothing: HostTextSmoothing,
+) -> bool {
+    if glyphs.len() != shaped_glyphs.len() {
+        return false;
+    }
+
+    glyphs.iter().zip(shaped_glyphs).all(|(host, shaped)| {
+        let host_origin = glyph_cursor_x(host, font_face);
+        let shaped_origin = start_x + shaped.x + shaped.offset_x;
+        host_origin.is_finite()
+            && shaped_origin.is_finite()
+            && glyph_origin_matches_without_visible_drift(host_origin, shaped_origin)
+            && retained_glyph_placements_share_bin_for_smoothing(
+                host_origin,
+                shaped_origin,
+                smoothing,
+            )
+    })
 }
 
 fn shaped_position_matches_host_glyph(
@@ -246,14 +279,14 @@ fn shaped_glyph_run_width(shaped_glyphs: &[ShapedGlyph]) -> Option<f32> {
     let mut max_x = f32::NEG_INFINITY;
     for glyph in shaped_glyphs {
         let start = glyph.x + glyph.offset_x;
-        let end = start + glyph.advance.max(0.0);
+        let end = start + non_negative_advance(glyph.advance);
         if !start.is_finite() || !end.is_finite() {
             return None;
         }
         min_x = min_x.min(start);
         max_x = max_x.max(end);
     }
-    (min_x.is_finite() && max_x.is_finite()).then_some((max_x - min_x).max(0.0))
+    (min_x.is_finite() && max_x.is_finite()).then_some(non_negative_advance(max_x - min_x))
 }
 
 fn shaped_positions_match_host_advances(
@@ -294,19 +327,19 @@ fn shaped_positions_match_host_advances(
             let shaped_next = shaped_origins
                 .get(index + 1)
                 .copied()
-                .unwrap_or_else(|| shaped_origins[index] + shaped.advance.max(0.0));
+                .unwrap_or_else(|| shaped_origins[index] + non_negative_advance(shaped.advance));
             let host_next = host_origins.get(index + 1).copied().unwrap_or_else(|| {
                 let advance = font_for_face(font_face)
                     .map(|font| font.metrics_indexed(host.key.glyph_index, host.key.px))
-                    .map(|metrics| metrics.advance_width.max(0.0))
-                    .unwrap_or(0.0);
+                    .map(|metrics| non_negative_advance(metrics.advance_width))
+                    .unwrap_or_else(missing_host_advance);
                 host_origins[index] + advance
             });
-            let shaped_advance = (shaped_next - shaped_origins[index]).max(0.0);
-            let host_advance = (host_next - host_origins[index]).max(0.0);
+            let shaped_advance = non_negative_advance(shaped_next - shaped_origins[index]);
+            let host_advance = non_negative_advance(host_next - host_origins[index]);
             shaped_advance.is_finite()
                 && host_advance.is_finite()
-                && (shaped_advance - host_advance).abs() <= grapheme_advance_tolerance(host_advance)
+                && grapheme_advances_match(shaped_advance, host_advance)
         })
 }
 
@@ -337,17 +370,12 @@ fn runtime_advances_match_host_layout(
     let runtime_width = glyph_advances
         .iter()
         .copied()
-        .map(|advance| advance.max(0.0))
+        .map(non_negative_advance)
         .sum::<f32>();
     let Some(host_width) = host_glyph_run_width(glyphs, font_face) else {
         return false;
     };
-    if runtime_width <= 0.0 || host_width <= 0.0 {
-        return false;
-    }
-
-    let tolerance = TOTAL_ADVANCE_TOLERANCE_PX.max(host_width * TOTAL_ADVANCE_TOLERANCE_RATIO);
-    if (runtime_width - host_width).abs() > tolerance {
+    if !total_advances_match(runtime_width, host_width) {
         return false;
     }
 
@@ -358,7 +386,7 @@ fn runtime_advances_match_host_layout(
 }
 
 fn host_glyph_run_width(glyphs: &[GlyphPosition], font_face: HostTextFontFace) -> Option<f32> {
-    host_glyph_run_bounds(glyphs, font_face).map(|(start, end)| (end - start).max(0.0))
+    host_glyph_run_bounds(glyphs, font_face).map(|(start, end)| non_negative_advance(end - start))
 }
 
 fn host_glyph_run_bounds(
@@ -372,7 +400,7 @@ fn host_glyph_run_bounds(
         .iter()
         .map(|glyph| {
             let metrics = font.metrics_indexed(glyph.key.glyph_index, glyph.key.px);
-            glyph_cursor_x(glyph, font_face) + metrics.advance_width.max(0.0)
+            glyph_cursor_x(glyph, font_face) + non_negative_advance(metrics.advance_width)
         })
         .filter(|x| x.is_finite())
         .fold(start, f32::max);
@@ -399,7 +427,7 @@ fn host_grapheme_advances(
     let mut advances = Vec::with_capacity(starts.len());
     for index in 0..starts.len() {
         let next = starts.get(index + 1).copied().unwrap_or(run_end);
-        advances.push((next - starts[index]).max(0.0));
+        advances.push(non_negative_advance(next - starts[index]));
     }
     Some(advances)
 }
@@ -409,12 +437,7 @@ fn advances_match_per_grapheme(runtime_advances: &[f32], host_advances: &[f32]) 
         && runtime_advances
             .iter()
             .zip(host_advances)
-            .all(|(runtime, host)| {
-                let runtime = (*runtime).max(0.0);
-                let host = (*host).max(0.0);
-                let tolerance = grapheme_advance_tolerance(host);
-                (runtime - host).abs() <= tolerance
-            })
+            .all(|(runtime, host)| grapheme_advances_match(*runtime, *host))
 }
 
 fn runtime_advances_preserve_retained_raster_bins(
@@ -435,16 +458,13 @@ fn runtime_advances_preserve_retained_raster_bins(
         let projected_origin = runtime_glyph_origin_x(glyph, &positions, font_face);
         host_origin.is_finite()
             && projected_origin.is_finite()
+            && glyph_origin_matches_without_visible_drift(host_origin, projected_origin)
             && retained_glyph_placements_share_bin_for_smoothing(
                 host_origin,
                 projected_origin,
                 smoothing,
             )
     })
-}
-
-fn grapheme_advance_tolerance(_host_advance: f32) -> f32 {
-    RETAINED_GLYPH_ADVANCE_TOLERANCE_PX
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -477,7 +497,7 @@ fn grapheme_positions(
             original_x,
             runtime_x,
         });
-        runtime_x += advance.max(0.0);
+        runtime_x += non_negative_advance(advance);
     }
     positions
 }
@@ -503,7 +523,7 @@ fn glyph_left_offset(glyph: &GlyphPosition, font_face: HostTextFontFace) -> f32 
     font_for_face(font_face)
         .map(|font| font.metrics_indexed(glyph.key.glyph_index, glyph.key.px))
         .map(|metrics| retained_glyph_left_offset_px(metrics.bounds.xmin))
-        .unwrap_or(0.0)
+        .unwrap_or_else(missing_glyph_left_offset_px)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -528,7 +548,7 @@ fn runtime_shaped_glyph_advances_from_run(
     let grapheme_count = display_text.graphemes(true).count();
     if shaped_advances.len() == grapheme_count
         && shaped_advances.iter().all(|advance| advance.is_finite())
-        && shaped_advances.iter().any(|advance| *advance > 0.0)
+        && advances_include_positive_width(&shaped_advances)
     {
         shaped_advances
     } else {
@@ -544,9 +564,9 @@ fn shaped_grapheme_advances(display_text: &str, glyphs: &[ShapedGlyph]) -> Vec<f
             end: start + grapheme.len(),
         })
         .collect::<Vec<_>>();
-    let mut advances = vec![0.0_f32; graphemes.len()];
+    let mut advances = vec![empty_grapheme_advance_px(); graphemes.len()];
     for glyph in glyphs {
-        let advance = glyph.advance.max(0.0);
+        let advance = non_negative_advance(glyph.advance);
         if !advance.is_finite() {
             continue;
         }
@@ -608,12 +628,12 @@ fn runtime_single_line_text(
         UiTextWrap::None,
         UiTextOverflow::Ellipsis,
     );
-    let frame = UiFrame::new(0.0, 0.0, rect.width.max(1.0), line_height.max(1.0));
+    let frame = runtime_text_layout_frame(rect, line_height);
     let layout = layout_text(text, &style, frame, None);
     layout.lines.first().map_or_else(
         || RuntimeSingleLineText {
             text: String::new(),
-            frame_x: 0.0,
+            frame_x: empty_runtime_line_frame_x(),
             glyph_advances: Vec::new(),
             shaped_glyphs: Vec::new(),
         },

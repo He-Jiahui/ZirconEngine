@@ -38,6 +38,10 @@ impl WorkbenchPopupRowState {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn marked(self) -> bool {
         self.checked || self.selected
     }
+
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn hot(self) -> bool {
+        self.hovered || self.pressed || self.open || self.dragging || self.drop_hovered
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]

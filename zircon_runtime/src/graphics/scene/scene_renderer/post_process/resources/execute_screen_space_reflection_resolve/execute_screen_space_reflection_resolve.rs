@@ -53,6 +53,7 @@ impl ScenePostProcessResources {
             0,
             0,
             0,
+            false,
         );
         let params_buffer = create_post_process_params_buffer(
             device,

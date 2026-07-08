@@ -1,5 +1,6 @@
 mod assign_execution_owned_indirect_args;
 mod bind_compiled_scene_graph_resources;
+mod bind_environment_ibl_graph_resources;
 mod bind_execution_owned_graph_resources;
 mod bind_frame_graph_resources;
 mod bind_history_graph_resources;

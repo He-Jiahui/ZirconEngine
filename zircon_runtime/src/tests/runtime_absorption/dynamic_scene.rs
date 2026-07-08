@@ -1,50 +1,18 @@
+#[path = "dynamic_scene/asset_reload_selection_status.rs"]
 mod asset_reload_selection_status;
+#[path = "dynamic_scene/patch_preview_api.rs"]
 mod patch_preview_api;
+#[path = "dynamic_scene/patch_preview_behavior.rs"]
 mod patch_preview_behavior;
+#[path = "dynamic_scene/patch_preview_status_docs.rs"]
 mod patch_preview_status_docs;
+#[path = "dynamic_scene/session_capture_persistence.rs"]
 mod session_capture_persistence;
+#[path = "dynamic_scene/session_load_query_path.rs"]
 mod session_load_query_path;
+#[path = "dynamic_scene/session_retention_mutation_merge.rs"]
 mod session_retention_mutation_merge;
-
-const PATCH_SOURCE: &str = include_str!("../../scene/dynamic_scene/patch.rs");
-const DYNAMIC_SCENE_MOD_SOURCE: &str = include_str!("../../scene/dynamic_scene/mod.rs");
-const SCENE_MOD_SOURCE: &str = include_str!("../../scene/dynamic_scene/scene/mod.rs");
-const SPAWN_SOURCE: &str = include_str!("../../scene/dynamic_scene/scene/spawn.rs");
-const BEHAVIOR_SOURCE: &str = include_str!("../../scene/tests/dynamic_scene.rs");
-const CAPTURE_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/capture.rs");
-const PERSISTENCE_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/persistence.rs");
-const RETENTION_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/retention.rs");
-const MUTATION_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/mutation.rs");
-const SELECTION_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/selection.rs");
-const MERGE_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/merge.rs");
-const LOAD_BEHAVIOR_SOURCE: &str = include_str!("../../scene/tests/dynamic_scene_session/load.rs");
-const QUERIES_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/queries.rs");
-const PATH_MANAGEMENT_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management.rs");
-const PATH_MANAGEMENT_ARCHIVE_MERGE_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management/archive_merge.rs");
-const PATH_MANAGEMENT_MUTATION_PREVIEWS_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management/mutation_previews.rs");
-const PATH_MANAGEMENT_SINGLE_SLOT_IMPORT_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management/single_slot_import.rs");
-const PATH_MANAGEMENT_SINGLE_SLOT_SAVE_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management/single_slot_save.rs");
-const PATH_MANAGEMENT_SLOT_COPY_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management/slot_copy.rs");
-const PATH_MANAGEMENT_SLOT_MUTATIONS_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_session/path_management/slot_mutations.rs");
-const ASSET_RELOAD_BEHAVIOR_SOURCE: &str =
-    include_str!("../../scene/tests/dynamic_scene_asset_reload.rs");
-const RUNTIME_05_PLAN: &str = include_str!(
-    "../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
-);
-const RUNTIME_INDEX: &str = include_str!("../../../../docs/plans/zircon_runtime/runtime/index.md");
-const DYNAMIC_SCENE_DOC: &str =
-    include_str!("../../../../docs/zircon_runtime/scene/dynamic_scene.md");
+#[path = "dynamic_scene/sources.rs"]
+mod sources;
+#[path = "dynamic_scene/split_layout.rs"]
+mod split_layout;

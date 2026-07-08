@@ -1,6 +1,8 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::super::template_icon_button_glyph_segments::push_icon_button_glyph_segments as push_segments;
+use super::super::super::template_icon_button_glyph_segments::{
+    icon_button_segment as seg, push_icon_button_glyph_segments as push_segments,
+};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_chevron_down_icon(
     commands: &mut Vec<HostPaintCommand>,
@@ -18,9 +20,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ch
         color,
         opacity,
         &[
-            (4.0, 6.0, 2.0, 2.0),
-            (6.0, 8.0, 4.0, 2.0),
-            (10.0, 6.0, 2.0, 2.0),
+            seg(80, 120, 40, 40),
+            seg(120, 160, 80, 40),
+            seg(200, 120, 40, 40),
         ],
     );
 }
@@ -41,9 +43,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_mo
         color,
         opacity,
         &[
-            (7.0, 3.0, 2.0, 2.0),
-            (7.0, 7.0, 2.0, 2.0),
-            (7.0, 11.0, 2.0, 2.0),
+            seg(140, 60, 40, 40),
+            seg(140, 140, 40, 40),
+            seg(140, 220, 40, 40),
         ],
     );
 }
@@ -64,14 +66,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_cl
         color,
         opacity,
         &[
-            (4.0, 3.0, 2.0, 2.0),
-            (6.0, 5.0, 2.0, 2.0),
-            (8.0, 7.0, 2.0, 2.0),
-            (10.0, 9.0, 2.0, 2.0),
-            (10.0, 3.0, 2.0, 2.0),
-            (8.0, 5.0, 2.0, 2.0),
-            (6.0, 7.0, 2.0, 2.0),
-            (4.0, 9.0, 2.0, 2.0),
+            seg(80, 60, 40, 40),
+            seg(120, 100, 40, 40),
+            seg(160, 140, 40, 40),
+            seg(200, 180, 40, 40),
+            seg(200, 60, 40, 40),
+            seg(160, 100, 40, 40),
+            seg(120, 140, 40, 40),
+            seg(80, 180, 40, 40),
         ],
     );
 }

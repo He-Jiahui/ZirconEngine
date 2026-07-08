@@ -23,6 +23,18 @@ impl HybridGiGpuPendingReadback {
         scene_prepare_capture_views: Vec<wgpu::TextureView>,
         scene_prepare_capture_upload_buffer: Option<wgpu::Buffer>,
         scene_prepare_capture_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+        scene_prepare_surface_cache_depth_texture: Option<wgpu::Texture>,
+        scene_prepare_surface_cache_depth_upload_buffer: Option<wgpu::Buffer>,
+        scene_prepare_surface_cache_depth_slot_sample_buffers: Vec<(u32, wgpu::Buffer)>,
+        scene_prepare_probe_trace_tile_seed_buffer: Option<wgpu::Buffer>,
+        scene_prepare_probe_trace_tile_params_buffer: Option<wgpu::Buffer>,
+        scene_prepare_probe_trace_tile_buffer: Option<wgpu::Buffer>,
+        scene_prepare_probe_trace_tile_readback: Option<wgpu::Buffer>,
+        scene_prepare_probe_trace_indirect_args_buffer: Option<wgpu::Buffer>,
+        scene_prepare_probe_trace_indirect_args_readback: Option<wgpu::Buffer>,
+        scene_prepare_probe_trace_tile_word_count: usize,
+        scene_prepare_probe_trace_tile_record_count: usize,
+        scene_prepare_probe_trace_indirect_arg_word_count: usize,
     ) -> Self {
         Self {
             cache_word_count,
@@ -44,6 +56,21 @@ impl HybridGiGpuPendingReadback {
             _scene_prepare_capture_views: scene_prepare_capture_views,
             _scene_prepare_capture_upload_buffer: scene_prepare_capture_upload_buffer,
             scene_prepare_capture_slot_sample_buffers,
+            _scene_prepare_surface_cache_depth_texture: scene_prepare_surface_cache_depth_texture,
+            _scene_prepare_surface_cache_depth_upload_buffer:
+                scene_prepare_surface_cache_depth_upload_buffer,
+            scene_prepare_surface_cache_depth_slot_sample_buffers,
+            _scene_prepare_probe_trace_tile_seed_buffer: scene_prepare_probe_trace_tile_seed_buffer,
+            _scene_prepare_probe_trace_tile_params_buffer:
+                scene_prepare_probe_trace_tile_params_buffer,
+            _scene_prepare_probe_trace_tile_buffer: scene_prepare_probe_trace_tile_buffer,
+            scene_prepare_probe_trace_tile_readback,
+            _scene_prepare_probe_trace_indirect_args_buffer:
+                scene_prepare_probe_trace_indirect_args_buffer,
+            scene_prepare_probe_trace_indirect_args_readback,
+            scene_prepare_probe_trace_tile_word_count,
+            scene_prepare_probe_trace_tile_record_count,
+            scene_prepare_probe_trace_indirect_arg_word_count,
         }
     }
 }

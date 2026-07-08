@@ -13,7 +13,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
     context: &FrameSubmissionContext,
 ) -> Result<PreparedRuntimeSubmission, RenderFrameworkError> {
     validate_viewport_generation(state, viewport, context)?;
-    let (hybrid_gi_evictable_probe_ids, hybrid_gi_renderer_outputs) =
+    let (hybrid_gi_evictable_probe_ids, hybrid_gi_renderer_outputs, hybrid_gi_prepared_frame) =
         prepare_hybrid_gi_runtime(state, viewport, context)?
             .map(crate::graphics::HybridGiRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
@@ -28,6 +28,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
 
     Ok(PreparedRuntimeSubmission::new(
         hybrid_gi_evictable_probe_ids,
+        hybrid_gi_prepared_frame,
         virtual_geometry_evictable_page_ids,
         plugin_renderer_outputs,
     ))

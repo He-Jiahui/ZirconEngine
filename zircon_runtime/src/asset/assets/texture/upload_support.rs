@@ -16,7 +16,11 @@ use self::astc::astc_upload_plan;
 use self::compressed::compressed_plan_readiness;
 use self::dds::dds_upload_plan;
 use self::ktx::{ktx2_supercompression, ktx2_upload_plan, ktx_upload_plan};
-use super::{TextureAsset, TexturePayload, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
+use super::{
+    external_source_cubemap_container_info, TextureAsset, TexturePayload,
+    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    ZCUBE_SOURCE_CUBEMAP_FORMAT,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TextureUploadSupport {
@@ -159,6 +163,19 @@ fn unsupported_rgba8_shape_reason(texture: &TextureAsset) -> Option<String> {
     if descriptor.dimension == RenderImageDimension::D3 {
         return Some("rgba8 texture 3d upload is not implemented".to_string());
     }
+    if descriptor.dimension == RenderImageDimension::Cube {
+        if texture.width != texture.height {
+            return Some("rgba8 cube texture upload requires square faces".to_string());
+        }
+        if descriptor.array_layer_count == 0
+            || descriptor.depth_or_array_layers != descriptor.array_layer_count
+            || descriptor.array_layer_count % 6 != 0
+        {
+            return Some(
+                "rgba8 cube texture upload requires a non-zero multiple of six faces".to_string(),
+            );
+        }
+    }
     None
 }
 
@@ -168,6 +185,9 @@ fn container_upload_readiness(
     bytes: &[u8],
     support: TextureUploadSupport,
 ) -> TextureUploadReadiness {
+    if matches!(external_source_cubemap_container_info(texture), Ok(Some(_))) {
+        return unsupported(EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON);
+    }
     if let Some(plan) = dds_upload_plan(texture, format, bytes) {
         return compressed_plan_readiness(texture, bytes, plan, support);
     }
@@ -192,6 +212,11 @@ fn container_upload_readiness(
             return compressed_plan_readiness(texture, bytes, plan, support);
         }
         return unsupported("ktx texture format or level payload is not upload-ready");
+    }
+    if format == ZCUBE_SOURCE_CUBEMAP_FORMAT {
+        return unsupported(
+            ".zcube is a source cubemap mip container for IBL baking, not a PMREM or direct texture upload payload",
+        );
     }
     unsupported(format!(
         "texture container format {format} is not upload-ready"

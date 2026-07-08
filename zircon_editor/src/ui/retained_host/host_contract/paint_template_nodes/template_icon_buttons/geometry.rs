@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::metrics::icon_button_glyph_metrics;
 use super::style::IconButtonContext;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_button_paint_rect(
@@ -19,17 +20,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_gl
     context: IconButtonContext,
 ) -> FrameRect {
     let max_size = rect.width.min(rect.height).max(1.0);
-    let default_size = match context {
-        IconButtonContext::Rail => (max_size * 0.48).clamp(18.0, 24.0),
-        IconButtonContext::Toolbar => (max_size * 0.67).clamp(18.0, 20.0),
-        IconButtonContext::Panel => (max_size * 0.50).clamp(15.0, 21.0),
-    };
+    let metrics = icon_button_glyph_metrics();
+    let default_size = metrics.glyph_size_for_context(context);
     let size = if node.value_number.is_finite() && node.value_number > 0.0 {
         node.value_number
     } else {
         default_size
     }
-    .min((max_size - 6.0).max(1.0));
+    .min(metrics.max_glyph_size(max_size));
     FrameRect {
         x: rect.x + (rect.width - size).max(0.0) * 0.5,
         y: rect.y + (rect.height - size).max(0.0) * 0.5,

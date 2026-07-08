@@ -4,6 +4,7 @@ use super::super::super::style_selector::WorkbenchSliderStyle;
 use super::super::super::template_slider_geometry::{
     slider_range_min_label, slider_range_min_value_rect, workbench_slider_metrics,
 };
+use super::super::layers::inner_text_order;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_slider_range_min_value(
@@ -38,7 +39,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sl
             height: metrics.line_height,
         },
         Some(clip.clone()),
-        order + 1,
+        inner_text_order(order),
         slider_range_min_label(range_min_percent),
         style.value_text,
         metrics.font_size,

@@ -119,6 +119,7 @@ impl RenderPipelineAsset {
             required_extract_sections: required_extract_sections.into_iter().collect(),
             capability_requirements,
             history_bindings,
+            environment_ibl_bake_request: options.environment_ibl_bake_request,
             graph: authored_graph.graph,
         })
     }

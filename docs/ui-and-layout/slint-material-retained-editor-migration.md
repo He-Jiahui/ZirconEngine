@@ -211,12 +211,12 @@ Source facts preserved from `state_layer.slint`:
 | `clip_ripple: root.clip_ripple`. | Projection keeps external `clip_ripple` semantics and stores `ripple_unclipped = !clip_ripple` for the painter. |
 | Ripple width initializes to `root.width * 2 * 1.4142`, opacity is `MaterialPalette.state_layer_opacity_press`, and animation uses `MaterialAnimations.ripple_duration` / `MaterialAnimations.ripple_easing`. | The retained native painter draws a width-derived static press pulse circle using the same press opacity and source-derived duration/easing tokens; animated ripple expansion remains a later motion-layer gap. |
 
-The retained priority is encoded in `slint_material_state_layer_priority = "disabled>focus>pressed>drag>hover>default"`. Production code applies that rule in two places:
+The retained priority is encoded in `slint_material_state_layer_priority = "disabled>pressed>drag>focus>hover>default"`. Production code applies that rule in two places:
 
 | Layer | Implementation |
 |---|---|
-| Runtime style fallback | `zircon_runtime/src/ui/style.rs` resolves bool-only interaction state as disabled, focused, pressed, hovered after explicit `button_interaction_state` / `interaction_state` strings. |
-| Editor host painter | `zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs` resolves disabled, focused/selected/checked, pressed/`enter_pressed`, dragging, hover/drop/active-drag-target, default. |
+| Runtime style fallback | `zircon_runtime/src/ui/style.rs` resolves bool-only interaction state as disabled, pressed, focused, hovered after explicit `button_interaction_state` / `interaction_state` strings. |
+| Editor host painter | `zircon_editor/src/ui/retained_host/host_contract/painter/material_state_layer.rs` resolves disabled, pressed/`enter_pressed`, dragging, focused/selected/checked, hover/drop/active-drag-target, default. |
 
 M2 metadata fields on `TemplatePaneNodeData` are:
 
@@ -237,7 +237,7 @@ M2 metadata tokens now guarded in `editor_material.zui` are:
 
 | Token | Value |
 |---|---|
-| `slint_material_state_layer_priority` | `disabled>focus>pressed>drag>hover>default` |
+| `slint_material_state_layer_priority` | `disabled>pressed>drag>focus>hover>default` |
 | `slint_material_state_layer_disabled_uses_focus_opacity` | `true` |
 | `slint_material_hover_disable_token` | `disable_hover` |
 | `slint_material_ripple_pressed_x_attr` | `pressed_x` |
@@ -253,7 +253,7 @@ M2 focused coverage is split so the existing Material meta component boundary te
 | `zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs` | Source-symbol documentation guard, M2 metadata tokens, no direct Slint dependency fence. |
 | `zircon_editor/src/tests/host/retained_window/native_material_painter.rs` | Retained painter priority, state-layer overlay pixels, static ripple clipping/origin, elevation shadow. |
 | `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs` | Projection of state-layer/ripple/elevation metadata into `TemplatePaneNodeData`. |
-| `zircon_runtime/src/ui/tests/material_button_style.rs` | Runtime bool fallback priority for disabled/focused/pressed/hovered. |
+| `zircon_runtime/src/ui/tests/material_button_style.rs` | Runtime bool fallback priority for disabled/pressed/focused/hovered. |
 
 ## M3 Button, Icon Button, And FAB Source Facts
 

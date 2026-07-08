@@ -9,6 +9,13 @@ related_code:
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/tests/runtime_absorption/job_system.rs
+  - zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
+  - zircon_runtime/src/tests/runtime_absorption/job_system/mirror_docs.rs
+  - zircon_runtime/src/tests/runtime_absorption/job_system/source_helpers.rs
+  - zircon_runtime/src/tests/runtime_absorption/job_system/split_layout.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/split_layout.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
@@ -22,7 +29,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-07-01
+last_refined: 2026-07-05
 ---
 
 # 11 多线程 JobSystem 任务模型与调度
@@ -221,6 +228,8 @@ last_refined: 2026-07-01
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| 横切 | Runtime 15 M3 job-system route-owner split | runtime_15_job_system_route_owner_split_static_passed_cargo_deferred | 2026-07-05 | Runtime 11 mirror guard owner cleanup：`tests/runtime_absorption/job_system.rs` 已硬切为 route owner，只挂载 `job_system/{inventory,mirror_docs,source_helpers,split_layout}.rs`；原 `runtime_11_job_system_mirror_docs_match_structure_audit_counts` 继续由 `mirror_docs.rs` 承接，JobSystem module/path/rayon 行为锚点清单由 `inventory.rs` 承接，direct-rayon source scan helpers 由 `source_helpers.rs` 承接。新增 `runtime_15_job_system_route_owner_is_folder_backed` 锁定父入口不承载 test/const/helper、child owner 预算与 Runtime 11/15/index/Frameworks/status 文档锚点。验证：scoped rustfmt/check、static scan、conflict/trailing-whitespace scan 与 scoped `git diff --check`；Cargo gate deferred active lanes。该切片只整理 Runtime 11 mirror 测试守卫 owner，不改 JobSystem 生产代码。 |
+| 横切 | Runtime 15 M3 asset-worker-policy route-owner split | runtime_15_asset_worker_policy_route_owner_split_static_passed_cargo_deferred | 2026-07-05 | Runtime 04/11 worker-pool policy owner cleanup：`tests/runtime_absorption/asset_worker_policy.rs` 已硬切为 route owner，只挂载 `asset_worker_policy/{worker_pool,split_layout}.rs`；原 `asset_worker_pool_matches_runtime_04_and_11_decisions` 继续由 `worker_pool.rs` 承接，锁定 `AssetWorkerPoolOptions`、Runtime IO budget source、bounded backpressure、request de-duplication、diagnostics/frame sampler 与 Runtime 11 M2.4 文档锚点。新增 `runtime_15_asset_worker_policy_route_owner_is_folder_backed` 锁定父入口不承载 test/helper、child owner 预算与 Runtime 04/11/15/index/Frameworks/status 文档锚点。验证：scoped rustfmt/static/conflict/diff checks passed，static scan printed `ASSET_WORKER_POLICY_ROUTE_OWNER_STATIC_OK parent=4 worker_pool=124 split_layout=147 docs=9`。该切片只整理 Runtime 04/11 asset worker policy 测试守卫 owner，不改 JobSystem 或 asset production 行为；Cargo gate deferred due low D: space and active cargo/rustc lanes。 |
 | M0 | 0.1 模型选型 | completed_static_passed | 2026-06-13 | `docs/zircon_runtime/core/job_system.md` 消费方矩阵 + Unity/UE/Bevy/Godot 判词；已读锚点:`Task.h`、`Pipe.h`、`TaskConcurrencyLimiter.h`、`ParallelFor.h`、`bevy_tasks/{task_pool.rs,usages.rs,slice.rs}`、`godot/core/object/worker_thread_pool.{h,cpp}` |
 | M0 | 0.2 线程预算单点 | completed_static_passed | 2026-06-13 | `docs/zircon_runtime/core/job_system.md` 线程预算节：`TaskPoolOptions` 为唯一预算 owner；direct rayon 收敛到 tasks 原语；asset worker 后续已在 11-M2.4 按自建线程显式记账路线执行 |
 | M1 | 1.1 句柄与依赖 | code_static_pending_cargo | 2026-06-13 | 新增 `core/runtime/tasks/job_handle.rs`；`JobScheduler::schedule` / `schedule_after`；测试锚:`job_handle_wait_blocks_until_task_completes`、`schedule_after_runs_task_only_after_all_dependencies`、`combined_handle_completes_when_all_children_complete`、`schedule_after_does_not_consume_worker_while_waiting_on_dependencies`。`rustfmt --edition 2021 --check` 通过；anchor scan、冲突标记与尾随空白扫描为空；`git diff --check` 仅 index/runtime task docs/job_scheduler/mod.rs/tests LF/CRLF 提示。2026-06-13 `cargo test -p zircon_runtime --lib tasks --locked -- --nocapture` 未进入 tasks 测试，先被 plugin native-loader 测试漏导入 `PluginInterfaceManifest` 阻断；漏导入已修，重跑待 cargo/rustc 通道空闲。 |

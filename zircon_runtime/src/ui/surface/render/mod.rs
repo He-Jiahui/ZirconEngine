@@ -21,6 +21,7 @@ mod selection_controls;
 mod sliders;
 mod text_fields;
 mod text_measure;
+mod text_prewarm;
 
 pub use cache::{UiSurfaceRenderCache, UiSurfaceRenderCacheStats};
 pub use extract::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
@@ -28,5 +29,4 @@ pub(crate) use extract::{
     extract_ui_render_tree_from_arranged_with_component_states,
     extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
 };
-pub(super) use resolve::resolve_style;
-pub(crate) use text_measure::measure_text;
+pub(crate) use text_measure::measure_text_with_cache;

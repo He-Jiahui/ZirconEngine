@@ -28,3 +28,26 @@ fn alert_loading_state_uses_unavailable_visuals() {
     assert_eq!(style.mark, PALETTE.text_disabled);
     assert_eq!(style.text, PALETTE.text_disabled);
 }
+
+#[test]
+fn focused_warning_alert_keeps_tone_border_without_active_focus_ring() {
+    let mut node = TemplatePaneNodeData::default();
+    node.focused = true;
+
+    let style = select_workbench_alert_style(&node, WorkbenchAlertTone::Warning);
+
+    assert_eq!(style.state, UiPainterResolvedState::Focused);
+    assert_eq!(style.border, PALETTE.warning);
+    assert_ne!(style.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn pressed_warning_alert_still_uses_active_focus_ring_border() {
+    let mut node = TemplatePaneNodeData::default();
+    node.pressed = true;
+
+    let style = select_workbench_alert_style(&node, WorkbenchAlertTone::Warning);
+
+    assert_eq!(style.state, UiPainterResolvedState::Pressed);
+    assert_eq!(style.border, PALETTE.focus_ring);
+}

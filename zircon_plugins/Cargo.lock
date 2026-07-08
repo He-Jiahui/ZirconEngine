@@ -6197,6 +6197,8 @@ name = "zircon_plugin_hybrid_gi_runtime"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "image",
+ "pollster",
  "wgpu",
  "zircon_plugin_sdk",
  "zircon_runtime",

@@ -49,6 +49,28 @@ fn checked_list_row_paints_right_check_with_muted_selected_fill() {
 }
 
 #[test]
+fn focused_list_row_paints_border_without_hover_or_selected_fill() {
+    let mut node = list_node(false, false);
+    node.focused = true;
+
+    let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![node]));
+
+    assert!(matching_pixel_count(&bytes, 160, 4, 4, 148, 32, PALETTE.focus_ring) > 250);
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_hover),
+        0
+    );
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_pressed),
+        0
+    );
+    assert_eq!(
+        matching_pixel_count(&bytes, 160, 36, 8, 80, 22, PALETTE.surface_selected),
+        0
+    );
+}
+
+#[test]
 fn disabled_list_row_keeps_background_empty_and_draws_disabled_adornment() {
     let bytes = paint_template_nodes_for_test(160, 40, model_rc(vec![list_node(false, true)]));
 

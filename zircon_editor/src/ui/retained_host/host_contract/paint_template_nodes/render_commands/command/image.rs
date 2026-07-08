@@ -1,10 +1,12 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_frame::HostPaintAtlasImage;
-use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::{kind::HostPaintCommandKind, model::HostPaintCommand};
 
-const FALLBACK_IMAGE_BORDER: [u8; 4] = PALETTE.focus_ring;
+fn fallback_image_border_from_host(palette: HostMaterialPalette) -> [u8; 4] {
+    palette.focus_ring
+}
 
 impl HostPaintCommand {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image(
@@ -21,7 +23,7 @@ impl HostPaintCommand {
             z_index,
             background_color: None,
             foreground_color: None,
-            border_color: Some(FALLBACK_IMAGE_BORDER),
+            border_color: Some(fallback_image_border_from_host(current_host_palette())),
             border_width: 1.0,
             corner_radius: 0.0,
             text: None,
@@ -69,5 +71,19 @@ impl HostPaintCommand {
             }),
             opacity,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
+
+    #[test]
+    fn render_command_image_border_projects_from_host_palette() {
+        let mut palette = PALETTE;
+        palette.focus_ring = [10, 11, 12, 255];
+
+        assert_eq!(fallback_image_border_from_host(palette), [10, 11, 12, 255]);
     }
 }

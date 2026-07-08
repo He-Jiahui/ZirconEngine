@@ -1,8 +1,8 @@
 use crate::core::math::UVec2;
 
 use super::page_residency::{
-    apply_page_residency_decision, page_residency_decision, GlyphAtlasPageReservation,
-    GlyphAtlasResidentPage,
+    apply_page_residency_decision, page_rebuild_residency_decision, page_residency_decision,
+    GlyphAtlasPageReservation, GlyphAtlasResidentPage,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -83,6 +83,7 @@ impl GlyphAtlasPageKey {
 pub(crate) struct GlyphAtlasPageSpec {
     pub(crate) key: GlyphAtlasPageKey,
     pub(crate) size: UVec2,
+    pub(crate) generation: u64,
     pub(crate) storage_format: GlyphAtlasStorageFormat,
     pub(crate) sampling_semantics: GlyphAtlasSamplingSemantics,
 }
@@ -93,9 +94,15 @@ impl GlyphAtlasPageSpec {
         Self {
             key,
             size,
+            generation: 0,
             storage_format: key.format.storage_format(),
             sampling_semantics: key.format.sampling_semantics(),
         }
+    }
+
+    pub(crate) fn with_generation(mut self, generation: u64) -> Self {
+        self.generation = generation;
+        self
     }
 }
 
@@ -193,6 +200,17 @@ impl GlyphAtlasSet {
         max_pages_per_format: usize,
     ) -> GlyphAtlasPageReservation {
         let decision = page_residency_decision(&self.pages, format, max_pages_per_format);
+        apply_page_residency_decision(&mut self.pages, decision, page_size, frame_index)
+    }
+
+    pub(crate) fn reserve_rebuildable_page_for_format(
+        &mut self,
+        format: GlyphAtlasFormat,
+        page_size: UVec2,
+        frame_index: u64,
+        max_pages_per_format: usize,
+    ) -> GlyphAtlasPageReservation {
+        let decision = page_rebuild_residency_decision(&self.pages, format, max_pages_per_format);
         apply_page_residency_decision(&mut self.pages, decision, page_size, frame_index)
     }
 }

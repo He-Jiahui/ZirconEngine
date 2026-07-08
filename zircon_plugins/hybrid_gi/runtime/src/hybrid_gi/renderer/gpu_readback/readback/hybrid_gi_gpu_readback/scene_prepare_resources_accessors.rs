@@ -29,6 +29,10 @@ impl HybridGiScenePrepareResourcesSnapshot {
         &self.capture_slot_rgba_samples
     }
 
+    pub(crate) fn surface_cache_depth_rgba_samples(&self) -> &[(u32, [u8; 4])] {
+        &self.surface_cache_depth_rgba_samples
+    }
+
     pub(crate) fn voxel_clipmap_rgba_samples(&self) -> &[(u32, [u8; 4])] {
         &self.voxel_clipmap_rgba_samples
     }
@@ -51,6 +55,14 @@ impl HybridGiScenePrepareResourcesSnapshot {
 
     pub(crate) fn voxel_clipmap_cell_dominant_rgba_samples(&self) -> &[(u32, u32, [u8; 4])] {
         &self.voxel_clipmap_cell_dominant_rgba_samples
+    }
+
+    pub(crate) fn probe_trace_tiles(&self) -> &[(u32, u32, u32, u32)] {
+        &self.probe_trace_tiles
+    }
+
+    pub(crate) fn probe_trace_dispatch(&self) -> [u32; 3] {
+        self.probe_trace_dispatch
     }
 
     pub(crate) fn atlas_slot_count(&self) -> u32 {

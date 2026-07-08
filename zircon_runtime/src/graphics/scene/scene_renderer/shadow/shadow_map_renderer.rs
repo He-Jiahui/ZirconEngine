@@ -2,7 +2,6 @@ use std::collections::BTreeSet;
 
 use bytemuck::bytes_of;
 
-use crate::core::framework::render::SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT;
 use crate::core::framework::scene::EntityId;
 use crate::core::math::{is_finite_mat4, Mat4};
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -21,7 +20,15 @@ use super::plan::ShadowAtlasSlotPass;
 
 pub(crate) struct ShadowMapRenderer {
     scene_uniform_buffer: wgpu::Buffer,
-    _environment_sample_buffer: wgpu::Buffer,
+    _environment_cube_texture: wgpu::Texture,
+    _environment_cube_view: wgpu::TextureView,
+    _environment_cube_sampler: wgpu::Sampler,
+    _environment_brdf_lut_texture: wgpu::Texture,
+    _environment_brdf_lut_view: wgpu::TextureView,
+    _environment_specular_cube_texture: wgpu::Texture,
+    _environment_specular_cube_view: wgpu::TextureView,
+    _environment_irradiance_cube_texture: wgpu::Texture,
+    _environment_irradiance_cube_view: wgpu::TextureView,
     scene_bind_group: wgpu::BindGroup,
 }
 
@@ -33,13 +40,26 @@ impl ShadowMapRenderer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let environment_sample_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-shadow-map-scene-environment-samples"),
-            size: (SAMPLED_EQUIRECT_ENVIRONMENT_SAMPLE_COUNT * std::mem::size_of::<[f32; 4]>())
-                as u64,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        let (environment_cube_texture, environment_cube_view) = create_shadow_environment_cube(
+            device,
+            "zircon-shadow-map-scene-environment-cube",
+            "zircon-shadow-map-scene-environment-cube-view",
+        );
+        let environment_cube_sampler = create_shadow_environment_sampler(device);
+        let (environment_brdf_lut_texture, environment_brdf_lut_view) =
+            create_shadow_environment_brdf_lut(device);
+        let (environment_specular_cube_texture, environment_specular_cube_view) =
+            create_shadow_environment_cube(
+                device,
+                "zircon-shadow-map-scene-environment-specular-pmrem-cube",
+                "zircon-shadow-map-scene-environment-specular-pmrem-cube-view",
+            );
+        let (environment_irradiance_cube_texture, environment_irradiance_cube_view) =
+            create_shadow_environment_cube(
+                device,
+                "zircon-shadow-map-scene-environment-irradiance-cube",
+                "zircon-shadow-map-scene-environment-irradiance-cube-view",
+            );
         let scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-shadow-map-scene-bind-group"),
             layout: scene_layout,
@@ -50,14 +70,38 @@ impl ShadowMapRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: environment_sample_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::TextureView(&environment_cube_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&environment_cube_sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(&environment_brdf_lut_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::TextureView(&environment_specular_cube_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::TextureView(&environment_irradiance_cube_view),
                 },
             ],
         });
 
         Self {
             scene_uniform_buffer,
-            _environment_sample_buffer: environment_sample_buffer,
+            _environment_cube_texture: environment_cube_texture,
+            _environment_cube_view: environment_cube_view,
+            _environment_cube_sampler: environment_cube_sampler,
+            _environment_brdf_lut_texture: environment_brdf_lut_texture,
+            _environment_brdf_lut_view: environment_brdf_lut_view,
+            _environment_specular_cube_texture: environment_specular_cube_texture,
+            _environment_specular_cube_view: environment_specular_cube_view,
+            _environment_irradiance_cube_texture: environment_irradiance_cube_texture,
+            _environment_irradiance_cube_view: environment_irradiance_cube_view,
             scene_bind_group,
         }
     }
@@ -212,6 +256,81 @@ impl ShadowMapRenderer {
     }
 }
 
+fn create_shadow_environment_cube(
+    device: &wgpu::Device,
+    texture_label: &'static str,
+    view_label: &'static str,
+) -> (wgpu::Texture, wgpu::TextureView) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some(texture_label),
+        size: wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 6,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba16Float,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let view = texture.create_view(&wgpu::TextureViewDescriptor {
+        label: Some(view_label),
+        format: Some(wgpu::TextureFormat::Rgba16Float),
+        dimension: Some(wgpu::TextureViewDimension::Cube),
+        usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
+        aspect: wgpu::TextureAspect::All,
+        base_mip_level: 0,
+        mip_level_count: Some(1),
+        base_array_layer: 0,
+        array_layer_count: Some(6),
+    });
+    (texture, view)
+}
+
+fn create_shadow_environment_sampler(device: &wgpu::Device) -> wgpu::Sampler {
+    device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("zircon-shadow-map-scene-environment-cube-sampler"),
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
+        mipmap_filter: wgpu::MipmapFilterMode::Linear,
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        ..Default::default()
+    })
+}
+
+fn create_shadow_environment_brdf_lut(device: &wgpu::Device) -> (wgpu::Texture, wgpu::TextureView) {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("zircon-shadow-map-scene-environment-brdf-lut"),
+        size: wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rg16Float,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let view = texture.create_view(&wgpu::TextureViewDescriptor {
+        label: Some("zircon-shadow-map-scene-environment-brdf-lut-view"),
+        format: Some(wgpu::TextureFormat::Rg16Float),
+        dimension: Some(wgpu::TextureViewDimension::D2),
+        usage: Some(wgpu::TextureUsages::TEXTURE_BINDING),
+        aspect: wgpu::TextureAspect::All,
+        base_mip_level: 0,
+        mip_level_count: Some(1),
+        base_array_layer: 0,
+        array_layer_count: Some(1),
+    });
+    (texture, view)
+}
+
 fn visible_shadow_entities_for_view(
     frame: &ViewportRenderFrame,
     view_key: &VisibilityViewKey,
@@ -244,11 +363,14 @@ fn scene_uniform_for_view_projection(view_proj: Mat4) -> SceneUniform {
         previous_view_proj_unjittered: view_proj_cols,
         motion_params: [0.0, 0.0, 0.0, 0.0],
         jitter_params: [0.0, 0.0, 0.0, 0.0],
+        camera_world_position: [0.0, 0.0, 0.0, 1.0],
+        camera_view_direction: [0.0, 0.0, 1.0, 0.0],
         sky_horizon_color: [0.0, 0.0, 0.0, 1.0],
         sky_zenith_color: [0.0, 0.0, 0.0, 1.0],
         sky_ground_color: [0.0, 0.0, 0.0, 1.0],
         environment_params: [0.0, 0.0, 0.0, 0.0],
         environment_sample_params: [0.0, 0.0, 0.0, 0.0],
+        environment_sh9: [[0.0; 4]; 9],
     }
 }
 
@@ -293,7 +415,9 @@ mod tests {
     use std::collections::BTreeSet;
 
     use crate::core::framework::render::RenderPhase;
+    use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::resources::default_pipeline_key;
+    use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
     use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
         DrawInstanceSource, MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle,
         MeshPassPipelineKind, MeshPipelineVariantId,
@@ -323,6 +447,32 @@ mod tests {
         assert!(source.contains("create_forward_shadow_receiver_bind_group"));
         assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
         assert!(source.contains("replayer.bind_standard_material_if_needed(pass, command);"));
+    }
+
+    #[test]
+    fn shadow_map_scene_bind_group_matches_environment_scene_layout() {
+        let Ok(backend) = RenderBackend::new_offscreen() else {
+            return;
+        };
+        let scene_layout_entries = scene_bind_group_layout_entries();
+        let scene_layout =
+            backend
+                .device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("zircon-test-shadow-map-scene-layout"),
+                    entries: &scene_layout_entries,
+                });
+
+        let error_scope = backend
+            .device
+            .push_error_scope(wgpu::ErrorFilter::Validation);
+        let _renderer = super::ShadowMapRenderer::new(&backend.device, &scene_layout);
+        let error = pollster::block_on(error_scope.pop());
+
+        assert!(
+            error.is_none(),
+            "shadow-map scene bind group should match scene environment layout: {error:?}"
+        );
     }
 
     fn test_command(source_entity: u64) -> MeshDrawCommand {

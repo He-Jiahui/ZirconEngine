@@ -2,20 +2,23 @@ use super::super::super::gpu_pending_probe_input::GpuPendingProbeInput;
 use super::super::super::gpu_resident_probe_input::GpuResidentProbeInput;
 use super::super::super::gpu_trace_region_input::GpuTraceRegionInput;
 use crate::hybrid_gi::types::{
-    HybridGiPrepareCardCaptureRequest, HybridGiPrepareSurfaceCachePageContent,
-    HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+    HybridGiPrepareCardCaptureRequest, HybridGiPrepareSurfaceCacheDepthSourceSample,
+    HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
 };
 use zircon_runtime::core::framework::render::{
     RenderDirectionalLightSnapshot, RenderMeshSnapshot, RenderPointLightSnapshot,
     RenderSpotLightSnapshot,
 };
 
+#[derive(Default)]
 pub(super) struct HybridGiPrepareExecutionInputs {
     pub(super) cache_entries: Vec<[u32; 2]>,
     pub(super) resident_probe_inputs: Vec<GpuResidentProbeInput>,
     pub(super) pending_probe_inputs: Vec<GpuPendingProbeInput>,
     pub(super) trace_region_inputs: Vec<GpuTraceRegionInput>,
     pub(super) scene_card_capture_requests: Vec<HybridGiPrepareCardCaptureRequest>,
+    pub(super) scene_surface_cache_depth_source_samples:
+        Vec<HybridGiPrepareSurfaceCacheDepthSourceSample>,
     pub(super) scene_surface_cache_page_contents: Vec<HybridGiPrepareSurfaceCachePageContent>,
     pub(super) scene_card_capture_descriptor_count: usize,
     pub(super) scene_voxel_clipmaps: Vec<HybridGiPrepareVoxelClipmap>,

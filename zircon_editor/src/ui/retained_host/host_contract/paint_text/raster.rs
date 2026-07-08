@@ -9,11 +9,20 @@ use swash::zeno::{Format, Vector};
 use swash::FontRef;
 
 use super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
-use super::font::{font_bytes_for_face, font_cache_key_for_face, font_for_face, HostTextFontFace};
+use super::font::{
+    font_bytes_for_face, font_cache_key_for_face, font_collection_index_for_face, font_for_face,
+    HostTextFontFace,
+};
 use super::sync::lock_recovering_poison;
 
-const MIN_NATIVE_SCALE_SWASH_MAX_COVERAGE: u8 = 128;
-const MAX_FALLBACK_SAMPLE_OFFSET_X: f32 = 1.999;
+mod metrics;
+
+use self::metrics::{
+    fallback_raster_font_size, fallback_raster_scale, fontdue_fallback_sample_offset_x,
+    logical_font_size, missing_fontdue_y_offset, normalized_subpixel_offset, raster_metric_scale,
+    swash_hinting_for_size, NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X,
+    NATIVE_SWASH_SAMPLE_OFFSET_Y,
+};
 
 #[derive(Clone)]
 pub(in crate::ui::retained_host::host_contract) struct CachedGlyphRaster {
@@ -127,48 +136,6 @@ pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
     raster
 }
 
-fn logical_font_size(logical_px: f32) -> f32 {
-    logical_px.max(1.0)
-}
-
-fn fallback_raster_scale(raster_scale: f32) -> f32 {
-    if raster_scale.is_finite() && raster_scale > 1.0 {
-        raster_scale
-    } else {
-        1.0
-    }
-}
-
-fn fallback_raster_font_size(logical_px: f32, raster_scale: f32) -> f32 {
-    logical_font_size(logical_px) * fallback_raster_scale(raster_scale)
-}
-
-fn normalized_subpixel_offset(offset: f32) -> f32 {
-    if offset.is_finite() {
-        offset.clamp(0.0, 0.999)
-    } else {
-        0.0
-    }
-}
-
-fn normalized_fallback_sample_offset_x(offset: f32) -> f32 {
-    if offset.is_finite() {
-        offset.clamp(0.0, MAX_FALLBACK_SAMPLE_OFFSET_X)
-    } else {
-        0.0
-    }
-}
-
-fn fontdue_fallback_sample_offset_x(
-    origin_subpixel_offset: f32,
-    raster_left_px: f32,
-    x_offset: i32,
-) -> f32 {
-    normalized_fallback_sample_offset_x(
-        normalized_subpixel_offset(origin_subpixel_offset) + raster_left_px - x_offset as f32,
-    )
-}
-
 fn rasterize_swash_glyph(
     font_face: HostTextFontFace,
     glyph_index: u16,
@@ -178,10 +145,17 @@ fn rasterize_swash_glyph(
 ) -> Option<CachedGlyphRaster> {
     static SWASH_CONTEXT: OnceLock<Mutex<ScaleContext>> = OnceLock::new();
 
-    let font = FontRef::from_index(font_bytes_for_face(font_face), 0)?;
+    let font = FontRef::from_index(
+        font_bytes_for_face(font_face),
+        font_collection_index_for_face(font_face) as usize,
+    )?;
     let context = SWASH_CONTEXT.get_or_init(|| Mutex::new(ScaleContext::new()));
     let mut context = lock_recovering_poison(context);
-    let mut scaler = context.builder(font).size(logical_px).hint(true).build();
+    let mut scaler = context
+        .builder(font)
+        .size(logical_px)
+        .hint(swash_hinting_for_size(logical_px))
+        .build();
     let mut render = Render::new(&[
         Source::ColorOutline(0),
         Source::ColorBitmap(StrikeWith::BestFit),
@@ -189,21 +163,21 @@ fn rasterize_swash_glyph(
     ]);
     render
         .format(swash_format_for_smoothing(text_smoothing))
-        .offset(Vector::new(subpixel_offset, 0.0));
+        .offset(Vector::new(subpixel_offset, NATIVE_SWASH_SAMPLE_OFFSET_Y));
     let image = render.render(&mut scaler, glyph_index)?;
     let width = image.placement.width as usize;
     let height = image.placement.height as usize;
     let left = image.placement.left;
     let top = image.placement.top;
     let (format, bitmap) = swash_bitmap(image.content, image.data, width, height, text_smoothing)?;
-    if bitmap_max_coverage(&bitmap) < MIN_NATIVE_SCALE_SWASH_MAX_COVERAGE {
+    if !bitmap_has_visible_ink(&bitmap) {
         return None;
     }
     let metrics = swash_metrics(
         font_face,
         glyph_index,
         logical_px,
-        1.0,
+        NATIVE_SWASH_RASTER_SCALE,
         width,
         height,
         left,
@@ -215,8 +189,8 @@ fn rasterize_swash_glyph(
         bitmap: Arc::from(bitmap),
         source: CachedGlyphRasterSource::Swash,
         format,
-        raster_scale: 1.0,
-        sample_offset_x: 0.0,
+        raster_scale: NATIVE_SWASH_RASTER_SCALE,
+        sample_offset_x: NATIVE_SWASH_SAMPLE_OFFSET_X,
     })
 }
 
@@ -237,13 +211,13 @@ fn swash_metrics(
     left: i32,
     top: i32,
 ) -> CachedGlyphMetrics {
-    let scale = raster_scale.max(1.0);
+    let scale = raster_metric_scale(raster_scale);
     let fontdue_y = font_for_face(font_face)
         .map(|font| {
             let metrics = font.metrics_indexed(glyph_index, logical_px);
             (-metrics.bounds.height - metrics.bounds.ymin).floor()
         })
-        .unwrap_or(0.0);
+        .unwrap_or_else(missing_fontdue_y_offset);
     let swash_x = left as f32 / scale;
     let swash_y = -(top as f32) / scale;
 
@@ -294,8 +268,8 @@ fn swash_bitmap(
     }
 }
 
-fn bitmap_max_coverage(bitmap: &[u8]) -> u8 {
-    bitmap.iter().copied().max().unwrap_or(0)
+fn bitmap_has_visible_ink(bitmap: &[u8]) -> bool {
+    bitmap.iter().any(|coverage| *coverage > 0)
 }
 
 fn rgba_to_alpha(data: Vec<u8>, pixel_count: usize, subpixel_mask: bool) -> Option<Vec<u8>> {

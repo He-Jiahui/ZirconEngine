@@ -1,4 +1,4 @@
-use super::*;
+use super::sources::*;
 
 #[test]
 fn runtime_05_dynamic_scene_patch_preview_status_docs_stay_synced() {

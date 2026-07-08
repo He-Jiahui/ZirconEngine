@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     style::{UiPainterFamily, UiPainterResolvedState},
-    surface::{UiRenderCommandKind, UiVisualAssetRef},
+    surface::{UiRenderCommand, UiRenderCommandKind, UiVisualAssetRef},
     tree::{UiTemplateNodeMetadata, UiTreeNode},
 };
 
@@ -159,6 +159,92 @@ active_drag_target = true
 }
 
 #[test]
+fn render_extract_dropdown_trigger_keeps_focused_background_neutral_until_hovered() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.dropdowns.focused_neutral"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 280.0, 128.0))
+            .with_state_flags(visible_state()),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(2),
+        "Dropdown",
+        UiFrame::new(12.0, 12.0, 160.0, 30.0),
+        r##"
+value_text = "Surface"
+focused = true
+background_color = "#10161a"
+hover_background_color = "#1a2429"
+border_color = "#323f47"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+    insert_control(
+        &mut surface,
+        UiNodeId::new(3),
+        "Select",
+        UiFrame::new(12.0, 56.0, 160.0, 30.0),
+        r##"
+value_text = "Post Process"
+focused = true
+hovered = true
+background_color = "#10161a"
+hover_background_color = "#1a2429"
+border_color = "#323f47"
+focus_border_color = "#35c7d0"
+"##,
+        visible_state(),
+    );
+
+    surface.rebuild();
+
+    let commands = &surface.render_extract.list.commands;
+    let focused_surface = dropdown_surface(
+        commands,
+        UiNodeId::new(2),
+        UiFrame::new(12.0, 12.0, 160.0, 30.0),
+    );
+    assert_eq!(
+        focused_surface.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_surface.style.background_color.as_deref(),
+        Some("#10161a")
+    );
+    assert_eq!(
+        focused_surface.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+    assert!(!commands.iter().any(|command| {
+        command.node_id == UiNodeId::new(2)
+            && command.kind == UiRenderCommandKind::Quad
+            && command.frame == UiFrame::new(12.0, 12.0, 160.0, 30.0)
+            && command.style.background_color.as_deref() == Some("#1a2429")
+    }));
+
+    let focused_hovered_surface = dropdown_surface(
+        commands,
+        UiNodeId::new(3),
+        UiFrame::new(12.0, 56.0, 160.0, 30.0),
+    );
+    assert_eq!(
+        focused_hovered_surface.style.painter_state,
+        UiPainterResolvedState::Focused
+    );
+    assert_eq!(
+        focused_hovered_surface.style.background_color.as_deref(),
+        Some("#1a2429")
+    );
+    assert_eq!(
+        focused_hovered_surface.style.border_color.as_deref(),
+        Some("#35c7d0")
+    );
+}
+
+#[test]
 fn render_extract_loading_dropdown_trigger_uses_unavailable_visuals() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.dropdowns.loading"));
     surface.tree.insert_root(
@@ -265,4 +351,20 @@ fn visible_state() -> UiStateFlags {
         enabled: true,
         ..UiStateFlags::default()
     }
+}
+
+fn dropdown_surface(
+    commands: &[UiRenderCommand],
+    node_id: UiNodeId,
+    frame: UiFrame,
+) -> &UiRenderCommand {
+    commands
+        .iter()
+        .find(|command| {
+            command.node_id == node_id
+                && command.kind == UiRenderCommandKind::Quad
+                && command.frame == frame
+                && command.style.painter_family == UiPainterFamily::Dropdown
+        })
+        .expect("dropdown trigger surface should be rendered")
 }

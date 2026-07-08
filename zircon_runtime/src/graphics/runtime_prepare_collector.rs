@@ -10,9 +10,10 @@ use crate::core::framework::render::{
     RenderFrameExtract, RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
     RenderPreparedRuntimeSidebands, RenderSceneSnapshot, RenderVirtualGeometryReadbackOutputs,
 };
-use crate::core::math::UVec2;
-#[cfg(test)]
-use crate::core::math::Vec4;
+use crate::core::math::{UVec2, Vec3, Vec4};
+use crate::core::resource::ResourceId;
+use crate::graphics::scene::resources::MaterialCaptureSeed;
+use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::GraphicsError;
 use crate::graphics::ViewportRenderFrame;
 
@@ -29,6 +30,7 @@ pub struct RuntimePrepareCollectorContext<'a> {
     pub encoder: &'a mut wgpu::CommandEncoder,
     pub frame_extract: &'a RenderFrameExtract,
     frame: &'a ViewportRenderFrame,
+    streamer: &'a ResourceStreamer,
     external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
 }
 
@@ -37,6 +39,7 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         encoder: &'a mut wgpu::CommandEncoder,
+        streamer: &'a ResourceStreamer,
         frame: &'a ViewportRenderFrame,
         external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
     ) -> Self {
@@ -46,6 +49,7 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             encoder,
             frame_extract: &frame.extract,
             frame,
+            streamer,
             external_buffer_bindings,
         }
     }
@@ -92,6 +96,19 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             .virtual_geometry_evictable_page_ids()
     }
 
+    pub fn material_capture_seed(
+        &self,
+        id: &ResourceId,
+    ) -> Option<RuntimePrepareMaterialCaptureSeed> {
+        self.streamer
+            .material_capture_seed(id)
+            .map(RuntimePrepareMaterialCaptureSeed::from_material_capture_seed)
+    }
+
+    pub fn sample_texture_rgba(&self, id: Option<ResourceId>, uv: [f32; 2]) -> Option<Vec4> {
+        self.streamer.sample_texture_rgba(id, uv)
+    }
+
     pub fn register_external_buffer_binding(
         &mut self,
         logical_name: impl Into<String>,
@@ -114,6 +131,41 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
                 backing_name,
                 buffer,
             ));
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct RuntimePrepareMaterialCaptureSeed {
+    pub base_color: Vec4,
+    pub emissive: Vec3,
+    pub metallic: f32,
+    pub roughness: f32,
+    pub double_sided: bool,
+    pub alpha_blend: bool,
+    pub alpha_cutoff: Option<f32>,
+    pub base_color_texture: Option<ResourceId>,
+    pub normal_texture: Option<ResourceId>,
+    pub metallic_roughness_texture: Option<ResourceId>,
+    pub occlusion_texture: Option<ResourceId>,
+    pub emissive_texture: Option<ResourceId>,
+}
+
+impl RuntimePrepareMaterialCaptureSeed {
+    fn from_material_capture_seed(seed: MaterialCaptureSeed) -> Self {
+        Self {
+            base_color: seed.base_color,
+            emissive: seed.emissive,
+            metallic: seed.metallic,
+            roughness: seed.roughness,
+            double_sided: seed.double_sided,
+            alpha_blend: seed.alpha_blend,
+            alpha_cutoff: seed.alpha_cutoff,
+            base_color_texture: seed.base_color_texture,
+            normal_texture: seed.normal_texture,
+            metallic_roughness_texture: seed.metallic_roughness_texture,
+            occlusion_texture: seed.occlusion_texture,
+            emissive_texture: seed.emissive_texture,
+        }
     }
 }
 
@@ -227,6 +279,7 @@ mod tests {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-runtime-prepare-context-test-encoder"),
         });
+        let streamer = test_resource_streamer(&device, &queue);
         let extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(44),
             empty_scene_snapshot(),
@@ -256,6 +309,7 @@ mod tests {
             &device,
             &queue,
             &mut encoder,
+            &streamer,
             &frame,
             &mut external_buffer_bindings,
         );
@@ -290,6 +344,7 @@ mod tests {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-runtime-prepare-context-buffer-binding-test-encoder"),
         });
+        let streamer = test_resource_streamer(&device, &queue);
         let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(64, 64));
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-runtime-prepare-context-external-buffer"),
@@ -304,6 +359,7 @@ mod tests {
                 &device,
                 &queue,
                 &mut encoder,
+                &streamer,
                 &frame,
                 &mut external_buffer_bindings,
             );
@@ -323,6 +379,60 @@ mod tests {
             external_buffer_bindings[0].backing_name(),
             "particles.gpu.counters:test-runtime-prepare"
         );
+    }
+
+    #[test]
+    fn collector_context_exposes_material_capture_streamer_accessors() {
+        let backend = RenderBackend::new_offscreen().unwrap();
+        let RenderBackend { device, queue, .. } = backend;
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("zircon-runtime-prepare-context-material-capture-test-encoder"),
+        });
+        let streamer = test_resource_streamer(&device, &queue);
+        let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(4, 4));
+        let mut external_buffer_bindings = Vec::new();
+        let context = RuntimePrepareCollectorContext::new(
+            &device,
+            &queue,
+            &mut encoder,
+            &streamer,
+            &frame,
+            &mut external_buffer_bindings,
+        );
+
+        let missing_material = ResourceId::from_stable_label("res://materials/missing.zmat");
+        assert!(context.material_capture_seed(&missing_material).is_none());
+        assert!(context.sample_texture_rgba(None, [0.5, 0.5]).is_none());
+    }
+
+    fn test_resource_streamer(device: &wgpu::Device, queue: &wgpu::Queue) -> ResourceStreamer {
+        let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("zircon-runtime-prepare-context-test-texture-layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+        ResourceStreamer::new_for_test(
+            Arc::new(crate::asset::pipeline::manager::ProjectAssetManager::default()),
+            device,
+            queue,
+            &texture_layout,
+        )
     }
 
     fn empty_scene_snapshot() -> RenderSceneSnapshot {

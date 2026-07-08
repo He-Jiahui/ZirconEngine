@@ -264,11 +264,14 @@ fn test_scene_uniform() -> SceneUniform {
         previous_view_proj_unjittered: identity_matrix(),
         motion_params: [0.0, 0.0, 0.0, 0.0],
         jitter_params: [0.0, 0.0, 0.0, 0.0],
+        camera_world_position: [0.0, 0.0, 0.0, 1.0],
+        camera_view_direction: [0.0, 0.0, 1.0, 0.0],
         sky_horizon_color: [0.0, 0.0, 0.0, 1.0],
         sky_zenith_color: [0.0, 0.0, 0.0, 1.0],
         sky_ground_color: [0.0, 0.0, 0.0, 1.0],
         environment_params: [0.0, 0.0, 0.0, 0.0],
         environment_sample_params: [0.0, 0.0, 0.0, 0.0],
+        environment_sh9: [[0.0; 4]; 9],
     }
 }
 

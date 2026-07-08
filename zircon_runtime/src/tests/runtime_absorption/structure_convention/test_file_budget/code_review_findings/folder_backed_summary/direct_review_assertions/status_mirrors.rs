@@ -3,9 +3,9 @@ use super::*;
 
 #[test]
 fn runtime_15_code_review_findings_direct_assertions_guard_folder_backed_status_is_current() {
-    let status_rows = read_runtime_src(REVIEW_GUARD_STATUS_ROWS_PATH);
-    let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
-    let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
+    let status_rows = direct_review_status_rows_source();
+    let status_map = direct_review_status_map_source();
+    let date_map = direct_review_date_map_source();
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");

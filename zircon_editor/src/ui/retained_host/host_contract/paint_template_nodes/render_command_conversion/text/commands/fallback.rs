@@ -6,6 +6,8 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
     aligned_text_x, text_paint_style_from_resolved_style,
 };
 
+use super::metrics::{resolved_font_size, resolved_line_height};
+
 pub(super) fn push_fallback_text_command(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,
@@ -27,8 +29,8 @@ pub(super) fn push_fallback_text_command(
         z_index,
         text.source_text.clone(),
         color,
-        text.font_size.max(1.0),
-        text.line_height.max(text.font_size).max(1.0),
+        resolved_font_size(text.font_size),
+        resolved_line_height(text.font_size, text.line_height),
         text_paint_style_from_resolved_style(&command.style),
         command.opacity,
     ));

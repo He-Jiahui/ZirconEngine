@@ -9,6 +9,7 @@ use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
+use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshDrawCommandReplayer;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshPassPipelineKind;
@@ -75,6 +76,8 @@ pub struct RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) streamer: Option<&'a ResourceStreamer>,
     pub(in crate::graphics::scene::scene_renderer) mesh_pipelines:
         Option<&'a mut MeshPipelineCache>,
+    pub(in crate::graphics::scene::scene_renderer) ibl_bake_pipeline_cache:
+        Option<&'a mut IblBakeWgpuPipelineCache>,
     pub(in crate::graphics::scene::scene_renderer) mesh_draw_lists:
         Option<RenderPassMeshCommandLists<'a>>,
     hzb_occlusion_culler: Option<&'a HzbOcclusionCuller>,
@@ -141,6 +144,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             deferred: None,
             streamer: None,
             mesh_pipelines: None,
+            ibl_bake_pipeline_cache: None,
             mesh_draw_lists: None,
             hzb_occlusion_culler: None,
             compute_dispatches: Vec::new(),
@@ -327,6 +331,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.mesh_pipelines = Some(mesh_pipelines);
         self.streamer = Some(streamer);
         self.mesh_draw_lists = Some(mesh_draw_lists);
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_ibl_bake_pipeline_cache(
+        mut self,
+        ibl_bake_pipeline_cache: &'a mut IblBakeWgpuPipelineCache,
+    ) -> Self {
+        self.ibl_bake_pipeline_cache = Some(ibl_bake_pipeline_cache);
         self
     }
 

@@ -3,9 +3,9 @@ use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_popup_row_adornments::{
     option_adornment_kind, push_popup_row_adornment, PopupRowAdornmentKind,
 };
-use super::super::surface::{
-    push_popup_background, push_popup_row_surface, POPUP_ROW_ORDER_OFFSET,
-};
+use super::super::content::popup_row_content_style;
+use super::super::layers::{popup_row_adornment_order, popup_row_base_order};
+use super::super::surface::{push_popup_background, push_popup_row_surface};
 use super::super::text::push_popup_row_label;
 use super::style::{popup_option_row_marked, popup_option_row_style};
 use crate::ui::retained_host::host_contract::template_popup_layout::{
@@ -31,6 +31,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_op
     push_popup_background(commands, &popup_rect, clip, order, opacity);
 
     for row in 0..row_count {
+        let row_order = popup_row_base_order(order, row);
         let Some(option) = node.structured_options.row_data(row) else {
             continue;
         };
@@ -39,22 +40,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_op
             continue;
         };
         let style = popup_option_row_style(&option);
+        let content_style = popup_row_content_style(&style);
         let selected = popup_option_row_marked(&option);
-        push_popup_row_surface(
-            commands,
-            &row_rect,
-            clip,
-            order + row as i32,
-            style,
-            opacity,
-        );
+        push_popup_row_surface(commands, &row_rect, clip, row_order, style, opacity);
         push_popup_row_label(
             commands,
             &row_rect,
             clip,
-            order + row as i32,
+            row_order,
             option.label.to_string(),
-            style.text,
+            content_style.text,
             option_adornment_kind(selected),
             opacity,
         );
@@ -63,9 +58,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_op
                 commands,
                 &row_rect,
                 clip,
-                order + row as i32 + POPUP_ROW_ORDER_OFFSET + 4,
+                popup_row_adornment_order(row_order),
                 PopupRowAdornmentKind::Check,
-                style.adornment,
+                content_style.adornment,
                 opacity,
             );
         }

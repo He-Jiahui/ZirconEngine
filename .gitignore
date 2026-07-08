@@ -94,3 +94,8 @@ __pycache__/
 /zircon_hub/web/.vite/
 
 .zircon-cache/
+
+# logs 
+*.log
+*.exit
+*.txt

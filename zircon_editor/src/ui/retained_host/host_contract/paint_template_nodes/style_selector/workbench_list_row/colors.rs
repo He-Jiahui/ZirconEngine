@@ -1,6 +1,6 @@
+use super::palette::{workbench_list_row_palette, WorkbenchListRowPalette};
 use super::state::is_unavailable_list_row_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::current_host_palette;
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -9,7 +9,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> [u8; 4] {
-    let palette = current_host_palette();
+    list_row_text_color_from_palette(node, state, marked, workbench_list_row_palette())
+}
+
+fn list_row_text_color_from_palette(
+    node: &TemplatePaneNodeData,
+    state: UiPainterResolvedState,
+    marked: bool,
+    palette: WorkbenchListRowPalette,
+) -> [u8; 4] {
     if is_unavailable_list_row_state(state) {
         palette.text_disabled
     } else if let Some(color) = declared_color(node.value_color) {
@@ -26,13 +34,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_ro
     state: UiPainterResolvedState,
     marked: bool,
 ) -> [u8; 4] {
-    let palette = current_host_palette();
+    list_row_adornment_color_from_palette(node, state, marked, workbench_list_row_palette())
+}
+
+fn list_row_adornment_color_from_palette(
+    node: &TemplatePaneNodeData,
+    state: UiPainterResolvedState,
+    marked: bool,
+    palette: WorkbenchListRowPalette,
+) -> [u8; 4] {
     if is_unavailable_list_row_state(state) {
         palette.text_disabled
     } else if let Some(color) = declared_color(node.icon_color) {
         color
     } else if marked {
-        palette.focus_ring
+        palette.marked_adornment
     } else {
         palette.text_muted
     }

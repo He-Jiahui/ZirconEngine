@@ -19,6 +19,7 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_popup_menu.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_context_menu.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_dropdown_popup.zui
+  - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_notification_center.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_command_palette.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_alert.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\feedback\workbench_dialog.zui
@@ -47,6 +48,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/checkbox/tick.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry/metrics.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests/marks.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/text.rs
   - zircon_editor/assets/icons/zircon_editor_shell/controls/check.svg
   - zircon_runtime_interface/src/ui/v2/repeat.rs
   - zircon_runtime_interface/src/ui/v2/asset.rs
@@ -171,20 +173,40 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alert_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/row.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/command.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/fill.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/separators.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/command.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/selection/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/selection/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows.rs
@@ -199,8 +221,12 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/colors/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/colors/content.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips_tests.rs
@@ -212,6 +238,14 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_row_glyphs/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_list_row/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_list_row/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_list_row/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/colors/background.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/adornment.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows_tests/paint.rs
@@ -225,8 +259,21 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style/background.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style/border.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests/paint.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/background.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/glyph.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/toolbar_chrome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/paint.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind.rs
@@ -252,7 +299,14 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/separators.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/colors.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/command/image.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/palette.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
@@ -265,15 +319,34 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome.rs
   - docs/zircon_editor/ui/retained_host/host_contract/paint_workbench_renderer.md
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/shared.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/bars.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster/pie.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/gauge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/line.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/sparkline.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/bubbles.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/streaming.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/composer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/field.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/popup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas_tests.rs
@@ -314,6 +387,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/support.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows.rs
@@ -338,10 +412,20 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_slider_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/thumb.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/value.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/support.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/surface_roles.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/surface/interaction.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/surface/variants.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/dimensions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node_tests.rs
@@ -377,6 +461,14 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/name_lines.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface/commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/preview_image.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/identity.rs
 implementation_files:
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/components/workbench\primitives\chrome\workbench_axis_value_field.zui
@@ -441,10 +533,34 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entries.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/ids.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/name_lines.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/fill.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/model.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface/commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/preview_image.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/identity.rs
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_slider_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/thumb.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/value.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/support.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/style.rs
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/ui/retained_host/workbench_popup_actions.rs
@@ -506,14 +622,19 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/command.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips_tests.rs
@@ -529,8 +650,12 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/colors/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/colors/content.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltip_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tooltips_tests.rs
@@ -557,6 +682,15 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/background.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/glyph.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/toolbar_chrome.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/paint.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind.rs
@@ -592,6 +726,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome.rs
   - docs/zircon_editor/ui/retained_host/host_contract/paint_workbench_renderer.md
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider.rs
@@ -601,11 +736,28 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/shared.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/bars.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster/pie.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/gauge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/line.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/sparkline.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/bubbles.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/streaming.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/composer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/field.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/popup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas_tests.rs
@@ -639,6 +791,11 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control/helpers.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control/chips.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control/icons.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/chips.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/icons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests.rs
@@ -692,9 +849,18 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/selection/border.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/selection/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests/state.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_control_geometry.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_segmented_control/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_segmented_control/control.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_segmented_control/tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls_tests/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color.rs
@@ -740,6 +906,43 @@ plan_sources:
   - user: 2026-06-01 Start approximating the zirconEngine editor effect from basic rendering, interaction response, and layout system
   - docs/ui-and-layout/workbench.png
 tests:
+  - cargo test -p zircon_editor --lib focused_icon_image_does_not_use_active_tint focused_generic_interaction_surface_uses_pressed_not_selected_surface focused_chip_keeps_normal_surface_and_glyph_with_focus_border focused_tree_view_does_not_mark_second_row_hovered --target-dir D:\cargo-targets\zircon-editor-layout-focused-0705 (2026-07-05 S15.4fo/S15.4fp/S15.4fq/S15.4fr focused Cargo follow-up: failed before test execution while compiling zircon_runtime with os error 112 disk space exhausted; temporary target dir removed)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_property_rows/fields/scalar.rs (2026-07-05 S15.4gd/S15.6fe Property scalar value selected/focus border split / editor_layout_s15_4gd_property_scalar_value_selected_focus_border_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_PROPERTY_SCALAR_SELECTED_IN_FOCUS_BORDER; selected-only property scalar values keep neutral field border while focused/pressed keep focus border; target screenshot scan clean; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style/border.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests/style.rs (2026-07-05 S15.4ge/S15.6ff Axis value field selected/focus border split / editor_layout_s15_4ge_axis_value_field_selected_focus_border_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_AXIS_SELECTED_IN_FOCUS_BORDER; selected-only axis values use hover border plus normal width while focused/pressed keep focus border and width; target screenshot scan clean; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts_tests/style.rs (2026-07-05 S15.4gf/S15.6fg Workbench alert focused-only pressed-border split / editor_layout_s15_4gf_alert_focused_only_pressed_border_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_ALERT_FOCUSED_PRESSED_GROUPING; focused-only alerts keep semantic tone border while pressed alerts keep active border; target screenshot scan clean; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/thumb.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/value.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_slider/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/support.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/style.rs (2026-07-05 S15.4gc/S15.6fd Workbench slider focused-only hot/value-border split / editor_layout_s15_4gc_slider_focused_only_hot_value_border_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_SLIDER_FOCUSED_IN_HOT; focused-only sliders keep neutral value border plus weak focus halo while pressed sliders retain active value border and hot halo; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/selection/border.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/selection/surface.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_selection_control/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests/state.rs (2026-07-05 S15.4gb/S15.6fc Workbench selection-control focused-only hot/hover split / editor_layout_s15_4gb_selection_control_focused_only_hot_hover_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_SELECTION_CONTROL_FOCUSED_IN_IS_HOT; focused-only selection controls keep idle/normal surfaces and focus border while focused+hovered toggle retains real hover surface; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_segmented_control/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_segmented_control/control.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_segmented_control/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls_tests/style.rs (2026-07-05 S15.4ga/S15.6fb Workbench segmented/tab focused-only hover/active-border split / editor_layout_s15_4ga_segmented_control_focused_only_hover_active_border_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_SEGMENTED_FOCUSED_DIRECT_HOVER_OR_ACTIVE_BORDER_MATCH; focused-only segmented/tab controls keep idle/normal backgrounds and focus border while focused+hovered retains real hover surface; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control/helpers.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control/chips.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_status_control/icons.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/chips.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/icons.rs (2026-07-05 S15.4fz/S15.6fa Workbench status chip/icon focused-only hover/glyph split / editor_layout_s15_4fz_status_control_focused_only_hover_glyph_split_rustfmt_static_passed_cargo_deferred: passed; static scan NO_STATUS_CONTROL_FOCUSED_DIRECT_HOVER_OR_ACTIVE_MATCH; focused-only status chips/icons keep flat surfaces and focus borders while focused+hovered and focused+checked retain real feedback; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/colors/surface.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_dropdown/colors/content.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns_tests/style.rs (2026-07-05 S15.4fy/S15.6ez Workbench dropdown focused-only open-surface/chevron split: passed; static scan NO_DROPDOWN_FOCUSED_DIRECT_OPEN_OR_ACTIVE_MATCH; focused closed dropdown keeps normal surface/chevron, focused+hovered keeps hover surface, focused+open keeps open surface and active chevron; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/background.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/glyph.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons/surface.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons_tests/style.rs (2026-07-05 S15.4fx/S15.6ey Workbench icon button focused-only hover/glyph split: passed; static scan NO_ICON_BUTTON_FOCUSED_DIRECT_HOVER_OR_ACTIVE_MATCH; focused-only toolbar/rail/import icon buttons keep normal or fillless identity while focused+hovered and selected+focused retain real feedback; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/model.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/state.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/selection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs (2026-07-05 S15.4fw/S15.6ex Workbench popup/dropdown row focused-only hover-fill split: passed; static scan NO_POPUP_ROW_FOCUSED_HOT_MATCH; focused-only popup rows keep normal background plus neutral outline while focused+hovered rows retain hover fill; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/fill.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/tests.rs (2026-07-05 S15.4fv/S15.6ew Workbench chrome focused-only selected-fill split: passed; static scan NO_CHROME_FOCUSED_SELECTED_FILL_MATCH; focused-only chrome panels keep kind normal fill while focus remains visible through separator/border; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/style.rs (2026-07-05 S15.4ft/S15.6eu Notification center row focused-only background split: passed; static scan NO_FOCUSED_NOTIFICATION_ROW_BACKGROUND_MATCH; focused-only notification rows keep normal or unread background while focus moves to a low-emphasis border; selected accent border remains prioritized; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style/background.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests/paint.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests/style.rs (2026-07-05 S15.4fs/S15.6et Axis value field focused-only background split: passed; static scan NO_FOCUSED_AXIS_FIELD_HOVER_BACKGROUND_MATCH; focused-only axis fields keep normal background while hover/selected keep hover background and focus border remains visible; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view/style.rs (2026-07-05 S15.4fr/S15.6es MUI X TreeView row focused-only hover-surface split: passed; focused-only TreeView rows keep neutral surfaces while expanded/popup-open rows retain hover feedback; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/field.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/popup.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/metrics.rs (2026-07-05 S15.4hm/S15.6go MUI X picker palette route: passed; production scan NO_MUI_X_PICKERS_PRODUCTION_STATIC_PALETTE; local constant scan NO_MUI_X_PICKERS_LOCAL_SECONDARY_CONSTANT; field/popup palette fixtures present; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/composer.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/style.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/bubbles.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/streaming.rs (2026-07-05 S15.4hn/S15.6gp MUI X chat palette route: passed; Chat subtree production scan NO_MUI_X_CHAT_PRODUCTION_STATIC_PALETTE; composer/surface/bubble/streaming palette fixtures present; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/command/image.rs (2026-07-06 S15.4ho/S15.6gq render command image fallback palette route: passed; production scan NO_RENDER_COMMAND_IMAGE_PRODUCTION_STATIC_PALETTE; fallback border palette fixture present; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/colors.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw/text.rs (2026-07-06 S15.4hp/S15.6gr render command text fallback palette route: passed; production scans NO_PRODUCTION_STATIC_PALETTE text.rs/colors.rs; runtime foreground and draw fallback palette fixtures present; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/palette.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_toast/state.rs (2026-07-06 S15.4hq/S15.6gs Workbench toast palette route: passed; production scan NO_WORKBENCH_TOAST_PRODUCTION_STATIC_PALETTE palette.rs/state.rs; normal/interaction/unavailable/open/pressed/hover palette fixtures present; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/palette.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_alert/state.rs (2026-07-06 S15.4hr/S15.6gt Workbench alert palette route: passed; production scan NO_WORKBENCH_ALERT_PRODUCTION_STATIC_PALETTE palette.rs/state.rs; tone/unavailable/pressed/focused palette fixtures present; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/style.rs (2026-07-05 S15.4fq/S15.6er Workbench chip focused-only hover/glyph split: passed; focused-only chips keep normal surface and muted glyph while retaining focus border; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/surface/interaction.rs (2026-07-05 S15.4fp/S15.6eq Generic interaction surface focused-only selected-surface split: passed; generic focused surface uses pressed surface, not selected surface; selected asset thumbnail name-area still uses selected surface; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/command.rs (2026-07-05 S15.4fo/S15.6ep Template icon image focused-only active-tint split: passed; focused-only icons keep normal tint while checked/popup-open icons use active tint; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/rows.rs (2026-07-05 S15.4fn/S15.6eo MUI X data grid row focused-only selected-surface split: passed; focused-only data grid rows keep neutral row surfaces; selected first row still uses selected surface; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/command.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs (2026-07-05 S15.4fm/S15.6en Workbench command focused-only active-surface split: passed; Compile/Import focused-only commands keep normal command surface while selected/checked/popup/hover/pressed retain active feedback; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs (2026-07-05 S15.4fl/S15.6em Workbench module selected painter fixture focus split: passed; selected module tab fixture now selected/checked-but-not-focused; focused-only utility tab regression remains focused-only; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs (2026-07-05 S15.4fk/S15.6el PageTab/DockTab focused-only selected-surface split: passed; all tab-like active state branches selected/checked-only; Page/Dock selected fixtures now selected-but-not-focused; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs (2026-07-05 Workbench module tab focused-only selected-surface split: passed; module tab style active state selected/checked-only; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs (2026-07-05 Asset Browser focused-only generic tab-like selected-surface split: passed; generic tab-like style active state selected/checked-only; focused Cargo/screenshots deferred)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs (2026-07-05 Asset Browser selected chip/tab painter fixtures: passed; fixtures now selected-but-not-focused; target scan clean; focused Cargo/screenshots deferred)
+  - cargo fmt -p zircon_editor --check (2026-07-05 Asset Browser utility-tab projected surface split: passed)
+  - git diff --check over Asset Browser utility-tab state source/doc paths and target screenshot scan (2026-07-05: passed with existing CRLF warnings only; target scan clean; focused Cargo attempted twice and timed out after 124s/604s with no pass/fail result, owned processes stopped; screenshots deferred)
+  - cargo fmt -p zircon_editor --check (2026-07-05 Asset Browser projected selection/focus split: passed)
+  - git diff --check over Asset Browser state-mark source/doc paths and target screenshot scan (2026-07-05: passed with existing CRLF warnings only; target scan clean; focused Cargo/screenshots deferred while other Cargo/rustc lanes were active)
+  - cargo fmt -p zircon_editor --check (2026-07-05 Asset Browser preview-artifact routing: passed)
+  - git diff --check over Asset Browser preview-routing source/doc paths and target screenshot scan (2026-07-05: passed with existing CRLF warnings only; target scan clean; focused Cargo/screenshots deferred while other Cargo/rustc lanes were active)
   - zircon_editor/src/tests/workbench/reference_surface.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
@@ -768,9 +971,23 @@ tests:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/surface.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster/pie.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/gauge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/line.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/sparkline.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/bubbles.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/agent/streaming.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/composer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/chat/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/field.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/metrics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/pickers/popup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/tree_view.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests.rs
@@ -1325,6 +1542,22 @@ The field-stepper responsibility split keeps that declaration-owned visual contr
 
 The dropdown glyph responsibility split keeps the same declaration-owned dropdown colors, half-pixel height preservation, and label fallback path, but moves WorkbenchInputDropdown chevron reserve, chevron rect construction, segment drawing, and segment scaling into `host_contract/paint_template_nodes/template_dropdown_glyphs.rs`. The dropdown test split moves recognition, popup-row, style, color, layout-offset, brightness, and half-pixel regressions into `host_contract/paint_template_nodes/template_dropdowns_tests.rs`. `template_dropdowns.rs` now stays focused on dropdown recognition, paint rect handling, surface/border/text command sequencing, placeholder fallback, style selection, and chevron dispatch.
 
+The 2026-07-05 S15.4fy/S15.6ez dropdown focused-state pass keeps open/hover policy inside the Workbench dropdown selector. `style_selector/workbench_dropdown/state.rs` exposes raw hot/open predicates so `colors/surface.rs` and `colors/content.rs` can distinguish focused-only closed dropdowns from focused+hovered and focused+open dropdowns. Closed keyboard focus now keeps the normal surface and normal chevron with the existing focus border, hover keeps hover surface without active chevron, and open keeps open surface plus active chevron.
+
+The 2026-07-05 S15.4fz/S15.6fa status-control focused-state pass keeps status chip/icon policy inside the Workbench status-control selector. `style_selector/workbench_status_control/helpers.rs` exposes raw selected, hot, and active-glyph predicates so `chips.rs` and `icons.rs` can distinguish focused-only status controls from focused+hovered and focused+checked controls. Focused-only chips and status icon buttons keep their flat transparent surfaces with a focus border; status icon buttons keep muted glyphs until a true checked/open/drag/drop state asks for active glyph color.
+
+The 2026-07-05 S15.4ga/S15.6fb segmented focused-state pass keeps segmented/tab background and border policy inside the Workbench segmented-control selector. `style_selector/workbench_segmented_control/state.rs` exposes raw hot state so `control.rs` can distinguish focused-only segmented controls from focused+hovered/open controls. Focused-only segmented controls keep idle background and a focus-ring border, focused+hovered controls keep hover surface with the focus border, and focused-only tab controls keep their normal declared or absent background without an active border.
+
+The 2026-07-05 S15.4gb/S15.6fc selection-control focused-state pass keeps checkbox/radio/toggle hover policy inside the Workbench selection-control selector. `style_selector/workbench_selection_control/state.rs` exposes raw hot state so `selection/surface.rs` can distinguish focused-only selection controls from focused+hovered controls while `selection/border.rs` keeps keyboard focus visible. Focused-only unchecked toggles keep normal track surface with a focus border, focused+hovered toggles keep hover track with the same focus border, and focused-only checkboxes keep idle mark surface rather than borrowing hover feedback.
+
+The 2026-07-05 S15.4gc/S15.6fd slider focused-state pass keeps slider hot, halo, and value-border policy inside the Workbench slider selector. `style_selector/workbench_slider/state.rs` separates hot pointer/drag/drop states from the focus-halo predicate; `thumb.rs` consumes that focus-halo predicate, while `value.rs` only lets pressed sliders promote the value border to the fill color. Focused-only sliders therefore keep neutral value-chip border plus weak thumb halo instead of borrowing hot/pressed value chrome.
+
+The 2026-07-05 S15.4gd/S15.6fe property scalar value pass applies the selected-vs-focused contract to Inspector/component property rows. `template_property_rows/fields/scalar.rs` no longer lets selected-only scalar value fields use `property_field_focus_border`; row selection keeps the neutral property field border, while focused and pressed values still use the focus border. This keeps selected property rows from looking like active text/input focus.
+
+The 2026-07-05 S15.4ge/S15.6ff axis value field border pass completes the Transform numeric-field selected-vs-focused split started by S15.4fs. `template_axis_value_field_style/border.rs` no longer lets selected-only axis fields use `PALETTE.focus_ring` or the 1.5px focus width; selected axis values keep hover border plus normal width while focused and pressed values keep focus border and width. Validation borders continue to take priority.
+
+The 2026-07-05 S15.4gf/S15.6fg alert focused-state pass keeps semantic feedback components from borrowing pressed control chrome. `style_selector/workbench_alert/state.rs` now lets focused-only alerts keep their warning/info/success/error tone border, while pressed alerts still use the active focus-ring border. The template alert shared-state regression now expects focused warning alerts to remain semantic rather than active.
+
 The tooltip glyph responsibility split keeps the component-drawer tooltip tone contract and existing title/body fallback text, but moves WorkbenchTooltipRoot arrow sizing, diamond arrow drawing, info-icon sizing, icon placement, and info mark segment drawing into `host_contract/paint_template_nodes/template_tooltip_glyphs.rs`. The tooltip test split moves the bubble/arrow/icon painter coverage and shared-state priority style regressions into `host_contract/paint_template_nodes/template_tooltips_tests.rs`. `template_tooltips.rs` now stays focused on tooltip recognition, bubble layout, shadow/surface command sequencing, text emission, style selection, and glyph dispatch.
 
 The section-title glyph responsibility split keeps the component-drawer and Inspector section-title text contract intact, but moves WorkbenchInspectorTitle, WorkbenchTransformLabel, and WorkbenchMeshLabel icon kind selection, title glyph colors, cube/transform/mesh segment drawing, and segment scaling into `host_contract/paint_template_nodes/template_section_title_glyphs.rs`. The section-title test split moves recognition, bold-label paint, leading-icon paint, mesh title tone, declared label color, and transform-icon opacity regressions into `host_contract/paint_template_nodes/template_section_titles_tests.rs`. `template_section_titles.rs` now stays focused on section-title recognition, icon/text placement, label command sequencing, declared/disabled/text-tone color selection, and glyph dispatch.
@@ -1332,6 +1565,38 @@ The section-title glyph responsibility split keeps the component-drawer and Insp
 The Material divider responsibility split keeps Material primitive dispatch and shared Material color/variant helpers in `host_contract/paint_template_nodes/material_primitives.rs`, but moves MUI Divider role and surface-variant recognition, orientation, line extents, label placement, text alignment, divider/text color selection, font-size clamping, and pixel alignment into `host_contract/paint_template_nodes/material_primitives/divider.rs`.
 
 The MUI X primitive responsibility split keeps MUI X dispatch and shared role/style helpers in `host_contract/paint_template_nodes/mui_x_primitives.rs`, while TreeView, DataGrid, Date/Time picker, AgentChat, ChatComposer, and Charts each live in focused child modules under `host_contract/paint_template_nodes/mui_x_primitives/`. That keeps the component-family root from accumulating every MUI X preview's geometry and paint sequencing.
+
+The S15.4ft/S15.6eu notification center row pass applies the same selected-vs-focused contract to retained notification rows. `template_notification_center/style.rs` no longer lets keyboard focus alone choose a row background; focused-only rows keep `ROW_SURFACE`, focused unread rows keep `ROW_UNREAD_SURFACE`, and disabled rows keep `ROW_DISABLED_SURFACE`. Focus visibility now lives in `row_border(...)` through a low-emphasis focused border, while selected rows still win the accent border.
+
+The S15.4fs/S15.6et axis value field pass applies the same selected-vs-focused contract to Transform numeric fields. `template_axis_value_field_style/background.rs` no longer lets keyboard focus alone choose the hover background; focused-only fields keep the normal inset surface, while `template_axis_value_field_style/border.rs` still exposes the focus border. Hovered and selected fields retain the host hover surface, and pressed fields retain the selected/pressed surface role.
+
+The S15.4fr/S15.6es TreeView row pass keeps focused-only preview rows neutral inside the TreeView owner. `mui_x_primitives/tree_view/style.rs` no longer lets keyboard focus alone choose the second-row hover surface; expanded and popup-open still receive the hover row affordance, and selected/checked still mark the first row with the selected surface.
+
+The 2026-07-05 S15.4hl/S15.6gn TreeView palette follow-up routes the preview's outer surface, row fill, and marker colors through the active host palette. `mui_x_primitives/tree_view/style.rs` now resolves selected/multi outer surface, neutral outer surface, selected row, hover row, neutral row, expanded marker, and default marker colors from `HostMaterialPalette`, while focused-only neutral rows, expanded/popup-open hover rows, selected/checked first-row selection, and expanded first-row marker behavior remain unchanged. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hm/S15.6go Picker palette follow-up routes the Date/Time picker field and popup preview surfaces through the active host palette. `mui_x_primitives/pickers/field.rs` now resolves root fallback, field inset, and icon block colors from `HostMaterialPalette.surface_inset` and `accent_soft` while preserving authored root backgrounds; `mui_x_primitives/pickers/popup.rs` resolves popup, header, and cell colors from `surface` and `accent_soft`; `metrics.rs` no longer carries the local `PICKER_SECONDARY` RGB constant. Geometry and popup visibility are unchanged. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hn/S15.6gp Chat palette follow-up routes AgentChat and ChatComposer surfaces through the active host palette. `mui_x_primitives/chat/composer.rs` resolves composer root fallback and send mark colors from `surface_inset` and `accent`; `chat/style.rs` resolves error, streaming, and default chat surfaces from `error_container`, `info_container`, and `surface_inset`; `chat/agent/bubbles.rs` resolves agent/user bubbles from `surface` and `surface_selected`; `chat/agent/streaming.rs` resolves the streaming indicator from `accent`. The authored root background override, streaming guard, bubble geometry, radius, and draw order are unchanged. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-06 S15.4ho/S15.6gq image command follow-up routes missing/placeholder image border fallback through the active host palette. `render_commands/command/image.rs` now resolves the `HostPaintCommand::image(...)` fallback border from `HostMaterialPalette.focus_ring` through `current_host_palette()`, while `image_pixels(...)` remains the no-border pixel payload path. Frame, clip, z-index, opacity, radius, image key, and draw-command kind are unchanged. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-06 S15.4hp/S15.6gr text command follow-up routes default foreground fallback through the active host palette. `render_command_conversion/style/colors.rs` now resolves runtime `UiResolvedStyle` missing foreground from `HostMaterialPalette.text`, and `render_commands/draw/text.rs` uses the same host text role when a retained text command has no foreground color. Explicit runtime foreground, text/run declared colors, host command foregrounds, hex parsing, opacity, font metrics, clip, and frame behavior are unchanged. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-06 S15.4hq/S15.6gs toast palette follow-up routes WorkbenchToast feedback colors through the active host palette. `style_selector/workbench_toast/palette.rs` now projects normal surface, border, text, action, close, hover surface, and pressed surface from `HostMaterialPalette`; `state.rs` projects disabled/loading, open, pressed, and hover colors from the same palette. The test-only constants remain under `#[cfg(test)]` for existing pixel fixtures. Loading still blocks authored color overrides, focused-only toast keeps the neutral border, open/pressed keep active border/action, and hover keeps selected-surface plus accent-soft border. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-06 S15.4hr/S15.6gt alert palette follow-up routes WorkbenchAlert feedback colors through the active host palette. `style_selector/workbench_alert/palette.rs` now projects info, success, warning, and error surfaces, borders, marks, and text from `HostMaterialPalette`; `state.rs` projects disabled/loading and pressed/focused/normal branches from the same palette. The test-only constants remain under `#[cfg(test)]` for existing pixel fixtures. Loading still blocks authored color overrides, focused-only alerts keep their semantic tone border, and pressed alerts keep the active focus-ring border. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The S15.4fq/S15.6er chip pass applies the selected-vs-focused contract to generic Workbench chips. `template_chips/style.rs` no longer lets keyboard focus alone choose the hover surface or active focus-ring glyph; focused-only chips keep their normal surface and muted glyph while `chip_border(...)` still exposes focus through the existing focus-ring border. Hover, pressed, and popup-open remain explicit interaction feedback states.
+
+The S15.4fp/S15.6eq generic interaction-surface pass applies the selected-vs-focused contract one layer below specialized workbench controls. `template_style/colors/surface/interaction.rs` no longer maps generic focused controls to `surface_selected`; focused-only controls now use the lower-emphasis pressed surface while the existing border and dimension owners keep the focus ring visible. The asset thumbnail name-area selected branch remains selected/checked-only and still uses `surface_selected`.
+
+The S15.4fo/S15.6ep template icon pass applies the same selected-vs-focused contract to generic icon/image tinting. `template_node_images/command.rs` now computes icon active tint from selected/checked/pressed/popup-open state only; keyboard focus alone leaves icon-like nodes on normal `ICON_TINT`, while checked and popup-open affordances still receive active tint without borrowing focus.
+
+The S15.4fn/S15.6eo data-grid row pass keeps the same selected-vs-focused contract inside the DataGrid row owner. `mui_x_primitives/data_grid/rows.rs` now marks the first row selected only for selected/checked nodes; keyboard focus alone leaves both rows on the neutral surface so a focused preview no longer reads as a selected table row.
+
+The 2026-07-05 S15.4hj/S15.6gk DataGrid row palette follow-up routes normal and selected row fills through the active host palette. `mui_x_primitives/data_grid/rows.rs` now resolves neutral rows from `HostMaterialPalette.surface` and selected/checked first rows from `surface_selected`, while the focused-only neutral behavior and selected/checked first-row contract remain unchanged. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hk/S15.6gl DataGrid surface follow-up routes container fallback and header fill colors through the active host palette. `mui_x_primitives/data_grid/surface.rs` now resolves the container fallback from `HostMaterialPalette.surface_inset` and the header from `surface_hover`, while authored `node_background` overrides keep priority and header geometry/radius/order/opacity remain unchanged. The DataGrid subtree now has no production static `PALETTE.` reads; current evidence is rustfmt/static/fixture/subtree/target-scan only, and refreshed `docs/tests/editor` screenshots remain deferred.
 
 The shell-panel separator responsibility split keeps Workbench shell panel control-id recognition, chrome style selection, surface fill, and separator dispatch in `host_contract/paint_template_nodes/template_shell_panels.rs`, while pixel alignment and top/bottom/left/right shell separator line emission live in `host_contract/paint_template_nodes/template_shell_panels/separators.rs`. This follows the same folder-backed retained-host shape as the Material and MUI X splits without changing the runtime UI surface contract.
 
@@ -1353,7 +1618,7 @@ Popup-menu row selection uses the same preview-only boundary. When `dispatch_pan
 
 Native hit testing now gives those structured rows real pointer targets. `surface_hit_test/template_node.rs` checks open popup rows before the normal template-node surface hit-test: dropdown options synthesize `workbench_option` hits from the shared option-popup layout helper and carry the Change binding id plus option id; popup menu rows synthesize `workbench_menu_item` hits across the menu frame and carry a normalized row action id. Hand-authored sample rows such as `Delete` are normalized to `menu.item.delete`, while already canonical `menu.item.*` rows pass through unchanged. Points inside an open popup but on a disabled option, separator row, or other non-activatable popup area are blocked from falling through to the popup parent or underlying controls. `native_pointer.rs` routes `workbench_option` through the structured-option callback lane, which the retained host already redirects to the active Workbench bridge. Menu row hits continue through `surface_control_clicked`, where the Workbench bridge handles them as preview-only row selection before any generic menu command fallback runs.
 
-Native painting now renders the same structured rows instead of leaving them as invisible hit zones. `template_nodes.rs` remains the orchestration boundary for retained template-node painting, while `template_popup_rows.rs` draws open dropdown options from the shared option-popup layout helper and popup-menu rows inside the menu frame. Selected and special rows receive the selected background plus a narrow accent marker; hovered, focused, and pressed rows share the hover surface; disabled rows keep disabled text and no active row fill; separators and shortcuts are painted from structured menu row metadata. Both painter and hit-test consume `template_popup_layout.rs` for dropdown option and menu row frames, so visible rows and pointer targets are derived from the same geometry.
+Native painting now renders the same structured rows instead of leaving them as invisible hit zones. `template_nodes.rs` remains the orchestration boundary for retained template-node painting, while `template_popup_rows.rs` draws open dropdown options from the shared option-popup layout helper and popup-menu rows inside the menu frame. Selected and special rows receive the selected background plus a narrow accent marker; focused-only rows keep normal background with a neutral outline; hovered, pressed, open, dragging, and drop-hovered rows use the hover surface; disabled rows keep disabled text and no active row fill; separators and shortcuts are painted from structured menu row metadata. Both painter and hit-test consume `template_popup_layout.rs` for dropdown option and menu row frames, so visible rows and pointer targets are derived from the same geometry.
 
 Popup row adornments now have a separate paint owner. `template_popup_row_adornments.rs` owns the right-side selected check, submenu chevron, add/open/save/delete glyphs, raw menu flag parsing, and default icon mapping. `template_popup_rows.rs` keeps row ordering, background/surface/separator drawing, label and shortcut text, adornment dispatch, and row style selection, which keeps popup geometry and content sequencing separate from pixel glyph construction. `template_popup_rows_tests.rs` carries the popup menu/dropdown flag, style, and painter regressions outside the production file.
 
@@ -1405,7 +1670,7 @@ The Inspector component-property summary area now declares a row pool. `Workbenc
 
 The Transform section in `workbench_inspector_panel.zui` is now composed bottom-up from `HorizontalGroup`, `Label`, and `WorkbenchAxisValueField` nodes. The row controls still keep the stable aggregate IDs `WorkbenchTransformPosition`, `WorkbenchTransformRotation`, and `WorkbenchTransformScale` for snapshot metadata, while each editable value exports its own retained/native control ID such as `WorkbenchTransformPositionX`. Snapshot sync writes the aggregate Position value for compatibility and also writes X/Y/Z values into those split field controls.
 
-The native painter for these split Transform fields now keeps axis-value field styling in `template_axis_value_field_style.rs`. That module owns background, border, text color, disabled, hover, pressed, invalid, focused, and declared value-color rules, while `template_axis_value_fields.rs` keeps recognition, compact field geometry, fallback text extraction, and text command ordering. The module-local regression coverage now lives in `template_axis_value_fields_tests.rs`, so the production field painter only carries the external test-module entry for test builds. The companion axis-label painter keeps Transform axis-label and scale-link production logic in `template_axis_labels.rs`; its recognition, tone, compact text, scale-link offset, and pixel-painter regressions live in `template_axis_labels_tests.rs`.
+The native painter for these split Transform fields now keeps axis-value field styling in `template_axis_value_field_style.rs`. That module owns background, border, text color, disabled, hover, pressed, invalid, focused, and declared value-color rules, while `template_axis_value_fields.rs` keeps recognition, compact field geometry, fallback text extraction, and text command ordering. The S15.4fs/S15.6et cleanup keeps focus visible in the border child owner without using the hover background child owner as a focus fill. The module-local regression coverage now lives in `template_axis_value_fields_tests.rs`, so the production field painter only carries the external test-module entry for test builds. The companion axis-label painter keeps Transform axis-label and scale-link production logic in `template_axis_labels.rs`; its recognition, tone, compact text, scale-link offset, and pixel-painter regressions live in `template_axis_labels_tests.rs`.
 
 `transform_edit.rs` handles retained/native edit and commit callbacks for those split Transform fields. It recognizes `Inspector/TransformPosition*`, `Inspector/TransformRotation*`, and `Inspector/TransformScale*` Change/Submit routes, strips a native axis prefix such as `X ` when present, updates the edited field's raw `value`, recomposes the aggregate row value as `X ...   Y ...   Z ...`, refreshes the componentized surface, and returns paint-only invalidation. This keeps the first split Inspector fields interactive without pretending that preview edits have already been committed back into the scene world.
 
@@ -1517,6 +1782,51 @@ The node IDs are intentionally stable. Do not convert them to allocation-only ID
 Label text must be written to both `label` and `text` metadata attributes. Buttons can render from `label`, but plain `Label` nodes resolve text through the generic text/value path.
 
 ## Test Coverage
+
+`chrome_focused_panel_keeps_normal_fill_with_focus_separator` verifies that a focused-only Workbench
+chrome panel keeps the kind normal fill instead of borrowing `surface_selected`, while the strong
+separator still exposes focus. `chrome_hover_and_selected_panel_keep_pointer_and_identity_fills`
+keeps hover and selected fills explicit, and `chrome_drawer_column_stays_fillless_when_selected`
+guards the drawer-column no-fill contract.
+
+`popup_row_focused_only_keeps_normal_background_with_focus_outline` verifies that focused-only
+popup rows keep normal background while retaining keyboard focus via neutral outline.
+`popup_row_hovered_while_focused_still_uses_hover_fill` verifies that real pointer hover still
+wins hover fill when the resolved state is Focused. The template-level popup row style matrix
+mirrors the same focused-only and focused+hovered cases.
+
+`focused_toolbar_icon_button_keeps_normal_tile_and_glyph_with_focus_border`,
+`focused_hovered_toolbar_icon_button_still_uses_hover_fill`,
+`selected_focused_toolbar_icon_button_keeps_selected_surface_and_active_glyph`,
+`focused_rail_icon_button_keeps_fillless_surface_and_muted_glyph`, and
+`asset_import_icon_button_focus_keeps_primary_accent_fill` verify the icon-button focused-state
+contract. Focused-only toolbar icons keep normal tile/glyph identity with a focus border, fillless
+rail-style icon buttons keep no fill while retaining a focus border, focused+hovered buttons keep
+real hover fill, selected+focused buttons keep selected identity, and primary import icons do not
+promote to hover/focus-ring fill until real hover or active input arrives.
+
+`focused_data_grid_does_not_mark_first_row_selected` and `selected_data_grid_marks_first_row_selected` verify the MUI X data-grid row surface contract. Keyboard focus alone keeps both preview rows on the neutral surface, while real selected state still marks only the first row with the selected row surface.
+
+`muted_prominent_command_focus_does_not_promote_hover_surface` and `primary_import_command_focus_does_not_promote_hover_surface` verify that focused-only Workbench command buttons keep their normal command surfaces. Compile-style muted prominent commands stay on the low-emphasis pressed surface with accent text, and Import primary commands stay on the accent surface, while hover/pressed/selected/checked/popup-open remain the only paths that promote command chrome.
+
+`workbench_module_tab_focus_does_not_promote_selected_surface` verifies that focused-only Workbench module tabs keep muted text, transparent surface, and zero border width. This prevents keyboard focus from borrowing the selected module-tab surface. `selected_workbench_module_tab_paints_slate_indicator_without_focus_frame` now stays selected/checked-but-not-focused, proving the selected module-tab Slate underline is selected-state output rather than borrowed keyboard-focus output.
+
+`page_tab_focus_does_not_promote_selected_surface` and `dock_tab_focus_does_not_promote_selected_surface` verify that focused-only generic PageTab and DockTab buttons keep the low-contrast pressed tab surface, muted text, and zero border width. The selected PageTab and DockTab painter fixtures also stay selected-but-not-focused, proving the Slate underline is selected-state output rather than borrowed keyboard-focus output.
+
+`asset_browser_tab_like_focus_does_not_promote_selected_surface` verifies that focused-only generic Asset Browser tab-like buttons keep muted text, transparent surface, and zero border width. This prevents keyboard focus from borrowing the selected pressed surface for non-toolbar, non-utility Asset Browser tabs.
+
+`asset_browser_toolbar_chip_focus_does_not_promote_selected_frame` verifies that focused-only Asset Browser filter/view chips keep muted text, transparent surface, and zero border width. This prevents keyboard focus from borrowing the segmented selected chip frame.
+
+`asset_browser_utility_tab_focus_does_not_promote_selected_text_tone` verifies that focused-only Asset Browser utility tabs keep muted text and a transparent surface. This prevents keyboard focus from borrowing the selected tab text tone.
+
+`focused_asset_browser_utility_tab_does_not_paint_selected_indicator` verifies that a focused-only Asset Browser utility tab does not paint the selected Slate bottom indicator or focus-ring pixel. This keeps keyboard focus separate from selected/checked tab state in the retained button surface owner.
+
+`focused_closed_workbench_dropdown_keeps_normal_surface_and_chevron`,
+`focused_hovered_workbench_dropdown_uses_hover_surface_without_active_chevron`, and
+`focused_open_workbench_dropdown_keeps_open_surface_and_active_chevron` verify the dropdown
+focused-state contract. Focused-only closed dropdowns keep normal surface and chevron while using the
+existing focus border; real hover keeps hover surface without pretending to be open; real open state
+keeps open surface and active chevron even when the resolved state is Focused.
 
 `reference_workbench_surface_lays_out_target_editor_chrome` verifies the target frame proportions and confirms that the layout report selected Taffy-backed containers.
 
@@ -2267,6 +2577,50 @@ pixel segment geometry into
 now stays focused on Workbench icon-button recognition, context, layout, surface, and style
 sequencing while delegating low-level glyph drawing to the child module.
 
+The 2026-07-05 top-toolbar icon-button tile pass keeps toolbar chrome classification inside the
+Workbench icon-button style selector. `selection/toolbar_chrome.rs` recognizes ordinary top-toolbar
+icon buttons that should draw a persistent low-emphasis tile, while `selection/background.rs` and
+`selection/border.rs` keep document-tab close buttons and module-overflow affordances transparent in
+the normal state. This preserves the bottom-up primitive rule: the icon button decides its own
+surface/border role before toolbar groups, document tabs, drawers, or full windows compose it.
+
+The 2026-07-05 S15.4fx/S15.6ey icon-button focused-state pass keeps that same primitive owner split.
+`style_selector/workbench_icon_button/state.rs` exposes raw selected, hot, and active-glyph predicates
+so the selector can distinguish keyboard focus from true hover/open/drag/drop and selected/checked
+identity even though the shared resolved state reports `Focused` first. Focused-only toolbar icon
+buttons keep the normal low-emphasis tile and normal glyph with a focus border; focused rail or
+close-style transparent icon buttons stay fillless and rely on the border-only retained quad path;
+selected+focused buttons keep selected surface and active glyph; primary import icon buttons keep
+their normal accent fill until real hover or active input arrives.
+
+The 2026-07-05 S15.4fz/S15.6fa status-control focused-state pass applies the same primitive split to
+status chip and status icon-button leaves. `style_selector/workbench_status_control/helpers.rs`
+exposes raw selected, hot, and active-glyph predicates, while `chips.rs` and `icons.rs` keep keyboard
+focus from borrowing hover fill or active glyph color. Focused-only status chips stay flat with a
+focus border; focused-only status icon buttons stay flat with muted glyphs and a focus border;
+focused+hovered controls keep hover surface; focused+checked controls keep selected surface and
+active glyph.
+
+The 2026-07-05 S15.4ga/S15.6fb segmented focused-state pass applies the same split to segmented
+groups and tab-like mounts. `style_selector/workbench_segmented_control/control.rs` no longer lets
+focused-only controls borrow hover surface or active accent border; raw hover/open/drag/drop keeps
+true hover feedback, and focused-only segmented groups use a focus-ring border while tabs remain
+borderless.
+
+The 2026-07-05 S15.4gb/S15.6fc selection-control focused-state pass applies the split to
+checkbox/radio/toggle leaves before multi-select rows or property boolean fields compose them.
+`style_selector/workbench_selection_control/state.rs` keeps resolved focus separate from raw hot
+input, `selection/border.rs` keeps the focus ring visible, and `selection/surface.rs` no longer lets
+focused-only unchecked toggles borrow hover track fill. Raw hover/press/drag/drop still preserves
+real feedback when the shared resolved state is `Focused`.
+
+The 2026-07-05 S15.4gc/S15.6fd slider focused-state pass applies the split to Slider, RangeSlider,
+and Steps Slider leaves before property rows or component showcase columns compose them.
+`style_selector/workbench_slider/state.rs` keeps hot pointer/drag/drop state separate from
+focus-halo visibility, `thumb.rs` keeps the weak focus halo, and `value.rs` no longer lets
+focused-only sliders borrow pressed/fill value border. Pressed sliders still keep active value
+border and hot halo.
+
 The icon-button glyph catalog responsibility split keeps the icon-button paint entry in
 `host_contract/paint_template_nodes/template_icon_button_glyphs.rs`, moves glyph-kind mapping into
 `template_icon_button_glyph_kind.rs`, moves 16x16 segment scaling into
@@ -2284,6 +2638,16 @@ selection and pixel segment geometry into
 painter/style/layout regressions into `template_buttons_tests.rs`. `template_buttons.rs` now stays
 focused on button recognition, kind selection, layout offsets, surface/text content layout, style,
 opacity, and radius sequencing.
+
+The Asset Browser selected/focus split keeps active chip and tab chrome in the same button style and
+surface owners. `style_selector/workbench_button/selection.rs` now gives framed selected chrome to
+toolbar kind/view chips only when selected or checked, and gives primary text tone to utility tabs
+only when selected or checked. Focused-only chips and tabs keep muted text unless hover or popup-open
+supplies temporary interaction feedback. `host_contract/paint_template_nodes/template_buttons/surface.rs`
+paints the tab-like bottom indicator only for selected or checked buttons; focused-only utility tabs
+remain focusable without borrowing selected-tab chrome. The paired regressions live with the button
+selector and button tests, so this does not add a root painter special case or a separate Asset
+Browser paint branch.
 
 The chip glyph responsibility split moves Workbench chip chevron reserve, availability checks,
 chevron rect geometry, and pixel segment drawing into
@@ -2777,6 +3141,56 @@ surfaces with normal text and adornment colors, while the initial accent afforda
 passed for `workbench_popup_row` 2/2 and `template_popup_rows` 6/6; the editor build, M3 menu popup
 screenshot, and component atlas screenshot were refreshed under `docs/tests/editor`.
 
+The 2026-07-05 S15.4fx/S15.6ey icon-button focus-vs-hover follow-up narrows toolbar, rail, panel,
+and primary import icon buttons before they are composed into toolbars, tab strips, drawers, and
+status regions. Focused-only icon buttons no longer borrow hover fill or active focus-ring glyph;
+real hover and selected state are recovered from raw node state when the shared resolved state is
+`Focused`. The retained icon-button surface leaf now emits border-only quads so fillless focus can
+stay visible without inventing a root painter special case. Current evidence is rustfmt/static/fixture
+scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4fy/S15.6ez dropdown focus-vs-open follow-up applies that same split to the
+closed dropdown primitive. Focused-only closed dropdowns no longer borrow open surface or active
+chevron; raw open and raw hover preserve real open/hover feedback when the shared resolved state is
+`Focused`. Current evidence is rustfmt/static/fixture scan only; refreshed `docs/tests/editor`
+screenshots remain deferred.
+
+The 2026-07-05 S15.4fz/S15.6fa status-control focus-vs-hover follow-up applies that split to the
+bottom status chip and status icon-button primitives before the status bar composes them with
+signals, spacers, and right-aligned values. Focused-only status controls no longer borrow hover fill
+or active focus-ring glyph; raw hover and selected/checked state preserve real interaction feedback
+when the shared resolved state is `Focused`. Current evidence is rustfmt/static/fixture scan only;
+refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4ga/S15.6fb segmented focus-vs-hover follow-up applies the split to segmented
+groups and drawer-style tabs before they are composed into selector rows, button groups, and
+drawers. Focused-only segmented controls no longer borrow hover fill or active accent border; raw
+hover/open/drag/drop preserves real hover feedback when the shared resolved state is `Focused`.
+Current evidence is rustfmt/static/fixture scan only; refreshed `docs/tests/editor` screenshots
+remain deferred.
+
+The 2026-07-05 S15.4gb/S15.6fc selection-control focus-vs-hover follow-up applies the same rule to
+checkbox, radio, and toggle primitives before they are composed into settings rows, multi-select
+lists, and property panels. Focused-only selection controls no longer borrow hover track/surface
+fill; raw hover/press/drag/drop preserves real interaction feedback when the shared resolved state
+is `Focused`, while the focus ring remains visible through the border owner. Current evidence is
+rustfmt/static/fixture scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gc/S15.6fd slider focus-vs-hot follow-up applies the same rule to slider
+primitives before they are composed into numeric property rows, range filters, and component
+showcase columns. Focused-only sliders no longer count as hot and no longer borrow fill-colored
+value borders; keyboard focus remains visible through the weak thumb halo, and pressed sliders keep
+the active value border. Current evidence is rustfmt/static/fixture scan only; refreshed
+`docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4fw/S15.6ex popup-row focus-vs-hover follow-up narrows that row contract for
+keyboard navigation. `style_selector/workbench_popup_row/state.rs` no longer treats `Focused` as a
+hot state, and `model.rs::hot()` preserves real pointer/open/drag/drop feedback before selection
+maps colors. Focused-only popup/dropdown/command-palette rows keep a normal background with a
+neutral outline, while focused+hovered rows still receive hover fill and selected/checked rows
+still receive pressed selected fill. Current evidence is rustfmt/static/fixture scan only; refreshed
+`docs/tests/editor` screenshots remain deferred.
+
 The follow-up selected-only list-row pass applies the same row identity rule to regular list rows.
 `template_list_row_glyphs/selection.rs` now reserves the trailing check adornment for checked rows,
 while selected-only rows keep a muted navigation chevron and express selection through the dark row
@@ -2793,6 +3207,23 @@ standalone left marker, and selected table rows suppress their bottom separator 
 is not overwritten. Focused style and paint coverage passed for all three row families, the editor
 build passed with the external target directory, and the M3/component-atlas screenshots were refreshed
 under `docs/tests/editor` with no editor screenshots written into the repository `target`.
+
+The 2026-07-05 S15.4fu/S15.6ev generic Workbench row focus-vs-hover follow-up narrows the unmarked
+keyboard-focus state for regular list, tree, and table rows. Focused-only rows now keep the normal
+row background and show focus through the existing focus-ring border, while hovered rows still
+receive the hover fill. This keeps keyboard navigation from impersonating pointer hover in dense
+lists before those rows are composed into drawers, tables, and selection lists. Validation for this
+pass is currently rustfmt/static/fixture evidence only; focused Cargo and refreshed
+`docs/tests/editor` screenshots are deferred while other Rust builds are active and target storage is
+constrained.
+
+The 2026-07-05 S15.4fv/S15.6ew Workbench chrome focus-vs-selected follow-up applies the same contract
+to ordinary container chrome. Focused-only Inspector/Scene/status-style chrome now keeps the
+kind-specific normal fill and exposes focus through the existing separator/border owner; selected,
+open, dragging, drop-hovered, and checked chrome still use selected fill. This prevents keyboard
+focus from making panels read as selected or open containers before the chrome pieces are composed
+into drawers and full window shells. Validation for this pass is currently rustfmt/static/fixture
+evidence only; refreshed `docs/tests/editor` screenshots remain deferred.
 
 The later popup/dropdown row selected-outline pass applies that same row contract to popup menus,
 dropdown options, picker rows, and command palette rows. `WorkbenchPopupRowStyle` now exposes an
@@ -2827,6 +3258,112 @@ instead of reusing script/file symbols. Focused `thumbnail`, `asset_placeholder_
 alias tests passed before the editor build and M3 screenshot rerun; artifacts were refreshed under
 `docs/tests/editor` with build output under `D:\cargo-targets\zircon-editor-components-0627-thumb-plate`.
 
+The 2026-07-05 typed thumbnail scale pass keeps the same Content Browser split but separates typed
+asset preview icons from the generic empty-image placeholder cap. Generic `image` placeholders still
+use the low-noise `row_height..row_height + gap_m` icon range, while `asset-thumbnail-visual` nodes
+derive their main semantic SVG preview icon from `row_height + gap_m` through `row_height + gap_l * 2`
+with a 0.62 well-relative ratio. This keeps the behavior owned by `template_asset_placeholder_visuals.rs`
+and makes the icon occupy the 72-88 px preview well like a Slate asset tile preview, without declaring
+that real raster thumbnail generation is complete. Validation for this pass is intentionally recorded
+as rustfmt/diff/static only: the focused Cargo run timed out in `zircon_runtime` compilation and no new
+`docs/tests/editor` screenshot is claimed.
+
+The 2026-07-05 preview-artifact follow-up is the first actual retained image route for those thumbnail
+wells. `thumbnail_nodes.rs` and the selected preview sync in `asset_browser.rs` load `preview_artifact_path`
+through `load_preview_image(...)` and project `media_source` plus `preview_image` onto the retained
+visual node. `template_asset_placeholder_visuals.rs` paints the thumbnail well, and
+`template_asset_placeholder_visuals/preview_image.rs` now paints that projected image before semantic
+fallback icons, while `template_node_images/identity.rs` keeps the generic image pass from drawing the
+same media again. This still does not complete thumbnail generation/cache or final Asset Browser visual
+acceptance; current validation is rustfmt/diff/static plus target scan, with focused Cargo and screenshots
+deferred under active Cargo/rustc lanes.
+
+The same Asset Browser projection now splits selected/active stamping from keyboard focus for toolbar
+toggles, filter chips, utility tabs, and utility content panels. `asset_browser/state_marks.rs` owns that
+local snapshot-state route and always leaves `focused=false` for projected selection; keyboard focus is
+reserved for the host input state. This follows the Unreal Slate distinction between selected/active
+surface state and focused outline state, so Metadata tabs or Texture chips no longer pick up focus-ring
+semantics merely because their snapshot value is active.
+
+That projection split now also keeps utility-tab selected state out of the segmented/inset surface path.
+Preview, References, Metadata, and Plugins tabs use a utility-tab stamping helper that leaves
+`surface_variant` empty while retaining selected/default text tone, so the underline-only style does not
+receive a contradictory filled-surface hint. Asset Browser view-mode and kind chips still use the
+segmented/inset route, matching their framed chip role.
+
+S15.4fm/S15.6en applies the same state separation to prominent Workbench commands without changing
+their command role owner. Unreal's Slate button style keeps normal, hovered, pressed, and checked
+brushes distinct from focus selector brushes, so `workbench_button/command.rs` no longer lets
+keyboard focus alone promote Compile or Import command buttons to the hover/active command surface.
+Selected, checked, popup-open, hovered, and pressed command feedback remains intact.
+
+S15.4fl/S15.6em completes the same selected-vs-focused evidence for Workbench module tabs at the
+painter-fixture layer. The selector already keeps focused-only module tabs transparent and muted; the
+selected module-tab underline fixture now stays selected/checked without setting keyboard focus, so
+the underline is documented as selected-state output rather than focus output.
+
+The S15.4fk/S15.6el generic PageTab/DockTab fallback now follows the same selected-vs-focused contract. Keyboard
+focus alone no longer promotes a document tab to the selected surface or primary text tone; only
+selected/checked tabs receive that active visual identity. Focused-only Page/Dock tabs stay on the
+low-contrast pressed tab surface with muted text, while selected Page/Dock painter fixtures now prove
+the Slate underline renders without borrowing keyboard focus. Current evidence is rustfmt plus
+style/painter fixture scans; focused Cargo and refreshed screenshots remain deferred until the active
+Cargo lanes clear.
+
+The 2026-07-05 thumbnail name-area seam pass keeps the next refinement at the same leaf level.
+Unreal's Content Browser declares the tile `NameAreaBackground` with square top corners and 4 px
+bottom corners so the label area joins the recessed thumbnail well instead of reading as a separate
+pill. `thumbnail_nodes.rs` now names the local card/name-area/type-badge radius values, and
+`template_node_surface/commands.rs` special-cases only `asset-thumbnail-name-area` by drawing the
+normal rounded surface plus an equal-color zero-radius top cap. That approximates the UE per-corner
+brush with the retained painter's existing uniform-radius primitive, keeps the behavior out of window
+layout or root painter code, and does not change global text/font routing. Validation is rustfmt,
+scoped diff, static scan, and line-budget evidence only while runtime Cargo lanes are occupied; no
+new screenshot is claimed for this pass yet.
+
+The same thumbnail name-area owner now preserves that square-top seam when a Material-style state
+layer is enabled for hover, press, focus, or selected interaction feedback. The state-layer path still
+calls the shared `push_state_layer_commands` implementation first, then detects the rounded overlay
+that was actually produced and adds a matching zero-radius top cap at the same z-index and opacity.
+That keeps the interaction feedback aligned with Unreal's square-top `NameAreaBackground` semantics
+without creating a global per-corner primitive or changing other panel variants. The current evidence
+is command-sequence regression coverage plus rustfmt, scoped diff, static debt scan, line-count, and
+target-screenshot scan checks; focused Cargo and refreshed screenshots are deferred until the active
+runtime Cargo lanes clear.
+
+The name-area interaction role is now independent from the generic asset preview role. `surface_roles.rs`
+identifies `asset-thumbnail-name-area` separately, `colors/surface/interaction.rs` maps selected or
+checked name areas to the global selected surface while keeping hover on the hover surface, and the
+border/dimension helpers keep the information band on its authored zero-width border unless a caller
+explicitly declares a border. This follows the Unreal Content Browser split between
+`NameAreaBackground`, `NameAreaHoverBackground`, and `NameAreaSelectedBackground` without restoring a
+bright selection marker, adding a button-style focus frame, or changing the runtime text/font route.
+The surface style regression now covers normal, hover, selected, and border-width behavior. Current
+evidence is rustfmt, scoped diff check, static/debt scans, source line counts, and target screenshot
+scans; focused Cargo and window screenshot evidence remain gated by the current runtime build lanes.
+
+The selected name-area text route now follows the same thumbnail-specific ownership. The thumbnail
+projection marks title, continuation, type, and status labels as `asset-thumbnail-name-area-text` and
+passes through the tile selected state because those labels are sibling retained nodes, not true
+children of the name-area panel. The retained text color resolver then treats selected/checked labels
+inside that role as selected name-area text: primary and type labels use the global primary text
+palette, muted continuation/status labels keep the global muted text palette, and non-selected labels
+fall back to the normal accent/muted rules. This removes cyan type text from the selected
+name-area surface while keeping font family, width measurement, and ellipsis behavior on the existing
+runtime text/preference path. Current evidence is rustfmt plus focused projection/style regressions in
+source; Cargo and screenshots remain deferred until the runtime build lanes clear.
+
+The logical thumbnail title split now uses the same runtime text measurement path instead of relying on
+character count alone. `name_lines.rs` owns the non-file display-name splitter: file-like names stay on
+the extension-preserving compaction route, while non-file names stay single-line only when
+`measure_runtime_text_width` fits the caller's name slot. When they do not fit, the split candidates
+include every valid character boundary, score measured overflow first, then preserve separator/camel-case
+breaks and balance the two line widths. This keeps short but wide names from overrunning the Content
+Browser-style thumbnail name area. The shared owner accepts the caller's slot width and font metrics, so
+the List/Table selected summary still measures against its wider 220 px name slot instead of inheriting
+the thumbnail tile's 96 px budget. The change still avoids a component-local font family, local color
+table, root painter branch, or screenshot-coordinate layout.
+
 The follow-up thumbnail type-badge pass applies the same small-to-large rule to tile metadata. Asset
 Browser thumbnail cards now split the old `Type | Ready` line into a low-emphasis `asset-type-badge`
 panel, an 8 px accent type label, and a muted status label. The badge width is derived from the type
@@ -2855,6 +3392,64 @@ screenshots were refreshed under `docs/tests/editor`.
 `surface_property_mutation_keeps_template_visibility_metadata_in_sync` belongs to the shared runtime surface layer, but it is part of this workbench acceptance chain: it proves that a runtime write from `collapsed` to `visible` updates both the retained node and template metadata before the next layout refresh.
 
 `startup_template_runtime_loads_componentized_workbench_window_bridge_source` verifies the startup built-in template runtime includes the componentized workbench window document, so the bridge is available from the same runtime bundle as the existing host shell bridges.
+
+The 2026-07-05 S15.4gg/S15.6fh tooltip follow-up keeps tooltip focus from impersonating pressed state. Focused-only Workbench tooltips now keep the normal bubble border, while pressed tooltips retain the active border. This matches the workbench surface rule that keyboard focus should be visible without turning passive feedback surfaces into selected or pressed chrome. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gh/S15.6fi dialog follow-up applies the same rule to ordinary dialog containers. Focused-only dialogs keep the neutral dialog border, while pressed and popup-open dialogs retain the active border; confirm-dialog severity borders remain independent. This keeps modal container focus from reading as open/pressed chrome before the dialog is composed with actions and content. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gi/S15.6fj toast follow-up applies the same feedback-surface rule to Workbench toast notifications. Focused-only toasts keep the normal toast border, while open and pressed toasts retain active borders. This prevents passive notifications from reading as open/pressed chrome when they are only keyboard-focused. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gj/S15.6fk filled text-field follow-up removes the local RGBA background constants from the Material text-field primitive. Filled fields now consume the same host palette surface ladder as the Workbench fields: recessed normal fill, quiet hover fill, and disabled fill from the disabled surface token. This keeps input surfaces aligned with global appearance preferences instead of freezing a second translucent-white palette. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gk/S15.6fl Paper follow-up removes the local RGBA background and divider constants from the Material Paper primitive. Paper containers now consume the host popup surface and border tokens by default, while authored background and border colors remain explicit overrides. This keeps dialog, popover, and paper primitives on the same container surface route as Workbench popup surfaces before larger modal/window composition is tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gl/S15.6fm Skeleton follow-up removes the local RGBA fill and wave constants from the Material Skeleton primitive. Skeleton placeholders now consume the host hover surface for their body/border and the soft separator token for the wave highlight, while authored fill and border colors remain explicit overrides. This keeps loading placeholders tied to global surface contrast instead of a frozen gray and translucent-white pair. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gm/S15.6fn Avatar follow-up removes the local Material grey RGBA constant from the Material Avatar primitive. Avatar defaults now consume host hover/selected/disabled surface tokens depending on fallback, colorDefault, and disabled state, while authored non-disabled background colors remain explicit overrides. This keeps image and identity placeholders on the same global surface route before list, toolbar, and profile-style compositions are tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gn/S15.6fo Badge overlay follow-up removes the local MUI RGBA badge palette module from the Material Badge primitive. Badge overlay backgrounds now consume host accent, soft accent, status, hover, and disabled surface tokens; overlay text consumes host shell/text roles; and authored non-circular border overrides remain explicit. This keeps small count/status markers on the same global surface route before toolbar, list-row, and notification compositions are tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4go/S15.6fp Timeline follow-up removes the local MUI grey and secondary RGBA constants from the Material Timeline primitive. Timeline connectors and grey dots now consume the host strong separator token, secondary dots consume the soft accent token, and status/primary/muted tones continue through host palette roles while authored style overrides remain explicit. This keeps timeline and step-style markers on the same global surface route before list and workflow compositions are tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gp/S15.6fq Paper shadow follow-up removes the local fixed black RGBA shadow constants from the Material Paper primitive. Paper elevation layers now consume the host shadow token for RGB and derive layer alpha through named shadow scales, while existing elevation geometry and command ordering remain unchanged. This keeps Paper, popup, dialog, and elevated container shadows on the global surface route before larger modal/window composition is tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gq/S15.6fr Alert follow-up removes the local MUI status and on-tone RGBA constants from the Material Alert primitive. Alert main, container, filled text, disabled text, and neutral border colors now consume host palette roles, while authored foreground, background, and border overrides remain explicit. This keeps alert/status primitives on the same global surface route before toast, notification, and modal feedback compositions are tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gr/S15.6fs Chip follow-up removes the local MUI main and default-filled RGBA constants from the Material Chip primitive. Chip main color lookup now consumes host accent/accent-soft/status roles, and filled chip backgrounds use those roles with a `surface_hover` default fallback while authored background overrides and outlined no-fill behavior remain explicit. Chip avatar dark colors and filled on-tone text remain separate follow-up slices. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gs/S15.6ft Chip avatar follow-up removes the local MUI dark/avatar RGBA constants from the Material Chip primitive. Colored chip avatar backgrounds now consume the same host main-color projection as Chip filled backgrounds, and default avatars use `surface_selected` for local contrast against the chip body. Filled on-tone text remains a separate follow-up slice. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gt/S15.6fu Chip text follow-up removes the final local MUI on-tone RGBA constants from the Material Chip primitive and deletes the now-empty constants owner. Chip default, disabled, outlined, filled, and delete-icon foreground colors now consume host palette roles, with filled on-tone text using `shell_background` and outlined accents using the shared Chip main-color projection. This clears local MUI RGBA from Chip style before toolbar/filter Chip composition is tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gu/S15.6fv style-color role follow-up removes the unused MUI tooltip/snackbar/on-dark constants owner and moves shared `UiStyleColor::Role` resolution to `current_host_palette()`. Authored roles such as `material.primary`, `material.on_primary`, `surface_hover`, `muted`, and status tones now project from the active host palette instead of static defaults. Button helper static-palette cleanup remains a separate follow-up slice. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gv/S15.6fw style-color button follow-up moves typed Button/IconButton background and tone helpers to `current_host_palette()`. Contained and outlined backgrounds, status tones, default/primary focus-ring tones, and `ButtonColor::Style` now project from the active host palette through shared helpers instead of static defaults. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gw/S15.6fx axis value field follow-up removes local `AXIS_FIELD_*` RGB constants from Transform numeric-field styling and routes background, border, validation, focus, and text colors through `current_host_palette()`/`HostMaterialPalette`. Normal fields now use the inset surface, hovered/selected fields use hover/separator roles, pressed fields use selected/focus roles, disabled fields use disabled surface/border/text roles, and authored value-color overrides remain explicit. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gx/S15.6fy avatar follow-up completes the Avatar primitive palette route beyond its background pass. `material_primitives/avatar/style.rs` now routes disabled foreground, tone foreground, default foreground, and border fallback through `current_host_palette()`/`HostMaterialPalette`, with authored foreground and border overrides still taking priority. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gy/S15.6fz Chip border follow-up closes the remaining static palette fallback in the Material Chip primitive. `material_primitives/chip/style/border.rs` now resolves outlined color-token borders and explicit border-width fallback through `current_host_palette()`/`HostMaterialPalette`, while authored border overrides still take priority; the unused `chip_palette_main(...)` wrapper was removed so border lookup cannot bypass host projection. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4gz/S15.6ga TextField stroke follow-up aligns the input/search-field stroke with the filled-background palette route. `material_primitives/text_field/style/stroke.rs` now resolves disabled, error, focused, and default strokes through `current_host_palette()`/`HostMaterialPalette`, while authored border-color overrides and active underline width rules stay explicit. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4ha/S15.6gb Divider follow-up routes divider line and label colors through the active host palette. `material_primitives/divider/style.rs` now resolves disabled/default line color, disabled/default label color, and primary/muted/status label tones through `current_host_palette()`/`HostMaterialPalette`, while authored border and foreground overrides still take priority. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hb/S15.6gc Badge root follow-up completes the Badge primitive's root fallback palette route after the overlay pass. `material_primitives/badge/style/root.rs` now resolves root border fallback, disabled text, and default text through `current_host_palette()`/`HostMaterialPalette`, while authored border and foreground overrides remain explicit and disabled text keeps priority over authored foreground. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hc/S15.6gd state-layer follow-up routes the shared Material interaction overlay fallback through the active host palette. `material_state_layer/state.rs` now resolves the default state-layer color from `HostMaterialPalette.focus_ring`, while authored `state_layer_color` remains an explicit override. This keeps pressed, hovered, focused, selected, and disabled overlay color selection tied to global appearance tokens before the larger button/input/card compositions are revalidated. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hd/S15.6ge MUI X shared follow-up routes the common quad border fallback through the active host palette. `mui_x_primitives/shared.rs` now resolves nonzero-width shared borders from `HostMaterialPalette.focus_ring`, and zero-width quads still omit the border. This keeps DataGrid, TreeView, Pickers, Charts, and Chat shared container outlines on the same global focus token before each complex primitive family is tuned individually. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4he/S15.6gf MUI X chart-bar follow-up routes the bar chart's accent, success, and warning tones through the active host palette. `mui_x_primitives/charts/bars.rs` now resolves the three bar colors from `HostMaterialPalette.accent`, `success`, and `warning`, while bar geometry and opacity remain unchanged. This keeps chart data marks tied to global status and accent tokens before the rest of the chart surface/raster family is tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hf/S15.6gg MUI X chart-surface follow-up routes chart panel and plot background fallbacks through the active host palette. `mui_x_primitives/charts/surface.rs` now resolves normal panel, loading panel, and plot surface colors from `HostMaterialPalette.surface_inset`, `warning_container`, and `surface`, while inset, radius, order, opacity, and chart-kind dispatch remain unchanged. This keeps chart containers aligned with the same global surface/status token route as the bar marks before raster chart marks are tuned. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hg/S15.6gh MUI X pie-raster follow-up routes pie slice tones through the active host palette before rasterization. `mui_x_primitives/charts/raster/pie.rs` now resolves accent, success, and warning slice colors from `HostMaterialPalette` once before the pixel loop, while radius, hole radius, angle split, and pixel coverage remain unchanged. This keeps raster chart marks on the same global accent/status route as bar marks and chart surfaces. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hh/S15.6gi MUI X line/sparkline follow-up routes line-family raster mark colors through the active host palette before drawing. `mui_x_primitives/charts/raster_commands/line.rs` now resolves primary and secondary line colors from `HostMaterialPalette.accent` and `success`, and `sparkline.rs` resolves its polyline and point color from `accent`, while point locations, line widths, draw order, and raster dimensions remain unchanged. This keeps line-family chart marks on the same global accent/status route as bars, surfaces, and pie slices. Current evidence is rustfmt/static/fixture/target-scan only; refreshed `docs/tests/editor` screenshots remain deferred.
+
+The 2026-07-05 S15.4hi/S15.6gj MUI X gauge follow-up routes gauge track, hub, and value arc colors through the active host palette before drawing. `mui_x_primitives/charts/raster_commands/gauge.rs` now resolves track and hub from `HostMaterialPalette.surface_hover` and the value arc from `accent`, while center, radius, thickness, value clamp, and chart-value normalization remain unchanged. The MUI X Charts subtree now has no production static `PALETTE.` reads; current evidence is rustfmt/static/fixture/subtree/target-scan only, and refreshed `docs/tests/editor` screenshots remain deferred.
 
 ## Open Issues Or Follow-up
 

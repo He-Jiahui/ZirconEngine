@@ -1,6 +1,14 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
+use super::segments::{push_segments, GlyphSegmentSpec};
+
+const KEBAB_SEGMENTS: [GlyphSegmentSpec; 3] = [
+    GlyphSegmentSpec::new(6, 3, 2, 2),
+    GlyphSegmentSpec::new(6, 6, 2, 2),
+    GlyphSegmentSpec::new(6, 9, 2, 2),
+];
+
 pub(in super::super) fn push_table_kebab(
     commands: &mut Vec<HostPaintCommand>,
     rect: &FrameRect,
@@ -9,21 +17,5 @@ pub(in super::super) fn push_table_kebab(
     color: [u8; 4],
     opacity: f32,
 ) {
-    for y in [3.0, 6.0, 9.0] {
-        commands.push(HostPaintCommand::quad(
-            FrameRect {
-                x: rect.x + 6.0,
-                y: rect.y + y,
-                width: 2.0,
-                height: 2.0,
-            },
-            Some(clip.clone()),
-            order,
-            Some(color),
-            None,
-            0.0,
-            1.0,
-            opacity,
-        ));
-    }
+    push_segments(commands, rect, &KEBAB_SEGMENTS, clip, order, color, opacity);
 }

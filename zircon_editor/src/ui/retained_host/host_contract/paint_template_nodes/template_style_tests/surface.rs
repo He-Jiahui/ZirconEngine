@@ -1,5 +1,5 @@
 use super::super::super::super::paint_theme::PALETTE;
-use super::super::colors::{border_color, surface_color};
+use super::super::colors::{border_color, surface_color, text_color};
 use super::super::dimensions::template_border_width;
 use super::super::state::button_interaction_state;
 use super::support::{button_node, panel_node, resolved_background};
@@ -90,9 +90,36 @@ fn asset_thumbnail_card_and_name_area_use_content_browser_layers() {
     name_area.corner_radius = 4.0;
     assert_eq!(surface_color(&name_area), PALETTE.surface);
 
+    name_area.hovered = true;
+    assert_eq!(surface_color(&name_area), PALETTE.surface_hover);
+
+    name_area.hovered = false;
     name_area.selected = true;
-    assert_eq!(surface_color(&name_area), PALETTE.surface_pressed);
-    assert_ne!(surface_color(&name_area), PALETTE.surface_selected);
+    assert_eq!(surface_color(&name_area), PALETTE.surface_selected);
+    assert_ne!(surface_color(&name_area), PALETTE.surface_pressed);
+    assert_eq!(template_border_width(&name_area), 0.0);
+    assert_eq!(border_color(&name_area), PALETTE.border);
+}
+
+#[test]
+fn asset_thumbnail_name_area_text_uses_selected_palette_without_accent_noise() {
+    let mut title = panel_node("");
+    title.role = "Label".into();
+    title.component_role = "asset-thumbnail-name-area-text".into();
+    title.selected = true;
+
+    assert_eq!(text_color(&title), PALETTE.text);
+
+    title.text_tone = "accent".into();
+    assert_eq!(text_color(&title), PALETTE.text);
+    assert_ne!(text_color(&title), PALETTE.focus_ring);
+
+    title.text_tone = "muted".into();
+    assert_eq!(text_color(&title), PALETTE.text_muted);
+
+    title.selected = false;
+    title.text_tone = "accent".into();
+    assert_eq!(text_color(&title), PALETTE.focus_ring);
 }
 
 #[test]

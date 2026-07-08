@@ -31,8 +31,9 @@ fn filtered_commands_preserve_order_and_project_state() {
                 command_entry([
                     ("id", Value::String("build.run".into())),
                     ("label", Value::String("Run Build".into())),
+                    ("shortcut", Value::String("Ctrl+B".into())),
                 ]),
-                Value::String("project.open|label=Open Project".into()),
+                Value::String("project.open|label=Open Project|shortcut=Ctrl+O".into()),
             ]),
         ),
     ]);
@@ -51,11 +52,13 @@ fn filtered_commands_preserve_order_and_project_state() {
     assert_eq!(rows.len(), 3);
     assert_eq!(rows[0].id.as_str(), "project.open");
     assert_eq!(rows[0].label.as_str(), "Open Project");
+    assert_eq!(rows[0].description.as_str(), "Ctrl+O");
     assert!(rows[0].disabled);
     assert!(rows[0].special);
     assert!(rows[0].matched);
     assert_eq!(rows[1].id.as_str(), "build.run");
     assert_eq!(rows[1].label.as_str(), "Run Build");
+    assert_eq!(rows[1].description.as_str(), "Ctrl+B");
     assert!(rows[1].selected);
     assert!(rows[1].focused);
     assert!(rows[1].matched);
@@ -70,6 +73,7 @@ fn table_entries_use_enabled_false_as_disabled() {
         Value::Array(vec![command_entry([
             ("commandId", Value::String("editor.save".into())),
             ("value_text", Value::String("Save Scene".into())),
+            ("keybinding", Value::String("Ctrl+S".into())),
             ("enabled", Value::Boolean(false)),
         ])]),
     )]);
@@ -79,6 +83,7 @@ fn table_entries_use_enabled_false_as_disabled() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].id.as_str(), "editor.save");
     assert_eq!(rows[0].label.as_str(), "Save Scene");
+    assert_eq!(rows[0].description.as_str(), "Ctrl+S");
     assert!(rows[0].disabled);
 }
 

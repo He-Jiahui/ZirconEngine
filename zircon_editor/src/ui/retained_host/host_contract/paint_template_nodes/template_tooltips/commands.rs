@@ -5,6 +5,7 @@ use super::super::template_tooltip_glyphs::{
     push_tooltip_arrow, push_tooltip_info_icon, tooltip_arrow_size, tooltip_icon_size,
 };
 use super::identity::is_workbench_tooltip;
+use super::layers::{arrow_order, icon_order, text_order};
 use super::layout::{pixel_aligned_rect, tooltip_bubble_rect};
 use super::surface::push_tooltip_surface;
 use super::text::push_tooltip_text;
@@ -46,7 +47,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         node,
         &bubble,
         clip,
-        order + 2,
+        text_order(order),
         style.title,
         style.body,
         opacity,
@@ -55,7 +56,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         commands,
         &bubble,
         clip,
-        order + 3,
+        arrow_order(order),
         arrow_size,
         style.arrow,
         style.border,
@@ -66,7 +67,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         node,
         &rect,
         clip,
-        order + 4,
+        icon_order(order),
         icon_size,
         style.icon,
         opacity,

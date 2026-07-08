@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::Arc;
 
 use zircon_runtime::ui::surface::{layout_text, measure_text_size};
@@ -18,6 +19,9 @@ use crate::ui::retained_host::host_contract::paint_frame::{HostRecordedPaintKind
 use crate::ui::retained_host::host_contract::paint_theme::{
     HostTextPreferences, HostTextSmoothing, HostUtilityTabTextRole,
 };
+
+#[path = "paint_text_tests/latest_crop.rs"]
+mod latest_crop;
 
 #[test]
 fn glyph_raster_cache_reuses_bitmap_for_same_glyph_and_size() {
@@ -288,9 +292,31 @@ fn retained_text_editor_crop_labels_keep_stable_ink_spacing() {
     let full_label = editor_crop_ink_profile("editor base.zui", 8.875, 136.0);
     let shifted_full_label = editor_crop_ink_profile("editor base.zui", 8.925, 136.0);
     let narrow_label = editor_crop_ink_profile("folder-open.svg", 8.875, 42.0);
+    let proof_frame = editor_crop_proof_framebuffer();
+    let proof_full_label = editor_crop_proof_ink_profile(
+        &proof_frame,
+        FrameRect {
+            x: 36.0,
+            y: 45.0,
+            width: 220.0,
+            height: 40.0,
+        },
+    );
+    let proof_narrow_label = editor_crop_proof_ink_profile(
+        &proof_frame,
+        FrameRect {
+            x: 610.0,
+            y: 45.0,
+            width: 220.0,
+            height: 40.0,
+        },
+    );
+    export_editor_crop_framebuffer_if_requested();
 
     assert!(full_label.painted_pixels > 100);
     assert!(narrow_label.painted_pixels > 30);
+    assert!(proof_full_label.painted_pixels > 100);
+    assert!(proof_narrow_label.painted_pixels > 100);
     assert!(
         full_label.max_internal_empty_columns <= 7,
         "full editor tab label should not contain a large unexpected blank run: {full_label:?}"
@@ -300,12 +326,41 @@ fn retained_text_editor_crop_labels_keep_stable_ink_spacing() {
         "ellipsized editor tab label should keep compact readable spacing: {narrow_label:?}"
     );
     assert!(
+        proof_full_label.max_internal_empty_columns <= 7,
+        "proof framebuffer full label should preserve compact ink spacing: {proof_full_label:?}"
+    );
+    assert!(
+        proof_narrow_label.max_internal_empty_columns <= 7,
+        "proof framebuffer file label should preserve compact ink spacing: {proof_narrow_label:?}"
+    );
+    assert!(
         (shifted_full_label.ink_center_x - full_label.ink_center_x).abs() <= 1.0,
         "nearby subpixel origins should not make retained text jump horizontally: base={full_label:?}, shifted={shifted_full_label:?}"
     );
     assert!(
         shifted_full_label.left.abs_diff(full_label.left) <= 1,
         "nearby subpixel origins should keep the left ink edge stable: base={full_label:?}, shifted={shifted_full_label:?}"
+    );
+}
+
+#[test]
+fn retained_text_editor_crop_zoom_uses_nearest_neighbor_pixels() {
+    let source = [
+        1, 2, 3, 255, 10, 20, 30, 255, 40, 50, 60, 255, 70, 80, 90, 255,
+    ];
+
+    let (scaled, width, height) = scale_rgba_nearest(&source, 2, 2, 2);
+
+    assert_eq!(width, 4);
+    assert_eq!(height, 4);
+    assert_eq!(
+        scaled,
+        vec![
+            1, 2, 3, 255, 1, 2, 3, 255, 10, 20, 30, 255, 10, 20, 30, 255, 1, 2, 3, 255, 1, 2, 3,
+            255, 10, 20, 30, 255, 10, 20, 30, 255, 40, 50, 60, 255, 40, 50, 60, 255, 70, 80, 90,
+            255, 70, 80, 90, 255, 40, 50, 60, 255, 40, 50, 60, 255, 70, 80, 90, 255, 70, 80, 90,
+            255,
+        ]
     );
 }
 
@@ -451,17 +506,278 @@ fn editor_crop_ink_profile(text: &str, x: f32, width: f32) -> EditorCropInkProfi
     ink_profile_from_frame(&frame, BACKGROUND)
 }
 
-fn ink_profile_from_frame(frame: &HostRgbaFrame, background: [u8; 4]) -> EditorCropInkProfile {
+const EDITOR_CROP_PROOF_BACKGROUND: [u8; 4] = [12, 17, 21, 255];
+const EDITOR_CROP_PROOF_TAB_SURFACE: [u8; 4] = [27, 34, 40, 255];
+const EDITOR_CROP_PROOF_TAB_INSET: [u8; 4] = [22, 28, 33, 255];
+const EDITOR_CROP_PROOF_TEXT: [u8; 4] = [224, 232, 238, 255];
+const EDITOR_CROP_PROOF_ZOOM_SCALE: u32 = 4;
+
+fn editor_crop_proof_framebuffer() -> HostRgbaFrame {
+    let mut frame = HostRgbaFrame::filled(900, 170, EDITOR_CROP_PROOF_BACKGROUND);
+
+    frame.fill_rect(
+        &FrameRect {
+            x: 14.0,
+            y: 16.0,
+            width: 448.0,
+            height: 112.0,
+        },
+        EDITOR_CROP_PROOF_TAB_SURFACE,
+    );
+    frame.fill_rect(
+        &FrameRect {
+            x: 558.0,
+            y: 16.0,
+            width: 328.0,
+            height: 112.0,
+        },
+        EDITOR_CROP_PROOF_TAB_SURFACE,
+    );
+    frame.fill_rect(
+        &FrameRect {
+            x: 32.0,
+            y: 38.0,
+            width: 396.0,
+            height: 54.0,
+        },
+        EDITOR_CROP_PROOF_TAB_INSET,
+    );
+    frame.fill_rect(
+        &FrameRect {
+            x: 594.0,
+            y: 38.0,
+            width: 248.0,
+            height: 54.0,
+        },
+        EDITOR_CROP_PROOF_TAB_INSET,
+    );
+    draw_text_with_size_and_style(
+        &mut frame,
+        FrameRect {
+            x: 44.875,
+            y: 55.0,
+            width: 180.0,
+            height: 22.0,
+        },
+        "editor base.zui",
+        None,
+        EDITOR_CROP_PROOF_TEXT,
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+    );
+    draw_text_with_size_and_style(
+        &mut frame,
+        FrameRect {
+            x: 625.875,
+            y: 55.0,
+            width: 184.0,
+            height: 22.0,
+        },
+        "folder-open-line.svg",
+        None,
+        EDITOR_CROP_PROOF_TEXT,
+        13.0,
+        16.0,
+        UiTextRunPaintStyle::default(),
+    );
+
+    frame
+}
+
+fn export_editor_crop_framebuffer_if_requested() {
+    let Ok(directory) = std::env::var("ZR_TEXT_EDITOR_CROP_PROOF_DIR") else {
+        return;
+    };
+    let directory = Path::new(&directory);
+    std::fs::create_dir_all(directory).expect("create editor crop proof directory");
+    let frame = editor_crop_proof_framebuffer();
+    let stem = std::env::var("ZR_TEXT_EDITOR_CROP_PROOF_STEM")
+        .unwrap_or_else(|_| "runtime_text_editor_retained_crop_framebuffer_20260705".to_string());
+    let png_path = directory.join(format!("{stem}.png"));
+    save_rgba_png(&png_path, frame.as_bytes(), frame.width(), frame.height());
+    let full_crop_rect = FrameRect {
+        x: 36.0,
+        y: 45.0,
+        width: 220.0,
+        height: 40.0,
+    };
+    let narrow_crop_rect = FrameRect {
+        x: 610.0,
+        y: 45.0,
+        width: 220.0,
+        height: 40.0,
+    };
+    let full_crop_path = directory.join(format!("{stem}_full_label.png"));
+    let narrow_crop_path = directory.join(format!("{stem}_narrow_label.png"));
+    let full_crop_zoom_path = directory.join(format!(
+        "{stem}_full_label_zoom{}x.png",
+        EDITOR_CROP_PROOF_ZOOM_SCALE
+    ));
+    let narrow_crop_zoom_path = directory.join(format!(
+        "{stem}_narrow_label_zoom{}x.png",
+        EDITOR_CROP_PROOF_ZOOM_SCALE
+    ));
+    save_frame_region_png(&frame, &full_crop_rect, &full_crop_path);
+    save_frame_region_png(&frame, &narrow_crop_rect, &narrow_crop_path);
+    save_frame_region_png_scaled_nearest(
+        &frame,
+        &full_crop_rect,
+        EDITOR_CROP_PROOF_ZOOM_SCALE,
+        &full_crop_zoom_path,
+    );
+    save_frame_region_png_scaled_nearest(
+        &frame,
+        &narrow_crop_rect,
+        EDITOR_CROP_PROOF_ZOOM_SCALE,
+        &narrow_crop_zoom_path,
+    );
+    let full_label = editor_crop_ink_profile("editor base.zui", 8.875, 136.0);
+    let shifted_full_label = editor_crop_ink_profile("editor base.zui", 8.925, 136.0);
+    let narrow_label = editor_crop_ink_profile("folder-open.svg", 8.875, 42.0);
+    let proof_full_label = editor_crop_proof_ink_profile(&frame, full_crop_rect);
+    let proof_narrow_label = editor_crop_proof_ink_profile(&frame, narrow_crop_rect);
+    let log = format!(
+        "{stem}\n\
+         source_test=retained_text_editor_crop_labels_keep_stable_ink_spacing\n\
+         artifact={}\n\
+         full_crop={}\n\
+         narrow_crop={}\n\
+         full_crop_zoom={}\n\
+         narrow_crop_zoom={}\n\
+         full_label={full_label:?}\n\
+         shifted_full_label={shifted_full_label:?}\n\
+         narrow_label={narrow_label:?}\n\
+         proof_full_label={proof_full_label:?}\n\
+         proof_narrow_label={proof_narrow_label:?}\n\
+         zoom_note=Zoom crops are nearest-neighbor expansions of the same HostRgbaFrame pixels for small-glyph visual inspection.\n\
+         note=PNGs are exported from HostRgbaFrame via retained-host text drawing when ZR_TEXT_EDITOR_CROP_PROOF_DIR is set; ZR_TEXT_EDITOR_CROP_PROOF_STEM optionally selects the artifact stem.\n",
+        png_path.display(),
+        full_crop_path.display(),
+        narrow_crop_path.display(),
+        full_crop_zoom_path.display(),
+        narrow_crop_zoom_path.display()
+    );
+    std::fs::write(directory.join(format!("{stem}.log")), log).expect("save editor crop proof log");
+}
+
+fn save_frame_region_png(frame: &HostRgbaFrame, region: &FrameRect, path: &Path) {
+    let (crop, crop_width, crop_height) = frame_region_rgba(frame, region);
+    save_rgba_png(path, &crop, crop_width, crop_height);
+}
+
+fn save_frame_region_png_scaled_nearest(
+    frame: &HostRgbaFrame,
+    region: &FrameRect,
+    scale: u32,
+    path: &Path,
+) {
+    let (crop, crop_width, crop_height) = frame_region_rgba(frame, region);
+    let (scaled, scaled_width, scaled_height) =
+        scale_rgba_nearest(&crop, crop_width, crop_height, scale);
+    save_rgba_png(path, &scaled, scaled_width, scaled_height);
+}
+
+fn frame_region_rgba(frame: &HostRgbaFrame, region: &FrameRect) -> (Vec<u8>, u32, u32) {
     let width = frame.width();
     let height = frame.height();
+    let x0 = region.x.floor().max(0.0).min(width as f32) as u32;
+    let y0 = region.y.floor().max(0.0).min(height as f32) as u32;
+    let x1 = (region.x + region.width).ceil().max(0.0).min(width as f32) as u32;
+    let y1 = (region.y + region.height)
+        .ceil()
+        .max(0.0)
+        .min(height as f32) as u32;
+    assert!(x0 < x1 && y0 < y1, "editor crop proof region is empty");
+
+    let crop_width = x1 - x0;
+    let crop_height = y1 - y0;
+    let mut crop = Vec::with_capacity(crop_width as usize * crop_height as usize * 4);
+    for y in y0..y1 {
+        let row_start = ((y as usize * width as usize) + x0 as usize) * 4;
+        let row_end = row_start + crop_width as usize * 4;
+        crop.extend_from_slice(&frame.as_bytes()[row_start..row_end]);
+    }
+    (crop, crop_width, crop_height)
+}
+
+fn scale_rgba_nearest(bytes: &[u8], width: u32, height: u32, scale: u32) -> (Vec<u8>, u32, u32) {
+    assert!(scale > 0, "nearest-neighbor crop scale must be non-zero");
+    assert_eq!(
+        bytes.len(),
+        width as usize * height as usize * 4,
+        "RGBA crop byte length must match dimensions"
+    );
+
+    let scaled_width = width * scale;
+    let scaled_height = height * scale;
+    let mut scaled = Vec::with_capacity(scaled_width as usize * scaled_height as usize * 4);
+    for source_y in 0..height {
+        let row_start = source_y as usize * width as usize * 4;
+        let row_end = row_start + width as usize * 4;
+        let source_row = &bytes[row_start..row_end];
+        let mut expanded_row = Vec::with_capacity(scaled_width as usize * 4);
+        for pixel in source_row.chunks_exact(4) {
+            for _ in 0..scale {
+                expanded_row.extend_from_slice(pixel);
+            }
+        }
+        for _ in 0..scale {
+            scaled.extend_from_slice(&expanded_row);
+        }
+    }
+
+    (scaled, scaled_width, scaled_height)
+}
+
+fn save_rgba_png(path: &Path, bytes: &[u8], width: u32, height: u32) {
+    image::save_buffer_with_format(
+        path,
+        bytes,
+        width,
+        height,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .expect("save editor crop proof png");
+}
+
+fn editor_crop_proof_ink_profile(frame: &HostRgbaFrame, region: FrameRect) -> EditorCropInkProfile {
+    ink_profile_from_frame_region(frame, EDITOR_CROP_PROOF_TAB_INSET, region)
+}
+
+fn ink_profile_from_frame(frame: &HostRgbaFrame, background: [u8; 4]) -> EditorCropInkProfile {
+    ink_profile_from_frame_region(
+        frame,
+        background,
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: frame.width() as f32,
+            height: frame.height() as f32,
+        },
+    )
+}
+
+fn ink_profile_from_frame_region(
+    frame: &HostRgbaFrame,
+    background: [u8; 4],
+    region: FrameRect,
+) -> EditorCropInkProfile {
+    let width = frame.width();
+    let height = frame.height();
+    let x0 = region.x.floor().max(0.0) as u32;
+    let y0 = region.y.floor().max(0.0) as u32;
+    let x1 = (region.x + region.width).ceil().clamp(0.0, width as f32) as u32;
+    let y1 = (region.y + region.height).ceil().clamp(0.0, height as f32) as u32;
     let mut left = width;
     let mut right = 0;
     let mut painted_pixels = 0_usize;
     let mut weighted_x = 0_f32;
     let mut columns = vec![false; width as usize];
 
-    for y in 0..height {
-        for x in 0..width {
+    for y in y0..y1 {
+        for x in x0..x1 {
             let offset = ((y as usize * width as usize) + x as usize) * 4;
             let pixel = &frame.as_bytes()[offset..offset + 4];
             if pixel != background {

@@ -6,22 +6,21 @@ struct SceneUniform {
     previous_view_proj_unjittered: mat4x4<f32>,
     motion_params: vec4<f32>,
     jitter_params: vec4<f32>,
+    camera_world_position: vec4<f32>,
+    camera_view_direction: vec4<f32>,
     sky_horizon_color: vec4<f32>,
     sky_zenith_color: vec4<f32>,
     sky_ground_color: vec4<f32>,
     environment_params: vec4<f32>,
     environment_sample_params: vec4<f32>,
+    environment_sh9: array<vec4<f32>, 9>,
 };
 @group(0) @binding(0) var<uniform> scene: SceneUniform;
+@group(0) @binding(1) var zr_environment_source_cube: texture_cube<f32>;
+@group(0) @binding(2) var zr_environment_sampler: sampler;
 
-struct EnvironmentSampleBuffer {
-    samples: array<vec4<f32>>,
-};
-@group(0) @binding(1) var<storage, read> environment_samples: EnvironmentSampleBuffer;
-
-const SKYBOX_INV_PI: f32 = 0.3183098861837907;
-const SKYBOX_INV_TAU: f32 = 0.15915494309189535;
-const SKYBOX_SAMPLED_EQUIRECT_KIND: f32 = 2.0;
+const SKYBOX_SOURCE_CUBEMAP_KIND: f32 = 3.0;
+const SKYBOX_EPSILON: f32 = 0.000001;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -42,67 +41,114 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
     return output;
 }
 
-fn sampled_equirect_texel(mip_level: u32, x: u32, y: u32) -> vec3<f32> {
-    var width = max(u32(scene.environment_sample_params.y), 1u);
-    var height = max(u32(scene.environment_sample_params.z), 1u);
-    var offset = 0u;
-    for (var mip = 0u; mip < mip_level; mip = mip + 1u) {
-        offset = offset + width * height;
-        width = max(width / 2u, 1u);
-        height = max(height / 2u, 1u);
-    }
-    let wrapped_x = x % width;
-    let clamped_y = min(y, height - 1u);
-    return environment_samples.samples[offset + clamped_y * width + wrapped_x].rgb;
-}
-
-fn sampled_equirect_mip_color(direction: vec3<f32>, mip_level: u32) -> vec3<f32> {
-    var width = max(u32(scene.environment_sample_params.y), 1u);
-    var height = max(u32(scene.environment_sample_params.z), 1u);
-    for (var mip = 0u; mip < mip_level; mip = mip + 1u) {
-        width = max(width / 2u, 1u);
-        height = max(height / 2u, 1u);
-    }
-    let u = fract(atan2(direction.z, direction.x) * SKYBOX_INV_TAU + 0.5);
-    let v = clamp(acos(clamp(direction.y, -1.0, 1.0)) * SKYBOX_INV_PI, 0.0, 1.0);
-    let texel_x = u * f32(width) - 0.5;
-    let texel_y = v * f32(height) - 0.5;
-    let x0 = i32(floor(texel_x));
-    let y0 = i32(floor(texel_y));
-    let tx = fract(texel_x);
-    let ty = fract(texel_y);
-    let x0u = u32((x0 % i32(width) + i32(width)) % i32(width));
-    let x1u = (x0u + 1u) % width;
-    let y0u = u32(clamp(f32(y0), 0.0, f32(height - 1u)));
-    let y1u = min(y0u + 1u, height - 1u);
-    let c00 = sampled_equirect_texel(mip_level, x0u, y0u);
-    let c10 = sampled_equirect_texel(mip_level, x1u, y0u);
-    let c01 = sampled_equirect_texel(mip_level, x0u, y1u);
-    let c11 = sampled_equirect_texel(mip_level, x1u, y1u);
-    return mix(mix(c00, c10, tx), mix(c01, c11, tx), ty);
-}
-
-fn sampled_equirect_color(direction: vec3<f32>) -> vec3<f32> {
+fn skybox_rotated_direction(direction: vec3<f32>) -> vec3<f32> {
     let rotation = scene.environment_params.z;
     let s = sin(rotation);
     let c = cos(rotation);
-    let rotated = normalize(vec3<f32>(
+    return normalize(vec3<f32>(
         direction.x * c - direction.z * s,
         direction.y,
         direction.x * s + direction.z * c,
     ));
-    return sampled_equirect_mip_color(rotated, 0u) * max(scene.environment_params.y, 0.0);
+}
+
+fn skybox_normalize_or_fallback(value: vec3<f32>, fallback: vec3<f32>) -> vec3<f32> {
+    let value_length = length(value);
+    if (value_length <= SKYBOX_EPSILON) {
+        return normalize(fallback);
+    }
+    return value / value_length;
+}
+
+fn skybox_fix_cube_lookup(direction: vec3<f32>, lod: f32) -> vec3<f32> {
+    var adjusted = direction;
+    let face_size = max(scene.environment_sample_params.y, 1.0);
+    let scale = clamp(1.0 - exp2(max(lod, 0.0)) / face_size, 0.0, 1.0);
+    let axis = abs(adjusted);
+    if (axis.x > axis.y && axis.x > axis.z) {
+        adjusted = vec3<f32>(adjusted.x, adjusted.y * scale, adjusted.z * scale);
+    } else if (axis.y > axis.z) {
+        adjusted = vec3<f32>(adjusted.x * scale, adjusted.y, adjusted.z * scale);
+    } else {
+        adjusted = vec3<f32>(adjusted.x * scale, adjusted.y * scale, adjusted.z);
+    }
+    return adjusted;
+}
+
+fn skybox_world_direction_from_ndc(ndc: vec2<f32>) -> vec3<f32> {
+    let fallback = normalize(vec3<f32>(ndc.x, ndc.y, -1.0));
+    let far_world = scene.inverse_view_proj * vec4<f32>(ndc.x, ndc.y, 1.0, 1.0);
+    let center_far_world = scene.inverse_view_proj * vec4<f32>(0.0, 0.0, 1.0, 1.0);
+    let right_far_world = scene.inverse_view_proj * vec4<f32>(1.0, 0.0, 1.0, 1.0);
+    let up_far_world = scene.inverse_view_proj * vec4<f32>(0.0, 1.0, 1.0, 1.0);
+    if (abs(far_world.w) <= SKYBOX_EPSILON) {
+        return fallback;
+    }
+
+    let far_position = far_world.xyz / far_world.w;
+    let perspective_direction = skybox_normalize_or_fallback(
+        far_position - scene.camera_world_position.xyz,
+        fallback,
+    );
+    var orthographic_direction = perspective_direction;
+    if (
+        abs(center_far_world.w) > SKYBOX_EPSILON &&
+        abs(right_far_world.w) > SKYBOX_EPSILON &&
+        abs(up_far_world.w) > SKYBOX_EPSILON
+    ) {
+        let center_position = center_far_world.xyz / center_far_world.w;
+        let right_position = right_far_world.xyz / right_far_world.w;
+        let up_position = up_far_world.xyz / up_far_world.w;
+        let camera_forward = skybox_normalize_or_fallback(
+            center_position - scene.camera_world_position.xyz,
+            -scene.camera_view_direction.xyz,
+        );
+        let camera_right = skybox_normalize_or_fallback(
+            right_position - center_position,
+            vec3<f32>(1.0, 0.0, 0.0),
+        );
+        let camera_up = skybox_normalize_or_fallback(
+            up_position - center_position,
+            vec3<f32>(0.0, 1.0, 0.0),
+        );
+        orthographic_direction = skybox_normalize_or_fallback(
+            camera_forward + ndc.x * camera_right + ndc.y * camera_up,
+            perspective_direction,
+        );
+    }
+    return skybox_normalize_or_fallback(
+        mix(
+            perspective_direction,
+            orthographic_direction,
+            clamp(scene.camera_view_direction.w, 0.0, 1.0),
+        ),
+        perspective_direction,
+    );
+}
+
+fn source_cubemap_sky_color(direction: vec3<f32>) -> vec3<f32> {
+    let rotated = skybox_rotated_direction(direction);
+    return textureSampleLevel(
+        zr_environment_source_cube,
+        zr_environment_sampler,
+        skybox_fix_cube_lookup(rotated, 0.0),
+        0.0,
+    ).rgb * max(scene.environment_params.y, 0.0);
 }
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    if (scene.environment_sample_params.x >= SKYBOX_SAMPLED_EQUIRECT_KIND - 0.5) {
-        let ndc = input.uv * 2.0 - vec2<f32>(1.0, 1.0);
-        let direction = normalize(vec3<f32>(ndc.x, ndc.y, 1.0));
-        return vec4<f32>(sampled_equirect_color(direction), 1.0);
+    let ndc = input.uv * 2.0 - vec2<f32>(1.0, 1.0);
+    let direction = skybox_world_direction_from_ndc(ndc);
+    if (scene.environment_sample_params.x >= SKYBOX_SOURCE_CUBEMAP_KIND - 0.5) {
+        return vec4<f32>(source_cubemap_sky_color(direction), 1.0);
     }
-    let t = clamp(input.uv.y, 0.0, 1.0);
+
+    let sky_t = clamp(direction.y * 0.5 + 0.5, 0.0, 1.0);
+    let ground_t = clamp(direction.y + 1.0, 0.0, 1.0);
     let intensity = max(scene.environment_params.y, 0.0);
-    let color = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, t) * intensity;
+    let sky = mix(scene.sky_horizon_color.rgb, scene.sky_zenith_color.rgb, sky_t);
+    let ground = mix(scene.sky_ground_color.rgb, scene.sky_horizon_color.rgb, ground_t);
+    let color = select(ground, sky, direction.y >= 0.0) * intensity;
     return vec4<f32>(color, 1.0);
 }

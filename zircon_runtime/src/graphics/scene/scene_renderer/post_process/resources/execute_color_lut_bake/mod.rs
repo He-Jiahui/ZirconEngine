@@ -184,6 +184,7 @@ fn color_lut_bake_params(
         0,
         0,
         0,
+        false,
     );
     let effect_stack = extract.post_process.effect_stack;
 

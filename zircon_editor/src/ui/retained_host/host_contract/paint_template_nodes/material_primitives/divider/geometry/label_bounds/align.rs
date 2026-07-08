@@ -22,3 +22,15 @@ pub(super) enum DividerTextAlign {
     Center,
     Right,
 }
+
+const DIVIDER_TEXT_ALIGN_LEFT_RATIO: f32 = 0.1;
+const DIVIDER_TEXT_ALIGN_CENTER_RATIO: f32 = 0.5;
+const DIVIDER_TEXT_ALIGN_RIGHT_RATIO: f32 = 0.9;
+
+pub(super) fn divider_text_align_ratio(align: DividerTextAlign) -> f32 {
+    match align {
+        DividerTextAlign::Left => DIVIDER_TEXT_ALIGN_LEFT_RATIO,
+        DividerTextAlign::Center => DIVIDER_TEXT_ALIGN_CENTER_RATIO,
+        DividerTextAlign::Right => DIVIDER_TEXT_ALIGN_RIGHT_RATIO,
+    }
+}

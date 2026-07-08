@@ -59,7 +59,7 @@ impl SceneRendererCore {
         render_pass_executors
             .validate_compiled_pipeline(pipeline)
             .map_err(GraphicsError::Asset)?;
-        self.write_scene_uniform(queue, frame);
+        self.write_scene_uniform(device, queue, frame);
         let shadow_frame_plan =
             crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
                 &mut self.shadow_atlas_allocator,
@@ -227,6 +227,11 @@ impl SceneRendererCore {
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
         let mut graph_resources = RenderGraphExecutionResources::new();
         self.transient_resource_pool.begin_frame();
+        let environment_source_cubemap_view = frame
+            .environment()
+            .skybox
+            .source_cubemap_environment()
+            .map(|_| self.scene_environment_cubemap.source_view());
         let final_target_output = bind_compiled_scene_graph_resources(
             device,
             pipeline,
@@ -248,6 +253,7 @@ impl SceneRendererCore {
             self.hzb_occlusion_culler.as_ref(),
             &self.shadow_atlas_resources,
             advanced_plugin_readbacks.external_buffer_bindings(),
+            environment_source_cubemap_view,
         )?;
         let materialization_report = graph_resources
             .validate_materialized_graph_resources(&pipeline.graph)
@@ -295,7 +301,8 @@ impl SceneRendererCore {
             graph_resources: &mut graph_resources,
             graph_execution_record: &mut graph_execution_record,
             mesh_pass_indirect_draws: &mesh_pass_indirect_draws,
-        });
+            environment_ibl_bake_request: pipeline.environment_ibl_bake_request,
+        })?;
 
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();
         merge_plugin_renderer_outputs(&mut renderer_outputs, graph_plugin_outputs);
@@ -440,6 +447,7 @@ mod tests {
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
             history_bindings: Vec::new(),
+            environment_ibl_bake_request: None,
             graph: graph.compile().expect("sprite stage test graph"),
         }
     }

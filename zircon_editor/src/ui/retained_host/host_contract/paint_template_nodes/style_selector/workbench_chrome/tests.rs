@@ -126,7 +126,7 @@ fn chrome_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn chrome_active_state_uses_shared_focus_and_hot_visuals() {
+fn chrome_focused_panel_keeps_normal_fill_with_focus_separator() {
     let mut focused = TemplatePaneNodeData::default();
     focused.focused = true;
 
@@ -134,9 +134,34 @@ fn chrome_active_state_uses_shared_focus_and_hot_visuals() {
         select_workbench_chrome_style(&focused, WorkbenchChromeKind::InspectorPanel);
 
     assert_eq!(focused_style.state, UiPainterResolvedState::Focused);
-    assert_eq!(focused_style.fill, Some(PALETTE.surface_selected));
+    assert_eq!(focused_style.fill, Some(WORKBENCH_CHROME_PANEL_BG));
+    assert_ne!(focused_style.fill, Some(PALETTE.surface_selected));
     assert_eq!(focused_style.strong_separator, PALETTE.border);
+}
 
+#[test]
+fn chrome_hover_and_selected_panel_keep_pointer_and_identity_fills() {
+    let mut hovered = TemplatePaneNodeData::default();
+    hovered.hovered = true;
+
+    let hovered_style =
+        select_workbench_chrome_style(&hovered, WorkbenchChromeKind::InspectorPanel);
+
+    assert_eq!(hovered_style.state, UiPainterResolvedState::Hovered);
+    assert_eq!(hovered_style.fill, Some(PALETTE.surface_hover));
+
+    let mut selected = TemplatePaneNodeData::default();
+    selected.selected = true;
+
+    let selected_style =
+        select_workbench_chrome_style(&selected, WorkbenchChromeKind::InspectorPanel);
+
+    assert_eq!(selected_style.state, UiPainterResolvedState::Selected);
+    assert_eq!(selected_style.fill, Some(PALETTE.surface_selected));
+}
+
+#[test]
+fn chrome_drawer_column_stays_fillless_when_selected() {
     let mut selected_column = TemplatePaneNodeData::default();
     selected_column.selected = true;
 

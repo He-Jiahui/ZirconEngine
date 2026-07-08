@@ -18,6 +18,14 @@ related_code:
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/abi.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/behavior.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/diagnostics.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/docs.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/host_requests.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/slices.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/source_inventory.rs
+  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared/split_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/test_owner_split.rs
@@ -49,7 +57,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/engine-architecture/runtime-interface-convergence.md
 status: in_progress
-last_refined: 2026-07-01
+last_refined: 2026-07-05
 ---
 
 # 10 dynamic_api 与 runtime_interface 收敛线
@@ -242,6 +250,7 @@ last_refined: 2026-07-01
 | 横切 | Runtime 10 dynamic_api_session Cargo 验证窗口探测 | cargo_recheck_timeout_static_guards_passed | 2026-06-20 | 尝试 `cargo test -p zircon_runtime --lib dynamic_api_session --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-10-dynamic-current-0620 --message-format short --color never -- --test-threads=1 --nocapture`，604s 工具窗口超时，未生成 `zircon_runtime` 测试二进制或测试结果；进程检查未发现残留 cargo/rustc/rustdoc。当前轻量验证已通过：Python py_compile、direct `dynamic_runtime_api_boundary_audit` risks=[]、standalone `dynamic_api_session.rs` 9/9；不得据此提升 `dynamic_api` / app loader / runtime UI/editor Cargo gates。 |
 | 横切 | Dynamic runtime API 行为测试锚审计同步 | mirror_docs_static_passed_cargo_pending | 2026-06-15 | `dynamic_runtime_api_boundary` 与 `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts` 现在锁定 16 个行为测试锚：动态 API session 缺失/销毁句柄失败路径、headless/minimal profile、FFI panic table wrapper、app loader 失败注入，以及 profile-control runtime diagnostics snapshot；当前 `behavior_test_anchor_count = 16`、`missing_behavior_test_anchors = []`。验证：Python py_compile、direct `dynamic_runtime_api_boundary_audit` risks=[]、standalone dynamic_api_session 9/9；`dynamic_api`、完整 app loader 与 UI contract owner/Cargo gates 仍 pending。 |
 | 横切 | dynamic_api_session 吸收守卫拆分 | focused_cargo_passed_broader_gates_pending | 2026-06-17 | `runtime_absorption/dynamic_api_session.rs` now mounts `dynamic_api_session/{shared,headless_profiles,event_split,test_owner_split,ffi_panic_boundary,runtime_diagnostics,ui_contract,v2_contract,mirror_docs}.rs`; Runtime 10 mirror counts now report `expected_source_file_count = 35`、`behavior_test_anchor_count = 16`、`missing_behavior_test_anchors = []`、`runtime_diagnostics_anchors = 15/15`、`host_request_payload_anchors = 38/38`、`ui_contract_duplicate_public_types = 0`、`ui_v2_contract_sync_anchors = 9/9`. Validation: 2026-06-15 focused Cargo `cargo test -p zircon_runtime --lib dynamic_api_session --locked` 已 5 passed / 4231 filtered out；本轮新增 runtime diagnostics / UI contract / v2 contract guard 后 package Cargo 仍按实现优先策略后续补跑；broader `dynamic_api`、完整 app loader 与 UI contract Cargo gates 仍 pending。 |
+| 横切 | Runtime 15 M3 dynamic API session shared data folder-backed split | runtime_15_dynamic_api_session_shared_data_folder_backed_static_passed_cargo_deferred | 2026-07-05 | `dynamic_api_session/shared.rs` 不再承载 Runtime 10 Dynamic API mirror 常量和 helper，已硬切为 route owner；ABI/function-table 清册在 `dynamic_api_session/shared/abi.rs`，行为锚点在 `behavior.rs`，runtime diagnostics 与 scene-asset reload 诊断路径在 `diagnostics.rs`，host-request payload 锚点在 `host_requests.rs`，mirror docs 清单在 `docs.rs`，切片 helper 在 `slices.rs`，source inventory 在 `source_inventory.rs`，结构守卫在 `dynamic_api_session/shared/split_layout.rs::runtime_15_dynamic_api_session_shared_data_is_folder_backed`。`headless_profiles.rs`、`mirror_docs.rs` 与 `runtime_diagnostics.rs` 已直达 child owner，不保留 `super::shared::{...}` 兼容导入；Runtime 10 source count 仍为 35，dynamic API/app loader/UI Cargo gates 不提升；Cargo gate deferred。 |
 
 基线数值（开工首日记录）：
 

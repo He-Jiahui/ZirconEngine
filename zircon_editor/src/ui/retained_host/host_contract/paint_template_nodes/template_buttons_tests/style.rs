@@ -1,11 +1,14 @@
-use super::super::super::super::paint_theme::PALETTE;
+use super::super::super::super::paint_theme::{current_host_palette, METRICS, PALETTE};
 use super::super::super::style_selector::{
-    WorkbenchButtonKind, ADD_COMPONENT_GLYPH, ADD_COMPONENT_TEXT, OUTLINED_BORDER,
-    OUTLINED_SURFACE, OUTLINED_TEXT, PRIMARY_SURFACE,
+    add_component_glyph_color_from_host, add_component_text_color_from_host,
+    workbench_button_border_width_from_host, workbench_button_transparent_surface,
+    WorkbenchButtonKind,
 };
 use super::super::super::template_button_glyphs::ButtonGlyph;
 use super::super::{
-    button_glyph, button_kind, button_opacity, button_paint_rect, button_radius, button_style,
+    add_component_button_offset_y_from_host, button_content_metrics_from_host,
+    button_geometry_metrics_from_host, button_glyph, button_icon_size_from_host, button_kind,
+    button_opacity, button_paint_rect, button_radius, button_style,
 };
 use super::support::{
     positioned_button_node, resolved_background, resolved_background_and_border, resolved_border,
@@ -71,9 +74,90 @@ fn add_component_button_uses_audited_offset_and_content_tones() {
 
     assert_eq!(rect.y, 9.5);
     assert_eq!(style.border, [54, 64, 71, 255]);
-    assert_eq!(style.text, ADD_COMPONENT_TEXT);
-    assert_eq!(style.glyph, ADD_COMPONENT_GLYPH);
+    assert_eq!(
+        style.text,
+        add_component_text_color_from_host(current_host_palette())
+    );
+    assert_eq!(
+        style.glyph,
+        add_component_glyph_color_from_host(current_host_palette())
+    );
     assert_eq!(button_glyph(&node), ButtonGlyph::Plus);
+}
+
+#[test]
+fn add_component_button_content_tones_project_from_host_palette() {
+    let palette = current_host_palette();
+
+    assert_eq!(
+        add_component_text_color_from_host(palette),
+        palette.text_muted
+    );
+    assert_eq!(add_component_glyph_color_from_host(palette), palette.text);
+}
+
+#[test]
+fn add_component_button_offset_projects_from_host_border_metric() {
+    let mut metrics = METRICS;
+    assert_eq!(add_component_button_offset_y_from_host(metrics), 1.5);
+
+    metrics.border_width = 2.0;
+    assert_eq!(add_component_button_offset_y_from_host(metrics), 3.0);
+}
+
+#[test]
+fn button_geometry_metrics_project_from_host_control_metrics() {
+    let mut metrics = METRICS;
+    metrics.radius_control = 6.0;
+    metrics.border_width = 2.0;
+
+    let projected = button_geometry_metrics_from_host(metrics);
+
+    assert_eq!(projected.radius, 6.0);
+    assert_eq!(projected.add_component_offset_y, 3.0);
+}
+
+#[test]
+fn button_glyph_slots_project_from_host_control_metrics() {
+    let mut metrics = METRICS;
+    assert_eq!(button_icon_size_from_host(metrics), 16.0);
+
+    metrics.font_large = 18.0;
+    metrics.button_icon_gap = 9.0;
+    metrics.button_chevron_reserve = 24.0;
+    metrics.button_pad_x = 11.0;
+    metrics.font_body = 13.0;
+    metrics.text_clip_guard = 5.0;
+    metrics.gap_s = 3.0;
+    metrics.gap_m = 6.0;
+    metrics.button_pressed_offset_y = 2.0;
+
+    let content_metrics = button_content_metrics_from_host(metrics);
+
+    assert_eq!(button_icon_size_from_host(metrics), 20.0);
+    assert_eq!(content_metrics.icon_gap, 9.0);
+    assert_eq!(content_metrics.chevron_reserve, 24.0);
+    assert_eq!(content_metrics.trailing_glyph_inset, 11.0);
+    assert_eq!(content_metrics.font_size, 13.0);
+    assert_eq!(content_metrics.text_clip_guard, 5.0);
+    assert_eq!(content_metrics.utility_tab_pad_x, 3.0);
+    assert_eq!(content_metrics.toolbar_chip_pad_x, 6.0);
+    assert_eq!(content_metrics.button_pad_x, 11.0);
+    assert_eq!(content_metrics.pressed_offset_y, 2.0);
+}
+
+#[test]
+fn workbench_button_border_width_projects_from_host_control_metrics() {
+    let mut metrics = METRICS;
+    assert_eq!(workbench_button_border_width_from_host(metrics), 1.0);
+
+    metrics.border_width = 2.0;
+    assert_eq!(workbench_button_border_width_from_host(metrics), 2.0);
+}
+
+#[test]
+fn workbench_button_transparent_surface_owns_fillless_chrome_role() {
+    assert_eq!(workbench_button_transparent_surface(), [0, 0, 0, 0]);
 }
 
 #[test]
@@ -92,8 +176,8 @@ fn workbench_secondary_button_uses_declared_surface_color() {
     let style = button_style(&node, button_kind(&node));
 
     assert_eq!(style.surface, [26, 31, 35, 255]);
-    assert_eq!(style.border, OUTLINED_BORDER);
-    assert_eq!(style.text, OUTLINED_TEXT);
+    assert_eq!(style.border, PALETTE.border);
+    assert_eq!(style.text, PALETTE.text);
     assert_eq!(button_radius(&node, &node.frame_rect()), 4.0);
 }
 
@@ -117,8 +201,8 @@ fn workbench_primary_row_uses_low_emphasis_tokens_and_declared_metrics() {
 
     assert_eq!(primary_rect.x, 15.0);
     assert_eq!(primary_rect.y, 7.0);
-    assert_eq!(primary_style.surface, PRIMARY_SURFACE);
-    assert_eq!(primary_style.border, OUTLINED_BORDER);
+    assert_eq!(primary_style.surface, PALETTE.surface_pressed);
+    assert_eq!(primary_style.border, PALETTE.border);
 
     let mut secondary = positioned_button_node(
         "WorkbenchSecondaryButton",
@@ -140,7 +224,7 @@ fn workbench_primary_row_uses_low_emphasis_tokens_and_declared_metrics() {
     assert_eq!(secondary_rect.x, 13.0);
     assert_eq!(secondary_rect.y, 7.0);
     assert_eq!(secondary_style.surface, [26, 31, 35, 255]);
-    assert_eq!(secondary_style.border, brightened(OUTLINED_BORDER, 1.01));
+    assert_eq!(secondary_style.border, brightened(PALETTE.border, 1.01));
 }
 
 #[test]
@@ -164,8 +248,8 @@ fn editor_variant_button_ignores_legacy_declared_material_colors() {
 
     let style = button_style(&node, button_kind(&node));
 
-    assert_eq!(style.surface, PRIMARY_SURFACE);
-    assert_eq!(style.border, OUTLINED_BORDER);
+    assert_eq!(style.surface, PALETTE.surface_pressed);
+    assert_eq!(style.border, PALETTE.border);
     assert_eq!(style.text, PALETTE.text);
     assert_eq!(style.glyph, PALETTE.text);
 }
@@ -211,7 +295,7 @@ fn workbench_variant_row_uses_declared_surface_and_border() {
         resolved_button_style([0, 0, 0, 0], [37, 46, 53, 255], [135, 146, 153, 255], 1.0);
     let outline_style = button_style(&outline, button_kind(&outline));
 
-    assert_eq!(outline_style.surface, OUTLINED_SURFACE);
+    assert_eq!(outline_style.surface, PALETTE.surface_pressed);
     assert_eq!(outline_style.border, [37, 46, 53, 255]);
     assert_eq!(outline_style.text, [135, 146, 153, 255]);
     assert_eq!(button_radius(&outline, &outline.frame_rect()), 5.0);
@@ -234,8 +318,8 @@ fn workbench_icon_button_uses_declared_surface_and_border() {
 
     assert_eq!(style.surface, [32, 38, 42, 255]);
     assert_eq!(style.border, [48, 56, 64, 255]);
-    assert_eq!(style.text, OUTLINED_TEXT);
-    assert_eq!(style.glyph, OUTLINED_TEXT);
+    assert_eq!(style.text, PALETTE.text);
+    assert_eq!(style.glyph, PALETTE.text);
 }
 
 #[test]
@@ -318,10 +402,10 @@ fn workbench_button_applies_declared_visual_brightness() {
 
     let style = button_style(&node, WorkbenchButtonKind::Secondary);
 
-    assert_eq!(style.surface, brightened(OUTLINED_SURFACE, 0.96));
-    assert_eq!(style.border, brightened(OUTLINED_BORDER, 0.96));
-    assert_eq!(style.text, brightened(OUTLINED_TEXT, 0.96));
-    assert_eq!(style.glyph, brightened(OUTLINED_TEXT, 0.96));
+    assert_eq!(style.surface, brightened(PALETTE.surface_pressed, 0.96));
+    assert_eq!(style.border, brightened(PALETTE.border, 0.96));
+    assert_eq!(style.text, brightened(PALETTE.text, 0.96));
+    assert_eq!(style.glyph, brightened(PALETTE.text, 0.96));
 }
 
 #[test]
@@ -343,7 +427,7 @@ fn workbench_button_style_selector_applies_state_priority_before_painting() {
     node.pressed = true;
     let pressed = button_style(&node, button_kind(&node));
     assert_eq!(pressed.interaction, ButtonInteractionState::Pressed);
-    assert_eq!(pressed.border, OUTLINED_BORDER);
+    assert_eq!(pressed.border, PALETTE.border);
 
     node.disabled = true;
     let disabled = button_style(&node, button_kind(&node));
@@ -362,7 +446,7 @@ fn asset_browser_toolbar_chip_uses_segmented_selected_style_without_tab_indicato
         24.0,
     );
     node.selected = true;
-    node.focused = true;
+    node.focused = false;
     node.action_id = "workbench.asset.kind_filter.set".into();
     node.button_style =
         resolved_button_style(PALETTE.accent, PALETTE.focus_ring, PALETTE.focus_ring, 1.0);
@@ -425,7 +509,7 @@ fn hovered_asset_browser_view_tab_uses_low_emphasis_hover_surface() {
 }
 
 #[test]
-fn asset_browser_utility_tab_keeps_slate_indicator_style() {
+fn selected_asset_browser_utility_tab_keeps_transparent_underline_style() {
     let mut node = positioned_button_node(
         "AssetBrowserPreviewTabButton",
         "Preview",
@@ -436,14 +520,14 @@ fn asset_browser_utility_tab_keeps_slate_indicator_style() {
         24.0,
     );
     node.selected = true;
-    node.focused = true;
+    node.focused = false;
     node.action_id = "workbench.asset.utility_tab.set".into();
     node.button_style =
         resolved_button_style(PALETTE.accent, PALETTE.focus_ring, PALETTE.focus_ring, 1.0);
 
     let style = button_style(&node, button_kind(&node));
 
-    assert_eq!(style.surface, PALETTE.surface_pressed);
+    assert_eq!(style.surface, [0, 0, 0, 0]);
     assert_eq!(style.border, PALETTE.border);
     assert_eq!(style.border_width, 0.0);
     assert_eq!(style.text, PALETTE.text);

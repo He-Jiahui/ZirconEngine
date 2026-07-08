@@ -3,7 +3,7 @@ use std::sync::Arc;
 use zircon_runtime::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
-    RenderPassStage, RuntimePrepareCollectorContext, RuntimePrepareCollectorRegistration,
+    RenderPassStage, RuntimePrepareCollectorRegistration,
 };
 use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
 
@@ -36,6 +36,10 @@ use render_pass_executors::{
 pub const PLUGIN_ID: &str = "hybrid_gi";
 pub const HYBRID_GI_FEATURE_NAME: &str = "hybrid_gi";
 pub const HYBRID_GI_MODULE_NAME: &str = "HybridGiPluginModule";
+pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL: &str =
+    "zircon-hybrid-gi-scene-depth-handoff";
+pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 const HYBRID_GI_TRACE_SCHEDULE_PIPELINE_LABEL: &str = "zircon-hybrid-gi-trace-schedule";
 const HYBRID_GI_TRACE_SCHEDULE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const HYBRID_GI_TRACE_SCHEDULE_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
@@ -62,9 +66,14 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-scene-prepare",
-                QueueLane::Graphics,
+                QueueLane::AsyncCompute,
             )
             .with_executor_id("hybrid-gi.scene-prepare")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL,
+                HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE,
+                HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS,
+            ))
             .read_texture("scene-depth")
             .write_buffer("hybrid-gi-scene"),
             RenderFeaturePassDescriptor::new(
@@ -94,7 +103,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.history")
-            .read_texture("scene-color")
+            .read_texture("hybrid-gi-lighting")
             .write_external_texture("history-global-illumination"),
         ],
     )
@@ -117,19 +126,10 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
 }
 
 pub fn runtime_prepare_collector_registration() -> RuntimePrepareCollectorRegistration {
-    RuntimePrepareCollectorRegistration::new(
+    RuntimePrepareCollectorRegistration::new_collector(
         "hybrid-gi.runtime-prepare",
-        hybrid_gi_runtime_prepare_collector,
+        crate::hybrid_gi::runtime_prepare_collector(),
     )
-}
-
-fn hybrid_gi_runtime_prepare_collector(
-    context: &mut RuntimePrepareCollectorContext<'_>,
-) -> Result<
-    zircon_runtime::core::framework::render::RenderPluginRendererOutputs,
-    zircon_runtime::graphics::GraphicsError,
-> {
-    Ok(crate::hybrid_gi::runtime_prepare_renderer_outputs(context))
 }
 
 pub fn hybrid_gi_runtime_provider_registration(

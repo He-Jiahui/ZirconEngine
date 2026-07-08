@@ -1,7 +1,8 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::is_command_palette;
-use super::layout::{pixel_aligned_rect, row_rect};
+use super::layers::{empty_message_order, row_order};
+use super::layout::{min_frame_extent, pixel_aligned_rect, row_rect};
 use super::panel::{push_command_palette_empty_message, push_command_palette_panel_commands};
 use super::rows::push_command_row_commands;
 
@@ -21,7 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_co
     }
 
     let rect = pixel_aligned_rect(rect);
-    if rect.width <= 1.0 || rect.height <= 1.0 {
+    let min_frame_extent = min_frame_extent();
+    if rect.width <= min_frame_extent || rect.height <= min_frame_extent {
         return true;
     }
 
@@ -29,7 +31,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_co
 
     let row_count = node.structured_options.row_count();
     if row_count == 0 {
-        push_command_palette_empty_message(commands, &rect, clip, order + 3, opacity);
+        push_command_palette_empty_message(
+            commands,
+            &rect,
+            clip,
+            empty_message_order(order),
+            opacity,
+        );
         return true;
     }
 
@@ -42,7 +50,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_co
             &option,
             &row_rect(&rect, row),
             clip,
-            order + 4 + row as i32 * 3,
+            row_order(order, row),
             opacity,
         );
     }

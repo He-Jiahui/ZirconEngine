@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::{component_variant_contains, resolved_style_color};
-use super::tokens::{timeline_dot_color_token, MUI_GREY_400};
+use super::tokens::timeline_dot_color_token;
 
 const TIMELINE_DOT_BORDER_WIDTH: f32 = 2.0;
 
@@ -19,7 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn timelin
         if outlined {
             None
         } else if timeline_dot_color_token(node) == "grey" {
-            Some(MUI_GREY_400)
+            Some(tone)
         } else {
             Some(tone)
         }
@@ -61,5 +61,33 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn timelin
         TIMELINE_DOT_BORDER_WIDTH
     } else {
         1.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+    #[test]
+    fn timeline_grey_dot_uses_projected_tone_color() {
+        let node = TemplatePaneNodeData::default();
+
+        assert_eq!(
+            timeline_dot_background_color(&node, false, [10, 11, 12, 255]),
+            Some([10, 11, 12, 255])
+        );
+    }
+
+    #[test]
+    fn timeline_dot_declared_background_overrides_projected_tone() {
+        let mut node = TemplatePaneNodeData::default();
+        node.button_style.element.background_color =
+            Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(20, 21, 22, 255)));
+
+        assert_eq!(
+            timeline_dot_background_color(&node, false, [10, 11, 12, 255]),
+            Some([20, 21, 22, 255])
+        );
     }
 }

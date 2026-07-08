@@ -14,7 +14,7 @@ fn model_primitive_converts_to_mesh_asset_with_builtin_attributes() {
         ],
         indices: vec![0, 1, 2],
         mesh: None,
-        virtual_geometry: Some(sample_virtual_geometry()),
+        virtual_geometry: None,
     };
 
     let mesh = MeshAsset::from_model_primitive(
@@ -36,6 +36,31 @@ fn model_primitive_converts_to_mesh_asset_with_builtin_attributes() {
         mesh.attributes[MESH_ATTRIBUTE_UV1],
         MeshAttributeValues::Float32x2(vec![[0.5, 0.25], [0.0, 0.0], [0.0, 0.0]])
     );
+    assert_eq!(
+        mesh.attributes[MESH_ATTRIBUTE_JOINT_INDEX],
+        MeshAttributeValues::Uint16x4(vec![[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    );
+    assert_eq!(mesh.to_model_primitive().unwrap(), primitive);
+}
+
+#[test]
+fn static_virtual_geometry_primitive_converts_to_mesh_asset_with_ordinal_channels() {
+    let primitive = ModelPrimitiveAsset {
+        vertices: vec![
+            MeshVertex::new(Vec3::ZERO, Vec3::Z, Vec2::ZERO),
+            MeshVertex::new(Vec3::X, Vec3::Z, Vec2::X),
+            MeshVertex::new(Vec3::Y, Vec3::Z, Vec2::Y),
+        ],
+        indices: vec![0, 1, 2],
+        mesh: None,
+        virtual_geometry: Some(sample_virtual_geometry()),
+    };
+
+    let mesh = MeshAsset::from_model_primitive(
+        AssetUri::parse("res://models/static-vg.obj#Mesh0/Primitive0").unwrap(),
+        &primitive,
+    );
+
     assert_eq!(
         mesh.attributes[MESH_ATTRIBUTE_JOINT_INDEX],
         MeshAttributeValues::Uint16x4(vec![[0, 0, 0, 0], [1, 0, 0, 0], [2, 0, 0, 0]])

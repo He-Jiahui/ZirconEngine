@@ -19,7 +19,7 @@ fn render_text_atlas_upload_full_page_uses_page_stride() {
 
 #[test]
 fn render_text_atlas_upload_partial_rgba_rect_uses_byte_stride() {
-    let page = page_spec(GlyphAtlasFormat::Color, 0, UVec2::new(64, 32));
+    let page = page_spec(GlyphAtlasFormat::Color, 0, UVec2::new(64, 32)).with_generation(7);
 
     let command = glyph_atlas_upload_command(
         &page,
@@ -31,6 +31,7 @@ fn render_text_atlas_upload_partial_rgba_rect_uses_byte_stride() {
 
     assert_eq!(page.storage_format, GlyphAtlasStorageFormat::Rgba8Unorm);
     assert_eq!(command.mode, GlyphAtlasUploadMode::PartialRect);
+    assert_eq!(command.page_generation, 7);
     assert_eq!(
         command.sampling_semantics,
         GlyphAtlasSamplingSemantics::ColorRgba

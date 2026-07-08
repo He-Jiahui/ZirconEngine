@@ -55,12 +55,9 @@ fn virtual_geometry_vertex_ordinals_pack_into_joint_index_slots() {
 
     let mut primitive = ModelPrimitiveAsset {
         vertices: vec![
-            MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
-                .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
-            MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X)
-                .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
-            MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y)
-                .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
+            MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO),
+            MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X),
+            MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y),
         ],
         indices: vec![0, 1, 2],
         mesh: None,
@@ -77,8 +74,26 @@ fn virtual_geometry_vertex_ordinals_pack_into_joint_index_slots() {
         })
         .collect::<Vec<_>>();
     assert_eq!(ordinals, vec![0, 1, 2]);
-    assert_eq!(primitive.vertices[1].joint_indices[2], 7);
-    assert_eq!(primitive.vertices[1].joint_indices[3], 6);
+}
+
+#[test]
+fn virtual_geometry_vertex_ordinals_do_not_rewrite_skinned_primitives() {
+    let vertices = vec![
+        MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
+            .with_skinning([0, 1, 0, 0], [0.75, 0.25, 0.0, 0.0]),
+        MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X)
+            .with_skinning([1, 0, 0, 0], [1.0, 0.0, 0.0, 0.0]),
+    ];
+    let mut primitive = ModelPrimitiveAsset {
+        vertices: vertices.clone(),
+        indices: vec![0, 1],
+        mesh: None,
+        virtual_geometry: Some(sample_virtual_geometry_asset()),
+    };
+
+    primitive.assign_virtual_geometry_vertex_ordinals();
+
+    assert_eq!(primitive.vertices, vertices);
 }
 
 #[test]

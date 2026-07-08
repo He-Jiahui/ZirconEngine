@@ -1,5 +1,6 @@
 mod brightness;
 mod command;
+mod metrics;
 mod model;
 mod palette;
 mod selection;
@@ -8,15 +9,15 @@ mod tab_like;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::workbench_button_border_width_from_host;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::{
     WorkbenchButtonKind, WorkbenchButtonStyle,
 };
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::{
-    ADD_COMPONENT_GLYPH, ADD_COMPONENT_TEXT,
-};
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::{
-    OUTLINED_BORDER, OUTLINED_SURFACE, OUTLINED_TEXT, PRIMARY_SURFACE,
+    add_component_glyph_color_from_host, add_component_text_color_from_host,
+    workbench_button_transparent_surface,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use selection::select_workbench_button_style;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use tab_like::{

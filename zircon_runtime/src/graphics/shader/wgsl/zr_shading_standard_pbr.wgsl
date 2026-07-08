@@ -14,6 +14,15 @@ fn zr_standard_pbr_diffuse_color(surface: ZrSurfaceOutput) -> vec3<f32> {
     return surface.base_color.rgb * (1.0 - surface.metallic * 0.45);
 }
 
+fn zr_scene_view_dir_ws(position_ws: vec3<f32>) -> vec3<f32> {
+    let perspective_view_dir = zr_normalize_or_zero(scene.camera_world_position.xyz - position_ws);
+    return zr_normalize_or_zero(mix(
+        perspective_view_dir,
+        scene.camera_view_direction.xyz,
+        clamp(scene.camera_view_direction.w, 0.0, 1.0),
+    ));
+}
+
 fn zr_standard_pbr_shade_standard_light_vector(
     light_vector: vec3<f32>,
     radiance: vec3<f32>,
@@ -184,9 +193,10 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     let ambient = scene.ambient_color.rgb * surface.occlusion;
     let diffuse_color = zr_standard_pbr_diffuse_color(surface);
     let direct_lights = zr_standard_pbr_gpu_light_lighting(surface, diffuse_color, ctx);
+    let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);
     let environment_lights = zr_environment_pbr_indirect(
         surface.normal_ws,
-        vec3<f32>(0.0, 0.0, 1.0),
+        view_dir_ws,
         surface.roughness,
         surface.metallic,
         diffuse_color,

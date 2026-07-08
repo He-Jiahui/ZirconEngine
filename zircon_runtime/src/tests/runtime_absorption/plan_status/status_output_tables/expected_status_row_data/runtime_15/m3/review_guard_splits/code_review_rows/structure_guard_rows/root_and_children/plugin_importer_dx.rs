@@ -42,3 +42,21 @@ pub(super) const STRUCTURE_GUARD_ROOT_INVENTORY_CHILD_SPLIT: &[&str] = &[
     "runtime_15_plugin_importer_dx_structure_guard_root_inventory_is_child_owned",
     "target-server direct binary passed",
 ];
+
+pub(super) const PLUGIN_IMPORTER_DX_SOURCE_STATUS_MAP_RECONCILIATION: &[&str] = &[
+    "runtime_15_plugin_importer_dx_source_status_map_reconciliation_static_passed_cargo_deferred",
+    "Runtime 15 M3 plugin-importer DX source status-map reconciliation",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_paths.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_child_rows.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_inventory.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/root_sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/status_mirrors.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/source_inventory.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/status_docs.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_child_owners/structure_assertions.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/plugin_importer_maps.rs",
+    "runtime_15_plugin_importer_dx_structure_guard_is_folder_backed",
+    "runtime_15_plugin_importer_dx_structure_guard_root_inventory_is_child_owned",
+    "runtime_15_plugin_importer_dx_structure_guard_folder_backed_status_is_current",
+    "Cargo gate deferred",
+];

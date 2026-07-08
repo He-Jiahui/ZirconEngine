@@ -2,8 +2,11 @@ use super::super::*;
 use super::*;
 
 pub(super) fn assert_plugin_importer_dx_source_inventory_is_mounted() {
-    let plugin_importer_dx_source_inventory_child =
-        read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD_OWNER);
+    let plugin_importer_dx_source_inventory_child = format!(
+        "{}\n{}",
+        read_runtime_src(PLUGIN_IMPORTER_DX_SOURCE_INVENTORY_CHILD_OWNER),
+        super::super::super::plugin_importer_dx_child_owners::plugin_importer_dx_source_inventory_child_source_blob()
+    );
 
     assert_contains_all(
         "plugin-importer DX source inventory child keeps DX source-path checks",
