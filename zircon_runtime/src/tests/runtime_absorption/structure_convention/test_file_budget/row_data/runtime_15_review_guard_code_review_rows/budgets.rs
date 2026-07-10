@@ -66,7 +66,7 @@ fn runtime_15_review_guard_code_review_rows_child_budgets_stay_focused() {
         ("tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs/core.rs", 80),
         ("tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs/source_anchors.rs", 50),
         ("tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs/status_anchors.rs", 80),
-        ("tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status/status_anchor_guard.rs", 60),
+        ("tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs/status_anchor_guard.rs", 60),
         (STRUCTURE_GUARD_FOLDER_BACKED_SUMMARY_PATH, 150),
         (STRUCTURE_GUARD_TYPED_ERROR_PATH, 60),
         (STRUCTURE_GUARD_ROW_DATA_OWNER_PATH, 70),

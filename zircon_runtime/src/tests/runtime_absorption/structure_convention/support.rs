@@ -20,6 +20,7 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
     {
         Some(engine_code_structure_archive_source())
     } else if label.eq_ignore_ascii_case("module convention doc")
+        || label.eq_ignore_ascii_case("module doc")
         || label
             .to_ascii_lowercase()
             .contains("module convention doc")
