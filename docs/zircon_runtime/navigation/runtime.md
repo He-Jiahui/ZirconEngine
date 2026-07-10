@@ -56,7 +56,7 @@ doc_type: module-detail
 
 `zircon_runtime::navigation` is the built-in lightweight navigation module used by standalone runtime sessions. It loads project-authored baked navmesh assets and exposes enough runtime pathing for project gameplay to move agents through the scene without requiring the external navigation plugin workspace to be linked into the executable.
 
-The module registers as `NavigationModule` and provides the runtime navigation service consumed by gameplay host functions.
+The module registers with the canonical `navigation.runtime` identity and provides the runtime navigation service consumed by gameplay host functions.
 
 ## Project Loading
 

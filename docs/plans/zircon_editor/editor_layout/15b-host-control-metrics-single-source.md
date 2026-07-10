@@ -17,7 +17,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md
   - docs/plans/engine-code-structure-convention.md
-status: implemented-focused-passed-build-screenshot-passed
+status: completed
 ---
 # 15b 工作台 chrome 控件度量单源(S15.1 深化)
 
@@ -38,31 +38,31 @@ retained-host 的 `paint_template_nodes` 下其实有**两层**度量,职责不�
 
 | 现常量 | 值 | owner 文件 | 拟并入 `HostControlMetrics` 字段 |
 | --- | --- | --- | --- |
-| `BUTTON_FONT_SIZE` | 10 | `template_buttons/content/metrics.rs` | `font_body` |
-| `BUTTON_LINE_HEIGHT` | 12 | 同上 | `line_height(font_body)`(=10×1.2) |
+| `BUTTON_FONT_SIZE` | 13.33 logical px | `template_buttons/content/metrics.rs` | `font_body`(UE Normal=10pt×96/72) |
+| `BUTTON_LINE_HEIGHT` | 16 | 同上 | `line_height(font_body)`(=13.33×1.2) |
 | `BUTTON_TEXT_INSET_X` | 12 | 同上 | `button_pad_x` |
 | `BUTTON_ICON_GAP` | 7 | 同上 | `button_icon_gap` |
 | `BUTTON_CHEVRON_RESERVE` | 18 | 同上 | `button_chevron_reserve` |
 | `BUTTON_PRESSED_CONTENT_OFFSET_Y` | 1 | 同上 | `button_pressed_offset_y` |
 | `BUTTON_RADIUS` | 4 | `template_buttons/geometry.rs` | `radius_control` |
-| `SEGMENT_FONT_SIZE` | 10 | `template_segmented_control_geometry/metrics.rs` | `font_body` |
+| `SEGMENT_FONT_SIZE` | 13.33 logical px | `template_segmented_control_geometry/metrics.rs` | `font_body` |
 | `SEGMENT_RADIUS` | 4 | 同上 | `radius_control` |
-| `TAB_FONT_SIZE` | 10 | 同上 | `font_body` |
+| `TAB_FONT_SIZE` | 13.33 logical px | 同上 | `font_body` |
 | `SEGMENT_GROUP_LABEL_GAP` | 4 | 同上 | `gap_s` |
 | `SEGMENT_SELECTED_INSET` | 2 | 同上 | `segment_selected_inset` |
 | `TAB_TEXT_INSET_X` | 12 | 同上 | `button_pad_x`(页签/按钮共用横内边距) |
 | `FIELD_RADIUS` | 4 | `template_fields/surface.rs` | `radius_control` |
-| `FIELD_FONT_SIZE` | 10 | `template_fields/text.rs` | `font_body` |
-| `FIELD_LINE_HEIGHT` | 12 | 同上 | `line_height(font_body)` |
+| `FIELD_FONT_SIZE` | 13.33 logical px | `template_fields/text.rs` | `font_body` |
+| `FIELD_LINE_HEIGHT` | 16 | 同上 | `line_height(font_body)` |
 | `FIELD_TEXT_LEFT/RIGHT` | 8/8 | 同上 | `input_pad[0]/[1]` |
 | `DROPDOWN_RADIUS` | 4 | `template_dropdowns/surface.rs` | `radius_control` |
-| `DROPDOWN_FONT_SIZE` | 10 | `template_dropdowns/text.rs` | `font_body` |
-| `DROPDOWN_LINE_HEIGHT` | 12 | 同上 | `line_height(font_body)` |
+| `DROPDOWN_FONT_SIZE` | 13.33 logical px | `template_dropdowns/text.rs` | `font_body` |
+| `DROPDOWN_LINE_HEIGHT` | 16 | 同上 | `line_height(font_body)` |
 | `DROPDOWN_TEXT_LEFT` | 8 | 同上 | `input_pad[0]` |
 | `WORKBENCH_ICON_RAIL_RADIUS` | 4 | `style_selector/workbench_icon_button/palette.rs` | `radius_control` |
 | `WORKBENCH_ICON_PANEL_RADIUS` | (核实) | 同上 | `radius_control`(或单列 `radius_icon_panel`) |
 
-> 取值高度一致(radius=4、font=10、line=12、inset=8/12),与 UE Slate(`InputFocusRadius=4`、Normal=10pt、ButtonMargins 横 12)对齐;故收敛**零视觉回归**,纯属把"多处相同字面量"换成"单源引用"。
+> 2026-07-10 单位复核修正:原实现把 UE Normal=10 **point** 误作 10 logical px。`SlateFontInfo.h` 明确 point 按 96 DPI 转 Slate Unit,故正确 body/line 为 13.33/16 logical px。radius/inset 等几何值仍 1:1;字体单位修正是有意视觉变化,不再声明“零视觉回归”。
 
 ## 3. owner API 草案
 
@@ -71,9 +71,9 @@ retained-host 的 `paint_template_nodes` 下其实有**两层**度量,职责不�
 pub(in crate::ui::retained_host::host_contract) struct HostControlMetrics {
     pub radius_control: f32,           // 4   (UE InputFocusRadius)
     pub border_width: f32,             // 1   (UE InputFocusThickness)
-    pub font_small: f32,               // 8
-    pub font_body: f32,                // 10  (UE Normal)
-    pub font_large: f32,               // 14  (UE Large)
+    pub font_small: f32,               // 10.67 logical px (UE 8pt @ 96 DPI)
+    pub font_body: f32,                // 13.33 logical px (UE 10pt @ 96 DPI)
+    pub font_large: f32,               // 18.67 logical px (UE 14pt @ 96 DPI)
     pub line_height_ratio: f32,        // 1.2
     pub button_pad_x: f32,             // 12  (UE ButtonMargins 横)
     pub button_icon_gap: f32,          // 7
@@ -84,7 +84,7 @@ pub(in crate::ui::retained_host::host_contract) struct HostControlMetrics {
     pub gap_s: f32,                    // 4
     pub gap_m: f32,                    // 8
     pub gap_l: f32,                    // 12
-    pub row_height: f32,               // 24
+    pub row_height: f32,               // 28
 }
 pub(in crate::ui::retained_host::host_contract) const METRICS: HostControlMetrics = HostControlMetrics { /* 上表值 */ };
 impl HostControlMetrics {
@@ -110,12 +110,12 @@ impl HostControlMetrics {
 | 既有 `paint_template_nodes::template_buttons::tests`(17) | 硬切换后值不变,全绿(零回归) |
 | 既有 `template_icon_buttons`(11) | 同上 |
 | 段控/字段/下拉 几何测试 | 同上 |
-| `host_control_metrics_match_unreal_baseline`(新) | `METRICS` 字段 == UE 派生基线(radius 4/font 10/pad 12/pressed 1…) |
+| `host_control_metrics_match_unreal_baseline`(新) | `METRICS` 字段 == UE 派生基线(radius 4/font 10pt→13.33 logical px/pad 12/pressed 1…) |
 | 静态守卫:`grep` chrome 旧常量名 | 仅出现在 `metrics.rs` 注释/无源码引用(零残留) |
 
 ## 6. 验收
 - `cargo test -p zircon_editor --lib paint_template_nodes::template_buttons` / `template_icon_buttons` / 段控·字段·下拉,全绿。
-- `capture_m3_gui_acceptance_visual_artifacts --ignored` + `capture_workbench_component_slate_atlas_visual_artifact --ignored` 刷新 `docs/tests/editor/`,人工确认 chrome 与 atlas **像素无回归**(因取值不变)。
+- `capture_m3_gui_acceptance_visual_artifacts --ignored` + `capture_workbench_component_slate_atlas_visual_artifact --ignored` 刷新 `docs/tests/editor/`,人工确认字号按 UE point→96 DPI logical px 修正后可读性提升且控件未裁切。
 - `grep -rn "BUTTON_RADIUS\|BUTTON_FONT_SIZE\|SEGMENT_RADIUS\|TAB_FONT_SIZE\|FIELD_RADIUS\|DROPDOWN_RADIUS"` 仅命中新 owner/注释。
 
 ## 7. 与 15.S1a / 01 的关系

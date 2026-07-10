@@ -328,6 +328,7 @@ plan_sources:
   - user: 2026-06-03 implement ZirconEngine WGPU render main-chain closure plan, M7 LUT asset ingress slice
   - user: 2026-06-05 split SSR history resolve from final postprocess composition
   - user: 2026-06-03 implement ZirconEngine WGPU render main-chain closure plan, M7 SSR normal and depth-backend fallback slice
+  - user: 2026-07-10 close DX12 RenderDoc shader loop/gradient portability failures in the PBR HDRI viewer
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs
@@ -417,6 +418,9 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_motion_vector_for_motion_blur
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/new/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_viewport_depth_fallback_shader_parses_for_gl_backends
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_shader_removes_raw_depth_texture_sampling
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::raw_depth_shader_uses_derivative_free_integer_loads
+  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_direct_after_depth_load_20260710.log
+  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_20260710_capture.rdc
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs::tests::depth_of_field_prepare_params_sanitize_camera_and_lens_values
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs::tests::depth_of_field_prepare_requires_aperture_and_radius
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_rewrites_depth_of_field_prepare_shader
@@ -561,6 +565,8 @@ The compiled-scene renderer imports the physical offscreen target textures and b
 Exposure follows the same graph-visible temporal split. `postprocess.exposure.histogram` is a transient storage buffer written only by histogram mode, `history.previous.exposure` is the previous-frame persistent buffer imported from `SceneFrameHistoryTextures`, and `history.current.exposure` is the current persistent buffer written by `post.exposure.resolve` and sampled later by binding 28. First frames, invalidated histories, and manual mode fall back to neutral exposure buffers instead of requiring hidden renderer state.
 
 ## Validation
+
+The 2026-07-10 DX12 portability follow-up changes raw scene-depth reads in `post_process.wgsl` from normalized `textureSample(...)` to clamped integer `textureLoad(...)`. Screen-space reflection trace and hit-refinement loops call this helper with data-dependent iteration counts; removing the implicit derivatives prevents FXC from forcing and then failing a large loop unroll. `PostProcessDepthSamplingMode` keeps the GL/WebGL/ANGLE fallback replacement contract, while a new source guard requires the raw-depth integer load and rejects implicit-gradient depth sampling. Focused lib-test compilation was blocked before test execution by an unrelated concurrent borrow-check error in `asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs`; a later documentation/comment-only production rebuild was independently blocked by another concurrent borrow-check error in `core/framework/animation/animation_target_id.rs`. Accepted runtime evidence remains the successful production viewer build made after the shader behavior change, direct DX12 capture runs, and RenderDoc DX12 capture; no filtered unit-test pass is claimed.
 
 `PostProcessPassGraph::validate_stack(...)` enforces the graph invariants before execution evidence is recorded:
 

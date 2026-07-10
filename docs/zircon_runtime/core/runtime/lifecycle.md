@@ -1,6 +1,10 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/lifecycle.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
+  - tools/plugin_structure_audits/manifest_schema.py
+  - tools/tests/test_runtime_init_level_naming.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema_modules.py
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/engine_module/mod.rs
@@ -63,9 +67,15 @@ related_code:
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_four_dependency_matcher.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_without_index_map.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/activation/structure/fixture.rs
+  - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_dependencies.rs
+  - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_unload.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_deactivation.rs
 implementation_files:
+  - zircon_runtime/src/core/runtime/tests/activation/structure/fixture.rs
   - zircon_runtime/src/core/runtime/lifecycle.rs
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
+  - tools/plugin_structure_audits/manifest_schema.py
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/engine_module/mod.rs
@@ -133,7 +143,11 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
+  - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_dependencies.rs
+  - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_unload.rs
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - tools/tests/test_runtime_init_level_naming.py
+  - tools/tests/test_plugin_structure_audit_manifest_schema_modules.py
   - zircon_runtime::tests::runtime_absorption::structure_convention::production_file_budget::runtime_15_core_runtime_service_lists_are_folder_backed
   - zircon_runtime/src/core/runtime/handle/core_handle.rs::tests::core_handle_registry_accessors_recover_poisoned_runtime_locks
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_accessors
@@ -172,13 +186,25 @@ doc_type: module-detail
 ## Ownership Boundary
 
 - `StartupMode` describes whether a registered service starts immediately or waits for lazy resolution.
-- `InitLevel` describes module activation layers in order: Kernel, Servers, Scene, Editor, and Post. New descriptors default to Post until they opt into an earlier level.
+- `InitLevel` describes module activation layers in order: Kernel, Services, Scene, Editor, and Post. New descriptors default to Post until they opt into an earlier level. `Services` owns non-network runtime infrastructure such as platform, input, and assets; the former ambiguous `Servers` name was removed without a compatibility alias.
 - `LifecycleState` describes the runtime state of modules and services: registered, initializing, running, stopping, or unloaded.
 - `ServiceKind` is the canonical driver/manager/plugin classifier used by `RegistryName`, dependency validation, and service table logic.
 - `ModuleLifecycle` defines the shared build/ready/finish/cleanup hook vocabulary. The default implementation is behavior-preserving: build, finish, and cleanup are no-ops, while ready returns true.
 - The curated `zircon_runtime::core::{LifecycleState, StartupMode, ServiceKind}` facade remains because these types are public runtime vocabulary, but the physical owner is now the runtime kernel.
 
 The lifecycle module defines vocabulary only. Registration ordering, dependency validation, activation, deactivation, and resolution behavior stay in their existing runtime handle and descriptor owners. Frameworks 02 M1 wires descriptor ordering and lifecycle hooks through those existing owners instead of moving behavior into the root lifecycle vocabulary module.
+
+Frameworks 02 M3 extends that ownership rule through runtime plugins. Every `RuntimePluginDescriptor` embeds the kernel `ModuleDescriptor`, and `RuntimePluginRegistrationReport::from_plugin(...)` registers that value exactly once before collecting non-module extensions. First-party providers bind their concrete descriptor through `.with_module_descriptor(...)`; the SDK module registration builder now accepts only an owner name. Plugin-only ready/finish/activate/deactivate contexts and a second provider-side module registration path are not retained, so build/ready/finish/cleanup and manifest projection cannot diverge from the descriptor activated by `CoreRuntime`.
+
+The same hard cut applies to identity. First-party runtime module descriptors use the manifest-owned `<package>.runtime` namespace, and manager/driver/plugin registry names preserve that full module namespace. `RegistryName` therefore parses the final `.Driver|Manager|Plugin.<service>` suffix from the right instead of assuming an exact three-segment string; module namespaces may contain clean non-empty dot-separated segments, while service names remain dot-free. Old PascalCase module identities are not aliased.
+
+## Runtime 15 non-network layer naming hard cutover
+
+`runtime_15_lifecycle_services_init_level_naming_coremin_check_passed_frameworks_plan_mirror_pending`
+
+The ambiguous `InitLevel::Servers` variant was removed without an alias and replaced by `InitLevel::Services`. All runtime source callers and lifecycle/order tests use the new name, so platform, input, and asset initialization cannot be confused with a network-server layer. Plugin manifest validation accepts the matching `services` serde value and explicitly rejects the retired `servers` value, preventing Rust/tooling schema divergence. The runtime naming audit classifies the legitimate `Editor` init level as a runtime-profile editor-host target instead of migration debt.
+
+The naming and manifest-schema suites pass 8/8, the direct non-network server audit reports zero references, zero migration debt, `classified-and-clear`, and no risks, and the runtime naming audit's unclassified editor references dropped from six to four. The runtime core-min library check passes with existing warnings. Frameworks plan mirrors still contain the historical name and remain assigned to the active Frameworks plan owner; no compatibility source path was retained.
 
 ## Frameworks 02 M1 lifecycle/order foundation
 
@@ -208,7 +234,7 @@ The third M1 slice adds the cross-module activation phase barrier needed before 
 
 `core/runtime/handle/activation/batch.rs` owns this batch progression and rollback. If build, startup-service resolution, ready, or finish fails, every pending module in the batch is reset to Registered and every immediate startup service resolved during the batch is reset to Registered with no instance. The single-module activation path remains available for direct/lazy resolution, while the registered-module batch API is the planned kernel entry for profile assembly and later RuntimePlugin convergence.
 
-Focused tests cover sorted Kernel/Servers/Scene batch ordering with no finish before all ready hooks, and finish-failure rollback across multiple modules plus their immediate services. Scoped rustfmt passed for the touched batch/activation/runtime/test files. Cargo validation remains blocked outside this owner by active shader/material drift: the current runtime lib check stops in graphics scene material paths because `MaterialDisabledPasses` is not exported from `graphics::scene::resources`, and `CachedMeshDrawKey` initializers now miss `disabled_passes`. This section does not claim Cargo or focused test green for the batch slice.
+Focused tests cover sorted Kernel/Services/Scene batch ordering with no finish before all ready hooks, and finish-failure rollback across multiple modules plus their immediate services. Scoped rustfmt passed for the touched batch/activation/runtime/test files. Cargo validation remains blocked outside this owner by active shader/material drift: the current runtime lib check stops in graphics scene material paths because `MaterialDisabledPasses` is not exported from `graphics::scene::resources`, and `CachedMeshDrawKey` initializers now miss `disabled_passes`. This section does not claim Cargo or focused test green for the batch slice.
 
 ## Frameworks 02 M2 descriptor-sorted builtin/profile assembly
 
@@ -220,7 +246,7 @@ The builtin runtime module set now includes the kernel foundations directly in `
 
 App plugin groups gained `try_finish(...)`, which sorts enabled entries by descriptor order and returns a structured `PluginGroupError::ModuleOrder` when group membership violates the kernel contract. `finish(...)` remains as the assertion-style convenience path for built-in groups. `EngineEntry` and `BuiltinEngineEntry` now register all selected descriptors first and activate through `CoreRuntime::activate_registered_modules(...)`, so M2 consumes the M1 batch finish barrier rather than reintroducing per-module Running publication.
 
-Descriptor declarations were added to the builtin modules: Kernel level for foundation/log/tasks/time/frame count/diagnostics, Servers level for platform/input/asset, Scene level for scene/graphics/UI, Editor level for the editor module, and Post for script. Dependencies now encode the expected lower-layer owners; for example frame count depends on time, asset depends on foundation and tasks, graphics depends on platform/asset/scene, UI depends on input/scene/graphics, and editor depends on the runtime/editor-facing module set. No fallback list or old-order compatibility path was kept.
+Descriptor declarations were added to the builtin modules: Kernel level for foundation/log/tasks/time/frame count/diagnostics, Services level for platform/input/asset, Scene level for scene/graphics/UI, Editor level for the editor module, and Post for script. Dependencies now encode the expected lower-layer owners; for example frame count depends on time, asset depends on foundation and tasks, graphics depends on platform/asset/scene, UI depends on input/scene/graphics, and editor depends on the runtime/editor-facing module set. No fallback list or old-order compatibility path was kept.
 
 Focused tests were added for target runtime module order and built-in app plugin group order. Scoped rustfmt passed for the M2 runtime/app/editor descriptor, assembly, bootstrap, and test files. The first app server check exposed an owned `PluginGroupBuilder::try_finish(...)` return-type bug; the fix wraps the descriptor-sorted group in `Ok(ResolvedPluginGroup { ... })`. After that correction, `cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never` passed with existing repository warnings. Focused runtime/app tests are still not counted as passing for M2 because the milestone has not run the declared test stage.
 
@@ -261,3 +287,9 @@ Runtime 15 M3 keeps registration lifecycle behavior unchanged and splits only th
 Runtime 15 M3 keeps deactivation behavior unchanged and splits only the oversized blocked-deactivation test owner. `core/runtime/tests/activation/behavior/deactivation/blocked.rs` now owns only child module mounting. External dependent blockers live in `blocked/external_dependents.rs`; exact two/three dependency matcher coverage lives in `blocked/exact_two_three_dependency_matcher.rs`; shutdown-order coverage lives in `blocked/shutdown_order.rs`; exact four matcher coverage lives in `blocked/exact_four_dependency_matcher.rs`; exact five no-index-map fallback coverage lives in `blocked/exact_five_without_index_map.rs`; the existing exact-five all-dependency matcher remains in `blocked/exact_five_dependency_matcher.rs`.
 
 `runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed` locks that folder-backed layout, prevents representative moved tests from returning to `blocked.rs`, preserves all 10 blocked-deactivation tests in child owners, and keeps every file in this test family under the Runtime 15 test-file budget. This is static structure evidence only; Cargo remains deferred by the Runtime 15 milestone testing cadence.
+
+## Runtime 02 activation structure-fixture reconciliation
+
+`runtime_02_core_activation_structure_fixture_inventory_static_passed` keeps the structure guards aligned with that folder split. The shared `activation_tests_source()` fixture now includes the exact-two/three matcher owner, exact-four matcher owner, and exact-five no-index-map owner in addition to the pre-existing exact-five dependency matcher source. This restores source-level evidence for both blocked-dependency and blocked-unload guards without moving behavior back into the former oversized parent.
+
+The standalone activation structure harness passes the two affected guards 2/2. The default-feature `core::` package filter executes 641 tests as 629 passed and 12 failed; the two activation structure failures are closed by this slice, while the remaining Render/UI failures belong to their active owners and are not promoted as Runtime 02 success evidence.

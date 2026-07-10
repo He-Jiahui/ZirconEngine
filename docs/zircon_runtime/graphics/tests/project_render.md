@@ -54,7 +54,7 @@ tests:
   - cargo test -p zircon_runtime --lib export_example_vampire_scene_png -- --ignored --nocapture
   - cargo test -p zircon_runtime --lib gameplay_pose_exports_update_entity_transform -- --nocapture
   - cargo test -p zircon_runtime --lib vampire_project_session -- --nocapture
-  - cargo build -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,first-party-zr-vm-real-backend" --bin zircon_runtime
+  - cargo build -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --bin zircon_runtime
 doc_type: testing-guide
 ---
 

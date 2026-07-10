@@ -10,6 +10,8 @@ related_code:
   - zircon_runtime/src/core/framework/ai/manager.rs
   - zircon_plugins/ai/runtime/src/module.rs
   - zircon_plugins/ai/runtime/src/manager.rs
+  - zircon_runtime/src/core/framework/sound/manager.rs
+  - zircon_plugins/sound/runtime/src/module.rs
 implementation_files:
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
@@ -21,6 +23,7 @@ plan_sources:
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - docs/engine-architecture/runtime-interface-convergence.md
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
 tests:
   - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
@@ -30,6 +33,9 @@ tests:
   - conflict-marker, trailing-whitespace, and git diff --check scans over zircon_runtime/src/core/manager/resolver.rs, zircon_runtime/src/core/manager/tests.rs, docs/zircon_runtime/core/manager.md, and .codex/sessions/20260604-1232-runtime-architecture-review.md (2026-06-11 M5 manager resolver direct projection: passed with expected LF-to-CRLF warnings only for tracked files)
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (2026-06-11 M5 manager resolver direct projection: passed; plugin runtime gaps empty, unclassified public modules 2, unclassified public uses 0, unclassified hotspots 0, root surface migration debt 4, large-file migration debt 5)
   - cargo validation for M5 manager resolver direct projection (2026-06-11: deferred because active shared Cargo/rustc lanes were running; no new Cargo command was started and no Cargo pass/fail is claimed)
+  - python -m unittest tools.tests.test_frameworks_03_contract_feature_boundary
+  - cargo +nightly check -p zircon_runtime --lib --no-default-features --features ai-contracts --locked --offline --jobs 1
+  - cargo +nightly check -p zircon_runtime --lib --no-default-features --features sound-contracts --locked --offline --jobs 1
 doc_type: module-detail
 ---
 
@@ -47,6 +53,8 @@ The module owns three pieces of public contract:
 
 Concrete behavior stays outside this module. For example, the AI runtime plugin owns `DefaultAiManager` and registers it as an implementation service, while `core::manager` owns only `AI_MANAGER_NAME`, `AiManagerHandle`, and `resolve_ai_manager(...)`.
 
+Optional manager contracts are exposed only when their owning contract feature is enabled. Frameworks 03 now applies that hard boundary to `ai-contracts`, `net-contracts`, and `sound-contracts`: each trait re-export, service name, typed holder, and resolver is gated together at declaration/assembly points. There is no placeholder handle, fallback resolver, or compatibility re-export when a contract is absent.
+
 ## Performance Contract
 
 Manager service names are static constants, so callers do not allocate or format registry names on the hot path. `CoreHandle::resolve_manager(...)` still locks the runtime service table and returns an `Arc` clone of the cached service holder. That is acceptable at setup, module activation, and coarse workflow boundaries, but repeated per-entity or per-frame inner-loop lookup should cache the returned `Arc<dyn ManagerTrait>` in the caller's runtime state.
@@ -57,7 +65,7 @@ M5 follow-up: resolver helpers now project the typed holder into its trait-objec
 
 ## Current Coverage
 
-`core::manager::tests` locks the canonical service-name strings for resource, input, config, event, rendering, render-framework, level, AI, net, physics, animation, and sound managers.
+`core::manager::tests` locks the canonical service-name strings for resource, input, config, event, rendering, render-framework, level, AI, net, physics, animation, and sound managers. AI, Net, and Sound assertions compile only with their owning contract features, matching the public manager surface.
 
 `tests/extensions/manager_handles.rs` protects the cross-crate contract for first-party manager-backed plugins. It checks that plugin modules keep framework-backed default managers and that `core::manager` exports the matching handles, resolver helpers, and canonical service names. The guard now includes AI alongside physics, animation, net, and sound.
 

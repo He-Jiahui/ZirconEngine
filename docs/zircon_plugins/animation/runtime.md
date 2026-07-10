@@ -123,13 +123,13 @@ doc_type: module-detail
 
 # Animation Runtime Plugin
 
-`zircon_plugins/animation/runtime` owns the concrete animation runtime after the hard cutover. The crate provides the `AnimationModule` descriptor, the plugin-local `AnimationDriver`, the `DefaultAnimationManager` evaluator/sampler, sequence property writeback, and the runtime scene system that runs animation at `SystemStage::PostUpdate`.
+`zircon_plugins/animation/runtime` owns the concrete animation runtime after the hard cutover. The crate provides the canonical `animation.runtime` descriptor, the plugin-local `AnimationDriver`, the `DefaultAnimationManager` evaluator/sampler, sequence property writeback, and the runtime scene system that runs animation at `SystemStage::PostUpdate`.
 
 `zircon_runtime` no longer exports `zircon_runtime::animation` and does not depend on the plugin crate. Runtime keeps only neutral contracts under `zircon_runtime::core::framework::animation`, manager service names/resolvers under `zircon_runtime::core::manager`, scene ECS state, and generic runtime scene-system scheduling.
 
 ## Runtime Boundary
 
-- The plugin contributes the lifecycle module through `RuntimeExtensionRegistry::register_module(module_descriptor())`.
+- `AnimationRuntimePlugin` embeds the lifecycle descriptor; `RuntimePluginRegistrationReport::from_plugin(...)` installs it exactly once before provider-specific extension registration.
 - The plugin contributes tick behavior through `RuntimePluginModuleRegistration::runtime_scene_system(...)` as `animation.evaluate` in `SystemStage::PostUpdate`, in set `animation.evaluation`, after `zircon.scene.world_transform`.
 - `runtime_plugin_descriptor()` is the linked package-manifest source for the Animation runtime crate. It mirrors the static `zircon_plugins/animation/plugin.toml` and built-in catalog metadata: category `runtime`, maturity `beta`, `runtime.plugin.animation` status `partial` with Bevy `bevy_animation` source traceability, and `runtime.feature.animation.timeline_event_track` status `partial`.
 - D5 editor authoring macro consumer guard keeps the editor package on the SDK macro path: `zircon_plugins/animation/editor/src/plugin.rs` uses `zircon_plugin_sdk::authoring_plugin!` with `mirrors_runtime_manifest: zircon_plugin_animation_runtime::package_manifest()` and only keeps the Animation-specific extension registration body outside the macro. Status `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred` is locked by `review_d5_editor_authoring_plugins_use_sdk_macro`.

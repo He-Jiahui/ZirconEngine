@@ -21,6 +21,10 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
+  - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/pipeline/declarations/render_pass_stage.rs
@@ -76,6 +80,9 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
+  - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/pipeline/declarations/render_pass_stage.rs
@@ -135,7 +142,9 @@ tests:
   - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_explains_depth_and_queue_order
   - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_reports_first_ordering_difference
   - zircon_runtime/src/core/framework/tests.rs::render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d_and_3d
-  - zircon_runtime/src/core/framework/tests.rs::render_product_pipeline_camera_projection_selects_core_pipeline_kind
+  - zircon_runtime/src/core/framework/tests.rs::render_product_camera_projection_and_core_pipeline_are_independent
+  - zircon_runtime/src/core/framework/tests.rs::render_product_orthographic_projection_keeps_orthographic_matrix_in_core3d
+  - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_uses_core2d_phase_order_and_transparent_depth_sort
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_honors_queue_and_order_in_layer
   - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs::tests::transparent_submission_order_interleaves_meshes_and_sprites_by_sort_key
@@ -178,7 +187,7 @@ Concrete graph passes, WGPU command encoding, render pass assets, and resource p
 
 ## Product Surface
 
-`CorePipelineKind` selects `Core2d` or `Core3d`. `ViewportCameraSnapshot::core_pipeline_kind()` maps orthographic cameras to `Core2d` and perspective cameras to `Core3d`, giving product render extraction a Bevy-style camera-driven default without creating a second renderer.
+`CorePipelineKind` selects `Core2d` or `Core3d`. `ViewportCameraSnapshot::core_pipeline_kind()` returns the explicitly authored `core_pipeline`; it does not infer a schedule from `ProjectionMode`. `Core3d` is the serde/default value, so perspective and orthographic 3D cameras retain Forward+/Deferred features. Sprite/2D cameras explicitly select `Core2d`. This follows Bevy's separate Camera2d/Camera3d identity and projection components without creating a second renderer.
 
 `RenderPhase` names the shared phase family: 2D opaque, 2D alpha-mask, 2D transparent, 3D opaque, 3D alpha-mask, 3D transparent, prepass, shadow, deferred, post-process, UI, overlay, and debug.
 
@@ -232,7 +241,7 @@ Pipeline compilation and executor registration form Zircon's closest current ana
 | --- | --- | --- |
 | Render app / render world | Zircon has a runtime render framework with explicit submit context and renderer state locks. It does not have a separate render world, render sub-app, or main/render app data-exchange boundary. | Keep the current runtime framework unless a real parallel render world is needed, but document the divergence and expose enough stage diagnostics that product users can reason about extract/prepare/queue/render phases. |
 | Extract / prepare / queue / render sets | Zircon has frame extract DTOs, runtime preparation, graph compilation, graph executor dispatch, and submit stats, but not Bevy's named `RenderSystems` sets. | Add neutral schedule/stage names to diagnostics and acceptance docs before claiming Bevy-like render-stage parity. Avoid forcing ECS schedule semantics into non-ECS runtime internals. |
-| Camera schedule execution | Zircon maps camera projection to Core2d/Core3d and orders cameras, but the concrete renderer is still mostly single active-view submit. | Add true multi-camera schedule execution, per-target coverage tracking, split-screen / render-to-texture routing, and uncovered-surface clearing before claiming camera-driven schedule parity. |
+| Camera schedule execution | Zircon carries explicit per-camera Core2d/Core3d identity independently from projection and orders cameras, but the concrete renderer is still mostly single active-view submit. | Add true multi-camera schedule execution, per-target coverage tracking, split-screen / render-to-texture routing, and uncovered-surface clearing before claiming camera-driven schedule parity. |
 | Pipelined rendering | Zircon submit is synchronous from the caller's perspective. It has scoped profiling markers and RenderDoc markers, but no render thread, `RenderExtractApp`, or overlap telemetry. | Keep pipelined rendering as a separate scheduling milestone; do not conflate current synchronous submit stats with Bevy's frame-overlap model. |
 | Graph executors | Zircon validates compiled graph executors and executes stage-declared passes through a registry. UI, overlay, sprite, mesh, prepass, Deferred, and post-process executors now fail on missing execution context instead of silently no-oping; plugin descriptor executor ids also require explicit executor registrations. | Extend executor diagnostics with queue choice, culled pass reason, resource residency, pass timing, and backend queue/capability status so renderer behavior is inspectable without Bevy's render world. |
 
@@ -244,10 +253,10 @@ M10.2 is the schedule visibility gate. It does not require Zircon to copy Bevy's
 | --- | --- | --- | --- |
 | Render ownership is named before execution. | `dev/bevy/crates/bevy_render/src/lib.rs:120-128` makes rendering a `RenderApp` sub-app, and `lib.rs:344-423` sets up the render sub-app, schedules, startup, recovery, pipeline cache, and render system. | `submit_frame_extract(...)` is a single runtime-framework entry point with scoped context-build, prepare, render, feedback, record, release, and stats steps (`submit/submit.rs:22-123`). | Keep the divergence explicit: M10.2 can promote schedule visibility without claiming render world or sub-app parity. |
 | Stage names are observable. | Bevy names `RenderSystems` sets for extract commands, prepare assets, prepare meshes, create views, specialize, queue, phase sort, prepare, bind groups, render, cleanup, and post-cleanup (`bevy_render/src/lib.rs:151-208`), then chains the base schedule (`lib.rs:286-317`). | Zircon already has source-level phases: build submission context, prepare runtime submission, compile pipeline, execute graph stage, post-process, submit, record, update stats. | Add/maintain diagnostics that use stable neutral names for extract/context-build/prepare/queue-or-phase/graph-compile/render/postprocess/present/cleanup. |
-| Camera-driven Core2d/Core3d stays separate from global submit. | Bevy defines Core3d and Core2d schedules as per-camera sub-schedules (`bevy_core_pipeline/src/schedule.rs:31-104`) and `camera_driver` iterates sorted cameras, skips invalid targets, inserts `CurrentView`, runs each camera schedule, and tracks covered windows (`schedule.rs:111-170`). | `ViewportCameraSnapshot::core_pipeline_kind()` maps camera projection to Core2d/Core3d; phase queue and pipeline compile tests cover ordering and Core2d/Core3d compatibility. | Multi-camera execution, per-target coverage, uncovered-surface clearing, split-screen, texture-target scheduling, and editor/runtime multi-view routing remain explicit M10.7/M10.2 follow-ups. |
+| Camera-driven Core2d/Core3d stays separate from global submit and projection math. | Bevy defines Core3d and Core2d schedules as per-camera sub-schedules (`bevy_core_pipeline/src/schedule.rs:31-104`) and Camera2d/Camera3d as identities separate from projection components. | `ViewportCameraSnapshot::core_pipeline` is projected from scene asset/component data and read by `core_pipeline_kind()`; public contracts prove orthographic Core3d and orthographic Core2d both remain valid while matrix construction stays projection-driven. | Multi-camera execution, per-target coverage, uncovered-surface clearing, split-screen, texture-target scheduling, and editor/runtime multi-view routing remain explicit M10.7/M10.2 follow-ups. |
 | Graph executor choices are inspectable. | Bevy's queue/phase-sort/prepare/render sets make phase and backend transitions visible. | Zircon `compile.rs:18-180` validates core-pipeline compatibility, enabled feature descriptors, required extract sections, capability requirements, history bindings, stage mappings, queues, dependencies, graph resources, and attachment ops; `execute_graph_stage.rs:80-180` executes pass stages through registered executors and records executor id, stage, queue, declared queue, dependencies, and resources. `RenderPassExecutionContext::attachment_ops_for_write(...)` lets executors consume clear/load/store decisions without pass-name rules, and `ui.screen-space`, `overlay.gizmo`, `post.stack`, sprite, and forward mesh executors now apply or require graph-owned resources instead of private render-target access. | Add culled-pass reason, resource-residency decision, executor availability, effective queue, and pass timing to diagnostics before calling graph scheduling Bevy-complete. |
 | Pipelined rendering remains a separate milestone. | Bevy `PipelinedRenderingPlugin` moves rendering to another thread so frame N rendering can overlap frame N+1 simulation (`pipelined_rendering.rs:68-105`) and only installs `RenderExtractApp` when `RenderApp` exists (`pipelined_rendering.rs:111-122`). | Zircon's current submit path is synchronous and uses profiling scopes plus RenderDoc markers, not render-thread channels or overlap telemetry. | Do not use synchronous submit stats as pipelined rendering proof; future work needs render-thread lifecycle, extraction handoff, overlap timing, and shutdown/drop-thread ownership evidence. |
-| Validation is stage-scoped. | Bevy schedule sets let failures be localized by set. | Current tests cover phase queue ordering, camera projection selecting Core2d/Core3d, default Core2d/forward/deferred pipeline compile order, and core-pipeline mismatch errors. | M10.2 promotion must run focused core-pipeline/submit tests and `cargo check -p zircon_runtime --lib --locked`, or explicitly remain docs-only. |
+| Validation is stage-scoped. | Bevy schedule sets let failures be localized by set. | Current tests cover phase queue ordering, explicit camera Core2d/Core3d selection independent from projection, default Core2d/forward/deferred pipeline compile order, and core-pipeline mismatch errors. | M10.2 promotion must run focused core-pipeline/submit tests and `cargo check -p zircon_runtime --lib --locked`, or explicitly remain docs-only. |
 
 This checklist records the source-backed gate and current evidence. It does not claim fresh Cargo validation for this checkout.
 
@@ -271,7 +280,7 @@ The `render_sort_key_*` tests prove the final Plan 09 `u64` lanes: camera order 
 
 The transparent mixed-submission tests prove 3D sprite phase items and transparent mesh commands are interleaved by the same `u64` key, non-3D sprite items are ignored by the 3D transparent pass, and the mesh replayer invalidates cached state after an inserted Sprite pipeline draw. The Sprite routing regression keeps `RenderPassStage::Transparent3d` mapped to `RenderPhase::Transparent3d`. The WGPU product regressions verify the default Forward+ product path renders a green transparent 3D Sprite and red transparent Mesh through the same `mesh.transparent` ordering path, and that a high-`ui_z_index` world-space UI-like transparent Sprite remains a normal `Transparent3d` member sorted by 3D transparent depth instead of becoming a screen-space UI overlay.
 
-`render_product_pipeline_camera_projection_selects_core_pipeline_kind` proves the camera contract chooses Core2d for orthographic projection and Core3d for perspective projection.
+`render_product_camera_projection_and_core_pipeline_are_independent` and `runtime_camera_core_pipeline_contract` prove orthographic cameras can explicitly select either Core3d or Core2d without changing projection math; missing serialized camera identity defaults to Core3d.
 
 The pipeline compile tests prove the default Core2d, forward-plus, and deferred pipeline assets map the neutral phases into concrete render pass stage order and required extract sections.
 

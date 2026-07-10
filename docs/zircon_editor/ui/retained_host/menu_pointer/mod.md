@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/mod.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
@@ -38,6 +39,7 @@ related_code:
   - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
 implementation_files:
+  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
@@ -63,10 +65,18 @@ implementation_files:
   - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
 plan_sources:
+  - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
+  - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md
+  - docs/plans/engine-code-structure-convention.md
   - user: 2026-05-06 Drawer/Window/Menu Slate plan requested menu tree, popup bounds, scroll overflow, and optional multi-column popup behavior
   - .codex/plans/Drawer_Window_Menu Slate 化推进计划.md
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
 tests:
+  - shared_menu_pointer_layout_content_measures_root_popup_widths
+  - exact production menu-popup contract standalone Rust test entry (2026-07-10: 6/6 passed)
+  - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 (2026-07-10: passed)
+  - focused responsive-menu Cargo groups (2026-07-10: 15/15 passed)
+  - capture_m3_gui_acceptance_visual_artifacts (2026-07-10: 1/1 passed)
   - zircon_editor/src/tests/host/retained_menu_pointer/layout.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
@@ -104,6 +114,8 @@ doc_type: module-detail
 `build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`. The shared menu bar frame stencil now comes from `workbench_menu_chrome.zui` through the v2 file cache rather than reparsing the old root chrome asset. The stencil supplies origin, height, and gap; live width comes from `measure_runtime_text_width(..., WORKBENCH_MENU_SLOT_FONT_SIZE)` plus `workbench_menu_slot_width_from_label_width(...)`, so pointer hitboxes match the visual menu slot width for the actual glyphs.
 
 `HostMenuPointerLayout` carries editor action state, preset rows, popup height, explicit tree-shaped `menus`, dynamic top-level button frames, menu-bar content width, menu-bar scroll offset state, and `menu_overflow_mode`. `build_host_menu_pointer_layout(...)` reads overflow mode from `EditorChromeSnapshot`, whose active-window value comes from persisted `ActivityWindowLayout.menu_overflow_mode`. When `menus` is present, the pointer bridge consumes those rows rather than rebuilding hard-coded menu contents. Branch rows stay as enabled tree nodes with children; leaves preserve either legacy `MenuAction` ids or `EditorOperationPath` ids so extension operations dispatch through the operation runtime.
+
+The 2026-07-10 responsive root-menu pass adds `popup_widths` to that layout. Each root width is measured from the same visible labels, branch chevrons, shortcuts, preset names, and active marker projected into native chrome, using the retained runtime text service plus the shared trailing-glyph guard. `popup_layout.rs` consumes the projected width before shell clamp and optional multi-column calculation; the old per-index width table is now only a minimum/fallback for empty or legacy fixtures.
 
 `HostMenuPointerBridge::sync(...)` first compares the incoming layout and state with the committed pair. If both are unchanged, it returns `false` and keeps the current `UiSurface`; otherwise it clamps retained popup and menu-bar scroll offsets against the current metrics, rebuilds the surface, and registers each interactive node with `UiPointerDispatcher`. Clicks on menu buttons open or close the active popup; hover/click on `SubmenuBranch` nodes stores `open_submenu_path` and rebuilds child popup layers; clicks on interactive leaf nodes close the popup and return the action id; clicks outside the popup hit the dismiss overlay.
 
@@ -144,6 +156,8 @@ Existing menu pointer coverage still owns the single-column paths: opening and d
 `shared_menu_pointer_bridge_opens_flipped_nested_popup_for_branch_hover` verifies that hovering a branch opens a child popup, flips it left near the shell edge, and routes the nested leaf using the preserved pre-order item index.
 
 `shared_menu_pointer_layout_extends_menu_button_frames_for_extension_menus` verifies production menu pointer layout derives slots beyond the authored seven-slot menu bar stencil and exposes scrollable content width for overwide extension menus.
+
+`shared_menu_pointer_layout_content_measures_root_popup_widths` verifies a long extension label plus `Ctrl+Shift+Alt+U` expands its root popup beyond the old 208-pixel fallback while remaining clamped to the shell. `shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll` now derives its probe x from the projected Window button frame; this keeps the regression aligned with runtime-measured top-level menu widths instead of relying on the old hard-coded x coordinate.
 
 `shared_menu_pointer_bridge_scrolls_overwide_menu_bar_to_extension_button` verifies the shared pointer surface scrolls an overwide top menu bar horizontally, clips button hit frames to the viewport, and opens an extension menu button after it is brought into view.
 

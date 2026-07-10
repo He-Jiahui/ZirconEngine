@@ -1,12 +1,30 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/global_illumination.rs
   - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/hzb_build.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/hzb_build_msaa.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
@@ -33,7 +51,6 @@ related_code:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_state.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
@@ -59,25 +76,26 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/mod.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/normalize.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/probe_record.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/trace_region_record.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
+  - zircon_plugins/hybrid_gi/runtime/src/provider/tests.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/scene_frame.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_inputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_textures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/generate_probe_trace_tiles.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion_scene_radiance.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/build_surface_cache_depth_hierarchy.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests/surface_cache_hzb.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/execute.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_snapshot.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
@@ -91,17 +109,21 @@ related_code:
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_hzb_camera_packet.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_trace_input_packet.rs
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs
   - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff/tests.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_trace_input_packet.rs
   - zircon_plugins/hybrid_gi/runtime/src/tests.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/main_scene_hzb_trace.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_payloads.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_probe_update_request.rs
@@ -160,10 +182,11 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/surface_cache_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_visibility.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_renderer_test_promotion_guard.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/dynamic_light_matrix.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/temporal_history.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/localized_support_history.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_ray_direction_distribution.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/runtime_feedback.rs
@@ -180,12 +203,10 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/runtime_prepare/execute_runtime_prepare_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/post_process/execute_post_process_stack.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/extract_scene_sources.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/card_capture_shading.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/material_capture_source.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
@@ -211,8 +232,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
-  - zircon_runtime/src/graphics/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_runtime/src/graphics/visibility/planning/build_hybrid_gi_plan/sources.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
@@ -229,7 +248,6 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/gpu_readback_accessors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/gpu_readback_completion.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback_completion_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_hybrid_gi/take_last_hybrid_gi_gpu_completion_parts.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_snapshot.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_accessors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_store.rs
@@ -240,35 +258,6 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/new.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/collect.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/camera_matrices.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/constants.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/hybrid_gi_trace_region_source.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/encode_hybrid_gi_trace_region_screen_data.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_intensity.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_rt_lighting.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_probe_encode_frame.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/count_scheduled_trace_regions.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/encode_hybrid_gi_probe_screen_data.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_budget_weight.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_probe_source.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_temporal_signature.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/runtime_parent_chain.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/scene_prepare_surface_cache_samples.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/ancestor_prepare_inheritance.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/runtime_irradiance_sources.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/scene_prepare_irradiance_fallback.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/runtime_rt_sources.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/scene_prepare_rt_fallback.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/scene_prepare_voxel_samples.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/trace_region_inheritance.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs
@@ -278,38 +267,39 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/write_hybrid_gi_buffers/write.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/hybrid_gi_trace_region_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode_hybrid_gi_trace_region_screen_data.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_intensity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_rt_lighting.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_scene_light_seed.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_runtime_source.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_dynamic_lights.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_history.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_material_fixtures.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_visibility.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_gpu.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_resolve_history.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_resolve_render.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_resolve_surface_cache.rs
   - zircon_runtime/src/graphics/tests/boundary.rs
-  - zircon_runtime/src/graphics/visibility/planning/build_hybrid_gi_plan/build.rs
-  - zircon_runtime/src/graphics/visibility/planning/build_hybrid_gi_plan/sources.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_representation.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_runtime.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_visibility.rs
   - zircon_runtime/src/graphics/tests/boundary.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/hybrid_gi_visual_export.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
+  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state_ensure_viewport.rs
+  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
 implementation_files:
+  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
+  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/hzb_build.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
+  - zircon_plugins/hybrid_gi/runtime/src/lib.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_hzb_camera_packet.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registration.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
@@ -333,7 +323,6 @@ implementation_files:
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_state.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
@@ -351,10 +340,6 @@ implementation_files:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/mod.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/normalize.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/probe_record.rs
-  - zircon_runtime/src/graphics/hybrid_gi_extract_sources/trace_region_record.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/mod.rs
@@ -363,6 +348,7 @@ implementation_files:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/hybrid_gi_prepare_execution_inputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_resources.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_textures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
@@ -378,13 +364,16 @@ implementation_files:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/build_surface_cache_depth_hierarchy.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests/surface_cache_hzb.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_renderer_test_promotion_guard.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_ray_direction_distribution.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_hzb_trace.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_payloads.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/extract_registration.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_probe_update_request.rs
@@ -449,12 +438,10 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/runtime_prepare/execute_runtime_prepare_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/post_process/execute_post_process_stack.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/extract_scene_sources.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/card_capture_shading.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/material_capture_source.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
@@ -490,7 +477,6 @@ implementation_files:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/gpu_readback_accessors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/gpu_readback_completion.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback_completion_parts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_hybrid_gi/take_last_hybrid_gi_gpu_completion_parts.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_snapshot.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_accessors.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/readback/hybrid_gi_gpu_readback/scene_prepare_resources_store.rs
@@ -501,35 +487,6 @@ implementation_files:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/new.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/pending_readback/collect.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/camera_matrices.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/constants.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/hybrid_gi_trace_region_source.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/encode_hybrid_gi_trace_region_screen_data.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_intensity.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_rt_lighting.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_probe_encode_frame.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/count_scheduled_trace_regions.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/encode_hybrid_gi_probe_screen_data.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_budget_weight.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_probe_source.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_temporal_signature.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/runtime_parent_chain.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/scene_prepare_surface_cache_samples.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/ancestor_prepare_inheritance.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/runtime_irradiance_sources.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_irradiance/scene_prepare_irradiance_fallback.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/runtime_rt_sources.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/scene_prepare_rt_fallback.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/scene_prepare_voxel_samples.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/trace_region_inheritance.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/mod.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_neutral_readback_outputs.rs
@@ -538,20 +495,13 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/write_hybrid_gi_buffers/write.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/hybrid_gi_trace_region_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/encode_hybrid_gi_trace_region_screen_data.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_intensity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_trace_regions/hybrid_gi_trace_region_rt_lighting.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_material_fixtures.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_prepare_resources.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_dynamic_lights.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_gpu.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_resolve_history.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_resolve_render.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_resolve_surface_cache.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state_ensure_viewport.rs
+  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
 plan_sources:
   - user: 2026-04-21 continue Hybrid GI / Lumen-style implementation and keep advancing the approved three-phase plan
   - docs/superpowers/specs/2026-05-01-plugin-renderer-hard-cutover-design.md
@@ -568,23 +518,34 @@ plan_sources:
   - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph scene-depth MSAA handoff
   - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI trace-schedule depth-source packet
   - user: 2026-07-08 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph resolve trace depth-source attachment
+  - user: 2026-07-10 continue WGPU-to-render-pipeline Plan 18 Hybrid GI surface-cache ray direction distribution
+  - user: 2026-07-10 continue WGPU-to-render-pipeline Plan 18 Hybrid GI surface-cache HZB trace
+  - user: 2026-07-10 continue WGPU-to-render-pipeline Plan 18 Hybrid GI graph-owned main-scene HZB trace packet
+  - user: 2026-07-11 continue WGPU-to-render-pipeline Plan 18 editor-default/runtime-opt-in and capability fallback
 tests:
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_trace_tiles.rs::surface_cache_trace_tile_ray_count_scales_with_hybrid_gi_quality_budget
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs::global_illumination_history_source_requires_single_sample_rgba16_float
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs::reflection_and_gi_products_preserve_hdr_before_output_transfer
+  - zircon_editor/src/ui/retained_host/viewport/tests/controller_creates_and_resizes_render_framework_viewports.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs::entry_defaults_enable_hybrid_gi_only_for_editor_rendering
+  - zircon_app/src/entry/tests/profile_bootstrap.rs::editor_default_render_profile_links_hybrid_gi_without_virtual_geometry
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs::quality_profile_capability_validation_allows_advanced_features_to_degrade
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs::quality_profile_capability_validation_keeps_non_degradable_requirements_strict
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_hzb_camera_packet.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs
+  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/main_scene_hzb_trace.rs
+  - direct lib-test binary: hybrid_gi_registration_contributes_render_feature_descriptor 1/1 passed
+  - direct lib-test binary: scene_hzb_camera_packet_contains_inverse_view_projection_and_viewport 1/1 passed
+  - direct lib-test binary: scene_depth_handoff_msaa_shader_resolves_depth_sample_count 1/1 passed
+  - direct lib-test binary: trace_schedule_shader_promotes_scene_depth_handoff_to_surface_cache_depth_packet 1/1 passed
+  - direct lib-test binary: export_hybrid_gi_main_scene_hzb_trace_wgpu_png 1/1 passed with --ignored
+  - docs/tests/runtime/render/plan18_hybrid_gi_main_scene_hzb_trace_wgpu_20260710.png
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_scene_light_seed.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_gpu_runtime_source.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_dynamic_lights.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_render.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_resolve_surface_cache.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_scene_representation.rs
-  - zircon_runtime/src/graphics/tests/hybrid_gi_runtime.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_visibility.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_renderer_test_promotion_guard.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
@@ -600,6 +561,15 @@ tests:
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime trace_schedule_shader_promotes_scene_depth_handoff_to_surface_cache_depth_packet --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-depth-handoff-0708 --message-format short --color never -- --nocapture --test-threads=1 (attempted twice, timed out, not counted as passed)
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts -- --nocapture
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --locked trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures -- --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib trace_probe_tiles_shader_distributes_surface_cache_ray_steps_by_sample_id --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --test-threads=1 --nocapture
+  - direct lib-test binary: trace_probe_tiles_shader_ 7/7 passed from E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708\debug\deps\zircon_plugin_hybrid_gi_runtime-ea1e1776273a7ec1.exe
+  - direct lib-test binary: export_hybrid_gi_surface_cache_ray_direction_distribution_wgpu_png 1/1 passed with --ignored
+  - docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_ray_direction_distribution_wgpu_20260710.png
+  - docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_ray_direction_distribution_wgpu_20260710.txt
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib trace_probe_tiles_shader_uses_surface_cache_hzb_to_skip_depth_disjoint_blocks --offline --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib export_hybrid_gi_surface_cache_hzb_trace_wgpu_png --offline --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --ignored --test-threads=1 --nocapture
+  - docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_hzb_trace_wgpu_20260710.png
+  - docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_hzb_trace_wgpu_20260710.txt
   - docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png
   - docs/tests/runtime/render/plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.txt
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/hybrid_gi_plugin_renderer_outputs.rs
@@ -759,7 +729,6 @@ tests:
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --lib --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 1 passed, 0 failed)
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 213 passed, 0 failed)
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime render_framework_stats_expose_scene_representation_screen_probe_and_radiance_cache_counts --lib --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --exact --nocapture (0 tests matched; not acceptance evidence)
-  - stale frame-owner search gate for ViewportRenderFrame under zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/post_process_sources/encode_hybrid_gi_probes
   - stale runtime frame HGI field search gate for hybrid_gi_prepare, hybrid_gi_scene_prepare, and hybrid_gi_resolve_runtime under zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo build --workspace --locked --verbose --jobs 1 --message-format short --color never
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --workspace --locked --verbose --jobs 1 --message-format short --color never
@@ -775,6 +744,97 @@ doc_type: module-detail
 ---
 
 # Hybrid GI Lumen-Style Scene Representation
+
+## 2026-07-11 Authoritative Scene-Representation Contract
+
+This section is the current contract. Earlier dated sections remain migration history; where they
+describe authored probe/trace DTOs, extract normalization, generic visibility planning, or
+plugin-local post-process snapshots as live paths, this section supersedes them.
+
+`RenderHybridGiExtract` is settings-only and contains exactly `enabled`, `quality`,
+`trace_budget`, `card_budget`, `voxel_budget`, and `debug_view`. Public
+`RenderHybridGiProbe`/`RenderHybridGiTraceRegion` types and the four former authored fields are
+deleted. Runtime diagnostics report `RenderHybridGiPayloadSource::SceneRepresentation`, not an
+authored source.
+
+The data flow is now one-way:
+
+1. Generic meshes, materials, directional/point/spot lights, and HGI settings enter the plugin.
+2. `HybridGiSceneRepresentation` derives cards, Surface Cache pages, voxel clipmaps/cells, screen
+   probes, radiance cache entries, probe topology, and trace-region scene data.
+3. The provider projects renderer-independent work through `RenderHybridGiPreparedFrame`.
+4. GPU prepare consumes `HybridGiResolveRuntime` plus scene-prepare resources. It has no extract
+   probe/trace fallback and no authored normalization adapter.
+5. Runtime post-process encoders project only prepared resident probes, quantized probe scene data,
+   probe RT lighting, scheduled trace-region ids, and prepared trace-region scene data.
+
+The old generic `build_hybrid_gi_plan` visibility planner, `hybrid_gi_extract_sources`, plugin
+`extract_payloads`, GPU `extract_scene_sources`, and plugin `post_process_sources` trees are removed.
+The neutral visibility context currently carries empty HGI feedback/update vectors; scene
+representation owns HGI selection and scheduling.
+
+Current validation state for this slice: plugin production and `--tests` checks passed. Six focused
+scene-truth/prepared-sideband executable tests passed 6/6. The ignored
+`export_hybrid_gi_scene_representation_only_forward_deferred_wgpu_png` product passed 1/1 and wrote
+`docs/tests/runtime/render/plan18_hybrid_gi_scene_representation_only_forward_deferred_wgpu_20260710.png`
+plus its `.txt` report. The inspected 771x257 matrix has eight nonblank cells with 1540 visible
+pixels each, four HGI graph passes per cell, and exact Forward+/Deferred center-RGB parity for
+directional, point, spot, and emissive inputs. The PNG SHA-256 is
+`1F4CC3565B9E3B7C3F8B46D7B6B792E12EAABDF49D11F0A16AFD8D537F3970F6`.
+
+### Editor Default, Runtime Opt-In, And Capability Degradation
+
+The editor and shipped runtime intentionally use different activation policies. `EntryProfile::Editor`
+requests `HybridGlobalIllumination` in its default render bundle, while `EntryProfile::Runtime`
+keeps the default bundle unchanged and therefore requires an explicit project/profile opt-in. The
+editor request does not imply `VirtualGeometry`.
+
+Each retained editor viewport installs an `editor-viewport-default` quality profile with HGI enabled.
+Before submission, the editor also normalizes the settings-only `RenderHybridGiExtract`: it enables
+HGI and fills only zero trace/card/voxel budgets, preserving authored nonzero budgets, quality, and
+debug view. If profile installation fails after viewport creation, the controller destroys that new
+viewport before returning the error.
+
+Advanced HGI/VG requests are degradable at runtime. Quality-profile prevalidation does not reject
+those requests solely because backend capabilities are absent; the authoritative compiled-pipeline
+capability metadata, `AdvancedProfileRuntimePlan`, and provider gate decide whether the feature is
+ready. Missing capability or provider therefore produces the existing disabled runtime report and no
+advanced pass activation. Non-degradable profile requirements, including screen-space anti-alias and
+Solari requirements, remain strict validation errors.
+
+Focused validation passed for the editor viewport lifecycle/default extract, editor-only entry
+default, advanced-provider selection, advanced capability degradation, and strict AA validation. The
+`target-editor-host` Cargo preset still needs the first-party advanced render catalog feature; that
+manifest is owned by the active Frameworks 03 session, so this behavior slice is recorded as partial
+until the owner lands or releases that one manifest relation. No editor WGPU visual acceptance is
+claimed by this subsection.
+
+### Quality-Scaled Trace Rays And HDR History Format
+
+The existing GPU completion tracing budget now also controls physical trace-tile work. Low, Medium,
+and High quality map to 4, 8, and 16 rays per Surface Cache tile or occupied voxel-cell unit;
+callers without a quality tracing budget retain the previous 8-ray behavior. The budget travels from
+`HybridGiGpuResources::execute_prepare` through the buffer/resource builders to
+`scene_prepare_trace_tiles.rs`, which remains the only owner of tile records and indirect dispatch.
+
+The focused mapping test passed 1/1 from the no-debug plugin test binary. Its first High-quality WGPU
+product rerun then exposed a lower shared history error: graph-owned `hybrid-gi-lighting` defaulted to
+`Rgba8UnormSrgb` while persistent GI history is `Rgba16Float`, making the texture copy invalid.
+`resource_descriptors.rs` now gives HGI lighting the high-quality HDR format, and
+`copy_history_textures.rs` accepts only exact single-sample `Rgba16Float` GI sources.
+
+After the active Frameworks owner completed its Physics import cutover, the post-fix High-quality
+WGPU product passed 1/1. The inspected
+`docs/tests/runtime/render/plan18_hybrid_gi_quality_scaled_trace_rays_wgpu_20260711.png` is a nonblank
+192x128 Surface Cache view with 1813 visible pixels and max luma 140.43. The report records 16 rays
+per trace tile, two trace tiles, dispatch `[1, 1, 2]`, two screen probes, two radiance-cache entries,
+one resident page, one voxel clipmap, and four HGI graph passes. PNG SHA-256 is
+`DA9454E744E6691C98A71AF8E51C0BFBC6FB22A16328175DBF1EAFEAB529E53C`.
+
+The current plugin binary also passed all 94 non-ignored tests with 13 visual exports ignored. A
+fresh Runtime unit-test binary did not build because the active reflection-probe test source refers
+to an undefined `stats` local; no Runtime unit-test GREEN is claimed from that command. The direct
+WGPU product covers the corrected resource format and history copy in the normal HGI frame path.
 
 ## 2026-04-25 RenderFeature Integration
 
@@ -818,12 +878,12 @@ The same closeout fixed the lowest shared fixture support that blocked the promo
 
 这份文档记录 `Hybrid GI / Lumen-Style V1` 当前已经落地到 `zircon_runtime` 与 `zircon_plugins/hybrid_gi` 的阶段切口。重点不是最终 GI 质量，而是把“公共 extract 合同”和“插件 runtime 内部 scene representation 真源”分开。
 
-当前这轮实现只推进到 milestone 1 的基础层：
+当前实现已经推进到 V1 milestone 3 authored scene-source hard cut：
 
 - 通用 scene extract 已经扩成 `directional + point + spot`
 - `RenderHybridGiExtract` 已经收口成 public settings / budget / debug payload
 - renderer/runtime 内部已经有独立的 `HybridGiSceneRepresentation / HybridGiSurfaceCacheState / HybridGiVoxelSceneState / HybridGiInputSet`
-- cards、surface cache、voxel clipmap 的状态机开始进入内部权威状态，而不是继续把 authored probe / trace-region 当长期真源
+- cards、Surface Cache、voxel clipmap、screen probe 与 prepared sideband 已成为唯一运行时真源
 
 ## Public Contract Cutover
 
@@ -848,7 +908,10 @@ The same closeout fixed the lowest shared fixture support that blocked the promo
 - `voxel_budget`
 - `debug_view`
 
-旧的 `probe_budget / tracing_budget / probes / trace_regions` 仍然临时存在，但只保留为 legacy fixture bridge，用来维持当前 runtime host 与旧测试夹具的迁移期可编译性。因为这些字段本身是 public extract contract 的一部分，`RenderHybridGiProbe` 与 `RenderHybridGiTraceRegion` 也必须从中立 `core::framework::render` surface 公开给插件测试与插件 runtime fixtures；它们不代表长期 authoring API，也不应该再被上抬成 renderer-owned场景输入。
+旧的 `probe_budget / tracing_budget / probes / trace_regions` 字段和
+`RenderHybridGiProbe / RenderHybridGiTraceRegion` 类型已经硬删除。测试通过
+`HybridGiResolveRuntime::fixture()`、`RenderHybridGiPreparedFrame` 或真实通用场景网格构造运行时真值，
+不保留 alias、shim、debug-only DTO 或 authored fallback。
 
 ## Internal Scene Representation State
 
@@ -1347,22 +1410,10 @@ Validation is intentionally scoped: direct lib-test binary runs passed the two p
 - exact runtime irradiance scene truth 目前仍然只由 surface-cache / persisted-page authority 提供；voxel scene 当前负责的是 exact RT miss fallback 与其 temporal reset/change-serial。也就是说，voxel-only fixture 已经会通过 exact RT revision 拒绝旧 GI history，但还不会额外合成一份独立的 exact irradiance scene-truth revision
 - `scene_prepare_resources -> resolve` 的 renderer-side voxel sample 路径和 runtime-owned `voxel_cells` 现在都已经有显式 presence contract，显式黑色 sample / radiance authority 不会再被误当成缺失；但它们当前仍然只是 minimal radiance seed，而不是完整的 texture-backed surface cache 内容，所以 resolve miss fallback 还没有进入真正的 page-reuse / surface-property reuse 合流
 - renderer-side card/voxel capture 现在已经会同时消费 `base_color + emissive + metallic + roughness` 和首版完整材质纹理集：`base_color_texture / normal_texture / metallic_roughness_texture / occlusion_texture / emissive_texture` 都已经进入 scene-prepare capture；同一条 minimal capture BRDF 现在还会尊重 `double_sided` 与 `alpha_mode(mask/blend)`，所以 backface lighting、cutout reject 与 alpha-blend 衰减不再被错误压成“所有材质都等价于 opaque + double-sided”。这些结果现在已经能沉淀成 runtime-owned persistent page samples，但采样仍然只用稳定中心 UV，也还没有升级成真正的 surface-cache reuse / relight 内容
-- 旧 probe / trace-region runtime path 仍然存在于迁移层，主要用于 fixture、runtime host 兼容和旧测试面；不过当 `hybrid_gi_scene_prepare` 已经存在时，scene-driven frame 现在已经不会再让 authored trace-region 直接驱动 final composite 或 RT fallback，也不会再让 authored `resident_probes[].irradiance_rgb`、authored probe `position/radius`、没有 authored source 的 compatibility-only resident probe slots、纯 `probe_id` 变化、纯 descendant probe-id 变化、纯 descendant depth 变化、纯 ancestor depth 变化、或只因插入 authored ancestor 才重新变得 reachable 的 continuation-only hierarchy resolve weight / continuation-only inherited RGB 直接充当最终 GI composite / temporal signature 的颜色、空间、容器、identity 或 intensity 真源。当前残余 authored glue 已经进一步收缩到 descendant/runtime-parent-chain reblend asymmetry 与 compatibility path，而不是 descendant / ancestor depth、continuation-only resolve-weight authority 或 continuation-only inherited RGB shaping 本身
-- scene-driven frames now share the same authored-container demotion for trace-region scheduling, unmatched resident probe slots, matched authored-only legacy probe slots, authored probe screen placement, and one-channel scene-truth frames that would otherwise pull opposite-channel continuation-only hierarchy irradiance or RT lighting back into the final composite. This applies both when `HybridGiScenePrepareFrame` is present and when it was stripped but supported runtime scene truth remains. The migration path still keeps the legacy probe/trace structs available for fixtures and runtime-host compatibility until the remaining runtime-parent-chain behavior is fully covered.
-- Budgeted scene-representation extracts (`trace_budget/card_budget/voxel_budget > 0`) now use the same authored-container demotion before visibility planning, runtime registration, GPU prepare quantization, and post-process encode. Legacy `RenderHybridGiProbe / RenderHybridGiTraceRegion` payloads in those frames no longer seed active/requested probes, runtime slots, pending updates, trace schedules, probe/trace GPU output, parent topology, hierarchy irradiance/RT inheritance, resolve-weight lineage, or lineage trace support; they remain available only for zero-budget migration fixtures.
-- scene-driven resolve weight still permits supported exact runtime authority and legacy RT fallback during migration, but stale scene-truth flags alone no longer promote `probe_hierarchy_resolve_weight_q8` into final-composite or temporal-confidence authority.
-- point / spot GPU completion seed 是第一版 range/cone-weighted global bias，用来关闭 V1 dynamic-light seed 缺口；它还不是 clustered per-card/per-voxel direct-light injection，也不包含 area/rect/IES 等 V1 范围外灯型。
-- Flat runtime topology is authoritative but no longer drops exact runtime probe payloads or exact `probe_hierarchy_resolve_weight_q8`; inherited/descendant history reuse now depends on explicit runtime parent topology rather than authored intermediate probe depth.
-- Scene-prepare frames with runtime ownership now require per-probe runtime payload or runtime-lineage scene truth before encoding a resident probe. Unrelated nonempty `HybridGiResolveRuntime::probe_parent_probes` topology no longer promotes a legacy `RenderHybridGiProbe` slot into scene-driven output, and GPU prepare no longer lets legacy `RenderHybridGiTraceRegion` schedules feed scene-prepare-owned resident probe lineage support. Runtime-owned prepare also carries quantized probe geometry and scheduled trace-region scene data through `HybridGiResolveRuntime`, so old authored probe/trace payloads are fallback-only when runtime scene data is absent; post-process probe encode can now synthesize the transient scene-driven source from runtime probe scene data, and post-process trace-region encode now consumes runtime trace-region scene data before any legacy `RenderHybridGiTraceRegion` payload.
-- Post-process probe/trace-region helpers now consume internal source traits for runtime-owned scene data first; `RenderHybridGiProbe` / `RenderHybridGiTraceRegion` are adapted only at legacy extract or fixture boundaries. `HybridGiProbeSource` and `HybridGiRuntimeProbeSource` are package-local to `encode_hybrid_gi_probes`, while `HybridGiTraceRegionSource` is package-local to `execute_post_process`, so runtime-owned probe/trace source synthesis is not a crate-wide renderer API. GPU prepare and post-process scheduling also filter legacy-backed trace ids when scene-prepare or stripped runtime scene truth owns the frame, while preserving runtime-only trace-region scene data.
-  - Visibility planning now consumes graphics-local extract source records from folder-backed `hybrid_gi_extract_sources` before mapping into `build_hybrid_gi_plan::sources`; frontier, sorting, and visibility helpers no longer import the old authored structs directly.
-  - Runtime registration now maps graphics-local extract probe/trace records into `HybridGiExtractProbePayload` / `HybridGiExtractTraceRegionPayload` before mutating `HybridGiRuntimeState`, so registration state mutation no longer works directly over authored probe/trace structs.
-  - GPU prepare now adapts old extract probe/trace payloads through folder-backed `hybrid_gi_extract_sources` and then `execute_prepare::extract_scene_sources` before quantization, parent-chain lookup, scheduled trace filtering, or trace input staging. `trace_region_inputs.rs` consumes resolved `(region_id, HybridGiResolveTraceRegionSceneData)`, and post-process source traits no longer give production `RenderHybridGiProbe` / `RenderHybridGiTraceRegion` a direct implementation path; their direct trait impls are test-only fixture support.
-  - `graphics::tests::boundary::hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter` now scans production graphics sources and keeps old `RenderHybridGiProbe` / `RenderHybridGiTraceRegion` references confined to `hybrid_gi_extract_sources::normalize` plus explicit `cfg(test)` fixture impls.
-- GPU prepare treats runtime trace-region scene data as authoritative only when scene-representation budget, nonempty scene-prepare resources, or stripped runtime scene truth actually owns the frame. Ordinary runtime-host compatibility frames keep current runtime-converted trace data, so old bridge frames do not accidentally suppress hierarchy history reuse while the legacy structs are still present at extract boundaries.
-- stripped-`scene_prepare` runtime scene-truth frames have no scene-owned bounds once the prepare frame has been removed, so their matched-probe screen support intentionally falls back to neutral full-frame support rather than resurrecting authored probe coordinates as a spatial truth source. Full `hybrid_gi_scene_prepare` frames still localize from scene-owned aggregate bounds.
-- legacy RT scene truth remains accepted during migration only when it is supported: packed hierarchy RT with zero support no longer blocks supported `probe_rt_lighting_rgb + hierarchy_resolve_weight`, and unsupported stale flags still do not become scene truth.
-- Runtime-host surface-cache irradiance and voxel RT scene truth now ignore stale scheduled trace-region ids that have no current region scene data/support; real current lineage trace support still wins, but a compatibility-only `scheduled_trace_region_ids` entry can no longer block runtime-owned scene fallback.
+- Authored probe/trace extract DTOs, normalization adapters, generic visibility planning, GPU fallback staging, and plugin post-process snapshots are deleted; there is no migration bridge left to preserve.
+- `RenderHybridGiPreparedFrame` is the only neutral probe/trace sideband. A scheduled trace region without matching prepared runtime scene data is ignored, and duplicate ids are collapsed before GPU staging.
+- Public `trace_budget` controls scene screen-probe/tile work while quality fixes rays per tile to Low=8, Medium=16, High=32. Internal GPU probe/tracing counters remain implementation details derived from prepared work, not public authoring inputs.
+- The remaining productization limits are editor-default/runtime-opt-in policy, capability fallback evidence, broader quality/RenderDoc inspection, and full runtime/full CI. SDF/GDF is not a V1 completion gate.
 - `HybridGiResolveProbeSceneData` and `HybridGiResolveTraceRegionSceneData` now keep their quantized field layout private behind `new(...)` plus scalar/RGB accessors. Runtime resolve export, GPU prepare quantization, post-process probe/trace-region encoding, and fixture helpers still pass the same quantized values, but consumers no longer construct or read the DTO fields directly. This leaves `HybridGiResolveRuntime` as the current resolve handoff owner while shrinking the next plugin-extraction seam to constructor/accessor calls instead of raw packed field ownership.
 - GPU prepare now also enters `HybridGiResolveRuntime` through named owner methods for scene-truth probe-id iteration, direct RT-lighting RGB/presence, and parent-probe lookup. `collect_inputs.rs`, `probe_quantization.rs`, and `runtime_trace_source.rs` no longer name the resolve runtime's raw scene-truth sets, `probe_rt_lighting_rgb`, or `probe_parent_probes`; the larger post-process fixture surface remains the next explicit resolve-runtime handoff seam rather than being folded into this GPU-prepare slice.
 - Post-process production code now follows the same resolve-runtime owner seam for scene-truth probe-id iteration, direct RT-lighting RGB/presence, hierarchy resolve-weight presence, parent lookup, and runtime parent/descendant topology traversal. `runtime_parent_chain.rs`, `encode.rs`, `runtime_rt_sources.rs`, `hybrid_gi_hierarchy_resolve_weight.rs`, and `hybrid_gi_temporal_signature.rs` consume named `HybridGiResolveRuntime` queries instead of raw map/set fields; the later fixture-construction waves below close the corresponding regression-data literals through the owner fixture builder.
@@ -1651,7 +1702,6 @@ Implementation files:
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/build_resolve_runtime.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs`
-- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
 
 Validation:
@@ -1752,7 +1802,6 @@ Implementation files:
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/declarations/hybrid_gi_runtime_state/scene_representation.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/apply_gpu_cache_entries.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/pending_completion/complete_gpu_updates.rs`
-- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_runtime.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
 - `zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/merge_plugin_renderer_outputs.rs`
@@ -2466,3 +2515,329 @@ Remaining boundary: this is surface-cache atlas/depth multi-step marching, not f
 trace or Lumen SDF/global-distance-field tracing. Deferred/Forward+ parity, RenderDoc product
 capture, temporal stability, full runtime test/full CI, and broader Plan 18 advanced-lighting
 mechanisms remain open.
+
+## 2026-07-10 Surface-Cache Ray Direction Distribution
+
+Status anchor:
+`render_plan18_hybrid_gi_surface_cache_ray_direction_distribution_wgpu_png_passed_hzb_sdf_deferred`.
+
+This slice keeps the current trace-tile ray walk inside the existing surface-cache atlas/depth
+owner, but expands the deterministic sample-id direction set. `trace_probe_tiles.wgsl` now masks
+`tile_sample_id` with `7u` instead of `3u`: samples 0..3 preserve the original axis directions,
+while samples 4..7 add the four diagonal atlas-space directions. The existing first-hit validation,
+near-depth blending, depth-jump rejection, and voxel cone fallback remain unchanged.
+
+The Lumen reference used for this boundary was `ScreenProbeGather/GenerateRays.hlsl`, specifically
+the screen-probe tracing octahedron/equi-area spherical ray distribution, paired with
+`TraceScreen.hlsl` for per-ray texel tracing. Zircon deliberately implements this checkpoint as an
+atlas-space distribution step because the full HZB/screen-depth and SDF/global-distance-field inputs
+are still follow-up gates.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_ray_direction_distribution.rs`
+
+Validation:
+
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib trace_probe_tiles_shader_distributes_surface_cache_ray_steps_by_sample_id --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708 --message-format short --color never -- --test-threads=1 --nocapture` passed 1/1 after the first build of this target directory; it completed in 37m54s with existing warning noise.
+- Direct test binary `E:\cargo-targets\zircon-hgi-msaa-product-plugin-0708\debug\deps\zircon_plugin_hybrid_gi_runtime-ea1e1776273a7ec1.exe trace_probe_tiles_shader_ --test-threads=1 --nocapture` passed 7/7, covering surface-cache texture sampling, light-seed tinting, voxel descriptor fallback, voxel cone fallback, surface-cache ray march, ray-direction distribution, and base trace-lighting writeback.
+- Ignored WGPU export `export_hybrid_gi_surface_cache_ray_direction_distribution_wgpu_png --ignored --test-threads=1 --nocapture` passed 1/1 and wrote `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_ray_direction_distribution_wgpu_20260710.png` / `.txt`; the PNG was visually checked as non-empty.
+- The report records `gpu_probe_trace_tile_surface_cache_ray_direction_distribution=trace_probe_tiles_compute+sample_id_octant_axis_diagonal_distribution`, `validated_surface_cache_ray_direction_distribution_shader=trace_probe_tiles_shader_distributes_surface_cache_ray_steps_by_sample_id_diagonal_near_depth_texel`, `visible_pixels=1813`, and `max_luma=155.05`.
+- Scoped `rustfmt --edition 2021 --check` passed over the touched Rust files.
+
+Line-count note: `trace_probe_tiles.wgsl=426`, `dispatch_probe_trace_tiles/tests.rs=828`,
+`hybrid_gi_render_framework_stats.rs=855`, and the new export child
+`surface_cache_ray_direction_distribution.rs=81`; the screenshot export remains in a child owner so
+the parent stats file stays below the 1000-line split threshold.
+
+Remaining boundary: this is deterministic ray-step distribution over the current surface-cache
+atlas/depth march, not full HZB screen tracing, not Lumen SDF/global-distance-field tracing, and not
+Deferred/Forward+ parity. RenderDoc product capture, temporal stability, full runtime test/full CI,
+and broader Plan 18 advanced-lighting mechanisms remain open.
+
+## 2026-07-10 Surface-Cache HZB Trace
+
+Status anchor:
+`render_plan18_hybrid_gi_surface_cache_hzb_trace_wgpu_png_passed_scene_hzb_sdf_deferred`.
+
+The scene-prepare depth atlas now owns a WGPU-built min/max hierarchy. The new
+`surface_cache_depth_hierarchy.rs` owner creates one sampled source view and one storage target view
+per mip, then dispatches `build_surface_cache_depth_hierarchy.wgsl` in 8x8 groups. RGBA8 channels R
+and G retain the valid parent minimum and maximum depth. The chain stops at mip 6, so each aligned
+64x64 surface-cache page reduces to one texel without combining adjacent card pages.
+
+`trace_probe_tiles.wgsl` consumes the full texture view. For each ray distance it chooses the largest
+mip block that fits the remaining budget and whose atlas-space block fully covers the next stride.
+Positive direction components require the current step coordinate at the block start; negative
+components require it at the block end. A depth-disjoint block can then advance by its mip stride
+without skipping mip0 texels outside the tested block. An overlapping range descends one mip at a
+time until mip0 confirms the thickness hit and contributes surface-cache radiance. Invalid or
+unconfirmed surface samples still flow into the existing voxel cone fallback.
+
+Reference evidence:
+
+- `dev/LumenInUE5.5.4WithComputeShader/Res/Shader/HZB/HZB0.hlsl`: closest/furthest 2x2 reduction.
+- `dev/LumenInUE5.5.4WithComputeShader/Res/Shader/ScreenProbeGather/TraceScreen.hlsl`: `InternalTraceScreen` mip tile skip, closest-HZB sampling, and thickness refinement.
+- `zircon_runtime/.../post_process/shaders/hzb_build.wgsl`: repository-local 8x8 WGPU mip-build organization and disjoint source/target mip views.
+
+Implementation files:
+
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/surface_cache_depth_hierarchy.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/create_buffers/scene_prepare_depth_samples.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/build_surface_cache_depth_hierarchy.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests/surface_cache_hzb.rs`
+- `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/surface_cache_hzb_trace.rs`
+
+Validation:
+
+- The focused WGPU test first failed with old packed output `990795` (`[75,30,15]`) versus expected `1260604` (`[60,60,19]`), then passed 1/1 after HZB block skip/refinement was implemented.
+- Review exposed a negative-direction alignment counterexample. The added `-X` WGPU regression freezes a distance-3 near-depth texel that the old distance-only stride could skip; the coordinate/direction-aligned selector returns exact RGB `[51,77,21]` and passed 1/1.
+- The positive and negative surface-cache HZB WGPU behavior tests passed 2/2 from the current plugin test binary.
+- Ignored export `export_hybrid_gi_surface_cache_hzb_trace_wgpu_png` passed 1/1 and wrote `docs/tests/runtime/render/plan18_hybrid_gi_surface_cache_hzb_trace_wgpu_20260710.png` / `.txt` through the real scene-prepare hierarchy build.
+- The PNG was visually checked as nonblank: 192x128, `visible_pixels=1813`, `max_luma=155.05`.
+- The HZB test remains in a folder-backed child owner; current line counts are parent trace tests 865, HZB child 303, and trace shader 607.
+- Cargo successfully built the current plugin lib-test and locked/offline metadata passes. The already-built current test binary provided the 2/2 behavior and refreshed product evidence. New plugin Cargo and runtime root minimum-size test invocations later timed out during compilation after 5/15 minutes without executing tests, so full-workspace green remains unclaimed.
+
+Remaining boundary: this is a page-local surface-cache HZB, not the render graph's full-resolution
+main-scene closest/furthest HZB projected through screen UV and camera matrices. Direct scene-HZB
+handoff, motion/history validity, SDF/global-distance-field tracing, Deferred/Forward+ parity,
+RenderDoc product capture, temporal stability, full runtime/full CI, and the broader Plan 18
+advanced-lighting mechanisms remain open.
+
+## 2026-07-10 Graph-Owned Main-Scene HZB Trace Packet
+
+Status anchor:
+`render_plan18_hybrid_gi_main_scene_hzb_trace_wgpu_png_passed_screen_ray_march_sdf_deferred`.
+
+The runtime graph remains the sole owner of the main-scene depth hierarchy. Its existing Rgba16Float
+HZB now preserves the prior R/x furthest-depth contract while adding G/y closest depth and B/z range
+span at every mip. The public plugin execution boundary exposes a resolver-checked full-mip texture
+view only after confirming that the compiled pass declared the matching transient texture access.
+HGI therefore consumes the runtime hierarchy without building a second main-scene pyramid.
+
+The graph scene-prepare pass writes one record for each tile in a fixed 8x8 grid. Each record contains
+scene depth, HZB furthest/closest depth and selected mip validity. A separate packet stores inverse
+view-projection from the jittered current-frame `ViewProjectionMatrixPair`, camera position and
+viewport size. Trace schedule reconstructs tile world positions with WebGPU 0..1 clip-space depth,
+applies a thickness-aware closest/furthest overlap test, and emits fixed-size 8x8 trace records. The
+resolve pass maps screen UV back to those records and visualizes closest/furthest/span. Fixed packet
+headers require 1176 bytes for scene data and 1280 bytes for trace data, so render feature resources
+now support a generic minimum transient-buffer size contract independent of viewport pixel count.
+
+This boundary follows `HZB0.hlsl` for separate closest/furthest reduction and
+`TraceScreen.hlsl::InternalTraceScreen` for camera-projected depth-range traversal. Zircon keeps
+standard depth semantics, where larger values are farther, rather than copying reversed-Z min/max
+names directly.
+
+Validation:
+
+- TDD source contracts first failed for five absent HZB/tile/camera symbols, then all seven scoped source contracts passed.
+- The plugin lib-test target compiled. Direct tests for descriptor registration, camera packet, MSAA scene/HZB handoff and trace packet each passed 1/1.
+- The camera packet test freezes equality with the jittered current-frame inverse VP used by scene depth, and the trace shader contract freezes WebGPU 0..1 clip depth reconstruction.
+- Ignored WGPU export `export_hybrid_gi_main_scene_hzb_trace_wgpu_png` passed 1/1 and wrote `docs/tests/runtime/render/plan18_hybrid_gi_main_scene_hzb_trace_wgpu_20260710.png` / `.txt`.
+- The PNG was visually checked as nonblank: 192x128, 1813 visible pixels, max luma 155.05; the graph executed all four HGI passes.
+- Scoped rustfmt, locked/offline plugin metadata and diff checks passed.
+- The root runtime lib-test gate reached unrelated concurrent text renderer private-field errors, so no root lib-test or full-workspace green is claimed.
+
+Remaining boundary: this slice creates the graph-owned HZB/camera/tile ABI and a range-overlap trace
+packet, not a complete per-ray coarse-to-fine screen march. Motion/history validity, surface-cache
+radiance hit sampling from this graph packet, SDF/global-distance-field tracing, Deferred/Forward+
+parity, RenderDoc product capture, temporal stability and full CI remain open.
+
+## 2026-07-10 Command-Ordered Main-Scene HZB March And World-Space Radiance Lookup
+
+Status anchor:
+`render_plan18_hybrid_gi_main_scene_hzb_coarse_to_fine_surface_cache_voxel_wgpu_png_passed_motion_sdf_deferred`.
+
+The runtime render graph remains the only owner of the main-scene HZB. Every target mip now has an
+immutable `HzbParams` record in one upload buffer; the encoder copies the selected record into the
+uniform buffer immediately before that mip dispatch. This preserves per-mip command ordering and
+avoids the old queue-write hazard where every dispatch could observe the last CPU-written params.
+The scene-depth texture sample count selects either the single-sample builder or
+`hzb_build_msaa.wgsl`; the MSAA mip-0 path reduces every depth sample before the 2x2 spatial
+reduction, while higher mips consume the same furthest/closest/span chain. The production encoder
+core is independently testable without constructing unrelated bloom, tonemap, or UI pipelines.
+
+HGI scene prepare writes an 8x8 depth/HZB packet, the jittered current-frame inverse VP packet, and
+a bounded world-space lookup packet into the graph-owned scene buffer. The neutral runtime DTO now
+carries surface-cache page bounds/radiance and voxel clipmap center/extent. The plugin serializes at
+most 16 pages, 4 clipmaps, and 64 radiance cells into scene words 294..709; `scene-prepare`, which
+declares scene-buffer write access, is the only packet writer. `trace-schedule` remains a declared
+read consumer. The fixed graph contracts are therefore 710 scene words (2840 bytes) and 448 trace
+words (1792 bytes).
+
+The screen tracer derives its base mip from the actual screen-tile pixel footprint, distributes
+eight deterministic screen directions, and only skips a coarse block when the current coordinate is
+aligned for the ray direction and the full ray-depth segment is disjoint from the HZB range. An
+overlap descends to mip 0 before accepting a hit. The hit depth reconstructs a world position in the
+same jittered frame as scene depth; a containing surface-cache page supplies radiance first, otherwise
+the finest containing voxel clipmap and its 4x4x4 cell supply fallback radiance. The resolve shader
+consumes hit depth, world distance, radiance, source flags, step count, and coarse-skip count.
+
+Validation:
+
+- Runtime WGPU regression `hzb_build_preserves_per_mip_params_and_resolves_msaa_depth` passed 1/1 and checks both single-sample and 4x MSAA mip chains by RGBA16Float readback.
+- Hybrid GI trace tests passed 3/3, including exact Surface Cache radiance and exact world-space Voxel fallback radiance/source flags.
+- Neutral DTO, scene packet, two-frame provider feedback projection, and jittered camera packet tests each passed 1/1.
+- Both HZB builders and all four HGI scene/trace/resolve WGSL files passed Naga parsing and validation; the consolidated source contract passed 8/8.
+- Ignored product export `export_hybrid_gi_main_scene_hzb_surface_cache_trace_wgpu_png` passed 1/1 and wrote `docs/tests/runtime/render/plan18_hybrid_gi_main_scene_hzb_surface_cache_trace_wgpu_20260710.png` plus its report.
+- After enabling the temporal route in the product profile, the refreshed 192x128 product image has 1813 visible pixels, max luma 141.14, one resident Surface Cache page, one Voxel clipmap, all four HGI graph passes, and SHA-256 `848B0E9B1B291489D3D69D30E13200B3F3B9359FD982C5BE93DA0D943846EDF3`.
+- Structure review keeps `provider.rs` at 775 physical lines, its child tests at 386 lines after the two-frame fixture, the trace executor at 506 lines, and the export child at 82 lines. No compatibility facade, second main-scene HZB owner, or read-only graph-resource mutation was added.
+
+Remaining boundary: motion-vector/history rejection, temporal stability, SDF/global-distance-field
+tracing, multi-ray screen-probe quality, Deferred/Forward+ parity, RenderDoc capture, full runtime/full
+CI, and the broader Plan 18 advanced-lighting mechanisms remain open.
+
+## 2026-07-10 Scene-Driven Temporal Reprojection And History Rejection
+
+This slice implements the first complete Hybrid GI temporal path on the render graph. The design is
+derived from `dev/LumenInUE5.5.4WithComputeShader/Res/Shader/ScreenProbeGather/TemporalReprojection.hlsl`:
+history lighting and validity metadata are separate persistent products, reprojection follows current
+motion, and history confidence grows only while current and previous support remain compatible.
+
+The runtime now owns a persistent pair of single-sample `Rgba16Float` textures: previous Hybrid GI
+lighting and previous temporal metadata. The metadata channels carry hit depth, trace source, a
+deterministic scene signature, and accumulated confidence. Both products are bound even on the first
+frame so WGPU bind-group construction stays valid; `history_available` remains the authoritative
+shader-side switch. The graph history pass is side-effectful and copies the lighting/metadata pair
+together, so a partially updated temporal state cannot be reported as valid history.
+
+`trace_schedule_handoff.wgsl` forwards the current scene signature, while
+`resolve_trace_depth_source.wgsl` reprojects the previous pair with scene velocity. It rejects history
+that is unavailable, off-screen, moving too quickly, depth-incompatible, source-incompatible,
+scene-signature-incompatible, or outside a luminance threshold. Accepted lighting is clamped to the
+current neighborhood before confidence-weighted accumulation; rejected pixels reset confidence and
+use current-frame GI. The post-process stack now preserves scene velocity whenever Hybrid GI is an
+active input, including profiles that strip unrelated temporal-history resources.
+
+Validation and product evidence:
+
+- Three focused WGPU readback tests pass for static accumulation, motion rejection, and scene
+  signature/trace-source rejection. The complete HGI executor filter passes 18/18 and registration
+  passes 1/1.
+- The public render-framework statistics test and the existing main-scene product export each pass
+  1/1 with all four HGI graph passes executing.
+- `export_hybrid_gi_temporal_history_rejection_wgpu_png` passes 1/1 and writes
+  `docs/tests/runtime/render/plan18_hybrid_gi_temporal_history_rejection_wgpu_20260710.png` plus its
+  report. The inspected 385x128 image contains 1813 visible pixels per half. The stable warm frame
+  reuses history; the changed cool-light frame reports `FrameInputsChanged`, rejects previous history,
+  and has no visible warm carry-over. SHA-256 is
+  `06A9481FF5E03790172ECE61291C531C5EF5B29BA6EBA34CF3387B0E8415986D`.
+- A root `zircon_runtime` lib-test attempt remains blocked before execution by unrelated private
+  `SdfUvRect` fields in `ui/sdf_render/tests/layout_placement.rs`; this slice does not claim full
+  runtime or full-workspace green.
+
+Remaining boundary: localized material/light/topology invalidation beyond the direct signature tests,
+SDF/global-distance-field tracing, higher-quality multi-ray screen probes, Deferred/Forward+ parity,
+RenderDoc capture, full runtime/full CI, and the broader Plan 18 mechanisms remain open.
+
+## 2026-07-10 Localized Surface And Voxel Temporal Validity
+
+This follow-up replaces whole-scene-only Hybrid GI invalidation with trace-local support identity.
+The trace packet grows from 448 to 512 words (1792 to 2048 bytes): each of the 64 HZB trace tiles now
+owns seven words, with word 6 carrying a local support signature. Surface Cache hits hash the selected
+page's id, owner card, atlas slot, radiance, bounds, and radius. Voxel fallback hashes both the selected
+clipmap record and exact cell id/radiance/occupancy. A screen hit without resident radiance hashes its
+local hit tile and depth range. The resolve shader consumes the quantized low 10 bits of this per-tile
+signature; the whole-scene signature remains only a fallback for the legacy depth-only packet.
+
+History allocation and history content validity are now separate contracts. `FrameInputsChanged`
+continues to make generic previous history unavailable, disables TAA reuse, and reports the same public
+invalidation reason. It no longer reallocates a size/format-compatible history texture set. The HGI
+history pair has its own valid bit, initialized false and set only after lighting plus metadata are both
+copied successfully. Consequently HGI can inspect the previous pair after a material, light, or topology
+change and reject only pixels whose depth, source, local support, motion, or luminance no longer match.
+Viewport size, render size, pipeline, and history-binding changes still allocate a fresh cleared set.
+
+Validation and product evidence:
+
+- Surface Cache and Voxel trace WGPU tests pass 3/3. They verify that page radiance, page bounds, and
+  voxel occupancy changes alter even the low 10 bits consumed by temporal resolve.
+- Temporal resolve WGPU tests pass 5/5. The localized 4x4 case accepts three unchanged interior pixels
+  while rejecting the adjacent changed-support pixel and resetting only its confidence.
+- The complete HGI executor filter passes 19/19. The existing full-scene warm-to-cool temporal product
+  still passes 1/1 with unchanged SHA-256
+  `06A9481FF5E03790172ECE61291C531C5EF5B29BA6EBA34CF3387B0E8415986D`; the main-scene product also
+  passes 1/1 and now reports the 2048-byte trace contract.
+- `export_hybrid_gi_localized_support_history_wgpu_png` passes 1/1 and writes
+  `docs/tests/runtime/render/plan18_hybrid_gi_localized_support_history_wgpu_20260710.png` plus its
+  report. The inspected 385x128 comparison has 1918 visible pixels per half. Changing only the right
+  voxel-backed card from dark to emissive produces average RGB delta 9.550 there versus 3.051 on the
+  unchanged left Surface Cache card. Both frames retain `FrameHistoryHandle(1)`; the changed frame
+  reports public `FrameInputsChanged`, copies the HGI pair, and executes all four HGI passes. SHA-256 is
+  `4C90EDB80CF871A33D169972ECAE7F2771E37D5E431BE2434E31E832E7B68CA3`.
+- During the concurrent Runtime feature-profile hard cut, plugin acceptance required the temporary
+  command feature `zircon_runtime/target-client`. A root runtime lib-test remains blocked by that
+  external root-module transition and is not counted as green.
+
+The Hybrid GI V1 plan explicitly fixes software voxel clipmaps as the miss fallback and states that SDF
+or acceleration structures are not prerequisites. SDF/GDF is therefore not a V1 completion gate.
+Remaining V1 work is Deferred/Forward+ parity, the complete directional/point/spot/emissive lighting
+matrix, authored probe/trace fixture retirement, editor-default/runtime-opt-in and capability fallback,
+RenderDoc evidence, and full runtime/full CI.
+
+## 2026-07-10 Dynamic Light Matrix And Authoritative Radiance Ownership
+
+Surface Cache atlas texels and Voxel clipmap cells now have one explicit radiance owner. Card capture
+evaluates material base color, textures, roughness, directional orientation, point range attenuation,
+spot range/cone attenuation, and emissive before storing the result. Trace and completion consume that
+stored radiance without applying a scene-wide light seed again. Explicit `rt_lighting_rgb` is also a
+resolved-radiance input and bypasses relighting. The global seed remains only for synthetic hash colors
+used by migration fixtures that have no authoritative captured radiance.
+
+`update_completion.wgsl` was split so the scene-radiance classification and fallback contribution logic
+live in `update_completion_scene_radiance.wgsl`; the WGPU pipeline concatenates both sources. Source
+contracts in the wired pipeline test module lock the authoritative card/voxel and explicit RT bypasses.
+The trace dispatch ABI no longer carries directional/point/spot seed fields, and its wired contract
+requires locally lit Surface Cache RGB to survive unchanged.
+
+The product matrix uses one `RenderFramework`, the same pluginized HGI descriptor, the same
+`HybridGiInputSet`, and the same final composite for Forward+ and Deferred. Preview direct lighting is
+disabled. Eight viewports render three frames each: the top row is Forward+ and the bottom row is
+Deferred; columns are directional red, point green, spot blue, and warm emissive. Every panel reports
+one Surface Cache page, two trace tiles, one screen probe, one Voxel clipmap, and all four HGI graph
+passes. Forward+/Deferred center RGB is identical in every column:
+
+- directional `51.48,42.90,41.33`
+- point `41.19,50.87,42.75`
+- spot `41.41,42.95,51.13`
+- emissive `48.66,25.07,15.71`
+
+The first RED product run found that Deferred discarded `ZrSurfaceOutput.emissive`: its GBuffer had only
+albedo, normal, and material targets. The shared renderer now owns an HDR `Rgba16Float`
+`gbuffer-emissive` attachment. GBuffer shaders write `surface.emissive` at location 3, and Deferred
+lighting adds it after built-in or plugin shading-model dispatch. This fixes the lower shared renderer
+layer instead of weakening the HGI parity threshold.
+
+Validation evidence:
+
+- Wired HGI source/behavior regressions pass 6/6: trace authoritative-radiance preservation,
+  completion card/voxel and explicit RT bypass, plus directional orientation, point range, and spot cone.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime
+  --features zircon_runtime/target-client --locked --jobs 1` passed before concurrent manifest work; the
+  subsequent no-debug plugin test build passed offline against the updated lock state.
+- `export_hybrid_gi_dynamic_light_matrix_forward_deferred_wgpu_png` passes 1/1 through real WGPU
+  GBuffer and lighting pipelines. The inspected PNG is
+  `docs/tests/runtime/render/plan18_hybrid_gi_dynamic_light_matrix_forward_deferred_wgpu_20260710.png`,
+  771x257, SHA-256 `1F4CC3565B9E3B7C3F8B46D7B6B792E12EAABDF49D11F0A16AFD8D537F3970F6`.
+- `export_hybrid_gi_product_composite_spatial_radiance_wgpu_png` passes 1/1 and supersedes the old
+  scene-seed multiplication product. Its inspected 385x128 warm/cool PNG has center-channel deltas
+  5.42 red and 5.50 blue, executes four HGI passes on both halves, and has SHA-256
+  `EB9C8500CF2ED4F8FFEC8340C4C92FF7A6C04DFE5791BC50D62AFF78BDF29700`.
+- The first separate root runtime lib-test build exceeded 15 minutes under concurrent Rust memory
+  pressure and was stopped without a result. Its warmed no-debug target then completed the current
+  7,439-test binary, and all eight Deferred/emissive focused regressions passed from that same binary:
+  descriptor write/read, WGSL emission/validation, built-in and plugin GBuffer template ABI, and both
+  built-in and custom WGPU pipeline creation.
+- The broader default Deferred graph-order regression still fails on unrelated concurrent ordering
+  drift: the actual graph places `bloom-extract` before exposure while the stale expectation places it
+  after blur. This slice does not claim full runtime/full-workspace green or change that owner's order.
+
+This closes the V1 four-light Forward+/Deferred product matrix. It does not close Hybrid GI V1 or Plan
+18. Authored probe/trace fixture retirement, editor-default/runtime opt-in, capability fallback,
+RenderDoc capture, broader quality work, and full runtime/full CI remain open. SDF/GDF is still not a V1
+completion gate.

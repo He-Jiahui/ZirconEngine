@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/document_tabs/mod.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
@@ -10,6 +11,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs
   - zircon_editor/assets/ui/editor/workbench_dock_header.zui
 implementation_files:
+  - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
   - zircon_editor/src/ui/retained_host/tab_drag/tab_width.rs
@@ -17,6 +19,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/workbench_dock_header.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
+  - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
@@ -30,7 +33,7 @@ tests:
   - static scan: document-tab production width paths no longer contain `TITLE_WIDTH_PER_CHAR`, `document_tab_preferred_width(`, `estimate_text_width`, or `ascii_char_width`
   - focused Cargo for the 2026-07-04 runtime-measured document-tab tests remains deferred while unrelated cargo/rustc lanes are active
 doc_type: module-detail
-status: implemented-rustfmt-static-visual-cargo-deferred
+status: implemented-focused-and-visual-passed
 ---
 
 # Document Tab Metrics
@@ -43,7 +46,7 @@ The module is intentionally narrow. It does not own document state, tab activati
 
 - Closeable document tabs use `DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH`, which keeps labels such as `Asset Browser` readable before any later overflow work.
 - Plain document tabs use `DOCUMENT_TAB_MIN_WIDTH`, and all preferred widths are clamped by `DOCUMENT_TAB_MAX_WIDTH`.
-- `DOCUMENT_TAB_TITLE_FONT_SIZE` is the shared font-size contract for document-tab title measurement.
+- `DOCUMENT_TAB_TITLE_FONT_SIZE` projects `EditorTypographyTokens::WORKBENCH_BODY_SIZE` instead of owning a local pixel value. Unreal Starship's Normal 10-point size therefore becomes 13.33 logical pixels at the 96-DPI Slate baseline.
 - `document_tab_preferred_width_from_title_width(title_width, closeable)` accepts a runtime-measured title width and adds the appropriate close-control reserve instead of estimating from character count.
 - `document_tab_close_x(tab_x, tab_width)` is the canonical close-button x coordinate. The dock-header fallback projection and retained pointer tests consume this same helper.
 - The close button uses a 20 px icon-button frame with toolbar context styling, so its normal state stays transparent and only the close glyph remains visible.
@@ -68,6 +71,8 @@ The module is intentionally narrow. It does not own document state, tab activati
 
 The focused document-tab tests verify readable closeable tab width, measured-width clamp behavior, and close-button inset math. Existing retained document-tab pointer tests were updated to click the close center computed from shared metrics. Chrome projection tests assert the projected dock-header nodes keep readable document tabs, measure file-name labels through runtime text width, and keep the transparent close control inside the measured tab frame. Tab-drag tests assert document-tab drag width equals the same measured preferred width and that dock-tab drag width tracks wide versus narrow runtime glyphs.
 
-The button and icon-button regressions cover the supporting visual behavior: close icon names map to the `Close` glyph instead of the more-menu glyph, dock-tab close buttons use toolbar context without a persistent panel surface, and button label measurement uses the declared node font size so `Asset Browser` does not get under-measured at 12 px. The M3 screenshot harness refreshed `docs/tests/editor/editor-window-m3-workbench-900x620.png` after those changes, with build outputs kept in `D:\cargo-targets\zircon-editor-components-0626` rather than repo `target`.
+The button and icon-button regressions cover the supporting visual behavior: close icon names map to the `Close` glyph instead of the more-menu glyph, dock-tab close buttons use toolbar context without a persistent panel surface, and button label measurement uses the same declared body role as width measurement.
+
+The 2026-07-10 unit correction adds `document_tab_typography_uses_workbench_body_role` as a direct drift guard. Scoped rustfmt, the legacy numeric-font scan, and the focused test pass. Fresh component and 640/900/1260 Workbench captures under `docs/tests/editor` use the corrected body size; later composite work still owns overflow and wide-window distribution.
 
 For the 2026-07-04 runtime text follow-up, `docs/tests/runtime/text/runtime_text_editor_document_tab_runtime_measure_preview_20260704.png` records the document-tab width proof for the latest editor crop. Focused Cargo remains deferred until the unrelated compile lanes are idle, so this slice currently relies on rustfmt, static scans, module tests added in source, and the retained visual artifact.

@@ -119,6 +119,9 @@ related_code:
   - zircon_editor/assets/ui/editor/components/workbench/primitives\data\workbench_tree_row.zui
   - zircon_editor/assets/ui/editor/components/workbench/shell\workbench_viewport_panel.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
+  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state_ensure_viewport.rs
+  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
@@ -138,6 +141,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/globals.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained_host/viewport/viewport_state_ensure_viewport.rs
+  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
   - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
   - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
@@ -241,6 +247,8 @@ plan_sources:
   - .codex/plans/ZirconEngine 宿主编辑器 UI 基础能力计划.md
   - .codex/plans/Editor 基础组件 Material 化视觉优化计划.md
   - user: 2026-05-15 optimize retained editor UI styling with Material-like rounded controls and stronger feedback
+  - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
+  - user: 2026-07-11 continue editor-default Hybrid GI viewport activation
 tests:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
@@ -252,6 +260,7 @@ tests:
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
+  - zircon_editor/src/ui/retained_host/viewport/tests/controller_creates_and_resizes_render_framework_viewports.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/drawer_source_projection.rs
@@ -529,7 +538,7 @@ The recompute path builds a `WorkbenchViewModel`, computes workbench geometry, r
 
 The current shell structure comes from source-controlled `.zui` assets, not from generated UI files. Important host assets include:
 
-- `zircon_editor/assets/ui/editor/host/activity_drawer_window.zui`
+- `zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui`
 - `zircon_editor/assets/ui/editor/host/animation_graph_body.zui`
 - `zircon_editor/assets/ui/editor/host/animation_sequence_body.zui`
 - `zircon_editor/assets/ui/editor/host/asset_surface_controls.zui`
@@ -670,6 +679,19 @@ The old owner path was `zircon_editor::ui::slint_host` and the old source tree i
 Remaining references to Slint are allowed only as historical cutover context, no-Slint guard wording, or dependency-deletion evidence. Current code, tests, docs, and validation commands should use `retained_host`, `.zui`, and Rust-owned `host_contract` names.
 
 ## Validation
+
+The retained viewport controller installs an editor-only `editor-viewport-default` quality profile
+when it creates a render-framework viewport. That profile requests Hybrid GI without implicitly
+requesting Virtual Geometry. Both world-only and world-plus-UI submissions normalize the settings-only
+HGI extract by enabling it and filling zero trace/card/voxel budgets; authored nonzero budgets and
+other HGI settings are preserved. A failed profile install destroys the just-created viewport before
+the error is returned.
+
+The focused controller lifecycle test records both viewport quality profiles and both submitted HGI
+extracts and passed 1/1. App-level tests separately prove that Editor requests HGI by default, Runtime
+does not, and an advanced provider catalog selects HGI without VG. The editor-host Cargo preset still
+needs its advanced catalog feature relation from the active Frameworks 03 manifest owner, so this is
+not yet recorded as an end-to-end editor WGPU product result.
 
 The retained shell is guarded by:
 

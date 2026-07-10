@@ -3,7 +3,7 @@
 > 状态：工程化细化版 v2 · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1
 > 关联计划：`.codex/plans/Physics + Full Animation Support 新计划.md` · 现状文档：`docs/zircon_plugins/physics/runtime.md`
 > 参考实现：Godot `servers/physics_3d`（PhysicsServer3D body/shape/joint/area API 形态）、Jolt 官方 Samples（约束族与 ragdoll）
-> 最新进度（2026-06-14 00:21 +08:00）：在不刷新 `zircon_plugins/Cargo.lock` 的前提下，使用临时 manifest 与外部 target-dir 复跑 `physics_manager_runtime_contract`，32 项全通过（含 contact/query/step/world_sync 合约）。直接 `zircon_plugins/Cargo.toml --locked` 路径仍会在编译前因锁文件需要更新而停止，本次锁文件保持未改。
+> 最新进度（2026-07-11）：M1 已完成。M1-T1 backend trait/builtin 收编、M1-T2 双系统锚点、M1-T3 Jolt 原生 shape/body/step，以及 M1-T4 change detection/有界命令缓冲均已验收。最终 WSL 回归为 feature-on 46/46、feature-off 43/43；M2 刚体与形状族为下一里程碑。
 
 ## 1. 目标
 
@@ -36,7 +36,7 @@
 
 ## 3. 架构设计
 
-中立契约维持在 `zircon_runtime::core::framework::physics`；组件（RigidBody/Collider/Joint）维持 scene 静态组件 + 字段补全。后端裁决维持：**Jolt 是唯一必交付真实后端，builtin 保留为无后端降级**，同一 crate 内 feature gate（`jolt`），不新增外部 crate。
+中立契约维持在 `zircon_runtime::core::framework::physics`；组件（RigidBody/Collider/Joint）维持 scene 静态组件 + 字段补全。后端裁决维持：**Jolt 是唯一必交付真实后端，builtin 保留为无后端降级**，同一 crate 内 feature gate（`backend-jolt`），不新增独立 backend workspace crate；原生绑定作为 physics plugin 的可选依赖接入。
 
 ### 3.1 PhysicsBackend trait（`runtime/src/backend/` [backend.rs 改造为目录]）
 
@@ -156,7 +156,7 @@ zircon_runtime/src/core/framework/physics/
 zircon_plugins/physics/runtime/src/
   backend/mod.rs               [改造自 backend.rs] PhysicsBackend trait + handle 类型
   backend/builtin/mod.rs       [新增] 现 builtin_step/query_contact 收编
-  backend/jolt/mod.rs          [新增] joltc-sys 绑定（feature jolt）
+  backend/jolt/mod.rs          [新增] joltc-sys 绑定（feature backend-jolt）
   backend/jolt/conversion.rs   [新增] 契约 DTO ↔ Jolt 类型映射
   constraint/{fixed,distance,hinge,slider,cone_twist,six_dof}.rs  [新增]
   skeletal/profile.rs          [新增] RagdollProfile 资产解析
@@ -222,7 +222,7 @@ zircon_plugins/physics/runtime/src/
 
 ```bash
 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --features jolt --locked
+cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --features backend-jolt --locked
 ```
 
 ## 7. 风险
@@ -242,3 +242,13 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_ru
 | Server API 形态（RID handle/查询） | `dev/godot/servers/physics_3d/` | body/shape/joint/area 的不透明 handle API 面、direct state 读取边界 |
 | 纯软件降级后端形态 | `dev/godot/modules/godot_physics_3d/` | builtin 后端能力边界划定的参照 |
 | ragdoll/骨骼物理 | `dev/UnrealEngine/Engine/Source/Runtime/Engine/`（PhysicsEngine 子目录，PhysicsAsset 形态）与 `dev/godot/modules/jolt_physics/` 的关节实现 | 骨骼 → body/constraint 映射、Animated/Simulated 切换的速度初始化 |
+
+## 9. 状态与产出记录
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
+|---|---|---|---|---|
+| M1 | Physics manager 生产锁 poison recovery（结构规范 E9 / 审查优先项） | `plugins_03_m1_physics_manager_poison_recovery_scoped_wsl_2_of_2_passed` | 2026-07-10 | 新增 `manager/poison_recovery.rs` 单一恢复 owner 与 `manager/tests.rs` 两个真实 manager 回归；`settings/clock/query/service/world_sync` 的生产 poison-panic 取锁由 indexed 18 处降为 0。WSL nightly `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --lib --features zircon_runtime/target-server --locked` 通过；同组合 `cargo test ... --lib ... physics_manager_ -- --nocapture --test-threads=1` 为 2/2。默认无 feature 路径在进入 Physics 前被 active Frameworks 的 `diagnostic_log` feature 边界 E0432 阻断，未误记为本切片失败或通过；验收见 `tests/acceptance/plugins-03-physics-manager-poison-recovery.md`。 |
+| M1-T1 | PhysicsBackend trait + builtin 收编 | `plugins_03_m1_t1_backend_trait_builtin_wsl_35_of_35_passed` | 2026-07-10 | `backend.rs` 硬切为 folder-backed trait/typed error/generation handle/descriptor/selector owners；Builtin step、query/contact、trigger 全部迁入 `backend/builtin/**`，旧 root 路径同批删除。TDD RED 仅报 8 个预期缺失契约符号；WSL nightly locked/offline backend tests 3/3，既有 `physics_manager_runtime_contract` 32/32。façade 22 行，最大新增生产 owner 387 行；验收见 `tests/acceptance/plugins-03-physics-backend-trait-builtin.md`。M1-T4 仍 open。 |
+| M1-T2 | `physics.step` / `physics.sync_to_scene` 双系统锚点 | `plugins_03_m1_t2_dual_physics_system_anchors_wsl_40_of_40_passed` | 2026-07-10 | 注册入口硬切为复数 `register_runtime_systems`；`physics.step` 位于 FixedUpdate、`physics.sync_to_scene` 位于 FixedPostUpdate，二者同属 `physics.main`。后者把同步快照中的 active body 位姿、刚体类型、质量、速度、阻尼、重力、休眠与轴锁真实回写 scene。有效 TDD RED 运行 1 项并因缺少 sync 锚点失败；GREEN 物理库测试 8/8、既有管理器契约回归 32/32。验收见 `tests/acceptance/plugins-03-physics-system-anchors.md`。M1-T4 仍 open。 |
+| M1-T3 | `joltc-sys` 原生 shape/body/step 后端 | `plugins_03_m1_t3_joltc_native_backend_wsl_feature_43_of_43_default_41_of_41_windows_2_of_2_passed` | 2026-07-11 | `backend-jolt` 接入可选 `joltc-sys 0.3.1+Jolt-5.0.0`；`backend/jolt/**` 分离层过滤、转换、native world 与 trait runtime owner，manager 为每个 scene world 持有持久原生 world，支持 Box/Sphere/Capsule body 创建、命令应用、step 与 active-state 回写。选择器在 feature-on 时报告 Ready 并执行 Jolt，feature-off 时明确 Unavailable，两个路径均不静默回落 builtin。TDD backend RED 仅缺 Jolt owner；manager RED 两项均因 backend 未激活失败。WSL nightly locked/offline feature-on 完整 43/43、默认 feature-off 41/41；Windows MSVC 在配置 `LIBCLANG_PATH` 后原生后端 2/2；插件结构审计违规 0。原生 query/event/constraint 与 M1-T4 change detection/命令缓冲未在本行认领；验收见 `tests/acceptance/plugins-03-physics-jolt-backend.md`。 |
+| M1-T4 | change detection + manager command buffer | `plugins_03_m1_t4_change_detection_command_buffer_wsl_feature_46_of_46_default_43_of_43_passed` | 2026-07-11 | `manager/change_detection.rs` 以每实体已提交快照区分无变化、可命令更新与需要重建的结构变化；`manager/command_buffer.rs` 提供按 world/entity 定位的公开 typed 命令、非有限输入拒绝和每 world 4,096 项有界队列。Builtin/Jolt 都只在下一次真实 FixedUpdate drain；Jolt 先按当前 generation handle 对账，再按提交顺序应用命令，active readback 同步基线避免下一步重复下发。TDD RED 分别锁定缺失 change-detection owner 和缺失命令 API；GREEN 锚点 `unchanged_bodies_skip_sync`、`force_applied_outside_fixed_update_lands_next_step` 及 Jolt queued-force 均通过。WSL nightly locked/offline feature-on 12+34=46/46、默认 feature-off 10+33=43/43；生产 manager panic/allow 扫描 0，插件结构审计违规 0。验收见 `tests/acceptance/plugins-03-physics-change-detection-command-buffer.md`。 |

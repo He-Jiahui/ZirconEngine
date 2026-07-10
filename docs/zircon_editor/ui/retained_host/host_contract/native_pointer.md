@@ -246,6 +246,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/mode.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/template.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/viewport_body.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/viewport_body/body.rs
@@ -581,6 +582,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/mode.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/template.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/viewport_body.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/viewport_body/body.rs
@@ -1186,6 +1188,10 @@ The 2026-06-21 tab-drag damage regions split reduced `native_pointer/tab_drag_da
 The 2026-06-21 tab-drag damage union visible split reduced `native_pointer/tab_drag_damage/union.rs` from 36 lines to a 3-line structural entry. `union/visible.rs` is 21 lines and owns visible-frame filtering plus union accumulation through the shared `frame_geometry` helpers. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a tab-drag damage union visible ownership scan, scoped trailing-whitespace scan, and scoped `git diff --check`; package-level Cargo check was not relaunched because the current editor package check lane has been timing out before actionable editor diagnostics, and full Cargo tests remain deferred per the user's instruction.
 
 The 2026-06-20 constants/state split reduced `native_pointer.rs` from 33 lines to a 25-line structural entry. `native_pointer/constants.rs` is 11 lines and owns host/viewport pointer event ids plus viewport button ids; `native_pointer/state.rs` is 5 lines and owns `NativePointerButtonState`. The 2026-06-20 owner visibility sweep kept drag/resize, routing, menu geometry, constants, and state re-exports inside the `host_contract` owner boundary. Validation used `cargo fmt -p zircon_editor --check`, a root ownership scan confirming raw constants and enum definition no longer live in `native_pointer.rs`, scoped `git diff --check`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passes with existing warning noise only. Full Cargo test matrix remains deferred to the milestone validation stage per the user's instruction.
+
+The 2026-07-10 Activity asset-content routing slice adds `routing/panes/pane/entry/asset_content.rs` as the single panel-hit owner. After viewport-toolbar resolution and before generic template-node hit testing, it locates the stable `AssetsActivityContentPanel`, translates that pane-local frame by the resolved body origin, and constructs `PanePointerTarget::AssetContent("activity")` with panel-local coordinates. Pointer input outside that panel retains the existing template-node and `AssetTree` fallbacks. The route leaf contains no content layout math, compatibility alias, or paint behavior.
+
+The review-driven RED test showed the pre-fix native wheel route damaged the whole Assets body `(34,104,230,350)` instead of the content panel `(34,168,230,170)` and the compiler reported `PanePointerTarget::AssetContent` as never constructed. After the route leaf, the real wheel event reaches the content callback, writes a positive shared scroll offset, repaints content, and leaves Preview pixels unchanged. A later RED reported `template_control=WorkbenchScenePlayerItem` at the intended asset-row point: the top-level move dispatcher was allowing a base Workbench template node to preempt pane semantics. `move_dispatch/workbench.rs` now separates popup-row dispatch from base-template dispatch, and `move_dispatch/entry/body.rs` orders menu, Workbench popup, pane, then Workbench base-template handling. This preserves open dropdown/menu row priority while allowing `AssetContent("activity")` to receive the move. The final combined wheel/move/single-row-hover test passes 1/1 through the callback/writeback boundary.
 
 ## Focused Regression Coverage
 

@@ -43,7 +43,9 @@ This document defines the editor workbench visual language as a code-facing cont
 
 ## Behavior Model
 
-The editor token model has four groups: palette, controls, density, and state roles. Palette stores the near-black surface ladder, the teal accent, border, and text colors. Controls store the 28-32 px dense control heights, low radii, and 1 px border width. Density stores gaps, drawer padding, row height, and the shell size tokens for left drawer, right drawer, and bottom output.
+The editor token model has five groups: palette, typography, controls, density, and state roles. Palette stores the near-black surface ladder, the teal accent, border, and text colors. Typography stores logical font families, weights, smoothing, line height, and 96-DPI logical-pixel sizes. Controls store the 28-32 px dense control heights, low radii, and 1 px border width. Density stores gaps, drawer padding, row height, and the shell size tokens for left drawer, right drawer, and bottom output.
+
+The workbench typography defaults preserve Unreal Starship's authored 10/8/14 point scale. Unreal's `SlateFontInfo.h` defines font size in points and converts it to Slate Units at 96 DPI, so the shared Zircon token values are 13.33/10.67/18.67 logical pixels rather than 10/8/14 pixels. DPI scaling happens later at the runtime text raster boundary; controls must not convert these logical values a second time.
 
 State roles map resolved painter states to color roles without changing `UiPainterStyleSelector` priority. Disabled still wins before loading, pressed, selected/focused, hovered, and normal. Tokens only decide what color each already-resolved state uses.
 
@@ -62,6 +64,8 @@ The token defaults deliberately project into `UiThemeDocument` so existing style
 The token asset is allowed to contain literal color values because it is the source of truth. Component `.zui` files should reference token names as later slices remove duplicated naked colors from component definitions.
 
 The S2 hard cutover has started with the layout-owned skeleton/floating assets and the shell drawer width declarations. `workbench_skeleton.zui`, `command_palette.zui`, and `preferences.zui` import `editor_tokens.zui` and use `editor.surface.*`, `editor.text.*`, and `editor.border` token names instead of local hex colors. `workbench_main_band.zui`, `workbench_scene_tree_panel.zui`, and `workbench_inspector_panel.zui` import the same token asset and use `$--left-drawer-width` / `$--right-drawer-width` instead of local drawer pixel widths. Older shell/module workbench assets still contain historical literal colors and remain explicitly open for the wider cleanup slice.
+
+`editor_tokens.zui` mirrors the converted logical typography sizes. The serialized values are already logical pixels, not point values, so asset loading and appearance preferences use the same units as `EditorTypographyTokens`.
 
 ## Floating Window Design Parity Checklist
 

@@ -35,6 +35,8 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
   - cargo test -p zircon_editor --lib compact_workbench_toolbar_uses_slate_command_density --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary --message-format short --color never -- --test-threads=1 --nocapture
+  - cargo test -p zircon_editor --lib full_workbench_secondary_module_commands_keep_readable_width --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-atomic-20260710-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-10: 1 passed)
+  - direct fresh zircon_editor test binary capture_full_workbench_run_mode_visual_artifact --exact --ignored --test-threads=1 --nocapture (2026-07-10: passed; docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png, SHA256 02FB8D64...F888B)
   - cargo build -q -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary
   - direct zircon_editor test binary capture_m3_gui_acceptance_visual_artifacts --ignored --exact --test-threads=1 --nocapture (2026-06-29: passed, refreshed docs/tests/editor/editor-window-m3-workbench-900x620.png)
   - cargo test -p zircon_editor --lib compact_workbench_file_and_module_commands_use_toolbar_icon_family --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0626 --message-format short --color never -- --test-threads=1 --nocapture
@@ -67,7 +69,7 @@ status: implemented-focused-passed-build-screenshot-passed
 
 At widths up to `COMPACT_TOOLBAR_MAX_WIDTH`, the toolbar keeps Scene, Effect, Ability, Tags, Perception, and Material visible with readable widths. Behavior, Render, Assets, VFX, and HUD are hidden behind the overflow entry. Diff, Simulate, and secondary tool/run groups are hidden until full-toolbar width.
 
-The compact module command group now reserves 276 px for the primary text commands: Save is 72 px, Browse is 92 px, Compile is 104 px, and the two inter-command gaps remain 4 px. The full command group is 350 px so the same primary command widths still fit when Diff and Simulate become visible. This follows the Slate toolbar rule used by the current design slice: keep primary text commands readable first, then collapse secondary commands instead of compressing primary labels into `Sa...`.
+The compact module command group reserves 276 px for the primary text commands: Save is 72 px, Browse is 92 px, Compile is 104 px, and the two inter-command gaps remain 4 px. The full command group is 388 px: it preserves those primary widths, gives Diff 54 px and Sim 50 px, and keeps all four gaps at 4 px. This follows the Slate toolbar rule used by the current design slice: keep command labels readable first, then collapse secondary commands at smaller breakpoints instead of compressing labels into clipped fragments.
 
 `WorkbenchModuleMore` dispatches `workbench.module.more.open` and participates in preview action registration. The action now opens `WorkbenchModuleOverflowMenu`, a retained `WorkbenchPopupMenu` node declared in the Workbench window template. The overflow menu lists the hidden module tabs and routes selection back through the same tab dispatch path used by visible module tabs.
 
@@ -82,6 +84,8 @@ The follow-up shell icon asset pass centralizes toolbar and compound-control ico
 When the toolbar is not compact, `toolbar_layout.rs` collapses the overflow trigger and closes `WorkbenchModuleOverflowMenu` so a stale hidden popup cannot remain open after resizing. `window_menu_state.rs` also includes the overflow popup in the toolbar menu exclusivity set, so More, File/Edit, Run Mode, and Layout menus cannot stay open together.
 
 ## Visual Evidence
+
+The 2026-07-10 wide-toolbar correction refreshed `docs/tests/editor/editor-window-m3-workbench-run-mode-1672x941.png` from the fresh test binary. Diff and Sim now render as complete labels in the 1672-pixel toolbar; the screenshot is 206249 bytes with SHA256 `02FB8D6447185527245C1CE436E17DC938237CCBCDC1E5628BE88794654F888B`. The 900-pixel M3 set was also rerun and kept its previous hash, confirming the compact hidden-secondary route did not regress. Target scans found no matching validation PNGs under the repository or external Cargo target.
 
 The screenshot harness refreshes `docs/tests/editor/editor-window-m3-workbench-900x620.png`. The validated 900px toolbar no longer displays `Sc...`, `Eff...`, or `Abili...` in the top module strip. The focused overflow screenshot writes `docs/tests/editor/editor-window-m3-workbench-module-overflow-900x620.png`, showing the More popup anchored below the toolbar with Behavior, Render, Assets, VFX, and HUD rows.
 

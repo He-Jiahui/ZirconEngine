@@ -20,6 +20,8 @@ related_code:
   - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_app/Cargo.toml
 implementation_files:
   - zircon_runtime/src/core/framework/net/mod.rs
   - zircon_runtime/src/core/framework/net/diagnostics.rs
@@ -39,9 +41,17 @@ implementation_files:
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_runtime/src/core/framework/net/websocket.rs
   - zircon_runtime/src/core/framework/net/tests.rs
+  - zircon_runtime/src/core/framework/mod.rs
+  - zircon_runtime/src/core/manager/mod.rs
+  - zircon_runtime/src/core/manager/resolver.rs
+  - zircon_runtime/src/core/manager/service_names.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_app/Cargo.toml
 plan_sources:
   - user: 2026-06-04 plugin ecosystem infrastructure expansion
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
+  - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
   - zircon_runtime/src/core/framework/net/tests.rs
   - endpoint_transport_and_security_policy_are_neutral_contracts
@@ -53,6 +63,8 @@ tests:
   - cargo check -p zircon_runtime --tests --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime-core-min-check --message-format short --color never (passed 2026-06-07)
   - cargo test -p zircon_runtime --lib http_and_websocket_descriptors_keep_protocol_state_data_only --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime --message-format short --color never -- --test-threads=1 --nocapture (timed out during test-binary link on 2026-06-07)
   - cargo test -p zircon_runtime --lib http_and_websocket_descriptors_keep_protocol_state_data_only --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607-runtime-core-min --message-format short --color never -- --test-threads=1 --nocapture (timed out during test-binary link on 2026-06-07)
+  - python -m unittest tools.tests.test_frameworks_03_contract_feature_boundary
+  - cargo +nightly check -p zircon_runtime --lib --no-default-features --features net-contracts --locked --offline --jobs 1
 doc_type: module-detail
 ---
 
@@ -64,6 +76,12 @@ doc_type: module-detail
 
 Concrete runtime behavior lives in `zircon_plugins/net/runtime` and optional feature crates. Runtime and editor callers should resolve a `NetManager` handle and exchange framework DTOs instead of sharing plugin-owned socket or backend objects.
 
+## Feature Boundary
+
+The contract compiles only with `net-contracts`. Runtime and App Client/Editor presets include it to preserve their default contract surface; `target-server` does not enable it implicitly. Server builds that select a Net provider receive the contract from that provider's explicit dependency request.
+
+Every plugin crate that directly imports `core::framework::net` declares `zircon_runtime` with `features = ["net-contracts"]`, including the six optional transport/protocol feature crates. The framework root and manager spine gate only declarations, re-exports, service names, and resolver generation; transport business logic contains no feature branch.
+
 ## Related Files
 
 The framework is folder-backed and `mod.rs` is only the re-export surface.
@@ -74,7 +92,7 @@ The framework is folder-backed and `mod.rs` is only the re-export surface.
 - `rpc.rs` and `session.rs` define RPC direction, peer-role gates, invocation/report records, control messages, and handshake policy.
 - `sync.rs` defines replication component schemas, object snapshots, deltas, interest groups, budgets, and schedule reports.
 - `reliable.rs` defines reliable datagram configuration, simulation profiles, fragment packets, ACKs, delivery reports, receive reports, and recovery state.
-- `download.rs` defines chunked content download manifests, shared `ZrPackManifest`/`ZrChunkEntry` pack metadata, range-resume attempts, and progress state.
+- `download.rs` defines transport-facing chunk download descriptors, range-resume attempts, mirrors, and progress state. ZRPack format manifests and chunk-table entries belong to `asset::pack`.
 - `event.rs` and `diagnostics.rs` expose transport-independent runtime events and copied status counters. Lifecycle events include socket bind/close, listener start/close, connection state/accept/close, HTTP route register/unregister, WebSocket pair open, and queued WebSocket frames.
 
 ## Behavior Model
@@ -95,7 +113,7 @@ The base transport set is explicit:
 
 `NetSecurityPolicy` is also a DTO. It records TLS requirement, certificate pinning, certificate pins, and local development loopback policy. The framework does not open TLS sessions or validate certificates by itself.
 
-`ZrPackManifest` and `ZrChunkEntry` are shared data contracts for content-download and export/packaging code. The framework records version, chunk offsets, byte sizes, total size, and 32-byte chunk hash bytes, and exposes deterministic helpers for covered byte totals, chunk end offsets, and complete byte-plan checks. Hash computation and refetch policy remain plugin/export responsibilities, so the framework can stay dependency-neutral.
+The Net contract intentionally does not own an asset container format. `NetDownloadManifest` describes the remote resource and transfer chunks needed by a download provider, while `asset::pack::{ZrPackManifest, ZrChunkEntry}` describes the bytes after they are interpreted as a ZRPack artifact. This hard ownership split prevents a foundational asset reader/writer from depending on the optional Net contract solely to deserialize its own format.
 
 ## Reference Alignment
 
@@ -128,7 +146,11 @@ Data construction is intentionally permissive. Runtime implementations still own
 
 ## Test Coverage
 
-Framework tests now lock endpoint/transport/security DTO behavior, `NetDiagnostics` listener-count/bandwidth/latency serde, HTTP/WebSocket descriptor defaults and serde, NetEvent lifecycle serde for close/unregister variants plus transport-qualified accept/close variants, RPC/session/handshake records, reliable datagram recovery/download resume records, `ZrPackManifest`/`ZrChunkEntry` serde and byte-plan helpers, and replication interest/budget/delta semantics. The current slice intentionally avoids real network IO so the framework contract remains deterministic and can run inside `zircon_runtime` without starting sockets.
+Framework tests now lock endpoint/transport/security DTO behavior, `NetDiagnostics` listener-count/bandwidth/latency serde, HTTP/WebSocket descriptor defaults and serde, NetEvent lifecycle serde for close/unregister variants plus transport-qualified accept/close variants, RPC/session/handshake records, reliable datagram recovery/download resume records, and replication interest/budget/delta semantics. ZRPack serde and byte-plan coverage lives with the asset pack tests. The current slice intentionally avoids real network IO so the framework contract remains deterministic and can run inside `zircon_runtime` without starting sockets.
+
+The 2026-07-10 Frameworks 03 ownership guard confirms Net no longer defines or re-exports ZRPack DTOs and asset pack production sources no longer reference `core::framework::net`. The shared export-pack source build passed its WSL nightly locked/offline check and 3/3 binary tests after the fake Net owner was deleted.
+
+The Net feature slice then passed WSL nightly locked/offline checks for Runtime `net-contracts` alone, Runtime Server without Net, and all seven direct Net plugin consumers. Detailed timings and package scope are recorded in `tests/acceptance/frameworks-03-net-contract-feature-boundary.md`.
 
 Focused validation for the M7 Net diagnostics DTO update ran on 2026-06-14 as part of the Net runtime/editor slice. Rustfmt and path-scoped `git diff --check` passed for the touched Net framework/runtime/editor files. The Net runtime and editor package checks each passed once after implementation with lockfiles restored, but the final rerun was blocked before Net tests by an unrelated untracked UI `tree_view.rs` compile drift. No final framework/runtime test pass is claimed until that external file state is resolved.
 

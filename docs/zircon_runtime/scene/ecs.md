@@ -1034,11 +1034,18 @@ tests:
   - direct source guard for First-stage `zircon.scene.events_update_all` registration, `InternalSceneSystem::UpdateEvents` dispatch, and `World::update_all_events()` forwarding to `EventStore::update_all()` (2026-06-20 Runtime 05 event update-all source guard: passed)
   - direct source guard for dormant `EventSubscription<T>` registration, connect/disconnect reader-count transitions, and disconnected reads returning an empty iterator (2026-06-20 Runtime 05 event subscription boundary source guard: passed)
   - tests/acceptance/ecs-to-render-chain.md
+  - tools/tests/test_runtime_ecs_kernel_data_audit.py
+  - tests/acceptance/runtime-ecs-kernel-data-audit-owner-sync.md
+  - tests/acceptance/runtime-ecs-kernel-filters-current-result.md
   - .github/workflows/ci.yml
 doc_type: module-detail
 ---
 
 # Scene ECS Kernel
+
+Runtime 08 executable reconciliation (2026-07-10): `change_tick` passes 4/4 and `messages` passes 24/24. The available binary reports `entity` 78/81, `observer` 16/17, `command` 144/149, and `ecs` 330/340; every Runtime 08-owned stale owner/status/naming guard selected by those filters has current-source focused evidence, while one LUT render behavior failure and one strict render GPU-context 800-line budget failure remain external/open. Full filter promotion waits for a fresh binary. Evidence: `tests/acceptance/runtime-ecs-kernel-filters-current-result.md`.
+
+Runtime 08 current child-owner sync (2026-07-10): `ecs_kernel_data_boundary` reports `expected_source_file_count = 69`, `expected_test_file_count = 10`, `archetype_anchors = 15/15`, `storage_anchors = 9/9`, `component_storage_private_reexport_anchors = 9/9`, `component_identity_anchors = 18/18`, `entity_lifecycle_anchors = 10/10`, `observer_anchors = 8/8`, `deferred_command_anchors = 11/11`, `event_message_anchors = 12/12`, `resource_identity_anchors = 12/12`, `change_tick_anchors = 6/6`, `runtime_08_guard_anchors = 21/21`, `behavior_test_anchor_count = 16`, `missing_behavior_test_anchors = []`, `doc_anchors = 13/13`, `pending_cargo_gate_anchors = 6/6`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, ECS module doc, M0 review, and interface-convergence mirror aligned. The 10 test owners explicitly include `ecs_kernel_data/inventory.rs` and `cargo_gates/early/runtime_08.rs`; this supersedes the historical 8-route-owner mirror and does not close the pending `entity/observer/command/messages/change_tick/ecs` Cargo gates.
 
 `zircon_runtime::scene::ecs` is the local ECS kernel beneath the public `World` authority. The public scene identity remains `EntityId = u64` for editor, asset, and serialized scene compatibility. Internally, the kernel now carries these lower-layer responsibilities:
 

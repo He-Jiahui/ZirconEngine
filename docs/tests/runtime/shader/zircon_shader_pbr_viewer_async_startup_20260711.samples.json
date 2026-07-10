@@ -1,0 +1,39 @@
+{
+  "started_at": "2026-07-11T02:13:19.0904455+08:00",
+  "process_id": 84952,
+  "exe": "E:\\ZirconBuilds\\shader-pbr-viewer-20260711\\zircon_shader_pbr_viewer.exe",
+  "samples": [
+    {
+      "elapsed_seconds": 1,
+      "process_exists": true,
+      "responding": true,
+      "window_handle": 154863342,
+      "window_title": "Zircon PBR HDRI Mirror Viewer",
+      "cpu_seconds": 0.719
+    },
+    {
+      "elapsed_seconds": 3,
+      "process_exists": true,
+      "responding": true,
+      "window_handle": 154863342,
+      "window_title": "Zircon PBR HDRI Mirror Viewer",
+      "cpu_seconds": 2.594
+    },
+    {
+      "elapsed_seconds": 5,
+      "process_exists": true,
+      "responding": true,
+      "window_handle": 154863342,
+      "window_title": "Zircon PBR HDRI Mirror Viewer",
+      "cpu_seconds": 4.359
+    },
+    {
+      "elapsed_seconds": 10,
+      "process_exists": true,
+      "responding": true,
+      "window_handle": 154863342,
+      "window_title": "Zircon PBR HDRI Mirror Viewer",
+      "cpu_seconds": 11.25
+    }
+  ]
+}

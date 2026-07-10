@@ -48,6 +48,7 @@ related_code:
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - docs/zircon_runtime/scene/world/project_io.md
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
+  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py
@@ -73,6 +74,7 @@ implementation_files:
   - zircon_runtime/src/animation/scene_hook/scan.rs
   - zircon_runtime/src/animation/scene_hook/tick.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
+  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
@@ -88,6 +90,8 @@ plan_sources:
   - .codex/sessions/20260611-0416-rendering-10fps-analysis.md
 tests:
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
+  - tests/acceptance/runtime-performance-filters-current-result.md
+  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates.rs
   - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
@@ -103,11 +107,15 @@ doc_type: module-detail
 
 # Runtime 07 Hotspot Inventory
 
+Current executable reconciliation 2026-07-10: the available binary passed all 56 selected `ecs_query` behavior tests; its two naming failures pass 2/2 in current source. `extract` passed 281/311; seven Runtime 07/15-owned source/status guards now pass as performance-hotspots 5/5, structure 2/2, naming 1/1, plus a 50-file production-only snapshot scan with zero offenders. The remaining 23 failures stay assigned to active render/HGI/UI/Text owners, and both full filters remain pending until a fresh binary rerun. Evidence: `tests/acceptance/runtime-performance-filters-current-result.md`.
+
 ## Evidence Gate
 
 No Runtime 07 M2 optimization slice may start from an unmeasured suspicion. A candidate is eligible only when it has a named diagnostic path, a named test or capture source, and an owner verdict that says whether the work belongs to Runtime 07 or to a render/plugin/editor plan.
 
 The authoritative top list is still blocked by runtime sampling. The real vampire performance run now has a local ZR VM library path (`E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug`) and runtime DLL path (`E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug`) identified, and the lib-test support compile blockers found during the 2026-06-17 M0.1 attempt have been repaired. The follow-up command timed out after 904 seconds without test output or a `vampire_runtime_perf` sample, so the current list is a guarded scaffold rather than the final sorted M1.3 result.
+
+The Dynamic Session event-split guard resolves historical hotspot counts from Runtime 07's numbered output archive and index-migration evidence from its numbered runtime-index archive. Parent plans remain current routing/overview owners and are not required to duplicate concrete counts. The current standalone guard passes 1/1; this routing repair does not promote the still-pending Runtime 07 extract, query, profiling, or FPS behavior gates.
 
 ## Authoritative Top List
 

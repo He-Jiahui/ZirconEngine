@@ -38,13 +38,13 @@ tests:
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_reports_runtime_fps_and_render_work --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, ZR_VAMPIRE_CAPTURE_PNG, ZR_VAMPIRE_CAPTURE_WIDTH=640, and ZR_VAMPIRE_CAPTURE_HEIGHT=360 set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR and ZR_VAMPIRE_CAPTURE_PNG=examples/vampire/screenshots/vampire-runtime-point-lights-640.png
-  - cargo test -p zircon_runtime --lib vampire_project_session_starts_paused_until_start_button_click --features zr-vm-real-backend --target-dir D:\cargo-targets\zircon-runtime-06-real-backend-0616 -- --nocapture --test-threads=1 with Release ZR_VM_RUST_BINDING_LIB_DIR and PATH: passed 2026-06-16
-  - cargo test -p zircon_runtime --lib vampire_project_session_game_over_menu_retries_to_playing --features zr-vm-real-backend --target-dir D:\cargo-targets\zircon-runtime-06-real-backend-0616 -- --nocapture --test-threads=1 with Release ZR_VM_RUST_BINDING_LIB_DIR and PATH: passed 2026-06-16
+  - cargo test -p zircon_runtime --lib vampire_project_session_starts_paused_until_start_button_click --features backend-zr-vm --target-dir D:\cargo-targets\zircon-runtime-06-real-backend-0616 -- --nocapture --test-threads=1 with Release ZR_VM_RUST_BINDING_LIB_DIR and PATH: passed 2026-06-16
+  - cargo test -p zircon_runtime --lib vampire_project_session_game_over_menu_retries_to_playing --features backend-zr-vm --target-dir D:\cargo-targets\zircon-runtime-06-real-backend-0616 -- --nocapture --test-threads=1 with Release ZR_VM_RUST_BINDING_LIB_DIR and PATH: passed 2026-06-16
   - D:\cargo-targets\zircon-runtime-06-real-backend-0616\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with Release ZR_VM_RUST_BINDING_LIB_DIR and PATH: passed 2026-06-16 after EV100 scene exposure migration
-  - cargo test -p zircon_runtime --lib vampire_project_session_capture_frame_draws_world_hud_bars --features zr-vm-real-backend --target-dir D:\cargo-targets\zircon-vampire-menu-vm-0611 -- --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, PATH, and ZR_VAMPIRE_CAPTURE_PNG=examples/vampire/screenshots/vampire-runtime-ground-fixed-640.png: pending current validation stage
+  - cargo test -p zircon_runtime --lib vampire_project_session_capture_frame_draws_world_hud_bars --features backend-zr-vm --target-dir D:\cargo-targets\zircon-vampire-menu-vm-0611 -- --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, PATH, and ZR_VAMPIRE_CAPTURE_PNG=examples/vampire/screenshots/vampire-runtime-ground-fixed-640.png: pending current validation stage
   - target\debug\deps\zircon_runtime-de6f737e1b69a0f9.exe render_product_pbr_submit_reports_material_fallback_and_light_stats --test-threads=1
   - cargo check -p zircon_runtime --lib --message-format short --color never
-  - cargo build -q -p zircon_app --bin zircon_runtime --features first-party-zr-vm-real-backend
+  - cargo build -q -p zircon_app --bin zircon_runtime --features backend-zr-vm
 doc_type: module-detail
 ---
 

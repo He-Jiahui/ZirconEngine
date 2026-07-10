@@ -22,6 +22,11 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/load_report/report.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/lib.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_app/Cargo.toml
+  - zircon_app/src/plugins/groups.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
+  - tools/tests/test_frameworks_03_domain_feature_matrix.py
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
@@ -45,6 +50,7 @@ related_code:
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - tools/check-runtime-domain-features.ps1
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/sound/plugin.toml
@@ -63,6 +69,7 @@ related_code:
   - .codex/skills/zircon-dev/reporting.md
   - docs/runtime-plugins/bevy-parity-matrix.md
 implementation_files:
+  - tools/check-runtime-domain-features.ps1
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/runtime/runtime.rs
@@ -121,12 +128,14 @@ implementation_files:
   - .codex/skills/zircon-dev/reporting.md
   - docs/runtime-plugins/bevy-parity-matrix.md
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-08 实现 ZirconEngine Bevy 级插件完成度里程碑计划
   - user: 2026-05-16 continue Bevy-style MinimalPlugins/runtime profile convergence
   - user: 2026-05-24 继续完善 ZirconEngine 到 Bevy 完成度的详细计划并引用 Bevy 源码
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
 tests:
+  - tools/tests/test_frameworks_03_domain_feature_matrix.py
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/tests/prelude.rs
   - zircon_runtime/src/tests/prelude.rs
@@ -143,9 +152,9 @@ tests:
   - cargo metadata --format-version 1 --no-deps --locked
   - cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture
   - cargo test -p zircon_app --locked profile_bootstrap
-  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" first_party_sound_provider_preserves_manifest_maturity_and_capability_status -- --nocapture --test-threads=1
-  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
-  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" first_party_sound_provider_preserves_manifest_maturity_and_capability_status -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
   - cargo check -p zircon_runtime --lib --locked
   - cargo test -p zircon_runtime --lib prelude --locked
   - cargo test -p zircon_runtime --lib state --locked
@@ -154,7 +163,7 @@ tests:
   - cargo test -p zircon_runtime --lib plugin_extensions::export_build_plan --locked
   - cargo test -p zircon_app --locked plugins
   - cargo test -p zircon_app --locked prelude
-  - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
+  - cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib advanced_render_plugin_manifests_declare_profile_capabilities --locked --jobs 1 --message-format short --color never
   - cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
   - docs-only M1 review: app plugin groups, stable prelude, state/time/tasks/log/diagnostics gates are sourced from Bevy and Zircon files
@@ -166,6 +175,7 @@ tests:
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::runtime_plugin_activate_uses_descriptor_order_before_feature_activate
   - rustfmt --edition 2021 --check --config skip_children=true zircon_runtime/src/builtin/runtime_modules/core_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs zircon_runtime/src/builtin/runtime_modules/load_report/report.rs zircon_runtime/src/builtin/runtime_modules/assembly.rs zircon_app/src/plugins/builder.rs zircon_app/src/entry/engine_entry.rs zircon_app/src/entry/builtin_modules.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs zircon_app/src/plugins/tests.rs
   - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never
+  - python -m unittest tools.tests.test_frameworks_03_domain_feature_matrix
   - cargo test -p zircon_runtime --lib runtime_plugin_lifecycle_uses_module_descriptor_order --locked --no-default-features --features target-server --jobs 1 --target-dir E:/cargo-targets/zircon-runtime-frameworks-m2-0703 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 Frameworks 02 M3 catalog descriptor ordering: timed out during Windows lib-test compile/link; not counted as passing)
 doc_type: module-detail
 ---
@@ -186,6 +196,21 @@ Profiles are exposed by `RuntimeProfileId`:
 - `Server`: server runtime target; it does not enable UI, rendering, or audio listener defaults.
 
 Each descriptor carries target mode, default plugins, optional plugins, required capabilities, minimum maturity, and whether required externalized plugins are allowed. Stable/default-style profiles use `minimum_maturity = Beta` and do not allow required `Externalized` or `Stub` plugins.
+
+## Compile Feature Presets
+
+M1 uses the following compile preset mapping. Runtime profile selection still decides the narrower module/plugin membership inside a compiled preset, so `Client2d` and `Client3d` intentionally share `target-client`, while `Editor` and `Dev` share `target-editor-host`.
+
+| Runtime profile | Cargo preset | Compile boundary |
+| --- | --- | --- |
+| `Minimal` | `core-min` | Always-on runtime foundation only; no optional domain contract is implied. |
+| `Client2d` | `target-client` | Client platform plus AI, Net, Sound, animation, diagnostics, graphics, navigation, script, text, and UI domains. |
+| `Client3d` | `target-client` | Same compiled client domains as `Client2d`; runtime profile data selects the 3D module/plugin set. |
+| `Editor` | `target-editor-host` | Client domains plus the editor-host target contract. |
+| `Dev` | `target-editor-host` | Same compiled editor-host domains as `Editor`; runtime profile data selects development diagnostics and plugins. |
+| `Server` | `target-server` | `core-min`, `diagnostic-log`, and headless platform only; no graphics, UI, animation, navigation, script, AI, Net, or Sound domain is implied. |
+
+`tools/check-runtime-domain-features.ps1` separately checks every optional domain as `core-min + one domain` with default features disabled. The list includes `physics-contracts`; until that hard cutover lands, the full runner must fail rather than omit it. M2 replaces this documented mapping with a Rust-owned preset table plus Cargo/doc/tool drift assertions; this M1 table is not claimed as the final single source.
 
 ## Bevy Reference Map
 
@@ -215,7 +240,7 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 | Zircon group | Bevy role | Current module families | Profile use |
 | --- | --- | --- | --- |
 | `MinimalPlugins` | Mirrors Bevy's small runnable core group. | Foundation, tasks, time, frame count, diagnostics core. | Used by `RuntimeProfileId::Minimal`; must stay free of platform/input/asset/render/UI/script modules. |
-| `DefaultPlugins` | Mirrors Bevy's broad default app baseline. | Foundation, log, tasks, time, frame count, diagnostics, platform, input, asset, scene, graphics, script, and UI when `plugin-ui` is enabled. | Used by runtime/client/editor profiles that need normal app infrastructure. |
+| `DefaultPlugins` | Mirrors Bevy's broad default app baseline. | Foundation, log, tasks, time, frame count, diagnostics, platform, input, asset, scene, graphics, script, and UI when `ui` is enabled. | Used by runtime/client/editor profiles that need normal app infrastructure. |
 | `DevPlugins` | Bevy-style default plus verbose development diagnostics. | `DefaultPlugins` plus `LogDiagnosticsModule` inserted after `DiagnosticsCoreModule`. | Used by `Dev`; this is the only built-in group that should enable diagnostic-store log cadence by default. |
 | `HeadlessPlugins` | Default-style runtime without visual presentation. | Default core/platform/input/asset/scene/script path without graphics or UI. | Used by server/headless entry modes and export validation. |
 
@@ -223,9 +248,9 @@ This document uses Bevy as the dominant reference for default/minimal compositio
 
 Frameworks 02 M2 tightens the split between selection and ordering. Runtime profiles, target manifests, and app plugin groups now select module membership only; they no longer own the final activation sequence. Enabled modules are sorted by their `ModuleDescriptor::init_level` and declared module dependencies through the runtime descriptor sorter. `RuntimeModuleLoadReport` treats ordering errors as fatal diagnostics, and `zircon_app` rejects those reports before bootstrap. App bootstrap registers the full selected descriptor set first and then calls `activate_registered_modules(...)`, so profile entry uses the runtime kernel's batch finish barrier instead of per-module activation order.
 
-Frameworks 02 M3 applies the same rule to RuntimePlugin catalog construction. `RuntimePluginDescriptor` embeds the runtime `ModuleDescriptor`, and `RuntimePluginCatalog::from_plugins(...)`, `from_descriptors(...)`, and `from_lifecycle_plugins(...)` now use the descriptor sorter before registration reports or lifecycle `finish` hooks run. Profile/provider data still decides which runtime plugins are present; plugin input order no longer decides their activation-side order. Validation status: scoped rustfmt and app/server `cargo check` passed with existing warnings, while the focused lifecycle-order test timed out during Windows lib-test compile/link and is not counted as passing.
+Frameworks 02 M3 applies the same rule to RuntimePlugin catalog and production report construction. `RuntimePluginDescriptor` embeds the runtime `ModuleDescriptor`; live plugin descriptors and SDK/first-party/native `RuntimePluginRegistrationReport` package module rows all use the kernel descriptor sorter. Profile/provider data decides which runtime plugins are present, and the project-filtered bootstrap graph sorts only enabled providers before merging extensions. Invalid or missing enabled dependencies are fatal before the first extension is installed; plugin input order is never used as a fallback.
 
-RuntimePlugin lifecycle is now aligned to the same descriptor vocabulary. A plugin descriptor's embedded `ModuleDescriptor::init_level` defaults to `Post` unless the provider declares a stronger level, and dependency ordering comes from `ModuleDependencySpec` rather than from package list order. Catalog construction runs plugin/feature `register(...)`, then a global `ready(...)` barrier using the full capability view, then `finish(...)` only if every plugin and feature is ready. Runtime-world `activate(...)` uses the same descriptor order for plugins before feature activation; `deactivate(...)` releases features first and plugins in reverse descriptor order. This is a hard cutover: no compatibility registration hook or legacy plugin-order fallback remains in the documented lifecycle.
+RuntimePlugin lifecycle is now the kernel lifecycle, not a parallel plugin state machine. A descriptor's embedded `ModuleDescriptor::init_level` defaults to `Post`, dependency ordering comes from `ModuleDependencySpec`, and build/ready/finish/cleanup run through `CoreRuntime`. `RuntimePlugin` retains its extension `register(...)` hook and exposes the embedded `ModuleLifecycle`; the former plugin-only ready/finish/activate/deactivate hooks and contexts were deleted. SDK providers can opt into a lifecycle-bearing descriptor through `RuntimePluginDeclaration::with_module_descriptor(...)`. Native ABI v3 reports preserve init-level/dependency ordering but use the descriptor's no-op Rust lifecycle, while `NativePluginLiveHost` remains responsible for dynamic ABI load/unload/reload.
 
 One G1 decision remains open: Bevy preserves disabled plugin entries as ordering anchors, while Zircon's current builder treats insertion relative to a disabled anchor as a `DisabledAnchor` error. That stricter behavior is acceptable while profile composition is still stabilizing, but it must either become the documented Zircon contract or be aligned to Bevy before broadening default profile membership.
 
@@ -345,8 +370,8 @@ These are the M2 closure commands once M1 is green and shared Cargo targets are 
 - `cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture`
 - `cargo test -p zircon_runtime --lib plugin_extensions::export_build_plan --locked`
 - `cargo test -p zircon_app --locked profile_bootstrap`
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1`
-- `cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1`
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1`
+- `cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1`
 - `cargo check -p zircon_runtime --lib --locked`
 
 Debug order matters. If a profile bootstrap fails, inspect `RuntimePluginAvailabilityReport` first, then provider report target/maturity, then app provider collection. Do not patch app bootstrap to accept a missing required plugin unless the profile descriptor itself intentionally made that plugin optional.
@@ -375,7 +400,7 @@ M10 profile/catalog candidate checks:
 - Scoped docs check: `git diff --check -- docs/runtime-plugins/profile-selection.md docs/runtime-plugins/bevy-parity-matrix.md ".codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md"`.
 - Placeholder scan across the profile-selection guide, parity matrix, and main milestone plan using the repository's standard placeholder-pattern set.
 - Catalog/profile tests: `cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture`; `cargo test -p zircon_runtime --lib plugin_extensions::manifest_contributions --locked -- --nocapture`; `cargo test -p zircon_runtime --lib plugin_extensions::export_build_plan --locked -- --nocapture`.
-- App/provider tests: `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1`, plus focused provider-feature variants when those feature gates change.
+- App/provider tests: `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1`, plus focused provider-feature variants when those feature gates change.
 - CI parity: root workspace build/test, plugin workspace check/build/test, and export platform policy match the visible `.github/workflows/ci.yml` command shapes before M10 is considered implementation-complete.
 
 M10 debug rule: when a profile/docs-sync check fails, diagnose in this order: `RuntimePluginId` and profile descriptor drift, built-in catalog or plugin TOML drift, availability bucket semantics, app/export provider selection, stale doc frontmatter or matrix row, then CI command shape. Do not make the check pass by weakening stable/default profile rules or by deleting a doc row.
@@ -388,7 +413,7 @@ Fresh M2 provider-chain documentation review on 2026-05-25 covered Bevy direct p
 
 Fresh M10 profile/catalog documentation review on 2026-05-25 covered Bevy CI feature-doc/example-doc checks, `tools/ci` command expansion, doc-check/doc-test behavior, Zircon `.github/workflows/ci.yml`, `validate-matrix.ps1`, validation rules, reporting rules, and the M10 matrix in `docs/runtime-plugins/bevy-parity-matrix.md`. This pass was docs-only and did not run Cargo.
 
-Fresh Sound provider metadata validation on 2026-05-26 covered the M4 sample path. `zircon_plugins/sound/runtime/src/tests/manifest.rs` now checks static TOML, generated runtime descriptor, generated package manifest, and the built-in runtime catalog for `maturity = Beta` and `runtime.plugin.sound = Partial`; it also compares runtime module, dependency, event catalog, option, and component descriptor contributions. The focused runtime command `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml manifest --locked --jobs 1 -- --nocapture` passed with 3 tests and 0 failures. The focused app provider command `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" first_party_sound_provider_preserves_manifest_maturity_and_capability_status -- --nocapture --test-threads=1` passed after an isolated-target rerun, proving the linked first-party Sound provider preserves maturity, capability status, module, option, and dynamic-event catalog metadata.
+Fresh Sound provider metadata validation on 2026-05-26 covered the M4 sample path. `zircon_plugins/sound/runtime/src/tests/manifest.rs` now checks static TOML, generated runtime descriptor, generated package manifest, and the built-in runtime catalog for `maturity = Beta` and `runtime.plugin.sound = Partial`; it also compares runtime module, dependency, event catalog, option, and component descriptor contributions. The focused runtime command `cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml manifest --locked --jobs 1 -- --nocapture` passed with 3 tests and 0 failures. The focused app provider command `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" first_party_sound_provider_preserves_manifest_maturity_and_capability_status -- --nocapture --test-threads=1` passed after an isolated-target rerun, proving the linked first-party Sound provider preserves maturity, capability status, module, option, and dynamic-event catalog metadata.
 
 The profile tests verify deterministic profile ids, deterministic manifest projection, target scoping, built-in catalog maturity, failure buckets for externalized, stub, and below-minimum required plugins, optional unavailable plugin warnings that do not block `missing_required`, provider-aware linked/native availability, and profile module loading from registration reports. Full native loader provider-chain validation is deferred to the plugin infrastructure lane.
 
@@ -405,19 +430,19 @@ Fresh M2 validation after sibling scene ECS updates and review fixes:
 
 Fresh M2 app-provider validation on 2026-05-16 used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target` because other active sessions were using the shared target directories:
 
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
 - `cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1` passed: 13 tests, 0 failures.
-- `CARGO_INCREMENTAL=0 cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" profile_bootstrap --message-format short -- --nocapture --test-threads=1` passed on Windows: 18 tests, 0 failures.
+- `CARGO_INCREMENTAL=0 cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" profile_bootstrap --message-format short -- --nocapture --test-threads=1` passed on Windows: 18 tests, 0 failures.
 
 Fresh M2 navigation-provider validation on 2026-05-16 found and corrected the Windows D3D12 dependency-edge skew for this path. The root lockfile still keeps `accesskit_windows v0.30.0` from Slint/`zircon_hub` on `windows 0.61.3`, but `gpu-allocator v0.28.0` now resolves to the already-present `windows 0.62.2` package so it matches `wgpu-hal v29.0.3`'s D3D12 bindings. Evidence:
 
-- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed on Windows: 1 test, 0 failures.
-- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed on Windows: 1 test, 0 failures.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
 
 Fresh M9A advanced-provider validation on 2026-05-19:
 
-- `cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never` passed: 3 tests, 0 failures.
+- `cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never` passed: 3 tests, 0 failures.
 - `cargo test -p zircon_runtime --lib advanced_render_plugin_manifests_declare_profile_capabilities --locked --jobs 1 --message-format short --color never` passed: 1 test, 0 failures.
 - `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib virtual_geometry_registration_contributes_render_feature_descriptor --locked --jobs 1` passed: 1 test, 0 failures.
 - `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib hybrid_gi_registration_contributes_render_feature_descriptor --locked --jobs 1 --message-format short --color never` passed: 1 test, 0 failures.

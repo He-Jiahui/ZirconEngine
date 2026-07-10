@@ -149,7 +149,7 @@ tests:
   - cargo test -p zircon_runtime --locked render_product_advanced --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked virtual_geometry --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --locked hybrid_gi --jobs 1 --message-format short --color never
-  - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
+  - cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib advanced_render_plugin_manifests_declare_profile_capabilities --locked --jobs 1 --message-format short --color never
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib virtual_geometry_registration_contributes_render_feature_descriptor --locked --jobs 1
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_hybrid_gi_runtime --lib hybrid_gi_registration_contributes_render_feature_descriptor --locked --jobs 1 --message-format short --color never

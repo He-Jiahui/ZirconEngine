@@ -1,0 +1,98 @@
+# Runtime 15 priority-plan current-owner inventory
+
+> 当前 owner：`engine-code-structure-convention.md` 与 `engine-code-review-findings-2026-06.md` 只保留规范/发现、current overview 与本编号归档路由；以下 concrete status windows 仅由本归档拥有。
+
+## Priority-plan child-owner inventory
+
+Runtime 15 M3 priority plan docs guard child-owner split
+`runtime_15_priority_plan_docs_guard_child_owner_split_static_passed_cargo_deferred`
+full priority-plan-doc child inventory
+`structure_convention/test_file_budget/priority_plan_docs.rs`
+`structure_convention/test_file_budget/priority_plan_docs/code_paths.rs`
+`structure_convention/test_file_budget/priority_plan_docs/frontmatter_status.rs`
+`structure_convention/test_file_budget/priority_plan_docs/frontmatter_uniqueness.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs`
+`structure_convention/test_file_budget/priority_plan_docs/header_sections.rs`
+`structure_convention/test_file_budget/priority_plan_docs/plan_sources.rs`
+`structure_convention/test_file_budget/priority_plan_docs/test_paths.rs`
+`runtime_15_priority_plan_docs_guard_children_are_folder_backed`
+Runtime 15 M3 priority plan docs child prose full inventory sync
+`runtime_15_priority_plan_docs_child_prose_full_inventory_sync_static_passed_cargo_deferred`
+`priority_plan_docs/guard_tests/child_layout.rs::runtime_15_priority_plan_docs_guard_children_are_folder_backed`
+Cargo gate deferred
+
+## Priority-plan guard-test child inventory
+
+Runtime 15 M3 priority plan docs guard-test child-owner split
+`runtime_15_priority_plan_docs_guard_test_child_owner_split_static_passed_cargo_deferred`
+full priority-plan-doc guard-test child inventory
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/child_layout.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/listing.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs`
+`structure_convention/test_file_budget/priority_plan_docs/guard_tests/nested_layout.rs`
+`runtime_15_priority_plan_docs_guard_test_children_are_folder_backed`
+Runtime 15 M3 priority plan docs guard-test child prose full inventory sync
+`runtime_15_priority_plan_docs_guard_test_child_prose_full_inventory_sync_static_passed_cargo_deferred`
+`priority_plan_docs/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory`
+Cargo gate deferred
+
+## Priority-plan moved guard inventory
+
+Runtime 15 M3 priority plan docs moved guard path mirror
+`runtime_15_priority_plan_docs_moved_guard_path_mirror_static_passed_cargo_deferred`
+full priority-plan-doc moved guard inventory
+`priority_plan_docs/code_paths.rs::runtime_15_priority_plan_docs_code_paths_stay_current`
+`priority_plan_docs/test_paths.rs::runtime_15_priority_plan_docs_test_paths_stay_current`
+`priority_plan_docs/frontmatter_status.rs::runtime_15_priority_plan_docs_frontmatter_status_stays_current`
+`priority_plan_docs/frontmatter_uniqueness.rs::runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries`
+`priority_plan_docs/header_sections.rs::runtime_15_priority_plan_docs_required_header_sections_stay_complete`
+`priority_plan_docs/plan_sources.rs::runtime_15_priority_plan_docs_plan_sources_stay_cross_linked`
+`priority_plan_docs/guard_tests/listing.rs::runtime_15_priority_plan_docs_guard_tests_stay_listed`
+`priority_plan_docs/guard_tests/child_layout.rs::runtime_15_priority_plan_docs_guard_children_are_folder_backed`
+`priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources`
+`priority_plan_docs/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_listing_prose_names_full_inventory`
+`priority_plan_docs/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_children_are_folder_backed`
+`priority_plan_docs/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory`
+`priority_plan_docs/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_guard_paths_stay_current`
+`priority_plan_docs/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_mirror_names_full_inventory`
+Runtime 15 M3 priority plan docs moved mirror full inventory sync
+`runtime_15_priority_plan_docs_moved_mirror_full_inventory_sync_static_passed_cargo_deferred`
+`runtime_15_priority_plan_docs_moved_mirror_names_full_inventory`
+Cargo gate deferred
+
+## Priority-plan status row-data owner inventory
+
+Runtime 15 M3 priority plan docs row-data guard folder-backed split
+`runtime_15_priority_plan_docs_row_data_guard_folder_backed_static_passed_cargo_deferred`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/delegation.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/export_chain.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/row_sources.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/status_mirrors.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/budgets.rs`
+`runtime_15_priority_plan_docs_row_data_guard_is_folder_backed`
+`runtime_15_priority_plan_docs_row_data_owner_is_child_backed`
+Cargo gate deferred
+
+Runtime 15 M3 priority plan docs root inventory child split
+`runtime_15_priority_plan_docs_root_inventory_child_split_static_passed_cargo_deferred`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/root_paths.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/root_statuses.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/root_child_rows.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/root_source_blobs.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/root_inventory.rs`
+`runtime_15_priority_plan_docs_root_inventory_is_child_owned`
+Cargo gate deferred
+
+Runtime 15 M3 priority plan docs status-mirror child split
+`runtime_15_priority_plan_docs_status_mirror_child_split_static_passed_cargo_deferred`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/child_split_status.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/row_owner_status.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/folder_backed_status.rs`
+`structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs/mirrors/owner_guard_status.rs`
+`runtime_15_priority_plan_docs_status_mirror_children_are_child_owned`
+Cargo gate deferred

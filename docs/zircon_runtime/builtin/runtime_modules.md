@@ -32,6 +32,7 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/mod.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
+  - zircon_runtime/tests/frameworks_03_server_profile.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/support.rs
 implementation_files:
   - zircon_app/src/entry/builtin_modules.rs
@@ -61,11 +62,14 @@ implementation_files:
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
+  - tools/tests/test_frameworks_03_server_feature_boundary.py
+  - zircon_runtime/tests/frameworks_03_server_profile.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
   - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
@@ -182,11 +186,14 @@ The same M2 hard-cut pass tightened internal id/report ownership without changin
 - `zircon_runtime::builtin` is the public namespace for runtime module assembly helpers and runtime module DTOs. `zircon_runtime` crate root must not forward `builtin_runtime_modules()`, `runtime_modules_for_target(...)`, profile assembly helpers, manifest assembly helpers, `RuntimePluginId`, `RuntimeTargetMode`, `RuntimeModuleLoadReport`, or `RuntimeRequiredPluginMissing`.
 - Internal implementation files below `runtime_modules` must import id and report DTOs from their direct owners: `ids::{RuntimePluginId, RuntimeTargetMode}` and `load_report::RuntimeModuleLoadReport`. They must not route sibling implementation dependencies through the parent facade exports in `runtime_modules.rs`.
 - The assembly facade may expose target/profile/plugin registration entry points, but runtime module id re-export wiring belongs in `ids.rs`, plugin identity parsing belongs in `ids/plugin_id.rs`, target-mode declaration belongs in `ids/target_mode.rs`, load-report re-export wiring belongs in `load_report.rs`, load-report data storage belongs in `load_report/report.rs`, missing-provider DTOs belong in `load_report/missing.rs`, effective diagnostic projection belongs in `load_report/diagnostics.rs`, structured availability reports belong in `availability.rs`, plugin-domain availability policy belongs in `plugin_modules/availability.rs`, plugin module loading belongs in `plugin_modules/loader.rs`, extension-registry traversal belongs in `assembly/extension_inputs.rs`, feature dependency report handling belongs in `assembly/feature_reports.rs`, profile assembly flow belongs in `assembly/profile_modules.rs`, registration-report assembly flow belongs in `assembly/registration_reports.rs`, registration-input data assembly belongs in `assembly/registration_inputs.rs`, target/manifest module selection belongs in `assembly/target_modules.rs`, manifest defaults belong in `manifest.rs`, and concrete built-in module vector construction belongs in `core_modules.rs`.
-- The only built-in plugin module loaded from this boundary remains the optional UI module behind `plugin-ui`; other runtime plugin implementations remain externalized to `zircon_plugins/*`.
+- The only built-in plugin module loaded from this boundary remains the optional UI module behind `ui`; other runtime plugin implementations remain externalized to `zircon_plugins/*`.
 - `RuntimePluginId` is an open string-newtype. First-party built-ins may add associated constants for ergonomics, but external plugin ids must not require editing engine core unless they need genuinely new built-in loader behavior.
 - Generated export code must consume this facade or runtime/plugin catalog APIs; it must not duplicate profile assembly, required-missing diagnostics, plugin-domain mapping, or linked-provider crate fan-out.
+- Render extension inputs exist only when the `graphics` feature is compiled. A `target-server` build constructs the core module vector without render descriptors/providers and without `ScriptModule`; it must not retain placeholder graphics/UI slots or runtime target checks as compatibility behavior.
 
 ## Validation
+
+Frameworks 03 M1 server hard cutover passed WSL nightly checks for both `--no-default-features --features target-server` and the default feature set. The server dependency-tree gate found no wgpu, winit, taffy, glyphon, naga, swash, fontsdf, or woff2-patched packages. A later support-first review found that a default/client-compiled binary still selected `ScriptModule` for `ServerRuntime`; both graphics and non-graphics core-module assembly paths now exclude Script by target as well as compile feature. `frameworks_03_server_profile` passes 1/1 under the full default feature set (test 0.01s, cold command 26m52s), the fresh target-server lib check passes in 8m36s, and the server static guard passes 5/5. The broader per-domain and full-test matrix remains tracked by the Frameworks 03 plan.
 
 The current implementation slice ran focused `zircon_runtime` checking after formatting. Workspace-wide validation remains a milestone testing-stage task because other active sessions are running concurrent Cargo lanes.
 

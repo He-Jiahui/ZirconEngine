@@ -67,7 +67,7 @@ Generated output policy is also explicit. `UiRuntimeCompiledAssetArtifact` recor
 
 Generated source remains limited to leaf DTO/table/adaptor material. Runtime behavior, validation rules, loader policy, instantiation, and surface mutation stay handwritten in `zircon_runtime::ui::template`.
 
-## Runtime 15 M2 Source Fixture Schema Naming
+## Runtime 15 M2 UI template schema source fixture naming hard cutover
 
 runtime_15_ui_template_schema_source_fixture_naming_hard_cutover_static_passed_cargo_deferred
 

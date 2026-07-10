@@ -5,10 +5,13 @@ related_code:
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/schema.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
+  - zircon_runtime/src/asset/importer/environment_ibl.rs
+  - zircon_runtime/src/asset/assets/texture/external_source_cubemap.rs
+  - zircon_runtime/src/asset/assets/texture/external_source_cubemap/decode.rs
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
-  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
-  - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/plugin.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_theme_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_icon_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
@@ -47,6 +50,7 @@ related_code:
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
@@ -74,6 +78,7 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
   - zircon_runtime/src/tests/plugin_extensions/asset_importer_install.rs
+  - tools/tests/test_frameworks_05_asset_ui_boundary.py
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
@@ -154,6 +159,8 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
+  - zircon_runtime/src/asset/importer/environment_ibl.rs
+  - zircon_runtime/src/asset/assets/texture/external_source_cubemap/decode.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_sound.rs
@@ -186,6 +193,7 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
@@ -253,6 +261,7 @@ implementation_files:
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-02 Asset Importer 插件化补齐计划
   - user: 2026-05-03 Opus/libopus NativeDynamic importer gap
   - user: 2026-05-16 continue Bevy-style asset/image completion toward M4
@@ -271,6 +280,10 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
 tests:
+  - tools/tests/test_frameworks_03_server_feature_boundary.py
+  - zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs
+  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
+  - zircon_runtime/tests/runtime_texture_external_cubemap_source_only_contract.rs
   - docs/tests/runtime/render/plan08_skinning_gltf_importer_channels_after_vg_skinning_split_20260705.out.log (2026-07-05 Plan 08 skinning/VG split: current-source focused glTF skinning channel regression passed 1/1)
   - docs/tests/runtime/render/plan08_skinning_production_check_after_vg_skinning_split_20260705.err.log (2026-07-05 Plan 08 skinning/VG split: current-source production `cargo check -p zircon_runtime --lib` passed; exit stored beside the log)
   - docs/tests/runtime/render/plan08_default_features_skinning_filter_direct_binary_after_vg_skinning_split_20260705.out.log (2026-07-05 Plan 08 skinning/VG split: direct generated-binary broad `skinning` filter passed 20/20; fresh current-source Cargo test wrapper remains blocked by active runtime text test compile drift)
@@ -815,6 +828,8 @@ Heavy or toolchain-backed formats are registered as diagnostic importers until a
 
 `ProjectManager::scan_and_import` now processes every source file independently. A successful import validates that the outcome has exactly one unlabeled root entry, rejects duplicate subasset labels, writes one artifact per entry, updates `.zmeta` with source hash, import settings hash, importer id/version, root artifact locator, labeled `entries`, dependency locators, schema migration details, and `preview_state = ready`, then publishes ready `ResourceRecord` rows for the root and each subasset. Each entry has its own persistent UUID, and `ResourceId` is derived from that UUID instead of from the source UUID plus label.
 
+The importer also exposes `import_context(&AssetImportContext)` so project scanning can pass the same source-byte owner to the selected plugin and post-import staging without cloning large HDR files. After a successful first import, and again after restoring a ready cached asset, the scan invokes both source-format staging entries. `stage_environment_ibl_source(...)` converts HDR/EXR 2:1 images; `stage_external_source_cubemap_texture(...)` converts supported linear-float DDS/KTX cubemap payloads. Both produce or validate current `.zcube` source mips and a companion PMREM/SH9/IEM `.zribl` under the project `library/` root. External source mips are preserved for display/FIS input but PMREM is always regenerated. This post-import host step intentionally leaves the plugin ABI neutral: texture plugins decode the ordinary asset/container, while the shared runtime importer owns render-derived files and their current algorithm key. Invalid explicit environment settings and unsupported compressed/supercompressed cubemap formats are reported through the normal failed-import diagnostic path; automatic HDR/EXR mode skips non-equirectangular images.
+
 Runtime 15 M4 asset project scan/import source collection owner split is recorded as `runtime_15_asset_project_scan_import_sources_owner_split_static_passed_cargo_deferred`. `asset/project/manager/scan_and_import.rs` keeps the import loop, artifact restore/writeback, success/failure meta updates, dependency resolution, and entry identity registration. `asset/project/manager/scan_and_import/sources.rs` owns `AssetImportSource`, project/package root source enumeration, compound `.zmeta` source discovery, source URI mapping, source byte assembly, and mtime aggregation. Guard `runtime_15_asset_project_scan_import_sources_are_child_owner` locks those owner boundaries, the two production files staying below the Runtime 15 soft budget, and the plan/status mirrors.
 
 Runtime 15 M3 asset project manager lock poison recovery is recorded as `runtime_15_asset_project_manager_lock_poison_recovery_static_passed_cargo_deferred`. `asset/pipeline/manager/project_asset_manager/runtime.rs` now centralizes project, pending importer registry, change subscriber, watch-error subscriber, and watcher lock access behind poison recovery helpers. `asset/pipeline/manager/project_asset_manager/construction.rs` consumes the importer registry helpers when registering late plugin importers and when cloning pending importers into an active registry. Guard `runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager` locks those helper names, rejects direct lock unwrap/RwLock expect/`lock poisoned` production regressions, and mirrors the Runtime 15/status/module documentation anchors. This keeps ProjectAssetManager API, project scan/import flow, watcher-driven reimport, importer extension handoff, and resource sync behavior unchanged.
@@ -877,6 +892,8 @@ and constructs the project asset manager with those pending handlers already ins
 the lifecycle gap between catalog selection and the first project scan for linked Rust plugins.
 
 ## Plugin Boundary
+
+Frameworks 03 now treats heavy built-in import backends as compile-time domain capabilities. Font source decoding/metadata parsing and the `.font.toml` importer are present only with `text`; Naga shader validation, shader package import, and GLSL/SPIR-V registration are present only with `graphics`. These gates live at child-module declarations and importer-registry assembly sites. `target-server` does not link ttf-parser, woff2-patched, naga, or the graphics/text stack, while the default client check still compiles the complete importer set.
 
 `RuntimeExtensionRegistry` now owns an `AssetImporterRegistry` alongside modules, managers, components, and render extensions. Rust plugins can register real importer handlers. Manifest-only and NativeDynamic declarations can register diagnostic descriptors until a backend is attached.
 
@@ -944,3 +961,7 @@ Validation for this slice passed focused status
 with ExitCode 0. The follow-up `segment2-importers-dist-rerun2.status.json` gate also passed with
 ExitCode 0, covering the importer/dist package segment and confirming
 `zircon_plugin_texture_importer_runtime` at 144/144 tests.
+
+## Runtime 15 Shader Schema Diagnostic Hard Cutover
+
+The `.zshader` v2 importer reports old documents by their explicit schema transition. A missing `kind` is diagnosed as a `schema v1` document that must move to schema v2; removed user-authored pipeline-layout and shader-def fields are identified as removed fields that must move to generated ABI/options. No old parser, alias field, or compatibility path is retained.

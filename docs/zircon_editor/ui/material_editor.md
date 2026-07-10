@@ -25,12 +25,17 @@ implementation_files:
   - zircon_editor/src/tests/ui/material_editor/renderer_data_projection.rs
   - zircon_editor/src/tests/ui/mod.rs
 plan_sources:
+  - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
+  - docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
   - docs/superpowers/specs/2026-05-17-zmaterial-material-editor-design.md
   - docs/superpowers/plans/2026-05-17-zmaterial-material-editor.md
   - docs/superpowers/plans/2026-05-18-srp-rendererdata-zmaterial-workflow.md
 tests:
   - zircon_editor/src/tests/ui/material_editor/projection.rs
   - zircon_editor/src/tests/ui/material_editor/renderer_data_projection.rs
+  - zircon_editor/src/ui/material_editor/projection.rs::tests::texture_dimension_mismatch_projects_dependency_diagnostic
   - zircon_editor/src/tests/ui/material_editor/renderer_data_projection.rs::renderer_data_projection_groups_diagnostics_by_feature_name
   - zircon_editor/src/tests/ui/material_editor/renderer_data_projection.rs::renderer_data_projection_groups_diagnostics_by_source
   - zircon_editor/src/tests/ui/material_editor/renderer_data_projection.rs::renderer_data_projection_groups_diagnostics_by_severity
@@ -66,6 +71,8 @@ The projection maps runtime material validation into `MaterialEditorDiagnosticRo
 
 Shader contract mismatches come from `MaterialAsset::shader_contract_diagnostics(...)`. Required shader properties and required texture slots both surface as repairable schema diagnostics: property rows point at `overrides.<name>`, while texture-slot rows point at `textures.<slot>` and explain that a concrete material texture reference is required. Shader-side `validation_diagnostics` are preserved at `shader.validation_diagnostics`; only entries with the importer's `wgsl_capture` prefix are tagged as `RenderMaterialDiagnosticSource::WgslCapture`, while generic shader validation text remains unclassified instead of being misrouted as a capture miss. Shader payload readiness rows emitted as `RenderMaterialValidationError::ShaderReadinessDiagnostic` preserve the runtime `ShaderReadiness` source, stable path, and diagnostic message so entry-point and shader-definition issues remain visible in the editor.
 
+Texture dimension mismatches are dependency-resolution diagnostics. Both the material projection and RendererData projection preserve the stable `textures.<slot>` path, the texture locator, and the typed expected/actual dimensions so a cubemap-vs-2D binding failure is actionable rather than collapsed into an unknown validation row.
+
 This M1 editor projection intentionally keeps diagnostics read-only. It gives later UI panels enough structure to group rows by property, texture slot, and diagnostic source without coupling the authoring view to renderer internals.
 
 ## RendererData Projection
@@ -79,6 +86,8 @@ RendererData diagnostic rows preserve the runtime feature name, runtime severity
 The RendererData projection derives those material, shader, source, and severity grouping fields from the runtime `RendererFeatureContractDiagnostic::material_reference()`, `RendererFeatureContractDiagnostic::shader_references()`, `RendererFeatureContractDiagnostic::source()`, and `RendererFeatureContractDiagnostic::severity()` accessors instead of re-decoding the diagnostic enum inside editor match arms. This keeps editor grouping aligned with `RenderPipelineCompileReport` grouping and collapses duplicate shader references when a material validation error and its shader-contract source name the same `.zshader`.
 
 Material validation rows reuse the same messages and `RenderMaterialDiagnosticSource` mapping as the material projection, including material-owned lighting-model failures, required texture-slot failures, and shader payload readiness rows emitted by runtime shader/material contract validation. Shader validation strings remain generic unless they carry the importer `wgsl_capture` prefix.
+
+The 2026-07-10 editor architecture M1 WSL gate exposed `TextureDimensionMismatch` as a newly added runtime validation variant that the two editor projections did not yet consume. The projections now map it exhaustively and include focused behavioral coverage; exact Windows and WSL test results are recorded in the active Plan 01 M1 acceptance evidence after the shared test target finishes rebuilding.
 
 Final SRP RendererData editor validation on 2026-05-20 used `CARGO_TARGET_DIR=F:\cargo-targets\zircon-srp-rendererdata-m1`: `cargo test -p zircon_editor --lib material_editor --locked --jobs 1 --message-format short --color never` passed 8 focused tests, and `cargo check -p zircon_editor --lib --locked --jobs 1 --color never` passed. The only editor warnings were unrelated sprite-atlas unused-item warnings outside this projection lane.
 

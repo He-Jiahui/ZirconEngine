@@ -2828,6 +2828,53 @@ Plan 06 EC-M3e adds a non-ignored regression for the accepted 2K HDRI PBR matrix
 
 Evidence: `rustfmt --edition 2021 zircon_runtime\tests\runtime_shader_pbr_hdri_export.rs zircon_runtime\tests\runtime_shader_pbr_hdri_export\hdri_metrics.rs` passed. `CARGO_INCREMENTAL=0 cargo test -p zircon_runtime --test runtime_shader_pbr_hdri_export --locked --jobs 1 --target-dir E:\cargo-targets\zircon-hdri-png-metrics-0706 --message-format short --color never runtime_shader_pbr_real_hdri_2k_reflection_png_matches_plan06_metrics -- --exact --nocapture --test-threads=1` passed 1/1 with 0 ignored and 2 filtered tests; the test body was 0.23s after an 8m43s build, and stderr contained only existing workspace warnings. The PNG stayed in `docs/tests/runtime/shader`, 1,009,731 bytes, SHA256 `920A028DC6B0BB64A45F1798E89BF5E0FBE2BABF3A90BED22FFBA842DD1714F0`; same-name scans under `target` and `E:\cargo-targets` returned zero hits. This closes the saved-PNG regression gap, while strict high-frequency/roughness monotonicity, SSIM, RenderDoc/product capture, and GPU/offline PMREM artifacts remain open.
 
+## 2026-07-10 Deferred HDR Emissive GBuffer ABI
+
+Deferred material output now preserves authored emissive energy through an independent fourth GBuffer
+target. `PostProcessGraphResourceNames::GBUFFER_EMISSIVE` names the graph resource, the fixed offscreen
+target retains an `Rgba16Float` texture/view, and the built-in deferred geometry and lighting
+descriptors declare the write/read edge. `GBUFFER_EMISSIVE_FORMAT` is the single WGPU format owner.
+
+`ZrDeferredGBufferOutput` is a four-target ABI:
+
+1. location 0: albedo
+2. location 1: encoded world normal
+3. location 2: metallic, roughness, occlusion, and shading flags
+4. location 3: HDR emissive
+
+The GBuffer mesh pipeline declares matching color targets, and `record_gbuffer_geometry(...)` records
+all four attachments in the same render pass. Standard PBR writes non-negative `surface.emissive`.
+Plugin shading-model GBuffer includes must also construct the fourth field; all repository-owned plugin
+fixtures were hard-cut to this ABI. There is no three-target compatibility constructor or re-export.
+
+Deferred lighting binds the emissive texture at group 1 binding 5. The final dispatch adds emissive
+after built-in Unlit, Blinn-Phong, Standard PBR, or generated plugin shading-model evaluation. Keeping
+the add at the common dispatch boundary prevents shading models from implementing divergent emissive
+rules and matches Forward, where emissive is added after direct/environment lighting.
+
+The change was driven by the Hybrid GI dynamic-light product RED: Forward warm emissive center RGB was
+`48.66,25.07,15.71`, while Deferred was `14.71,14.20,14.16`. After the shared GBuffer fix, Forward and
+Deferred both produce `48.66,25.07,15.71`; directional, point, and spot columns are also exact matches.
+The real WGPU 2x4 product is
+`docs/tests/runtime/render/plan18_hybrid_gi_dynamic_light_matrix_forward_deferred_wgpu_20260710.png`
+with SHA-256 `1F4CC3565B9E3B7C3F8B46D7B6B792E12EAABDF49D11F0A16AFD8D537F3970F6`.
+
+Plan sources: `.codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md`,
+`docs/plans/zircon_runtime/render/18-advanced-lighting-features.md`,
+`docs/plans/engine-code-structure-convention.md`, and
+`docs/plans/engine-code-review-findings-2026-06.md`.
+
+Validation: the target-client plugin `cargo check` passed; the no-debug plugin test binary passed six
+wired HGI contracts and the ignored dynamic-light product 1/1. The product itself creates the four
+target GBuffer pipeline and the lighting bind group on WGPU, so format/layout drift fails at device
+validation. The first root runtime lib-test link exceeded 15 minutes under concurrent compiler memory
+pressure, but a warmed no-debug build subsequently completed the current 7,439-test binary. Eight
+focused Deferred/emissive tests passed from that binary: graph descriptor write/read, generated WGSL
+emissive behavior and Naga validation, standard/plugin GBuffer source ABI, and built-in/custom WGPU
+pipeline creation. The broad default Deferred graph-order test remains red only because its expected
+Bloom/Exposure ordering is stale relative to concurrent post-process work; this slice does not claim
+full runtime/full-workspace green.
+
 ## Runtime 15 / Plan 08 Anchor Mirrors
 
 This section is an explicit cross-document anchor mirror for structure guards. Shadow WGPU device pipeline validation is tracked by `render_plan08_shadow_wgpu_device_pipeline_validation_implemented_validation_not_closed` and `shadow_mesh_pipeline_creates_on_wgpu_device_with_template_shader`. The current skinned geometry template source retains `zr_skinned_joint_matrix(v.joints.x)` while storage palette migration remains MS-M2 work.

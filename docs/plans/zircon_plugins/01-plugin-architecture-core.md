@@ -427,3 +427,11 @@ cargo fmt --all --check
 | 动态插件容器与热重载 | `dev/Fyrox/fyrox-impl/src/plugin/` | Plugin 容器 Static/Dynamic 双形态、重载时实体状态保持 |
 | Native ABI/初始化分级/函数表 | `dev/godot/core/extension/gdextension_interface.cpp`、`gdextension.cpp`、`gdextension_manager.cpp` | initialization level 分阶段、C 函数表版本化与兼容策略（我们硬切版本但形态可借鉴） |
 | 事件双缓冲与 cursor | `dev/bevy/crates/bevy_ecs/src/event/` | Events 双缓冲 update 时序、EventReader 漏读语义 |
+
+## 9. 状态与产出记录
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
+|---|---|---|---|---|
+| M2 | T2-T4 类型化扩展点稳定 slot、冻结状态与 runtime finalize/apply 接线 | `plugins_01_m2_t2_t4_typed_extension_freeze_runtime_finalize` | 2026-07-10 | `TypedExtensionPoint` 使用不复用的逻辑 `ExtensionSlot`、dense 行映射和 owner 撤销 tombstone，`FrozenExtensionTable` 保留稳定 slot 查询；`RuntimeExtensionRegistry::finalize()` 覆盖 20 个类型化扩展点，runtime/project catalog 与 world/component/UI/module/asset-manager apply 入口在读取前 finalize，后续注册、排序、可变访问或 owner 撤销会使冻结状态失效。新增 module-local 与 catalog/apply/owner 回归；当前源码经 scoped rustfmt 检查，直接编译实际 `typed_extension_point.rs` 的隔离测试 5/5 通过。完整 Cargo 测试阶段仍在执行，本行不声明 crate/workspace gate 通过。 |
+
+插件架构整体状态：进行中。该记录只关闭 Plugins 01 M2 的冻结与稳定 slot 实现切片；后续编号计划及全局验收命令仍须逐项完成和验证。

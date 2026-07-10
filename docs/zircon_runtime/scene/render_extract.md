@@ -93,6 +93,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
+  - zircon_runtime/src/scene/tests/render_extract/level_source_guards.rs::render_frame_extract_snapshot_adapters_are_not_scene_production_paths
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs::scene_assets_keep_script_only_entities_as_empty_nodes
   - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
@@ -127,6 +128,8 @@ doc_type: module-detail
 ---
 
 # Scene Render Extract
+
+The snapshot-adapter source guard treats explicit `tests/` directories and `tests.rs` files as test-only owners. It still scans every production Rust file under `graphics/runtime/render_framework/submit_frame_extract`; the 2026-07-10 current-source pass covered 50 production files and found no `RenderFrameExtract::from_snapshot` or `ViewportRenderFrame::from_snapshot` calls.
 
 The scene render-extract boundary turns authoritative `World` or `LevelSystem` state into `RenderFrameExtract`, the neutral frame DTO consumed by the renderer. In the current M3 canonical render-extract milestone, the important contract is both execution order and DTO authority: native dirty-state systems and plugin hooks must run before render extraction observes world transforms, active state, render-layer masks, and animation pose sidebands, and the scene producer must populate `RenderFrameExtract` sections directly rather than adapting through `SceneViewportRenderPacket`.
 

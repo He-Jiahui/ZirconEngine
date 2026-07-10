@@ -25,7 +25,7 @@ tests:
   - zircon_runtime/src/engine_module/tests.rs
   - zircon_runtime/src/engine_module/tests.rs::engine_module_declared_layer_does_not_own_runtime_lifecycle
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
-  - "pending: cargo test -p zircon_runtime --lib engine_module --locked"
+  - "target-client current-source lib-test binary: engine_module 7/7"
 doc_type: module-detail
 ---
 
@@ -43,6 +43,12 @@ The relationship is intentionally layered:
 | `EngineModule` | `engine_module` | High-level trait used by built-in modules, app plugin groups, and descriptor-backed app composition. |
 | `EngineService` contracts | `engine_module` | Read-only contract view over driver/manager/plugin descriptor metadata. |
 | `factory`, `plugin_factory`, `qualified_name`, `dependency_on` | `engine_module` | Ergonomic helpers that construct core descriptors without owning lifecycle semantics. |
+
+## 2026-07-10 declared-layer public-surface validation
+
+The Runtime14 `engine_module` executable filter passed six behavior tests and exposed one declared-layer guard failure: `ServiceFactory` had been omitted from `engine_module`'s direct re-export list while the module still re-exported the surrounding canonical core descriptors, `PluginFactory`, and lifecycle contracts. `engine_module/mod.rs` now re-exports `core::ServiceFactory` directly. This restores the documented surface without defining a second type, alias, compatibility module, registry, or lifecycle owner.
+
+Current focused source validation passes 1/1, and a later current-source target-client lib-test binary passes the complete `engine_module` filter 7/7. The default-feature aggregate remains a separate plan gate. Plan and acceptance evidence lives in the numbered Runtime14/15 output records and `tests/acceptance/runtime-module-family-current-result.md`.
 
 ## Call Surface
 

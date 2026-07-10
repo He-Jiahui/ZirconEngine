@@ -2,6 +2,8 @@
 related_code:
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/cube_asset.rs
+  - zircon_runtime/src/asset/assets/texture/array_asset.rs
   - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
@@ -11,6 +13,8 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/cube_asset.rs
+  - zircon_runtime/src/asset/assets/texture/array_asset.rs
   - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
@@ -58,11 +62,12 @@ RGBA8 upload readiness additionally requires square faces and a complete payload
 WGPU has no separate `TextureDimension::Cube`; cube textures are created as `TextureDimension::D2` with six or more array layers. The renderer maps the dimension as follows:
 
 - `D1` -> `TextureDimension::D1`, `TextureViewDimension::D1`
-- `D2` -> `TextureDimension::D2`, material texture view remains `TextureViewDimension::D2` over layer 0
+- one-layer `D2` -> `TextureDimension::D2`, `TextureViewDimension::D2`
+- multi-layer `D2` -> `TextureDimension::D2`, `TextureViewDimension::D2Array` over every layer
 - `D3` -> `TextureDimension::D3`, `TextureViewDimension::D3`
 - `Cube` -> `TextureDimension::D2`, `TextureViewDimension::Cube` for six layers or `CubeArray` for more than six
 
-Keeping ordinary material `D2` textures as one-layer `D2` views is intentional. It avoids changing the existing material texture ABI while adding the cube view path needed for environment resources.
+Keeping ordinary material `D2` textures as one-layer `D2` views preserves the current standard-material ABI. Multi-layer D2 assets now expose all layers through `D2Array`, while cube assets use a separate Cube/CubeArray view contract.
 
 ## Design And Rationale
 
@@ -85,8 +90,11 @@ The public integration test `runtime_texture_cube_resource_contract.rs` verifies
 - `dimension = "cube"` normalizes to six faces,
 - the `cubemap` alias rejects a five-layer shape,
 - a square six-face RGBA8 payload is upload-ready.
+- six decoded face assets preserve `+X, -X, +Y, -Y, +Z, -Z` order,
+- face dimension/format mismatch returns a typed asset error,
+- texture-array assembly preserves layer order and rejects mismatched dimensions.
 
-Private module tests also cover the GPU view mapping and the existing D2 material view contract, but the full Windows lib-test harness is too heavy for every implementation slice. The focused validation for this slice was:
+Private module tests also cover D2, D2Array, Cube, and CubeArray view mapping. The historical focused validation for the original Cube resource slice was:
 
 ```powershell
 cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-cubemap-projection-check-0705 --message-format short --color never

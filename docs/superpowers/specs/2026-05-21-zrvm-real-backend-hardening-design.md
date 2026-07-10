@@ -30,7 +30,7 @@ plan_sources:
   - docs/superpowers/specs/2026-05-20-zrvm-reflection-macro-modularity-design.md
 tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-real-backend-hardening
-  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-real-backend-hardening real_backend -- --nocapture --test-threads=1
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-real-backend-hardening real_backend -- --nocapture --test-threads=1
   - rustfmt --edition 2021 --check zircon_plugins/zr_vm_language/runtime/src/lib.rs zircon_plugins/zr_vm_language/runtime/src/backend.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
 doc_type: design-spec
 ---
@@ -48,10 +48,10 @@ This slice keeps `zircon_plugins/zr_vm_language/runtime` as the owner of backend
 In scope:
 
 - validate backend-owned descriptor constraints before calling `zr_vm_rust_binding` builders when the Rust adapter can report clearer errors;
-- preserve the existing `real-zr-vm` feature-gated integration path;
+- preserve the existing `backend-zr-vm` feature-gated integration path;
 - improve contextual error messages for module/function lowering and native callback conversion;
 - add focused unit coverage for backend hardening that does not require a local `zr_vm` dynamic library when possible;
-- keep existing real backend integration tests for lifecycle/native module loading under `real-zr-vm`;
+- keep existing real backend integration tests for lifecycle/native module loading under `backend-zr-vm`;
 - update `docs/zircon_runtime/script/vm/zr_vm_host_reflection.md` with the backend hardening boundary and validation evidence.
 
 Out of scope:
@@ -65,7 +65,7 @@ Out of scope:
 
 ## Chosen Approach
 
-Add small private validation and lowering helpers inside `zircon_plugins/zr_vm_language/runtime/src/real_backend.rs`. Keep the public backend surface unchanged: `load_project_package` remains the entry point and `ZrVmBackend` continues to delegate to it behind the `real-zr-vm` feature.
+Add small private validation and lowering helpers inside `zircon_plugins/zr_vm_language/runtime/src/real_backend.rs`. Keep the public backend surface unchanged: `load_project_package` remains the entry point and `ZrVmBackend` continues to delegate to it behind the `backend-zr-vm` feature.
 
 The adapter should validate backend-specific constraints close to the lowering code:
 
@@ -130,7 +130,7 @@ The adapter should not silently clamp arity or skip invalid descriptors. If a de
 
 ## Testing Plan
 
-Feature-independent unit tests should live in `zircon_plugins/zr_vm_language/runtime/src/lib.rs` or a child test module near `real_backend.rs`, depending on final visibility. They should avoid requiring the `real-zr-vm` feature unless they instantiate actual `zrvm::Runtime` or binding values.
+Feature-independent unit tests should live in `zircon_plugins/zr_vm_language/runtime/src/lib.rs` or a child test module near `real_backend.rs`, depending on final visibility. They should avoid requiring the `backend-zr-vm` feature unless they instantiate actual `zrvm::Runtime` or binding values.
 
 Required focused coverage:
 
@@ -152,10 +152,10 @@ Validation commands for the implementation testing stage:
 ```powershell
 rustfmt --edition 2021 --check zircon_plugins/zr_vm_language/runtime/src/lib.rs zircon_plugins/zr_vm_language/runtime/src/backend.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-real-backend-hardening
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-real-backend-hardening real_backend -- --nocapture --test-threads=1
+cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-real-backend-hardening real_backend -- --nocapture --test-threads=1
 ```
 
-The `real-zr-vm` command requires local `zr_vm` binding artifacts and `ZR_VM_RUST_BINDING_LIB_DIR`. If those are unavailable, final reporting must state the exact environment blocker and still run non-real-backend unit tests.
+The `backend-zr-vm` command requires local `zr_vm` binding artifacts and `ZR_VM_RUST_BINDING_LIB_DIR`. If those are unavailable, final reporting must state the exact environment blocker and still run non-real-backend unit tests.
 
 ## Documentation Plan
 

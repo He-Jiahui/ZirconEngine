@@ -1,0 +1,392 @@
+# Runtime 15 test-file-budget current-owner anchor delta 02
+
+Date: 2026-07-11
+
+Status: `runtime_15_test_file_budget_current_owner_anchor_delta_02_static_reconciled`
+
+## Scope and claim boundary
+
+This numbered output record extends the current-owner routing inventory with the exact anchors still required by the 2026-07-11 `test_file_budget` rerun. It records current child-owner paths and status identities only; it does not re-execute or promote historical Cargo, WGPU, RenderDoc, or package-level results.
+
+The executable structure guards continue to validate the corresponding source owners, delegation boundaries, and line budgets independently.
+
+## Current owner anchor delta
+
+- #[path = "code_review/direct_assertion_rows.rs"]
+- #[path = "code_review/expected_slice_rows.rs"]
+- #[path = "code_review/folder_backed_summary_rows.rs"]
+- #[path = "code_review/source_inventory_rows.rs"]
+- #[path = "code_review/status_doc_rows.rs"]
+- #[path = "code_review/structure_guard_rows.rs"]
+- #[path = "review/code_review_guard_maps.rs"]
+- #[path = "review/foundation_review_maps.rs"]
+- #[path = "review/plugin_importer_maps.rs"]
+- #[path = "review/top_row_review_maps.rs"]
+- #[path = "review/typed_error_maps.rs"]
+- #[path = "review/typed_error_structure_maps.rs"]
+- #[path = "route_meta/child_owner_budget_rows.rs"]
+- #[path = "route_meta/child_owner_guard_rows.rs"]
+- #[path = "route_meta/naming_boundary_rows.rs"]
+- #[path = "route_meta/row_data_owner_rows.rs"]
+- #[path = "runtime_plugin_lifecycle/lifecycle_fixtures.rs"]
+- #[path = "status/delegation.rs"]
+- #[path = "structure/convergence_mounts.rs"]
+- Cargo gate deferred
+- frameworks_02_m3_review_guard_expected_slice_root_route_metadata_status_mirror_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_route_mount_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_status_date_map_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_status_date_maps_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_status_mirror_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_root_source_route_children_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_source_status_maps_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_status_output_expected_slice_guard_maps_folder_backed_static_passed_cargo_deferred
+- mod lifecycle_fixtures;
+- pub(super) const EXPECTED_STATUS_OUTPUT_SLICES
+- render_product_camera_targets/custom_target/ordering.rs
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F12_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F8_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_P0_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_RENDER_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_ROOT_PARENT_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES
+- Runtime 15 F9 runtime prelude required type coverage
+- Runtime 15 M2 core runtime state module naming hard cutover
+- Runtime 15 M3 asset-budget asset-tests guard folder-backed split
+- Runtime 15 M3 asset-budget asset-tests row-data child split
+- Runtime 15 M3 asset-budget naming graphics misc guard folder-backed split
+- Runtime 15 M3 asset-budget naming graphics misc row-data child split
+- Runtime 15 M3 child-group moved-row guard child-owner split
+- Runtime 15 M3 child-group moved-row guard folder-backed split
+- Runtime 15 M3 child-group moved-row root inventory child split
+- Runtime 15 M3 child-group moved-row status-mirror child split
+- Runtime 15 M3 child-groups status-doc guard child-owner split
+- Runtime 15 M3 child-groups status-doc guard folder-backed split
+- Runtime 15 M3 child-groups status-doc root inventory child split
+- Runtime 15 M3 child-groups status-doc status-mirror child split
+- Runtime 15 M3 foundation-guards runtime-structure guard folder-backed split
+- Runtime 15 M3 foundation-guards runtime-structure row-data child split
+- Runtime 15 M3 production guard status-support priority guard folder-backed split
+- Runtime 15 M3 production guard status-support priority row-data child split
+- Runtime 15 M3 review-guard direct-assertion export-chain guard child split
+- Runtime 15 M3 review-guard direct-assertion row-data child-owner split
+- Runtime 15 M3 review-guard direct-assertion row-data folder-backed split
+- Runtime 15 M3 review-guard direct-assertion row-data guard folder-backed split
+- Runtime 15 M3 review-guard direct-assertion row-data root inventory child split
+- Runtime 15 M3 review-guard direct-assertion row-ownership guard child split
+- Runtime 15 M3 review-guard direct-assertion status-mirror child split
+- Runtime 15 M3 review-guard root source route-children folder-backed split
+- Runtime 15 M3 review-guard typed-error status-doc guard folder-backed split
+- Runtime 15 M3 review-guard typed-error structure-assertions guard folder-backed split
+- Runtime 15 M3 Runtime 15 M3 row-data guard folder-backed split
+- Runtime 15 M3 Runtime 15 M3 row-data root inventory child split
+- Runtime 15 M3 Runtime 15 M3 row-data status-mirror child split
+- Runtime 15 M3 Runtime 15 M4 row-data guard folder-backed split
+- Runtime 15 M3 Runtime 15 M4 row-data root inventory child split
+- Runtime 15 M3 Runtime 15 M4 row-data status-mirror child split
+- Runtime 15 M3 scene-script plugin-extension guard folder-backed split
+- Runtime 15 M3 scene-script plugin-extension row-data child split
+- Runtime 15 M3 scene-script Runtime 07 performance guard folder-backed split
+- Runtime 15 M3 scene-script Runtime 07 performance row-data child split
+- Runtime 15 M3 shader prewarm manifest guard child-owner split
+- Runtime 15 M3 status output expected-slice legacy group child-owner split
+- Runtime 15 M3 status output expected-slice maps split
+- Runtime 15 M3 status output M3 row data child-owner split
+- Runtime 15 M3 status output Runtime 15 M3 row data split
+- Runtime 15 M3 status output Runtime 15 M4 row data split
+- Runtime 15 M3 status output Runtime 15 row data split
+- Runtime 15 M3 status-output expected-slice guard maps folder-backed split
+- Runtime 15 M3 status-support expected-slice owner paths guard folder-backed split
+- Runtime 15 M3 status-support row-data root inventory child split
+- Runtime 15 M3 status-support row-data root owner paths folder-backed split
+- Runtime 15 M3 status-support runtime-index anchor row-data child split
+- Runtime 15 M3 typed-error status-doc delegation status-current sources child split
+- Runtime 15 M3 typed-error status-doc delegation status-current split-layout sources child split
+- Runtime 15 M3 typed-error status-doc paths child inventory child split
+- Runtime 15 M3 typed-error status-doc paths child inventory split-layout folder-backed split
+- Runtime 15 M3 typed-error status-doc paths child inventory split-layout guard folder-backed split
+- Runtime 15 M3 typed-error status-doc paths child inventory split-layout sources child split
+- Runtime 15 M3 typed-error status-doc paths status-current child split
+- Runtime 15 M3 typed-error status-doc paths status-current sources child split
+- Runtime 15 M3 typed-error status-doc paths status-current split-layout folder-backed split
+- Runtime 15 M3 typed-error status-doc paths status-current split-layout guard folder-backed split
+- Runtime 15 M3 typed-error structure row-data guard folder-backed split
+- Runtime 15 M3 typed-error structure row-data owner child split
+- runtime_15_asset_budget_asset_tests_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_asset_budget_asset_tests_guard_is_folder_backed
+- runtime_15_asset_budget_asset_tests_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_asset_budget_asset_tests_row_data_is_child_backed
+- runtime_15_asset_budget_naming_graphics_misc_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_asset_budget_naming_graphics_misc_guard_is_folder_backed
+- runtime_15_asset_budget_naming_graphics_misc_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_asset_budget_naming_graphics_misc_row_data_is_child_backed
+- runtime_15_code_review_findings_plugin_importer_dx_structure_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_foundation_guards_runtime_structure_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_foundation_guards_runtime_structure_guard_is_folder_backed
+- runtime_15_foundation_guards_runtime_structure_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_foundation_guards_runtime_structure_row_data_is_child_backed
+- runtime_15_m3_child_group_moved_row_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_status_mirror_children_are_child_owned
+- runtime_15_m3_child_groups_status_docs_child_owner_split_static_passed_cargo_deferred
+- runtime_15_m3_child_groups_status_docs_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m3_child_groups_status_docs_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m3_child_groups_status_docs_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_m3_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m3_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m3_row_data_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_m4_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m4_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m4_row_data_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_plugin_importer_d13_sdk_review_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_production_guard_status_support_priority_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_production_guard_status_support_priority_guard_is_folder_backed
+- runtime_15_production_guard_status_support_priority_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_production_guard_status_support_priority_row_data_is_child_backed
+- runtime_15_review_guard_direct_assertion_export_chain_guard_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_child_owner_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_root_inventory_is_child_owned
+- runtime_15_review_guard_direct_assertion_row_ownership_guard_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_rows_guard_is_folder_backed
+- runtime_15_review_guard_direct_assertion_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_root_source_route_children_are_child_owned
+- runtime_15_review_guard_root_source_route_children_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_status_doc_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_status_docs_guard_is_folder_backed
+- runtime_15_review_guard_typed_error_structure_assertions_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_structure_assertions_guard_is_folder_backed
+- runtime_15_scene_script_plugin_extension_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_scene_script_plugin_extension_guard_is_folder_backed
+- runtime_15_scene_script_plugin_extension_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_scene_script_plugin_extension_row_data_is_child_backed
+- runtime_15_scene_script_runtime_07_performance_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_scene_script_runtime_07_performance_guard_is_folder_backed
+- runtime_15_scene_script_runtime_07_performance_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_scene_script_runtime_07_performance_row_data_is_child_backed
+- runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_status_output_expected_slice_guard_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_output_expected_slice_guard_maps_is_folder_backed
+- runtime_15_status_output_expected_slice_legacy_group_child_owner_split_static_passed_cargo_deferred
+- runtime_15_status_output_expected_slice_maps_split_static_passed_cargo_deferred
+- runtime_15_status_output_m3_row_data_child_owner_split_static_passed_cargo_deferred
+- runtime_15_status_output_review_guard_direct_assertion_rows_are_child_owner
+- runtime_15_status_output_runtime_15_m3_row_data_is_child_owner
+- runtime_15_status_output_runtime_15_m3_row_data_split_static_passed_cargo_deferred
+- runtime_15_status_output_runtime_15_m4_row_data_is_child_owner
+- runtime_15_status_output_runtime_15_m4_row_data_split_static_passed_cargo_deferred
+- runtime_15_status_support_expected_slice_owner_paths_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_expected_slice_owner_paths_guard_is_folder_backed
+- runtime_15_status_support_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_status_support_row_data_root_inventory_is_child_owned
+- runtime_15_status_support_row_data_root_owner_paths_are_folder_backed
+- runtime_15_status_support_row_data_root_owner_paths_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_runtime_index_anchor_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_status_support_runtime_index_anchor_rows_are_child_owned
+- runtime_15_typed_error_status_doc_delegation_status_current_sources_are_child_backed
+- runtime_15_typed_error_status_doc_delegation_status_current_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_delegation_status_current_split_layout_sources_are_child_backed
+- runtime_15_typed_error_status_doc_delegation_status_current_split_layout_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_is_child_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_guard_is_folder_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_is_folder_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_sources_are_child_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_is_child_backed
+- runtime_15_typed_error_status_doc_paths_status_current_sources_are_child_backed
+- runtime_15_typed_error_status_doc_paths_status_current_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_guard_is_folder_backed
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_is_folder_backed
+- runtime_15_typed_error_structure_row_data_owner_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_structure_rows_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_structure_rows_guard_is_folder_backed
+- runtime_15_typed_error_structure_rows_row_data_owner_is_child_backed
+- Some("2026-06-24")
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/runtime_15_m3_parent.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/runtime_15_parent.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/top_level.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_inventory.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_statuses.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/aggregation.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/folder_backed.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/route_mounts.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps_folder_backed.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/priority_plan_docs.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/root_rows.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/row_data_and_budget.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/runtime_index_anchors.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/slice_maps_folder/budget_traversal.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/slice_maps_folder/route_children.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/slice_maps_folder/status_current.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_inventory.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_owner_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/m3_row_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/code_review_owner.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/structure_guard_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status_docs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/row_routes.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_assertions.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/row_groups.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/status_doc_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/row_routes.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_status_support_row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/foundation_review.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/root_expected_slice.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/source_inventory.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/status_current.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/structure_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/source_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources/delegation_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/status_maps_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources/status_mirrors_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources/paths_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/status_sync.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/guard_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/paths_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/source_helper_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/status_slices.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/path_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/preserved_guards.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows.rs
+- use lifecycle_fixtures::*;

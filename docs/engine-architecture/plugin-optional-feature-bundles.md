@@ -7,6 +7,9 @@ related_code:
   - zircon_runtime/src/plugin/capability_status.rs
   - zircon_runtime/src/plugin/plugin_maturity.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_app/Cargo.toml
+  - zircon_app/src/plugins/groups.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_report.rs
   - zircon_runtime/src/plugin/runtime_profile/defaults.rs
@@ -355,6 +358,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/reports/editor_plugin_status.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-03 optional feature bundle validation
   - user: 2026-05-08 实现 ZirconEngine Bevy 级插件完成度里程碑计划
   - user: 2026-05-16 continue Bevy-style runtime profile plugin group selection completion
@@ -373,8 +377,8 @@ tests:
   - zircon_plugins/net/runtime/src/tests.rs
   - zircon_plugins/net/features/content_download/runtime/src/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
-  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
 doc_type: module-detail
 ---
 
@@ -675,11 +679,11 @@ Fresh validation on 2026-05-03:
 
 Fresh M2 app-provider validation on 2026-05-16 used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target` because other active sessions were using the shared target directories:
 
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
 - `cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1` passed: 13 tests, 0 failures.
-- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" profile_bootstrap --message-format short -- --nocapture --test-threads=1` passed on Windows: 18 tests, 0 failures.
-- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed on Windows: 1 test, 0 failures. The root lockfile keeps Slint/`zircon_hub`'s `accesskit_windows v0.30.0` on `windows 0.61.3`, but aligns `gpu-allocator v0.28.0` with `wgpu-hal v29.0.3` on `windows 0.62.2` so their D3D12 types match.
-- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed in WSL/Linux: 1 test, 0 failures.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" profile_bootstrap --message-format short -- --nocapture --test-threads=1` passed on Windows: 18 tests, 0 failures.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed on Windows: 1 test, 0 failures. The root lockfile keeps Slint/`zircon_hub`'s `accesskit_windows v0.30.0` on `windows 0.61.3`, but aligns `gpu-allocator v0.28.0` with `wgpu-hal v29.0.3` on `windows 0.62.2` so their D3D12 types match.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed in WSL/Linux: 1 test, 0 failures.
 
 Workspace-wide `cargo build --workspace` / `cargo test --workspace` was not run in this session because the checkout is under active multi-session churn and this milestone used targeted package validation for the optional-feature surfaces.

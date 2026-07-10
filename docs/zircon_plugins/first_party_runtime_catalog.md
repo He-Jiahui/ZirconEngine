@@ -51,8 +51,8 @@ tests:
   - cargo metadata --manifest-path zircon_plugins/Cargo.toml --format-version 1 --no-deps --locked
   - cargo metadata --format-version 1 --no-deps --locked
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog --locked --jobs 1 --target-dir E:\cargo-targets\zircon-first-party-catalog-0604 --message-format short --color never
-  - cargo check -p zircon_app --bin zircon_runtime --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,first-party-zr-vm-real-backend" --message-format short --color never with CARGO_TARGET_DIR=E:\cargo-targets\zircon-vampire-app, ZR_VM_RUST_BINDING_LIB_DIR=E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug, PATH including E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug: passed 2026-06-09
-  - cargo build -p zircon_app --bin zircon_runtime --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,first-party-zr-vm-real-backend" --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app, ZR_VM_RUST_BINDING_LIB_DIR=E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug, PATH including E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug: passed 2026-06-09
+  - cargo check -p zircon_app --bin zircon_runtime --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --message-format short --color never with CARGO_TARGET_DIR=E:\cargo-targets\zircon-vampire-app, ZR_VM_RUST_BINDING_LIB_DIR=E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug, PATH including E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug: passed 2026-06-09
+  - cargo build -p zircon_app --bin zircon_runtime --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app, ZR_VM_RUST_BINDING_LIB_DIR=E:\Git\zr_vm\build\codex-msvc-debug\lib\Debug, PATH including E:\Git\zr_vm\build\codex-msvc-debug\bin\Debug: passed 2026-06-09
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/first_party_runtime_catalog/src/lib.rs zircon_plugins/native_dynamic_fixture/native/src/lib.rs: passed 2026-06-22
   - static generated manifest header scan over non-native zircon_plugins/*/plugin.toml: 30/30 passed 2026-06-22
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_first_party_runtime_catalog plugins_12_static_plugin_manifest_is_generated --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugins12-ds7-0622 --message-format short --color never -- --test-threads=1: timed out after 1200s on 2026-06-22; not counted as passing
@@ -109,7 +109,7 @@ This mirrors the current engine split:
 - `advanced-render-runtime-plugins` links Virtual Geometry, Hybrid GI, and Solari providers.
 - `navigation-runtime-plugin` links the Navigation provider separately so native/Recast-oriented validation can remain explicit.
 - `zr-vm-language-runtime-plugin` links the ZrVM language provider.
-- `zr-vm-real-backend` enables the ZrVM provider plus its `real-zr-vm` native binding feature.
+- `backend-zr-vm` enables the ZrVM provider plus its `backend-zr-vm` native binding feature.
 
 The app-facing feature names remain stable:
 
@@ -117,7 +117,7 @@ The app-facing feature names remain stable:
 - `first-party-advanced-render-runtime-plugins`
 - `first-party-navigation-runtime-plugin`
 - `first-party-zr-vm-language-runtime-plugin`
-- `first-party-zr-vm-real-backend`
+- `backend-zr-vm`
 
 Each app feature now enables the catalog plus the matching catalog feature instead of directly naming individual `zircon_plugin_*_runtime` crates.
 

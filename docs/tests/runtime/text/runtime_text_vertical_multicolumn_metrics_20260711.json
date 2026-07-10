@@ -1,0 +1,17 @@
+{
+  "artifact": "docs/tests/runtime/text/runtime_text_multilingual_product_framebuffer_20260710.png",
+  "generated_at": "2026-07-11T02:57:38+08:00",
+  "size": [1080, 620],
+  "bytes": 100139,
+  "colors": 1012,
+  "sha256": "AE10DC416FD87AC7382676796AF05FD3EE30C12B0904A482D225C3DB69F8D713",
+  "vertical_text": "竖排「标点」。第二列，验证。",
+  "vertical_all": { "changed_pixels": 4114, "bbox": [982, 34, 1049, 273], "extent": [68, 240] },
+  "vertical_right": { "changed_pixels": 2548, "bbox": [1020, 34, 1049, 273], "extent": [30, 240] },
+  "vertical_left": { "changed_pixels": 1566, "bbox": [982, 38, 1011, 202], "extent": [30, 165] },
+  "target_same_name_matches": {
+    "target": 0,
+    "E:/cargo-targets": 0,
+    "F:/cargo-targets": 0
+  }
+}

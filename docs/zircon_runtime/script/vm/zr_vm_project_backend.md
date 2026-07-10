@@ -68,7 +68,7 @@ tests:
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_w_key_moves_player_before_input_clear --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_reports_runtime_fps_and_render_work --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR set
   - target\debug\deps\zircon_runtime-c2d0caf045e075d5.exe vampire_project_session_capture_frame_draws_world_hud_bars --nocapture --test-threads=1 with ZR_VM_RUST_BINDING_LIB_DIR, ZR_VAMPIRE_CAPTURE_PNG, ZR_VAMPIRE_CAPTURE_WIDTH=640, and ZR_VAMPIRE_CAPTURE_HEIGHT=360 set
-  - cargo build -q -p zircon_app --bin zircon_runtime --features first-party-zr-vm-real-backend
+  - cargo build -q -p zircon_app --bin zircon_runtime --features backend-zr-vm
   - target\debug\zircon_runtime.exe --log-level verbose --project E:\Git\ZirconEngine\examples\vampire with ZR_VM_RUST_BINDING_LIB_DIR, PATH, and ZIRCON_RUNTIME_LIBRARY set for the local debug ZR VM build
   - cargo test --manifest-path ..\zr_vm\zr_vm_rust_binding\rust\zr_vm_rust_binding\Cargo.toml call_module_export_accepts_empty_argument_slice -- --nocapture
   - cargo test --manifest-path ..\zr_vm\zr_vm_rust_binding\rust\zr_vm_rust_binding\Cargo.toml project_session_preserves_module_state_between_export_calls -- --nocapture
@@ -89,7 +89,7 @@ doc_type: module-detail
 
 `zircon_runtime::script::vm::backend::zr_vm_project_backend` is the runtime-owned real backend for project script packages that declare `backend = "zr_vm:project"`. It lets the standalone runtime load project-local ZR script packages without depending on the external plugin runtime crate as the owner of the VM boundary.
 
-The real backend is feature gated through `zircon_runtime/zr-vm-real-backend`. `zircon_app` exposes this through `first-party-zr-vm-real-backend`, and `zircon_plugins/zr_vm_language/runtime` now forwards to the runtime backend instead of owning a separate implementation.
+The real backend is feature gated through `zircon_runtime/backend-zr-vm`. `zircon_app` exposes this through `backend-zr-vm`, and `zircon_plugins/zr_vm_language/runtime` now forwards to the runtime backend instead of owning a separate implementation.
 
 ## Backend Selection
 
@@ -139,7 +139,7 @@ On 2026-06-16, Runtime 06 M1.2 added folder-backed fallback lifecycle failure te
 
 The 2026-06-16 real-backend retry used the Debug ZR VM build under `E:\Git\zr_vm\build-msvc` and moved past the previous missing `ZR_VM_RUST_BINDING_LIB_DIR` setup. It then exposed a shader artifact cache boundary in the vampire project: `lib://shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset` failed with `tag for enum is not valid, found 5`. The fix lives in `zircon_runtime/src/asset/artifact/cache_payload.rs`, where shader import redirects and texture slots now use cache-local bincode-safe structs, and `examples/vampire/assets/shaders/default_pbr.zmeta` plus its `.zasset` were regenerated. Focused real-backend validation passed `artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata` 1/1 and `project_manager_imports_compound_zshader_package_with_subassets` 1/1.
 
-After that cache fix, the broader `cargo test -p zircon_runtime --lib vampire_project_session --features zr-vm-real-backend --locked -- --nocapture --test-threads=1` no longer fails at artifact parse but timed out after 604 seconds during the first retry window. That result is not a runtime assertion failure and not a pass for the full group.
+After that cache fix, the broader `cargo test -p zircon_runtime --lib vampire_project_session --features backend-zr-vm --locked -- --nocapture --test-threads=1` no longer fails at artifact parse but timed out after 604 seconds during the first retry window. That result is not a runtime assertion failure and not a pass for the full group.
 
 The current focused Release-ZrVM validation passed the two menu lifecycle paths that were blocking the sample: `vampire_project_session_starts_paused_until_start_button_click` passed after the test helper sends the matching viewport resize before the synthetic click, and `vampire_project_session_game_over_menu_retries_to_playing` passed after the gameplay host gained `entity_exists` / `script_number_at_most` and the script gained the one-frame `vampire.spawn_grace` retry guard. The full `vampire_project_session` group, plugin/native plugin, app, and `zircon_plugins` workspace gates remain pending.
 

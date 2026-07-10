@@ -80,7 +80,7 @@ plan_sources:
 - **唯一事实**：`UiSurfaceFrame` 同时驱动布局、命中、渲染提取；`UiSurface` 已暴露 mutate_property/reflector_snapshot/dispatch 全套宿主 API。
 - **资产**：生产 UI 资产后缀已硬切为唯一 `.zui`，并按 `asset.kind` 分派 component/view/style/theme token 文档 profile；依赖失效 graph/fingerprint、resource_ref 路径级解析、watcher 全模块已存在；缺 theme/icon 类型、消费级 resolver、persistent cache。
 - **样式**：`UiPainterStyleSelector` 已在 interface 按 family 折叠（优先级单源已成立）；缺中央 theme 文档、v2 伪状态、组件内联分支清理。
-- **渲染**：GPU Command Stream 已接管 editor UI 渲染（software_fallback_count=0 验收过），编辑器无 raw wgpu 依赖。
+- **渲染**：GPU Command Stream 已接管 editor UI 渲染，编辑器无 raw wgpu 依赖；具体验收记录迁入 Editor UI 08 产出目录。
 - **编辑器壳**：Rust-owned retained host；shell 区域 L4 `.zui` 已有 8 件；view registry / window registry / preset / autolayout 模块齐备；11 个 core module workspace 存在。
 - **风格**：暗色 Material token 定调；状态优先级固定 disabled > pressed > selected/focused > hovered > default。
 
@@ -270,4 +270,8 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 
 ## 10. 编辑器完成阶段记录
 
-本总览只汇总各子计划 `## 状态与产出记录` 的当前事实,不替代子计划状态表。完成判定以每个子计划最后一列的后续项和验证证据为准。
+> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+
+Editor UI 总索引中的完成阶段明细已迁入 Editor UI 08 产出目录。
+
+- 迁入记录：[`08/2026-07-09-index-output-records.md`](08/2026-07-09-index-output-records.md)

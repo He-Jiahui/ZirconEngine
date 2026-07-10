@@ -6,20 +6,26 @@ related_code:
   - zircon_editor/Cargo.toml
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
   - zircon_runtime_interface/src/plugin_diagnostics.rs
 implementation_files:
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_editor/src/core/editor_plugin_catalog_gen.rs
+  - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/build.rs
   - zircon_editor/Cargo.toml
   - zircon_runtime_interface/src/plugin_diagnostics.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
 plan_sources:
   - user: 2026-06-12 implement docs/plans/zircon_plugins plugin architecture code
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
+  - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
 tests:
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::builtin_editor_catalog_entries_are_derived_from_plugin_manifests
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::editor_module_plugin_manifests_are_present_in_builtin_catalog
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::editor_plugin_catalog_reports_missing_capabilities_as_structured_diagnostics
+  - zircon_editor/src/tests/host/manager/minimal_host_contract/optional_features.rs
+  - zircon_editor/src/tests/host/manager/minimal_host_contract/core_contract.rs
   - cargo check -p zircon_runtime_interface --lib --locked --message-format short
   - cargo check -p zircon_editor --lib --locked --message-format short
   - cargo test -p zircon_editor --lib editor_plugin_catalog_consistency --locked --message-format short -- --nocapture
@@ -34,6 +40,14 @@ The generated catalog deliberately keeps `plugin.toml` as the source of truth fo
 
 `EditorPluginCatalog` also has an explicit `validate_capabilities(...)` pass that checks a caller-provided capability set against every registered editor plugin capability. Missing capabilities are reported as shared `RegistrationDiagnostic` values from `zircon_runtime_interface`, using code `editor.capability.missing` and `Error` severity.
 
-This is intentionally diagnostic-only. Existing editor extension registration behavior is unchanged: `EditorEventRuntime::register_editor_plugin_registration(...)` still forwards plugin capabilities as required capabilities on the installed extension registration. The new report gives editor/plugin tooling a structured way to explain why a registration would be disabled instead of relying on a silent boolean capability gate.
+This is intentionally diagnostic-only. `EditorHostEventController::register_editor_plugin_registration(...)` forwards plugin capabilities as required capabilities on the installed `EditorExtensionRegistration`, using the controller's Workbench shell and operation owners rather than the deleted editor-event aggregate. The report gives editor/plugin tooling a structured way to explain why a registration would be disabled instead of relying on a silent boolean capability gate.
 
-Validation status: `cargo check -p zircon_runtime_interface --lib --locked --message-format short` passes. `cargo check -p zircon_editor --lib --locked --message-format short` passes with existing warnings. `cargo test -p zircon_editor --lib editor_plugin_catalog_consistency --locked --message-format short -- --nocapture` passes 4 focused catalog tests after the Windows link step completes.
+## Optional Feature Dependency Enablement
+
+`EditorManager::enable_project_plugin_feature_dependencies(...)` starts from `RuntimePluginCatalog::complete_project_manifest(...)` so owner plugins, feature selections, and external provider-package selections share the catalog's canonical identities. It recursively enables declared plugin dependencies and unique feature providers without enabling the requested feature itself.
+
+An optional feature may carry an explicit `provider_package_id` distinct from its `owner_plugin_id`. After walking the feature's declared dependencies, the editor enablement path also enables that external provider selection and includes it in `enabled_dependency_plugins`. The runtime status layer remains authoritative: it still rejects feature enablement if the owner, a declared dependency, or the external provider is disabled. The editor does not add provider aliases, ignore missing providers, or special-case Sound.
+
+The split tests under `minimal_host_contract/optional_features.rs` verify the full path: the feature is initially blocked, dependency enablement turns on `sound`, `animation`, and `sound_timeline_animation_track`, status becomes available while the feature remains disabled, and a later explicit feature enable succeeds. `core_contract.rs` owns the independent minimal host capability boundary; the parent test route is kept close to the repository's 1000-line structure budget.
+
+The recorded catalog-focused evidence remains four passing `editor_plugin_catalog_consistency` tests. The external provider fix is not yet accepted: the current-source exact must be rebuilt and pass after the active Cargo lanes release. Its staged diagnosis and reproduction command are owned by `docs/plans/zircon_runtime/frameworks/02/failure-2026-07-11-editor-m1-plugin-provider-lookup.md` rather than by this module document.

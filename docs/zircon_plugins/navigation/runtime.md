@@ -141,7 +141,7 @@ doc_type: module-detail
 
 ## Purpose
 
-The navigation runtime plugin owns the first real navigation manager surface for Zircon. It registers the `NavigationModule`, contributes six dynamic component descriptors, loads baked navmesh assets, exposes path/sample/raycast APIs through the shared `NavigationManager` trait, and ticks basic scene agents toward destinations.
+The navigation runtime plugin owns the first real navigation manager surface for Zircon. It embeds the canonical `navigation.runtime` descriptor, contributes six dynamic component descriptors, loads baked navmesh assets, exposes path/sample/raycast APIs through the shared `NavigationManager` trait, and ticks basic scene agents toward destinations.
 
 ## Related Files
 
@@ -155,7 +155,7 @@ The navigation runtime plugin owns the first real navigation manager surface for
 
 Registration contributes:
 
-- `NavigationModule` with lazy manager `NavigationModule.Manager.NavigationManager`
+- `navigation.runtime` with lazy manager `navigation.runtime.Manager.NavigationManager`
 - runtime capabilities `runtime.plugin.navigation` and `runtime.plugin.navigation.recast`
 - package metadata category `runtime`, maturity `beta`, and `runtime.plugin.navigation = partial` status with an explicit note that gameplay navmesh/pathfinding is separate from Bevy-style UI navigation parity
 - the six `navigation.Component.*` dynamic component descriptors

@@ -111,7 +111,7 @@ Ownership remains unchanged:
 - `zircon_runtime::core::framework::script` owns neutral descriptor DTOs and conversion traits.
 - `zircon_runtime::script::vm::host` owns registry validation, host handles, capabilities, callbacks, built-ins, and generated Markdown documentation.
 - `zircon_runtime_reflection_macros` only generates code that builds the neutral descriptors and host callbacks.
-- `zircon_plugins/zr_vm_language/runtime` consumes descriptors through the existing `HostExportRegistry` records when `real-zr-vm` is enabled.
+- `zircon_plugins/zr_vm_language/runtime` consumes descriptors through the existing `HostExportRegistry` records when `backend-zr-vm` is enabled.
 
 The macro crate must not become a runtime reflection implementation layer. It must not render docs, export files, register built-ins by itself, or know backend-specific ABI details. It only translates Rust-authored host declarations into descriptor-building Rust code.
 

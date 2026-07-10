@@ -14,10 +14,12 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_markdown.py
+  - tools/tests/test_runtime_tech_stack_boundary.py
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
 implementation_files:
   - Cargo.toml
@@ -32,6 +34,7 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
@@ -45,7 +48,8 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/Cargo.toml
 tests:
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
+  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
+  - tools/tests/test_runtime_tech_stack_boundary.py
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_preview_reports_archive_without_writes
   - cargo test -p zircon_runtime --lib tech_stack --locked -- --nocapture
@@ -60,9 +64,13 @@ This document is the runtime-side dependency authority for `zirconEngine`. It se
 
 ## Executable Guard Anchors
 
-Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned`, `export_archive_policy_allows_zip_only_for_archive_materializer`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
+Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation` can see real validation for the `tech_stack`, `extensions`, `text_shaper`, and plugin physics gates. The dependency authority is currently protected by `runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index`, `runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate`, `zr_vm_path_dependency_gate_is_documented_with_version_pairing`, `interface_and_editor_dependency_boundaries_stay_documented_and_guarded`, `removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack`, `runtime_text_doc_records_three_layer_stack_and_cross_reference`, `complex_text_backends_can_only_enter_through_ui_text_shaper`, `fontdue_editor_retained_host_dependency_has_migration_owner`, `physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned`, `export_archive_policy_allows_zip_only_for_archive_materializer`, and `editor_only_dependency_candidates_have_editor_backlog_owner`.
 
-`tech_stack_source_inventory.py` mirrors the Runtime 01 manifest/dependency/version/count inventory, `tech_stack_anchor_inventory.py` mirrors the doc, guard, behavior, decision, and pending Cargo-gate anchors, `tech_stack_boundary.py` remains the 341-line audit reader/dependency scanner/risk owner, and `tech_stack_markdown.py` owns the 103-line Markdown renderer. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 5`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 4`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. 2026-06-21 static validation for the inventory and Markdown renderer splits passed Python py_compile, direct `tech_stack_boundary_audit`, standalone `tech_stack.rs` 1/1, standalone `tech_stack_dependency_guard.rs` 11/11, and standalone `plan_status.rs` 33/33; full Cargo validation remains pending by the current "先实现功能" direction and active compile lanes. This is structure evidence only; `tech_stack`, `extensions`, `text_shaper`, plugin physics, and export_build_plan Cargo filters remain pending.
+Current validation refinement (2026-07-10): the exact locked `tech_stack` filter now passes 14/14 on the current source tree. This closes that focused dependency-policy gate only; the aggregate Runtime 01 status remains `in_progress` while the separate `text_shaper`, plugin-physics, and `export_build_plan` package gates are still pending. Concrete command output is owned by the numbered Runtime 01 output archive rather than this authority document.
+
+The same-day manifest-audit refresh treats `glyphon` and `fontsdf` as optional graphics/text dependencies and recognizes only the hard-cut backend feature names `backend-zr-vm` and `backend-jolt`. The retired feature spellings have no compatibility aliases. The direct Runtime 01 audit reports no missing version anchors, no dependency-boundary violations, two visible Jolt slots, and `risks = []`.
+
+`tech_stack_source_inventory.py` mirrors the Runtime 01 manifest/dependency/version/count inventory, `tech_stack_anchor_inventory.py` mirrors the doc, guard, behavior, decision, and pending Cargo-gate anchors, `tech_stack_boundary.py` owns audit reads/dependency scanning/risk aggregation, and `tech_stack_markdown.py` owns the Markdown renderer. The mirror guard now resolves its real folder-backed owner at `runtime_absorption/tech_stack/mirror_docs.rs`, rather than the route-only `tech_stack.rs` parent. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 5`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 6`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, and `risks = []`. The six behavior anchors cover two text-stack checks plus Jolt feature-off unavailability/no-fallback and feature-on ready/native-step behavior. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. Direct `tech_stack_boundary_audit` verifies one runtime profile hook, one dependency-backed Physics feature, the optional plugin-owned `joltc-sys`, concrete Jolt backend owners, and no runtime solver dependency. This is structure evidence only; aggregate `extensions` and remaining product gates stay pending.
 
 ## Dependency Matrix
 
@@ -85,7 +93,7 @@ Runtime 01 is code/static complete but remains Cargo-pending until `runtime_01_t
 | `zip` | `9.0.0-pre2` with `default-features = false`, `deflate-flate2` only | `zircon_runtime::plugin::export_build_plan::materialize::archive` export archive materializer | none | Only the runtime ZIP archive materializer may declare this dependency. Any feature expansion, additional archive format, or non-runtime owner must update this document and `tech_stack_boundary`. |
 | `accesskit` | `0.22.0` optional | runtime accessibility | `accessibility-accesskit` | Upgrade with accessibility DTO compatibility checks. |
 | gamepad input | app/runtime input stack | app/runtime input | `input-gamepad`, `gamepad-gilrs` | Browser gamepad remains a separate target path. |
-| `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | external path dependency at `../../zr_vm/...` | runtime script backend | `zr-vm-real-backend` | Current decision is to keep the external checkout. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
+| `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | external path dependency at `../../zr_vm/...` | runtime script backend | `backend-zr-vm` | Current decision is to keep the external checkout. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
 
 ## Corrected Non-Dependencies
 
@@ -112,7 +120,7 @@ Upgrade gates:
 
 ## External ZrVM Path Dependency
 
-The current decision is option A from the runtime 01 plan: keep `../../zr_vm` as an external checkout and gate it behind `zr-vm-real-backend`. This keeps the default runtime build independent from a local ZrVM checkout while preserving the real backend for explicit validation.
+The current decision is option A from the runtime 01 plan: keep `../../zr_vm` as an external checkout and gate it behind `backend-zr-vm`. This keeps the default runtime build independent from a local ZrVM checkout while preserving the real backend for explicit validation.
 
 The path dependency is not only a clone-layout issue. The runtime real-backend contract depends on a paired binding version that represents empty export argument lists as a valid non-null pointer with length `0`. Moving the dependency to a submodule, vendored crate, or published crate must include that binding fix as a version gate.
 

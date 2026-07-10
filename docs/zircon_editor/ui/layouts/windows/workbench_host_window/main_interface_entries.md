@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
@@ -66,10 +67,11 @@ related_code:
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 implementation_files:
+  - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
@@ -118,7 +120,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
   - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 plan_sources:
@@ -216,6 +218,8 @@ This document records the current accepted entry map for the M3 host cutover wor
 ## Behavior Model
 
 `chrome_template_projection.rs` is the current template projection boundary for shared workbench chrome. It keeps the source-contract constants and thin wrappers, while `chrome_template_projection/menu_chrome.rs` owns menu chrome/popup projection and `chrome_template_projection/dock_header.rs` owns the document, side, bottom, and floating dock-header projection. These owners load the root chrome assets with `build_view_template_nodes(...)`, apply current labels, tab state, icon names, and disabled/selected state, then return `ViewTemplateNodeData` rows. Fallback nodes are allowed only as resilience for missing template metrics; they are not a new business UI source. The fallback page chrome must preserve the same row split as the retained shell: menu bar first, page bar below `MENU_TOP_BAR_HEIGHT_PX`, then document/content tabs. Fallback icon nodes publish `icons/ionicons/*.svg` media sources so the retained painter and runtime asset resolver agree with the crate-local icon directory.
+
+The 2026-07-10 typography correction removes local `10/11/12px` defaults from this chrome path. Menu, page-tab, document-tab, close-control, and status text project the central workbench body role; project-path and Dock subtitle text project the caption role. The shared defaults are Unreal Starship's Normal 10pt and Small 8pt converted once to 13.33 and 10.67 logical pixels at the 96-DPI Slate baseline. Runtime rasterization may multiply those logical values by the display scale, but chrome projection must not repeat the point conversion.
 
 Dock-header document tabs now use `ui/workbench/document_tabs/metrics.rs` as the shared geometry owner. `chrome_template_projection/dock_header.rs` uses it for readable document-tab width, strip offset, gap, tab height, and close-button placement, while `document_tab_pointer/constants.rs` aliases the same values for hit testing. This keeps the visible `Asset Browser` document tab and its close button aligned with the retained pointer surface instead of maintaining separate paint and hit constants.
 

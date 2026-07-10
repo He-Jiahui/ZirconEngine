@@ -1,0 +1,20 @@
+{
+  "process_id": 84952,
+  "loaded_log_observed": true,
+  "samples": [
+    {
+      "elapsed_since_monitor_seconds": 5.1,
+      "process_exists": true,
+      "responding": true,
+      "cpu_seconds": 80.875,
+      "hdri_log_observed": []
+    },
+    {
+      "elapsed_since_monitor_seconds": 10.2,
+      "process_exists": true,
+      "responding": true,
+      "cpu_seconds": 84.031,
+      "hdri_log_observed": true
+    }
+  ]
+}

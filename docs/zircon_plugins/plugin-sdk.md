@@ -86,6 +86,9 @@ related_code:
   - tools/plugin_structure_audits/manifest_schema_modules.py
   - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/registration.py
+  - tools/audit_plugin_structure.py
+  - tools/tests/test_plugin_structure_audit_registration.py
 implementation_files:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/lib.rs
@@ -157,6 +160,8 @@ implementation_files:
   - tools/plugin_structure_audits/manifest_schema_modules.py
   - tools/tests/test_plugin_structure_audit_manifest_schema.py
   - tools/plugin_structure_audits/skeleton.py
+  - tools/plugin_structure_audits/registration.py
+  - tools/audit_plugin_structure.py
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
   - docs/plans/engine-code-structure-convention.md
@@ -308,11 +313,13 @@ The declaration can return:
 
 The intended runtime path is:
 
-- `RuntimePluginRegistrationBuilder::new(registry).module(module_name, module_descriptor())`
+- `RuntimePluginRegistrationBuilder::new(registry).module(module_name)`; the enclosing `RuntimePluginDescriptor` already owns the only `ModuleDescriptor`, and `RuntimePluginRegistrationReport` registers it before this contribution hook runs.
 - `module.runtime_scene_system(system_id, stage, system_fn)`
 - optional `module.event::<EventType>(manifest)`, `module.plugin_option(manifest)`, or `module.plugin_event_catalog(manifest)` for plugin-owned runtime metadata
 - optional `.in_set(...)`, `.with_order(...)`, `.before(...)`, or `.after(...)`
 - `.register()`
+
+`tools/plugin_structure_audits/registration.py` enforces this single-source contract across every trait-backed first-party runtime declaration owner. It scans `src/plugin.rs` plus the optional `src/runtime_plugin/` descriptor owner, requires exactly one `.with_module_descriptor(...)`, and rejects production `register_module(...)`. The focused audit suite passes 10/10 and the current workspace reports 28 audited roots with zero violations; Python 3.10 uses `tomli` when `tomllib` is unavailable in the WSL/CI lane.
 
 The 2026-06-28 D8 runtime registration builder original evidence paths slice extends the representative animation migration to `zircon_plugin_physics_runtime` and `zircon_plugin_net_runtime`. `AnimationRuntimePlugin::register(...)`, `PhysicsRuntimePlugin::register(...)`, and `NetRuntimePlugin::register(...)` now register their runtime module through the SDK builder and pass only a `RuntimePluginModuleRegistration` handle to system registration code. `physics.step`, `net.poll_ingress`, `net.flush_egress`, and the net typed runtime event are all declared through that module handle instead of direct `PluginModuleId` / `RuntimeExtensionRegistry` calls. Guard `review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder` and status `d8_runtime_registration_builder_original_paths_static_passed_cargo_deferred` lock this D8 convergence; module-only and importer-private registry mutation remain separate ownership cases.
 

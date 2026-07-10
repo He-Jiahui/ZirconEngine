@@ -30,7 +30,7 @@ related_code:
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/windows/asset_window.zui
   - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui
@@ -75,7 +75,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/view/activity_window_template_spec.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/assets/ui/editor/windows/asset_window.zui
   - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui
@@ -98,7 +98,7 @@ tests:
   - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
   - zircon_editor/tests/editor_main_frame_template.rs
-  - zircon_editor/tests/activity_drawer_window_template.rs
+  - zircon_editor/tests/integration_contracts/activity_drawer_window_template.rs
   - zircon_editor/tests/workbench_window_template.rs
   - zircon_editor/tests/asset_window_template.rs
   - zircon_editor/tests/ui_layout_editor_window_template.rs
@@ -129,7 +129,7 @@ doc_type: module-detail
 
 The editor main frame is now modeled separately from drawer-capable editor windows. `EditorMainFrameLayout` stores only the active window and ordered window tabs. Drawer-capable windows use `ActivityWindowLayout`, which owns `activity_drawers` and a content workspace.
 
-The reusable `.zui` component shell is `editor.host.activity_drawer_window#ActivityDrawerWindow`. `WorkbenchWindow`, `AssetWindow`, and `UILayoutEditorWindow` remain `.v2.ui.toml` view assets that import that component and mount their own left, right, bottom, and content regions. The retained host consumes Rust-owned `host_contract` projection data; drawer-capable shell reuse now lives in `.zui` component assets while window roots stay v2 view documents.
+The reusable `.zui` component shell is `res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow`. `WorkbenchWindow`, `AssetWindow`, and `UILayoutEditorWindow` are `.zui` view assets that import that component and mount their own left, right, bottom, and content regions. The retained host consumes Rust-owned `host_contract` projection data; drawer-capable shell reuse and window roots now share the locator-based `.zui` identity contract without a host-path alias.
 
 `WorkbenchLayout::activity_windows()` remains the compatibility read surface for old layouts that still only persisted root `drawers`, but current presentation no longer treats the first or root drawer map as active by default. `MainHostPageLayout::WorkbenchPage` now binds the page to an `ActivityWindowId`, and `EditorChromeSnapshot::build(...)` projects drawer snapshots only from the activity window attached to `active_main_page`.
 

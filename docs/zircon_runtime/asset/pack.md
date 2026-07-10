@@ -24,7 +24,6 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/tests/pack.rs
   - zircon_runtime/src/asset/tests/mod.rs
-  - zircon_runtime/src/core/framework/net/download.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
 implementation_files:
   - zircon_runtime/src/asset/pack/mod.rs
@@ -53,8 +52,11 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/plans/zircon_plugins/07-net.md
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
+  - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
   - pack_round_trip
+  - pack_manifest_chunk_plan_round_trips_from_asset_owner
   - duplicate_content_stored_once
   - deterministic_pack_double_run_byte_identical
   - pack_writer_rejects_unsafe_asset_paths
@@ -107,10 +109,10 @@ doc_type: module-detail
 
 # Asset Pack
 
-`zircon_runtime::asset::pack` owns the M2 `zrpack` writer/reader and trim-plan foundation for export
-packages. It reuses the shared `core::framework::net::download::{ZrPackManifest, ZrChunkEntry}` DTO
-so release packages and Net content-download manifests describe chunks with the same neutral data
-shape.
+`zircon_runtime::asset::pack` owns the M2 `zrpack` format, manifest/chunk DTOs, writer/reader, and
+trim-plan foundation for export packages. `ZrPackManifest` and `ZrChunkEntry` are format-owned asset
+protocol data; they are not network transport contracts. Download providers may transfer pack bytes,
+but `core::framework::net` does not define or re-export the pack format.
 
 ## Format
 
@@ -128,7 +130,7 @@ manifest:
   JSON ZrPackDocumentManifest
 ```
 
-`ZrPackDocumentManifest` wraps the shared `ZrPackManifest` and adds asset entries:
+`ZrPackDocumentManifest` wraps the asset-owned `ZrPackManifest` and adds asset entries:
 
 - `path`: package-local asset path.
 - `chunk_hash`: the content-addressed chunk id.
@@ -241,6 +243,11 @@ applies it to the previous full pack, and compares the rebuilt bytes with the ju
 pack. The report field `delta_apply_verified` is true only when that reconstruction is
 byte-identical; requested delta output with a false verification result is fatal.
 
+The export binary compiles the same asset pack source modules through explicit `#[path]` declarations.
+It re-exports `ZrPackManifest` and `ZrChunkEntry` from the shared manifest owner; the former fake
+`core::framework::net` module and duplicate DTO definitions were hard-deleted. Library and tool
+builds therefore have one source of truth for the serialized format.
+
 ## Deduplication
 
 `ZrPackWriter` hashes each asset payload and stores only one copy of identical content. The
@@ -299,6 +306,14 @@ boundary for an included asset whose `source` cannot be read: the report still r
 `included_assets`, carries the read diagnostic, returns exit code 2, and leaves no `assets.zrpack`.
 `deterministic_pack_double_run_byte_identical` proves the writer emits identical bytes when the same
 logical assets arrive in a different order.
+`pack_manifest_chunk_plan_round_trips_from_asset_owner` locks the asset-owned manifest/chunk helper
+behavior and serde shape that previously lived in the Net contract test.
+
+Frameworks 03 ownership validation on 2026-07-10 passed the WSL nightly locked/offline
+`zircon_export_pack` check in 3m17s and the binary test target in 9m31s with 3/3 tests. A separate
+`zircon_runtime --lib --features core-min` pack-filter attempt did not execute tests because the
+global lib-test tree still has 84 un-gated optional-domain references; that command is recorded as
+pending M1 test-support work, not as a pack regression or pass.
 `pack_writer_rejects_unsafe_asset_paths` keeps unsafe package paths out of writer manifests, and
 `pack_writer_rejects_unnormalized_asset_paths` keeps padded or backslash-separated paths from being
 silently normalized at the pack byte boundary.

@@ -58,12 +58,16 @@ tests:
   - cargo test -p zircon_runtime --lib worker_pool --locked -- --nocapture
   - runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass
   - runtime_11_job_system_mirror_docs_match_structure_audit_counts
+  - tools/tests/test_runtime_job_system_audit.py
+  - tests/acceptance/runtime-job-system-audit-owner-sync.md
   - job_system_boundary targeted audit: expected_module_count = 9, direct_rayon_paths = 2, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 4, behavior_test_anchor_count = 13, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
   - runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending static checks passed 2026-06-16
 doc_type: module-detail
 ---
 
 # Runtime Job System
+
+Runtime 11 current guard-owner sync (2026-07-10): `job_system_boundary` now reports `expected_guard_file_count = 2`, `missing_guard_files = []`, `mirror_docs_guard_present = true`, and `risks = []` by reading both the route parent `job_system.rs` and the real folder-backed `job_system/mirror_docs.rs` owner. `runtime_11_job_system_mirror_docs_match_structure_audit_counts` remains the aggregate mirror guard. JobSystem production behavior is unchanged; the named `tasks/ecs_schedule/worker_pool/rayon` filters retain historical passing evidence, while the broader full-lib final gate remains pending.
 
 ## Scope
 

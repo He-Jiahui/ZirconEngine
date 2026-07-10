@@ -23,7 +23,7 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_plugins/zr_vm_language/runtime/src/lib.rs zircon_plugins/zr_vm_language/runtime/src/backend.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-lifecycle-diagnostics
-  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-lifecycle-diagnostics lifecycle -- --nocapture --test-threads=1
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-lifecycle-diagnostics lifecycle -- --nocapture --test-threads=1
 doc_type: design-spec
 ---
 
@@ -89,7 +89,7 @@ The ZrVM binding `E:/Git/zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/li
 
 ## Testing Plan
 
-Add focused tests under the existing `#[cfg(test)]` module in `real_backend.rs` where private helpers are visible and the file only compiles with `real-zr-vm`.
+Add focused tests under the existing `#[cfg(test)]` module in `real_backend.rs` where private helpers are visible and the file only compiles with `backend-zr-vm`.
 
 Required coverage:
 
@@ -108,7 +108,7 @@ Use the same scoped target-dir discipline as the previous ZrVM slice, but with a
 ```powershell
 rustfmt --edition 2021 --check zircon_plugins/zr_vm_language/runtime/src/lib.rs zircon_plugins/zr_vm_language/runtime/src/backend.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
 cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-lifecycle-diagnostics
-cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-lifecycle-diagnostics lifecycle -- --nocapture --test-threads=1
+cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features backend-zr-vm --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-zrvm-lifecycle-diagnostics lifecycle -- --nocapture --test-threads=1
 ```
 
 The real-backend command requires `ZR_VM_RUST_BINDING_LIB_DIR` and a matching `PATH` entry for the ZrVM DLL on Windows. If those local artifacts are unavailable, record the exact blocker and do not claim real-backend validation passed.

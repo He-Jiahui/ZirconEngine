@@ -33,6 +33,10 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
@@ -79,6 +83,10 @@ implementation_files:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
 plan_sources:
@@ -108,6 +116,9 @@ tests:
   - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs::native_host_api_adapter_utf8_error_preserves_source
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs::review_f5_native_host_api_adapter_uses_typed_error
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs::native_hot_reload_snapshot_save_reports_typed_status_error
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs::native_live_host_rollback_plan_reports_when_previous_plugin_was_restored
+  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs::hot_reload_state_restore_failure_rolls_back_and_reports
+  - rustc --edition=2021 --test zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs::native_registration_replay_reports_typed_schema_error
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs::native_registration_replay_reports_typed_duplicate_system_error
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs::review_f5_native_live_host_hot_reload_uses_typed_error
@@ -135,6 +146,10 @@ All native host callbacks exposed through `extern "C"` must catch Rust panics be
 `host_api_adapter.rs` routes the 9 `ZrHostApiV3` callbacks through `catch_native_host_api_panic(...)`; panic is converted to `ZrStatusCode::Panic` with a stable diagnostic byte slice. `host_callbacks.rs` routes the 4 native plugin host-function-table callbacks through `catch_native_plugin_host_callback_panic(...)`; panic is converted to `ZIRCON_NATIVE_PLUGIN_STATUS_PANIC`.
 
 The bridge-call regression `native_host_bridge_call_catches_plugin_method_panic` covers the real method-dispatch path: a panicking native bridge method records the enabled-call diagnostic and returns `ZrStatusCode::Panic` instead of unwinding through FFI.
+
+## Hot-reload rollback disposition
+
+`NativePluginHotReloadState` tracks the previous native package with an explicit disposition: not loaded, held for rollback, unloaded, or restored. When replacement state restore fails, the host unloads the replacement, restores the previous snapshot, reinserts the previous package, and then marks the disposition as restored before formatting the lifecycle error. The diagnostic therefore describes the actual live-host state instead of confusing an earlier unload with the final rollback result.
 
 ## Current Audit
 

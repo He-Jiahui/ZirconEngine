@@ -9,7 +9,9 @@ related_code:
   - zircon_runtime/src/core/resource/manager/lease_ops.rs
   - zircon_runtime/src/core/resource/manager/events.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
+  - zircon_runtime/src/core/resource/snapshot.rs
   - zircon_runtime/src/core/resource/runtime.rs
+  - zircon_runtime/src/core/resource/snapshot.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs
@@ -68,10 +70,13 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f6_core_resource_registry_rename_uses_core_error
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
+  - zircon_runtime/tests/resource_snapshot_contract.rs::resource_snapshot_never_pairs_a_new_revision_with_an_old_payload
 doc_type: module-detail
 ---
 
 # Runtime Core Resource
+
+Current Runtime 04 owner sync (2026-07-10): `expected_source_file_count = 22`, `expected_guard_file_count = 17`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. This current child-owner count supersedes the earlier 11-owner historical mirror; core resource state behavior is unchanged.
 
 `zircon_runtime::core::resource` owns resource identity, records, runtime residency, payload storage, revision events, and the state machine used by asset facade queries. Asset, editor, and render callers should treat typed asset state as a projection over this owner rather than a second source of truth.
 
@@ -93,6 +98,12 @@ The Runtime 04 asset alignment slice locks these transitions:
 
 Project resource synchronization follows the same rule. If a project resource was previously failed and a later import succeeds, the sync path explicitly calls `start_reload(...)` before `register_ready(...)`; this keeps recovery visible as `Error -> Reloading -> Ready` instead of silently skipping the reload boundary.
 
+## Atomic Payload/Revision Snapshots
+
+`ResourceManager::snapshot(...)` returns a typed `ResourceSnapshot<T>` containing one immutable payload `Arc` and the exact `ResourceRecord` revision that owns it. `register_ready(...)` publishes the record and payload while holding the registry-then-payload lock order used by snapshot readers, so a reader cannot pair an old payload with a newly published revision. `get(...)` and lease acquisition reuse this snapshot boundary instead of repeating a non-atomic record/payload read sequence.
+
+The snapshot does not make revisions globally monotonic across remove/re-add; a consumer cache must still observe `ResourceEvent::{Added, Updated, Removed}` and invalidate the affected identity. Animation's compiled evaluator does so. `resource_snapshot_never_pairs_a_new_revision_with_an_old_payload` stress-updates one resource while reading snapshots and requires every observed payload version to match its revision.
+
 ## Failure Reasons
 
 Failure reasons are stored in `ResourceRecord.diagnostics`. `ResourceRecord::failure_reason()` returns the first error diagnostic message for records whose state is `ResourceState::Error`, falling back to the first diagnostic when no explicit error severity exists. It returns `None` for non-error records, even if they still carry warnings or importer diagnostics.
@@ -105,7 +116,7 @@ F6 core resource registry typed errors closes the remaining `Result<_, String>` 
 
 The rename path resolves the source locator and record before mutating locator indexes, so the missing-record error path does not remove the original locator mapping as a side effect. `registry_rename_reports_missing_locator_with_core_error` covers the missing locator branch, while `review_f6_core_resource_registry_rename_uses_core_error` locks the source signature and documentation anchors. Status is recorded as `core_resource_registry_typed_errors_coremin_check_passed`; broader Runtime 02 core/root/generated/export_build_plan/app/editor/plugin gates remain pending.
 
-The Runtime 04 structural mirror is split so resource/asset source-count ownership lives in `asset_pipeline_source_inventory.py`, resource reload and facade anchors live in `asset_pipeline_anchor_inventory.py`, audit reading/risk aggregation lives in the 328-line `asset_pipeline_boundary.py`, and Markdown rendering lives in the 117-line `asset_pipeline_markdown.py`. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 11`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
+The Runtime 04 structural mirror is split so resource/asset source-count ownership lives in `asset_pipeline_source_inventory.py`, resource reload and facade anchors live in `asset_pipeline_anchor_inventory.py`, audit reading/risk aggregation lives in the 328-line `asset_pipeline_boundary.py`, and Markdown rendering lives in the 117-line `asset_pipeline_markdown.py`. Current mirror evidence reports `expected_source_file_count = 22`, `expected_guard_file_count = 17`, `worker_diagnostic_count = 7`, `expected_worker_diagnostic_count = 7`, `artifact_store_roundtrip_count = 4`, `expected_artifact_store_roundtrip_count = 4`, `watcher_acceptance_reference_count = 1`, `expected_watcher_acceptance_count = 7`, `artifact_acceptance_reference_count = 3`, `test_anchor_count = 24`, `behavior_test_anchor_count = 20`, `missing_behavior_test_anchors = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `retired_worker_new_references = []`, `retired_worker_request_sender_references = []`, `old_watch_debounce_references = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts` keeps this resource doc aligned with Runtime 04, the runtime index, asset facade/worker/watcher/artifact docs, M0 review, and runtime-interface convergence; broader `asset::` / `worker_pool` Cargo filters remain pending.
 
 ## Live Ready Record Export
 

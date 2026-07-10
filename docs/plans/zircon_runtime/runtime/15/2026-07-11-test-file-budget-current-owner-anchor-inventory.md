@@ -1,0 +1,2250 @@
+# Runtime 15 test-file-budget current-owner anchor inventory
+
+Date: 2026-07-11
+
+Status: `runtime_15_test_file_budget_current_owner_anchor_inventory_static_reconciled`
+
+## Scope and claim boundary
+
+This numbered output record reconciles current `test_file_budget`, code-review, expected-slice, and status-row guard anchors after their folder-backed owner trees changed. It is a routing and ownership inventory only: historical Cargo/WGPU/RenderDoc result strings remain attributed to their original plan records and are not re-executed or promoted by this file.
+
+The inventory below is generated from the exact current-source guard requirements that were still absent from route-only Runtime 15, runtime-index, review-findings, or structure-convention overview documents. The structure harness continues to verify the corresponding implementation/source owners independently.
+
+## Anchor batch 0-89
+
+- --shader-asset-root
+- #[path = "code_review/direct_assertion_rows.rs"]
+- #[path = "code_review/expected_slice_rows.rs"]
+- #[path = "code_review/folder_backed_summary_rows.rs"]
+- #[path = "code_review/source_inventory_rows.rs"]
+- #[path = "code_review/status_doc_rows.rs"]
+- #[path = "code_review/structure_guard_rows.rs"]
+- #[path = "review/code_review_guard_maps.rs"]
+- #[path = "review/foundation_review_maps.rs"]
+- #[path = "review/plugin_importer_maps.rs"]
+- #[path = "review/top_row_review_maps.rs"]
+- #[path = "review/typed_error_maps.rs"]
+- #[path = "review/typed_error_structure_maps.rs"]
+- #[path = "route_meta/child_owner_budget_rows.rs"]
+- #[path = "route_meta/child_owner_guard_rows.rs"]
+- #[path = "route_meta/naming_boundary_rows.rs"]
+- #[path = "route_meta/row_data_owner_rows.rs"]
+- #[path = "runtime_plugin_lifecycle/lifecycle_fixtures.rs"]
+- #[path = "status/delegation.rs"]
+- #[path = "structure/convergence_mounts.rs"]
+- `PluginShaderModuleManifest` root export
+- 1/1
+- 10.44s
+- 10.71s
+- 10m 04s
+- 11 passed
+- 11.81s
+- 11/11
+- 12.75s
+- 12.86s
+- 14.96s
+- 18/18
+- 19.04s
+- 21.45s
+- 2FF919F50FDFFBAEB1544CAD9C14B7748FA8234C784175195AF3E550FB6151BB
+- 3.56s
+- 3/3
+- 4794 non-black pixels
+- 48.90s
+- 5.65s
+- 56.74s
+- 56.99s
+- 5839 filtered
+- 5842 filtered
+- 5848 filtered
+- 5850 filtered
+- 5876 filtered
+- 5924 filtered
+- 5925 filtered
+- 5932 filtered
+- 6.58s
+- 6171 filtered
+- 6177 filtered
+- 6187 filtered
+- 6191 filtered
+- 6195 filtered
+- 6197 filtered
+- 6202 filtered
+- 6290 filtered
+- 6358 filtered
+- 6373 filtered
+- 7m 36s
+- Asset-root builtin standard material template prewarm
+- Asset-root custom geometry-source id prewarm
+- Asset-root custom shading-model id prewarm
+- Asset-root resource registry revision overlay
+- Asset-root shader edit revision export
+- asset/project/shader_resource_records.rs
+- average_channel_in_region
+- Base pass
+- Build-tool cache custom id combination contract
+- Build-tool cache dimension combination contract
+- Build-tool cache metadata field type contract
+- Build-tool cache quality/geometry identity contract
+- Build-tool cache source-label provenance correlation contract
+- Build-tool explicit registry exact revision acceptance
+- Build-tool product Base pass acceptance contract
+- Build-tool product material mesh pass acceptance contract
+- Build-tool shader asset-root plan visibility
+- Build-tool shader permutation id report dimension contract
+- Build-tool shader prewarm cache artifact contract
+- Build-tool shader prewarm report dimension complete-count contract
+- Build-tool shader prewarm report dimension contract
+- Build-tool shader prewarm report dimension totals match contract
+- Build-tool shader resource registry export contract
+- Build-tool shader resource registry report correlation
+- Build-tool source provenance report contract
+- Build-tool source provenance totals match contract
+- Build-tool source-label nonblank contract
+- Build-tool source-label trim contract
+
+## Anchor batch 90-179
+
+- Build-tool staged prewarm acceptance contract
+- Build-tool staged prewarm complete written count acceptance
+- Build-tool staged prewarm nonempty success report acceptance
+- Build-tool staged prewarm written cache-hash shape acceptance
+- Build-tool staged prewarm written source-label identity acceptance
+- Build-tool staged prewarm written variant identity acceptance
+- Build-tool WGPU validation report contract
+- Build-tool WGPU validation totals match contract
+- Build-tool written variant uniqueness contract
+- Builtin fallback prewarm template source alignment
+- builtin_fallback_shader_prewarm_manifest_uses_mesh_template_source
+- builtin_standard_material_prewarm_writes_restart_hits_and_wgpu_modules
+- Cargo gate deferred
+- cargo proxy
+- Cargo-wrapper
+- Cargo/WGPU execution deferred
+- Cargo/WGPU execution timed out
+- child_group_row_data_map_rows/budgets.rs
+- child_group_row_data_map_rows/status_docs.rs
+- child_group_row_data_maps.rs
+- child_group_row_data_maps/expected_slice_map_rows.rs
+- child_group_row_data_maps/status_doc_maps.rs
+- compile miss=0
+- Custom shading-model deferred-lighting product readback
+- Custom shading-model deferred-lighting product readback PNG
+- Custom shading-model product group Cargo-wrapper WGPU backfill
+- Custom shading-model product group default-feature WGPU backfill
+- Custom shading-model product group default-feature WGPU refresh
+- Custom shading-model product group direct-binary sweep
+- Custom shading-model runtime WGPU module validation
+- Custom shading-model second-launch staged-cache WGPU validation
+- custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_source
+- custom:toon
+- default-feature
+- Deferred lighting custom include WGPU pipeline validation
+- deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path
+- DepthPrepass/GBuffer/Shadow/TAA reactive mask
+- duplicate written cache variant identity
+- dynamic_api::builtin_standard_material_shader_prewarm_manifest
+- dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry
+- expected_pass_types
+- export_custom_shading_model_deferred_lighting_product_png
+- export_project_plugin_registry_material_passes_product_png
+- export_three_shading_models_forward_deferred_product_png
+- exported_include_source_set_feeds_forward_and_gbuffer_template_requests
+- fn zr_material_surface(
+- folder-backed owner
+- Forward + Deferred
+- foundation_review_maps/expected_slice_rows/expected_slice_map_rows.rs
+- foundation_review_maps/expected_slice_rows/root_route_rows.rs
+- foundation_review_maps/expected_slice_rows/route_metadata_rows.rs
+- frameworks_02_m3_status_output_runtime_15_expected_slice_child_owner_guard_folder_backed_static_passed_cargo_deferred
+- graphics/tests/render_product_mesh_cache/staged_prewarm/mod.rs
+- group2 binding0
+- light_grid_external_fallback_buffers_satisfy_materialization_report
+- live project registry exact revision overlay
+- live registry source label should not depend on test-only pass suffixes
+- Live ResourceManager shader registry export
+- m3_m4_map_rows/budgets.rs
+- m3_m4_map_rows/status_docs.rs
+- Material custom shading-model runtime registry
+- mesh_pipeline_depth_prepass_template_source_uses_depth_only_template
+- mesh_pipeline_standard_material_template_source
+- mod lifecycle_fixtures;
+- MODULE_CONVENTION_STATUS_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES
+- Morph geometry-source selection
+- Morph payload projection
+- Morph payload slot indexing
+- Morph storage buffers upload
+- native_dynamic_fixture/assets/shader.wgsl.zmeta
+- no-proxy
+- Non-Base mesh variant-aware cache owner
+- old single-file owner removed
+- owners/split/sources/constants.rs
+- owners/split/sources/row_sources.rs
+- package://native_dynamic_fixture/shaders/shader
+- PBR/Blinn-Phong/Unlit
+- Plan 08 project/plugin registry material-pass product readback PNG
+- Plan 08 staged-prewarm product sweep
+- Plan 08 staged-prewarm product sweep default-feature Cargo-wrapper WGPU backfill
+- Plan 08 staged-prewarm product sweep default-feature current WGPU refresh
+- Plan 08 staged-prewarm product sweep default-feature direct-binary WGPU backfill
+- Plan 08 three shading-model forward/deferred product parity
+- Plan 08 three shading-model forward/deferred product parity default-feature WGPU backfill
+- plan_status/status_output_tables/expected_status_row_data/runtime_15.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/audit_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/frontmatter_and_gate_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/row_data_owner.rs
+
+## Anchor batch 180-269
+
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/status_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/structure_guard_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/base_maps.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/guard_body_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/root_route_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/row_data_owner_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/source_inventory_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/structure_guard_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/review_guard_structure/typed_error_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/expected_slice_map_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/guard_body_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows/expected_slice_route_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows/route_input_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows/row_data_owner.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_guard_rows/runtime_index_anchor_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/route_metadata_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/status_support_maps/row_data_owner_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/foundation_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/guard_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/map_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/parent_route_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/review_route_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/row_data_owner_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/structure_support/typed_error_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/child_owner_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/maps_guard_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/naming_boundary_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/row_data_owner_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support/support_layout_rows.rs
+- plan_status/status_output_tables/expected_status_row_data/runtime_15/m4.rs
+- Plugin geometry-source descriptor registration
+- Plugin shader asset roots auto-export
+- Plugin shader permutation registry auto-export
+- Plugin shader permutation registry export contract
+- Plugin shading-model descriptor registry export
+- plugin_registration_inputs_collect_shading_model_descriptors
+- previous velocity transform
+- Prewarm cache custom id correlation contract
+- Prewarm cache hash shape contract
+- Prewarm cache runtime layout contract
+- Prewarm opt-in WGPU render-pipeline validation
+- Prewarm opt-in WGPU shader-module validation
+- Prewarm report cache identity contract
+- Prewarm WGPU validation report summary
+- priority_plan_doc_map_rows/budgets.rs
+- priority_plan_doc_map_rows/status_docs.rs
+- priority_plan_doc_maps.rs
+- priority_plan_doc_maps/expected_slice_map_rows.rs
+- priority_plan_doc_maps/integrity_guard_maps.rs
+- priority_plan_doc_maps/status_mirror_maps.rs
+- Product Base mesh second-launch staged prewarm
+- product readback PNG
+- Project shader asset roots auto-export
+- project_shader_resource_records_from_asset_roots
+- Project/plugin registry auto-export nonempty acceptance
+- Project/plugin registry export file handoff
+- Project/plugin registry material-pass asset-root ResourceRecord product bridge
+- Project/plugin registry material-pass live registry source-label product bridge
+- Project/plugin registry material-pass owner split
+- Project/plugin registry material-pass second-launch Cargo-wrapper WGPU backfill
+- Project/plugin registry material-pass second-launch default-feature WGPU backfill
+- Project/plugin registry material-pass second-launch miss=0
+- Project/plugin registry material-pass staged-cache miss=0
+- Project/plugin registry material-pass Velocity runtime contract
+- Project/plugin registry product staged-cache miss=0
+- Project/plugin registry production CLI dry-run handoff
+- Project/plugin registry production CLI selection handoff
+- Project/plugin registry production direct WGPU export
+- Project/plugin registry production fixture prewarm
+- Project/plugin registry production wrapper no-proxy WGPU run
+- Project/plugin registry production wrapper orchestration
+- Project/plugin registry report-source acceptance
+- Project/plugin registry runtime staged-cache hit
+- Project/plugin registry shared ResourceRecord export product bridge
+- Project/plugin shading-model include source set
+- pub(super) const EXPECTED_STATUS_OUTPUT_SLICES
+- raw project/plugin registry
+- Ready Shader records
+- ready_records_for_kind
+- registry_material_pass_runtime_surface_source
+- registry_shader_cases_from_live_records
+- render_graph_resources_transient_aliasing_tests_owner_split_static_passed_cargo_deferred_implementation_cadence
+
+## Anchor batch 270-359
+
+- render_plan08_asset_root_builtin_standard_material_multi_geometry_prewarm_static_passed_cargo_deferred_implementation_cadence
+- render_plan08_asset_root_builtin_standard_material_template_prewarm_static_passed_cargo_deferred_implementation_cadence
+- render_plan08_asset_root_custom_geometry_source_id_prewarm_typecheck_passed_test_timeout_no_result
+- render_plan08_asset_root_custom_shading_model_id_prewarm_static_passed_cargo_deferred_implementation_cadence
+- render_plan08_asset_root_resource_registry_revision_overlay_typecheck_passed_test_timeout_no_result
+- render_plan08_asset_root_shader_edit_revision_export_passed_cargo_renderdoc_deferred
+- render_plan08_build_tool_cache_custom_id_combination_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_cache_dimension_combination_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_cache_metadata_field_type_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_cache_quality_geometry_identity_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_cache_source_label_provenance_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_explicit_registry_exact_revision_acceptance_python_passed_cargo_deferred
+- render_plan08_build_tool_permutation_id_report_dimension_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_product_base_pass_acceptance_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_product_material_mesh_pass_acceptance_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_report_dimension_complete_counts_python_passed_cargo_deferred
+- render_plan08_build_tool_report_dimension_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_report_dimension_totals_match_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_backed_locator_correlation_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_contract_tests_owner_split_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_enum_wire_shape_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_export_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_locator_wire_shape_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_numeric_width_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_record_shape_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_report_correlation_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_usable_shader_revision_python_passed_cargo_deferred
+- render_plan08_build_tool_resource_registry_written_source_label_python_passed_cargo_deferred
+- render_plan08_build_tool_shader_asset_root_plan_visibility_python_passed_cargo_deferred
+- render_plan08_build_tool_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred
+- render_plan08_build_tool_source_label_nonblank_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_source_label_trim_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_source_provenance_report_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_source_provenance_totals_match_python_passed_cargo_deferred
+- render_plan08_build_tool_staged_prewarm_acceptance_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_staged_prewarm_complete_written_count_python_passed_cargo_deferred
+- render_plan08_build_tool_staged_prewarm_nonempty_success_report_python_passed_cargo_deferred
+- render_plan08_build_tool_staged_prewarm_written_cache_hash_shape_python_passed_cargo_deferred
+- render_plan08_build_tool_staged_prewarm_written_source_label_identity_python_passed_cargo_deferred
+- render_plan08_build_tool_staged_prewarm_written_variant_identity_python_passed_cargo_deferred
+- render_plan08_build_tool_wgpu_report_contract_python_passed_cargo_deferred
+- render_plan08_build_tool_wgpu_validation_totals_match_python_passed_cargo_deferred
+- render_plan08_build_tool_written_variant_uniqueness_contract_python_passed_cargo_deferred
+- render_plan08_builtin_fallback_prewarm_template_source_static_passed_cargo_deferred_implementation_cadence
+- render_plan08_builtin_material_multi_pass_depth_only_prewarm_tests_passed_renderdoc_deferred
+- render_plan08_builtin_material_staged_prewarm_cache_hit_wgpu_module_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_deferred_lighting_product_readback_png_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_deferred_lighting_product_readback_wgpu_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_product_group_cargo_wrapper_wgpu_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_product_group_default_features_wgpu_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_product_group_default_features_wgpu_refresh_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_product_group_direct_binary_wgpu_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_product_material_pass_staged_cache_wgpu_passed_renderdoc_deferred
+- render_plan08_custom_shading_model_runtime_wgpu_module_passed_product_renderdoc_deferred
+- render_plan08_custom_shading_model_second_launch_staged_cache_wgpu_passed_renderdoc_deferred
+- render_plan08_deferred_lighting_custom_include_wgpu_pipeline_passed_product_renderdoc_deferred
+- render_plan08_deferred_project_shader_gbuffer_probe_default_features_wgpu_refresh_passed_renderdoc_deferred
+- render_plan08_deferred_project_shader_gbuffer_probe_wgpu_passed_renderdoc_deferred
+- render_plan08_live_resource_manager_shader_registry_export_focused_tests_passed_renderdoc_deferred
+- render_plan08_material_custom_shading_model_runtime_registry_material_test_static_guard_passed_cargo_guard_timeout_renderdoc_deferred
+- render_plan08_morph_geometry_source_selection_static_passed_wgpu_deferred
+- render_plan08_morph_payload_projection_check_passed_wgpu_deferred
+- render_plan08_morph_payload_slot_indexing_check_passed_wgpu_deferred
+- render_plan08_morph_storage_buffers_upload_check_passed_wgpu_deferred
+- render_plan08_non_base_mesh_variant_cache_owner_static_passed_cargo_deferred
+- render_plan08_plugin_geometry_source_descriptor_registration_typecheck_python_cargo_check_passed_renderdoc_deferred
+- render_plan08_plugin_shader_asset_roots_auto_export_focused_tests_passed_cargo_deferred_renderdoc_deferred
+- render_plan08_plugin_shader_permutation_registry_auto_export_focused_tests_passed_renderdoc_deferred
+- render_plan08_plugin_shader_permutation_registry_export_contract_python_passed_cargo_deferred
+- render_plan08_plugin_shading_model_descriptor_registry_export_static_passed_cargo_deferred
+- render_plan08_prewarm_wgpu_module_validation_gate_python_cargo_check_passed_runtime_run_timeout_deferred
+- render_plan08_prewarm_wgpu_render_pipeline_validation_gate_focused_tests_passed_product_deferred
+- render_plan08_prewarm_wgpu_validation_report_summary_python_passed_cargo_deferred
+- render_plan08_product_base_mesh_second_launch_staged_prewarm_passed_renderdoc_deferred
+- render_plan08_project_plugin_registry_auto_export_nonempty_python_passed_cargo_deferred
+- render_plan08_project_plugin_registry_export_file_static_passed_cargo_deferred
+- render_plan08_project_plugin_registry_material_passes_asset_root_records_wgpu_passed_renderdoc_deferred
+- render_plan08_project_plugin_registry_material_passes_live_registry_source_label_product_wgpu_passed_renderdoc_deferred
+- render_plan08_project_plugin_registry_material_passes_owner_split_static_passed_cargo_deferred_active_lanes
+- render_plan08_project_plugin_registry_material_passes_product_readback_png_passed_renderdoc_deferred
+- render_plan08_project_plugin_registry_material_passes_second_launch_cargo_wrapper_wgpu_passed_renderdoc_deferred
+- render_plan08_project_plugin_registry_material_passes_second_launch_default_features_wgpu_passed_renderdoc_deferred
+- render_plan08_project_plugin_registry_material_passes_second_launch_static_passed_wgpu_timeout_no_result
+- render_plan08_project_plugin_registry_material_passes_staged_cache_static_passed_cargo_timeout_no_result
+- render_plan08_project_plugin_registry_material_passes_velocity_runtime_contract_static_passed_cargo_deferred_active_lanes
+- render_plan08_project_plugin_registry_product_staged_cache_static_passed_cargo_timeout_no_result
+- render_plan08_project_plugin_registry_production_cli_dry_run_python_passed_cargo_deferred
+- render_plan08_project_plugin_registry_production_cli_selection_python_passed_cargo_deferred
+- render_plan08_project_plugin_registry_production_direct_wgpu_export_passed_product_renderdoc_deferred
+- render_plan08_project_plugin_registry_production_fixture_static_passed_cargo_timeout_no_result
+
+## Anchor batch 360-449
+
+- render_plan08_project_plugin_registry_production_wrapper_no_proxy_wgpu_passed_product_renderdoc_deferred
+- render_plan08_project_plugin_registry_production_wrapper_orchestration_passed_cargo_proxy_product_renderdoc_deferred
+- render_plan08_project_plugin_registry_report_source_python_passed_cargo_deferred
+- render_plan08_project_plugin_registry_runtime_staged_cache_hit_static_passed_cargo_deferred
+- render_plan08_project_plugin_registry_shared_resource_record_export_product_wgpu_passed_renderdoc_deferred
+- render_plan08_project_shader_asset_roots_auto_export_python_static_passed_cargo_deferred
+- render_plan08_resource_registry_ready_shader_revision_contract_python_static_passed_cargo_deferred
+- render_plan08_runtime_base_mesh_staged_prewarm_cache_hit_wgpu_pipeline_passed_renderdoc_deferred
+- render_plan08_runtime_custom_id_staged_fallback_lookup_static_passed_cargo_deferred
+- render_plan08_runtime_depth_prepass_pure_depth_product_migration_static_passed_cargo_check_renderdoc_deferred
+- render_plan08_runtime_shader_variant_dimension_correlation_product_passed_renderdoc_deferred
+- render_plan08_selected_plugin_shading_model_registration_inputs_static_guard_cargo_deferred
+- render_plan08_selected_plugin_source_registry_guards_cargo_wrapper_passed_renderdoc_deferred
+- render_plan08_shader_permutation_registry_overlay_focused_tests_passed_renderdoc_deferred
+- render_plan08_shader_prewarm_geometry_source_enumeration_static_passed_cargo_deferred_implementation_cadence
+- render_plan08_shader_prewarm_source_provenance_summary_python_passed_cargo_deferred
+- render_plan08_shader_resource_registry_auto_export_focused_tests_passed_renderdoc_deferred
+- render_plan08_shader_resource_registry_multi_root_dedupe_static_passed_cargo_deferred
+- render_plan08_shading_model_include_source_runtime_handoff_static_passed_cargo_deferred
+- render_plan08_shading_model_include_source_set_static_passed_cargo_deferred
+- render_plan08_staged_prewarm_product_sweep_default_features_cargo_wrapper_wgpu_passed_renderdoc_deferred
+- render_plan08_staged_prewarm_product_sweep_default_features_current_wgpu_refresh_passed_renderdoc_deferred
+- render_plan08_staged_prewarm_product_sweep_default_features_direct_binary_wgpu_passed_renderdoc_deferred
+- render_plan08_staged_prewarm_product_sweep_wgpu_passed_renderdoc_deferred
+- render_plan08_three_shading_models_forward_deferred_parity_default_features_wgpu_passed_renderdoc_deferred
+- render_plan08_three_shading_models_forward_deferred_parity_wgpu_passed_light_grid_fallback_renderdoc_deferred
+- render_plan08_three_shading_models_forward_deferred_product_readback_png_passed_renderdoc_deferred
+- render_plan08_virtual_geometry_asset_payload_decode_static_passed_cargo_deferred
+- render_plan08_virtual_geometry_cluster_payload_upload_direct_binary_wgpu_passed_renderdoc_deferred
+- render_plan08_virtual_geometry_meshlet_vertex_ordinal_direct_binary_asset_shader_passed_renderdoc_deferred
+- render_plan08_virtual_geometry_page_cluster_shader_bindings_cargo_wrapper_wgpu_layout_passed_renderdoc_deferred
+- render_plan08_virtual_geometry_page_cluster_shader_bindings_direct_binary_wgpu_layout_passed_renderdoc_deferred
+- render_plan08_virtual_geometry_product_draw_source_cargo_wrapper_wgpu_passed_renderdoc_deferred
+- render_plan08_virtual_geometry_resident_buffers_upload_direct_binary_wgpu_passed_renderdoc_deferred
+- render_plan09_camera_target_custom_owner_split_static_passed
+- render_plan09_custom_target_composite_source_guard_static_passed
+- render_plan09_queue_override_product_source_guard_static_passed
+- render_product_base_mesh_second_launch_uses_staged_prewarm_without_compile_miss
+- render_product_custom_shading_model
+- render_product_custom_shading_model_deferred_lighting_readback_uses_project_include
+- render_product_custom_shading_model_second_launch_uses_staged_prewarm_without_compile_miss
+- render_product_project_plugin_registry_material_passes_asset_root_records_hit_staged_cache
+- render_product_project_plugin_registry_material_passes_live_registry_source_labels_hit_staged_cache
+- render_product_project_plugin_registry_material_passes_second_launch_use_staged_prewarm_without_compile_miss
+- render_product_streamer_projects_plugin_custom_shading_model_into_pipeline_key
+- render_shader_variant_prewarm_custom_ids_hit_staged_fallback_root
+- render_shader_variant_prewarm_custom_ids_survive_disk_lookup
+- RenderDoc/product capture
+- RenderGraph resources transient aliasing tests owner split
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F12_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F8_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_P0_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_RENDER_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_ROOT_PARENT_EXPECTED_STATUS_OUTPUT_SLICES
+- REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES
+- review/code_review_guard_maps.rs
+- review/code_review_map_rows.rs
+- review/code_review_map_rows/budgets.rs
+- review/code_review_map_rows/status_docs.rs
+- review/code_review/direct_assertion_rows.rs
+- review/structure_support_expected_slice.rs
+- review/structure/status_mirrors.rs
+- review/typed_error_maps.rs
+- review/typed_error_maps/expected_slice_rows.rs
+- rt15_slices/foundation.rs
+- rt15_slices/foundation/mirrors/row_data.rs
+- rt15_slices/foundation/status_mirrors.rs
+- Runtime 15 F9 runtime prelude required type coverage
+- Runtime 15 M2 core runtime state module naming hard cutover
+- Runtime 15 M3 asset-budget asset-tests guard folder-backed split
+- Runtime 15 M3 asset-budget asset-tests row-data child split
+- Runtime 15 M3 asset-budget naming graphics misc guard folder-backed split
+- Runtime 15 M3 asset-budget naming graphics misc row-data child split
+- Runtime 15 M3 child-group moved-row guard child-owner split
+- Runtime 15 M3 child-group moved-row guard folder-backed split
+- Runtime 15 M3 child-groups status-doc guard child-owner split
+- Runtime 15 M3 child-groups status-doc guard folder-backed split
+- Runtime 15 M3 child-groups status-doc status-mirror child split
+- Runtime 15 M3 foundation-guards runtime-structure guard folder-backed split
+- Runtime 15 M3 foundation-guards runtime-structure row-data child split
+- Runtime 15 M3 module-convention status row-data owner child split
+- Runtime 15 M3 production guard status-support priority guard folder-backed split
+- Runtime 15 M3 production guard status-support priority row-data child split
+- Runtime 15 M3 review-guard direct-assertion row-data child-owner split
+- Runtime 15 M3 review-guard direct-assertion row-data folder-backed split
+- Runtime 15 M3 review-guard direct-assertion status-mirror child split
+- Runtime 15 M3 review-guard rows row-data owner child split
+- Runtime 15 M3 review-guard structure row data folder-backed split
+- Runtime 15 M3 Runtime 07/script expected-slice maps folder-backed split
+- Runtime 15 M3 Runtime 07/script expected-slice maps guard folder-backed split
+
+## Anchor batch 450-539
+
+- Runtime 15 M3 Runtime 15 M3 row-data guard folder-backed split
+- Runtime 15 M3 Runtime 15 M4 row-data guard folder-backed split
+- Runtime 15 M3 scene-script plugin-extension guard folder-backed split
+- Runtime 15 M3 scene-script plugin-extension row-data child split
+- Runtime 15 M3 scene-script Runtime 07 performance guard folder-backed split
+- Runtime 15 M3 scene-script Runtime 07 performance row-data child split
+- Runtime 15 M3 shader prewarm manifest guard child-owner split
+- Runtime 15 M3 status output expected-slice legacy group child-owner split
+- Runtime 15 M3 status output expected-slice maps split
+- Runtime 15 M3 status output expected-slice top-level map support child-owner split
+- Runtime 15 M3 status output M3 row data child-owner split
+- Runtime 15 M3 status output Runtime 15 expected-slice child-owner guard folder-backed split
+- Runtime 15 M3 status output Runtime 15 M3 row data split
+- Runtime 15 M3 status output Runtime 15 M4 row data split
+- Runtime 15 M3 status output Runtime 15 row data split
+- Runtime 15 M3 status-support child-group row-data maps folder-backed split
+- Runtime 15 M3 status-support child-group row-data maps guard folder-backed split
+- Runtime 15 M3 status-support expected-slice owner paths guard folder-backed split
+- Runtime 15 M3 status-support expected-slice row-data owner folder-backed split
+- Runtime 15 M3 status-support M3/M4 expected-slice maps folder-backed split
+- Runtime 15 M3 status-support M3/M4 expected-slice maps guard folder-backed split
+- Runtime 15 M3 status-support priority plan-doc maps folder-backed split
+- Runtime 15 M3 status-support priority plan-doc maps guard folder-backed split
+- Runtime 15 M3 status-support route guard rows row-data owner child split
+- Runtime 15 M3 status-support runtime-index anchor row-data child split
+- Runtime 15 M3 status-support status support maps row data folder-backed split
+- Runtime 15 M3 status-support top-level support row data folder-backed split
+- Runtime 15 M3 structure-route status-date maps folder-backed split
+- Runtime 15 M3 structure-route status-date maps guard folder-backed split
+- Runtime 15 M3 structure-support expected-slice row data folder-backed split
+- Runtime 15 M3 top-level expected-slice assertion helper child split
+- Runtime 15 M3 top-level expected-slice support-layout guard body child split
+- Runtime 15 M3 top-level expected-slice support-layout guard folder-backed split
+- Runtime 15 M3 typed-error structure row-data guard folder-backed split
+- Runtime 15 M3 typed-error structure row-data owner child split
+- Runtime Base mesh staged prewarm cache hit
+- Runtime custom id staged fallback lookup contract
+- runtime fallback root
+- Runtime prewarm custom id cache lookup contract
+- Runtime pure-depth DepthPrepass product migration
+- Runtime shading-model include source handoff
+- runtime_15_asset_budget_asset_tests_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_asset_budget_asset_tests_guard_is_folder_backed
+- runtime_15_asset_budget_asset_tests_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_asset_budget_asset_tests_row_data_is_child_backed
+- runtime_15_asset_budget_naming_graphics_misc_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_asset_budget_naming_graphics_misc_guard_is_folder_backed
+- runtime_15_asset_budget_naming_graphics_misc_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_asset_budget_naming_graphics_misc_row_data_is_child_backed
+- runtime_15_builtin_fallback_prewarm_uses_template_source
+- runtime_15_code_review_findings_plugin_importer_dx_structure_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_depth_prepass_pure_depth_product_migration_is_wired
+- runtime_15_foundation_guards_runtime_structure_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_foundation_guards_runtime_structure_guard_is_folder_backed
+- runtime_15_foundation_guards_runtime_structure_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_foundation_guards_runtime_structure_row_data_is_child_backed
+- runtime_15_m3_child_group_moved_row_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m3_child_groups_status_docs_child_owner_split_static_passed_cargo_deferred
+- runtime_15_m3_child_groups_status_docs_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m3_child_groups_status_docs_status_mirror_child_split_static_passed_cargo_deferred
+- RUNTIME_15_M3_MODULE_CONVENTION_STATUS_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES
+- runtime_15_m3_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_m4_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_material_custom_shading_model_runtime_registry_is_wired
+- runtime_15_module_convention_status_row_data_owner_child_split_static_passed_cargo_deferred
+- runtime_15_module_convention_status_row_data_owner_is_child_backed
+- runtime_15_morph_geometry_source_selection_is_wired
+- runtime_15_morph_payload_projection_is_wired
+- runtime_15_morph_payload_slot_indexing_is_wired
+- runtime_15_morph_storage_buffers_upload_is_wired
+- runtime_15_non_base_mesh_variant_cache_owner_is_wired
+- runtime_15_plugin_importer_d13_sdk_review_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_product_base_mesh_staged_prewarm_is_wired
+- runtime_15_production_guard_status_support_priority_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_production_guard_status_support_priority_guard_is_folder_backed
+- runtime_15_production_guard_status_support_priority_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_production_guard_status_support_priority_row_data_is_child_backed
+- runtime_15_render_graph_resources_transient_aliasing_tests_are_child_owner
+- runtime_15_render_plan08_staged_prewarm_product_sweep_is_wired
+- runtime_15_render_plan08_three_shading_models_forward_deferred_parity_is_wired
+- runtime_15_review_guard_direct_assertion_row_data_child_owner_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_status_mirror_children_are_child_owned
+- runtime_15_review_guard_rows_row_data_owner_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_rows_row_data_owner_is_child_backed
+- runtime_15_review_guard_structure_row_data_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_structure_row_data_is_folder_backed
+- runtime_15_runtime_07_script_expected_slice_maps_are_folder_backed
+
+## Anchor batch 540-629
+
+- runtime_15_runtime_07_script_expected_slice_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_runtime_07_script_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_runtime_07_script_expected_slice_maps_guard_is_folder_backed
+- runtime_15_scene_script_plugin_extension_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_scene_script_plugin_extension_guard_is_folder_backed
+- runtime_15_scene_script_plugin_extension_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_scene_script_plugin_extension_row_data_is_child_backed
+- runtime_15_scene_script_runtime_07_performance_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_scene_script_runtime_07_performance_guard_is_folder_backed
+- runtime_15_scene_script_runtime_07_performance_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_scene_script_runtime_07_performance_row_data_is_child_backed
+- runtime_15_shader_prewarm_acceptance_contract_is_wired
+- runtime_15_shader_prewarm_asset_revision_export_is_wired
+- runtime_15_shader_prewarm_asset_root_plan_visibility_is_wired
+- runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired
+- runtime_15_shader_prewarm_cache_artifact_contract_is_wired
+- runtime_15_shader_prewarm_custom_geometry_source_id_is_wired
+- runtime_15_shader_prewarm_custom_shading_model_id_is_wired
+- runtime_15_shader_prewarm_geometry_source_enumeration_is_wired
+- runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired
+- runtime_15_shader_prewarm_manifest_guard_child_owner_split_static_passed_cargo_deferred
+- runtime_15_shader_prewarm_permutation_registry_auto_export_is_wired
+- runtime_15_shader_prewarm_permutation_registry_overlay_is_wired
+- runtime_15_shader_prewarm_plugin_asset_roots_auto_export_is_wired
+- runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_wired
+- runtime_15_shader_prewarm_plugin_permutation_registry_auto_export_is_wired
+- runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wired
+- runtime_15_shader_prewarm_project_asset_roots_auto_export_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_auto_export_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_export_file_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_material_passes_staged_cache_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_production_cli_dry_run_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_production_cli_selection_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_production_fixture_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_production_live_wgpu_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_report_source_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_runtime_staged_cache_hit_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_wrapper_no_proxy_is_wired
+- runtime_15_shader_prewarm_project_plugin_registry_wrapper_orchestration_is_wired
+- runtime_15_shader_prewarm_registry_auto_export_is_wired
+- runtime_15_shader_prewarm_report_dimension_contract_is_wired
+- runtime_15_shader_prewarm_resource_registry_export_contract_is_wired
+- runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired
+- runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired
+- runtime_15_shader_prewarm_resource_registry_revision_overlay_is_wired
+- runtime_15_shader_prewarm_source_provenance_report_contract_is_wired
+- runtime_15_shader_prewarm_source_provenance_summary_is_wired
+- runtime_15_shader_prewarm_wgpu_module_validation_is_wired
+- runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired
+- runtime_15_shader_prewarm_wgpu_report_contract_is_wired
+- runtime_15_shader_prewarm_wgpu_validation_report_summary_is_wired
+- runtime_15_status_output_expected_slice_legacy_group_child_owner_split_static_passed_cargo_deferred
+- runtime_15_status_output_expected_slice_maps_split_static_passed_cargo_deferred
+- runtime_15_status_output_expected_slice_top_level_map_support_child_owner_split_static_passed_cargo_deferred
+- runtime_15_status_output_m3_row_data_child_owner_split_static_passed_cargo_deferred
+- runtime_15_status_output_review_guard_direct_assertion_rows_are_child_owner
+- runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_is_folder_backed
+- runtime_15_status_output_runtime_15_m3_row_data_is_child_owner
+- runtime_15_status_output_runtime_15_m3_row_data_split_static_passed_cargo_deferred
+- runtime_15_status_output_runtime_15_m4_row_data_is_child_owner
+- runtime_15_status_output_runtime_15_m4_row_data_split_static_passed_cargo_deferred
+- runtime_15_status_support_child_group_row_data_maps_are_folder_backed
+- runtime_15_status_support_child_group_row_data_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_child_group_row_data_maps_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_child_group_row_data_maps_guard_is_folder_backed
+- runtime_15_status_support_expected_slice_owner_paths_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_expected_slice_owner_paths_guard_is_folder_backed
+- runtime_15_status_support_expected_slice_row_data_owner_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_expected_slice_row_data_owner_is_folder_backed
+- runtime_15_status_support_m3_m4_expected_slice_maps_are_folder_backed
+- runtime_15_status_support_m3_m4_expected_slice_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_m3_m4_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_m3_m4_expected_slice_maps_guard_is_folder_backed
+- runtime_15_status_support_priority_plan_doc_maps_are_folder_backed
+- runtime_15_status_support_priority_plan_doc_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_priority_plan_doc_maps_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_priority_plan_doc_maps_guard_is_folder_backed
+- runtime_15_status_support_route_guard_rows_are_child_owned
+- runtime_15_status_support_route_guard_rows_row_data_owner_child_split_static_passed_cargo_deferred
+- runtime_15_status_support_runtime_index_anchor_row_data_child_split_static_passed_cargo_deferred
+- runtime_15_status_support_runtime_index_anchor_rows_are_child_owned
+- runtime_15_status_support_status_support_maps_row_data_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_status_support_maps_row_data_is_folder_backed
+- runtime_15_status_support_top_level_support_row_data_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_top_level_support_row_data_is_folder_backed
+- runtime_15_structure_route_status_date_maps_are_folder_backed
+- runtime_15_structure_route_status_date_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_structure_route_status_date_maps_guard_folder_backed_static_passed_cargo_deferred
+
+## Anchor batch 630-719
+
+- runtime_15_structure_route_status_date_maps_guard_is_folder_backed
+- runtime_15_structure_support_expected_slice_row_data_folder_backed_static_passed_cargo_deferred
+- runtime_15_structure_support_expected_slice_row_data_is_folder_backed
+- runtime_15_top_level_expected_slice_assertion_helper_child_split_static_passed_cargo_deferred
+- runtime_15_top_level_expected_slice_support_layout_guard_body_child_split_static_passed_cargo_deferred
+- runtime_15_top_level_expected_slice_support_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_top_level_expected_slice_support_layout_guard_is_folder_backed
+- runtime_15_typed_error_structure_row_data_owner_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_structure_rows_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_structure_rows_guard_is_folder_backed
+- runtime_15_typed_error_structure_rows_row_data_owner_is_child_backed
+- runtime_15_virtual_geometry_asset_payload_decode_is_wired
+- runtime_15_virtual_geometry_cluster_payload_upload_is_wired
+- runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired
+- runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired
+- runtime_15_virtual_geometry_product_draw_source_is_wired
+- runtime_15_virtual_geometry_resident_buffers_upload_is_wired
+- runtime_base_mesh_pipeline_uses_staged_prewarm_without_compile_miss
+- runtime_custom_shading_model_sources_compile_as_wgpu_modules
+- runtime_index_anchor_maps.rs
+- runtime_index_anchor_maps/index_baseline_maps.rs
+- runtime_index_anchor_maps/status_support_map_rows.rs
+- runtime_render_plan08_custom_shading_model_deferred_lighting_20260704.png
+- runtime_render_plan08_project_plugin_registry_material_passes_20260703.png
+- runtime_render_plan08_three_shading_models_forward_deferred_product_20260703.png
+- runtime_surface_shader_with_full_pass_entry_points_uses_raw_wgsl_source
+- runtime07_script_map_rows/budgets.rs
+- runtime07_script_map_rows/status_docs.rs
+- runtime07_script_maps.rs
+- runtime07_script_maps/runtime07_guard_maps.rs
+- runtime07_script_maps/script_vm_runtime_maps.rs
+- second product launch
+- select_visible_registry_material_pass_camera
+- Selected plugin/source-registry guard Cargo-wrapper backfill
+- Shader permutation registry auto-export
+- Shader permutation registry overlay
+- Shader prewarm geometry-source enumeration
+- Shader prewarm source provenance summary
+- shader runtime fallback root
+- shader_permutation_registry_paths
+- shader_prewarm_asset_root_exports_shader_resource_records
+- shader_prewarm_asset_root_manifest_expands_custom_geometry_source_plugin_ids
+- shader_prewarm_asset_root_manifest_expands_requested_geometry_sources
+- shader_prewarm_asset_root_manifest_maps_custom_shading_model_plugin_ids
+- shader_prewarm_asset_root_manifest_templates_builtin_standard_material_source
+- shader_prewarm_asset_root_manifest_uses_raw_source_hash_revision
+- shader_prewarm_asset_root_manifest_uses_resource_registry_revision_overlay
+- shader_prewarm_asset_root_manifest_uses_zmeta_source_hash_revision
+- shader_prewarm_permutation_registry_merges_custom_geometry_and_shading_ids
+- shader_prewarm_permutation_registry_merges_custom_shading_model_descriptors
+- shader_prewarm_permutation_registry_path
+- shader_prewarm_project_and_plugin_asset_roots_export_wrapped_resource_registry_file
+- shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions
+- shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only
+- shader_reimport_exports_updated_revision_for_prewarm_registry
+- shader_resource_records_from_asset_root
+- shader_resource_records_from_asset_roots
+- shader_resource_records_from_asset_roots_deduplicates_duplicate_shader_records
+- shader_uses_material_surface_source
+- shading_model_descriptors
+- ShadingModelIncludeSourceSet::from_project_asset_manager
+- Some("2026-06-24")
+- Staged shader resource registry auto-export
+- Staged shader resource registry multi-root dedupe
+- staged_prewarm_without_compile_miss
+- status_support_maps/m3_m4_expected_slice_maps.rs
+- status_support_maps/m3_m4_expected_slice_maps/m4_row_data_maps.rs
+- status_support_maps/m3_m4_expected_slice_maps/status_support_guard_maps.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/budgets.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/delegation.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/root_inventory.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/root_paths.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/root_statuses.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/evidence_anchors/variable_evidence.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/nested_children.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/route_children.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/owner_budgets/surrounding_owners.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/root_inventory.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/root_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/root_source_blobs.rs
+
+## Anchor batch 720-809
+
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries/root_statuses.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/budgets.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/delegation.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/source_ownership.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/module_layout_status_docs.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/budgets.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/delegation.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/source_ownership.rs
+- structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/module_layout.rs
+- structure_convention/test_file_budget/row_data/module_layout/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/module_layout/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/module_layout/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/module_layout/mirrors/layout_folder_status.rs
+- structure_convention/test_file_budget/row_data/module_layout/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/module_layout/root_inventory.rs
+- structure_convention/test_file_budget/row_data/module_layout/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout/root_paths.rs
+- structure_convention/test_file_budget/row_data/module_layout/root_statuses.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/budgets.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/delegation.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/runtime_15_m3_parent.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/runtime_15_parent.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/top_level.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_inventory.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/root_statuses.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/row_ownership.rs
+- structure_convention/test_file_budget/row_data/rt15_m3_groups/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/budgets.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/delegation.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/export_chain.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps_folder_backed.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps/base_and_top_level.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps/review_guard_structure.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps/route_metadata.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps/status_support_maps.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps/structure_support.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/expected_slice_maps/warning_cleanup.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/priority_plan_docs.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/root_rows.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/row_data_and_budget.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/runtime_index_anchors.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/slice_maps_folder/budget_traversal.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/slice_maps_folder/route_children.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/owner_paths/slice_maps_folder/status_current.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_inventory.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_paths.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/root_statuses.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/row_ownership.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/root_inventory.rs
+
+## Anchor batch 810-899
+
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_asset_budget_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/doc_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count/current_counts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count/priority_frontmatter.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/status_maps.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/exports.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data/topic_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_lock_poison_status_row_data_children/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data_children/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m2_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_inventory.rs
+
+## Anchor batch 900-989
+
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_docs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_owner_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/mirrors/m3_row_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/row_sources.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/status_maps.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status_row_docs/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/source_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/status_maps.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_status/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data_children/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/code_review_owner.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/mirrors/structure_guard_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/row_children.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/row_data_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/plugin_importer_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/row_routes.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/row_groups.rs
+
+## Anchor batch 990-1079
+
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/status_doc_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/row_routes.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/mirrors/child_owner_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/mirrors/child_split_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/mirrors/folder_backed_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/mirrors/historical_status.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_owner_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/row_ownership.rs
+- structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/legacy_maps/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/legacy_maps/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/legacy_maps/body/legacy_routes.rs
+- structure_convention/test_file_budget/status_slices/legacy_maps/body/paths.rs
+- structure_convention/test_file_budget/status_slices/legacy_maps/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/legacy_maps/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps.rs
+- structure_convention/test_file_budget/status_slices/maps/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/child_ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/guard_status.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/mounts/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/mounts/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/mounts/moved_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/mounts/parent_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/mounts/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/mounts/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/ownership/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/ownership/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/ownership/moved_checks.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/ownership/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/ownership/route_owner.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/ownership/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/code_review_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/body/guard_status.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/parent_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/source_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/budgets/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mirrors/row_maps.rs
+
+## Anchor batch 1080-1169
+
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mounts/child_owned.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mounts/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mounts/folder_backed/metadata_guard.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mounts/folder_backed/route_mounts_guard.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mounts/folder_backed/route_owner.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/mounts/folder_backed/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/helpers.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/child_sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/guard_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_meta/structure_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/review_route_children/sources/status_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/mirrors/row_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/mounts/child_owned.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/mounts/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/mirrors/row_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/mounts/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/mounts/status_date_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/foundation_review.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/root_expected_slice.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/source_inventory.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/status_current.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/metadata/structure_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/route_inventory.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/source_reads.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/status_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/route_children/structure_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/status_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/foundation_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/review_route.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/root_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/root_sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/structure_support.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/structure_paths/typed_status_support.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/literal_ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/mirrors/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/mirrors/guard_body_status.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/mirrors/map_child_split.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/parent_route_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/parent_routes/route_inputs.rs
+
+## Anchor batch 1170-1259
+
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/parent_routes/source_reads.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/parent_routes/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/plan_doc_route_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/plan_routes/child_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/plan_routes/route_inputs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/plan_routes/source_reads.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/plan_routes/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/priority_plan_doc_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/review_guard_row_data_route_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/review_row_routes/child_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/review_row_routes/route_inputs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/review_row_routes/source_reads.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/review_row_routes/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/mirrors/row_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/row_data_route_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/row_routes/child_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/row_routes/route_inputs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/row_routes/source_reads.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/row_routes/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal_ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/status_support_literals.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_route_children.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/literal_ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_meta/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_meta/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/paths/child_guard_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/paths/route_inputs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/paths/status_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error_expected_slice.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/body/literal_ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/body/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/body/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_meta/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_meta/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/child_owners.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/child_sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/route_mounts.rs
+
+## Anchor batch 1260-1349
+
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/naming_boundary.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_meta/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_meta/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/source_paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/budgets/sources/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal_ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/date_literals.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/source_groups.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/status_literals.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/literal/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split_layout.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/mounts/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/mounts/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/guard_body.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_meta/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_meta/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_meta/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_meta/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_meta/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_meta/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/route_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources/constants.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources/row_sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/sources/status_support_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split_layout.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/budgets/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/budgets/top_level_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/mounts/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/mounts/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/runtime_15_expected_slice_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout.rs
+- structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout/split_layout.rs
+- structure_convention/test_file_budget/status_slices/module_layout/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/module_layout/body/child_ownership.rs
+- structure_convention/test_file_budget/status_slices/module_layout/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/module_layout/body/paths.rs
+- structure_convention/test_file_budget/status_slices/module_layout/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/module_layout/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/module_layout/guard_body.rs
+- structure_route_maps.rs
+- structure_route_maps/budgets.rs
+- structure_route_maps/guard_rows.rs
+- structure_route_maps/status_docs.rs
+- structure_route_maps/structure_support_rows.rs
+- structure/literal/status_mirrors.rs
+- structure/status_mirrors.rs
+- submit_registry_material_passes_with_plugin_shading_model_capture
+- target-client
+- target-server
+- temporal.velocity-object
+- test_acceptance_contract_rejects_blank_written_variant_source_label
+- test_acceptance_contract_rejects_duplicate_written_variant_identity
+- test_acceptance_contract_rejects_empty_success_report
+- test_acceptance_contract_rejects_explicit_registry_without_ready_revision
+- test_acceptance_contract_rejects_failed_success_report
+- test_acceptance_contract_rejects_forward_only_staged_pass_report
+- test_acceptance_contract_rejects_incomplete_written_variant_identity
+- test_acceptance_contract_rejects_invalid_written_variant_cache_hash_shape
+- test_acceptance_contract_rejects_partial_written_success_report
+- test_acceptance_contract_rejects_untrimmed_written_variant_source_label
+- test_acceptance_contract_requires_registry_source_for_project_plugin_auto_export
+- test_acceptance_contract_requires_usable_records_for_project_plugin_auto_export
+- test_acceptance_contract_requires_written_variant_identity
+- test_acceptance_contract_requires_written_variant_source_label_identity
+
+## Anchor batch 1350-1439
+
+- test_acceptance_contract_validates_explicit_registry_against_report
+- test_acceptance_contract_validates_report_cache_and_exported_registry
+- test_build_command_auto_export_registry_scans_all_asset_roots
+- test_build_command_forwards_wgpu_shader_module_validation
+- test_build_command_forwards_wgpu_shader_pipeline_validation
+- test_build_command_includes_selected_plugin_asset_roots
+- test_cli_dry_run_prints_native_dynamic_fixture_prewarm_command
+- test_cli_selects_native_dynamic_fixture_assets_for_prewarm_command
+- test_dimension_summary_lines_format_source_provenance
+- test_dimension_summary_lines_format_wgpu_module_validation_counts
+- test_generated_shader_permutation_registry_document_exports_selected_plugin_shading_model_descriptors
+- test_prewarm_plan_lists_asset_roots_for_registry_export
+- test_prewarm_plan_lists_runtime_fallback_handoff_paths
+- test_runtime_server_wrapper_uses_client_features_for_preview_binary
+- test_validate_cache_artifact_contract_accepts_requested_custom_ids
+- test_validate_cache_artifact_contract_accepts_requested_pass_types
+- test_validate_cache_artifact_contract_accepts_requested_quality_and_geometry
+- test_validate_cache_artifact_contract_rejects_duplicate_written_variant_identity
+- test_validate_cache_artifact_contract_rejects_invalid_metadata_field_types
+- test_validate_cache_artifact_contract_rejects_non_blake3_hex_cache_hash
+- test_validate_cache_artifact_contract_rejects_non_runtime_cache_layout
+- test_validate_cache_artifact_contract_rejects_untrimmed_written_variant_source_label
+- test_validate_cache_artifact_contract_rejects_wrong_canonical_variant
+- test_validate_cache_artifact_contract_requires_requested_custom_id_combinations
+- test_validate_cache_artifact_contract_requires_requested_custom_ids
+- test_validate_cache_artifact_contract_requires_requested_dimension_combinations
+- test_validate_cache_artifact_contract_requires_requested_geometry_sources
+- test_validate_cache_artifact_contract_requires_requested_pass_types
+- test_validate_cache_artifact_contract_requires_requested_quality_tiers
+- test_validate_cache_artifact_contract_requires_requested_shading_ids
+- test_validate_cache_artifact_contract_requires_written_cache_pairs
+- test_validate_cache_artifact_contract_requires_written_variant_source_labels_in_provenance
+- test_validate_generated_registry_requires_selected_plugin_ids
+- test_validate_registry_export_contract_accepts_locator_wire_shape_variants
+- test_validate_registry_export_contract_accepts_registry_backed_source_locators
+- test_validate_registry_export_contract_rejects_incomplete_resource_record
+- test_validate_registry_export_contract_rejects_invalid_artifact_locator
+- test_validate_registry_export_contract_rejects_invalid_locator_wire_shape
+- test_validate_registry_export_contract_rejects_missing_registry_backed_source_locator
+- test_validate_registry_export_contract_rejects_missing_report_source_locator
+- test_validate_registry_export_contract_rejects_missing_written_variant_locator
+- test_validate_registry_export_contract_rejects_non_ready_report_source_record
+- test_validate_registry_export_contract_rejects_non_shader_report_source_record
+- test_validate_registry_export_contract_rejects_tagged_enum_resource_record
+- test_validate_registry_export_contract_rejects_u32_importer_version_overflow
+- test_validate_registry_export_contract_rejects_u64_revision_overflow
+- test_validate_registry_export_contract_rejects_zero_revision_report_source_record
+- test_validate_registry_export_contract_requires_resource_records
+- test_validate_report_contract_rejects_blank_source_provenance_strings
+- test_validate_report_contract_rejects_dimension_count_total_mismatch
+- test_validate_report_contract_rejects_incomplete_requested_dimension_counts
+- test_validate_report_contract_rejects_source_provenance_count_mismatch
+- test_validate_report_contract_rejects_untrimmed_source_provenance_strings
+- test_validate_report_contract_rejects_wgpu_validation_total_mismatch
+- test_validate_report_contract_requires_requested_geometry_source_ids
+- test_validate_report_contract_requires_requested_pass_types
+- test_validate_report_contract_requires_requested_quality_tiers
+- test_validate_report_contract_requires_source_provenance_when_requested
+- test_validate_report_contract_requires_wgpu_validation_when_requested
+- test_write_generated_shader_permutation_registry_writes_json
+- test_zircon_build_discovers_plugin_geometry_source_descriptors_as_shader_ids
+- test_zircon_build_discovers_plugin_shader_permutation_records
+- test_zircon_build_resolves_project_shader_asset_roots_for_prewarm
+- test_zircon_build_shader_prewarm_source_provenance_contract.py
+- test_zircon_build_shader_prewarm_wgpu_report_contract.py
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership/descriptor_builder_routes.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership/descriptor_privacy_routes.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership/leaf_owners.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership/parent_routes.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/route_ownership/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/entry_points.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/parent_absence.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/direct_review_assertions/ownership/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/direct_assertions.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/parent_absence.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/source_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/ownership/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/model.rs
+
+## Anchor batch 1440-1529
+
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/reads.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/folder_backed_summary/sources/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/leaf_owners.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/parent_routes.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/route_ownership/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/source_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/sources/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/sources/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/sources/paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/sources/reads.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/sources/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status_docs.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/doc_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/status_maps.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/status/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure_assertions.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/folder_backed.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/review_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/review_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/review_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/root_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/root_row_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchor_guard.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/native_typed_error.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/review_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/runtime_surface.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/source_anchors/structure_owners.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/folder_backing.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/map_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/sync.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/current_checks.rs
+
+## Anchor batch 1530-1608
+
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/folder_backed.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/source_trees.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/typed_error/structure/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/child_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/child_sources/structure_guard.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/child_sources/structure_guard/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/child_sources/structure_guard/route_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/child_sources/structure_guard/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/guard_body.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/ownership/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/ownership/delegation_parent.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/ownership/folder_backed_parent.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/ownership/route_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/ownership/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/folder_backed/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/parent_delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/source_inventory_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/source_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/inventory/current/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/inventory/current/route_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/inventory/current/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/child_inventory_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/current/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/current/route_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/current/source_blobs.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/current/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/delegation_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/review_guard_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/metadata/status_slices.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/reads.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/source_helper_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/source_helper_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain/code_review_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain/review_guard_row_data.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain/review_guard_splits.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain/runtime_aggregation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/export_chain/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/child_owner_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/folder_backed_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/folder_backed_rows/exports.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/folder_backed_rows/status_maps.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership/status_current.rs
+- tools/zircon_build_shader_prewarm_written_variants.py
+- typed_error/map_rows.rs
+- typed_error/map_rows/budgets.rs
+- typed_error/map_rows/status_docs.rs
+- typed_error/status_doc_map_rows.rs
+- typed_error/status_doc_map_rows/status_docs.rs
+- typed_error/structure_map_rows.rs
+- typed_error/structure_map_rows/status_docs.rs
+- usable shader ResourceRecord revisions
+- use lifecycle_fixtures::*;
+- VirtualGeometry asset payload decode
+- VirtualGeometry cluster payload upload
+- VirtualGeometry meshlet vertex ordinal
+- VirtualGeometry page/cluster shader bindings
+- VirtualGeometry page/cluster shader bindings Cargo-wrapper WGPU-layout backfill
+- VirtualGeometry product draw-source
+- VirtualGeometry resident buffers upload
+- with_deferred_lighting_renderer
+- with_shading_model_deferred_include_sources
+- zircon_runtime/src/plugin/mod.rs
+- zircon_runtime/src/render_graph/tests/resources.rs
+- zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs
+
+## Delta anchor batch 0
+
+- frameworks_02_m3_review_guard_expected_slice_root_route_metadata_status_mirror_guard_folder_backed_static_passed_cargo_deferred
+- render_product_camera_targets/custom_target/ordering.rs
+- Runtime 15 M3 review-guard expected-slice root route metadata status-mirror guard folder-backed split
+- Runtime 15 M3 review-guard foundation route-mount guard folder-backed split
+- Runtime 15 M3 review-guard foundation status-date map guard folder-backed split
+- Runtime 15 M3 review-guard foundation status-date maps folder-backed split
+- Runtime 15 M3 review-guard foundation status-mirror guard folder-backed split
+- Runtime 15 M3 review-guard row-data delegation guard folder-backed split
+- Runtime 15 M3 review-guard row-data delegation split-layout guard folder-backed split
+- Runtime 15 M3 review-guard row-data root child rows folder-backed split
+- Runtime 15 M3 review-guard row-data root child rows split-layout guard folder-backed split
+- Runtime 15 M3 review-guard status-support folder-backed guard folder-backed split
+- Runtime 15 M3 review-guard status-support folder-backed split-layout guard folder-backed split
+- Runtime 15 M3 review-guard status-support rows split-layout guard folder-backed split
+- Runtime 15 M3 review-guard typed-error rows guard folder-backed split
+- Runtime 15 M3 review-guard typed-error rows split-layout guard folder-backed split
+- Runtime 15 M3 test file budget root-layout assertions guard folder-backed split
+- runtime_15_review_guard_expected_slice_root_route_metadata_status_mirror_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_expected_slice_root_route_metadata_status_mirrors_are_folder_backed
+- runtime_15_review_guard_foundation_route_mount_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_foundation_route_mounts_are_folder_backed
+- runtime_15_review_guard_foundation_status_date_map_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_foundation_status_date_map_guard_is_folder_backed
+- runtime_15_review_guard_foundation_status_date_maps_are_folder_backed
+- runtime_15_review_guard_foundation_status_date_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_foundation_status_mirror_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_foundation_status_mirrors_are_folder_backed
+- runtime_15_review_guard_row_data_delegation_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_row_data_delegation_guard_is_folder_backed
+- runtime_15_review_guard_row_data_delegation_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_row_data_delegation_split_layout_guard_is_folder_backed
+- runtime_15_review_guard_row_data_root_child_rows_are_folder_backed
+- runtime_15_review_guard_row_data_root_child_rows_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_row_data_root_child_rows_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_row_data_root_child_rows_split_layout_guard_is_folder_backed
+- runtime_15_review_guard_status_support_folder_backed_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_status_support_folder_backed_guard_is_folder_backed
+- runtime_15_review_guard_status_support_folder_backed_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_status_support_folder_backed_split_layout_guard_is_folder_backed
+- runtime_15_review_guard_status_support_rows_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_status_support_rows_split_layout_guard_is_folder_backed
+- runtime_15_review_guard_typed_error_rows_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_rows_guard_is_folder_backed
+- runtime_15_review_guard_typed_error_rows_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_rows_split_layout_guard_is_folder_backed
+- runtime_15_test_file_budget_root_layout_assertions_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_test_file_budget_root_layout_assertions_guard_is_folder_backed
+- structure_convention/test_file_budget/row_data/module_layout_child_summaries.rs
+- structure_convention/test_file_budget/row_data/module_layout_child_summary_status_docs.rs
+- structure_convention/test_file_budget/row_data/module_layout/budgets.rs
+- structure_convention/test_file_budget/row_data/module_layout/child_summaries.rs
+- structure_convention/test_file_budget/row_data/module_layout/delegation.rs
+- structure_convention/test_file_budget/row_data/module_layout/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status_docs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_child_groups.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data.rs
+- structure_convention/test_file_budget/row_data/runtime_15_m4_row_data/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/root_and_children.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_paths.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_source_blobs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_statuses.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/child_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/route_mounts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/split/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/split/route_mounts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/split/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/split/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/delegation/status_inventory.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/aggregation.rs
+
+## Delta anchor batch 1
+
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/delegation.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/route_mounts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/split/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/top_level.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/root_child_rows/typed_error_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/anchor_mirror_cleanup.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/anchor_mirror_cleanup/row_cleanup.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/anchor_mirror_cleanup/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/anchor_mirror_cleanup/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/row_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/route_mounts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/split/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/folder_backed/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/route_mounts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_rows/split/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/export_chain.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/representative_rows.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/route_children.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/split/budgets.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/split/route_mounts.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/split/split_layout.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/split/status_current.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/typed_error_rows/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_status_support_row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/child_sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/code_review.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/foundation_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/ownership.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/parent_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/source_reads.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/status_metadata.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/support_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/typed_error_routes.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/typed_error_structure.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/mirrors/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/mirrors/row_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/literal/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/mirrors/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/mirrors/row_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/mirrors/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners/split/body/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/ownership/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/ownership/forwarding.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/ownership/mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/ownership/moved_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchor_guard/ownership/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/aggregation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/boundary_samples.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/folder_backed_summary.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/source_blob.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/status_docs.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/status/status_anchors/child_anchors/structure_guards.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/delegation.rs
+
+## Delta anchor batch 2
+
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/review_guards.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/ownership/structure_subtree.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_docs.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/child_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/child_tree.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources/delegation_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/current/status_sync.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/status_doc_parent.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/delegation/typed_error_parent.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/guard_anchors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/metadata.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/source_helper_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/source_helper_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/source_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/doc_mirrors/status_slices.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/sources/status_maps_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/current/status_sync.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/review_slices.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/maps/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/sources/status_mirrors_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split_layout.rs
+
+## Delta anchor batch 3
+
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/current/status_sync.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/folder_backed_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/mirrors/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources/paths_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/sources/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/current/status_sync.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/guard_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/paths_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/source_helper_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/parent_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/source_split.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/sources/split_layout_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/split_layout.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/split/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/inventory/status_current_children.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/review_guard_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/paths/status_slices.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/source_helper_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/source_helper_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/status_maps.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/status/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/asset_parents.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/runtime_parents.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/convergence_mounts/top_level.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/child_ownership_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/guard_body.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/guard_names.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/metadata.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/parent_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/parent_backflow/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/path_anchors.rs
+
+## Delta anchor batch 4
+
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/preserved_guards.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/root_child_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/root_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/root_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/root_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/root_statuses.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/moved_guard_absence/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/budgets.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/delegation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/metadata.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/abi_surfaces.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/child_inventory.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/child_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/lifecycle_paths.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/live_host.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/manifest_sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/metadata.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/plugin_descriptor.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/replay_runtime.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/source_helper_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/source_helper_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/routes/top_level.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/source_helper_ownership.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/source_helper_status.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/sources.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/native_plugin_loader/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure/status_mirrors.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/aggregation.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/aggregation/review_guard_splits.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/aggregation/runtime_15_m3_root.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/aggregation/runtime_15_root.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/aggregation/status_current.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/aggregation/top_level_rows.rs
+- tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows.rs
+
+## Delta anchor batch: session/status progression
+
+- frameworks_02_m3_foundation_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_foundation_expected_slice_maps_status_mirrors_folder_backed_static_passed_cargo_deferred
+- Runtime 15 M3 child-group moved-row root inventory child split
+- Runtime 15 M3 foundation expected-slice maps folder-backed split
+- Runtime 15 M3 foundation expected-slice maps guard folder-backed split
+- Runtime 15 M3 foundation expected-slice maps status mirrors folder-backed split
+- Runtime 15 M3 review-guard direct-assertion export-chain guard child split
+- Runtime 15 M3 review-guard direct-assertion row-data guard folder-backed split
+- Runtime 15 M3 review-guard direct-assertion row-data root inventory child split
+- Runtime 15 M3 review-guard direct-assertion row-ownership guard child split
+- Runtime 15 M3 Runtime 15 M3 row-data root inventory child split
+- Runtime 15 M3 Runtime 15 M4 row-data root inventory child split
+- runtime_15_foundation_expected_slice_maps_are_folder_backed
+- runtime_15_foundation_expected_slice_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_foundation_expected_slice_maps_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_foundation_expected_slice_maps_guard_is_folder_backed
+- runtime_15_foundation_expected_slice_maps_status_mirrors_are_folder_backed
+- runtime_15_foundation_expected_slice_maps_status_mirrors_folder_backed_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_rows_root_inventory_is_child_owned
+- runtime_15_m3_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m4_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_export_chain_guard_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_row_data_root_inventory_is_child_owned
+- runtime_15_review_guard_direct_assertion_row_ownership_guard_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_direct_assertion_rows_guard_is_folder_backed
+- runtime_15/foundation.rs
+- runtime_15/foundation/lock_poison.rs
+
+## Delta anchor batch: current pass 0
+
+- frameworks_02_m3_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_route_mount_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_status_date_map_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_status_date_maps_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_foundation_status_mirror_guard_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_review_guard_source_status_maps_folder_backed_static_passed_cargo_deferred
+- frameworks_02_m3_status_output_runtime_15_expected_slice_child_owner_guard_sources_folder_backed_static_passed_cargo_deferred
+- Runtime 15 M3 child-group moved-row status-mirror child split
+- Runtime 15 M3 child-groups status-doc root inventory child split
+- Runtime 15 M3 code review findings structure guard typed-error structure assertions folder-backed split
+- Runtime 15 M3 review-guard source status maps folder-backed split
+- Runtime 15 M3 review-guard typed-error status-doc guard folder-backed split
+- Runtime 15 M3 review-guard typed-error structure-assertions guard folder-backed split
+- Runtime 15 M3 Runtime 15 M3 row-data status-mirror child split
+- Runtime 15 M3 Runtime 15 M4 row-data status-mirror child split
+- Runtime 15 M3 status output Runtime 15 expected-slice child-owner guard sources folder-backed split
+- Runtime 15 M3 status-support expected-slice row-data guard folder-backed split
+- Runtime 15 M3 status-support row-data root inventory child split
+- Runtime 15 M3 status-support row-data root owner paths folder-backed split
+- Runtime 15 M3 typed-error status-doc delegation status-current sources child split
+- Runtime 15 M3 typed-error status-doc delegation status-current split-layout sources child split
+- Runtime 15 M3 typed-error status-doc paths child inventory child split
+- Runtime 15 M3 typed-error status-doc paths child inventory split-layout folder-backed split
+- Runtime 15 M3 typed-error status-doc paths child inventory split-layout guard folder-backed split
+- Runtime 15 M3 typed-error status-doc paths child inventory split-layout sources child split
+- Runtime 15 M3 typed-error status-doc paths status-current child split
+- Runtime 15 M3 typed-error status-doc paths status-current sources child split
+- Runtime 15 M3 typed-error status-doc paths status-current split-layout folder-backed split
+- Runtime 15 M3 typed-error status-doc paths status-current split-layout guard folder-backed split
+- Runtime 15 M3 typed-error status-doc root paths folder-backed split
+- Runtime 15 M3 typed-error status-doc status maps status-current sources child split
+- Runtime 15 M3 typed-error status-doc status maps status-current split-layout sources child split
+- Runtime 15 M3 typed-error status-doc status mirrors status-current sources child split
+- Runtime 15 M3 typed-error status-doc status mirrors status-current split-layout sources child split
+- Runtime 15 M3 typed-error status-doc status-slices folder-backed split
+- runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_folder_backed_static_passed_cargo_deferred
+- runtime_15_code_review_findings_structure_guard_typed_error_structure_assertions_guard_is_folder_backed
+- runtime_15_m3_child_group_moved_row_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_m3_child_group_moved_row_status_mirror_children_are_child_owned
+- runtime_15_m3_child_groups_status_docs_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_m3_row_data_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_m4_row_data_status_mirror_child_split_static_passed_cargo_deferred
+- runtime_15_review_guard_source_status_maps_are_child_owned
+- runtime_15_review_guard_source_status_maps_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_status_doc_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_status_docs_guard_is_folder_backed
+- runtime_15_review_guard_typed_error_structure_assertions_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_review_guard_typed_error_structure_assertions_guard_is_folder_backed
+- runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_sources_are_folder_backed
+- runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_sources_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_expected_slice_row_data_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_status_support_expected_slice_row_data_guard_is_folder_backed
+- runtime_15_status_support_row_data_root_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_status_support_row_data_root_inventory_is_child_owned
+- runtime_15_status_support_row_data_root_owner_paths_are_folder_backed
+- runtime_15_status_support_row_data_root_owner_paths_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_delegation_status_current_sources_are_child_backed
+- runtime_15_typed_error_status_doc_delegation_status_current_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_delegation_status_current_split_layout_sources_are_child_backed
+- runtime_15_typed_error_status_doc_delegation_status_current_split_layout_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_is_child_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_guard_is_folder_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_is_folder_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_sources_are_child_backed
+- runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_is_child_backed
+
+## Delta anchor batch: current pass 1
+
+- runtime_15_typed_error_status_doc_paths_status_current_sources_are_child_backed
+- runtime_15_typed_error_status_doc_paths_status_current_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_guard_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_guard_is_folder_backed
+- runtime_15_typed_error_status_doc_paths_status_current_split_layout_is_folder_backed
+- runtime_15_typed_error_status_doc_root_paths_are_folder_backed
+- runtime_15_typed_error_status_doc_root_paths_folder_backed_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_status_maps_status_current_sources_are_child_backed
+- runtime_15_typed_error_status_doc_status_maps_status_current_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_status_maps_status_current_split_layout_sources_are_child_backed
+- runtime_15_typed_error_status_doc_status_maps_status_current_split_layout_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_status_mirrors_status_current_sources_are_child_backed
+- runtime_15_typed_error_status_doc_status_mirrors_status_current_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_status_mirrors_status_current_split_layout_sources_are_child_backed
+- runtime_15_typed_error_status_doc_status_mirrors_status_current_split_layout_sources_child_split_static_passed_cargo_deferred
+- runtime_15_typed_error_status_doc_status_slices_are_folder_backed
+- runtime_15_typed_error_status_doc_status_slices_folder_backed_static_passed_cargo_deferred
+- split/body/budgets/status_docs.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/aggregation.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/folder_backed.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/route_mounts.rs
+- structure_convention/test_file_budget/row_data/rt15_status_support/expected_slice_maps/status_mirrors.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_status_docs.rs
+- structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows/typed_error_structure_assertions.rs
+- structure_convention/test_file_budget/status_slices/legacy_group_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/body/route_mounts.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/child_group_row_data_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/m3_m4_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/status/runtime_index_anchor_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/parent_routes/sources.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/runtime07_script_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/structure_route_maps/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows/row_data.rs
+
+## Delta anchor batch: current pass 2
+
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/status_doc_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/route_maps.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/review/typed_error/structure_map_rows/status_docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/budgets.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/docs.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/foundation/mirrors/row_data.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/doc_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/folder_backed.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/paths.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/body/status_mirrors.rs
+- structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/guard_body.rs
+- structure_convention/test_file_budget/status_slices/module_layout.rs
+
+<!-- inventory-tail -->

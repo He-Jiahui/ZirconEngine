@@ -65,6 +65,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - tools/tests/test_runtime_sdf_fallback_glyph_index_type.py
   - tools/tests/test_plugin_docs_current_status_runtime_sdf_fallback_glyph_index_type.py
@@ -162,6 +164,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
@@ -255,6 +259,7 @@ tests:
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - zircon_runtime/src/graphics/tests/render_product_ui.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
   - cargo test -p zircon_runtime render_extract_carries_visual_contract_fields_for_visible_nodes
@@ -265,6 +270,7 @@ tests:
   - cargo test -p zircon_runtime screen_space_ui_plan_routes_sdf_text_to_a_separate_batch
   - cargo test -p zircon_runtime screen_space_ui_plan_keeps_auto_text_in_a_separate_batch
   - cargo test -p zircon_runtime --lib screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches --locked --jobs 1
+  - cargo test -p zircon_runtime text_prepare_report_exposes_raster_upload_scroll_counters --lib --no-default-features --locked --jobs 1 (2026-07-10 blocked before compile by zircon_runtime/Cargo.toml and Cargo.lock mismatch; see docs/tests/runtime/text/runtime_text_raster_upload_report_cargo_blocker_manifest_lock_20260710.log)
   - cargo test -p zircon_runtime --lib sdf_atlas --locked --jobs 1
   - cargo test -p zircon_runtime --lib sdf_font_bake --locked --jobs 1
   - cargo test -p zircon_runtime --lib sdf_draw_plan --locked --jobs 1
@@ -597,6 +603,8 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 真实字体 bake 被局部封装在 `scene_renderer::ui` 内：`SdfFontBakeCache` 通过既有 `.font.toml` manifest 解析字体源，缓存 `fontsdf::Font`，按 `SdfAtlasGlyphKey` 为非空白 glyph bake 单通道 SDF alpha，并把 bitmap 尺寸、bearing、ascent 与 advance 交回 draw planner。whitespace 不写 atlas slot，只通过字体 metrics 保留 advance；missing glyph 使用稳定空可见输出和保守 advance，避免把未知字符退回旧的整块占位 mask。2026-05-23 的 M7 bake-report slice 还让 `SdfAtlasBake` 携带 `SdfAtlasBakeReport`，记录 slot 数、可见/空 glyph 数、atlas byte 数、非零像素数和已加载字体数，后续 quality 参数、局部 atlas upload 和 debug 面板可以直接消费这份报告。这保持了 shared template metadata、`UiRenderExtract` DTO、RHI、render graph 和 render plugin 边界不变。
 
 同日的 M7 text prepare report slice 把 atlas/cache/bake 事实向上汇聚到 runtime text system，而不是让 debug 面板或后续 renderer 统计从底层对象反推。`ScreenSpaceUiSdfRenderer` 在 `prepare(...)` 后保存 `ScreenSpaceUiSdfPrepareReport`，记录 SDF text batch 数、atlas slot 数、atlas size、atlas resize、bake report、当前 atlas upload byte 数、是否全量 texture upload，以及最终 SDF vertex 数；`ScreenSpaceUiTextSystem` 再保存 `ScreenSpaceUiTextPrepareReport`，记录输入 auto/native/sdf batch 数、解析后的 native/sdf batch 数，以及对应的 `SdfAtlasCacheReport` 与 `ScreenSpaceUiSdfPrepareReport`。2026-05-24 的 upload-report slice 进一步把 upload 计算抽到 [`sdf_upload.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs)，并把 `ScreenSpaceUiSdfPrepareReport.atlas_upload` 固定为内部 DTO：当前 GPU path 仍以 `FullTexture` 写入保证正确性，但 report 会同步给出 dirty slot count/dirty byte count；未 resize 且全部 stable retained 时 dirty 为 0，新增或 relocated slot 会计入 dirty，为后续把 full texture upload 收束成局部 texture writes 提供可验证边界。`ScreenSpaceUiRenderer` 会在每次 `record(...)` 后缓存最新 text prepare report，并在没有可提交 UI 时清空这份 report；后续 render stats 或 debug reflector 可以从 screen-space renderer 边界读取这份快照，不需要直接穿透进 glyphon/SDF backend。该层仍然是 `scene_renderer::ui` 内部的 renderer-local 可观测层，不把 GPU atlas 或 glyphon 类型泄漏到 shared `UiRenderExtract`、editor widget 合同或 runtime interface。
+
+2026-07-10 的 native raster/upload report slice 把同一可观测边界扩展到 native bitmap atlas path。`ScreenSpaceUiTextPrepareReport.raster_upload` 从 `NativeBitmapAtlasPrepareReport` 聚合 visible/source/missing/approx glyph、source-cache hit/miss/worker-request、submission upload command/copy/byte counters,再合并 `GlyphAtlasBitmapRendererPrepareReport` 的 upload request/byte/requeue/failure/ready 状态。这个字段只服务 renderer-local diagnostics、perf tests 和后续 debug 面板;它不把 atlas internals 加进 shared UI DTO,也不改变 glyphon/native/SDF routing。
 
 这一轮还补了一条 capture 级回归：[runtime_ui_text_render_contract.rs](/E:/Git/ZirconEngine/zircon_runtime/tests/runtime_ui_text_render_contract.rs)。它不再只看 planner/batch 统计，而是直接通过 `RenderFramework::submit_frame_extract_with_ui(...) -> capture_frame(...)` 证明：
 

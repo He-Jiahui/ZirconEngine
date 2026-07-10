@@ -3,6 +3,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
+  - zircon_runtime/src/asset/assets/texture/external_source_cubemap/decode.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs
   - zircon_runtime/src/core/framework/render/environment/rgba16f.rs
   - zircon_runtime/src/core/framework/render/environment/environment_brdf_lut.rs
@@ -61,6 +63,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
+  - zircon_runtime/src/asset/assets/texture/external_source_cubemap/decode.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs
   - zircon_runtime/src/core/framework/render/environment/rgba16f.rs
   - zircon_runtime/src/core/framework/render/environment/skybox.rs
@@ -111,8 +114,10 @@ plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/tests/runtime_environment_source_cubemap_contract.rs
+  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
   - zircon_runtime/tests/runtime_environment_source_irradiance_cubemap_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
   - zircon_runtime/tests/runtime_texture_zcube_source_cubemap_contract.rs
@@ -136,11 +141,15 @@ doc_type: module-detail
 
 `source_cubemap.rs` is the real HDRI source-cubemap path for skybox and standard PBR reflection validation. It supersedes the retired sampled-equirect table path with a six-face source cubemap plus a separate specular PMREM mip chain, then uploads both as `texture_cube<f32>` bindings for skybox and environment sampling.
 
+The EL-M2 capture extension accepts six face-major HDR mip-zero images through `build_source_cubemap_from_captured_faces_with_quality(...)`. It builds the same angular source mip pyramid, cmft-style PMREM and SH9 as imported equirectangular sources, so reflection probes and skybox imports cannot drift into separate filtering implementations. `source_cubemap_capture_hash(...)` hashes the exact HDR capture bits and face size for stable staged-artifact identity. Fast/Normal/High quality uses 32/64, 64/128 and 128/256 samples for middle/terminal mips respectively, matching the Render 11 quality table.
+
 The current chain includes an EC-M2a CPU GGX filtered-importance-sampling PMREM bridge for higher mips, an EC-M2b CPU SH9 diffuse irradiance bridge, the EC-M2c runtime upload bridge that keeps source and specular PMREM textures separate in RGBA16F while standard PBR uses an RG16F environment BRDF LUT, an EC-M2d CPU IEM reference bridge in `source_irradiance_cubemap.rs`, an EC-M2i artifact application bridge in `source_cubemap_artifact.rs` that preserves source cubemap display mips while replacing PMREM/SH9 from a decoded reusable artifact payload, an EC-M2j runtime IEM carrier/binding slice that attaches optional 32x32x6 irradiance cubes to `SourceCubemapEnvironment` and uploads them as a stable scene bind-group slot, and an EC-M2l upload-key slice that includes artifact payload identity in WGPU cubemap upload invalidation without changing the source-only IBL bake key. EC-M2u moves the PMREM generator into `source_cubemap/pmrem.rs` and changes the full-roughness tail to Unreal-style cosine hemisphere convolution from the source mip pyramid; it explicitly supersedes the earlier EC-M2r previous-PMREM-downsample experiment because ordinary downsampling can preserve blocky low-mip structure instead of integrating the real environment lobe. EC-M2ai makes the source cubemap environment the explicit IBL bake request shape owner: `SourceCubemapEnvironment::ibl_bake_artifact_request(...)` and `EnvironmentExtract::source_cubemap_ibl_bake_request(...)` provide bake key, face size, and mip count, while renderer graph resources only select which artifact contents are requested. EC-M3a adds a whole-matrix quantitative guard for the real-HDRI screenshot export, EC-M3b locks progressive high-frequency luma-variance reduction plus final-mip face averaging, EC-M3c quantizes cube-edge seam energy on rough PMREM mips, EC-M3d fixes CPU mip sampling across cube-face edges while validating the Poly Haven lakes 2K HDRI export, and EC-M3e adds a non-ignored saved-PNG regression that replays the Plan 06 matrix metrics against the accepted 2K screenshot. EC-M3h/EC-M3i split source mip generation into `source_cubemap/mipmap.rs` and replace the old single-sample previous-mip lookup with a UE-inspired angular source mip pyramid: an average input chain plus per-output-texel angular-footprint sub-sampling weighted by cubemap solid angle, with a final 1x1 six-face average. EC-M3ab adds the `.zcube` source container helper in `asset/assets/texture/zcube.rs`; it serializes only `source_texels()` through the shared RGBA16F layout and explicitly stays source-only rather than becoming a PMREM artifact. This closes the user-visible 1K/source-table cubemap mosaic issue for the current CPU bridge, gives roughness-driven PBR reflections a real blurred environment source, preserves HDR values above 1.0 on the runtime texture path, and removes the previous low-mip diffuse approximation from source-cubemap lighting. EC-M3j upgrades the manual PBR visual gate from an 8x8 matrix to a 10x10 metallic/smoothness matrix and adds single-sphere plus texture-map material exports using real ambientCG Metal009 Color/NormalGL/Roughness/Metalness inputs. EC-M3k fixes the reflection-view vector used by standard PBR, fallback mesh, and deferred lighting: `SceneUniform` now carries camera world position plus a projection-mode view-direction flag, so mirror-like reflections use fragment-to-camera for perspective cameras and a fixed camera forward vector for orthographic cameras instead of the old constant `+Z` direction. EC-M3k also adds perfect-mirror orthographic/perspective validation plus ambientCG Metal008, Metal025, and Metal029 texture-map exports. It is still not the final production IBL stack: GPU/offline compute baking, importer/staged derived artifact production, runtime readback scheduling, GPU/offline IEM bake production, engine quality selection for `ZR_ENV_DIFFUSE_IEM`, GPU/offline artifact seam validation, strict SSIM against source-cubemap references, RenderDoc/product capture, and higher-resolution offline bake acceptance remain pending.
 
 EC-M3l/EC-M3m update the mirror validation path on top of that chain. EC-M3l lowers the standard material roughness floor so authored mirrors can sample PMREM mip0, while EC-M3m fixes the validation sphere winding plus skybox `-Z` screen direction so the accepted mirror screenshots no longer show vertically or front/back inverted environment content.
 
 EC-M3n supersedes the mirror-image hashes again after re-aligning the current CPU/runtime validation path with cmft/cmftStudio shader behavior. `source_cubemap/pmrem.rs` now uses cmft-style `specularPowerFor` plus Blinn BRDF power correction to generate cosine-power radiance mips, `source_cubemap.rs` and `zr_environment.wgsl` use linear roughness-to-LOD mapping, `zr_environment.wgsl` and `skybox_procedural.wgsl` apply cmftStudio `fixCubeLookup`, and the skybox shader reconstructs perspective/orthographic world rays from `inverse_view_proj` instead of relying on a fixed screen-space direction.
+
+EC-M3aj closes the staged consumption proof. The asset staging store now reconstructs `SourceCubemapEnvironment` from the source `.zcube` plus derived `.zribl` without rebuilding PMREM in the viewer. The DX12 interactive viewer consumes that pair and produces default plus yaw/pitch +/-120-degree screenshots from the same process; all views retain matched skybox/reflection orientation and filtered reflection detail.
 
 EC-M3o supersedes the EC-M3n mirror-image hashes for the standard-material validation path only. The cubemap orientation and cmft PMREM path remain unchanged; the new root cause was that generated StandardPBR material WGSL sampled the renderer-owned neutral normal fallback even when the material had no authored normal texture. The standard-material template now receives a `ZR_FEATURE_HAS_NORMAL_TEXTURE` define, returns the geometric normal when the bit is false, and only samples `standard_material_normal_tex` for authored normal-map materials. The mirror export assertion now also checks left/right grazing balance so the previous one-sided edge highlight cannot silently return.
 
@@ -171,6 +180,8 @@ Runtime cache writeback is split by boundary. [ibl_bake_artifact_readback.rs](/E
 ## Behavior Model
 
 `SourceCubemapMipChain` stores texels face-major, with all mips for one face laid out before the next face. The face order is `+X, -X, +Y, -Y, +Z, -Z`, matching cmft and the cube texture resource contract. `source_texels()` is the display/source mip chain. `texels()` is the specular PMREM chain. Mip 0 is identical between both chains; higher source mips are angular-footprint filtered from the source environment, while higher specular mips are GGX filtered.
+
+`build_source_cubemap_from_source_mips(...)` is the external-container entry point. It validates and preserves a complete face-major source pyramid, projects SH9 from source radiance, and regenerates PMREM plus the final six-face average rather than interpreting authored DDS/KTX mips as specular prefiltering. The asset decoder handles cmft DDS face-major bytes and reorders KTX1/KTX2 mip-major bytes before calling this builder.
 
 The input face size is derived from the equirectangular height:
 
@@ -271,6 +282,7 @@ The focused CPU tests in `source_cubemap.rs` and `runtime_environment_source_cub
 - high-frequency source blur in the GGX PMREM mip chain,
 - preservation of HDR values above 1.0 for the float upload path,
 - separation between angular source mips and GGX PMREM mips,
+- preservation of externally supplied source mip identity while regenerating distinct PMREM data,
 - source mip high-frequency variance reduction while staying sharper than same-level PMREM,
 - source final 1x1 six-face averaging,
 - luma-variance reduction in rough mips,
@@ -396,4 +408,4 @@ The EC-M3a screenshot guard samples every cell of the 8x8 metallic/smoothness ma
 
 ## Open Issues
 
-The complete EC-M2/EC-M3 chain is still pending: broader product WGPU command scheduling/readback/cache writeback from live compute outputs, offline BRDF LUT bake production, importer/staged derived artifact production, runtime quality/specialization ownership for enabling `ZR_ENV_DIFFUSE_IEM`, importer-produced artifact seam comparison, stricter automated SSIM against direct source-cubemap references, RenderDoc/product capture, probe capture/blending, and higher-resolution 4K/16K offline bake acceptance beyond the current angular source-mip contract, artifact payload seam roundtrip, backend WGPU texture readback seam guard, live PMREM/IEM graph-output writeback guards, 10x10 matrix guard, mirror orientation export, single-sphere export, and texture-map material exports.
+The complete EC-M2/EC-M3 chain is still pending: broader product WGPU command scheduling/readback/cache writeback from live compute outputs, offline BRDF LUT bake production, compressed/Basis external cubemap transcoding, six-file/cross authoring inputs, runtime quality/specialization ownership for enabling `ZR_ENV_DIFFUSE_IEM`, importer-produced artifact seam comparison, stricter automated SSIM against direct source-cubemap references, additional RenderDoc product captures, probe capture/blending, and higher-resolution 4K/16K offline bake acceptance beyond the current angular source-mip contract, artifact payload seam roundtrip, backend WGPU texture readback seam guard, live PMREM/IEM graph-output writeback guards, 10x10 matrix guard, mirror orientation export, single-sphere export, and texture-map material exports.

@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-07-10T05:20:27.8655330+08:00",
+  "source_stem": "runtime_text_editor_grayscale_line_snap_subpixel_glyph_phase_20260708",
+  "output_dir": "docs/tests/runtime/text",
+  "target_dir_artifact_policy": "no screenshots in target; verified separately by runtime_text_doc_status_sync_artifact_scan_20260710.log",
+  "metrics": [
+    {
+      "file": "runtime_text_editor_grayscale_line_snap_subpixel_glyph_phase_20260708_full_label.png",
+      "width": 260,
+      "height": 58,
+      "painted_pixels": 210,
+      "left": 11,
+      "right": 97,
+      "max_internal_empty_columns": 6,
+      "ink_center_x": 52.843,
+      "ink_threshold_luma": 90
+    },
+    {
+      "file": "runtime_text_editor_grayscale_line_snap_subpixel_glyph_phase_20260708_narrow_label.png",
+      "width": 280,
+      "height": 58,
+      "painted_pixels": 258,
+      "left": 16,
+      "right": 125,
+      "max_internal_empty_columns": 3,
+      "ink_center_x": 70.74,
+      "ink_threshold_luma": 90
+    },
+    {
+      "file": "runtime_text_editor_grayscale_line_snap_subpixel_glyph_phase_20260708_full_label_zoom4x.png",
+      "width": 1040,
+      "height": 232,
+      "painted_pixels": 3360,
+      "left": 44,
+      "right": 391,
+      "max_internal_empty_columns": 24,
+      "ink_center_x": 212.871,
+      "ink_threshold_luma": 90
+    },
+    {
+      "file": "runtime_text_editor_grayscale_line_snap_subpixel_glyph_phase_20260708_narrow_label_zoom4x.png",
+      "width": 1120,
+      "height": 232,
+      "painted_pixels": 4128,
+      "left": 64,
+      "right": 503,
+      "max_internal_empty_columns": 12,
+      "ink_center_x": 284.461,
+      "ink_threshold_luma": 90
+    }
+  ]
+}

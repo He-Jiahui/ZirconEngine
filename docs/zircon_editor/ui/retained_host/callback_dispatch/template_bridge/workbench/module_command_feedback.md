@@ -27,6 +27,7 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints.rs
   - cargo test -p zircon_editor --lib compact_workbench_toolbar_uses_slate_command_density --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary --message-format short --color never -- --test-threads=1 --nocapture (2026-06-29: passed)
+  - cargo test -p zircon_editor --lib full_workbench_secondary_module_commands_keep_readable_width --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-layout-atomic-20260710-0702 --message-format short --color never -- --test-threads=1 --nocapture (2026-07-10: 1 passed)
   - cargo build -q -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0628-thumb-grid-summary (2026-06-29: passed)
   - direct zircon_editor test binary capture_m3_gui_acceptance_visual_artifacts --ignored --exact --test-threads=1 --nocapture (2026-06-29: passed, refreshed docs/tests/editor/editor-window-m3-workbench-900x620.png)
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation.rs
@@ -51,7 +52,7 @@ The browser prototype has the same semantic boundary in `routes.js`: shared tool
 
 The top module toolbar exposes one set of shared command controls in `workbench_top_toolbar.zui`: Save, Browse, Compile, Diff, and Simulate. `componentized_window.rs` still handles selection state and special Browse navigation. Once the action is recognized as a Workbench module action, it delegates to `apply_workbench_module_command_feedback(...)`.
 
-The same toolbar asset is also the density authority for the compact Workbench command strip. Its top band is 44 px high, primary command buttons are 30 px high, and `toolbar_layout.rs` mutates the module command group width between compact and full modes so hidden Diff/Simulate controls do not leave visible slack in the 900 px screenshot tier. The current readable-label slice reserves 72/92/104 px for Save/Browse/Compile, with compact/full command groups at 276/350 px; compact mode still hides Diff/Simulate before it compresses primary command text.
+The same toolbar asset is also the density authority for the compact Workbench command strip. Its command buttons are 30 px high, and `toolbar_layout.rs` mutates the module command group width between compact and full modes so hidden Diff/Simulate controls do not leave visible slack in the 900 px tier. The current readable-label slice reserves 72/92/104 px for Save/Browse/Compile and 54/50 px for full-width Diff/Sim, with compact/full command groups at 276/388 px; compact mode still hides Diff/Simulate before it compresses primary command text.
 
 The feedback module resolves the active module by reading the selected or checked state of the module tabs. That active module chooses the output row family:
 

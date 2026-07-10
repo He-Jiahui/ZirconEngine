@@ -2,10 +2,10 @@
 related_code:
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime.rs
-  - zircon_editor/src/core/editor_event/runtime/editor_event_runtime_state.rs
-  - zircon_editor/src/core/editor_message/bus.rs
-  - zircon_editor/src/core/editor_message/message.rs
+  - zircon_editor/src/core/context/editor_context.rs
+  - zircon_editor/src/core/editor_event/service/editor_event_service.rs
+  - zircon_editor/src/core/editor_message/shared.rs
+  - zircon_editor/src/core/editor_message/message/mod.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/exports.rs
@@ -20,7 +20,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/index.md
   - docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
-status: planned
+status: in_progress
 ---
 
 # 01 编辑器内核与 runtime 交互门面
@@ -123,7 +123,7 @@ zircon_editor/src/core/
     mod.rs              # 既有
     bus.rs              # 既有算法不动
     shared.rs           # 新增：SharedEditorMessageBus 并发外壳
-    message.rs          # 载荷类型化（重写 payload 枚举）
+    message/            # 四族载荷、信封、协议、request/response 的 folder-backed owner
     topics.rs           # 新增：内建 topic 常量表（见下）
   gateway/
     mod.rs
@@ -195,7 +195,7 @@ impl SharedEditorMessageBus {
 ### 消息载荷类型化（定稿枚举）
 
 ```rust
-// core/editor_message/message.rs（重写 payload 部分；EditorMessage 外壳与 dirty 机制不变）
+// core/editor_message/message/payload.rs（EditorMessage 外壳与 dirty 机制不变）
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum EditorMessagePayload {
     Document(DocumentMessage),
@@ -296,16 +296,16 @@ pub trait EditorRuntimeGateway: Send + Sync {
 
 ### 深度测试
 
-新增一个消息族（夹具枚举）+ 一个 gateway 方法消费者，应只触碰 `message.rs` 枚举与消费者自身；`bus.rs`、`shared.rs`、`editor_context.rs` 零改动。契约测试集对双 gateway 实现共跑（`SessionGateway` 用假函数表夹具）。
+新增一个消息族（夹具枚举）+ 一个 gateway 方法消费者，应只触碰 `message/` 对应族 owner、`payload.rs` 与消费者自身；`bus.rs`、`shared.rs`、`editor_context.rs` 零改动。契约测试集对双 gateway 实现共跑（`SessionGateway` 用假函数表夹具）。
 
 ## 里程碑
 
 ### M1 消息类型化与内核拆解
 
-- 切片 1.1：`shared.rs`（并发外壳 + request 两段式）+ `message.rs` 载荷四族 + `topics.rs/ids.rs`；`EditorMessage::text/empty` 调用点全量迁移并删除构造器；`EditorMessageProtocol` 三值 × 四族的语义矩阵写进 `docs/zircon_editor/core/editor_message.md`。
+- 切片 1.1：`shared.rs`（并发外壳 + request 两段式）+ `message/` folder-backed 四族载荷 + `topics.rs/ids/`；`EditorMessage::text/empty` 调用点全量迁移并删除构造器；`EditorMessageProtocol` 三值 × 四族的语义矩阵写进 `docs/zircon_editor/core/editor_message.md`。
 - 切片 1.2：`core/context/` 三文件落地；按四批时序拆解 `EditorEventRuntimeState`；`EditorEventRuntime` 更名 `EditorEventService`；`lock_inner` 归零；`EditorEventRuntimeState` 删除。
 - 切片 1.3：`EditorModule` 的 `EditorManager` 工厂改为构造并持有 `EditorContext`（`builder.rs` GUI 路径）；`ui/workbench/shell_state.rs` 接管 UI 批字段。
-- 测试阶段：`cargo test -p zircon_editor --lib --locked`——`src/tests/editor_event/runtime.rs` 既有测试迁移后须过；新增：四族路由单测、request 重入回归（handler 内再 publish 不死锁）、journal 拆解前后等价断言（同事件序列 revision 一致）。调用点清点数记状态节；更新 `docs/zircon_editor/core/context.md`、`docs/zircon_editor/core/editor_event.md`。
+- 测试阶段：`cargo test -p zircon_editor --lib --locked`——`src/tests/editor_event/runtime/` 既有测试迁移后须过；新增：四族路由单测、request 重入回归（handler 内再 publish 不死锁）、journal 拆解前后等价断言（同事件序列 revision 一致）。调用点清点数记状态节；更新 `docs/zircon_editor/core/context.md`、`docs/zircon_editor/core/editor_event.md`。
 
 ### M2 Gateway 双实现与 selected_node 迁出
 
@@ -321,3 +321,17 @@ pub trait EditorRuntimeGateway: Send + Sync {
 - `request()` 两段式在释放锁窗口内 target 可能被注销——二次上锁时重验 target，失效返回 `UnknownSubscriber`（新增该竞态单测）。
 - `selected_node` 迁出改变渲染选中高亮的输入来源，M2 期间 `push_editor_overlay` 每帧推送顶替；05 落地 PickIdExtract 后该通道升级为正式 HighlightSet 推送（05 计划接管）。
 - `Custom{schema_id}` 是插件旁路类型系统的口子——12 的贡献物化器是唯一合法生产者，schema_id 命名空间 `zircon.plugin.<id>.*` 预留，守卫随 12 落地。
+
+## 产出记录与时间
+
+执行时逐切片填写；完成一个切片更新一行，不批量补记。超过 10 条时迁入本计划同名子目录。
+
+| 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据（命令输出 / 文件 / 测试名） |
+|---|---|---|---|---|
+| M1 | 测试阶段支持修复：external feature provider selection 闭环 | 实现完成，静态验证通过；Cargo 待执行 | 2026-07-11 | Frameworks definition-key 修复后，当前 editor exact 从“feature 未声明”推进为 `missing plugins: sound_timeline_animation_track`。Editor 共享 dependency tree 现显式启用 feature 的 external `provider_package_id` selection，并把它计入依赖报告；没有增加 alias/fallback 或忽略 runtime provider 状态。`minimal_host_contract.rs` 将核心合同和 optional-feature 测试拆到两个 folder-backed child，父文件从 1404 降至 1087 行；完整路径断言要求 sound/animation/provider 三个 selections 均启用。scoped rustfmt/diff-check 通过，当前源码 exact 因活跃 Cargo lanes 暂未重建；权威阶段记录在 [`Frameworks 02 failure handoff`](../../zircon_runtime/frameworks/02/failure-2026-07-11-editor-m1-plugin-provider-lookup.md)。 |
+| M1 | 1.1 消息并发外壳与四族类型化 | 实现完成，聚焦验证通过 | 2026-07-10 | 新增 `core/editor_message/{shared.rs,topics.rs,ids/,message/}`，原 `message.rs` 已删除；raw bus 降为 crate-private，并新增两段式 request、target 二次校验与 poison recovery；生产与测试共 6 个 `EditorMessage::text/empty` 调用点硬切后零命中。测试代码：`src/tests/editor_message/bus/{publish,request,broadcast,dirty_set,protocol_matrix}.rs`；Windows 与 WSL 消息聚焦套件均 9/9 通过。文档：`docs/zircon_editor/core/editor_message.md`。 |
+| M1 | 1.2 事件聚合锁按所有权硬拆 | 实现完成，聚焦验证通过 | 2026-07-10 | 新增 `core/context/`、`core/editor_event/service/`、`core/editing/operation_state.rs`、`core/play/bridge.rs`、`ui/workbench/shell_state.rs`、`scene/viewport/interaction/gizmo_drag_state.rs` 与 `ui/host/editor_host_event_controller.rs`；删除旧 `core/editor_event/runtime.rs`、`runtime/` 五个 owner 文件及 UI bootstrap/listener owner，无 re-export/alias/shim。生产 `EditorEventRuntime`/`lock_inner` 零命中；3590/1169 行事件测试拆为目录模块，公共 import 收敛到父模块，最大文件 729 行且未触碰其他 UI 超大测试 owner。新增 journal 等价与 hard-cutover 守卫；Windows 与 WSL 事件套件均 85/85、hard-cut 守卫均 1/1 通过。文档：`docs/zircon_editor/core/{context,editor_event}.md`。 |
+| M1 | 1.3 `EditorManager` 构造并持有 `EditorContext` | 实现完成，聚焦验证通过 | 2026-07-10 | `EditorManager::new` 通过 `EditorContextBuilder` 创建并持有唯一 `Arc<EditorContext>`，`EditorHostEventController` 复用 manager-owned context，不另建事件内核；UI 批字段迁入 `WorkbenchShellState`。`core/context` 对 `crate::ui` 零引用，边界守卫覆盖 owner 文件和旧符号回归。scoped `rustfmt`/`git diff --check` 与 Windows library check 通过；构造与事件聚焦路径已纳入 Windows/WSL 85/85 套件。 |
+| M1 | 测试阶段（Windows + WSL） | 未通过：M1 聚焦全绿；共享全量门禁与 UI Asset V2 硬切复验仍开放 | 2026-07-10 | Windows library check 通过。M1 聚焦：editor_message 9/9、editor_event 85/85、hard-cut guard 1/1；WSL `--no-run` 完成后同组 9/9、85/85、1/1 全绿，inspector 原子回滚、material `TextureDimensionMismatch` 两处 typed projection、poison recovery 各 1/1 通过。生产旧符号六项零命中、旧 runtime 目录不存在、事件测试最大文件 729 行。共享环境锁已消除 poison 假级联；既有完整 Windows 证据仍为 2897 项中 2681 passed / 184 failed / 32 ignored。测试阶段继续从最低共享支撑修复 `.zui`：旧夹具只在测试写入边界投影成 schema 2；外部引用、局部组件、`Slot`、`slot.name` 往返单测 1/1 通过；44 项 manager UI Asset 回归由全失败收敛到 33 passed / 11 failed。随后生产 promotion/首次写盘/undo-redo/save 已硬切统一 `UiV2AssetDocument` serializer，component `.zui` 不再写 view `[root]`，测试改由 `UiZuiAssetLoader` 校验，不新增旧 loader 兼容；production host hydration 也按扩展名硬切，`.zui` 只走 `UiZuiAssetLoader` 并原子填充 V2 preview map 与 authoring projection。1278 行 reference/promotion 测试拆为 821 行父 owner + 457 行 theme 子 owner；`lifecycle.rs` 外部源职责拆出后由 822 降至 780 行。该最新切片的 `--no-run` 在到达 editor 前被并行 runtime 未跟踪文件 `environment/probe_buffer/resources.rs:144` 的 `E0716` 阻断，尚不声明新 44 项结果。M1 按严格里程碑门槛保持 open，不进入 M2。 |
+| M1 | 测试阶段（Windows，全量失败聚类与 V2 公共契约闭环） | 未通过：owned V2 回归全绿；全量门禁仍有 layout/text/plugin 共享失败 | 2026-07-11 | 会话独立目标先完成 2928-test 单线程门禁为 2754 passed / 140 failed / 34 ignored，耗时 2009.19s。当前源码增量重建后，UI Asset session 168/168、V2 bootstrap 14/14、V2 projection 3/3、component adapter 3/3、manager UI Asset 44/44、editor_message 9/9、editor_event 85/85、hard-cut 2/2、结构镜像 exact 1/1 继续通过。`.zui` 测试写入不再直落旧 `kind = "layout"`；V2 hierarchy 恢复 `Slot`/local component 标签；`UiV2ComponentDefinition` 正式保存 `UiComponentPublicContract`，root class policy 经保存/重载保持 `Closed`，默认契约不序列化。共享 runtime 对已删除 Hybrid GI `probes/trace_regions` 的陈旧统计与空计划类型推断已清除。compound shader 测试夹具从 `.zshader` schema 1 硬切 schema 2，并改为 V2 `zr_material_surface` source；当前源码 exact 1/1 通过。后续全量重跑到 2855/2928 时累计 133 个已知 layout/text/plugin 失败，进程累积 6598 线程后 11 分钟无 CPU/日志进展而终止；停顿点拆分 exact 1/1、同组 6/6 通过，证明是顺序全量资源耗尽，不能声明完整门禁通过。当前独立首因仍为 runtime glyph capture exact 0/1（`changed_pixels=0`）、Frameworks plugin feature lookup exact 0/1、ZUI governance 68/71。最低层已定位：screen-space text construction 用默认空 `FontDatabase` 覆盖 glyphon system fonts，且未执行会话声明的 `SystemFontPolicy::Discover`；plugin package feature collection 忽略显式 `provider_package_id`，把 `sound.timeline_animation_track` 定义键成 `@sound`，而完成后的选择按 `@sound_timeline_animation_track` 查询。两处均由对应活动 owner 处理；M1 保持 open，严禁进入 M2。 |
+| M1 | 静态完整性与模块文档硬切审计 | 静态审计完成；完整测试门禁仍未通过 | 2026-07-11 | 当前存在的 production Rust 文件中 `EditorEventRuntime`、`EditorEventRuntimeState`、`lock_inner`、`EditorMessage::text`、`EditorMessage::empty` 均为 0，`core/context` 对 `crate::ui` 引用为 0；`EditorManager` 持有唯一 `Arc<EditorContext>`，`EditorHostEventController` 复用该 context，Workbench/operation/play/gizmo 各有独立 owner。修正 `docs/zircon_editor/core/{editor_message,context,editor_event,editor_plugin}.md` 中仍指向已删除 `EditorEventRuntime::...` 的当前行为描述，补齐缺失 `doc_type`，并同步 M1 open 状态。跨模块失败交接保持 `open / 待修复`：[`Runtime Text 01`](../../zircon_runtime/text/01/failure-2026-07-11-editor-m1-font-discovery.md)、[`Frameworks 02`](../../zircon_runtime/frameworks/02/failure-2026-07-11-editor-m1-plugin-provider-lookup.md) 与 [`Editor Layout 15`](../editor_layout/15/failure-2026-07-11-editor-m1-zui-governance.md)；Plan 01 不再作为这些功能失败的唯一记录，并继续推进不依赖这些门禁的独立切片。 |

@@ -126,7 +126,7 @@ related_code:
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
@@ -288,7 +288,7 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs

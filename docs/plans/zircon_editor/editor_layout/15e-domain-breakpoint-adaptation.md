@@ -1,7 +1,10 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/design_tokens.rs
+  - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
+  - zircon_editor/src/ui/workbench/autolayout/geometry/side_width_allocation.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/window_minimums.rs
   - zircon_editor/src/ui/workbench/autolayout/workbench_shell_geometry.rs
@@ -10,6 +13,7 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/region_binding/workbench_constraint_token_name.rs
   - zircon_editor/src/ui/workbench/autolayout/region_state.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header/side.rs
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_drawer_breakpoints.rs
 design_references:
@@ -85,6 +89,8 @@ status: in_progress
 - 折叠优先级:先折 Right(属性/细节),再折 Left(放置/文件);活动抽屉(用户正在用的)最后折。
 - 折叠焦点转移(2026-07-02 评审收口):若折叠发生时键盘焦点位于被折叠抽屉的子树内,焦点**还原到该抽屉对应的 rail 图标**(可聚焦),不静默丢焦;还原语义走 19 的焦点作用域还原(稳定逻辑标识 + 回退作用域首个可聚焦),该用例已回挂 19 测试矩阵。
 - 与 `compute_window_min_width` 协同:折叠后窗口 min 宽显著下降,640px 才真正可用。
+
+实现补记(2026-07-10):Regular tier 不能只让左右抽屉分别 compact,还必须给中央文档区保留共同预算。`--minimum-document-width-fraction` 现由中央 density token 定义为 0.5,raw geometry 与 componentized drawer bridge 同时消费 `side_width_allocation.rs` 的 larger-side-first 分配；侧栏页签投影同时采用“活动标签全文优先、非活动标签图标化、超额标签折叠”的相对槽位策略。该补记只关闭 Regular 共同预算与页签自适应,不扩张到 overlay drawer 交互。
 
 ### 2.4 统一响应式协同
 单一"断点 tier"决策点(落 `geometry` 下新 owner `breakpoint.rs`)输出 `LayoutTier`,被三处消费:

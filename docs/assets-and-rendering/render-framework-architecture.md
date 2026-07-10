@@ -1474,7 +1474,10 @@ plan_sources:
   - user: 2026-05-18 continue SRP RendererData zshader/zmaterial workflow
   - docs/superpowers/plans/2026-05-18-srp-rendererdata-zmaterial-workflow.md
   - user: 2026-06-05 split SSR history resolve from final postprocess composition
+  - user: 2026-07-11 continue Hybrid GI editor-default/runtime-opt-in capability degradation
 tests:
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs::quality_profile_capability_validation_allows_advanced_features_to_degrade
+  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs::quality_profile_capability_validation_keeps_non_degradable_requirements_strict
   - cargo test -p zircon_runtime material_property_override_block_keeps_transparent_value_map_shape --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 support-first gate for atlas draw-plan validation: passed 1/1; `MaterialPropertyOverrideBlock` manual serde preserves transparent map JSON shape)
   - cargo test -p zircon_runtime geometry_extract_excludes_material_override_entities_from_static_batches --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0703-atlas-draw-plan --message-format short --color never -- --nocapture --test-threads=1 (2026-07-03 support-first gate for atlas draw-plan validation: passed 1/1; frame_extract geometry test imports the current stable-instance-key helper)
   - "M0 docs acceptance only: no runtime tests required by plan"
@@ -3394,3 +3397,15 @@ Validation is included in the final plugin workspace command `CARGO_PROFILE_DEV_
 ## 2026-07-07 Hybrid GI Stat Snapshot Projection Follow-Up
 
 Focused editor retained-text Cargo validation exposed a lower render-framework compile blocker after Hybrid GI scene-prepare sideband stats had gained new provider accessors. `HybridGiRuntimeStats` already exposed `surface_cache_depth_sample_count()`, `probe_trace_tile_count()`, and `probe_trace_dispatch_group_count()`, and `update_stats/hybrid_gi_stats.rs` already consumed those named projections, but `submit_frame_extract/submission_record_update.rs::HybridGiStatSnapshot` and `record_submission/record.rs` had not carried them across the submit-record boundary. The snapshot now stores those three values, exposes matching read-only accessors, and `record_submission(...)` forwards them from the provider stats without reopening raw plugin DTO fields. This keeps `SubmissionRecordUpdate` as the record/update owner DTO while preserving the scene-prepare sideband telemetry path needed by `RenderStats`.
+
+## 2026-07-11 Advanced Profile Degradation Boundary
+
+Hybrid GI and Virtual Geometry are optional advanced runtime features. A quality profile may request
+them on a backend that lacks their capabilities without failing viewport profile installation. The
+compiled pipeline capability metadata and `AdvancedProfileRuntimePlan` remain authoritative: missing
+backend capability or provider produces the existing disabled reason and prevents feature activation.
+
+This exception is intentionally narrow. Screen-space anti-alias and Solari capability requirements
+still fail quality-profile validation, while compiled pipeline requirements remain strict for every
+feature. The focused capability-validation groups, profile compile-option groups, runtime profile
+bundle groups, feature-resolution groups, and profile revalidation contract passed after this change.

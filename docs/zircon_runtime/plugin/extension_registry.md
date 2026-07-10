@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/plugin/extension_registry/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/owner.rs
@@ -18,6 +19,9 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/validation/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_module/runtime_core.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_ui/component.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/core/framework/bridge.rs
   - zircon_runtime/src/plugin/bridge.rs
@@ -26,16 +30,24 @@ related_code:
   - zircon_runtime/src/plugin/bridge/strong.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs
+  - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
+  - zircon_runtime/src/plugin/runtime_plugin/capability_view.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/lifecycle_context.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
@@ -54,8 +66,12 @@ related_code:
   - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
   - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/schedule.rs
+  - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
+  - tools/plugin_structure_audits/registration.py
+  - tools/audit_plugin_structure.py
 implementation_files:
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/owner.rs
@@ -70,6 +86,10 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/validation/component.rs
   - zircon_runtime/src/plugin/extension_registry/validation/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_module/runtime_core.rs
+  - zircon_runtime/src/plugin/extension_registry/apply_to_ui/component.rs
   - zircon_runtime/src/core/framework/bridge.rs
   - zircon_runtime/src/plugin/bridge.rs
   - zircon_runtime/src/plugin/bridge/interface_id.rs
@@ -77,15 +97,23 @@ implementation_files:
   - zircon_runtime/src/plugin/bridge/strong.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs
+  - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/lifecycle.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
+  - zircon_runtime/src/plugin/runtime_plugin/capability_view.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/lifecycle_context.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
@@ -101,18 +129,43 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/system_set.rs
   - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
   - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
+  - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
+  - tools/plugin_structure_audits/registration.py
+  - tools/audit_plugin_structure.py
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
+  - user: 2026-07-10 implement runtime architecture plans and prioritize structure/review findings
+  - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
+  - user: 2026-07-10 execute frameworks architecture hard-cutover refactor and validation
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
+  - docs/plans/engine-code-structure-convention.md
+  - docs/plans/engine-code-review-findings-2026-06.md
   - user: 2026-06-12 implement docs/plans/zircon_plugins plugin architecture code
   - docs/plans/zircon_plugins/index.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
   - docs/plans/zircon_plugins/08-zr-vm.md
   - docs/plans/zircon_plugins/11-plugin-call-bridge.md
 tests:
+  - tools/tests/test_frameworks_03_server_feature_boundary.py
+  - tools/tests/test_plugin_extension_registry_finalize_coverage.py
+  - zircon_runtime/src/plugin/extension_registry/typed_extension_point/tests.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
+  - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry_typed_points.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_event_catalogs.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_components.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::registration_report_catalog_orders_runtime_extensions_by_module_descriptor
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::registration_report_catalog_rejects_invalid_module_order_before_extension_merge
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::project_registration_report_catalog_orders_enabled_runtime_extensions
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::project_registration_report_catalog_rejects_invalid_enabled_module_order
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs
+  - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
+  - tools/tests/test_plugin_structure_audit_registration.py
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_systems.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs
   - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/modules/system_anchors.rs
@@ -161,7 +214,15 @@ doc_type: module-detail
 
 # Runtime Extension Registry
 
+Frameworks 03 feature ownership is compile-time: graphics render features, executors, geometry/shading descriptors, prepare collectors, runtime render providers, and their ownership slots are declared only with `graphics`; UI component storage/application is declared only with `ui`. Package-manifest registration and catalog merge call sites use the same gates. A server build therefore has no placeholder render/UI extension tables and no runtime fallback branch that accepts obsolete contributions. Both the server and default WSL nightly library checks pass after this hard cutover.
+
 `RuntimeExtensionRegistry` is the registration-time collection point for runtime plugin contributions. It now records plugin module owners through `PluginModuleId`, stores keyed contributions in `TypedExtensionPoint`, and can produce an `ExtensionOwnership` slot summary for a module. The runtime-visible accessors still expose slices such as `components()`, `modules()`, `scene_hooks()`, and `render_features()`, but their backing storage carries the owner/key metadata needed by unload, hot reload, and diagnostics work.
+
+The registry now has an explicit registration-epoch to runtime-read transition. `RuntimeExtensionRegistry::finalize()` moves all 20 typed extension points from writable staging storage into their frozen representation and marks the non-typed asset importer registry finalized after catalog validation and contribution merging. Keys, descriptors, owners, and slot maps move into the frozen tables instead of being cloned into a parallel cache; only the sorted key lookup index is derived for runtime reads. Catalog reports finalize before they are returned, and every public apply path finalizes idempotently before reading extension rows. Registering, sorting, mutating, or revoking typed rows, and registering or revoking asset importers, clears the finalized state; a later finalize publishes the new epoch. This is intentionally re-finalizable for owner reload while keeping the read-side storage dense.
+
+`ExtensionSlot` is a stable logical id, not a dense-vector index. Each typed extension point keeps a slot-to-dense-row map: sorting or compacting surviving rows updates that map, owner revocation leaves a retired tombstone for removed slots, and new registrations receive monotonically new slots instead of reusing stale ids. This prevents an old slot from silently resolving to another plugin's extension after unload. `FrozenExtensionTable` preserves the same mapping when a typed point is consumed into a read-only table. The generic `TypedExtensionPoint` remains an internal storage owner; the public plugin façade exposes stable slot/table contracts and `RuntimeExtensionRegistry`, not the mutable storage implementation.
+
+Current Runtime 06/15 implementation status is `runtime_extension_registry_stable_slot_finalize_coremin_check_passed_tests_compile_blocked`. The module-local tests cover `frozen_table_dense_lookup_matches_registration`, `duplicate_extension_key_rejected`, stable survivor slots, retired owner slots, and sort stability. The catalog/application tests cover `runtime_extension_catalog_finalizes_dense_tables_before_apply`, `runtime_extension_apply_finalizes_dense_tables`, asset importer registration/revocation epoch invalidation, and the plan-named `owner_unload_revokes_all_slots`. The world extension tests cover finalized default state and transactional failed install. This status closes neither Runtime 06 nor Runtime 15: the core-min library check passes, while the latest focused lib-test build is blocked before the target tests by an unrelated active plugin-bridge test inference error, and the complete runtime architecture remains in progress.
 
 Plugin bridge interfaces are also registered through this owner-tracked path. `export_interface::<T>(owner, Arc<T>)` stores one typed interface export per stable `PluginInterface::INTERFACE_ID`, rejects duplicate providers for the same id, and records the owning `PluginModuleId` so later unload and hot-reload work can revoke interface rows with the rest of the module's contributions. `frozen_bridge_table()` turns the registered interface exports into dense `InterfaceSlot` entries consumed by `StrongBridge` and `WeakBridge`; the detailed call-path behavior is documented in `docs/zircon_runtime/plugin/bridge.md`.
 
@@ -181,15 +242,21 @@ System ordering is compiled by `SceneScheduleStagePlan`. It groups internal, nat
 
 World-level runtime extensions are installed on `CoreRuntime` and applied to both default levels and levels loaded from scene assets. The runtime-world extension set currently carries the repeatable runtime scene system subset; one-shot native system/resource/event installation still flows through explicit registry application so it does not get accidentally consumed across multiple worlds.
 
-Lifecycle context is split between registration, ready, finish, and runtime activation. `PluginReadyContext` exposes the registered extension registry plus a read-only `CapabilityView`, `PluginFinishContext` exposes the mutable registry plus the same read-only capability view, and `PluginRuntimeContext` exposes the ready `World` and `CoreHandle`. The plugin lifecycle now hard-cuts to `register(...)`, `ready(...)`, `finish(...)`, `activate(...)`, and `deactivate(...)`; registration reports call `register(...)` directly and no compatibility registration hook remains.
+Frameworks 02 M3 hard-cuts RuntimePlugin lifecycle ownership to the embedded kernel `ModuleDescriptor`. `RuntimePlugin` keeps only descriptor/manifest/selection projection plus the extension `register(...)` hook; `lifecycle()` returns the descriptor's `dyn ModuleLifecycle`. The retired plugin-only `PluginReadyContext`, `PluginFinishContext`, `PluginRuntimeContext`, `ready`, `finish`, `activate`, and `deactivate` APIs and catalog dispatcher were deleted instead of retained as compatibility wrappers. Runtime startup now runs build/ready/finish/cleanup exactly once through `CoreRuntime` after report-contributed module descriptors are selected and registered.
 
-`CapabilityView::from_registration_reports(...)` is the finish-phase aggregation path. It consumes the `RuntimePluginCatalog` plugin and feature registration reports, collects package-level capabilities, module-level capabilities, feature-level capabilities, feature module capabilities, and package `capability_statuses`, then exposes them through `has(...)` and `status(...)`. The aggregation intentionally ignores optional feature declarations embedded inside a package manifest until those features are materialized as `RuntimePluginFeatureRegistrationReport` rows, so `finish` probes cannot observe disabled optional features as available.
+`CapabilityView::from_registration_reports(...)` remains a read-only capability projection for catalog, bridge, editor, and diagnostics consumers. It collects package-level capabilities, module-level capabilities, feature-level capabilities, feature module capabilities, and package `capability_statuses`. The aggregation intentionally ignores optional feature declarations embedded inside a package manifest until those features are materialized as `RuntimePluginFeatureRegistrationReport` rows. It no longer exists to support a second plugin-only finish phase.
 
-`RuntimePluginCatalog::from_lifecycle_plugins(...)` is the native lifecycle registration helper. It preserves the existing `from_plugins(...)` registration-only semantics, then adds the M3 lifecycle path: all plugin `register(...)` reports are collected, all feature `register(...)` reports are collected, `CapabilityView::from_registration_reports(...)` is built from that complete report set, and only then are plugin and feature `ready(...)` hooks evaluated. If any ready hook returns false or an error, the corresponding registration report receives a diagnostic and the catalog skips every `finish(...)` hook for that lifecycle build. When all entries are ready, plugin `finish(...)` hooks run before feature `finish(...)` hooks; finish-stage registrations mutate the corresponding plugin or feature report registry, so later catalog merge, diagnostics, and owner tracking see the same rows that were emitted during finish.
+The SDK exposes `RuntimePluginDeclaration::with_module_descriptor(...)`, allowing providers to install a lifecycle-bearing descriptor without bypassing the single descriptor source. First-party plugins may use the same builder directly. Native ABI v3 manifests cannot carry Rust lifecycle objects, so native providers project init level and dependencies into a no-op `ModuleLifecycle`; dynamic load/unload state remains owned by `NativePluginLiveHost` and the bridge lifecycle protocol.
 
-Frameworks 02 M3 adds ready-hook coverage in `runtime_plugin_lifecycle.rs`: `runtime_plugin_ready_runs_after_register_before_finish` locks the register -> ready -> finish ordering, while `runtime_plugin_not_ready_blocks_finish` and `runtime_plugin_feature_not_ready_blocks_finish` lock the global finish barrier and diagnostic text. Scoped rustfmt and app/server `cargo check` pass for this slice; focused `runtime_plugin_ready` lib-test execution timed out during Windows test-target compilation and is not counted as passing.
+`RuntimePluginRegistrationReport::from_plugin(...)` owns registration of that embedded descriptor before it calls the provider's contribution hook. The hook must not register a module again; it is reserved for systems, interfaces, importers, render contributions, components, options, and event catalogs owned by the module. All first-party runtime plugins now bind their real module through `.with_module_descriptor(...)`. The SDK `RuntimePluginRegistrationBuilder::module(module_name)` only interns the contribution owner and has no descriptor argument, so there is no second descriptor path to drift from manifest projection or kernel lifecycle state.
 
-Runtime-world lifecycle dispatch now has catalog-owned entry points. `activate_lifecycle_plugins(...)` receives live plugin and feature trait objects plus `PluginRuntimeContext`, sorts plugins by embedded `ModuleDescriptor`, runs plugin activation before feature activation, and records activation errors into catalog diagnostics. `deactivate_lifecycle_plugins(...)` uses the same descriptor order but runs features first and plugins in reverse order. The catalog still stores only registration reports and diagnostics, not plugin trait object lifetimes, so this remains a caller-supplied runtime hook dispatch instead of a second plugin container.
+Runtime 01/06 catalog regressions now apply the same rule to test providers and optional-feature fixtures. A catalog built from a plugin descriptor always contains that descriptor's embedded base module before contribution-hook modules; enabling a feature appends its feature module after the selected base modules, while a blocked optional or required feature leaves the selected base module intact and omits only the feature module. The focused `extensions` gate previously exposed four stale count assertions that treated the embedded base module as an unexpected contribution; those guards now assert the exact base-before-feature names instead of weakening production single-source registration.
+
+Frameworks 02 M3 now treats module ordering as an execution gate instead of a best-effort diagnostic. `order_runtime_plugins(...)` and `order_runtime_plugin_descriptors(...)` return the original typed `CoreError`; constructors keep that source in `RuntimePluginCatalog::module_order_error()`, expose the corresponding diagnostic, and leave registration reports empty. Registration/ready/finish hooks therefore never run for an invalid graph. Runtime activation and reverse deactivation return `RuntimeExtensionRegistryError::InvalidPluginModuleOrder(CoreError)` before invoking plugin or feature hooks. The former alphabetical fallback path has been deleted, so missing dependencies, duplicate module names, init-level violations, and dependency cycles cannot be converted into a runnable but semantically invalid order.
+
+The report-based production path uses the same gate. `RuntimePluginRegistrationReport` carries package runtime-module rows generated by the SDK, first-party providers, and native ABI v3 manifests. Before `runtime_extensions()` merges any report registry, `order_runtime_plugin_registration_reports(...)` rebuilds those `ModuleDescriptor` values and calls the kernel sorter. A valid graph determines merge order; an invalid graph returns an empty finalized registry plus one fatal module-order diagnostic, so app/bootstrap cannot consume extensions from a graph that the kernel would reject. Reports without runtime-module rows remain metadata-only and keep their input position after all ordered runtime providers.
+
+The 2026-07-10 hard-cut tests lock trait-surface deletion, kernel build/ready/finish/cleanup execution through a plugin-provided embedded descriptor, descriptor/report ordering, project-filtered ordering, and invalid-graph rejection before extension merge. The plugin structure audit also enumerates all trait-backed runtime declaration owners and rejects a missing/duplicate `.with_module_descriptor(...)` or any production `register_module(...)` parallel path; the current result is 28 roots and zero violations on Windows and WSL/Python 3.10. The feature-enabled first-party provider snapshot executes 13 linked providers and verifies order, empty diagnostics, and exact manifest/runtime module identity. Scoped `rustfmt --check`, retired-hook/fallback scans, and WSL `zircon_runtime --lib core-min` check pass; package-wide gates remain tracked in the acceptance document.
 
 Editor catalog registration now derives its built-in descriptors from `zircon_plugins/*/plugin.toml`. `zircon_editor/build.rs` scans editor modules declared in package manifests and emits generated rows that `EditorPluginDescriptor::builtin_catalog()` consumes through `editor_plugin_catalog_gen.rs`. This keeps runtime package metadata and editor plugin discovery on the same manifest source, including required capabilities.
 

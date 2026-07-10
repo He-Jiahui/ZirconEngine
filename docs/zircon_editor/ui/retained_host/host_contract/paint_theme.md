@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/typography_migration.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
@@ -21,6 +22,7 @@ related_code:
   - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
 implementation_files:
   - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/typography_migration.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
@@ -116,7 +118,7 @@ doc_type: module-detail
 
 `paint_theme/model.rs` owns the `HostMaterialPalette` data shape. `paint_theme/palette_projection.rs` owns the central-token-to-retained-host projection. `paint_theme/tokens.rs` exposes the active `PALETTE` as the default projection for the current editor shell instead of owning a second handwritten RGBA table.
 
-`paint_theme/metrics.rs` owns the retained-host chrome control metrics derived from the Unreal Slate baseline used by S15: 4 px control radius, 1 px borders, 10/8/14 font sizes, 1.2 line-height ratio, button padding, pressed offset, row/gap sizing, selection indicator width, and `text_clip_guard`. Template button content uses this guard when measuring short labels so raster rounding cannot clip the last glyph.
+`paint_theme/metrics.rs` owns the retained-host chrome control metrics derived from the Unreal Slate baseline used by S15: 4 px control radius, 1 px borders, Unreal 10/8/14 point typography converted at 96 DPI to 13.33/10.67/18.67 logical pixels, 1.2 line-height ratio, button padding, pressed offset, row/gap sizing, selection indicator width, and `text_clip_guard`. Template button content uses this guard when measuring short labels so raster rounding cannot clip the last glyph. The conversion is owned by `EditorTypographyTokens`; retained controls consume the logical result and do not reinterpret points locally.
 
 The 2026-06-25 S15.1 hard cutover moved chrome atomic consumers onto `METRICS` directly: button content/glyph/text, text fields, dropdown labels/chevrons, icon-button radius and border width, axis value fields, and inspector row primitives no longer own local font, radius, inset, or chevron constants. The same slice added `retained_host/asset_control_ids.rs` so asset dispatch source and asset surface action/control-id normalization are shared by retained-host activation, text-input dispatch, and asset control callbacks instead of being duplicated in multiple leaves.
 
@@ -129,6 +131,8 @@ The later 2026-07-02 toolbar preference-route pass extends the same appearance e
 The 2026-07-03 Asset Browser utility-tab follow-up keeps that same global route for selected tab-like buttons. Preview/References/Metadata/Plugins no longer get a filled selected pill from the local button selector; they keep transparent surface plus shared primary text and let the underline use `current_host_palette().accent`. `template_buttons/surface.rs` reads underline height and tab inset from `current_host_metrics()`, while selected toolbar chips still keep a low-emphasis framed surface. This changes selection style without adding a concrete font family, local RGB table, or component-owned theme override.
 
 The 2026-07-03 preference persistence foundation keeps that route global instead of binding fonts in controls. `EditorAppearancePreferencesDocument` is the versioned TOML shape for the active appearance profile plus the full `EditorDesignTokens` payload, and `EditorAppearancePreferenceStore` owns string/path load and save. The default document still uses only logical font families from `EditorTypographyTokens` (`system-ui` and `monospace`); a user-selected concrete font can be stored later as a global token value without touching button, table, tab, or label owners. Unsupported document versions parse and then fall back to the current default tokens rather than partially applying an unknown style payload.
+
+The 2026-07-10 typography-unit correction advances the appearance document to version 2. Version-1 documents are accepted through `preferences/typography_migration.rs`: only the old 10/8.5/14 point-as-pixel defaults are replaced with the current logical values, while user-custom font sizes, families, weights, smoothing, palette, controls, density, and state roles remain unchanged.
 
 The follow-up startup path consumes that persisted shape without introducing a component-local font policy. `editor_startup_appearance_preferences()` reads the optional `ZIRCON_EDITOR_APPEARANCE_PREFERENCES` path and `run_editor_with_startup_request(...)` installs the loaded tokens before constructing the retained host window. Missing, empty, invalid, or unreadable preference files fall back to the default logical-family token set and emit a warning, so a bad user preference cannot strand editor startup. This mirrors the UE `FAppStyle` application-wide style entry: the startup path chooses the active style document, while controls keep reading the current host text, palette, and metric projections.
 

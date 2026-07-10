@@ -221,3 +221,10 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_
 | 多层状态机（ABSM）/pose/track | `dev/Fyrox/fyrox-animation/src/`（`machine/`、`pose.rs`、`track.rs`） | 层混合（含 LayerMask）、迁移交叉淡化、BlendSpace 采样点加权 |
 | 状态机迁移/中断/同步组语义 | `dev/UnrealEngine/Engine/Source/Runtime/AnimGraphRuntime/`、`AnimationCore/` | transition interruption 模式、additive 差分姿态数学、IK（TwoBone/LookAt 节点实现） |
 | GPU skinning buffer 布局 | `dev/bevy/crates/bevy_pbr/`（mesh skinning 路径）与 `dev/bevy/crates/bevy_mesh/` | joint matrices buffer 双缓冲与 motion vector 上一帧矩阵的传递 |
+
+## 9. 状态与产出记录
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- M1：进行中；M1-T1/T2 的正式 WSL Cargo 已通过 target table 10/10、weighted SoA/PosePool 4/4，生产 clip/graph/state-machine 姿态采样已接入 revision-aware compiled evaluator。审查修正已补通道编译期校验、原子 `{payload, revision}` 快照、资源事件失效、bind-reference additive 与非法 transition duration；compiled evaluator 10/10，最新生产 tick 完整 19/19。graph/mask/state 仍有 string lookup，最终 `AnimationPoseOutput` 仍分配，故 M1-T3 未完成且不宣称生产链零字符串/零分配。具体事实见 [Plugins 04 编号产出记录](04/2026-07-10-animation-output-records.md)。
+- 当前状态锚点：`plugins_04_m1_t3_production_compiled_evaluator_review_corrections_in_progress`；M1-T2 正式测试锚点：`plugins_04_m1_t2_weighted_pose_formal_cargo_4_of_4_passed`。

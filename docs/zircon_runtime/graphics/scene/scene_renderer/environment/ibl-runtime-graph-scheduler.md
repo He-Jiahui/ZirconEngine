@@ -56,7 +56,7 @@ The goal is to move the IBL bake path from manual graph-context tests into the n
 - `SceneRenderer::new_with_icon_source(...)` registers the default IBL compute executors so the authored graph can execute in the product renderer.
 - `submit_compiled_scene_frame(...)` writes runtime cache artifacts after queue submission and before transient graph resources are released.
 - `project_render::export_runtime_render_ibl_cache_second_launch_dispatch_zero_png` proves the same project/source cubemap executes IBL bake executors on the first product framework submit and omits them on the second submit after the runtime cache artifact exists.
-- The product screenshot proof uses a perspective Core3D capture snapshot because the reusable PBR matrix scene's orthographic camera intentionally resolves to the Core2D product pipeline. With the Core3D snapshot, the second frame is captured through `WgpuRenderFramework::capture_frame(...)` and validates as nonblack.
+- Core-pipeline identity is explicit and independent from projection. The reusable PBR matrix scene keeps its orthographic framing while selecting Core3D, so IBL, reflection probes, Forward+/Deferred material paths, and post-processing remain active. A separate public contract verifies orthographic Core2D remains available for sprite cameras.
 
 ## Ownership Boundaries
 

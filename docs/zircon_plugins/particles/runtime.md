@@ -221,7 +221,7 @@ The runtime package options now satisfy the shared manifest validator directly. 
 
 ## Data Flow
 
-1. Runtime plugin registration contributes the `ParticlesModule`, particle component descriptor, particle options, dynamic event catalog, optional physics/animation/GPU feature manifests, particle render feature, and a runtime-prepare collector built from the same shared `ParticlesManager` exposed by the module service.
+1. Runtime plugin registration installs the embedded `particles.runtime` descriptor, then contributes the particle component descriptor, particle options, dynamic event catalog, optional physics/animation/GPU feature manifests, particle render feature, and a runtime-prepare collector built from the same shared `ParticlesManager` exposed by the module service.
 2. Editor plugin registration contributes capability-gated authoring descriptors. The root `lib.rs` delegates to the `authoring` module so the crate entry remains structural while the descriptor batch owns authoring operations and asset-template wiring.
 3. A host or editor tool creates a `ParticleSystemComponent` and calls `ParticlesManager::instantiate`.
 4. `ParticlesManager::tick` advances all playing instances. Spawn rate and burst emission are accumulated per emitter; random sampling uses a deterministic local RNG seeded from the asset seed and handle.

@@ -17,6 +17,8 @@ related_code:
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
@@ -72,6 +74,7 @@ related_code:
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
+  - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - dev/bevy/crates/bevy_camera/src/camera.rs
   - dev/bevy/crates/bevy_camera/src/components.rs
   - dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs
@@ -96,6 +99,8 @@ implementation_files:
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/project_io.rs
+  - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
@@ -155,6 +160,8 @@ plan_sources:
   - dev/bevy/crates/bevy_camera/src/components.rs
   - dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs
   - dev/bevy/crates/bevy_render/src/camera.rs
+  - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
+  - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs::render_camera_contracts_cover_viewports_and_bevy_layer_intersection
   - zircon_runtime/src/scene/tests/ecs_schedule.rs::render_extract_filters_meshes_by_active_camera_layers
@@ -177,6 +184,7 @@ tests:
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_camera_product_fields
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields
   - zircon_runtime/src/asset/tests/assets/scene.rs::scene_camera_asset_defaults_bevy_camera_fields_when_omitted
+  - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_surface_offscreen_submit_and_capture_survive_unbind_noop
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_headless_size_controls_offscreen_capture_size
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_missing_asset_reports_unsupported_without_primary_fallback_capture
@@ -264,7 +272,7 @@ The M2A shape follows four local Bevy source areas:
 - `dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs` makes render layer intersection a first-class rule: default entities and cameras are on layer `0`, and an empty layer set is invisible.
 - `dev/bevy/crates/bevy_render/src/camera.rs` removes extracted camera components when `Camera::is_active` is false, and `dev/bevy/crates/bevy_core_pipeline/src/core_2d/mod.rs` plus `core_3d/mod.rs` skip phase preparation for inactive cameras.
 
-Zircon keeps the same product semantics but does not copy Bevy ECS components one-for-one. The stable boundary is now split between `CameraRenderDescriptor` for Bevy-like camera ownership and `ViewportCameraSnapshot` for the projected payload still used by matrix, visibility, post-process, and temporal math paths during the single-effective-camera transition.
+Zircon keeps the same product semantics but does not copy Bevy ECS components one-for-one. The stable boundary is now split between `CameraRenderDescriptor` for Bevy-like camera ownership and `ViewportCameraSnapshot` for the projected payload still used by matrix, visibility, post-process, and temporal math paths during the single-effective-camera transition. `ViewportCameraSnapshot::core_pipeline` is an explicit camera-side product signal: it selects `Core2d` or `Core3d` independently from `ProjectionMode`, matching Bevy's separate Camera2d/Camera3d identity and projection components.
 
 ## Data Model
 
@@ -307,9 +315,11 @@ Scene camera descriptors are active only when `CameraComponent::is_active` is tr
 
 ## Scene And Asset Projection
 
-M2B moves the product fields down into `CameraComponent` and `SceneCameraAsset`. Scene cameras now carry projection mode, orthographic size, target, viewport, render order, active state, HDR, exposure, clear color, and MSAA sample count. Serde defaults preserve older scene and project documents that only stored `fov_y_radians`, `z_near`, and `z_far`.
+M2B moves the product fields down into `CameraComponent` and `SceneCameraAsset`. Scene cameras now carry explicit core-pipeline identity, projection mode, orthographic size, target, viewport, render order, active state, HDR, exposure, clear color, and MSAA sample count. Serde defaults preserve older scene and project documents that only stored `fov_y_radians`, `z_near`, and `z_far`; a missing `core_pipeline` resolves to `Core3d`.
 
 `SceneCameraTargetAsset` uses asset references for texture targets and contributes those texture references to `SceneAsset::direct_references()`. `World::from_scene_asset(...)` resolves texture targets into `RenderCameraTarget::Texture`, while `World::to_scene_asset(...)` writes component camera targets back to scene asset form. Headless camera targets round-trip through explicit physical sizes and can drive aspect-ratio calculation when no viewport size is supplied by the request.
+
+The 2026-07-11 Shader 06 / Render 11 correction removes the former projection-derived pipeline inference. Orthographic 3D/PBR cameras keep `Core3d`, so Forward+/Deferred features such as reflection probes, sky IBL, shadows, and post-processing remain available. Sprite and other 2D cameras explicitly author `Core2d`; changing the projection matrix no longer silently swaps render schedules. `runtime_camera_core_pipeline_contract` covers orthographic Core3d/Core2d extraction, orthographic matrix preservation, and scene-camera serde defaults/roundtrip through public APIs.
 
 ## Concrete Target Routing
 
@@ -366,3 +376,7 @@ M2D validation used WSL/Linux with `CARGO_TARGET_DIR=/mnt/d/cargo-targets/zircon
 M2A/M2B/M2C/M2D plus the 2026-06-06 and 2026-06-07 follow-ups still leave editor authoring for the new descriptor fields, split-screen target routing, imported external texture views, broader output-format policy beyond RGBA8 sRGB/linear, and the later hard cutover from scene `RenderLayerMask(u32)` to `RenderLayerSet` for separate milestones. Plan 09's descriptor/sequence contract, snapshot-field hard cutover, offscreen camera loop, terminal UI routing, and descriptor-driven first-clear load-op policy are present. Texture targets now have two renderer-owned paths: matching `rgba8unorm_srgb` targets import the prepared texture as the graph final target and skip output-target writeback, while linear `rgba8unorm` targets use the fullscreen conversion writeback path. This is direct graph rendering for selected-camera child submits, not broad Bevy image/texture-view target parity or complete Base/Overlay physical attachment composition.
 
 The M2C entry gate was captured on 2026-05-16 with `CARGO_TARGET_DIR=F:\cargo-targets\zircon-render-camera-m2-1819`: `cargo test -p zircon_runtime camera --locked --jobs 1 --message-format short --color never` passed 13 focused camera/layer/scene-asset tests, and `cargo check -p zircon_runtime --lib --locked --message-format short --color never` passed afterward.
+
+## Scene Schema V1 Render-Layer Masks
+
+The Runtime 15 naming hard cutover exposes scene serialization explicitly through `from_scene_schema_v1_mask`, `to_scene_schema_v1_mask_lossy`, and `intersects_scene_schema_v1_mask`. The regression owner is `runtime_15_scene_render_layer_schema_v1_masks_use_versioned_names`; status `runtime_15_scene_render_layer_schema_v1_mask_naming_hard_cutover_static_passed_cargo_deferred` records that source and documentation naming are converged while the broader Runtime 15 Cargo gate remains pending.

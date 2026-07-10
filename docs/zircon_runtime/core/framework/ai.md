@@ -12,6 +12,9 @@ related_code:
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_app/Cargo.toml
+  - zircon_plugins/ai/runtime/Cargo.toml
 implementation_files:
   - zircon_runtime/src/core/framework/ai/mod.rs
   - zircon_runtime/src/core/framework/ai/behavior_tree.rs
@@ -22,16 +25,26 @@ implementation_files:
   - zircon_runtime/src/core/framework/ai/perception.rs
   - zircon_runtime/src/core/framework/ai/snapshot.rs
   - zircon_runtime/src/core/framework/ai/tick.rs
+  - zircon_runtime/src/core/framework/mod.rs
+  - zircon_runtime/src/core/manager/mod.rs
+  - zircon_runtime/src/core/manager/resolver.rs
+  - zircon_runtime/src/core/manager/service_names.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_app/Cargo.toml
+  - zircon_plugins/ai/runtime/Cargo.toml
 plan_sources:
   - user: 2026-06-04 plugin ecosystem infrastructure expansion
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
 tests:
   - zircon_plugins/ai/runtime/src/tests/mod.rs
   - zircon_plugins/ai/runtime/src/tests/perception_conditions.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_runtime --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --jobs 1 --message-format short --color never
+  - python -m unittest tools.tests.test_frameworks_03_contract_feature_boundary
+  - cargo +nightly check -p zircon_runtime --lib --no-default-features --features ai-contracts --locked --offline --jobs 1
 doc_type: module-detail
 ---
 
@@ -40,6 +53,12 @@ doc_type: module-detail
 ## Purpose
 
 `zircon_runtime::core::framework::ai` is the neutral contract layer for optional AI plugins. It defines behavior-tree descriptors, blackboard schema/value DTOs, perception snapshots, agent tick requests, runtime snapshots, stable ids, and `AiManager`. The module does not execute gameplay AI by itself and does not link any concrete AI backend; concrete behavior belongs in `zircon_plugins/ai/runtime` or future VM/native plugin providers.
+
+## Feature Boundary
+
+The contract is compiled only by the `ai-contracts` Cargo feature. Runtime and App client/editor presets include this feature to preserve their default contract surface, while `target-server` does not add it implicitly. A server build that selects an AI provider receives the contract through that provider's explicit dependency feature instead of widening every headless build.
+
+`zircon_plugins/ai/runtime` requests `zircon_runtime/ai-contracts` directly. The framework root and `core::manager` gate only module declarations, re-exports, resolver generation, and the canonical service name; AI DTO and manager behavior contain no feature-specific branch. This keeps `--no-default-features --features ai-contracts` additive and prevents a compatibility alias or runtime fallback from hiding an undeclared dependency.
 
 ## Behavior Model
 
@@ -66,3 +85,5 @@ The current contract is intentionally data-oriented. It exposes node kinds and t
 `zircon_plugins/ai/runtime/src/tests/mod.rs` validates the first concrete implementation against this contract. It covers module registration, manager resolution, descriptor/catalog parity, behavior-tree child-reference, child-count, and topology validation, built-in node-parameter owner/type/value validation, subtree target validation, blackboard schema validation, tick schema checking, perception mismatch rejection, deterministic behavior-tree reports, decorator existence, absence, inversion, scalar/vector equality, numeric blackboard comparisons, perception-driven decorators over current and stored snapshots, subtree execution through registered behavior-tree ids, and runtime snapshot projection.
 
 The runtime plugin manifest test `runtime_experimental_plugin_toml_matches_catalog_partial_metadata` checks that static `plugin.toml`, the built-in catalog descriptor, and capability status rows agree for `runtime.plugin.ai`, `runtime.feature.ai.behavior_tree`, `runtime.feature.ai.blackboard`, and `runtime.feature.ai.perception`.
+
+Frameworks 03 feature validation also compiles the contract without an implementation (`--no-default-features --features ai-contracts`), compiles the optional diagnostic adapter combination, checks Server without AI, and checks the AI plugin's explicit contract dependency. All four WSL nightly locked/offline commands passed on 2026-07-10; detailed evidence is recorded in `tests/acceptance/frameworks-03-ai-contract-feature-boundary.md`.

@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/typography_migration.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
@@ -9,6 +10,7 @@ related_code:
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
   - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/typography_migration.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
 plan_sources:
@@ -33,7 +35,7 @@ doc_type: module-detail
 
 `zircon_editor/src/ui/preferences.rs` is the retained editor owner for global appearance preferences. It gives the editor one startup path for design tokens before those tokens are projected into retained host rendering. Fonts, color theme, and style packs should be selected here or through a future persisted preference model, not by individual controls or startup code.
 
-The current implementation stores `EditorDesignTokens` in `EditorAppearancePreferences`. The default is still the workbench dark token set, but callers receive it through `default_editor_appearance_preferences()` so later preference loading can replace the source without changing control renderers.
+The current implementation stores `EditorDesignTokens` in `EditorAppearancePreferences`. The default is still the workbench dark token set, while the versioned preference store can replace the source without changing control renderers.
 
 ## Related Files
 
@@ -45,7 +47,9 @@ The current implementation stores `EditorDesignTokens` in `EditorAppearancePrefe
 
 Controls choose semantic text intent such as UI, strong UI, or code. They do not choose concrete font families. The appearance preference owns the design token set, and the retained host text bridge converts those tokens into runtime text preferences.
 
-`EditorAppearancePreferences::with_typography(...)` replaces the typography token block while retaining the rest of the design tokens. `EditorAppearancePreferences::from_design_tokens(...)` replaces the whole token set. These constructors are deliberately small because persistence, theme catalogs, and an in-editor preference UI have not landed yet.
+`EditorAppearancePreferences::with_typography(...)` replaces the typography token block while retaining the rest of the design tokens. `EditorAppearancePreferences::from_design_tokens(...)` replaces the whole token set. These constructors stay deliberately small so persistence remains an outer document/store concern; theme catalogs and an in-editor preference UI have not landed yet.
+
+Persistence document version 2 stores typography sizes in 96-DPI logical pixels. `preferences/typography_migration.rs` upgrades version-1 point-as-pixel defaults from 10/8.5/14 to the central Unreal-compatible logical sizes 13.33/10.67/18.67. It migrates only fields still equal to the old defaults, so explicit project or user font-size choices are preserved. Unknown future versions still fall back to current defaults.
 
 ## Design and Rationale
 
@@ -61,8 +65,8 @@ Screenshots under `docs/tests/editor` are evidence that the harness refreshed th
 
 ## Test Coverage
 
-The slice added focused preference tests for default logical typography, global typography replacement, and full token replacement. The verified commands are listed in the document header, including the editor-host build and the M3 screenshot harness that refreshed the Asset Browser evidence.
+The slice added focused preference tests for default logical typography, global typography replacement, full token replacement, version-1 typography migration, and preservation of custom sizes. On 2026-07-10 the fresh editor test binary ran the preference filter with 12 passed, 0 failed, and one ignored screenshot export; component and Workbench captures were then refreshed under `docs/tests/editor`. The migration preserves custom version-1 sizes while correcting only the exact legacy defaults.
 
 ## Follow-up
 
-The next layer is a real preferences UI and persistence path, followed by runtime FontDatabase/FontFace DTO wiring, GPU draw-list family/style propagation, and window-level visual QA for text sharpness.
+The next layer is a real preferences UI, followed by runtime FontDatabase/FontFace DTO wiring, GPU draw-list family/style propagation, and window-level visual QA for text sharpness.

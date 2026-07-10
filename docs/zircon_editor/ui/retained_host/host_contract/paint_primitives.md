@@ -55,7 +55,13 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/shapes/rects/solid.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/tests.rs
+plan_sources:
+  - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
+  - docs/plans/zircon_runtime/text/index.md
+  - docs/plans/engine-code-structure-convention.md
 tests:
+  - text_bars_frame_reserves_trailing_glyph_clip_guard
+  - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 (2026-07-10: passed)
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
   - paint primitive image ownership scan
@@ -89,6 +95,8 @@ doc_type: module-overview
 `paint_primitives/image/recording.rs` owns image recording metadata, explicit resource-key recording, atlas recording, content-scoped fallback key hashing, and atlas payload validation. `paint_primitives/image/raster.rs` is now a structural raster entry. `paint_primitives/image/raster/identity.rs` owns opaque identity-row copy eligibility, bounds checks, alpha validation, and row copy. `paint_primitives/image/raster/scaled.rs` owns scaled RGBA sampling and target pixel traversal. `paint_primitives/image/raster/pixel.rs` owns per-pixel alpha writes shared by scaled raster fallback.
 
 `paint_primitives/pixels.rs` is now a structural pixel entry for the low-level software raster fill layer. `paint_primitives/pixels/span.rs` owns rectangular span fill, per-pixel writes, and alpha blending; `paint_primitives/pixels/fill.rs` owns direct rectangular and rounded-rect fill loops; `paint_primitives/pixels/border.rs` owns rounded-border pixel fill; `paint_primitives/pixels/geometry.rs` owns rounded-rect containment, corner-radius clamping, ordered float clamping, and frame inset helpers; `paint_primitives/pixels/tests.rs` owns the pixel geometry regression that used to live inline in the production module. The parent shape modules call these owners only after resolving clip/recording policy and `PixelRect` targets.
+
+The 2026-07-10 fallback-text guard pass keeps runtime measurement authoritative but expands the temporary text frame by `HostControlMetrics.text_clip_guard`. This accounts for the trailing raster bearing that is not represented by advance width and prevents the last glyph from being cut when native Workbench fallbacks use `draw_text_bars_clipped(...)`. The explicit caller clip still controls container, popup, and viewport bounds, so the guard does not bypass layout clipping.
 
 The 2026-06-18 image split reduced `paint_primitives.rs` from 918 lines to 510 and created `paint_primitives/image.rs` at 420 lines. Validation used `cargo fmt -p zircon_editor`, `cargo fmt -p zircon_editor --check`, a paint primitive image ownership scan, and `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never`, which passed with existing warning noise only. Full Cargo test expansion remains deferred to the milestone testing stage per the current implementation cadence.
 

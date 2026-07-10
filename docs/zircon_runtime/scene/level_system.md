@@ -1,6 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/level_system/physics_runtime_enabled.rs
+  - zircon_runtime/src/scene/level_system/physics_runtime_disabled.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/module/world_driver.rs
@@ -8,6 +10,8 @@ related_code:
   - zircon_runtime/src/scene/tests/mod.rs
 implementation_files:
   - zircon_runtime/src/scene/level_system.rs
+  - zircon_runtime/src/scene/level_system/physics_runtime_enabled.rs
+  - zircon_runtime/src/scene/level_system/physics_runtime_disabled.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/tests/mod.rs
@@ -15,10 +19,13 @@ plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/scene/tests/mod.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
+  - tools/tests/test_frameworks_03_contract_feature_boundary.py
+  - tests/acceptance/frameworks-03-physics-contract-feature-boundary.md
 doc_type: module-detail
 ---
 
@@ -29,6 +36,12 @@ doc_type: module-detail
 `LevelSystem` is the runtime owner for one live scene world plus per-level runtime state. It wraps the active `World`, cached physics and animation outputs, script binding start state, level metadata, lifecycle state, and registered subsystem names.
 
 `DefaultLevelManager` owns the map from `WorldHandle` to `LevelSystem` instances and creates levels with stable handles.
+
+## Optional Physics State
+
+Physics step plans, contacts, and triggers are simulation outputs rather than always-on scene schema. The target architecture selects `physics_runtime_enabled.rs` or `physics_runtime_disabled.rs` at module declaration time. The enabled adapter owns the optional contract imports and the physics-specific `LevelSystem` methods; the disabled adapter contributes only an empty runtime-state slot. This keeps the shared `level_system.rs` declaration independent of `physics-contracts` while preserving one `WorldRuntimeState` lifecycle.
+
+The adapter files are currently staged but not mounted. Until the active shared Runtime and Physics builds release their source graph, `level_system.rs` remains unchanged and this hard cut is not complete. The final cut must add the declaration-time selection, replace the inline physics fields with one `PhysicsRuntimeState`, gate physics-only tests, and remove every direct optional-Physics import from `level_system.rs` in one change. No disabled-mode stub methods or compatibility re-exports are allowed.
 
 ## Ownership Boundary
 

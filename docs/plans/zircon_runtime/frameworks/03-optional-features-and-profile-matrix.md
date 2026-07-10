@@ -6,6 +6,8 @@ related_code:
   - zircon_app/src/plugins/groups.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
+  - tools/check-runtime-domain-features.ps1
+  - tools/tests/test_frameworks_03_domain_feature_matrix.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/runtime-plugins/profile-selection.md
@@ -105,3 +107,10 @@ zr_* 成员 crate features（实现细节层，外部不可见）
 - **cfg 蔓延污染代码**：规则是"门开在模块声明与组装表上，不开在业务逻辑里"；出现深层 `#[cfg]` 分支视为设计缺陷回流计划 05 切接缝。
 - **CI 时长**：矩阵 job 全部 check-only + 共享 sccache；超预算则收缩到 profile 六组合 + all-features。
 - **默认行为漂移**：M1 所有新 feature 进 default，行为与现状逐位等价；裁剪只发生在显式 `--no-default-features` 路径。
+
+## 6. 状态与产出记录
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+- 产出记录：[`03/2026-07-10-optional-features-and-profile-matrix-output-records.md`](03/2026-07-10-optional-features-and-profile-matrix-output-records.md)
+- 当前状态：M1 进行中；feature 命名、`target-server` 域裁剪、AI/Net/Sound contract 独立门控与 ZRPack asset owner 硬迁移已完成。Sound channel topology 已从可选服务硬迁到常驻 `core::framework::audio` 唯一 owner，旧类型/路径无兼容重导出；Client/Editor 预设包含 AI/Net/Sound，Server 不隐式包含，直接 plugin 消费者显式请求各自契约。WSL nightly 三域单开、Server 排除与对应 plugin checks 已通过。server support-first follow-up 已进一步修复 default/client 编译物选择 `ServerRuntime` 时仍装入 Script 的行为漂移；default integration 1/1 与 fresh target-server lib check 均通过。M1 逐域 runner `tools/check-runtime-domain-features.ps1` 已固定 12 域、`core-min + 单域`、locked/no-default/lib check 与失败汇总，静态契约 3/3 通过；以 `physics-contracts` 负向执行时 Cargo 明确报告 feature 不存在且 runner 返回 1，证明不会静默跳过，但完整矩阵仍 RED。Physics 六组测试先行边界已落地并取得 6 个预期 assertion failure、0 setup/read error，固定 feature/preset、声明门、plugin 显式依赖、持久化 scene schema 唯一 owner、LevelSystem 声明适配器与中性 diagnostics 投影；目标 scene schema、LevelSystem feature-on/off adapter 与 neutral diagnostics collector 已暂存为未挂载文件，聚焦复验只在现有入口和旧直接引用处保持 RED，尚未形成第二公共 owner。生产硬切仍等待活动 Physics manager 及共享 Runtime/Editor/PBR owner 释放，不声明 GREEN。Runtime `core-min` lib-test 的 Frameworks Net 与 server Script 测试泄漏已修复并由回归守卫固定；当前共享工作树剩余可选域测试错误归活动 Runtime/Asset/Render owners，不声明该命令通过。Physics 生产 feature 门、完整逐域矩阵、M1 Runtime/App 全测试门、M2 profile 单源与 CI 矩阵仍 pending，不声明 M1 或计划 03 完成。

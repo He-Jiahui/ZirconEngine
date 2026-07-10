@@ -14,6 +14,10 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/content.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/fallback.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/identity.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/panel_header.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/rail.rs
@@ -32,6 +36,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup/submenus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows/text_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/assets/frame.rs
@@ -98,9 +104,18 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/recent_projects/rows/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/recent_projects/rows/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests/transform.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_geometry.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry/body.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/assets_drawer.rs
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
+  - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
 implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench/commands.rs
@@ -116,6 +131,10 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/content.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/fallback.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/identity.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/panel_header.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/rail.rs
@@ -134,6 +153,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup/submenus.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows/text_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/assets/frame.rs
@@ -194,10 +215,31 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/recent_projects/rows/surface.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/recent_projects/rows/text.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/style.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests/transform.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry/body.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/assets_drawer.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
+  - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
+  - docs/superpowers/plans/2026-07-10-assets-content-scroll-hover-paint-transform.md
   - user: 2026-06-17 continue editor UI architecture implementation
 tests:
+  - asset_content_interaction_setters_store_activity_and_browser_state
+  - template_node_paint_transform_moves_clips_and_suppresses_owned_nodes
+  - activity_asset_content_projector_scrolls_clips_and_hovers_shared_row_index
+  - activity_asset_content_scrollbar_uses_projected_panel_viewport_and_extent
+  - assets_drawer_content_scroll_repaints_inside_content_without_touching_utility
+  - shortcut_column_reserves_non_overlapping_runtime_measured_label_clip
+  - scrolled_row_label_clip_stays_inside_popup_viewport
+  - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 (2026-07-10: passed)
+  - focused responsive-menu Cargo groups (2026-07-10: 15/15 passed)
+  - focused shared scrollbar Cargo group (2026-07-10: 7/7 passed, 1 ignored capture)
+  - capture_m3_gui_acceptance_visual_artifacts (2026-07-10: 1/1 passed)
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
   - workbench welcome ownership scan
@@ -249,11 +291,19 @@ doc_type: module-overview
 
 `paint_workbench_renderer/legacy.rs` owns `draw_legacy_workbench_window(...)` and the profiled legacy draw variant. `paint_workbench_renderer/style.rs` owns the shared Workbench fallback palette constants. `paint_workbench_renderer/text.rs` owns shared fallback string selection.
 
+The Assets Activity content path keeps one retained row renderer. `paint_template_nodes/template_node_pipeline/transform.rs` defines an internal owned-node transform that may translate a cloned node, narrow its clip, or suppress it before command collection; the existing no-transform entry remains the identity path for every unrelated pane. `docks/pane/template_nodes/asset_content/` recognizes only the stable generated Activity content ids, maps folder rows before item rows, translates their source geometry by stored content scroll, intersects every recognized node with `AssetsActivityContentPanel`, and marks only the targeted row surface hovered. Text inside those rows continues through the existing retained template-node text path and runtime text metrics; the projector does not select fonts, size text, or paint duplicate labels.
+
+`native_panes/scrollbar/asset.rs` derives the Activity content viewport from the same panel and its full source extent from shared layout output, then delegates track/thumb painting to the existing Starship scrollbar owner. The production native-pointer leaf `native_pointer/routing/panes/pane/entry/asset_content.rs` resolves that panel before the generic Assets tree fallback and emits panel-local `AssetContent("activity")` coordinates. Top-level move arbitration preserves native menus and Workbench popup rows first, then routes pane semantics before the base Workbench template. Pointer hit geometry, callback writeback, paint projection, clipping, hover, and scrollbar motion therefore share one relative-layout contract instead of screenshot-only state injection or window-relative pixel positioning.
+
 `paint_workbench_renderer/root_frames.rs` owns top-bar/status/center/left/right/bottom/document/viewport fallback geometry assembly. `root_frames/model.rs` owns `RootFrames` and the zero-origin helper shared by template overlay drawing, while `root_frames/selection.rs` owns root-layout selection between scene layout and host layout. `paint_workbench_renderer/skeleton.rs` owns legacy root skeleton fill/border/separator and label draw ordering, while `skeleton/markers.rs` owns the project-path marker and debug refresh-rate marker paint. `paint_workbench_renderer/scene_layers.rs` is now the structural host-scene paint-order entry. `scene_layers/chrome.rs` owns menu/page/status template-node and menu-bar label paint. `scene_layers/dock_layer.rs` owns side/document/bottom/floating dock layer dispatch. `scene_layers/overlay.rs` is now a structural overlay entry: `overlay/componentized.rs` owns componentized Workbench template detection and paint, `overlay/root_template.rs` owns root-template overlay profiling and frame-bounds projection, and `overlay/modal.rs` owns open-menu popup plus close-prompt layer ordering. `scene_layers/resize.rs` owns splitter resize-layer paint.
 
 `paint_workbench_renderer/docks.rs` is now the structural entry for legacy dock shell paint. `docks/side.rs` owns side-dock shell fill, rail paint, header paint, and side pane content handoff; `docks/side/frames.rs` owns side-dock rail/panel frame resolution. `docks/document.rs` owns document-dock shell fill, header paint, and document pane content handoff. `docks/bottom.rs` owns bottom-dock shell fill, header paint, and bottom pane content handoff. `docks/panel_header.rs` owns header fill/template/separator paint. `docks/pane.rs` owns only the visible-pane guard and handoff into child owners; `docks/pane/body.rs` owns pane background color selection, Scene/Game toolbar frame layout, and body-after-toolbar construction, while `docks/pane/content.rs` owns viewport image dispatch, retained template-node dispatch, native pane dispatch, debug overlay, and fallback ordering. `docks/pane/template_nodes.rs` owns retained pane template-node draw gating and handoff, while `docks/pane/template_nodes/selection.rs` owns pane-kind to template-node model selection; `docks/pane/fallback.rs` owns fallback label selection and clipped text drawing. `docks/viewport_toolbar.rs` owns Scene/Game viewport toolbar chrome. `docks/rail.rs` owns the active activity-rail marker. `docks/floating_windows.rs` owns floating layer iteration, while `docks/floating_windows/window.rs` owns floating-window shell/header/body layout and floating pane dispatch. The parent module calls `docks::draw_side_dock(...)`, `docks::draw_document_dock(...)`, `docks::draw_bottom_dock(...)`, and `docks::draw_floating_layer(...)` from the host-scene paint orchestration without owning the paint bodies.
 
 `paint_workbench_renderer/menus.rs` is now the structural entry for Workbench menu paint. It keeps the two host-scene entry points, `draw_menu_bar_labels(...)` and `draw_open_menu_popup(...)`, and delegates all behavior to the `menus/` subtree. `menus/bar.rs` owns top-bar label paint, active-menu highlighting, clipped label drawing, menu frame scroll adjustment, and menu-bar separators. `menus/popup.rs` owns open menu popup paint, custom template popup dispatch, and popup body/background/border paint; `menus/popup/submenus.rs` owns submenu popup chaining, submenu anchoring, and submenu row paint. `menus/rows.rs` owns fallback popup row text, shortcut, disabled, and hover paint. `menus/geometry.rs` is now a structural geometry entry; `geometry/row.rs` owns row frame math, `geometry/popup.rs` owns popup height and top-level popup viewport constraints, `geometry/submenu.rs` owns submenu side-placement constraints, `geometry/scroll.rs` owns scrolled menu-frame adjustment, and `geometry/shell.rs` owns shared shell width/height bounds for popup placement.
+
+The 2026-07-10 responsive Window-menu pass makes `menus/popup.rs` consume the shared root viewport height and clamped scroll before constraining the frame, then forwards that scroll into root row geometry. `menus/rows/text_layout.rs` is the dedicated label/shortcut column owner: it right-aligns runtime-measured shortcut text, reserves the shared column gap, intersects partial scrolled rows with the popup viewport, and prevents labels from painting through the shortcut column. Native pointer containment and damage geometry use the same root viewport contract, so the visible 192-pixel scrolled menu no longer leaves a full-height invisible pointer/damage region.
+
+Overflowing native root menus reuse `native_panes/scrollbar/paint.rs` instead of introducing a menu-only scrollbar renderer. `menus/popup.rs` passes the resolved popup viewport, clamped root scroll, and authored content height into the shared relative geometry path; content that fits produces no track, while the accepted Window-menu screenshot shows the 8-pixel Starship track/thumb on the popup's right edge.
 
 `paint_workbench_renderer/native_panes.rs` is now the structural entry for retained native pane paint. It keeps `draw_viewport_image(...)`, `draw_native_pane_content(...)`, and `draw_pane_debug_overlay(...)` as the dock-facing API and delegates details to the `native_panes/` subtree. `native_panes/viewport.rs` owns Scene/Game viewport image validation and RGBA image draw dispatch. `native_panes/diagnostics.rs` owns RuntimeDiagnostics overlay primitive collection and debug-reflector overlay dispatch. `native_panes/content.rs` owns native pane kind routing across Welcome, Hierarchy, Assets, and AssetBrowser. `native_panes/hierarchy.rs` owns Hierarchy node-count, viewport, clip, scroll, and row iteration entry. `native_panes/hierarchy/row.rs` owns single-row paint ordering and visibility gating, `row/frame.rs` owns row frame construction, `row/style.rs` owns hover/selected color selection, and `row/text.rs` owns depth-based text indentation. `native_panes/hierarchy/viewport.rs` owns template-derived viewport fallback. `native_panes/assets.rs` is now a structural asset-pane overlay entry; `assets/overlay.rs` owns Asset activity and AssetBrowser tree hover overlay entry points and state selection, `assets/overlay/row.rs` owns hover row lookup, clipping, fill, and border paint, while `assets/frame.rs` owns row-control matching, row frame translation, and scroll offsets. `native_panes/scrollbar.rs` is the structural native-pane scrollbar entry; `scrollbar/geometry.rs` owns relative viewport/content thumb math, `scrollbar/style.rs` owns host-palette/metric projection, `scrollbar/paint.rs` owns track/thumb primitives, `scrollbar/asset.rs` owns Hierarchy/Assets/AssetBrowser scrollbar source selection, and `scrollbar/tests.rs` owns focused scrollbar regressions plus the component screenshot helper.
 

@@ -1,16 +1,28 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime/src/core/framework/render/text/shaped_run.rs
+  - zircon_runtime/src/ui/surface/render/resolve.rs
+  - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/graphics/text/font/mod.rs
+  - zircon_runtime/src/graphics/text/font/backend.rs
   - zircon_runtime/src/graphics/text/font/database.rs
+  - zircon_runtime/src/graphics/text/font/shared.rs
   - zircon_runtime/src/graphics/text/font/fallback.rs
   - zircon_runtime/src/graphics/text/font/fallback/tests.rs
   - zircon_runtime/src/graphics/text/font/coverage.rs
-  - zircon_runtime/src/graphics/text/shaping/font_id.rs
+  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
+  - zircon_runtime/src/graphics/text/shaping/cosmic/font_system_cache.rs
+  - zircon_runtime/src/graphics/text/shaping/fallback_spans.rs
   - zircon_runtime/src/graphics/text/shaping/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/src/asset/assets/font.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Fonts/CompositeFont.h
@@ -41,9 +53,11 @@ status: in_progress
 
 ## 2. 现状与差距
 
-- `font_registry.rs`:线性硬编码链 `[Inter, Noto Sans, Noto Sans CJK SC, Microsoft YaHei UI, Segoe UI]`,非脚本感知、不查系统字体、emoji 无回退。
-- glyphon 内部 fontdb 有自己的回退,但与 ZirconEngine `font_registry` 双轨、不一致。
-- 缺口:无 script→family 映射、无 Unicode range 命中、无深度限制、无 cluster 级一致性保证、无缺字诊断。
+- `font_registry.rs` 的默认 family 已改为消费 runtime font database；`FallbackResolver` 已承接 script/range/locale 候选与深度上限。
+- 2026-07-10 D4 硬切后，`FontDatabase` 持有权威 `fontdb::Database` lineage 与双向 ID map；shared locale shaping cache 和 native renderer 通过 generation snapshot 消费同一 lineage，`ShapedGlyph.font_id`/native report 均来自实际 `LayoutGlyph.font_id`。旧 `shaping/font_id.rs` post-shape 重算桥已删除且无 shim。
+- 2026-07-10 locale 数据面已贯通：可序列化的 `UiResolvedStyle.language` 从模板 `[font].language` 进入 layout/shaped cache key、direct/parallel `TextShapeRequest`、native rich spans 与 SDF atlas/bake fallback；`zh-Hans`/`ja` 等同码点不会跨 locale 复用缓存或 SDF 槽。
+- 2026-07-10 真实 WGPU 产品 framebuffer 已覆盖 Latin/CJK/Arabic/Hebrew/emoji/mixed BiDi/native/SDF、zh-Hans/ja 同码点与 VerticalRl SDF 十项；逐项 background delta、地区字体相对像素差与人工原图检查通过，证据只写入 `docs/tests/runtime/text`。
+- 后端直证已锁定实际选中的 `Segoe UI Emoji` face 产生 `SwashContent::Color` 且字节数严格等于 `width * height * 4` RGBA；同一窄层可执行验收还证明 `نَ` 的 base+fatha 形成两个实际 glyph 且都保留同一 `Segoe UI` backend face。生产映射继续由 `GlyphAtlasFormat::Color` / `Rgba8Unorm` 合同 owner 持有；本里程碑剩余能力缺口收窄为 per-run OpenType `locl`，竖排像素等由对应后续计划继续承接。
 
 ## 3. 参考代码
 
@@ -71,7 +85,7 @@ cluster(script from 02, codepoints) →
 
 回退发生在 `02` 整形阶段(per-run);cosmic-text 内部已做大部分,本计划提供回退源配置 + 覆盖 + 诊断。
 
-(2026-07-02 评审收口,D4)**font_id 权威通路**:`ShapedGlyph.font_id` = `FontFaceId`(变量轴场景经 `InstancedFaceId`),且必须**提取自整形后端实际选择的 face**——通过 fontdb ID↔`FontFaceId` 双向映射在隔离层完成,**禁止 post-shape 按 script/codepoint 重算**(重算结果可能与后端实际选的 face 不一致,导致图集取错字形)。现有 `shaping/font_id.rs` 的 post-shape annotation bridge(见 §8 2026-06-29 切片)是**过渡路径**,FB-M1 收束时替换为后端 face-id 直出。
+(2026-07-02 评审收口,D4；2026-07-10 已硬切)**font_id 权威通路**:`ShapedGlyph.font_id` = `FontFaceId`(变量轴场景经 `InstancedFaceId`),且必须**提取自整形后端实际选择的 face**。当前 `graphics/text/font/backend.rs` 隔离 fontdb ID↔`FontFaceId`，`cosmic.rs` 直接投影 `LayoutGlyph.font_id`，native report 直接遍历实际 `Buffer.layout_runs()`；禁止 post-shape 按 script/codepoint 重算，旧 bridge 已物理删除。
 
 ## 5. 里程碑
 
@@ -80,16 +94,17 @@ cluster(script from 02, codepoints) →
 实施切片:
 1. `graphics/text/font/fallback.rs`:回退解析器——首选→CompositeFont(script/range,查 `01` `composite_resolve`)→fontdb(码点)→last-resort;深度上限 10。
 2. `font_registry.rs` 硬编码链改为数据驱动 `CompositeFontDescriptor`(默认包含 latin/CJK/emoji/阿拉伯等 sub-font)。
-3. cosmic-text fallback 与本链对齐:配置 fontdb 回退源 = `FontDatabase`(`01`),消除双轨。
-4. (2026-07-02 评审收口,D4)收束切片:建立 fontdb ID↔`FontFaceId` 双向映射,`ShapedGlyph.font_id` 改为从整形后端实际选择的 face 直出;替换 `shaping/font_id.rs` 的 post-shape annotation 过渡路径。
+3. ✅ cosmic-text fallback 与本链对齐：shared locale cache 与 native renderer 消费 process-shared `FontDatabase` generation snapshot，消除 backend database 双轨。
+4. ✅ (2026-07-02 评审收口,D4；2026-07-10 完成)建立 fontdb ID↔`FontFaceId` 双向映射，`ShapedGlyph.font_id` 从整形后端实际选择的 face 直出；删除 `shaping/font_id.rs` post-shape annotation 过渡路径。
+5. ✅ (2026-07-10)run language/locale 从公共样式进入 layout/shaped/SDF 三类缓存键以及 native/SDF fallback 查询；空 tag 归一为无标注，缓存键对 tag 大小写归一。
 
 测试:`text_fallback_cjk_resolves_to_cjk_font`、`text_fallback_emoji_resolves_to_color_font`、`text_fallback_depth_limited`。
 
 ### FB-M2 cluster 一致性 + font_id 传出 + 诊断
 
 实施切片:
-1. 保证同 cluster 字形同 face(整形 run 切分尊重回退边界);`ShapedGlyph.font_id` = 实际命中 face(`02` 已留字段)。
-2. 缺字诊断:记录未命中码点(script/codepoint/上下文),供编辑器字体缺失提示;tofu 渲染 `.notdef` 或可配占位字形。
+1. 进行中：grapheme cluster 已在 shape 前解析为一个 CompositeFont family span，`ShapedGlyph.font_id` 来自实际 backend；仍需真实复杂 cluster 断言 backend 没有在 span 内再次跨 face fallback。
+2. ✅ 缺字诊断：按 `(face,codepoint)` 去重并记录 script/reason/occurrence；1024 容量、overflow/dropped 已落，`FontDatabase` poison-recovering store 在 prepare 后排到 frame report，不在 shaping 热路径 IO/格式化。
 
 测试:`text_fallback_cluster_stays_single_face`、`text_fallback_glyph_carries_resolved_font_id`、`text_fallback_missing_codepoint_reports_diagnostic`。
 
@@ -110,7 +125,7 @@ impl FallbackResolver<'_> {
 }
 ```
 
-(2026-07-02 评审收口)`MissingGlyphLog` 契约:按 **(face, codepoint) 去重**(同一缺字每 face 只记一条,重复命中只累加计数);**容量上限**(默认 1024 条,超限丢弃新条目并置 overflow 标志,防恶意/超长文本撑爆内存);导出走**帧外**通道(编辑器诊断面板/日志按需拉取,不在整形热路径上做 IO 或格式化)。
+(2026-07-02 评审收口；2026-07-10 已实现)`MissingGlyphLog` 契约:按 **(face, codepoint) 去重**(同一缺字每 face 只记一条,重复命中只累加计数);**容量上限**(默认 1024 条,超限丢弃新条目并置 overflow 标志,防恶意/超长文本撑爆内存);导出走**帧外** `ScreenSpaceUiTextPrepareReport.missing_glyphs`，不在整形热路径上做 IO 或格式化。
 
 解析顺序(对齐 UE `GetCompositeFontDataForCodepoint`):
 1. `primary` face cmap 命中所有 cps → 用 primary。
@@ -118,7 +133,7 @@ impl FallbackResolver<'_> {
 3. `db.fallback_candidates(cp, query)`:fontdb 按码点枚举系统/项目 face,取首个覆盖。
 4. 都不命中 → last-resort face(`.notdef`),`missing=true`,记诊断。
 
-(2026-07-02 评审收口)**partial cluster coverage 规则**:无任何候选 face 覆盖 cluster 全部码点时(常见:base 字符有覆盖但个别 combining mark 无),不再继续深链搜索"全覆盖" face——选**优先覆盖基字且 mark 覆盖数最多**的 face,未覆盖的 mark 渲 `.notdef` 并按 (face, codepoint) 记入缺字诊断;保持 cluster 单 face 不破。测试 `text_fallback_partial_cluster_coverage_keeps_base_face`。
+(2026-07-02 评审收口；2026-07-10 已实现 resolver/span 侧规则)**partial cluster coverage 规则**:无任何候选 face 覆盖 cluster 全部码点时(常见:base 字符有覆盖但个别 combining mark 无),不再继续深链搜索"全覆盖" face——用 canonical combining class 找基字，选**覆盖基字且 cluster 覆盖数最多**的 face,未覆盖 mark 渲 `.notdef` 并按 (face, codepoint) 记入缺字诊断。真实 backend cluster 单 face 仍由端到端断言验收。
 
 (2026-07-02 评审收口)解析入口的 `FontQuery` 必须带请求的 weight/style 进 `db.match_face`(回退 family 同样按 weight/style 匹配变体);family 命中但无对应 weight/style 变体时,取最近变体并置 `SyntheticFlags`(bold=embolden / oblique=shear,进 04 `GlyphRasterKey`)。
 
@@ -146,7 +161,7 @@ impl FallbackResolver<'_> {
 | CJK-JP | Han/Kana + `ja` | Noto Sans CJK JP / Yu Gothic UI |
 | CJK-KR | Han/Hangul + `ko` | Noto Sans CJK KR / Malgun Gothic |
 
-locale 取 run 的 language 标注(02 键含 language),无标注时回退项目默认 locale。命中回退 face 后的混排行度量按 03 §6"混 face 行度量"(D7:行 ascent/descent 取 max、line_gap 取主 face)。
+locale 取 run 的 `UiResolvedStyle.language` 标注(02 shaped key 含 language)，模板入口支持 `[font].language`/`text_language`/`language`；无标注时回退项目默认 locale。命中回退 face 后的混排行度量按 03 §6"混 face 行度量"(D7:行 ascent/descent 取 max、line_gap 取主 face)。
 
 声明为 `CompositeFontDescriptor` 资产(`01` FR-M3),非硬编码常量。
 
@@ -155,7 +170,7 @@ locale 取 run 的 language 标注(02 键含 language),无标注时回退项目�
 | 现有 | 切换 |
 |------|------|
 | `font_registry.rs` 硬编码 5 字体链 | 删除常量;改默认 `CompositeFontDescriptor` 资产 + `FallbackResolver` |
-| glyphon 内部 fontdb 独立回退 | 配置 glyphon `FontSystem` 用共享 `FontDatabase`(01),回退源一致 |
+| glyphon 内部 fontdb 独立回退 | 已硬切：`FontDatabase` 持有 backend DB；renderer 与 locale shaping cache 通过 snapshot/generation 共用同一 ID lineage |
 
 ### 测试与验收清单
 
@@ -181,6 +196,10 @@ locale 取 run 的 language 标注(02 键含 language),无标注时回退项目�
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证 | 后续 |
 |------|-------------|------|------|------|------|
+| 2026-07-10 | FB-M2 multilingual fallback product framebuffer | runtime_text_fb_m2_multilingual_wgpu_framebuffer_color_locale_cluster_cjk_vertical_passed | 独立 ignored integration target 经 runtime UI batching、native glyphon/cosmic fallback、native bitmap/color atlas、SDF atlas/render 与 WGPU readback导出十项产品帧；逐项 background-only 门禁，直证 `Segoe UI Emoji`→`SwashContent::Color`→RGBA、`نَ` 两个 glyph 同一 actual face、zh-Hans/ja 同码字形差异，并把 VerticalRl proof 从 sideways Latin 升级为 `Microsoft YaHei UI`/`zh-Hans` 的 `竖排布局`。修复 `StoredFontSource::FontDb` 系统 face 字节不可用后，SDF 与 native 继续共享同一 backend face-ID/bytes lineage。 | 当前源 build 以 `--no-default-features --features target-client --locked` 通过（15m16s，418 条既有 warnings）；final exact exporter 1/1（95.04s）；changed pixels 为 3751/3983/1820/2843/3321/3643/4823/1473/1179，CJK VerticalRl=1789/bbox 31×118，zh-Hans/ja 相对差 1613；PNG 1080×620、92720 bytes、1010 colors，SHA256 `352FBD3A31126E862D1BDFEDAD2F7109A6F3E94BD877BBE38D4879CF2BBF1A25`；原图目视通过；target/cargo-target 同名扫描均 0。 | FB-M2 产品可见 fallback/color/locale/complex-cluster/CJK VerticalRl 单列首段关闭；后续转 Text 02/03 CJK 多列/标点、editing geometry 与 per-run `locl` 能力。 |
+| 2026-07-10 | FB-M1 locale/language end-to-end data path | runtime_text_fb_m1_locale_language_pipeline_interface_test_check_passed_runtime_focus_interrupted | 新增可序列化 `UiResolvedStyle.language`；模板 `[font].language`/aliases 解析后进入 `UiTextStyleKey`、`ShapedRunCacheKey`、direct/parallel `TextShapeRequest`、screen-space native rich spans、SDF atlas key/measure/fallback resolver；SDF 同码点按 locale 分槽。 | TDD red 明确捕获旧接口缺字段；独立 interface 回归 1/1；locked no-default production `cargo check` 通过（203.3s，415 既有 warnings）；scoped rustfmt/diff check 通过；聚合 runtime language test 在自动续接时中断且不计通过。日志 `docs/tests/runtime/text/runtime_text_fb_m1_locale_language_pipeline_validation_20260710.log`，SHA256 `B6E147D42E3DD83C0CDA01A68EFB32BEBAE5612F1B6A34E670B4ABF7D5FFEA77`。无策略文字截图。 | 等并发 lib-test lanes 释放后重跑 runtime language focused tests；再做真实 SC/JP 字形 framebuffer 对比与 cluster 单 face backend 断言。 |
+| 2026-07-10 | FB-M1/FB-M2 cluster fallback spans + bounded frame-out diagnostics | runtime_text_fb_m1_cluster_fallback_diagnostics_exact_harness_passed_production_check_recovered | `shaping/fallback_spans.rs` 以 grapheme cluster 复用 CompositeFont script/range/locale resolver，并同时喂 shared cosmic/native rich spans；partial cluster 选择覆盖基字且覆盖数最多 face；`MissingGlyphLog` 按 `(face,codepoint)` 去重、1024 容量、overflow/dropped/occurrence 计数，经共享 `FontDatabase` poison recovery 后排到 `text/prepare_report.rs`；系统 face 改读真实 cmap；default manifest 补 Arabic/Hebrew/emoji/symbols；shaped cache key 加 font database generation；prepare report child split 后 `text.rs` 777 行。 | 实际 `fallback.rs` 窄层 harness 2/2、glyphon native/shared rich-span API harness 2/2、rustfmt/diff check 通过；首两次 production Cargo 被并发 Render 08 阻断，外部 owner 恢复后同一工作树 locked no-default library check 于后续 locale 切片通过（203.3s，415 既有 warnings；证据见紧邻记录）。原始日志 `docs/tests/runtime/text/runtime_text_fb_m1_cluster_fallback_diagnostics_validation_20260710.log`，SHA256 `3BCCDD5BC02E4BEC268185A28B2FFDC3D5EC2E41A8C47EE07DC1768B0B6E9E70`；无策略文字截图。 | 重跑 focused runtime tests；再做真实 CJK/Arabic/emoji fallback raster framebuffer 与 cluster single-face backend 断言。 |
+| 2026-07-10 | FB-M1 D4 backend face-ID authority hard cut | runtime_text_fb_m1_backend_face_id_reconciliation_check_passed_exact_harness_passed_lib_test_build_timeout | `font/backend.rs` + `font/database.rs` 建立权威 backend DB 与双向 ID map；`font/shared.rs` 以 generation snapshot 统一 shared locale shaping/native renderer lineage；cosmic/native 直接消费实际 `LayoutGlyph.font_id`；删除 `shaping/font_id.rs` post-shape 重算桥与无消费者 API。 | production `cargo check` 通过（1m09s，416 既有 warnings，无新增）；真实 Fira Mono 窄层 harness 2/2；focused lib-test 604.2s 与 `--tests` check 304.4s 构建超时、无诊断且不计通过；日志 `docs/tests/runtime/text/runtime_text_fb_m1_backend_face_id_reconciliation_validation_20260710.log`，SHA256 `6311EDC9D779096061CD97D9F92F10C71809A0B87E4BEA61F4964A4608BFD28D`。无策略文字截图。 | D4 完成；emoji/color、partial cluster/.notdef bounded diagnostics、真实 fallback raster/framebuffer 仍 pending。 |
 | 2026-07-03 | FB-M1 fallback resolver tests owner split | runtime_text_font_fallback_tests_owner_split_rustfmt_visual_cargo_deferred | 按结构规范把 `zircon_runtime/src/graphics/text/font/fallback.rs` 从 production + private regressions mixed owner 收敛为 235 行 fallback resolver leaf + `#[cfg(test)] mod tests;`;新增 `zircon_runtime/src/graphics/text/font/fallback/tests.rs` 124 行承接 4 个 primary coverage、CJK fallback、depth-limit 与 missing-codepoint diagnostic 回归。该切片只移动私有测试,不改 fallback candidate order、diagnostic、CompositeFont script/range 或 SDF/native consumer 行为。 | `rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/font/fallback.rs zircon_runtime/src/graphics/text/font/fallback/tests.rs` 通过；`git diff --check -- zircon_runtime/src/graphics/text/font/fallback.rs zircon_runtime/src/graphics/text/font/fallback/tests.rs` 通过。验证图 `docs/tests/runtime/text/runtime_text_font_fallback_tests_owner_split_preview_20260703.png`,SHA256 `9D38C2B6187BBB7C647997E48EBE8D9B7518449F8D91AAE3CC1115DE69A90BE9`；验证日志 `docs/tests/runtime/text/runtime_text_font_fallback_tests_owner_split_validation_20260703.log`,SHA256 `C0F56396A1A0372D3DFA5CA5100667FBCFF63A902AFBCF31B927D329F729B403`；repo `target`、`E:\cargo-targets` 与 `D:\cargo-targets` 同名扫描 0。外部 cargo/rustc lanes 活跃,本切片不启动 focused Cargo,不声明 Cargo green。 | fallback resolver production/test owner 漂移首段关闭；emoji/color fallback、partial cluster coverage、backend-native face-id reconciliation、完整 tofu/raster 缺字路径、真实 editor typography QA 与空闲 Cargo 绿跑仍 pending。 |
 | 2026-06-29 | FB-M2 shaped glyph `font_id` annotation bridge | runtime_text_fb_m2_shaped_font_id_bridge_check_passed | `FontDatabase::resolve_fallback_face_for_cluster(...)` 暴露 crate 内 cluster resolver API;`graphics/text/shaping/font_id.rs` 将 shaped glyph source range/script/codepoints 映射回 resolver-selected face 并写入 `ShapedGlyph.font_id`;native screen-space text prepare 在现有 batch loop 内汇总 `ScreenSpaceUiTextFontIdReport`,让运行时消费该桥接而不是留下 test-only/dead-code 数据面 | `rustfmt --edition 2021 --check` 覆盖 `graphics/text/font/{database.rs,fallback.rs}`、`graphics/text/shaping/{mod.rs,font_id.rs,tests.rs}`、`scene_renderer/ui/text.rs` 和本轮支撑修复文件通过;`cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-shaped-fontid-check --message-format short --color never` 通过(既有 warnings);`cargo test -p zircon_runtime text_fallback_glyph_carries_resolved_font_id --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-shaped-fontid-check --message-format short --color never -- --nocapture` 通过 1/1;视觉证据 `docs/tests/runtime/text/runtime_text_shaped_font_id_bridge_preview_20260629.png` 已检查,repo `target` 与 `E:\cargo-targets` 下同名匹配为 0 | 这只关闭 shaped output 的 post-annotation bridge 与 native prepare 统计消费;真实 glyphon/cosmic backend face-id reconciliation、per-script fallback shaping、emoji/color fallback、tofu/raster 缺字路径、SDF 非 0 face 真 raster 和完整端到端 FB-M2 断言仍 pending |
 | 2026-06-29 | FB-M2 SDF fallback bridge first slice | runtime_text_fb_m2_sdf_fallback_bridge_check_passed_test_compile_timeout | `FontDatabase` 新增 `resolve_fallback_face_for_codepoint(...)`,由 `FallbackResolver::resolve_codepoint(...)` 复用 FB-M1 的 primary coverage、script/range、fallback chain 和 last-resort 规则;`graphics/scene/scene_renderer/ui/sdf_font_bake.rs` 在每个 `SdfAtlasGlyphKey` bake/measure 前按 glyph + `font_family` 构造 `FontQuery`,优先尝试 resolver 选出的 face,再保留 requested/default face fallback order。这样 SDF glyph bake 首次消费统一 fallback resolver,避免继续只按请求 font asset 烘焙缺字 face;实现仍保持 font owner 与 SDF bake owner 分层,不把 fallback 规则写进 UI/layout/render facade。 | `rustfmt --edition 2021 --check zircon_runtime/src/graphics/text/font/database.rs zircon_runtime/src/graphics/text/font/fallback.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs` 通过;`cargo check -p zircon_runtime --lib --no-default-features --locked --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-sdf-check --message-format short --color never` 通过(既有/no-default warnings);focused `cargo test -p zircon_runtime text_font_database_resolves_fallback_face_for_codepoint --lib --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-0629-fallback-sdf-check --message-format short --color never -- --nocapture` 15 分钟编译/链接超时无 Rust diagnostics,匹配进程已停止,不计 test 通过;`cargo check -p zircon_runtime --lib --tests ...` 失败于无关既有 test targets:`zircon_host_reflection_docs` 缺 `args/error/run` 模块和 `virtual_geometry_debug_snapshot_contract` 调用已移除 `RenderLayerSet::from_legacy_mask`;视觉证据 `docs/tests/runtime/text/runtime_text_sdf_fallback_bridge_preview_20260629.png` 已检查,并确认 repo `target` 下同名匹配为 0。 | 这只关闭 FB-M2 的 SDF bake face-selection bridge;cosmic/glyphon shaping 的稳定 runtime `FontFaceId` 映射、`ShapedGlyph.font_id` 实际 fallback-selected face、cluster 同 face shaped output、emoji/color fallback、tofu/raster 缺字路径和完整端到端断言仍 pending。 |

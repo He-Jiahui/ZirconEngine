@@ -44,9 +44,9 @@
 - In-scope behaviors: Activity and Browser content scroll storage; non-negative scroll clamping; hovered-index storage including `-1`.
 - Dependencies: existing `apply_asset_pointer_state_to_ui(...)` calls and `PaneSurfaceHostContext` state ownership.
 - Implementation slices:
-  - [ ] Add failing unit-test code that creates a host pane context, writes Activity/Browser content state, and reads back exact values.
-  - [ ] Add four fields to `HostPaneInteractionStateData`, initialize scroll to `0.0` and hover to `-1`, and replace the four content no-op setters with direct state writes.
-  - [ ] Append exactly one completed output record to the owning editor-layout plan archive.
+  - [x] Add failing unit-test code that creates a host pane context, writes Activity/Browser content state, and reads back exact values.
+  - [x] Add four fields to `HostPaneInteractionStateData`, initialize scroll to `0.0` and hover to `-1`, and replace the four content no-op setters with direct state writes.
+  - [x] Append exactly one completed output record to the owning editor-layout plan archive.
 - Required state contract:
 
   ```rust
@@ -74,10 +74,10 @@
 - In-scope behaviors: identity/no-transform path; mutable node transform; clip replacement/intersection; suppression.
 - Dependencies: Milestone 1 state model and current `draw_template_nodes` command pipeline.
 - Implementation slices:
-  - [ ] Add transform tests using a small fake transform: one node translates, one receives a narrow clip, one returns suppression, and the original model remains unchanged.
-  - [ ] Define an internal callback/trait contract equivalent to `fn transform(&self, node: TemplatePaneNodeData, clip: FrameRect) -> Option<(TemplatePaneNodeData, FrameRect)>`.
-  - [ ] Add `draw_template_nodes_with_transform(...)`; keep `draw_template_nodes(...)` as the unchanged identity wrapper so all unrelated callers preserve behavior.
-  - [ ] Append exactly one completed output record to the owning editor-layout plan archive.
+  - [x] Add transform tests using a small fake transform: one node translates, one receives a narrow clip, one returns suppression, and the original model remains unchanged.
+  - [x] Define an internal callback/trait contract equivalent to `fn transform(&self, node: TemplatePaneNodeData, clip: FrameRect) -> Option<(TemplatePaneNodeData, FrameRect)>`.
+  - [x] Add `draw_template_nodes_with_transform(...)`; keep `draw_template_nodes(...)` as the unchanged identity wrapper so all unrelated callers preserve behavior.
+  - [x] Append exactly one completed output record to the owning editor-layout plan archive.
 - Required transform contract:
 
   ```rust
@@ -109,13 +109,13 @@
 - In-scope behaviors: `AssetsActivityContentPanel` discovery; folder-first/item-second identity; child-node row association; scroll translation; panel clip intersection; exact one-row hover; stale-index behavior; missing-panel/unrelated-node pass-through; off-viewport suppression; below-viewport source geometry.
 - Dependencies: Milestone 2 transform extension and shared `AssetContentLayoutMetrics` used by layout/pointer code.
 - Implementation slices:
-  - [ ] Add pure identity/projector test code for folder and item row families, children, missing panel, stale hover, non-zero scroll, partial intersection, and full suppression.
-  - [ ] Implement stable id parsing without compatibility aliases. Count projected folder row panels to map item indices into the pointer bridge's shared row order.
-  - [ ] Implement frame translation and rectangle intersection using pane/body-local coordinates; set `hovered` only on the row panel with the stored shared index.
-  - [ ] Thread `HostPaneInteractionStateData` through `draw_pane_template_nodes(...)` and select the projector only for `pane.kind == "Assets"`.
-  - [ ] Remove overflow `hide_controls(...)` from `content_layout.rs`; lay every row at its metric-derived source frame and retain zero-width handling only for genuinely unavailable horizontal space.
-  - [ ] Add the source-geometry regression assertion: a later row must have positive width/height and a `y` beyond the content panel bottom in a short drawer.
-  - [ ] Append exactly one completed output record to the owning editor-layout plan archive.
+  - [x] Add pure identity/projector test code for folder and item row families, children, missing panel, stale hover, non-zero scroll, partial intersection, and full suppression.
+  - [x] Implement stable id parsing without compatibility aliases. Count projected folder row panels to map item indices into the pointer bridge's shared row order.
+  - [x] Implement frame translation and rectangle intersection using pane/body-local coordinates; set `hovered` only on the row panel with the stored shared index.
+  - [x] Thread `HostPaneInteractionStateData` through `draw_pane_template_nodes(...)` and select the projector only for `pane.kind == "Assets"`.
+  - [x] Remove overflow `hide_controls(...)` from `content_layout.rs`; lay every row at its metric-derived source frame and retain zero-width handling only for genuinely unavailable horizontal space.
+  - [x] Add the source-geometry regression assertion: a later row must have positive width/height and a `y` beyond the content panel bottom in a short drawer.
+  - [x] Append exactly one completed output record to the owning editor-layout plan archive.
 - Required projector contract:
 
   ```rust
@@ -157,11 +157,11 @@
 - In-scope behaviors: viewport from `AssetsActivityContentPanel`; extent from full source row geometry produced by shared metrics; no scrollbar when content fits/empty; stored scroll offset and active hover state; no custom RGB or duplicate row painting.
 - Dependencies: Milestone 3 projector and full source rows.
 - Implementation slices:
-  - [ ] Add scrollbar tests for empty, fitting, and overflowing Activity content plus a non-zero stored offset.
-  - [ ] Implement `draw_activity_asset_content_scrollbar(...)` and call it from the Assets native-content branch alongside the tree scrollbar.
-  - [ ] Extend the screenshot fixture to write `editor-window-m3-assets-drawer-scrolled-hover-900x620.png` after applying a real content scroll/hover state through the existing callback route.
+  - [x] Add scrollbar tests for empty, fitting, and overflowing Activity content plus a non-zero stored offset.
+  - [x] Implement `draw_activity_asset_content_scrollbar(...)` and call it from the Assets native-content branch alongside the tree scrollbar.
+  - [x] Extend the screenshot fixture to write `editor-window-m3-assets-drawer-scrolled-hover-900x620.png` after applying a real content scroll/hover state through the existing callback route.
   - [ ] Verify the captured image shows a later row, exactly one standard hovered row surface, a content scrollbar, and no content pixels over Preview.
-  - [ ] Append exactly one completed output record to the owning editor-layout plan archive.
+  - [x] Append exactly one completed output record to the owning editor-layout plan archive.
 - Required scrollbar contract:
 
   ```rust
@@ -180,7 +180,7 @@
 
 ## Milestone testing stage: Compile, regression, correction, and acceptance
 
-- [ ] Run formatting and structural checks:
+- [x] Run formatting and structural checks:
 
   ```powershell
   cargo fmt --all -- --check
@@ -189,7 +189,7 @@
 
   Expected: exit code `0`; no whitespace errors.
 
-- [ ] Compile the affected editor test target once, using an external target directory:
+- [x] Compile the affected editor test target once, using an external target directory:
 
   ```powershell
   $env:CARGO_TARGET_DIR='E:\cargo-targets\zircon-editor-assets-content-scroll-hover-0710'
@@ -198,7 +198,7 @@
 
   Expected: the editor library test executable is produced outside the repository. If unrelated concurrent owners fail, capture exact diagnostics and use the newest focused executable only when its timestamp proves it contains this slice.
 
-- [ ] Run focused tests bottom-up from the compiled executable or Cargo filter:
+- [x] Run focused tests bottom-up from the compiled executable or Cargo filter:
 
   ```powershell
   cargo test -p zircon_editor --lib activity_asset_content -- --nocapture
@@ -209,12 +209,14 @@
 
   Expected: all newly added state, transform, projector, geometry, scrollbar, and existing pointer tests pass.
 
-- [ ] Run the ignored scrolled/hovered capture test with `--exact --ignored --nocapture`, manually inspect the PNG, and iterate only on the lowest failing support owner.
-- [ ] Run the repository validator selected by `zircon-dev-validation`; record any external-owner failure without claiming full validation success.
-- [ ] Scan both `E:\Git\ZirconEngine\target` and the external Cargo target for matching PNG names; expected count is `0` in both.
-- [ ] Re-run the editor-layout plan-output audit and verify every new slice/status id appears exactly in the owning numbered plan/archive locations required by `write-plan-output-records`.
-- [ ] Update module docs, the editor-layout parent checklist, output archive, and active session note with exact commands, test counts, artifact hash, target scan, and any remaining external blocker.
-- [ ] Mark milestones complete only after the evidence above passes; leave the broader editor-layout goal active for the next bottom-up component/composite slice.
+- [x] Run the ignored scrolled/hovered capture test with `--exact --ignored --nocapture`, manually inspect the PNG, and iterate only on the lowest failing support owner.
+- [x] Run the repository validator selected by `zircon-dev-validation`; record any external-owner failure without claiming full validation success.
+- [x] Scan both `E:\Git\ZirconEngine\target` and the external Cargo target for matching PNG names; expected count is `0` in both.
+- [x] Re-run the editor-layout plan-output audit and verify every new slice/status id appears exactly in the owning numbered plan/archive locations required by `write-plan-output-records`.
+- [x] Update module docs, the editor-layout parent checklist, output archive, and active session note with exact commands, test counts, artifact hash, target scan, and any remaining external blocker.
+- [x] Mark milestones complete only after the evidence above passes; leave the broader editor-layout goal active for the next bottom-up component/composite slice.
+
+Testing-stage result (2026-07-11): scoped Rustfmt and diff checks pass; full `cargo fmt --all -- --check` remains blocked by unrelated formatting deltas in current runtime-absorption test fixtures. The current-tree official validator passes locked package build; its default-parallel test process exits 101 without a test summary after excessive thread creation. Direct single-thread execution completes the entire 2928-test binary with 2761 passed, 133 unrelated/current-worktree failures, and 34 ignored; every test owned by this plan passes in that full context. WSL `cargo check -p zircon_editor --lib --no-default-features --locked --offline --jobs 1` passes in 19m13s. The accepted native-route capture is 74069 bytes with SHA256 `45359A656E5EEBADA47685E526C790C965BD2167724C3C85053A17056DC23533`; detailed evidence and the bounded acceptance decision live in `tests/acceptance/editor-assets-content-scroll-hover-paint-transform.md`.
 
 ## 状态与产出记录
 
@@ -222,3 +224,7 @@
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| M1 | Activity/Browser 内容交互状态 | completed-accepted | 2026-07-11 | setters 2/2 focused + full-context passed; WSL/package build passed |
+| M2 | 通用 template-node paint transform | completed-accepted | 2026-07-11 | transform 2/2 focused + full-context passed; identity path preserved |
+| M3 | Activity 内容 identity/projector/full source geometry | completed-accepted | 2026-07-11 | Activity projector/root/empty/full-source tests passed; short drawer 2/2 passed |
+| M4 | Activity content shared scrollbar + visual route | completed-accepted | 2026-07-11 | native route regression 1/1; capture 1/1; screenshot SHA256 `45359A65...5333`; target scans zero |

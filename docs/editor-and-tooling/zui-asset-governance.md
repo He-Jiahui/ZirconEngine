@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_editor/assets/ui/**/*.zui
+  - zircon_runtime/assets/ui/**/*.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_component_lab.zui
   - zircon_editor/assets/ui/editor/material_components/data_display/material_*.zui
@@ -10,7 +12,7 @@ related_code:
   - zircon_editor/assets/ui/editor/material_components/navigation/material_*.zui
   - zircon_editor/assets/ui/editor/material_components/surfaces/material_*.zui
   - zircon_editor/assets/ui/editor/material_components/utils_lab/material_*.zui
-  - zircon_editor/assets/ui/editor/host/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance.rs
@@ -30,6 +32,7 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/slot_schema.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/style.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/support.rs
+  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
@@ -54,6 +57,7 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/slot_schema.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/style.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/support.rs
+  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/ui_v2_document_import.rs
@@ -62,6 +66,7 @@ plan_sources:
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - docs/plans/zircon_editor/editor_ui/11-zui-suffix-convergence-and-ui-toml-retirement.md
 tests:
+  - F:\cargo-targets\zircon-ui-state-priority-0711\debug\deps\zircon_editor-1ca47919e17744f1.exe zui_asset_governance --test-threads=1 --nocapture (2026-07-11 production locator and ActivityDrawerWindow hard cut: passed 71/71)
   - cargo test -p zircon_editor --lib zui_asset_governance --locked --jobs 1
   - cargo test -p zircon_editor --lib production_view_style_roots_are_zui_documents --locked --jobs 1
   - cargo test -p zircon_runtime --lib importer_registry_rejects_non_fixture_ui_toml_source_importer_registration --locked --jobs 1
@@ -74,7 +79,7 @@ doc_type: workflow-detail
 
 `.zui` is the production suffix for current UI documents. A `.zui` document uses the UiV2 TOML schema structs in memory and is classified by `[asset].kind`: component documents use the strict reusable-component profile, while view/style/theme-token roots use the root-document profile introduced by plan 11 M1. Component rules still apply only to `asset.kind = "component"` documents, so current `.zui` view/style/theme-token roots do not have to live in component folders or declare a single component. The split `ui_document_importer` runtime importer is document-kind aware and registers `ui_document_importer.zui_document`, with `UiLayout` and `UiStyle` as additional outputs for `.zui` roots.
 
-Production `.zui` component prototype files must live under explicit component namespace directories such as `ui/editor/components` or `ui/editor/material_components`. Component files outside those directories are allowed only as registered builtin alias exceptions; the current host-path exception is `ui/editor/host/activity_drawer_window.zui`. View/style `.zui` roots are classified by `asset.kind` and follow the root-document governance bucket instead of the component folder taxonomy. A namespace root identifies the component asset family, but concrete prototypes still move into functional subfolders once that family contains multiple domains. This keeps reusable component prototypes from being scattered through view/root folders while still allowing a short migration window for stable builtin ids.
+Production `.zui` component prototype files must live under explicit component namespace directories such as `ui/editor/components` or `ui/editor/material_components`. The former host-path exception has been hard-cut to `ui/editor/components/workbench/shell/activity_drawer_window.zui`; there are currently no registered component-path aliases. View/style `.zui` roots are classified by `asset.kind` and follow the root-document governance bucket instead of the component folder taxonomy. A namespace root identifies the component asset family, but concrete prototypes still move into functional subfolders once that family contains multiple domains. This keeps reusable component prototypes from being scattered through view/root folders.
 
 Workbench editor component assets are stricter than the generic component-directory rule. `ui/editor/components` is only a namespace root; Workbench and showcase `.zui` files must live under the functional folders `showcase/`, `workbench/primitives/{inputs,data,feedback,chrome}/`, `workbench/shell/`, or `workbench/modules/generated/`. Core Workbench modules must go one level deeper under `workbench/modules/core/{ai,assets,gameplay,index,rendering,ui}/`, and More Editors extension workspaces must go one level deeper under `workbench/modules/extensions/{animation,data,diagnostics,gameplay,index,multiplayer,production,rendering,simulation,ui,world}/`. Direct files in `workbench/modules/core/` or `workbench/modules/extensions/` are invalid because they hide the component family or module boundary that the native template loader and handoff verifiers need to preserve. Flat root files such as `components/workbench_button.zui`, `components/workbench_extension_*.zui`, or `components/showcase_visual_section.zui` are invalid for the same reason.
 
@@ -82,9 +87,9 @@ Material/MUI editor component assets are also stricter than the generic componen
 
 Retired `.v2.ui.toml` files are not production roots. Governance scans view/style roots and component prototypes through the unified `.zui` document set, then dispatches rules by `asset.kind`. Their `imports.widgets` entries may reference only `.zui` component assets or explicitly registered builtin `.zui` aliases. A direct widget import must name the component fragment explicitly, for example `res://ui/editor/components/showcase/showcase_visual_section.zui#ShowcaseVisualSection`; alias imports follow the same `asset.id#ComponentName` shape. Importing a `.zui` component file without `#ComponentName`, or importing any old `.v2.ui.toml#ComponentName` widget source, is invalid for production assets because widget composition flows through `.zui` component prototypes.
 
-Production `.zui` `[asset].id` values default to their file-derived `res://` locator. This keeps component assets relocatable through the same path alias that `UiV2PrototypeStoreFileCache` registers for loaded source files. Builtin aliases are allowed only when they are explicitly documented in the governance test and are still referenced by production `.zui` roots. The current exception is `zircon_editor/assets/ui/editor/host/activity_drawer_window.zui`, whose stable id is `editor.host.activity_drawer_window`; the window roots import that alias while the file cache also exposes the path alias `res://ui/editor/host/activity_drawer_window.zui`.
+Production `.zui` `[asset].id` values equal their file-derived `res://` locator. This keeps component assets relocatable through the same identity that `UiV2PrototypeStoreFileCache` registers for loaded source files. The 2026-07-11 hard cut moved `ActivityDrawerWindow` into the Workbench shell component folder, updated its window imports, and emptied `BUILTIN_ZUI_ASSET_ID_ALIASES`; no production `.zui` currently depends on a logical-id alias.
 
-Production UI asset ids are globally unique across all `.zui` documents. A `.zui` component may use a registered builtin alias instead of its locator during migration, but that alias still participates in the same production asset id namespace and must not collide with a root view, style asset, or another component.
+Production UI asset ids are globally unique across all `.zui` documents. The locator is the production identity; migration-only logical aliases are not preserved alongside it.
 
 Production UI asset headers must stay authorable and current. Every production `.zui` asset must declare the current `.zui` schema version plus non-empty, trimmed `asset.id` and `display_name` fields, so the Widget Editor, asset browser, diagnostics, and future migration tools can present stable identifiers and human-facing labels instead of deriving names from paths or carrying invisible whitespace differences.
 
@@ -98,7 +103,7 @@ Production `.zui` component root nodes must declare explicit layout metadata, an
 
 Production `.zui` components that declare `default_classes` must expose at least one usable class token. The class list is allowed to be absent for wrapper-only components, but once present it becomes the public style anchor used by default theming, previews, palettes, and Widget Editor class forms; an effectively empty list would look intentional in source while carrying no selectable styling contract.
 
-Every production `.zui` component file must be reachable from at least one production UI root widget import. Reachability can be direct, through `res://...zui#ComponentName`, or through an explicitly registered builtin alias such as `editor.host.activity_drawer_window#ActivityDrawerWindow`. This prevents component prototypes from drifting as orphan files after showcase or workbench roots move.
+Every production `.zui` component file must be reachable from at least one production UI root widget import through `res://...zui#ComponentName`, such as `res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow`. This prevents component prototypes from drifting as orphan files after showcase or workbench roots move.
 
 Inside each production `.zui` component asset, the node table must also be fully reachable from the single component root through `children` links. `.zui` is a component prototype, not a scratch document, so unreachable node definitions are treated as stale asset data that would confuse previews, diffs, migration tools, and future Widget Editor hierarchy views.
 

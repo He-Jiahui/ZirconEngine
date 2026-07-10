@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
+  - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
 implementation_files:
   - zircon_runtime/src/scene/world/project_io.rs
@@ -17,11 +18,14 @@ implementation_files:
   - zircon_runtime/src/scene/world/project_io/references.rs
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
+  - zircon_runtime/src/asset/assets/scene/camera.rs
 plan_sources:
   - user: 2026-06-14 implement zircon_runtime runtime architecture plan code
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md
   - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
+  - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/project_io/camera.rs zircon_runtime/src/scene/world/project_io/physics.rs zircon_runtime/src/scene/world/project_io/post_process.rs zircon_runtime/src/scene/world/project_io/references.rs zircon_runtime/src/scene/world/project_io/script.rs zircon_runtime/src/scene/world/project_io/transform.rs
   - rustfmt --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/render.rs zircon_runtime/src/scene/tests/asset_scene.rs zircon_runtime/src/scene/tests/dynamic_scene_session/capture.rs zircon_runtime/src/scene/tests/dynamic_scene_session/load.rs
@@ -31,6 +35,7 @@ tests:
   - scene::tests::dynamic_scene_session::capture::runtime_session_archive_previews_capture_to_path_without_writing_archive
   - scene::tests::dynamic_scene_session::load::runtime_session_archive_applies_slot_from_path_to_live_world_and_level
   - runtime_07_project_io_folder_split_keeps_entry_and_converter_owners
+  - runtime_camera_core_pipeline_contract (3 passed)
   - performance_hotpath_boundary_audit reports large_file_hotspot_count = 40 and runtime-other = 15 after the render product diagnostics owner split removed one runtime hotspot
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked attempted 2026-06-14; timed out while unrelated active editor/render lanes were compiling
   - cargo test -p zircon_runtime --lib scene_asset --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-scene-closeout-0619 --message-format short --color never -- --test-threads=1 --nocapture attempted 2026-06-20; timed out after 10 minutes with no pass/fail result
@@ -53,7 +58,7 @@ The 2026-06-14 Runtime 07 Project I/O Folder Split keeps the public entry points
 The child modules each own one conversion family:
 
 - `references.rs` maps `AssetReference` values to typed `ResourceHandle<T>` values and back, including builtin fallback locators.
-- `camera.rs` converts camera targets, viewport rectangles, and `CameraComponent` values.
+- `camera.rs` converts camera targets, viewport rectangles, explicit Core2d/Core3d identity, and `CameraComponent` values.
 - `post_process.rs` converts render post-process settings, volumes, profiles, tonemap, vignette, grain, dither, chromatic aberration, and fog DTOs.
 - `physics.rs` converts collider shapes.
 - `script.rs` decodes the stored `script.bindings` dynamic component payload.
@@ -66,6 +71,8 @@ Loading starts from either a `ResourceLocator` or a `SceneAsset`. The project ma
 `World::from_scene_asset` uses the asset-preserving post-load path: it rebuilds schedules, registries, typed component presence, derived state, and default per-entity maps without injecting a fallback camera or directional light. This keeps sparse assets such as script-only entities and transform-only hierarchies stable across `SceneAsset -> World -> SceneAsset` roundtrips. Project-document loading still uses the default-repair path so older serialized `World` files with no camera or light can regain runtime defaults.
 
 Saving walks runtime node records and component maps, converts runtime components back into scene asset DTOs, serializes script bindings from the dynamic component map, and returns structured `SceneProjectError::SceneAsset` errors when a persistent resource locator is missing. No editor-only authoring state is serialized here.
+
+Camera conversion preserves `core_pipeline` independently from `projection_mode` in both directions. Missing scene fields default to `Core3d`; explicit sprite-camera `Core2d` survives `SceneCameraAsset -> CameraComponent -> SceneCameraAsset`. This prevents orthographic 3D/PBR cameras from silently entering the Core2d schedule after project load or artifact-cache restore.
 
 ## Design and Rationale
 

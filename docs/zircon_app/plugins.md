@@ -12,6 +12,9 @@ related_code:
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_runtime/src/lib.rs
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/builtin/runtime_modules/manifest.rs
+  - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -69,6 +72,7 @@ implementation_files:
   - zircon_runtime/src/core/modules/mod.rs
   - zircon_runtime/src/core/modules/log.rs
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-08 implement ZirconEngine Bevy completion roadmap M1 app composition layer
   - user: 2026-05-16 continue Bevy-style default log diagnostics and dev profile completion
   - user: 2026-05-16 continue Bevy-style platform/window/input default composition completion
@@ -79,6 +83,7 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
 tests:
+  - tools/tests/test_frameworks_03_server_feature_boundary.py
   - zircon_app/src/plugins/tests.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/tests/mod.rs
@@ -86,10 +91,10 @@ tests:
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_app --locked profile_bootstrap
   - cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1
-  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
-  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
-  - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
-  - cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
+  - cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never
   - cargo build -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation
   - zircon_runtime::builtin::runtime_modules::tests::registration::behavior::target_runtime_modules_follow_descriptor_activation_order
   - zircon_app::plugins::tests::builtin_plugin_groups_finish_in_descriptor_activation_order
@@ -124,6 +129,8 @@ Errors are explicit instead of panic-driven. Duplicate module keys, missing keys
 
 ## Built-In Groups
 
+Frameworks 03 makes App composition follow the same compile-time domain vocabulary as Runtime. `animation`, `diagnostic-log`, `dynamic-api`, `graphics`, `navigation`, `script`, `text`, and `ui` are forwarding features, while target-client/editor-host explicitly compose them and target-server keeps only diagnostics plus the headless platform. `default_modules(...)` declares GraphicsModule only with `graphics` and ScriptModule only with `script`; Headless/server builds do not retain unreachable client module references. WSL App checks pass for both `target-server` and the default client combination after this hard cutover; the default check used a command-local `/tmp` libudev development package because the base WSL image lacks `libudev.pc`.
+
 `MinimalPlugins` maps to the available lower shared descriptors needed for a headless core loop: foundation, tasks, time, frame count, and diagnostics core. The task/time/frame-count/diagnostics entries are runtime-owned descriptor modules under `zircon_runtime::core::modules`; they do not install duplicate services because the actual scheduler, runtime clock bundle, frame clock, diagnostic store, and diagnostics collection primitives remain owned by `CoreRuntime` and existing runtime modules.
 
 `DefaultPlugins` maps to the current default runtime stack: foundation, log, platform, input, asset, scene, graphics, script, and feature-gated UI. `HeadlessPlugins` resolves the same lower runtime stack without graphics/UI presentation modules, but keeps platform/input descriptors for capability reporting and synthetic input state plus the default log descriptor so headless tools retain the same diagnostic policy surface.
@@ -146,6 +153,8 @@ Frameworks 02 moves final ordering out of the app group layer. `PluginGroupBuild
 `BuiltinEngineEntry::bootstrap` calls `module_descriptors()` on the resolved group, stores app-owned bootstrap config, then registers and activates every descriptor through `CoreRuntime`. It stores the app-owned config again after activation so modules that install default runtime config cannot overwrite the selected entry render/platform profile. Service initialization order, duplicate service detection, dependency resolution, and shutdown rules remain runtime-owned.
 
 When `BuiltinEngineEntry` is built from linked runtime plugin registration reports, `builtin_modules_for_config_with_runtime_plugin_registrations(...)` and the feature-aware variant also build a `RuntimePluginBridgeLifecycleState` from the same effective project/runtime-profile manifest. `BuiltinEngineEntry::bootstrap` installs that state into `CoreRuntime` before module activation, so bridge exports contributed by linked runtime plugins are visible to `CoreHandle::plugin_bridge_lifecycle_state()` and can receive `RuntimePluginBridgeLifecycleEvent` inputs immediately after startup. This is startup wiring only; later runtime enable/disable/reload control points still belong to the runtime/plugin lifecycle layer.
+
+Frameworks 02 M3 removes the former test-only RuntimePlugin lifecycle dispatcher. Linked SDK/first-party/native reports carry package runtime-module rows; the project-filtered catalog validates and sorts those rows before extension merge, and `builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(...)` turns the accepted extension descriptors into normal `EngineModule` entries. `CoreRuntime` is therefore the only owner of build/ready/finish/cleanup. Invalid plugin dependency graphs produce fatal selection diagnostics before bootstrap installs extensions or registers modules, with no legacy registration-order fallback.
 
 `BuiltinEngineEntry::module_selection_report()` exposes the selected entry profile, run mode, optional runtime profile, target mode, plugin group name, platform capability diagnostics, selected window descriptor, and module descriptor counts. The report is read-only diagnostics for tooling and tests; it does not become a second bootstrap path or bypass runtime descriptor registration. `EntryModuleSelectionReport::diagnostic_lines()` and `format_diagnostics()` render the same data into stable text lines so profile/module choices can be captured in logs, CLI output, or test artifacts without reaching into the plugin builder internals. `EntryRunner::module_selection_report(...)` and `EntryRunner::module_selection_diagnostics(...)` expose the same report at the runner boundary before `CoreRuntime` bootstrap, so tools can explain a profile's module composition without registering or activating services.
 
@@ -197,24 +206,24 @@ Fresh Frameworks 02 M2/M3 documentation sync on 2026-07-03 records the hard cuto
 
 Latest scoped validation on 2026-05-16 used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target` because other active sessions were using the shared Cargo target directories:
 
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
-- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
 - `cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1` passed: 13 tests, 0 failures.
 
 Native navigation-provider validation initially exposed a Windows-only D3D12 dependency version skew in the root lockfile: `wgpu-hal v29.0.3` uses `windows 0.62.2`, while its `gpu-allocator v0.28.0` dependency had been resolved to `windows 0.61.3`. The accepted lockfile alignment keeps Slint/`zircon_hub`'s `accesskit_windows v0.30.0` on `windows 0.61.3`, but resolves only `gpu-allocator v0.28.0` to the already-present `windows 0.62.2` package so `wgpu-hal` and its allocator share the same D3D12 ABI types.
 
 Windows navigation-provider validation used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target`, `CARGO_INCREMENTAL=0`, and disabled default app platform/gamepad features because the profile-provider tests do not need them:
 
-- `cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
-- `cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" profile_bootstrap --message-format short -- --nocapture --test-threads=1` passed: 18 tests, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" profile_bootstrap --message-format short -- --nocapture --test-threads=1` passed: 18 tests, 0 failures.
 
 WSL/Linux was also used as corroborating evidence with `CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target`:
 
-- `CARGO_INCREMENTAL=0 cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `CARGO_INCREMENTAL=0 cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
 
 Fresh M9A app-provider validation on 2026-05-19 used `CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-render-m9a-advanced`:
 
-- `cargo check -p zircon_app --lib --locked --no-default-features --features "plugin-ui,first-party-advanced-render-runtime-plugins" --jobs 1 --color never` passed after the lockfile included the new optional provider crates.
-- `cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never` passed: 2 tests, 0 failures.
-- `cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never` passed: 3 tests, 0 failures.
+- `cargo check -p zircon_app --lib --locked --no-default-features --features "ui,first-party-advanced-render-runtime-plugins" --jobs 1 --color never` passed after the lockfile included the new optional provider crates.
+- `cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never` passed: 2 tests, 0 failures.
+- `cargo test -p zircon_app --locked --no-default-features --features "ui,first-party-runtime-plugins,first-party-advanced-render-runtime-plugins" render_profile_runtime_plugins --jobs 1 --message-format short --color never` passed: 3 tests, 0 failures.
 - `cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --jobs 1` passed for the linked first-party plugin workspace after shader importer schema-sync fixes.

@@ -60,10 +60,14 @@ tests:
   - python direct script_binding_boundary_audit (2026-06-21 Markdown renderer split: script_binding_boundary.py = 352, script_binding_markdown.py = 106, expected_source_file_count = 19, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
   - cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture (2026-06-14: 48/48 passed)
   - "pending: cargo test -p zircon_runtime --lib script --locked -- --nocapture"
+  - tools/tests/test_runtime_script_binding_audit.py
+  - tests/acceptance/runtime-script-binding-audit-owner-sync.md
 doc_type: module-detail
 ---
 
 # ZrVM Host Function Ledger
+
+Runtime 13 current child-owner sync (2026-07-10): `script_binding_boundary` reports `expected_source_file_count = 19`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
 
 Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 52 fixed host functions, and 2 fixed script type descriptors. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
 

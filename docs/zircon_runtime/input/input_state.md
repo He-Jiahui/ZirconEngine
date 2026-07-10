@@ -196,10 +196,14 @@ tests:
   - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
   - zircon_app/src/entry/tests/mod.rs
+  - tools/tests/test_runtime_input_stack_audit.py
+  - tests/acceptance/runtime-input-stack-audit-owner-sync.md
 doc_type: module-detail
 ---
 
 # Runtime Input State
+
+Runtime 12 current child-owner sync (2026-07-10): `input_stack_boundary` reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `expected_guard_file_count = 6`, `missing_guard_files = []`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `behavior_test_anchor_count = 15`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. Current status anchors are `Frame Input Contract`, `input_frame_contract_static_passed_cargo_pending`, `arbitration_judgement_documented_static_passed`, `action_contract_static_passed_cargo_pending`, `action_evaluator_static_passed_cargo_pending`, `action_context_static_passed_cargo_pending`, `action_axis_value_static_passed_cargo_deferred`, `action_config_static_passed_cargo_deferred`, `action_manager_registration_static_passed_cargo_deferred`, `action_axis_consumption_static_passed_cargo_deferred`, `input_recording_replay_static_passed_cargo_deferred`, `cursor_host_request_static_passed_cargo_deferred`, `gamepad_bridge_static_passed_cargo_pending`, and `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`. Pending command anchors remain `cargo test -p zircon_runtime --lib input --locked -- --nocapture`, `cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`, `cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture`, and `cargo test -p zircon_app --locked`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, input module doc, M0 review, and interface-convergence mirror aligned; production input behavior is unchanged.
 
 ## Purpose
 
@@ -415,3 +419,9 @@ Each winit wait cycle polls gilrs and translates events through the ABI instead 
 `zircon_runtime::dynamic_api::session` keeps the ABI session entry, while `zircon_runtime/src/dynamic_api/session/events.rs` reduces those ABI events into `InputEvent::GamepadConnection`, `InputEvent::GamepadButton`, and `InputEvent::GamepadAxis`. The runtime keeps Bevy-style durable gamepad state in `InputFrameSnapshot`: connected gamepads, pressed gamepad buttons, per-frame transitions, processed analog button values, processed latest axis values, and current-frame `GamepadAxisTransition` edges. Disconnect still clears that gamepad's axes, analog button values, and pressed buttons, and produces zero-value axis transition edges for previously non-zero axes.
 
 Current intentional gaps are browser Gamepad API support, additional non-mouse device events, and editor/native host convergence. Browser gamepad must remain a separate backend instead of being treated as a gilrs alias.
+
+## 2026-07-10 current guard-owner validation
+
+Plan sources are Runtime09, Runtime12, Runtime15, and Plan09 numbered output records. The current guard implementation files are `tests/runtime_absorption/input_stack/**`, `tests/runtime_absorption/naming_boundary/runtime_15_m2/{input,ui}/**`, `tests/runtime_absorption/ui_architecture/legacy_renames.rs`, and the scene-world production-budget guard. No input production behavior changed in this reconciliation.
+
+The direct Runtime12 structure audit reports runtime/framework/test/guard counts 12/20/7/6, all missing lists empty, `mirror_docs_guard_present = true`, and `risks = []`. Current-source tests pass input-stack 11/11, input naming 3/3, Runtime09 route/name 11/11, and scene-world visibility owner 1/1. The available older default-feature `input` filter remains 429 passed / 25 failed / 1 ignored; all twelve stale guard failures are reconciled in current source, while thirteen active UI behavior failures and a fresh default-feature rebuild remain pending. Acceptance evidence is recorded in `tests/acceptance/runtime-input-current-result.md`.

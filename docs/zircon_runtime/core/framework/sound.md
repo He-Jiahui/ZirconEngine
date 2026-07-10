@@ -3,7 +3,8 @@ related_code:
   - zircon_runtime/src/core/framework/sound/mod.rs
   - zircon_runtime/src/core/framework/sound/acoustics.rs
   - zircon_runtime/src/core/framework/sound/automation.rs
-  - zircon_runtime/src/core/framework/sound/channel_layout.rs
+  - zircon_runtime/src/core/framework/audio/mod.rs
+  - zircon_runtime/src/core/framework/audio/channel_layout.rs
   - zircon_runtime/src/core/framework/sound/components.rs
   - zircon_runtime/src/core/framework/sound/effects.rs
   - zircon_runtime/src/core/framework/sound/error.rs
@@ -45,7 +46,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/sound/mod.rs
   - zircon_runtime/src/core/framework/sound/acoustics.rs
   - zircon_runtime/src/core/framework/sound/automation.rs
-  - zircon_runtime/src/core/framework/sound/channel_layout.rs
+  - zircon_runtime/src/core/framework/audio/mod.rs
+  - zircon_runtime/src/core/framework/audio/channel_layout.rs
   - zircon_runtime/src/core/framework/sound/components.rs
   - zircon_runtime/src/core/framework/sound/effects.rs
   - zircon_runtime/src/core/framework/sound/error.rs
@@ -86,6 +88,14 @@ tests:
   - external_source_block_constructor_derives_count_from_declared_layout
   - sound_scene_component_type_ids_are_plugin_prefixed
   - cargo test -p zircon_runtime --lib sound --locked --jobs 1 --target-dir E:\cargo-targets\zircon-sound-framework-contract --message-format short --color never (pending while active Cargo lanes are busy)
+  - python tools/tests/test_frameworks_03_contract_feature_boundary.py
+  - cargo check -p zircon_runtime --lib --no-default-features --features sound-contracts --locked --offline --jobs 1
+  - cargo check --manifest-path zircon_plugins/sound/editor/Cargo.toml --locked --offline --jobs 1
+  - cargo check -p zircon_app --lib --no-default-features --features target-server --locked --offline --jobs 1
+  - cargo check -p zircon_app --lib --locked --offline --jobs 1
+  - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --no-run --locked --offline --jobs 1
+  - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml channel_layout --locked --offline --jobs 1
+  - cargo test --manifest-path zircon_plugins/sound/runtime/Cargo.toml --locked --offline --jobs 1 (368/368 passed)
   - 2026-06-04: rustfmt --edition 2021 over Sound manager capability trait files, Sound runtime manager_trait delegate files, Sound editor live-output controller, and manager handle structural test (passed)
   - 2026-06-04: git diff --check over touched Sound framework/runtime/editor docs and source files (passed)
 doc_type: module-detail
@@ -95,16 +105,18 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::framework::sound` is the neutral audio contract layer shared by runtime plugins, editor tooling, scripting, and asset-facing systems. It owns stable DTOs, IDs, component type names, manager traits, error/status records, and option shapes. It does not own DSP algorithms, output-device threads, CPAL sessions, ray tracing, editor mixer panels, or asset decoding. Those concrete behaviors live in `zircon_plugins/sound/runtime` and `zircon_plugins/sound/editor`.
+`zircon_runtime::core::framework::sound` is the optional Sound service contract layer shared by runtime plugins, editor tooling, and scripting. It owns playback/mixer DTOs, IDs, component type names, manager traits, error/status records, and option shapes. Backend-neutral channel topology belongs to the always-available `core::framework::audio` format layer; DSP algorithms, output-device threads, CPAL sessions, ray tracing, editor mixer panels, and asset decoding remain concrete plugin or asset behavior.
 
-This keeps Sound aligned with the current engine architecture: `zircon_runtime::core::framework` defines contracts, `zircon_runtime::core::manager` exposes stable access handles, and the Sound plugin registers the real `SoundModule`, driver, and manager implementation.
+This keeps Sound aligned with the current engine architecture: `zircon_runtime::core::framework` defines contracts, `zircon_runtime::core::manager` exposes stable access handles, and the Sound plugin contributes the real `sound.runtime` module descriptor, driver, and manager implementation.
+
+`sound-contracts` is an independent compile-time boundary. Client and Editor presets include it; Server does not implicitly include it. The framework module and manager trait/name/holder/resolver are gated together, and direct Sound runtime/editor consumers request the feature explicitly. No disabled placeholder service or compatibility namespace is provided.
 
 ## Related Files
 
 The framework is folder-backed and `mod.rs` is only the public re-export surface.
 
 - `ids.rs` defines stable handles for clips, tracks, effects, sources, listeners, volumes, parameters, automation bindings, timeline sequences, impulse responses, external sources, output devices, and playbacks.
-- `channel_layout.rs` defines neutral speaker-order metadata for mono, stereo, quad, 5.0, 5.1 rear-bed, 5.1 side-bed, 7.0, 7.1, and discrete multichannel formats so editor meters, output devices, render blocks, and export tooling do not have to infer layout from a bare channel count.
+- `../audio/channel_layout.rs` defines the shared speaker-order format for mono, stereo, quad, 5.0, 5.1 rear-bed, 5.1 side-bed, 7.0, 7.1, and discrete multichannel data. Sound consumes `AudioChannelLayout` directly and does not re-export it.
 - `graph.rs`, `effects.rs`, `mix.rs`, `output.rs`, `status.rs`, and `preset.rs` describe the mixer graph, effect chains, rendered mix blocks, output-device contracts, backend status, and preset descriptors.
 - `components.rs` defines the three scene-facing component contract IDs and descriptors: `sound.Component.AudioSource`, `sound.Component.AudioListener`, and `sound.Component.AudioVolume`.
 - `automation.rs` and `events.rs` define timeline automation, target addressing, dynamic event catalogs, handler descriptors, queued invocations, delivery records, and execution reports.
@@ -117,7 +129,7 @@ The runtime plugin consumes these contracts in `zircon_plugins/sound/runtime/src
 
 The default sound contract is a stereo software-mixer-oriented graph: `SoundMixerGraph::default_stereo(48_000)` creates a graph with one fixed `Master` track, two channels, a `stereo` channel layout, an empty source set, no automation bindings, and an empty `sound.dynamic_events` event catalog at version `1`. `SoundTrackId::master()` is the stable master route used by playback defaults and clip-backed source descriptors.
 
-Channel layout is first-class contract data. `SoundChannelLayout` names the semantic speaker order for mono, stereo, quad, surround 5.0, surround 5.1 rear-bed, surround 5.1 side-bed, surround 7.0, surround 7.1, or unknown discrete channel counts. `SoundChannelLayout::for_channel_count(...)` intentionally maps common 4/5/6/7/8-channel clip counts to named speaker layouts before falling back to `discrete_N`. `SoundChannelLayout::named_layout_names()` and `SoundChannelLayout::from_name(...)` define the shared string vocabulary for profile options, static plugin manifests, output-device pickers, and export/editor tooling; discrete layouts remain count-derived and are not advertised as named option values. The layout contract is also explicit: named layouts must keep the framework's canonical channel count and speaker order, `discrete_N` layouts must be speakerless and count-derived, and custom named speaker layouts must have one unique speaker per channel. External provider audio does not rely on channel-count fallback: `SoundExternalSourceBlock` carries a provider-declared `channel_layout`, `SoundExternalSourceBlock::new(...)` derives `channel_count` from that declared layout for provider-side construction, and the runtime still validates that the layout matches `channel_count` before storing the block. Runtime channel conversion is intentionally concrete-plugin behavior: the framework owns speaker metadata, while `zircon_plugins/sound/runtime` owns clip/external-source fold-down policy, including speaker-aware mono output that excludes LFE, phantom-center fold-down for output beds without a center speaker, and HRTF output-bed cleanup that clears non-left/right source channels once loaded or preview HRTF takes over binaural spatialization. `SoundPluginOptions`, `SoundMixerGraph`, `SoundMixBlock`, `SoundOutputDeviceDescriptor`, `SoundBackendCapability`, and `SoundBackendStatus` all carry layout metadata alongside `channel_count`; concrete runtimes must keep those values aligned when normalizing options, configuring output devices, and rendering blocks.
+Channel layout is first-class format data. `AudioChannelLayout` names the semantic speaker order for mono, stereo, quad, surround 5.0, surround 5.1 rear-bed, surround 5.1 side-bed, surround 7.0, surround 7.1, or unknown discrete channel counts. `AudioChannelLayout::for_channel_count(...)` intentionally maps common 4/5/6/7/8-channel clip counts to named speaker layouts before falling back to `discrete_N`. `AudioChannelLayout::named_layout_names()` and `AudioChannelLayout::from_name(...)` define the shared string vocabulary for profile options, static plugin manifests, output-device pickers, and export/editor tooling; discrete layouts remain count-derived and are not advertised as named option values. The layout contract is also explicit: named layouts must keep the framework's canonical channel count and speaker order, `discrete_N` layouts must be speakerless and count-derived, and custom named speaker layouts must have one unique speaker per channel. External provider audio does not rely on channel-count fallback: `SoundExternalSourceBlock` carries a provider-declared `channel_layout`, `SoundExternalSourceBlock::new(...)` derives `channel_count` from that declared layout for provider-side construction, and the runtime still validates that the layout matches `channel_count` before storing the block. Runtime channel conversion is intentionally concrete-plugin behavior: the framework owns speaker metadata, while `zircon_plugins/sound/runtime` owns clip/external-source fold-down policy, including speaker-aware mono output that excludes LFE, phantom-center fold-down for output beds without a center speaker, and HRTF output-bed cleanup that clears non-left/right source channels once loaded or preview HRTF takes over binaural spatialization. `SoundPluginOptions`, `SoundMixerGraph`, `SoundMixBlock`, `SoundOutputDeviceDescriptor`, `SoundBackendCapability`, and `SoundBackendStatus` all carry layout metadata alongside `channel_count`; concrete runtimes must keep those values aligned when normalizing options, configuring output devices, and rendering blocks.
 
 Scene integration uses three component IDs:
 
@@ -140,9 +152,9 @@ The contract split follows local reference-engine evidence:
 
 ## Control Flow
 
-`zircon_plugins/sound/runtime` registers `SoundModule` with an immediate `SoundDriver`, a lazy `DefaultSoundManager`, and a public `SoundManager` handle. The concrete manager owns plugin runtime state, implements each framework capability trait through focused delegate modules, and satisfies the composed whole-service trait. Editor, app, scripting, and future VM plugins should resolve the manager/handle and pass neutral DTOs; they should not share concrete runtime objects or call DSP internals.
+`zircon_plugins/sound/runtime` embeds the `sound.runtime` descriptor with an immediate `SoundDriver`, a lazy `DefaultSoundManager`, and a public `SoundManager` handle. The registration report installs that descriptor before the plugin contributes provider-specific extensions. The concrete manager owns plugin runtime state, implements each framework capability trait through focused delegate modules, and satisfies the composed whole-service trait. Editor, app, scripting, and future VM plugins should resolve the manager/handle and pass neutral DTOs; they should not share concrete runtime objects or call DSP internals.
 
-Project or profile options flow through `SoundPluginOptions`. The defaults enable sound, use `software-mixer`, set `48_000 Hz`, `2` channels with the `stereo` layout, `256` frame blocks, `128` voices, `64` tracks, the default spatial scale of `1.0`, enabled convolution, enabled timeline integration, enabled dynamic events, and disabled ray-tracing quality. Concrete runtime config conversion and option/catalog parity live in the plugin runtime, but the `sound.channel_layout` enum must derive its values from the framework `SoundChannelLayout` named-layout list so static TOML, generated runtime package manifests, Hub forms, and export materialization do not carry divergent layout vocabularies.
+Project or profile options flow through `SoundPluginOptions`. The defaults enable sound, use `software-mixer`, set `48_000 Hz`, `2` channels with the `stereo` layout, `256` frame blocks, `128` voices, `64` tracks, the default spatial scale of `1.0`, enabled convolution, enabled timeline integration, enabled dynamic events, and disabled ray-tracing quality. Concrete runtime config conversion and option/catalog parity live in the plugin runtime, but the `sound.channel_layout` enum must derive its values from the framework `AudioChannelLayout` named-layout list so static TOML, generated runtime package manifests, Hub forms, and export materialization do not carry divergent layout vocabularies.
 
 ## Edge Cases
 
@@ -152,4 +164,4 @@ The default dynamic event catalog is intentionally empty. Sound-specific events 
 
 ## Test Coverage
 
-Framework-level tests now lock the default option contract, the master mixer graph and dynamic-event namespace, channel layout names, name parsing, advertised named-layout vocabulary, speaker order including quad, 5.0, 5.1 side-bed, and 7.0 channel-count normalization, ambiguous speaker-metadata rejection for reordered named layouts, duplicate speakers, and invalid `discrete_N` payloads, clip-backed source defaults, explicit external-source block layout serialization, constructor-derived external-source channel counts, and sound component type prefixes. Sound runtime registration tests also assert that the `sound.channel_layout` plugin option uses the framework named-layout list and that every advertised option value parses back through `SoundChannelLayout::from_name(...)`. Runtime-level multichannel tests cover speaker-aware clip and external-source conversion, including 7.1 to mono fold-down through the front pair with LFE excluded, 5.1 center-to-quad phantom-center fold-down, and explicit `discrete_4` clip/provider input folding overflow channels into stereo output. Runtime-level HRTF tests cover loaded-profile and preview-fallback rendering on surround output devices, proving HRTF clears non-binaural source channels instead of preserving dry center/LFE/surround beds. Cargo validation for these tests is pending while other active Cargo lanes are running; current low-interference validation should use rustfmt, conflict-marker scans, and `git diff --check` until the build machine is quiet enough for `cargo test -p zircon_runtime --lib sound` or the focused Sound runtime manifest tests.
+Framework-level tests lock the default option contract, the master mixer graph and dynamic-event namespace, channel layout names, speaker order, invalid layout rejection, clip-backed source defaults, external-source block serialization, and sound component type prefixes. Sound runtime tests cover speaker-aware clip/provider conversion and HRTF output-bed cleanup; the complete plugin suite passes 368/368 after the audio owner hard cut. Frameworks 03 additionally guards the neutral audio owner and optional Sound feature boundary. WSL nightly Runtime Sound-only, Runtime/App Server-without-Sound, App default Client, Sound runtime/editor, and audio-importer-without-Sound checks passed; full Runtime/App test gates remain part of the M1 testing stage.

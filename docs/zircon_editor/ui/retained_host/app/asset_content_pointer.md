@@ -16,6 +16,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/asset_pointer/content/dispatch.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/route.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
 implementation_files:
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events.rs
@@ -26,6 +27,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/dispatch.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/prepare.rs
   - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target/state.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
@@ -38,6 +40,7 @@ tests:
   - app asset-content pointer target ownership scan
   - app asset-content pointer target subowner ownership scan
   - scoped git diff --check
+  - assets_drawer_content_scroll_repaints_inside_content_without_touching_utility
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
@@ -55,6 +58,12 @@ The module is the host action boundary for asset content-list interactions. It s
 `app/asset_content_pointer/events/click.rs` owns click forwarding through `callback_dispatch::dispatch_shared_asset_content_pointer_click(...)`, returned host effects, and clicked pointer-state writeback. `app/asset_content_pointer/events/motion.rs` owns move/scroll prepared bridge dispatch and hover/scroll state writeback.
 
 Keeping event dispatch in a child module leaves the root as a structural owner and separates normal pointer event flow from drag payload construction and target preparation. The event subowner split keeps click callback dispatch distinct from hover/scroll motion updates.
+
+## Native Route Source
+
+The app callback pipeline starts only after the host contract classifies a pane pointer. `host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs` now produces the Activity `AssetContent` target from the real `AssetsActivityContentPanel` frame before generic template-node fallback. This is intentionally upstream of this app module: routing owns absolute-to-panel-local coordinates, while this module owns snapshot preparation, shared pointer-bridge dispatch, state writeback, and runtime effects.
+
+The visual regression window installs the same shared `AssetContentListPointerBridge` callback/writeback boundary used here, then dispatches native wheel and move events. It no longer writes fixed scroll/hover values directly. The initial RED proved the missing target constructor; a second RED proved base Workbench template move handling could steal pane semantics. The production route and corrected popup/pane/base-template arbitration now pass the combined wheel-to-writeback-to-paint and exact-one-later-row hover regression. The accepted screenshot is generated from this native path, not from direct host-state injection.
 
 ## Press Drag Source
 
