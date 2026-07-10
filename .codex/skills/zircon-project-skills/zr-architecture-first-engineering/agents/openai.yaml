@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zr Architecture-First Engineering"
+  short_description: "Enforce architecture-first mainstream-aligned engine design."
+  default_prompt: "Use $zr-architecture-first-engineering when designing or implementing zirconEngine systems that must define architecture first, align with mainstream engine patterns, and reject direct one-off implementations."

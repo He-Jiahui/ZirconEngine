@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Module Docs Maintenance"
+  short_description: "Generate and maintain detailed docs beside code work."
+  default_prompt: "Use $code-module-docs-maintenance when zirconEngine code generation or refactoring must also create or update detailed module documentation under docs/, organize docs by subsystem, include machine-readable related-code headers, record plan source and test coverage, and keep docs synchronized with every code change."

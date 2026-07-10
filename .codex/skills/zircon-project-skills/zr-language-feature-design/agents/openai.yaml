@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zircon Feature Design"
+  short_description: "Design zirconEngine features from routed dev/ reference-engine evidence and tests."
+  default_prompt: "Use $zr-language-feature-design to design or review a zirconEngine scripting, module, runtime, editor/runtime, or performance-sensitive subsystem feature by routing through the right dev/ reference engines and deriving exhaustive boundary and stress tests."

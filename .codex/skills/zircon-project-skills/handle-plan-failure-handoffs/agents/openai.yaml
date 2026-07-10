@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Failure Handoffs"
+  short_description: "Route and resolve cross-plan failures architecturally."
+  default_prompt: "Use $handle-plan-failure-handoffs to record, prioritize, resolve, and return a ZirconEngine cross-plan failure handoff."

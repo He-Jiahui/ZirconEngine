@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zircon Dev"
+  short_description: "Build, refactor, and validate zirconEngine on main with Cargo."
+  default_prompt: "Use $zircon-dev to build, test, refactor, or debug this zirconEngine Rust workspace, keep all work on main without creating worktrees or feature branches, follow the existing zircon_* crate boundaries, remove obsolete compatibility paths instead of preserving them, and validate with cargo build/test before closing the task."

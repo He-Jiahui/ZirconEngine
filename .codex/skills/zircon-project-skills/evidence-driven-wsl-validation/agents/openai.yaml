@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evidence-Driven WSL Validation"
+  short_description: "WSL evidence-based debugging, testing, and acceptance."
+  default_prompt: "Use $evidence-driven-wsl-validation when zirconEngine work needs WSL-first or CI-parity debugging and validation with tools such as cargo, gdb, lldb, valgrind, helgrind, heaptrack, and sanitizers, may install missing tools with apt, must capture concrete evidence, and must not ignore test failures or boundary coverage."

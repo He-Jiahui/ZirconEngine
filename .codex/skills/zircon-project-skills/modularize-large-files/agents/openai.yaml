@@ -1,0 +1,4 @@
+interface:
+  display_name: "Modularize Large Files"
+  short_description: "Keep code files near 1000 lines by splitting responsibilities."
+  default_prompt: "Use $modularize-large-files when a touched code file in zirconEngine is approaching or exceeding roughly 1000 lines so responsibilities are split into coherent modules instead of accumulating more logic in one file."

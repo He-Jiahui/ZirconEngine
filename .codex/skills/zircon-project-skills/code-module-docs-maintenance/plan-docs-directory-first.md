@@ -1,0 +1,24 @@
+# Plan Docs Directory First
+
+- Before writing a new module document, decide its functional home under `docs/`.
+- For code-module reverse lookup, prefer a source-path mirror:
+  - `zircon_runtime/src/foo/bar.rs` -> `docs/zircon_runtime/foo/bar.md`
+  - `zircon_editor/src/ui/host/mod.rs` -> `docs/zircon_editor/ui/host/mod.md`
+  - `zircon_app/src/entry/bootstrap.rs` -> `docs/zircon_app/entry/bootstrap.md`
+- If an existing functional document already owns the module, update that document instead of duplicating ownership. Keep its `related_code` and `implementation_files` headers current.
+- Use category directories for overviews, milestone summaries, or cross-cutting subsystem explanations such as:
+  - `docs/core-runtime/`
+  - `docs/parser-and-semantics/`
+  - `docs/instruction-generation/`
+  - `docs/module-system/`
+  - `docs/library-and-builtins/`
+  - `docs/cli-and-tooling/`
+  - `docs/testing-and-validation/`
+  - `docs/milestones-and-plans/`
+- Reuse an existing category when the feature clearly belongs there. Create a new category only when the current tree cannot express the feature cleanly.
+- Use progressive disclosure inside `docs/`:
+  - category overview file first, such as `docs/parser-and-semantics/index.md`
+  - then topic-specific detail files under that category
+  - add another subdirectory only when the category becomes hard to scan
+- Keep category overview files navigational. They should explain scope, list child docs, and tell the reader which file to open next.
+- Name mirrored leaf documents after the source module path. Name functional leaf documents by feature or subsystem behavior, not by vague labels such as `notes.md` or `misc.md`.

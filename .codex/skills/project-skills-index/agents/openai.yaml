@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Skills Index"
+  short_description: "Catalog and scaffold repo-local skills."
+  default_prompt: "Use $project-skills-index to enumerate this repo's local skills, capture their summaries, or scaffold a new indexed skill layout."

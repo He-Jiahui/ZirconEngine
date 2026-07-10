@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cross Session Coordination"
+  short_description: "Share recent zirconEngine task state through plans and live session notes."
+  default_prompt: "Use $cross-session-coordination when zirconEngine work may overlap with other recent Codex sessions and you need to inspect `.codex/plans`, publish or read `.codex/sessions` notes, coordinate crate or test conflicts, and retire completed notes cleanly."

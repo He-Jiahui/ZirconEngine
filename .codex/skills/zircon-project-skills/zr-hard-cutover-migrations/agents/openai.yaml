@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZR Hard Cutovers"
+  short_description: "Direct zirconEngine migration cutovers"
+  default_prompt: "Use $zr-hard-cutover-migrations to land this zirconEngine rename or module move without re-exports, shims, or compatibility facades."

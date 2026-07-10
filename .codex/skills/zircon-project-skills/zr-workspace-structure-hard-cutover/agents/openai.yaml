@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZR Hard Cutover Shape"
+  short_description: "Enforce converged workspace structure"
+  default_prompt: "Use $zr-workspace-structure-hard-cutover to land a destructive zirconEngine workspace refactor without leaving compatibility structure behind."

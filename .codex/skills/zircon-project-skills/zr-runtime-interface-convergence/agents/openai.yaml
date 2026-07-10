@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZR Runtime Interface Convergence"
+  short_description: "Audit zircon runtime interface convergence"
+  default_prompt: "Use $zr-runtime-interface-convergence to audit zirconEngine runtime interfaces and module structure."

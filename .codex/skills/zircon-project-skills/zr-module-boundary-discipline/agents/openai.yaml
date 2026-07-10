@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZR Module Boundaries"
+  short_description: "Strict zirconEngine module layout"
+  default_prompt: "Use $zr-module-boundary-discipline to split mixed zirconEngine Rust modules into folder-backed single-purpose files."

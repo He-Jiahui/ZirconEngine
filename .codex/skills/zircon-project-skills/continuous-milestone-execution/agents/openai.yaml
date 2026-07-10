@@ -1,0 +1,4 @@
+interface:
+  display_name: "Continuous Milestone Execution"
+  short_description: "Keep zirconEngine work moving until a milestone is truly complete."
+  default_prompt: "Use $continuous-milestone-execution when zirconEngine work must read the existing workspace crates, CI constraints, and plan artifacts first, then continue generating and validating code without interruption until the current milestone is complete unless real branch ambiguity requires a user decision."

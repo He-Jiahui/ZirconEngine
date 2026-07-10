@@ -1,0 +1,4 @@
+interface:
+  display_name: "Support-First Regression Testing"
+  short_description: "Fix lower layers before upper-layer regressions."
+  default_prompt: "Use $support-first-regression-testing when an upper-layer feature test fails and you need to verify lower-layer support functionality first, fix that shared support path, then re-run upper-layer validation."

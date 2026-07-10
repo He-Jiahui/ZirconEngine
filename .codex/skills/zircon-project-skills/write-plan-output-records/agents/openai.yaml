@@ -1,0 +1,4 @@
+interface:
+  display_name: "计划产出记录规范"
+  short_description: "规范 ZirconEngine 计划产出记录的归属、拆分与归档"
+  default_prompt: "使用 $write-plan-output-records 写入或整理 docs/plans 产出记录，并校验 session 写入位置。"

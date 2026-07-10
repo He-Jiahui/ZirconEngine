@@ -1,0 +1,273 @@
+from __future__ import annotations
+
+ARCHETYPE_ANCHORS = (
+    "pub struct ArchetypeId(usize)",
+    "pub const EMPTY: Self = Self(0);",
+    "pub struct ArchetypeRecord",
+    "pub(super) fn push_entity(&mut self, entity: EntityId) -> usize",
+    "pub(super) fn swap_remove_entity(",
+    "pub struct ArchetypeMove",
+    "pub struct ArchetypeIndex",
+    "by_signature: HashMap<ArchetypeSignature, ArchetypeId>",
+    "by_component: HashMap<ComponentId, Vec<ArchetypeId>>",
+    "pub fn matching_archetypes(",
+    "fn shortest_required_archetype_ids(&self, required: &[ComponentId])",
+    "fn insert_archetype_id(ids: &mut Vec<ArchetypeId>, id: ArchetypeId)",
+    "fn entity_row(entities: &[EntityId], entity: EntityId) -> Option<usize>",
+    "pub struct ArchetypeSignature",
+    "fn normalize_components(mut components: Vec<ComponentId>)",
+)
+STORAGE_ANCHORS = (
+    "pub enum StorageType",
+    "Table,",
+    "SparseSet,",
+    "pub struct ComponentStorage",
+    "table_components: HashMap<ComponentId, TableComponentStorage>,",
+    "sparse_components: HashMap<ComponentId, SparseComponentStorage>,",
+    "pub struct ComponentStorageLocation",
+    "pub fn get_table_row<T>",
+    "pub fn get_with_ticks_at_location<T>",
+)
+COMPONENT_STORAGE_PRIVATE_REEXPORT_ANCHORS = (
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub use location::ComponentStorageLocation;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub use store::ComponentStorage;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
+        "use super::entry::{RawRemoveResult, StoredComponent};",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/table.rs",
+        "use super::entry::{RawRemoveResult, StoredComponent};",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs",
+        "use super::entry::StoredComponent;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+        "use super::location::ComponentStorageLocation;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+        "use super::sparse::SparseComponentStorage;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+        "use super::table::TableComponentStorage;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+        "use super::component_results::{downcast_component, sort_component_ids_if_needed};",
+    ),
+)
+COMPONENT_STORAGE_PRIVATE_REEXPORT_FORBIDDEN_SNIPPETS = (
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(super) use entry::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(super) use sparse::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(super) use table::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(super) use component_results::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(in crate::scene::ecs::storage) use entry::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(in crate::scene::ecs::storage) use sparse::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(in crate::scene::ecs::storage) use table::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(in crate::scene::ecs::storage) use component_results::",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
+        "use super::{RawRemoveResult, StoredComponent};",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/table.rs",
+        "use super::{RawRemoveResult, StoredComponent};",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs",
+        "use super::StoredComponent;",
+    ),
+    (
+        "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+        "use super::{downcast_component, sort_component_ids_if_needed};",
+    ),
+)
+COMPONENT_IDENTITY_ANCHORS = (
+    "pub trait Component: 'static + Send + Sync",
+    "const STORAGE_TYPE: StorageType = StorageType::Table;",
+    "pub struct ComponentId(usize)",
+    "pub const fn new(index: usize) -> Self",
+    "pub const fn index(self) -> usize",
+    "pub struct ComponentDescriptor",
+    "pub enum ComponentDescriptorSource",
+    "RustType { type_id: TypeId }",
+    "DynamicPlugin { component_type_id: String }",
+    "pub struct ComponentRegistry",
+    "rust_ids_by_type_id: HashMap<TypeId, ComponentId>",
+    "dynamic_ids_by_type_id: HashMap<String, ComponentId>",
+    "pub fn component_id<T>(&mut self) -> ComponentId",
+    "pub fn dynamic_component_id(&mut self, component_type_id: &str) -> ComponentId",
+    "pub fn registered_component_id<T>(&self) -> Option<ComponentId>",
+    "pub fn registered_dynamic_component_id(&self, component_type_id: &str) -> Option<ComponentId>",
+    "pub(crate) fn rust_type_for_id(&self, id: ComponentId) -> Option<(TypeId, &str)>",
+    "pub fn descriptors(&self) -> &[ComponentDescriptor]",
+)
+ENTITY_LIFECYCLE_ANCHORS = (
+    "const FIRST_GENERATION: u32 = 1;",
+    "free_slots: Vec<u32>",
+    "stable_to_internal: HashMap<EntityId, InternalEntity>",
+    "InternalEntity::new(slot_index, slot.generation)",
+    "slot.generation = next_generation(slot.generation);",
+    "self.free_slots.push(internal.index());",
+    "pub const fn generation(self) -> u32",
+    "self.index as u64 | ((self.generation as u64) << 32)",
+    "pub struct StableEntityLocation",
+    "pub struct DespawnedEntity",
+)
+OBSERVER_ANCHORS = (
+    "pub struct ObserverStore",
+    "pub fn observe_lifecycle(",
+    "pub fn observe_event<E>(",
+    "pub fn observe_entity_event<E>(",
+    "pub fn remove(&mut self, id: ObserverId) -> bool",
+    "pub(crate) fn lifecycle_callbacks(",
+    "let mut callbacks = Vec::with_capacity(callback_count);",
+    "callbacks.push(observer.callback.clone());",
+)
+COMMAND_ANCHORS = (
+    "pub enum DeferredCommandOperation",
+    "pub struct DeferredCommandError",
+    "pub struct DeferredCommandReport",
+    "pub fn errors(&self) -> &[DeferredCommandError]",
+    "pub fn apply(&mut self, world: &mut World) -> DeferredCommandReport",
+    "world.record_deferred_command_error(DeferredCommandError::new(",
+    "DeferredCommandOperation::Despawn",
+    "DeferredCommandOperation::Insert",
+    "DeferredCommandOperation::Remove",
+    "pub fn apply_deferred(&mut self) -> DeferredCommandReport",
+    "std::mem::take(&mut self.deferred_command_errors)",
+)
+EVENT_MESSAGE_ANCHORS = (
+    "pub struct Events<T>",
+    "current: Vec<T>",
+    "next: Vec<T>",
+    "pub fn update(&mut self)",
+    "std::mem::swap(&mut self.current, &mut self.next);",
+    "self.current.clear();",
+    "self.next.clear();",
+    "pub fn update_all(&mut self)",
+    "pub struct MessageId<T>",
+    "pub struct Messages<T>",
+    "next_id: usize",
+    "pub fn clear(&mut self)",
+)
+RESOURCE_IDENTITY_ANCHORS = (
+    "pub trait Resource: 'static + Send + Sync",
+    "pub struct ResourceId(usize)",
+    "pub const fn new(index: usize) -> Self",
+    "pub const fn index(self) -> usize",
+    "pub struct ResourceDescriptor",
+    "pub struct ResourceRegistry",
+    "ids_by_type: HashMap<TypeId, ResourceId>",
+    "pub fn resource_id<T>(&mut self) -> ResourceId",
+    "type_name::<T>().to_string()",
+    "pub fn registered_resource_id<T>(&self) -> Option<ResourceId>",
+    "pub fn descriptor(&self, id: ResourceId) -> Option<&ResourceDescriptor>",
+    "pub fn descriptors(&self) -> &[ResourceDescriptor]",
+)
+CHANGE_TICK_ANCHORS = (
+    "pub const MAX_CHANGE_AGE: u64",
+    "Self(self.0.wrapping_add(1))",
+    "Self(self.0.wrapping_sub(older.0))",
+    "pub fn is_newer_than(self, last_run: Self, this_run: Self) -> bool",
+    "this_run.relative_to(self).0.min(Self::MAX_CHANGE_AGE)",
+    "last_run: last_run.clamp_older_than(this_run)",
+)
+RUNTIME_08_TEST_ANCHORS = (
+    "despawned_entity_handle_is_rejected_by_world_access",
+    "entity_id_reuse_does_not_alias_previous_generation_handle",
+    "stable_entity_location_survives_archetype_move_and_invalidates_on_despawn",
+    "component_removal_emits_removal_record_in_same_frame",
+    "lifecycle_observer_fires_immediately_during_component_mutation",
+    "entity_event_observer_only_fires_for_target_entity",
+    "observer_remove_during_dispatch_does_not_skip_or_double_fire",
+    "command_queue_on_despawned_entity_target_is_reported_not_silently_dropped",
+    "deferred_command_success_report_counts_applied_commands_without_errors",
+    "events_require_explicit_update_and_keep_next_queue_hidden",
+    "first_stage_updates_all_registered_event_channels",
+    "clear_events_prunes_current_and_next_event_queues",
+    "messages_are_retained_until_explicit_clear_independent_of_event_updates",
+    "event_and_message_clear_boundaries_do_not_cross_channels",
+    "change_tick_comparison_survives_wraparound",
+    "tick_window_clamps_stale_ticks",
+    "runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover",
+    "runtime_08_ecs_change_detection_owner_tree_stays_folder_backed_after_cutover",
+    "runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover",
+    "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
+    "runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts",
+)
+RUNTIME_08_BEHAVIOR_TEST_ANCHORS = (
+    "despawned_entity_handle_is_rejected_by_world_access",
+    "entity_id_reuse_does_not_alias_previous_generation_handle",
+    "stable_entity_location_survives_archetype_move_and_invalidates_on_despawn",
+    "component_removal_emits_removal_record_in_same_frame",
+    "lifecycle_observer_fires_immediately_during_component_mutation",
+    "entity_event_observer_only_fires_for_target_entity",
+    "observer_remove_during_dispatch_does_not_skip_or_double_fire",
+    "command_queue_on_despawned_entity_target_is_reported_not_silently_dropped",
+    "deferred_command_success_report_counts_applied_commands_without_errors",
+    "events_require_explicit_update_and_keep_next_queue_hidden",
+    "first_stage_updates_all_registered_event_channels",
+    "clear_events_prunes_current_and_next_event_queues",
+    "messages_are_retained_until_explicit_clear_independent_of_event_updates",
+    "event_and_message_clear_boundaries_do_not_cross_channels",
+    "change_tick_comparison_survives_wraparound",
+    "tick_window_clamps_stale_ticks",
+)
+RUNTIME_08_DOC_ANCHORS = (
+    "Runtime 08 Data-Kernel Alignment Verdict",
+    "StorageType::{Table,SparseSet}",
+    "code_complete_pending_cargo",
+    "ecs_kernel_data_boundary",
+    "archetype_anchors = 15/15",
+    "behavior_test_anchor_count = 16",
+    "missing_behavior_test_anchors = []",
+    "component_storage_private_reexport_anchors = 9/9",
+    "component_identity_anchors = 18/18",
+    "resource_identity_anchors = 12/12",
+    "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
+    "runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts",
+    "entity/observer/command/messages/change_tick/ecs",
+)
+CARGO_GATE_ANCHORS = (
+    "cargo test -p zircon_runtime --lib entity --locked -- --nocapture",
+    "cargo test -p zircon_runtime --lib observer --locked -- --nocapture",
+    "cargo test -p zircon_runtime --lib command --locked -- --nocapture",
+    "cargo test -p zircon_runtime --lib messages --locked",
+    "cargo test -p zircon_runtime --lib change_tick --locked -- --nocapture",
+    "cargo test -p zircon_runtime --lib ecs --locked",
+)

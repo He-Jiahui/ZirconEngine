@@ -1,0 +1,4 @@
+interface:
+  display_name: "Capture Hub Window Screenshot"
+  short_description: "Capture a real Zircon Hub window screenshot for visual checks."
+  default_prompt: "Capture a real Zircon Hub window screenshot and report the saved image path and window size."

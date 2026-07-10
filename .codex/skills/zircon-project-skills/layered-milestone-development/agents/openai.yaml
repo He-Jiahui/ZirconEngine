@@ -1,0 +1,4 @@
+interface:
+  display_name: "Layered Milestone Development"
+  short_description: "Plan zirconEngine milestones with bottom-up full validation."
+  default_prompt: "Use $layered-milestone-development when planning or executing zirconEngine work that must start from the current workspace structure, advance from lower layers to higher layers, and treat each milestone as complete only after full feature, boundary, and regression validation."

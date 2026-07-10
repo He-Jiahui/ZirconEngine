@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zircon Reference Routing"
+  short_description: "Route zirconEngine work to the right reference engine trees."
+  default_prompt: "Use $zr-reference-engine-routing to decide which dev/ reference engines and subsystems to consult for a zirconEngine task before designing or implementing it."

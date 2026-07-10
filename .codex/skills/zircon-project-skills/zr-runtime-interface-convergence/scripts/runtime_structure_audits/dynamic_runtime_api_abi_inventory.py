@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+
+SOURCE_FILES = (
+    "zircon_runtime_interface/src/runtime_api/api_table.rs",
+    "zircon_runtime_interface/src/runtime_api/host_requests.rs",
+    "zircon_runtime_interface/src/plugin_api.rs",
+    "zircon_runtime_interface/src/profiling.rs",
+    "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
+    "zircon_runtime_interface/src/tests/contracts.rs",
+    "zircon_runtime/src/dynamic_api/exports.rs",
+    "zircon_runtime/src/dynamic_api/session.rs",
+    "zircon_runtime/src/dynamic_api/session/profile.rs",
+    "zircon_runtime/src/dynamic_api/session/diagnostics.rs",
+    "zircon_runtime/src/dynamic_api/session/events.rs",
+    "zircon_runtime/src/dynamic_api/session/host_requests.rs",
+    "zircon_runtime/src/dynamic_api/tests/api_table.rs",
+    "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
+    "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
+    "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
+    "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
+    "zircon_runtime/src/dynamic_api/tests/session_entry_points.rs",
+    "zircon_runtime/src/dynamic_api/tests/session_profiles.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/test_owner_split.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/runtime_diagnostics.rs",
+    "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs",
+    "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late.rs",
+    "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+    "zircon_app/src/entry/runtime_library/runtime_session.rs",
+    "zircon_app/src/entry/runtime_library/tests.rs",
+    "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
+    "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+)
+EXPECTED_SOURCE_FILE_COUNT = 35
+
+EXPECTED_FUNCTION_TABLES = (
+    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
+    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrRuntimeApiV1", 13),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostApiV3", 7),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEcsApiV1", 3),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostAssetApiV1", 1),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEventApiV1", 2),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostBridgeApiV1", 1),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostDiagnosticsApiV1", 2),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrPluginStateSnapshotApiV1", 4),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrPluginApiV1", 4),
+)
+
+RUNTIME_SESSION_OPERATIONS = (
+    "create_session",
+    "destroy_session",
+    "handle_event",
+    "capture_frame",
+    "capture_accessibility_tree",
+    "bind_viewport_surface",
+    "unbind_viewport_surface",
+    "present_viewport",
+    "profile_control",
+    "tick_frame",
+    "drain_host_requests",
+)
