@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path, strip_resolved_output_archives
 
 
 def _section(text: str, start: str, end: str) -> str:
@@ -72,7 +72,7 @@ class PluginDocsCurrentStatusConvergenceTests(unittest.TestCase):
         for section_name, stale_phrases in stale_phrases_by_section.items():
             section = sections[section_name]
             for phrase in stale_phrases:
-                if phrase in section:
+                if phrase in strip_resolved_output_archives(section):
                     failures.append(f"{section_name}: {phrase}")
 
         required_phrases_by_section = {

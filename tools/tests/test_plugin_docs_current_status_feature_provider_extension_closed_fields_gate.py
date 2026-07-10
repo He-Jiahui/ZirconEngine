@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 
 
 STATUS_ID = "plugins_13_m5_t1_plugin_validate_feature_provider_extension_closed_fields_gate"

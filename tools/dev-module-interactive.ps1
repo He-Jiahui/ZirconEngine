@@ -16,8 +16,8 @@ if (-not (Test-Path $runner)) {
 }
 
 $targets = @(
-    [pscustomobject]@{ Id = "runtime"; Label = "Runtime (client)"; Profile = "client"; TargetMode = "client_runtime"; BaseFeatures = @("core-min", "plugin-graphics-base", "plugin-ui", "target-client") },
-    [pscustomobject]@{ Id = "editor"; Label = "Editor host"; Profile = "editor"; TargetMode = "editor_host"; BaseFeatures = @("core-min", "plugin-graphics-base", "plugin-ui", "target-editor-host") }
+    [pscustomobject]@{ Id = "runtime"; Label = "Runtime (client)"; Profile = "client"; TargetMode = "client_runtime"; BaseFeatures = @("core-min", "plugin-graphics-base", "ui", "target-client") },
+    [pscustomobject]@{ Id = "editor"; Label = "Editor host"; Profile = "editor"; TargetMode = "editor_host"; BaseFeatures = @("core-min", "plugin-graphics-base", "ui", "target-editor-host") }
 )
 
 $moduleOptions = @(

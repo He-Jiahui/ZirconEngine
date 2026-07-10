@@ -1,4 +1,4 @@
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 import unittest
 
 

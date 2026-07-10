@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 
 from tools.tests.plugin_docs_current_status_plugin_validate_support import (
     assert_required_phrases,

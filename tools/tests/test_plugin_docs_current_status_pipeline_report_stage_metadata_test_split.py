@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 
 
 def _tail_section(text: str, start: str) -> str:

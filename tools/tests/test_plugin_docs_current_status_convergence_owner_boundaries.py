@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

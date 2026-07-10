@@ -66,6 +66,9 @@ def build_report(root: Path) -> dict[str, Any]:
             "feature_provider_package_projection_count": manifest_schema[
                 "feature_provider_package_projection_count"
             ],
+            "native_crate_name_collisions": manifest_schema[
+                "native_crate_name_collisions"
+            ],
             "retired_ui_asset_files": retired_ui_asset_conformance[
                 "retired_ui_asset_files"
             ],
@@ -74,6 +77,12 @@ def build_report(root: Path) -> dict[str, Any]:
             ],
             "skeleton_migration_debt_count": skeleton_conformance[
                 "migration_debt_count"
+            ],
+            "free_function_registration_sites": registration_conformance[
+                "free_function_registration_sites"
+            ],
+            "registration_compatibility_shim_sites": registration_conformance[
+                "registration_compatibility_shim_sites"
             ],
             "asset_importer_family_free_function_registration_sites": (
                 registration_conformance[
@@ -91,6 +100,19 @@ def build_report(root: Path) -> dict[str, Any]:
             "runtime_registration_builder_violation_count": (
                 registration_conformance[
                     "runtime_registration_builder_violation_count"
+                ]
+            ),
+            "runtime_plugin_descriptor_root_count": registration_conformance[
+                "runtime_plugin_descriptor_root_count"
+            ],
+            "runtime_plugin_descriptor_single_source_violation_count": (
+                registration_conformance[
+                    "runtime_plugin_descriptor_single_source_violation_count"
+                ]
+            ),
+            "frameworks_02_runtime_plugin_descriptor_status": (
+                registration_conformance[
+                    "frameworks_02_runtime_plugin_descriptor_status"
                 ]
             ),
             "m3_t2_runtime_registration_builder_status": (
@@ -161,6 +183,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Manifest schema violations: {manifest_schema['manifest_schema_violations']}",
         f"- Generated manifest header violations: {manifest_schema['generated_manifest_header_violations']}",
         f"- Feature-provider package projections: {manifest_schema['feature_provider_package_projection_count']}",
+        f"- Native crate-name collisions: {manifest_schema['native_crate_name_collisions']}",
         f"- Retired UI asset files: {retired_ui_assets['retired_ui_asset_files']}",
         f"- ZUI-only layout status: `{retired_ui_assets['zui_only_layout_status']}`",
         f"- Skeleton sample status: `{report['skeleton_conformance']['sample_conformance_status']}`",
@@ -169,6 +192,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Core workspace dependency violations: {report['skeleton_conformance']['core_workspace_dependency_violation_count']}",
         f"- Skeleton migration debt roots: {report['skeleton_conformance']['migration_debt_count']}",
         f"- Skeleton migration debt details: {report['skeleton_conformance']['migration_debt_detail_count']}",
+        f"- Global free-function registration sites: {report['registration_conformance']['free_function_registration_sites']}",
+        f"- Registration compatibility shim sites: {report['registration_conformance']['registration_compatibility_shim_sites']}",
         f"- Asset importer family free-function registration sites: {report['registration_conformance']['asset_importer_family_free_function_registration_sites']}",
         f"- Registration M3/T1 gate status: `{report['registration_conformance']['m3_t1_gate_status']}`",
         f"- Split importer free-function registration sites: {report['registration_conformance']['split_importer_free_function_registration_sites']}",
@@ -177,6 +202,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Runtime registration builder roots: {len(report['registration_conformance']['runtime_registration_builder_roots'])}",
         f"- Runtime registration builder violations: {report['registration_conformance']['runtime_registration_builder_violation_count']}",
         f"- Runtime registration builder gate status: `{report['registration_conformance']['m3_t2_runtime_registration_builder_status']}`",
+        f"- RuntimePlugin embedded descriptor roots: {report['registration_conformance']['runtime_plugin_descriptor_root_count']}",
+        f"- RuntimePlugin embedded descriptor violations: {report['registration_conformance']['runtime_plugin_descriptor_single_source_violation_count']}",
+        f"- Frameworks 02 descriptor gate status: `{report['registration_conformance']['frameworks_02_runtime_plugin_descriptor_status']}`",
         f"- Capability audited runtime roots: {capability['audited_runtime_root_count']}",
         f"- Capability source mismatches: {capability['capability_source_mismatches']}",
         f"- M4 runtime capability gate status: `{capability['m4_runtime_capability_gate_status']}`",
@@ -209,6 +237,13 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"- `{path}`"
             for path in manifest_schema["generated_manifest_header_violation_paths"]
         )
+    if manifest_schema["native_crate_name_collision_details"]:
+        lines.append("")
+        lines.append("## Native Crate-Name Collisions")
+        lines.extend(
+            f"- `{collision}`"
+            for collision in manifest_schema["native_crate_name_collision_details"]
+        )
     if retired_ui_assets["retired_ui_asset_file_paths"]:
         lines.append("")
         lines.append("## Retired UI Asset Files")
@@ -233,6 +268,22 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("## Skeleton Migration Debt Roots")
         lines.extend(f"- `{root}`" for root in skeleton["migration_debt_roots"])
     registration = report["registration_conformance"]
+    if registration["free_function_registration_site_details"]:
+        lines.append("")
+        lines.append("## Global Free-Function Registration Sites")
+        lines.extend(
+            f"- `{site}`"
+            for site in registration["free_function_registration_site_details"]
+        )
+    if registration["registration_compatibility_shim_site_details"]:
+        lines.append("")
+        lines.append("## Registration Compatibility Shim Sites")
+        lines.extend(
+            f"- `{site}`"
+            for site in registration[
+                "registration_compatibility_shim_site_details"
+            ]
+        )
     if registration["asset_importer_family_free_function_registration_site_details"]:
         lines.append("")
         lines.append("## Asset Importer Family Free-Function Registration Sites")
@@ -257,6 +308,15 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.extend(
             f"- `{violation}`"
             for violation in registration["runtime_registration_builder_violations"]
+        )
+    if registration["runtime_plugin_descriptor_single_source_violations"]:
+        lines.append("")
+        lines.append("## RuntimePlugin Embedded Descriptor Violations")
+        lines.extend(
+            f"- `{violation}`"
+            for violation in registration[
+                "runtime_plugin_descriptor_single_source_violations"
+            ]
         )
     if capability["capability_source_mismatch_details"]:
         lines.append("")

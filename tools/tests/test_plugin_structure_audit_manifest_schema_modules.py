@@ -23,6 +23,33 @@ class PluginStructureAuditManifestSchemaModulesTests(unittest.TestCase):
 
         self.assertEqual([], violations)
 
+    def test_manifest_schema_accepts_services_and_rejects_retired_servers_level(self):
+        services_violations: list[str] = []
+        services_manifest = plugin_manifest()
+        services_manifest["modules"][0]["init_level"] = "services"
+        collect_manifest_schema_violations(
+            "zircon_plugins/sound/plugin.toml",
+            services_manifest,
+            services_violations,
+        )
+
+        retired_violations: list[str] = []
+        retired_manifest = plugin_manifest()
+        retired_manifest["modules"][0]["init_level"] = "servers"
+        collect_manifest_schema_violations(
+            "zircon_plugins/sound/plugin.toml",
+            retired_manifest,
+            retired_violations,
+        )
+
+        self.assertEqual([], services_violations)
+        self.assertEqual(
+            [
+                'zircon_plugins/sound/plugin.toml: modules[0].init_level "servers" is unsupported; expected one of kernel, services, scene, editor, post'
+            ],
+            retired_violations,
+        )
+
     def test_manifest_schema_rejects_module_descriptor_projection_drift(self):
         violations: list[str] = []
         manifest = plugin_manifest()
@@ -43,7 +70,7 @@ class PluginStructureAuditManifestSchemaModulesTests(unittest.TestCase):
         self.assertEqual(
             [
                 "zircon_plugins/sound/plugin.toml: modules[0].description must be a non-empty trimmed string when declared",
-                'zircon_plugins/sound/plugin.toml: modules[0].init_level "startup" is unsupported; expected one of kernel, servers, scene, editor, post',
+                'zircon_plugins/sound/plugin.toml: modules[0].init_level "startup" is unsupported; expected one of kernel, services, scene, editor, post',
                 "zircon_plugins/sound/plugin.toml: modules[0].module_dependencies[0].phase is not a known module dependency field",
                 "zircon_plugins/sound/plugin.toml: modules[0].module_dependencies[1].module_name foundation.runtime duplicates module_dependencies[0]",
                 "zircon_plugins/sound/plugin.toml: modules[0].module_dependencies[2].module_name Runtime should use package.module dot namespace form",

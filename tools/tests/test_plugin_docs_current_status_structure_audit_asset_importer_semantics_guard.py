@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 
 
 STATUS_ID = "plugins_13_m5_t1_structure_audit_asset_importer_semantics_guard"

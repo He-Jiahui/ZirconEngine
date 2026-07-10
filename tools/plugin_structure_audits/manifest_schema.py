@@ -94,7 +94,7 @@ POSITIVE_INT_FIELDS = {
     "abi_version",
 }
 SUPPORTED_TARGET_VALUES = ("client_runtime", "server_runtime", "editor_host")
-INIT_LEVEL_VALUES = ("kernel", "servers", "scene", "editor", "post")
+INIT_LEVEL_VALUES = ("kernel", "services", "scene", "editor", "post")
 SUPPORTED_PLATFORM_VALUES = (
     "windows",
     "linux",
@@ -119,6 +119,7 @@ class PluginManifestSchemaAudit:
     manifest_schema_violation_details: list[str]
     generated_manifest_header_violation_paths: list[str]
     feature_provider_package_projection_count: int
+    native_crate_name_collision_details: list[str]
 
     def to_json(self) -> dict[str, Any]:
         manifest_count = len(self.expected_manifest_roots) - len(
@@ -142,6 +143,12 @@ class PluginManifestSchemaAudit:
             ),
             "feature_provider_package_projection_count": (
                 self.feature_provider_package_projection_count
+            ),
+            "native_crate_name_collisions": len(
+                self.native_crate_name_collision_details
+            ),
+            "native_crate_name_collision_details": (
+                self.native_crate_name_collision_details
             ),
         }
 
@@ -209,6 +216,12 @@ def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
         loaded_manifests,
         violations,
     )
+    from .manifest_schema_native_modules import collect_native_crate_name_collisions
+
+    native_crate_name_collisions = collect_native_crate_name_collisions(
+        loaded_manifests
+    )
+    violations.extend(native_crate_name_collisions)
 
     return PluginManifestSchemaAudit(
         expected_manifest_roots=expected_roots,
@@ -218,6 +231,7 @@ def audit_plugin_manifest_schema(repo_root: Path) -> PluginManifestSchemaAudit:
         feature_provider_package_projection_count=(
             feature_provider_package_projection_count
         ),
+        native_crate_name_collision_details=native_crate_name_collisions,
     )
 
 

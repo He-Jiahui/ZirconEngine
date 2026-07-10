@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from tools.tests.plugin_status_document import StatusDocumentPath as Path
 
 
 def _section(text: str, start_marker: str, end_marker: str | None = None) -> str:

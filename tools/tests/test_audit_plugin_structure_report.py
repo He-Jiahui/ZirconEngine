@@ -20,6 +20,20 @@ class _AuditResult:
 
 
 class AuditPluginStructureReportTests(unittest.TestCase):
+    def test_report_exposes_plugins_12_registration_and_native_identity_contract(self):
+        report = _build_report()
+
+        self.assertEqual(0, report["summary"]["free_function_registration_sites"])
+        self.assertEqual(0, report["summary"]["native_crate_name_collisions"])
+        self.assertEqual(
+            0,
+            report["summary"]["registration_compatibility_shim_sites"],
+        )
+        markdown = render_markdown(report)
+        self.assertIn("- Global free-function registration sites: 0", markdown)
+        self.assertIn("- Native crate-name collisions: 0", markdown)
+        self.assertIn("- Registration compatibility shim sites: 0", markdown)
+
     def test_report_exposes_feature_provider_package_projection_count(self):
         report = _build_report()
 
@@ -95,6 +109,8 @@ def _manifest_schema():
         "generated_manifest_header_violations": 0,
         "generated_manifest_header_violation_paths": [],
         "feature_provider_package_projection_count": 2,
+        "native_crate_name_collisions": 0,
+        "native_crate_name_collision_details": [],
     }
 
 
@@ -114,6 +130,10 @@ def _skeleton_conformance():
 
 def _registration_conformance():
     return {
+        "free_function_registration_sites": 0,
+        "free_function_registration_site_details": [],
+        "registration_compatibility_shim_sites": 0,
+        "registration_compatibility_shim_site_details": [],
         "asset_importer_family_free_function_registration_sites": 0,
         "asset_importer_family_free_function_registration_site_details": [],
         "split_importer_free_function_registration_sites": 0,
