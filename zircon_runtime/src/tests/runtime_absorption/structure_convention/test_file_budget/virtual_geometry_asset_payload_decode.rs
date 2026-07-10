@@ -30,8 +30,8 @@ fn runtime_15_virtual_geometry_asset_payload_decode_is_wired() {
     let imported_extract_test = read_repo(
         "zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let vg_snapshot_doc =
         read_repo("docs/zircon_runtime/core/framework/render/virtual_geometry_debug_snapshot.md");

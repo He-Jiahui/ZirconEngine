@@ -60,6 +60,7 @@ mod tests {
             "@group(1) @binding(11) var<uniform> zr_shadow_globals",
             "fn zr_gpu_light_shadow_visibility",
             "fn zr_sample_shadow_slot",
+            "textureSampleCompareLevel(zr_shadow_atlas, zr_shadow_sampler, sample_uv, receiver_depth)",
             "fn zr_shadow_slot_pcf_quality",
             "ZR_SHADOW_PCF_QUALITY_MEDIUM",
             "ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS",
@@ -75,6 +76,7 @@ mod tests {
         assert!(!FALLBACK_MESH_SHADER.contains("shadow_compare_sampler"));
         assert!(!FALLBACK_MESH_SHADER.contains("sample_shadow_visibility"));
         assert!(!FALLBACK_MESH_SHADER.contains("world_to_shadow_coord"));
+        assert!(!FALLBACK_MESH_SHADER.contains("textureSampleCompare("));
     }
 
     #[test]
@@ -143,6 +145,16 @@ mod tests {
         assert!(FALLBACK_MESH_SHADER.contains(
             "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;"
         ));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("@group(1) @binding(16) var<storage, read> zr_env_probes"));
+        assert!(FALLBACK_MESH_SHADER
+            .contains("@group(1) @binding(17) var<uniform> zr_env_probe_header"));
+        assert!(FALLBACK_MESH_SHADER.contains(
+            "@group(1) @binding(18) var zr_env_probe_cubemaps: texture_cube_array<f32>;"
+        ));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_box_project("));
+        assert!(FALLBACK_MESH_SHADER.contains("fn zr_environment_select_probes("));
+        assert!(FALLBACK_MESH_SHADER.contains("        input.world_position,"));
         assert!(FALLBACK_MESH_SHADER.contains("textureSampleLevel("));
         assert!(FALLBACK_MESH_SHADER.contains("zr_environment_source_cube"));
         assert!(FALLBACK_MESH_SHADER.contains("zr_environment_specular_pmrem_cube"));

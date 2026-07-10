@@ -11,6 +11,16 @@ mod status_doc_rows;
 
 pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
     match slice {
+        "Runtime 15 M3 review-guard typed-error rows guard folder-backed split" => {
+            return Some(
+                "runtime_15_review_guard_typed_error_rows_guard_folder_backed_static_passed_cargo_deferred",
+            );
+        }
+        "Runtime 15 M3 review-guard typed-error rows split-layout guard folder-backed split" => {
+            return Some(
+                "runtime_15_review_guard_typed_error_rows_split_layout_guard_folder_backed_static_passed_cargo_deferred",
+            );
+        }
         "Runtime 15 M3 review-guard status-support row-data folder-backed split" => {
             return Some(
                 "runtime_15_review_guard_status_support_row_data_folder_backed_static_passed_cargo_deferred",

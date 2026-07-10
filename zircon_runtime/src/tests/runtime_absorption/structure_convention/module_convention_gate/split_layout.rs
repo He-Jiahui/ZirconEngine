@@ -133,11 +133,15 @@ fn runtime_15_module_convention_gate_guard_is_folder_backed() {
 
     for doc in CORE_DOCS_WITH_SESSION {
         let source = read_repo(doc);
-        assert_contains_all(doc, &source, &[SLICE, STATUS, GUARD, CHILD_PATHS[5]]);
+        assert_contains_all(
+            doc,
+            &source,
+            &[SLICE, STATUS, GUARD, "module_convention_gate"],
+        );
     }
 
     let frameworks_plan = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     assert_contains_all(
         "frameworks plan records module convention gate split",

@@ -14,8 +14,8 @@ fn runtime_15_shader_prewarm_resource_registry_multi_root_dedupe_is_wired() {
     let auto_export_guard = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_auto_export.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

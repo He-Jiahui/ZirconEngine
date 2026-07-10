@@ -2,6 +2,10 @@ use crate::core::framework::scene::WorldHandle;
 use crate::core::math::{Transform, Vec3};
 
 use super::*;
+use crate::core::framework::scene::physics::{
+    PhysicsCombineRule, PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
+    PhysicsSkeletonJointBinding,
+};
 
 #[test]
 fn default_physics_settings_match_disabled_contract() {

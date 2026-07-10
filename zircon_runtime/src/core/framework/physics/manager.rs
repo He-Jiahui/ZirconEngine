@@ -1,13 +1,14 @@
+use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::CoreError;
 use crate::scene::World;
 
 use super::{
-    PhysicsBackendStatus, PhysicsContactEvent, PhysicsMaterialMetadata, PhysicsRayCastHit,
-    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsShapeCastHit,
-    PhysicsShapeCastQuery, PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsTriggerEvent,
-    PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    PhysicsBackendStatus, PhysicsContactEvent, PhysicsRayCastHit, PhysicsRayCastQuery,
+    PhysicsSceneStepResult, PhysicsSettings, PhysicsShapeCastHit, PhysicsShapeCastQuery,
+    PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsTriggerEvent, PhysicsWorldStepPlan,
+    PhysicsWorldSyncState,
 };
 
 pub trait PhysicsManager: Send + Sync {

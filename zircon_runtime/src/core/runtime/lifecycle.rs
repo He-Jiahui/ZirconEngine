@@ -15,7 +15,7 @@ pub enum StartupMode {
 #[serde(rename_all = "snake_case")]
 pub enum InitLevel {
     Kernel,
-    Servers,
+    Services,
     Scene,
     Editor,
     Post,
@@ -25,7 +25,7 @@ impl InitLevel {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Kernel => "Kernel",
-            Self::Servers => "Servers",
+            Self::Services => "Services",
             Self::Scene => "Scene",
             Self::Editor => "Editor",
             Self::Post => "Post",

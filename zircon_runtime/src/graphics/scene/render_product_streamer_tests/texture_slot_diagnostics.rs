@@ -455,6 +455,97 @@ fn render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key() 
     assert_eq!(readiness_summary.diagnostic_count, 0);
 }
 
+#[test]
+fn render_product_streamer_reports_texture_dimension_mismatch_for_cube_slot() {
+    let backend = RenderBackend::new_offscreen().expect("offscreen backend");
+    let RenderBackend { device, queue, .. } = backend;
+    let texture_layout = texture_bind_group_layout(&device);
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let texture_uri = locator("res://textures/two-dimensional.png");
+    let texture_id = ResourceId::from_locator(&texture_uri);
+    asset_manager
+        .assets::<TextureAsset>()
+        .insert(
+            ResourceRecord::new(texture_id, ResourceKind::Texture, texture_uri.clone()),
+            rgba_texture("res://textures/two-dimensional.png"),
+        )
+        .expect("texture insert");
+
+    let shader_uri = locator("res://shaders/cube-slot.zshader");
+    let mut shader = shader_with_texture_slot("res://shaders/cube-slot.zshader", "environment");
+    shader.texture_slots[0].kind = "texture_cube".to_string();
+    shader.regenerate_material_artifact();
+    asset_manager
+        .assets::<ShaderAsset>()
+        .insert(
+            ResourceRecord::new(
+                ResourceId::from_locator(&shader_uri),
+                ResourceKind::Shader,
+                shader_uri,
+            ),
+            shader,
+        )
+        .expect("shader insert");
+
+    let material_uri = locator("res://materials/cube-slot.zmaterial");
+    let material_id = ResourceId::from_locator(&material_uri);
+    let mut material = material_with_refs("res://shaders/cube-slot.zshader", None);
+    material.texture_slots.insert(
+        "environment".to_string(),
+        MaterialTextureSlotValue::new(asset_reference("res://textures/two-dimensional.png")),
+    );
+    asset_manager
+        .assets::<MaterialAsset>()
+        .insert(
+            ResourceRecord::new(material_id, ResourceKind::Material, material_uri),
+            material,
+        )
+        .expect("material insert");
+    let mut streamer =
+        ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
+
+    streamer
+        .ensure_material(
+            &device,
+            &queue,
+            &texture_layout,
+            ResourceHandle::<MaterialMarker>::new(material_id),
+        )
+        .expect("dimension mismatch uses a non-blocking fallback");
+
+    let report = streamer
+        .material_readiness_report(&material_id)
+        .expect("material readiness report");
+    assert!(report.validation_errors.iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::TextureDimensionMismatch {
+            slot,
+            expected: RenderMaterialTextureDimension::Cube,
+            actual: RenderMaterialTextureDimension::D2,
+            ..
+        } if slot == "environment"
+    )));
+    let states = streamer
+        .material_texture_slot_states(&material_id)
+        .expect("dimensioned texture slot state");
+    assert_eq!(states.len(), 1);
+    assert_eq!(
+        states[0].expected_dimension,
+        Some(RenderMaterialTextureDimension::Cube)
+    );
+    assert_eq!(
+        states[0].actual_dimension,
+        Some(RenderMaterialTextureDimension::D2)
+    );
+    assert!(matches!(
+        states[0].fallback.as_ref().map(|fallback| &fallback.reason),
+        Some(RenderMaterialTextureSlotFallbackReason::DimensionMismatch {
+            expected: RenderMaterialTextureDimension::Cube,
+            actual: RenderMaterialTextureDimension::D2,
+        })
+    ));
+}
+
 fn astc_mip_chain_texture(uri: &str) -> TextureAsset {
     TextureAsset::new_container(
         locator(uri),

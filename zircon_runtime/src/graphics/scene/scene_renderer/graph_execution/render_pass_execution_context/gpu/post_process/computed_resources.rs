@@ -327,7 +327,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             hzb_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
+        let scene_depth_sample_count = Self::require_texture_desc_by_name(
+            resources,
+            resource_resolver,
+            depth_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?
+        .sample_count;
         let plan = HzbBuilder::new(self.frame.extract.view.effective_render_size()).build_plan();
+        let params_upload_buffer = stack
+            .post_process
+            .create_hzb_params_upload_buffer(self.device, plan);
         for mip_level in 0..plan.mip_count {
             let source_view = if mip_level == 0 {
                 None
@@ -351,13 +361,14 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             )?;
             stack.post_process.execute_hzb_build_mip(
                 self.device,
-                self.queue,
                 self.encoder,
                 depth_view,
                 source_view.as_ref(),
                 &target_view,
                 plan.mip_size(mip_level),
                 mip_level,
+                scene_depth_sample_count,
+                &params_upload_buffer,
             );
         }
         let dispatch_groups = hzb_build_dispatch_groups(plan.hzb_size);

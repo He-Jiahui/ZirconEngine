@@ -69,8 +69,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
             screen_space_reflection: flags.history_available
                 && flags.screen_space_reflection_history_enabled,
             hzb: flags.history_available && flags.hzb_history_enabled,
-            hybrid_global_illumination: flags.history_available
-                && flags.runtime_features.hybrid_global_illumination_enabled,
+            hybrid_global_illumination: flags.runtime_features.hybrid_global_illumination_enabled,
             exposure: flags.exposure_history_enabled,
         },
     );

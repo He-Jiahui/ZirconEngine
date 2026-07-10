@@ -34,8 +34,8 @@ fn runtime_15_shader_prewarm_cache_artifact_contract_is_wired() {
     let build_prewarm_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let cache_contract_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_cache_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

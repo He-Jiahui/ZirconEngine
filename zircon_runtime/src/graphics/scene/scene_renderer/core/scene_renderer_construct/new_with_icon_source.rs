@@ -14,7 +14,7 @@ use super::super::super::graph_execution::{
     RenderGraphExecutionRecord, RenderPassExecutorRegistry,
 };
 use super::super::super::overlay::ViewportIconSource;
-use super::super::constants::OFFSCREEN_FORMAT;
+use super::super::constants::FINAL_COLOR_FORMAT;
 use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer::SceneRendererAdvancedPluginOutputs;
 use super::super::scene_renderer_core::SceneRendererCore;
@@ -70,7 +70,7 @@ impl SceneRenderer {
             asset_manager.clone(),
             &backend.device,
             &backend.queue,
-            OFFSCREEN_FORMAT,
+            FINAL_COLOR_FORMAT,
             backend.backend_name(),
             icon_source,
             &render_features,

@@ -320,54 +320,6 @@ impl Default for RenderHybridGiDebugView {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderHybridGiProbe {
-    pub entity: EntityId,
-    pub probe_id: u32,
-    pub position: Vec3,
-    pub radius: Real,
-    pub parent_probe_id: Option<u32>,
-    pub resident: bool,
-    pub ray_budget: u32,
-}
-
-impl Default for RenderHybridGiProbe {
-    fn default() -> Self {
-        Self {
-            entity: 0,
-            probe_id: 0,
-            position: Vec3::ZERO,
-            radius: 0.0,
-            parent_probe_id: None,
-            resident: false,
-            ray_budget: 0,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderHybridGiTraceRegion {
-    pub entity: EntityId,
-    pub region_id: u32,
-    pub bounds_center: Vec3,
-    pub bounds_radius: Real,
-    pub screen_coverage: Real,
-    pub rt_lighting_rgb: [u8; 3],
-}
-
-impl Default for RenderHybridGiTraceRegion {
-    fn default() -> Self {
-        Self {
-            entity: 0,
-            region_id: 0,
-            bounds_center: Vec3::ZERO,
-            bounds_radius: 0.0,
-            screen_coverage: 0.0,
-            rt_lighting_rgb: [0, 0, 0],
-        }
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderHybridGiExtract {
     pub enabled: bool,
@@ -376,10 +328,6 @@ pub struct RenderHybridGiExtract {
     pub card_budget: u32,
     pub voxel_budget: u32,
     pub debug_view: RenderHybridGiDebugView,
-    pub probe_budget: u32,
-    pub tracing_budget: u32,
-    pub probes: Vec<RenderHybridGiProbe>,
-    pub trace_regions: Vec<RenderHybridGiTraceRegion>,
 }
 
 impl Default for RenderHybridGiExtract {
@@ -391,10 +339,6 @@ impl Default for RenderHybridGiExtract {
             card_budget: 0,
             voxel_budget: 0,
             debug_view: RenderHybridGiDebugView::None,
-            probe_budget: 0,
-            tracing_budget: 0,
-            probes: Vec::new(),
-            trace_regions: Vec::new(),
         }
     }
 }

@@ -1,10 +1,16 @@
 #[test]
 fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation() {
-    let runtime_02_plan = include_str!(
+    let runtime_02_plan = runtime_plan_source_with_archive(
+        "02",
+        include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md"
+    ),
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_02_plan = runtime_02_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let root_surface_doc =
         include_str!("../../../../../../../docs/zircon_runtime/core/root_surface.md");
     let generated_boundary_doc =
@@ -12,9 +18,10 @@ fn runtime_02_core_spine_root_surface_cargo_gate_stays_visible_until_validation(
     let review = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
     );
-    let runtime_05_plan = include_str!(
+    let runtime_05_plan = runtime_plan_source_with_archive("05", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
-    );
+    ));
+    let runtime_05_plan = runtime_05_plan.as_str();
 
     assert_eq!(
         frontmatter_status(runtime_02_plan),

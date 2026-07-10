@@ -18,6 +18,7 @@ impl DeferredSceneResources {
         gbuffer_albedo_view: &wgpu::TextureView,
         gbuffer_normal_view: &wgpu::TextureView,
         gbuffer_material_view: &wgpu::TextureView,
+        gbuffer_emissive_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: Option<MeshSceneDataBindHandle<'a>>,
@@ -26,6 +27,7 @@ impl DeferredSceneResources {
         albedo_attachment_ops: RenderGraphAttachmentOps,
         normal_attachment_ops: RenderGraphAttachmentOps,
         material_attachment_ops: RenderGraphAttachmentOps,
+        emissive_attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
         mesh_draw_commands: I,
     ) -> MeshDrawReplayStats
@@ -57,6 +59,15 @@ impl DeferredSceneResources {
                     resolve_target: None,
                     depth_slice: None,
                     ops: color_attachment_operations(material_attachment_ops, wgpu::Color::BLACK),
+                }),
+                Some(wgpu::RenderPassColorAttachment {
+                    view: gbuffer_emissive_view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: color_attachment_operations(
+                        emissive_attachment_ops,
+                        wgpu::Color::TRANSPARENT,
+                    ),
                 }),
             ],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {

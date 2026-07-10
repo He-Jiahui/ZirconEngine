@@ -177,8 +177,8 @@ fn build_frame_submission_context_from_source(
             .as_ref()
             .map(|output| output.extract().clone())
     });
-    let authored_hybrid_gi_present = sized_extract.lighting.hybrid_global_illumination.is_some();
-    let authored_hybrid_gi_present = authored_hybrid_gi_present || source_hybrid_gi.is_some();
+    let hybrid_gi_settings_present = sized_extract.lighting.hybrid_global_illumination.is_some();
+    let hybrid_gi_settings_present = hybrid_gi_settings_present || source_hybrid_gi.is_some();
     let effective_hybrid_gi_extract = hybrid_gi_enabled
         .then(|| source_hybrid_gi.cloned())
         .flatten();
@@ -308,7 +308,7 @@ fn build_frame_submission_context_from_source(
     let hybrid_gi_feedback =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_feedback.clone());
     let hybrid_gi_payload_source =
-        hybrid_gi_payload_source_for_extract(hybrid_gi_enabled, authored_hybrid_gi_present);
+        hybrid_gi_payload_source_for_frame(hybrid_gi_enabled, hybrid_gi_settings_present);
     let virtual_geometry_page_upload_plan = virtual_geometry_enabled
         .then(|| visibility_context.virtual_geometry_page_upload_plan.clone());
     let virtual_geometry_feedback =
@@ -452,12 +452,12 @@ fn build_automatic_virtual_geometry_extract(
     )
 }
 
-fn hybrid_gi_payload_source_for_extract(
+fn hybrid_gi_payload_source_for_frame(
     hybrid_gi_enabled: bool,
-    authored_hybrid_gi_present: bool,
+    hybrid_gi_settings_present: bool,
 ) -> RenderHybridGiPayloadSource {
-    if hybrid_gi_enabled && authored_hybrid_gi_present {
-        RenderHybridGiPayloadSource::Authored
+    if hybrid_gi_enabled && hybrid_gi_settings_present {
+        RenderHybridGiPayloadSource::SceneRepresentation
     } else {
         RenderHybridGiPayloadSource::None
     }
@@ -528,17 +528,17 @@ mod tests {
     }
 
     #[test]
-    fn hybrid_gi_payload_source_reports_authored_extract_only_when_enabled() {
+    fn hybrid_gi_payload_source_reports_scene_representation_only_when_enabled() {
         assert_eq!(
-            hybrid_gi_payload_source_for_extract(true, true),
-            RenderHybridGiPayloadSource::Authored
+            hybrid_gi_payload_source_for_frame(true, true),
+            RenderHybridGiPayloadSource::SceneRepresentation
         );
         assert_eq!(
-            hybrid_gi_payload_source_for_extract(false, true),
+            hybrid_gi_payload_source_for_frame(false, true),
             RenderHybridGiPayloadSource::None
         );
         assert_eq!(
-            hybrid_gi_payload_source_for_extract(true, false),
+            hybrid_gi_payload_source_for_frame(true, false),
             RenderHybridGiPayloadSource::None
         );
     }

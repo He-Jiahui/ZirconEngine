@@ -8,12 +8,19 @@ fn runtime_15_shader_prewarm_staged_wgpu_handoff_command_contract_is_wired() {
     let build_prewarm = read_repo("tools/zircon_build_shader_prewarm.py");
     let command_contract_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_command_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let session_doc = read_repo(".codex/sessions/20260628-0141-render-plan08-continuation.md");
 
     assert_contains_all(

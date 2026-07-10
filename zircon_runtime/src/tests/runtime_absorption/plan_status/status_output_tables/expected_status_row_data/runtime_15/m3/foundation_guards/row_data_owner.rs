@@ -33,9 +33,9 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         "Runtime 15 M3 foundation-guards row-data source/status-map sync",
         &[
             "runtime_15_foundation_guards_row_data_source_status_map_sync_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_foundation_guards_row_data/root_paths.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_foundation_guards_row_data/delegation.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_foundation_guards_row_data/status_mirrors/historical_status.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/root_paths.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/delegation.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_foundation_guards_row_data/status_mirrors/historical_status.rs",
             "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/row_data_owner_maps.rs",
             "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/row_data_owner_maps.rs",
             "runtime_15_foundation_guards_row_data_guard_is_folder_backed",

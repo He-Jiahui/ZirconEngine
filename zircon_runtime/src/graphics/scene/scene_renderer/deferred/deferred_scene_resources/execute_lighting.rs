@@ -18,6 +18,7 @@ impl DeferredSceneResources {
         gbuffer_albedo_view: &wgpu::TextureView,
         normal_view: &wgpu::TextureView,
         gbuffer_material_view: &wgpu::TextureView,
+        gbuffer_emissive_view: &wgpu::TextureView,
         scene_depth_view: &wgpu::TextureView,
         shadow_atlas_resources: Option<&ShadowAtlasResources>,
         light_grid_params_buffer: &wgpu::Buffer,
@@ -41,59 +42,65 @@ impl DeferredSceneResources {
             .map(ShadowAtlasResources::globals_buffer)
             .unwrap_or(&self.shadow_atlas_fallback_globals_buffer);
 
+        let mut entries = vec![
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(gbuffer_albedo_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(normal_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::TextureView(background_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(gbuffer_material_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: wgpu::BindingResource::TextureView(scene_depth_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: wgpu::BindingResource::TextureView(gbuffer_emissive_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_ATLAS_BINDING,
+                resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_ATLAS_SAMPLER_BINDING,
+                resource: wgpu::BindingResource::Sampler(shadow_atlas_sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_ATLAS_SLOT_BUFFER_BINDING,
+                resource: shadow_atlas_slot_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_GLOBALS_BINDING,
+                resource: shadow_atlas_globals_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 20,
+                resource: light_grid_params_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 21,
+                resource: light_zbins_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 22,
+                resource: light_tile_masks_buffer.as_entire_binding(),
+            },
+        ];
+        entries.extend(self.reflection_probe_bindings.bind_group_entries());
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-deferred-lighting-bind-group"),
             layout: &self.lighting_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(gbuffer_albedo_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(normal_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(background_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(gbuffer_material_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: wgpu::BindingResource::TextureView(scene_depth_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_ATLAS_BINDING,
-                    resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_ATLAS_SAMPLER_BINDING,
-                    resource: wgpu::BindingResource::Sampler(shadow_atlas_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_ATLAS_SLOT_BUFFER_BINDING,
-                    resource: shadow_atlas_slot_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_GLOBALS_BINDING,
-                    resource: shadow_atlas_globals_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 20,
-                    resource: light_grid_params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 21,
-                    resource: light_zbins_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 22,
-                    resource: light_tile_masks_buffer.as_entire_binding(),
-                },
-            ],
+            entries: &entries,
         });
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

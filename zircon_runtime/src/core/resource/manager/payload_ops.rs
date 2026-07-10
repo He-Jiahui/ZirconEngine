@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::core::resource::{
     ResourceData, ResourceEvent, ResourceEventKind, ResourceHandle, ResourceId, ResourceMarker,
-    ResourceRecord, ResourceState, UntypedResourceHandle,
+    ResourceRecord, ResourceSnapshot, ResourceState, UntypedResourceHandle,
 };
 
 use super::resource_manager::ResourceManager;
@@ -17,8 +17,9 @@ impl ResourceManager {
     where
         TData: ResourceData,
     {
-        let event_kind = {
+        let (event_kind, record) = {
             let mut registry = self.lock_registry_write();
+            let mut payloads = self.lock_payloads_write();
             let previous = registry.get(record.id).cloned();
             if previous
                 .as_ref()
@@ -32,7 +33,8 @@ impl ResourceManager {
                 .as_ref()
                 .map_or(1, |current| next_ready_revision(current, &record));
             registry.upsert(record.clone());
-            match previous {
+            payloads.insert(record.id, Arc::new(payload));
+            let event_kind = match previous {
                 Some(previous) => {
                     if next_ready_revision(&previous, &record) != previous.revision {
                         Some(ResourceEventKind::Updated)
@@ -41,11 +43,9 @@ impl ResourceManager {
                     }
                 }
                 None => Some(ResourceEventKind::Added),
-            }
+            };
+            (event_kind, record)
         };
-
-        self.lock_payloads_write()
-            .insert(record.id, Arc::new(payload));
         self.mark_runtime_loaded(record.id);
 
         if let Some(event_kind) = event_kind {
@@ -70,10 +70,12 @@ impl ResourceManager {
     where
         TData: ResourceData,
     {
-        if self.registry().get(id).is_none() {
+        let registry = self.lock_registry_read();
+        if registry.get(id).is_none() {
             return false;
         }
         self.lock_payloads_write().insert(id, Arc::new(payload));
+        drop(registry);
         self.mark_runtime_loaded(id);
         true
     }
@@ -83,11 +85,26 @@ impl ResourceManager {
         TMarker: ResourceMarker,
         TData: ResourceData,
     {
-        let record = self.registry().get(handle.id()).cloned()?;
+        self.snapshot::<TMarker, TData>(handle)
+            .map(|snapshot| Arc::clone(snapshot.resource()))
+    }
+
+    pub fn snapshot<TMarker, TData>(
+        &self,
+        handle: ResourceHandle<TMarker>,
+    ) -> Option<ResourceSnapshot<TData>>
+    where
+        TMarker: ResourceMarker,
+        TData: ResourceData,
+    {
+        let registry = self.lock_registry_read();
+        let payloads = self.lock_payloads_read();
+        let record = registry.get(handle.id())?.clone();
         if record.kind != TMarker::KIND {
             return None;
         }
-        let payload = self.get_untyped(handle.id())?;
-        Arc::downcast::<TData>(payload.into_any_arc()).ok()
+        let payload = payloads.get(&handle.id())?.clone();
+        let resource = Arc::downcast::<TData>(payload.into_any_arc()).ok()?;
+        Some(ResourceSnapshot::new(record, resource))
     }
 }

@@ -327,18 +327,6 @@ fn reliable_datagram_and_download_contracts_record_recovery_state() {
             .with_diagnostic("hash pending");
     assert_eq!(progress.status, NetDownloadStatus::Verifying);
     assert_eq!(progress.diagnostic.as_deref(), Some("hash pending"));
-
-    let zrpack = ZrPackManifest::new(1, 12)
-        .with_chunk(ZrChunkEntry::new([1; 32], 0, 4))
-        .with_chunk(ZrChunkEntry::new([2; 32], 4, 8));
-    assert_eq!(zrpack.covered_bytes(), 12);
-    assert!(zrpack.is_complete_byte_plan());
-    assert_eq!(zrpack.chunks[1].end_offset(), Some(12));
-    let json = serde_json::to_value(&zrpack).unwrap();
-    assert_eq!(
-        serde_json::from_value::<ZrPackManifest>(json).unwrap(),
-        zrpack
-    );
 }
 
 #[test]

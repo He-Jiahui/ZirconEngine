@@ -77,12 +77,12 @@ fn target_profiles_keep_client_and_editor_windowed_while_server_stays_headless()
     assert_feature_contains_all(
         &features,
         "target-client",
-        &["core-min", "plugin-ui", "default-platform"],
+        &["core-min", "ui", "default-platform"],
     );
     assert_feature_contains_all(
         &features,
         "target-editor-host",
-        &["core-min", "plugin-ui", "default-platform"],
+        &["core-min", "ui", "default-platform"],
     );
     assert_feature_contains_all(
         &features,
@@ -94,7 +94,7 @@ fn target_profiles_keep_client_and_editor_windowed_while_server_stays_headless()
         "target-server",
         &[
             "default-platform",
-            "plugin-ui",
+            "ui",
             "platform-window",
             "platform-winit",
             "gamepad-gilrs",
@@ -168,5 +168,23 @@ fn input_source_features_remain_independent_feature_gates() {
         "input-gestures",
     ] {
         assert_eq!(feature_entries(&features, feature), Vec::<&str>::new());
+    }
+}
+
+#[test]
+fn domain_and_backend_feature_names_use_current_frameworks_vocabulary() {
+    let features = manifest_features();
+
+    for current in ["ui", "backend-jolt", "backend-zr-vm"] {
+        assert!(
+            features.contains_key(current),
+            "missing feature `{current}`"
+        );
+    }
+    for retired in ["plugin-ui", "jolt", "zr-vm-real-backend"] {
+        assert!(
+            !features.contains_key(retired),
+            "retired feature `{retired}` must not survive as an alias"
+        );
     }
 }

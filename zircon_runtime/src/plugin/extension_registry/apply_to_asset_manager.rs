@@ -5,9 +5,10 @@ use super::RuntimeExtensionRegistry;
 
 impl RuntimeExtensionRegistry {
     pub fn apply_asset_importers_to_project_asset_manager(
-        &self,
+        &mut self,
         manager: &ProjectAssetManager,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.finalize();
         for importer in self.asset_importers().importers() {
             manager
                 .register_asset_importer_arc(importer)

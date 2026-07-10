@@ -25,15 +25,15 @@ pub(super) const TYPED_ERROR_NATIVE_STRUCTURE_CHILD: &str = "tests/runtime_absor
 pub(super) const REVIEW_GUARD_STATUS_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/structure_assertions.rs";
 pub(super) const REVIEW_GUARD_FOUNDATION_STATUS_ROWS_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/structure/foundation.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/structure_assertions/foundation.rs";
 pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_STRUCTURE_ASSERTION_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_structure_maps/structure_assertion_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_STRUCTURE_ASSERTION_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_structure_maps/structure_assertion_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
 
 pub(super) const TYPED_ERROR_CHILD_OWNER_LINE_BUDGET: usize = 800;
 pub(super) const TYPED_ERROR_STRUCTURE_ASSERTIONS_GUARD_SPLIT_NAME: &str =

@@ -95,6 +95,26 @@ fn native_live_host_rollback_plan_reports_when_previous_plugin_was_already_unloa
 }
 
 #[test]
+fn native_live_host_rollback_plan_reports_when_previous_plugin_was_restored() {
+    let existing = native_live_host_test_plugin("physics", PluginModuleKind::Runtime);
+    let mut reload_state = NativePluginHotReloadState::new(
+        PluginModuleKind::Runtime,
+        "runtime:physics".to_string(),
+        Some(existing),
+    );
+
+    let _unloaded = reload_state
+        .take_existing_for_unload()
+        .expect("existing plugin should be taken for unload");
+    reload_state.mark_existing_unloaded(Vec::new());
+    reload_state.mark_existing_restored();
+
+    assert!(reload_state
+        .rollback_diagnostic()
+        .contains("rolled back to the previously loaded runtime native package"));
+}
+
+#[test]
 fn native_hot_reload_state_saves_and_restores_runtime_snapshot() {
     restored_payloads().lock().unwrap().clear();
     let existing = native_live_host_test_plugin_with_behavior(

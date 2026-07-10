@@ -2,6 +2,7 @@ use crate::plugin::ProjectPluginManifest;
 
 use super::super::feature_completion::complete_project_feature_selections;
 use super::super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
+use super::feature_provider_selections::complete_external_feature_provider_selections;
 use super::selection_defaults::complete_project_selection_defaults;
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn catalog_project_manifest(
@@ -27,6 +28,11 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_projec
 ) -> ProjectPluginManifest {
     let mut completed = manifest.clone();
     complete_project_selection_defaults(registrations, &mut completed);
+    complete_external_feature_provider_selections(
+        registrations,
+        feature_registrations,
+        &mut completed,
+    );
     complete_project_feature_selections(registrations, feature_registrations, &mut completed);
     completed
 }

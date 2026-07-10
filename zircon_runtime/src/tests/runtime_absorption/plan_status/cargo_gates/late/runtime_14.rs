@@ -1,10 +1,13 @@
 #[test]
 fn runtime_14_module_family_cargo_gate_stays_visible_until_filters_pass() {
-    let runtime_14_plan = include_str!(
+    let runtime_14_plan = runtime_plan_source_with_archive("14", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    ));
+    let runtime_14_plan = runtime_14_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
 
     assert_eq!(
         frontmatter_status(runtime_14_plan),

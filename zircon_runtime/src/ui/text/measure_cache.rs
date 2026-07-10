@@ -23,7 +23,7 @@ use zircon_runtime_interface::ui::surface::{
 use super::resolved_layout::{
     resolve_text_layout_with_provider, UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey,
 };
-use super::rich_text::parse_source_runs;
+use super::rich_text::parse_source_text;
 use super::shaper::measure_text_size_with_provider as measure_backend_text_size_with_provider;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -164,10 +164,7 @@ fn layout_prewarm_text(text: &str, rich_text: bool) -> Option<Arc<str>> {
         return Some(Arc::from(text));
     }
 
-    let mut visible_text = String::new();
-    for run in parse_source_runs(text, true) {
-        visible_text.push_str(&run.text);
-    }
+    let visible_text = parse_source_text(text, true).text;
     (!visible_text.is_empty()).then(|| Arc::from(visible_text))
 }
 
@@ -390,6 +387,28 @@ impl TextShapeRunProvider for UiCachedTextShapeProvider<'_> {
             style,
             direction,
             source_range,
+            include_kerning,
+        );
+        let key = ShapedRunCacheKey::from_request(&request);
+        self.cache
+            .get_or_insert_with(key, text, || shape_text(request))
+    }
+
+    fn shape_vertical_line_with_kerning(
+        &mut self,
+        text: &str,
+        style: &UiResolvedStyle,
+        direction: UiTextDirection,
+        source_range: UiTextRange,
+        vertical_mode: crate::core::framework::render::VerticalMode,
+        include_kerning: bool,
+    ) -> Arc<ShapedGlyphRun> {
+        let request = TextShapeRequest::vertical_with_kerning(
+            text,
+            style,
+            direction,
+            source_range,
+            vertical_mode,
             include_kerning,
         );
         let key = ShapedRunCacheKey::from_request(&request);

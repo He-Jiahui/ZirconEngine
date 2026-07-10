@@ -24,9 +24,9 @@ pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_SOURCE_INVENTORY_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/source_inventory_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/source_inventory_rows.rs";
 pub(super) const REVIEW_GUARD_SOURCE_INVENTORY_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/source_inventory_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/source_inventory_rows.rs";
 pub(super) const CODE_REVIEW_FINDINGS_LINE_BUDGET: usize = 800;
 
 pub(super) const SOURCE_INVENTORY_FOLDER_BACKED_SPLIT_NAME: &str =

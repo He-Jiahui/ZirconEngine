@@ -30,7 +30,7 @@ fn assert_mirror_docs_match_structure_audit() {
         for required_anchor in [
             "schedule_frame_loop_boundary",
             "source files 19/19",
-            "guard/test files 8/8",
+            "guard/test files 11/11",
             "`SystemStage` count and variants 9/9",
             "fixed-loop stages 3/3",
             "dynamic-session `.tick_time(...)` calls 1/1",

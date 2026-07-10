@@ -25,7 +25,7 @@ where
         }
     }
 
-    pub(crate) fn owned(table: FrozenBridgeTable) -> Self {
+    pub fn owned(table: FrozenBridgeTable) -> Self {
         let slot = table.resolve_slot(T::INTERFACE_ID);
         Self::new(table, slot)
     }

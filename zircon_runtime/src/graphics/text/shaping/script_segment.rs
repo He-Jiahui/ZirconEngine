@@ -1,7 +1,7 @@
 use unicode_script::{Script, UnicodeScript};
 use zircon_runtime_interface::ui::surface::UiTextRange;
 
-use crate::core::framework::render::ShapedGlyphScript;
+use crate::core::framework::render::{FontScript, ShapedGlyphScript};
 
 const EMOJI_SCRIPT_TAG: &str = "Zsye";
 
@@ -147,5 +147,33 @@ pub(crate) fn shaped_script_for_cluster(
         }
     } else {
         fallback
+    }
+}
+
+pub(crate) fn font_script_for_cluster(cluster: &str) -> FontScript {
+    let fallback = cluster
+        .chars()
+        .map(script_for_char)
+        .find(|script| !is_common_like(*script))
+        .unwrap_or(Script::Common);
+    match shaped_script_for_cluster(cluster, shaped_script(fallback))
+        .iso15924
+        .as_str()
+    {
+        "Latn" => FontScript::Latin,
+        "Cyrl" => FontScript::Cyrillic,
+        "Grek" => FontScript::Greek,
+        "Hani" => FontScript::Han,
+        "Hira" => FontScript::Hiragana,
+        "Kana" => FontScript::Katakana,
+        "Hang" => FontScript::Hangul,
+        "Arab" => FontScript::Arabic,
+        "Hebr" => FontScript::Hebrew,
+        "Deva" => FontScript::Devanagari,
+        _ => cluster
+            .chars()
+            .find(|codepoint| !codepoint.is_whitespace())
+            .map(|codepoint| FontScript::Other(codepoint as u32))
+            .unwrap_or(FontScript::Other(0)),
     }
 }

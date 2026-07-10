@@ -81,13 +81,15 @@ const EXPECTED_RUNTIME_08_TEST_FILES: &[&str] = &[
     "src/scene/tests/ecs_change_detection.rs",
     "src/scene/tests/component_structure/runtime_08_owner_tree.rs",
     "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
+    "src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_08.rs",
     "src/tests/runtime_absorption/ecs_kernel_data.rs",
+    "src/tests/runtime_absorption/ecs_kernel_data/inventory.rs",
 ];
 
 #[test]
 fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
     assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 69);
-    assert_eq!(EXPECTED_RUNTIME_08_TEST_FILES.len(), 8);
+    assert_eq!(EXPECTED_RUNTIME_08_TEST_FILES.len(), 10);
     assert_eq!(
         guard_coverage::EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS.len(),
         16

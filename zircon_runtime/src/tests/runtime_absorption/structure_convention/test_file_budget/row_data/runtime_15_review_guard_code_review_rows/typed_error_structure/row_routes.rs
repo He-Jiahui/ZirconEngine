@@ -9,7 +9,7 @@ pub(super) fn assert_typed_error_structure_assertion_row_routes_are_child_backed
 
     for (module_name, marker) in TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILDREN {
         let child_path = typed_error_structure_assertions_child_path(module_name);
-        let module_mount = format!("#[path = \"structure/{module_name}.rs\"]");
+        let module_mount = format!("#[path = \"structure_assertions/{module_name}.rs\"]");
         let re_export = format!("pub(super) use {module_name}::*;");
         assert_contains_all(
             "typed-error structure-assertions row-data route mounts child row groups",

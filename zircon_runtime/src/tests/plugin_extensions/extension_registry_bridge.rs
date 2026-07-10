@@ -4,8 +4,8 @@ use crate::core::framework::bridge::{BridgeError, PluginInterface};
 use crate::plugin::{
     BridgeDiagnosticsMatrix, BridgeInterfaceSnapshot, BridgeInterfaceStatus,
     BridgeOwnerTransitionMode, BridgeOwnerTransitionReport, BridgeTableDiagnosticsSummary,
-    CapabilityView, InterfaceSlot, PluginFinishContext, PluginModuleId, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError,
+    InterfaceSlot, PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    WeakBridge,
 };
 
 trait WeatherQueryInterface: Send + Sync {

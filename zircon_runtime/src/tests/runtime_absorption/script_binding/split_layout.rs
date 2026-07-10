@@ -6,32 +6,36 @@ const SUPPORT_SOURCE: &str = include_str!("support.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const RUNTIME_13_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
+    "../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"
 );
 const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
-const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+);
+const STRUCTURE_CONVENTION_PLAN: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+);
+const REVIEW_FINDINGS_PLAN: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+);
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
+const FRAMEWORKS_02_PLAN: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
+);
 const SESSION_NOTE: &str = include_str!(
     "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
 );
 const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests.rs"
+    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_core_rows.rs"
 );
 const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
 );
 const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
 );
 
 #[test]

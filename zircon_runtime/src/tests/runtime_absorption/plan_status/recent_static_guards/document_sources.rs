@@ -1,4 +1,7 @@
+use super::super::support::runtime_numbered_archive_sources;
+
 pub(super) struct RecentStaticGuardSources {
+    pub(super) archives: String,
     pub(super) runtime_index: &'static str,
     pub(super) review: &'static str,
     pub(super) runtime_01_plan: &'static str,
@@ -47,6 +50,7 @@ pub(super) struct RecentStaticGuardSources {
 impl RecentStaticGuardSources {
     pub(super) fn load() -> Self {
         Self {
+            archives: runtime_numbered_archive_sources(),
             runtime_index: include_str!(
                 "../../../../../../docs/plans/zircon_runtime/runtime/index.md"
             ),

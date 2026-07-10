@@ -9,11 +9,12 @@ fn runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner() {
     let scene_physics = include_str!("../../../../asset/assets/scene/physics.rs");
     let asset_assets_mod = include_str!("../../../../asset/assets/mod.rs");
     let asset_mod = include_str!("../../../../asset/mod.rs");
-    let runtime_07_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+    let runtime_07_output = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index_output = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
+    );
     let hotspot_doc =
         include_str!("../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
     let scene_doc = include_str!("../../../../../../docs/zircon_runtime/asset/assets/scene.md");
@@ -82,8 +83,8 @@ fn runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner() {
         "scene asset split-drift repair",
     ] {
         assert!(
-            runtime_07_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
+            runtime_07_output.contains(doc_anchor)
+                || runtime_index_output.contains(doc_anchor)
                 || hotspot_doc.contains(doc_anchor)
                 || scene_doc.contains(doc_anchor),
             "Runtime 07 scene split docs should retain `{doc_anchor}`"

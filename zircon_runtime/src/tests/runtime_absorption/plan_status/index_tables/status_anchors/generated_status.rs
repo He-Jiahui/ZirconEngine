@@ -1,18 +1,8 @@
-use super::super::super::support::assert_contains_all;
+use super::super::super::support::{assert_contains_all, runtime_numbered_archive_sources};
 
 #[test]
 fn runtime_15_runtime_02_generated_status_index_anchors_are_locked() {
-    let index_source =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let structure_convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let module_convention =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
+    let archive_source = runtime_numbered_archive_sources();
     let session_note = include_str!(
         "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
     );
@@ -58,8 +48,8 @@ fn runtime_15_runtime_02_generated_status_index_anchors_are_locked() {
         &runtime_02_generated_index_anchors,
     );
     assert_contains_all(
-        "runtime index",
-        index_source,
+        "runtime numbered archives",
+        &archive_source,
         &runtime_02_generated_index_anchors,
     );
 
@@ -82,11 +72,7 @@ fn runtime_15_runtime_02_generated_status_index_anchors_are_locked() {
         "runtime_15_runtime_02_generated_status_index_anchors_are_locked",
     ];
     for (label, source) in [
-        ("Runtime 15 subplan", runtime_15_plan),
-        ("runtime index", index_source),
-        ("engine code structure convention", structure_convention),
-        ("engine code review findings", review_findings),
-        ("module convention doc", module_convention),
+        ("runtime numbered archives", archive_source.as_str()),
         ("runtime implementation session note", session_note),
         ("Runtime 15 status row data", runtime_15_status_row_data),
         ("Runtime 15 expected status map", status_map.as_str()),

@@ -22,7 +22,7 @@ fn review_guard_row_data_root_paths_child_path(module_name: &str) -> String {
 #[test]
 fn runtime_15_review_guard_row_data_root_paths_are_folder_backed() {
     let parent = read_runtime_src(ROOT_PATHS_PATH);
-    let status_rows = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PATH);
+    let status_rows = review_guard_status_support_review_rows_source_blob();
     let status_map = read_runtime_src(REVIEW_GUARD_ROW_DATA_ROOT_PATHS_STATUS_MAP_PATH);
     let date_map = read_runtime_src(REVIEW_GUARD_ROW_DATA_ROOT_PATHS_DATE_MAP_PATH);
 

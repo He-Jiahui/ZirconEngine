@@ -2,13 +2,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, AssetImportError, AssetUri, DataAsset, FontAsset, ImportedAsset,
+    AnimationStateMachineAsset, AssetImportError, AssetUri, DataAsset, ImportedAsset,
     MaterialGraphAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
     PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset, TexturePayload,
     TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
 };
-use crate::core::framework::physics::PhysicsMaterialMetadata;
+use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 
+mod font;
 mod json_value;
 mod material_shader;
 mod mesh;
@@ -16,6 +17,7 @@ mod scene;
 mod toml_value;
 mod ui;
 
+use font::ArtifactCacheFontAsset;
 use json_value::ArtifactCacheJsonValue;
 use material_shader::{ArtifactCacheMaterialAsset, ArtifactCacheShaderAsset};
 use mesh::ArtifactCacheMeshAsset;
@@ -34,7 +36,7 @@ pub(super) enum ArtifactCacheAsset {
     Material(ArtifactCacheMaterialAsset),
     MaterialGraph(MaterialGraphAsset),
     Sound(SoundAsset),
-    Font(FontAsset),
+    Font(ArtifactCacheFontAsset),
     PhysicsMaterial(ArtifactCachePhysicsMaterialAsset),
     NavMesh(NavMeshAsset),
     NavigationSettings(NavigationSettingsAsset),
@@ -72,7 +74,7 @@ impl ArtifactCacheAsset {
             }
             ImportedAsset::MaterialGraph(asset) => Self::MaterialGraph(asset.clone()),
             ImportedAsset::Sound(asset) => Self::Sound(asset.clone()),
-            ImportedAsset::Font(asset) => Self::Font(asset.clone()),
+            ImportedAsset::Font(asset) => Self::Font(ArtifactCacheFontAsset::from(asset)),
             ImportedAsset::PhysicsMaterial(asset) => {
                 Self::PhysicsMaterial(ArtifactCachePhysicsMaterialAsset::from(asset))
             }
@@ -124,7 +126,7 @@ impl ArtifactCacheAsset {
             Self::Material(asset) => ImportedAsset::Material(asset.into_asset()?),
             Self::MaterialGraph(asset) => ImportedAsset::MaterialGraph(asset),
             Self::Sound(asset) => ImportedAsset::Sound(asset),
-            Self::Font(asset) => ImportedAsset::Font(asset),
+            Self::Font(asset) => ImportedAsset::Font(asset.into_asset()),
             Self::PhysicsMaterial(asset) => ImportedAsset::PhysicsMaterial(asset.into()),
             Self::NavMesh(asset) => ImportedAsset::NavMesh(asset),
             Self::NavigationSettings(asset) => ImportedAsset::NavigationSettings(asset),

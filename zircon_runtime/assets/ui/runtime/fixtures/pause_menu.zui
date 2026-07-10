@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "runtime.ui.pause_menu"
+id = "res://ui/runtime/fixtures/pause_menu.zui"
 version = 2
 display_name = "Runtime Pause Menu"
 

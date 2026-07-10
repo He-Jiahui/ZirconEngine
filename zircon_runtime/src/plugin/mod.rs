@@ -53,8 +53,7 @@ pub use project_plugin_manifest::{
     ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
 };
 pub use runtime_plugin::{
-    CapabilityView, PluginFinishContext, PluginReadyContext, PluginRuntimeContext,
-    RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginBridgeDependent,
+    CapabilityView, RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginBridgeDependent,
     RuntimePluginBridgeDisableBlocker, RuntimePluginBridgeLifecycleBlock,
     RuntimePluginBridgeLifecycleError, RuntimePluginBridgeLifecycleEvent,
     RuntimePluginBridgeLifecycleOutcome, RuntimePluginBridgeLifecycleReport,

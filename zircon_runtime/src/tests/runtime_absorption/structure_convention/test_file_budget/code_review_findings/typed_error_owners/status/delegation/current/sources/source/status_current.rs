@@ -18,9 +18,9 @@ use super::super::super::super::super::{
 use super::source_tree::typed_error_delegation_status_current_sources_guard_children;
 
 const TYPED_ERROR_STATUS_DOC_DELEGATION_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_maps/status_doc_rows/delegation_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/status_doc_rows/delegation_rows.rs";
 const TYPED_ERROR_STATUS_DOC_DELEGATION_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_maps/status_doc_rows/delegation_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/status_doc_rows/delegation_rows.rs";
 
 pub(super) fn assert_sources_child_split_status_is_current() {
     let anchors = [
@@ -80,7 +80,7 @@ fn assert_status_documents_contain(label: &str, anchors: &[&str]) {
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");

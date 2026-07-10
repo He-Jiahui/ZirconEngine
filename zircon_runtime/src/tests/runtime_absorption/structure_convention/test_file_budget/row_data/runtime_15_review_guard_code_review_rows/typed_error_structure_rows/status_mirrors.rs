@@ -29,7 +29,7 @@ pub(super) fn assert_typed_error_structure_row_data_status_is_current() {
         TYPED_ERROR_STRUCTURE_ROWS_ROW_DATA_STATUS_ID,
         "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows.rs",
         "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/core_rows.rs",
-        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status/paths/core.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs/paths/core.rs",
         TYPED_ERROR_STRUCTURE_ROWS_ROW_DATA_GUARD_NAME,
         "Cargo gate deferred",
     ];

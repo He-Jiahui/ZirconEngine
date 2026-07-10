@@ -526,7 +526,7 @@ fn native_bitmap_atlas_storage_submissions_inherit_persistent_frame_atlas() {
 }
 
 #[test]
-fn native_bitmap_atlas_frame_keeps_glyphon_when_mixed_storage_order_would_change() {
+fn native_bitmap_atlas_frame_preserves_repeated_storage_order_without_glyphon() {
     let first_alpha = GlyphAtlasBitmapSource {
         format: GlyphAtlasFormat::AlphaMask,
         content_size: UVec2::new(8, 8),
@@ -560,13 +560,37 @@ fn native_bitmap_atlas_frame_keeps_glyphon_when_mixed_storage_order_would_change
         0,
     );
     let report = frame.prepare_report();
+    let storage_submissions = frame.storage_submissions();
 
     assert!(report.mixed_atlas_storage_format);
-    assert_eq!(report.storage_submission_count, 2);
+    assert_eq!(report.storage_submission_count, 3);
     assert_eq!(report.storage_submission_visible_glyph_count, 3);
-    assert!(!report.mixed_storage_replacement_ready);
+    assert!(report.mixed_storage_replacement_ready);
     assert!(!report.replaces_glyphon);
     assert!(!frame.replaces_glyphon());
+    assert_eq!(
+        native_bitmap_atlas_handoff_for_report(&report),
+        NativeBitmapAtlasHandoff::MixedStorageReplacement
+    );
+    assert_eq!(report.glyphon_fallback_reason, None);
+    assert_eq!(storage_submissions.len(), 3);
+    assert_eq!(
+        storage_submissions
+            .iter()
+            .map(|submission| submission.storage_format)
+            .collect::<Vec<_>>(),
+        vec![
+            GlyphAtlasStorageFormat::R8Unorm,
+            GlyphAtlasStorageFormat::Rgba8Unorm,
+            GlyphAtlasStorageFormat::R8Unorm,
+        ]
+    );
+    assert!(storage_submissions
+        .iter()
+        .all(|submission| submission.visible_glyph_count() == 1));
+    assert_eq!(storage_submissions[0].source_bytes()[0].bytes[0], 255);
+    assert_eq!(storage_submissions[1].source_bytes()[0].bytes[0], 255);
+    assert_eq!(storage_submissions[2].source_bytes()[0].bytes[0], 127);
 }
 
 #[test]

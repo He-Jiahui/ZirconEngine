@@ -1,4 +1,6 @@
-use super::support::{markdown_table_cells, runtime_subplan_sources};
+use super::support::{
+    markdown_table_cells, runtime_subplan_sources, runtime_subplan_sources_with_archives,
+};
 
 const STATUS_OUTPUT_HEADING: &str = "## 状态与产出记录";
 const STATUS_OUTPUT_HEADER: &str = "| 里程碑 | 切片 | 状态 |";
@@ -6,7 +8,7 @@ const INDEX_STATUS_ROUTING_HEADER: &str = "| 范围 | 记录位置 |";
 
 #[test]
 fn runtime_plan_status_output_tables_cover_all_subplans() {
-    for (filename, source) in runtime_subplan_sources() {
+    for (filename, source) in runtime_subplan_sources_with_archives() {
         assert_status_output_table(&filename, &source);
     }
 }
@@ -51,35 +53,33 @@ fn assert_status_output_table(label: &str, source: &str) {
 }
 
 fn status_output_rows(source: &str) -> Vec<Vec<&str>> {
-    let mut status_section_started = false;
     let mut rows = Vec::new();
 
     for line in source.lines() {
-        let trimmed = line.trim();
-        if trimmed == STATUS_OUTPUT_HEADING {
-            status_section_started = true;
-            continue;
-        }
-        if !status_section_started {
-            continue;
-        }
-        if trimmed.starts_with("## ") {
-            break;
-        }
-
         let cells = markdown_table_cells(line);
         if cells.len() == 5
             && cells[0] != "里程碑"
             && !cells[0].chars().all(|character| character == '-')
+            && is_status_cell(cells[2])
         {
             rows.push(cells);
         }
     }
 
     assert!(
-        status_section_started,
+        source
+            .lines()
+            .any(|line| line.trim() == STATUS_OUTPUT_HEADING),
         "document should contain `{STATUS_OUTPUT_HEADING}` as a heading line"
     );
 
     rows
+}
+
+fn is_status_cell(cell: &str) -> bool {
+    [
+        "pass", "pending", "deferred", "active", "complete", "待", "完成", "阻塞", "通过",
+    ]
+    .iter()
+    .any(|marker| cell.contains(marker))
 }

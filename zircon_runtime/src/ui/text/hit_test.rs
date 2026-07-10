@@ -9,6 +9,11 @@ use zircon_runtime_interface::ui::{
 
 use super::grapheme::{grapheme_count, grapheme_indices};
 
+#[path = "hit_test/visual_source.rs"]
+mod visual_source;
+
+use visual_source::{source_caret_for_visual_boundary, VisualBoundaryBias, VisualSourceCluster};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextHitTest {
     pub line_index: Option<usize>,
@@ -40,27 +45,30 @@ pub(crate) fn hit_test_text_layout(layout: &UiResolvedTextLayout, point: UiPoint
     };
     let line = &layout.lines[line_index];
     let style = style_for_layout(layout, line);
-    let grapheme_index = if vertical_rl {
-        visual_grapheme_index_for_y(line, point.y, &style)
+    let (grapheme_index, boundary_bias) = if vertical_rl {
+        visual_grapheme_boundary_for_y(line, point.y, &style)
     } else {
-        visual_grapheme_index_for_x(line, point.x, &style)
+        visual_grapheme_boundary_for_x(line, point.x, &style)
     };
+    let fallback_source_offset = line_source_offset_for_grapheme_index(line, grapheme_index);
+    let (source_offset, resolved_affinity) = source_caret_for_visual_boundary(
+        &visual_source_clusters(line),
+        grapheme_index,
+        boundary_bias,
+        fallback_source_offset,
+    );
+    let affinity =
+        if (vertical_rl && point.y <= line.frame.y) || (!vertical_rl && point.x <= line.frame.x) {
+            UiTextCaretAffinity::Upstream
+        } else {
+            resolved_affinity
+        };
 
     UiTextHitTest {
         line_index: Some(line_index),
-        source_offset: line_source_offset_for_grapheme_index(line, grapheme_index),
+        source_offset,
         visual_grapheme_index: grapheme_index,
-        affinity: if vertical_rl {
-            if point.y <= line.frame.y {
-                UiTextCaretAffinity::Upstream
-            } else {
-                UiTextCaretAffinity::Downstream
-            }
-        } else if point.x <= line.frame.x {
-            UiTextCaretAffinity::Upstream
-        } else {
-            UiTextCaretAffinity::Downstream
-        },
+        affinity,
         inside_line: line.frame.contains_point(point),
     }
 }
@@ -98,14 +106,14 @@ fn text_column_index_for_vertical_rl_x(layout: &UiResolvedTextLayout, x: f32) ->
     nearest.map(|(index, _)| index)
 }
 
-fn visual_grapheme_index_for_x(
+fn visual_grapheme_boundary_for_x(
     line: &UiResolvedTextLine,
     point_x: f32,
     style: &UiResolvedStyle,
-) -> usize {
+) -> (usize, VisualBoundaryBias) {
     let grapheme_count = grapheme_count(&line.text);
     if grapheme_count == 0 {
-        return 0;
+        return (0, VisualBoundaryBias::LeadingCurrent);
     }
 
     let relative_x = match line.direction {
@@ -119,22 +127,25 @@ fn visual_grapheme_index_for_x(
     let measured_x = relative_x.clamp(0.0, line.measured_width.max(advance_width).max(0.0));
     let mut cursor_x = 0.0_f32;
     for (index, width) in advances.into_iter().enumerate() {
+        if index > 0 && measured_x < cursor_x {
+            return (index, VisualBoundaryBias::TrailingPrevious);
+        }
         if measured_x <= cursor_x + width * 0.5 {
-            return index;
+            return (index, VisualBoundaryBias::LeadingCurrent);
         }
         cursor_x += width;
     }
-    grapheme_count
+    (grapheme_count, VisualBoundaryBias::TrailingPrevious)
 }
 
-fn visual_grapheme_index_for_y(
+fn visual_grapheme_boundary_for_y(
     line: &UiResolvedTextLine,
     point_y: f32,
     style: &UiResolvedStyle,
-) -> usize {
+) -> (usize, VisualBoundaryBias) {
     let grapheme_count = grapheme_count(&line.text);
     if grapheme_count == 0 {
-        return 0;
+        return (0, VisualBoundaryBias::LeadingCurrent);
     }
 
     let relative_y = point_y - line.frame.y;
@@ -149,12 +160,41 @@ fn visual_grapheme_index_for_y(
     );
     let mut cursor_y = 0.0_f32;
     for (index, height) in advances.into_iter().enumerate() {
+        if index > 0 && measured_y < cursor_y {
+            return (index, VisualBoundaryBias::TrailingPrevious);
+        }
         if measured_y <= cursor_y + height * 0.5 {
-            return index;
+            return (index, VisualBoundaryBias::LeadingCurrent);
         }
         cursor_y += height;
     }
-    grapheme_count
+    (grapheme_count, VisualBoundaryBias::TrailingPrevious)
+}
+
+fn visual_source_clusters(line: &UiResolvedTextLine) -> Vec<VisualSourceCluster> {
+    let mut clusters = Vec::new();
+    for run in &line.runs {
+        let source_len = run.source_range.end.saturating_sub(run.source_range.start);
+        if source_len != run.text.len() {
+            for _ in grapheme_indices(&run.text) {
+                clusters.push(VisualSourceCluster {
+                    source_range: run.source_range,
+                    direction: run.direction,
+                });
+            }
+            continue;
+        }
+        for (start, grapheme) in grapheme_indices(&run.text) {
+            clusters.push(VisualSourceCluster {
+                source_range: zircon_runtime_interface::ui::surface::UiTextRange {
+                    start: run.source_range.start + start,
+                    end: run.source_range.start + start + grapheme.len(),
+                },
+                direction: run.direction,
+            });
+        }
+    }
+    clusters
 }
 
 fn resolved_grapheme_advances(

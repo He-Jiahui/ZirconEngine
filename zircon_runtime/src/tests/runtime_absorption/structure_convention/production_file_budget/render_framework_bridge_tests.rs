@@ -11,8 +11,11 @@ fn runtime_15_render_framework_bridge_tests_are_child_owners() {
         read_runtime_src("graphics/tests/render_framework_bridge/neural_compute.rs");
     let advanced_providers =
         read_runtime_src("graphics/tests/render_framework_bridge/advanced_providers.rs");
+    let hybrid_gi_visual_export =
+        read_runtime_src("graphics/tests/render_framework_bridge/hybrid_gi_visual_export.rs");
 
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let render_submit = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
@@ -28,6 +31,7 @@ fn runtime_15_render_framework_bridge_tests_are_child_owners() {
         &[
             "mod advanced_providers;",
             "mod history;",
+            "mod hybrid_gi_visual_export;",
             "mod neural_compute;",
             "mod pipeline_profiles;",
             "mod stats;",
@@ -36,10 +40,10 @@ fn runtime_15_render_framework_bridge_tests_are_child_owners() {
             "fn missing_capabilities(",
             "fn capability_test_summary(",
             "fn neural_compute_render_feature_descriptor(",
-            "fn render_hybrid_gi_history_capture(",
+            "fn advanced_provider_report(",
             "fn flagship_extract(",
             "fn virtual_geometry_cluster(",
-            "fn hybrid_gi_probe(",
+            "fn virtual_geometry_page(",
             "fn average_region_channel(",
         ],
     );
@@ -96,9 +100,19 @@ fn runtime_15_render_framework_bridge_tests_are_child_owners() {
             advanced_providers.as_str(),
         ),
         (
-            "fn render_framework_hybrid_gi_second_frame_resolve_ignores_plugin_private_history(",
+            "fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_and_hybrid_gi_payload(",
             "advanced_providers.rs",
             advanced_providers.as_str(),
+        ),
+        (
+            "fn export_hybrid_gi_lumen_style_seed_visual_png(",
+            "hybrid_gi_visual_export.rs",
+            hybrid_gi_visual_export.as_str(),
+        ),
+        (
+            "fn seeded_hybrid_gi_prepared_frame(",
+            "hybrid_gi_visual_export.rs",
+            hybrid_gi_visual_export.as_str(),
         ),
     ] {
         assert!(
@@ -117,6 +131,10 @@ fn runtime_15_render_framework_bridge_tests_are_child_owners() {
         ("pipeline profile child", pipeline_profiles.as_str()),
         ("neural compute child", neural_compute.as_str()),
         ("advanced provider child", advanced_providers.as_str()),
+        (
+            "Hybrid GI visual export child",
+            hybrid_gi_visual_export.as_str(),
+        ),
     ] {
         assert!(
             source.contains("use super::*;"),
@@ -145,6 +163,10 @@ fn runtime_15_render_framework_bridge_tests_are_child_owners() {
         (
             "graphics/tests/render_framework_bridge/advanced_providers.rs",
             advanced_providers.as_str(),
+        ),
+        (
+            "graphics/tests/render_framework_bridge/hybrid_gi_visual_export.rs",
+            hybrid_gi_visual_export.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

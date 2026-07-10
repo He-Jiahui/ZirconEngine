@@ -4,7 +4,13 @@ use super::*;
 fn runtime_15_review_guard_direct_assertion_export_chain_runtime_aggregation_is_current() {
     let top_level_status_rows = read_runtime_src(TOP_LEVEL_EXPECTED_STATUS_ROW_DATA_PATH);
     let runtime_15_rows = read_runtime_src(RUNTIME_15_EXPECTED_STATUS_ROW_DATA_PATH);
+    let runtime_15_review_guard_exports = read_runtime_src(RUNTIME_15_REVIEW_GUARD_EXPORTS_PATH);
     let runtime_15_m3_rows = read_runtime_src(RUNTIME_15_M3_EXPECTED_STATUS_ROW_DATA_PATH);
+    let runtime_15_m3_review_guard_exports =
+        read_runtime_src(RUNTIME_15_M3_REVIEW_GUARD_EXPORTS_PATH);
+    let runtime_15_export_surface = format!("{runtime_15_rows}\n{runtime_15_review_guard_exports}");
+    let runtime_15_m3_export_surface =
+        format!("{runtime_15_m3_rows}\n{runtime_15_m3_review_guard_exports}");
 
     assert_contains_all(
         "Runtime 15 status row aggregation consumes direct-assertion group",
@@ -22,9 +28,10 @@ fn runtime_15_review_guard_direct_assertion_export_chain_runtime_aggregation_is_
     );
     assert_contains_all(
         "Runtime 15 root exports direct-assertion review-guard group",
-        &runtime_15_rows,
+        &runtime_15_export_surface,
         &[
             "RUNTIME_15_M3_REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_EXPECTED_STATUS_OUTPUT_SLICES",
+            "pub(super) use m3_review_guard_exports::*;",
             "m3::REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_EXPECTED_STATUS_OUTPUT_SLICES",
             "RUNTIME_15_M3_REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F12_EXPECTED_STATUS_OUTPUT_SLICES",
             "m3::REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F12_EXPECTED_STATUS_OUTPUT_SLICES",
@@ -44,9 +51,10 @@ fn runtime_15_review_guard_direct_assertion_export_chain_runtime_aggregation_is_
     );
     assert_contains_all(
         "Runtime 15 M3 root exports direct-assertion review-guard group",
-        &runtime_15_m3_rows,
+        &runtime_15_m3_export_surface,
         &[
             "REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_EXPECTED_STATUS_OUTPUT_SLICES",
+            "pub(super) use review_guard_exports::*;",
             "review_guard_splits::CODE_REVIEW_DIRECT_ASSERTION_EXPECTED_STATUS_OUTPUT_SLICES",
             "REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_F12_EXPECTED_STATUS_OUTPUT_SLICES",
             "review_guard_splits::CODE_REVIEW_DIRECT_ASSERTION_F12_EXPECTED_STATUS_OUTPUT_SLICES",

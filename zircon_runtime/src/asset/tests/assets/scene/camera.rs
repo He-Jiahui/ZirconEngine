@@ -16,6 +16,7 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
             render_layer_mask: 0x0000_0002,
             mobility: SceneMobilityAsset::Dynamic,
             camera: Some(SceneCameraAsset {
+                core_pipeline: CorePipelineKind::Core2d,
                 projection_mode: ProjectionMode::Orthographic,
                 fov_y_radians: 0.75,
                 ortho_size: 12.0,
@@ -65,6 +66,7 @@ fn scene_camera_asset_roundtrip_preserves_bevy_style_camera_fields() {
 
     assert_eq!(loaded, scene);
     assert_eq!(loaded.direct_references(), vec![camera_target]);
+    assert!(document.contains("core_pipeline"));
     assert!(document.contains("projection_mode"));
     assert!(document.contains("camera-target.png"));
 }
@@ -84,6 +86,7 @@ camera = { fov_y_radians = 1.0, z_near = 0.25, z_far = 900.0 }
     let loaded = SceneAsset::from_toml_str(document).unwrap();
     let camera = loaded.entities[0].camera.as_ref().unwrap();
 
+    assert_eq!(camera.core_pipeline, CorePipelineKind::Core3d);
     assert_eq!(camera.projection_mode, ProjectionMode::Perspective);
     assert_eq!(camera.ortho_size, 5.0);
     assert!(matches!(

@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) fn assert_status_doc_paths_rows_are_child_backed() {
     let parent = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status/paths.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs/paths.rs",
     );
     assert_contains_all(
         "typed-error status-doc path row parent mounts child files",
@@ -20,9 +20,9 @@ pub(super) fn assert_status_doc_paths_rows_are_child_backed() {
         "status/paths.rs should route child row files instead of owning row anchors directly",
     );
     let child_blob = [
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status/paths/core.rs",
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status/paths/status_current.rs",
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status/paths/child_inventory.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs/paths/core.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs/paths/status_current.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows/status_docs/paths/child_inventory.rs",
     ]
     .iter()
     .map(|path| read_runtime_src(path))

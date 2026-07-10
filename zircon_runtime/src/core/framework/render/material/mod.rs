@@ -61,8 +61,9 @@ pub use shading_model::{
 };
 pub use standard_material::{StandardMaterialDescriptor, STANDARD_MATERIAL_MIN_ROUGHNESS};
 pub use texture_slot_summary::{
-    RenderMaterialTextureSlotFallback, RenderMaterialTextureSlotFallbackReason,
-    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
+    RenderMaterialTextureDimension, RenderMaterialTextureSlotFallback,
+    RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureSlotState,
+    RenderMaterialTextureSlotSummary,
 };
 pub use texture_transform::RenderMaterialTextureTransform;
 pub use validation_error::RenderMaterialValidationError;

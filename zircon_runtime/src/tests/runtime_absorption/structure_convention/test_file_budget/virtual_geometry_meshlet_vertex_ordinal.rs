@@ -24,8 +24,8 @@ fn runtime_15_virtual_geometry_meshlet_vertex_ordinal_is_wired() {
     let gltf_importer_tests = read_runtime_src("asset/tests/assets/gltf_importer.rs");
     let project_asset_manager_tests =
         read_runtime_src("asset/tests/pipeline/manager/model_import.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let model_doc = read_repo("docs/zircon_runtime/asset/assets/model.md");
     let render_assets_doc = read_repo("docs/zircon_runtime/asset/render-assets.md");

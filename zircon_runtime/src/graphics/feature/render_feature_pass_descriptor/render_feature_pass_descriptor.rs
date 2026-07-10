@@ -32,6 +32,8 @@ pub struct RenderFeatureResourceDescriptor {
     pub name: String,
     pub kind: RenderFeatureResourceKind,
     pub access: RenderFeatureResourceAccess,
+    /// Minimum allocation required by a transient buffer protocol, independent of viewport size.
+    pub minimum_size_bytes: Option<u64>,
     pub attachment_ops: Option<RenderGraphAttachmentOps>,
     pub write_mode: RenderFeatureResourceWriteMode,
     pub external_binding: RenderGraphExternalResourceBinding,

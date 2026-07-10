@@ -11,8 +11,15 @@ fn runtime_15_render_graph_execution_record_is_folder_backed() {
     let tests = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs",
     );
-    let plan_01 = read_repo("docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_01 = format!(
+        "{}\n{}",
+        read_repo(
+            "docs/plans/zircon_runtime/render/01/2026-07-09-render-graph-rdg-alignment-output-records.md",
+        ),
+        render_index,
+    );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

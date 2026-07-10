@@ -13,13 +13,7 @@ pub(crate) enum RuntimeUiFixture {
 
 impl RuntimeUiFixture {
     pub(crate) fn asset_id(self) -> &'static str {
-        match self {
-            Self::HudOverlay => "runtime.ui.hud_overlay",
-            Self::PauseMenu => "runtime.ui.pause_menu",
-            Self::SettingsDialog => "runtime.ui.settings_dialog",
-            Self::InventoryList => "runtime.ui.inventory_list",
-            Self::QuestLogDialog => "runtime.ui.quest_log_dialog",
-        }
+        self.asset_uri()
     }
 
     pub(crate) fn asset_uri(self) -> &'static str {

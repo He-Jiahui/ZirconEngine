@@ -100,6 +100,22 @@ fn deferred_lighting_shader_receives_gpu_light_buffer() {
 }
 
 #[test]
+fn deferred_lighting_shader_restores_hdr_gbuffer_emissive_for_every_shading_model() {
+    for expected in [
+        "@group(1) @binding(5) var gbuffer_emissive_tex: texture_2d<f32>;",
+        "let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;",
+        "fn add_deferred_emissive(shaded: vec4<f32>, emissive: vec3<f32>)",
+        "return add_deferred_emissive(shade_deferred_unlit(albedo), emissive);",
+        "return add_deferred_emissive(\n        shade_deferred_standard_pbr",
+    ] {
+        assert!(
+            DEFERRED_LIGHTING_SHADER.contains(expected),
+            "deferred lighting shader should restore authored emissive through `{expected}`"
+        );
+    }
+}
+
+#[test]
 fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
     for expected in [
         "// include: zr_environment.wgsl",
@@ -116,6 +132,12 @@ fn deferred_lighting_shader_applies_environment_reflections_to_standard_pbr() {
         "@group(0) @binding(3) var zr_environment_brdf_lut: texture_2d<f32>;",
         "@group(0) @binding(4) var zr_environment_specular_pmrem_cube: texture_cube<f32>;",
         "@group(0) @binding(5) var zr_environment_irradiance_cube: texture_cube<f32>;",
+        "@group(1) @binding(16) var<storage, read> zr_env_probes",
+        "@group(1) @binding(17) var<uniform> zr_env_probe_header",
+        "@group(1) @binding(18) var zr_env_probe_cubemaps: texture_cube_array<f32>;",
+        "fn zr_environment_box_project(",
+        "fn zr_environment_select_probes(",
+        "        world_position,",
         "textureSampleLevel(",
         "zr_environment_source_cube",
         "zr_environment_specular_pmrem_cube",
@@ -179,6 +201,7 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
         "direct_visibility",
         "fn zr_gpu_light_shadow_visibility",
         "fn zr_sample_shadow_slot",
+        "textureSampleCompareLevel(zr_shadow_atlas, zr_shadow_sampler, sample_uv, receiver_depth)",
         "fn zr_shadow_slot_pcf_quality",
         "ZR_SHADOW_PCF_QUALITY_MEDIUM",
         "ZR_SHADOW_PCF_MEDIUM_RADIUS_TEXELS",
@@ -194,6 +217,7 @@ fn deferred_lighting_shader_receives_shadow_atlas_resources() {
     assert!(!DEFERRED_LIGHTING_SHADER.contains("shadow_compare_sampler"));
     assert!(!DEFERRED_LIGHTING_SHADER.contains("sample_shadow_visibility"));
     assert!(!DEFERRED_LIGHTING_SHADER.contains("world_to_shadow_coord"));
+    assert!(!DEFERRED_LIGHTING_SHADER.contains("textureSampleCompare("));
 }
 
 #[test]
@@ -269,11 +293,11 @@ fn deferred_lighting_shader_uses_custom_shading_model_deferred_include_source() 
     assert!(source.contains("// include: zr_shade_deferred_toon.wgsl"));
     assert!(source.contains("fn shade_deferred_toon"));
     assert!(source.contains("if (shading_model_id == 16u)"));
-    assert!(
-        source.contains("return shade_deferred_toon(position, coord, albedo, material, normal);")
-    );
     assert!(source.contains(
-        "return shade_deferred_standard_pbr(position, coord, albedo, material, normal);"
+        "return add_deferred_emissive(shade_deferred_toon(position, coord, albedo, material, normal), emissive);"
+    ));
+    assert!(source.contains(
+        "return add_deferred_emissive(\n        shade_deferred_standard_pbr(position, coord, albedo, material, normal),"
     ));
 
     let module = naga::front::wgsl::parse_str(&source)

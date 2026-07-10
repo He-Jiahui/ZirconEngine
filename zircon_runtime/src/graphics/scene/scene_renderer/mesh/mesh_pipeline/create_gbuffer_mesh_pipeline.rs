@@ -1,6 +1,6 @@
 use crate::graphics::scene::resources::{GpuMeshVertex, PipelineKey};
 use crate::graphics::scene::scene_renderer::deferred::{
-    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT,
+    GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT,
 };
 use crate::graphics::scene::scene_renderer::prepass::NORMAL_FORMAT;
 
@@ -51,6 +51,11 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_gbuffer_mesh_pipe
                     blend: Some(wgpu::BlendState::REPLACE),
                     write_mask: wgpu::ColorWrites::ALL,
                 }),
+                Some(wgpu::ColorTargetState {
+                    format: GBUFFER_EMISSIVE_FORMAT,
+                    blend: Some(wgpu::BlendState::REPLACE),
+                    write_mask: wgpu::ColorWrites::ALL,
+                }),
             ],
         }),
         multiview_mask: None,
@@ -83,6 +88,7 @@ mod tests {
         assert!(source.contains("GBUFFER_ALBEDO_FORMAT"));
         assert!(source.contains("NORMAL_FORMAT"));
         assert!(source.contains("GBUFFER_MATERIAL_FORMAT"));
+        assert!(source.contains("GBUFFER_EMISSIVE_FORMAT"));
         assert!(source.contains("depth_write_enabled: Some(false)"));
         assert!(source.contains("entry_point: Some(\"vs_main\")"));
         assert!(source.contains("entry_point: Some(\"fs_main\")"));

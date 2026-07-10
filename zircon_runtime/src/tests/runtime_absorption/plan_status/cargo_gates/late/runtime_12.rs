@@ -1,10 +1,13 @@
 #[test]
 fn runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation() {
-    let runtime_12_plan = include_str!(
+    let runtime_12_plan = runtime_plan_source_with_archive("12", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    ));
+    let runtime_12_plan = runtime_12_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let input_doc = include_str!("../../../../../../../docs/zircon_runtime/input/input_state.md");
     let review = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"

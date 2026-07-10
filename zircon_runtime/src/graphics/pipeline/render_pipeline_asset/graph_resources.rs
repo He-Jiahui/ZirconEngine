@@ -9,6 +9,7 @@ use crate::render_graph::{RenderGraphExternalResourceBinding, RenderGraphExterna
 pub(super) struct PipelineGraphResourcePlan {
     pub(super) kind: RenderFeatureResourceKind,
     pub(super) external_binding: RenderGraphExternalResourceBinding,
+    pub(super) minimum_size_bytes: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -18,6 +19,7 @@ struct PipelineGraphResourceUsage {
     has_write: bool,
     explicit_external: bool,
     external_binding: RenderGraphExternalResourceBinding,
+    minimum_size_bytes: Option<u64>,
     error: Option<String>,
 }
 
@@ -36,6 +38,7 @@ pub(super) fn pipeline_graph_resources(
                             resource.kind,
                             resource.access,
                             resource.external_binding,
+                            resource.minimum_size_bytes,
                             &descriptor.name,
                             &pass.pass_name,
                         )
@@ -45,6 +48,7 @@ pub(super) fn pipeline_graph_resources(
                             resource.kind,
                             resource.access,
                             resource.external_binding,
+                            resource.minimum_size_bytes,
                         )
                     });
                 if let Some(error) = resources
@@ -68,6 +72,7 @@ impl PipelineGraphResourceUsage {
         kind: RenderFeatureResourceKind,
         access: RenderFeatureResourceAccess,
         external_binding: RenderGraphExternalResourceBinding,
+        minimum_size_bytes: Option<u64>,
     ) -> Self {
         let mut usage = Self {
             kind,
@@ -75,6 +80,7 @@ impl PipelineGraphResourceUsage {
             has_write: false,
             explicit_external: kind == RenderFeatureResourceKind::External,
             external_binding: RenderGraphExternalResourceBinding::report_only(),
+            minimum_size_bytes,
             error: None,
         };
         if kind == RenderFeatureResourceKind::External {
@@ -90,6 +96,7 @@ impl PipelineGraphResourceUsage {
         kind: RenderFeatureResourceKind,
         access: RenderFeatureResourceAccess,
         external_binding: RenderGraphExternalResourceBinding,
+        minimum_size_bytes: Option<u64>,
         descriptor_name: &str,
         pass_name: &str,
     ) {
@@ -109,6 +116,11 @@ impl PipelineGraphResourceUsage {
                 return;
             }
         }
+        self.minimum_size_bytes = match (self.minimum_size_bytes, minimum_size_bytes) {
+            (Some(current), Some(incoming)) => Some(current.max(incoming)),
+            (current @ Some(_), None) => current,
+            (None, incoming) => incoming,
+        };
         self.record_access(access);
     }
 
@@ -149,6 +161,7 @@ impl PipelineGraphResourceUsage {
             } else {
                 RenderGraphExternalResourceBinding::report_only()
             },
+            minimum_size_bytes: self.minimum_size_bytes,
         }
     }
 

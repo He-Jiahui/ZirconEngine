@@ -7,7 +7,7 @@ use crate::engine_module::{factory, EngineModule};
 
 use super::BuiltinNavigationManager;
 
-pub const BUILTIN_NAVIGATION_MODULE_NAME: &str = "NavigationModule";
+pub const BUILTIN_NAVIGATION_MODULE_NAME: &str = "navigation.runtime";
 
 #[derive(Debug, Default)]
 pub struct BuiltinNavigationModule;

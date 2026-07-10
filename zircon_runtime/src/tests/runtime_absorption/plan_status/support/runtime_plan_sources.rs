@@ -1,4 +1,4 @@
-fn runtime_plan_dir() -> std::path::PathBuf {
+pub(in crate::tests::runtime_absorption::plan_status) fn runtime_plan_dir() -> std::path::PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("zircon_runtime manifest should live under the repository root")

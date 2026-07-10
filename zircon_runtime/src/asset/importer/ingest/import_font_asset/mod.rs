@@ -2,29 +2,30 @@ mod parse_sfnt;
 
 use std::path::{Path, PathBuf};
 
-use crate::asset::assets::{FontAsset, ImportedAsset};
+use crate::asset::assets::{decode_font_source, FontAsset, ImportedAsset};
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri};
 
 pub(crate) fn import_font_asset(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_text()?;
-    let mut asset = FontAsset::from_toml_str(&document)
-        .map_err(|error| AssetImportError::Parse(format!("parse font toml: {error}")))?;
+    let mut asset = FontAsset::from_toml_str(&document).map_err(AssetImportError::FontDocument)?;
     let source_path = resolve_manifest_source_path(&context.source_path, &asset.source)?;
-    let source_bytes = std::fs::read(&source_path).map_err(|error| {
-        AssetImportError::Parse(format!(
-            "read font source {} for {}: {error}",
-            source_path.display(),
-            context.uri
-        ))
-    })?;
-    let metadata = parse_sfnt::parse_font_metadata(&source_bytes).map_err(|error| {
-        AssetImportError::Parse(format!(
-            "parse font source {} for {}: {error}",
-            source_path.display(),
-            context.uri
-        ))
+    let source_bytes =
+        std::fs::read(&source_path).map_err(|source| AssetImportError::FontSourceIo {
+            path: source_path.clone(),
+            source,
+        })?;
+    let source =
+        decode_font_source(source_bytes).map_err(|source| AssetImportError::FontSourceDecode {
+            path: source_path.clone(),
+            source,
+        })?;
+    let metadata = parse_sfnt::parse_font_metadata(&source).map_err(|source| {
+        AssetImportError::FontMetadata {
+            path: source_path.clone(),
+            source,
+        }
     })?;
 
     apply_parsed_defaults(&mut asset, metadata);
@@ -70,18 +71,18 @@ fn resolve_manifest_source_path(
 ) -> Result<PathBuf, AssetImportError> {
     let source = source.trim();
     if source.is_empty() {
-        return Err(AssetImportError::Parse(format!(
-            "font asset {} has an empty source",
-            manifest_path.display()
-        )));
+        return Err(AssetImportError::FontSourcePath {
+            manifest_path: manifest_path.to_path_buf(),
+            reason: "source is empty",
+        });
     }
 
     let source_path = PathBuf::from(source);
     if source_path.is_absolute() {
-        return Err(AssetImportError::Parse(format!(
-            "font asset {} source must be relative to the manifest",
-            manifest_path.display()
-        )));
+        return Err(AssetImportError::FontSourcePath {
+            manifest_path: manifest_path.to_path_buf(),
+            reason: "source must be relative to the manifest",
+        });
     }
 
     Ok(manifest_path

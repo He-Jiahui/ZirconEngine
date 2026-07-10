@@ -6,9 +6,9 @@ fn runtime_15_shadow_plan_view_projection_is_child_owner() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/shadow/plan.rs");
     let view_projection =
         read_runtime_src("graphics/scene/scene_renderer/shadow/view_projection.rs");
-    let plan_05 = read_repo("docs/plans/zircon_runtime/render/05-lighting-shadows.md");
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09-camera-render-ordering.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_05 = read_repo("docs/plans/zircon_runtime/render/05/2026-07-09-lighting-shadows-output-records.md");
+    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

@@ -54,6 +54,10 @@ pub(super) fn feedback_suppresses_owner_image(metadata: Option<&UiTemplateNodeMe
     metadata.is_some_and(|metadata| feedback_kind(metadata).is_some())
 }
 
+pub(super) fn feedback_suppresses_owner_surface(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    metadata.is_some_and(|metadata| feedback_kind(metadata).is_some())
+}
+
 pub(super) fn feedback_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,

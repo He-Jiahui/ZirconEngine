@@ -214,7 +214,7 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
     );
     assert_render_bool_series(
         &snapshot.store,
-        "render.hybrid_gi.payload.source.authored",
+        "render.hybrid_gi.payload.source.scene_representation",
         true,
         &["hybrid_gi", "payload", "source"],
     );

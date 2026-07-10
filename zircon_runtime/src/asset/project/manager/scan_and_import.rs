@@ -7,7 +7,8 @@ use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry
 
 use crate::asset::project::{AssetMetaEntry, PreviewState};
 use crate::asset::{
-    AssetId, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
+    stage_environment_ibl_source, stage_external_source_cubemap_texture, AssetId,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
     ImportedAsset, ImportedAssetEntry,
 };
 
@@ -54,6 +55,8 @@ impl ProjectManager {
                 self.import_settings_for_source(&meta.import_settings, descriptor.as_ref());
             let config_hash = config_hash_for_settings(&import_settings);
             let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
+            let import_context =
+                AssetImportContext::new(file.clone(), uri.clone(), source_bytes, import_settings);
 
             if let Some(metadata) = self.restore_imported_artifact(
                 &source,
@@ -66,6 +69,18 @@ impl ProjectManager {
                 descriptor.as_ref(),
                 fallback_kind,
             )? {
+                let restored_root_asset = meta
+                    .entries
+                    .iter()
+                    .find(|entry| entry.url.label().is_none())
+                    .and_then(|entry| entry.artifact_locator.as_ref())
+                    .map(|locator| self.artifact_store.read(&self.paths, locator))
+                    .transpose()?;
+                stage_environment_ibl_import(
+                    &import_context,
+                    restored_root_asset.as_ref(),
+                    self.paths.library_root(),
+                )?;
                 for record in metadata {
                     let asset_id = record.id();
                     dependencies_by_id.insert(
@@ -85,18 +100,36 @@ impl ProjectManager {
                 continue;
             }
 
-            let import_result =
-                self.importer
-                    .import_bytes(&file, &uri, source_bytes, import_settings);
+            let import_result = self.importer.import_context(&import_context);
             let metadata = match import_result {
-                Ok(outcome) => match validate_import_entries(&uri, &outcome) {
-                    Ok(()) => {
-                        let mut outcome = outcome;
-                        append_shader_import_path_conflict_diagnostics(
-                            &mut outcome,
-                            &mut shader_import_paths,
-                        );
-                        self.finish_successful_import(
+                Ok(outcome) => {
+                    let validation = validate_import_entries(&uri, &outcome).and_then(|()| {
+                        stage_environment_ibl_import(
+                            &import_context,
+                            outcome.root_entry().map(|entry| &entry.asset),
+                            self.paths.library_root(),
+                        )
+                    });
+                    match validation {
+                        Ok(()) => {
+                            let mut outcome = outcome;
+                            append_shader_import_path_conflict_diagnostics(
+                                &mut outcome,
+                                &mut shader_import_paths,
+                            );
+                            self.finish_successful_import(
+                                &source,
+                                &mut meta,
+                                meta_exists,
+                                &previous_meta,
+                                source_hash.clone(),
+                                source_mtime_unix_ms,
+                                config_hash,
+                                descriptor.as_ref(),
+                                outcome,
+                            )?
+                        }
+                        Err(error) => self.finish_failed_import(
                             &source,
                             &mut meta,
                             meta_exists,
@@ -105,23 +138,12 @@ impl ProjectManager {
                             source_mtime_unix_ms,
                             config_hash,
                             descriptor.as_ref(),
-                            outcome,
-                        )?
+                            fallback_kind,
+                            root_asset_id,
+                            error,
+                        )?,
                     }
-                    Err(error) => self.finish_failed_import(
-                        &source,
-                        &mut meta,
-                        meta_exists,
-                        &previous_meta,
-                        source_hash.clone(),
-                        source_mtime_unix_ms,
-                        config_hash,
-                        descriptor.as_ref(),
-                        fallback_kind,
-                        root_asset_id,
-                        error,
-                    )?,
-                },
+                }
                 Err(error) => self.finish_failed_import(
                     &source,
                     &mut meta,
@@ -224,7 +246,7 @@ impl ProjectManager {
                 return Ok(None);
             };
             if let Err(_error) = self.artifact_store.read(&self.paths, artifact_uri) {
-                #[cfg(feature = "zr-vm-real-backend")]
+                #[cfg(feature = "backend-zr-vm")]
                 eprintln!(
                     "stale artifact cache for {} at {}: {_error}",
                     entry.url, artifact_uri
@@ -384,6 +406,28 @@ impl ProjectManager {
                 error.to_string(),
             )])])
     }
+}
+
+fn stage_environment_ibl_import(
+    context: &AssetImportContext,
+    imported_asset: Option<&ImportedAsset>,
+    library_root: &std::path::Path,
+) -> Result<(), AssetImportError> {
+    stage_environment_ibl_source(context, library_root).map_err(|error| {
+        AssetImportError::Parse(format!(
+            "stage environment IBL source {}: {error}",
+            context.source_path.display()
+        ))
+    })?;
+    if let Some(ImportedAsset::Texture(texture)) = imported_asset {
+        stage_external_source_cubemap_texture(texture, library_root).map_err(|error| {
+            AssetImportError::Parse(format!(
+                "stage environment IBL source {}: {error}",
+                context.source_path.display()
+            ))
+        })?;
+    }
+    Ok(())
 }
 
 fn append_shader_import_path_conflict_diagnostics(

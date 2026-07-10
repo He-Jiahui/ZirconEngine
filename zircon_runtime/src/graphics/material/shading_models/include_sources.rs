@@ -244,7 +244,7 @@ mod tests {
         register_shader(
             &asset_manager,
             "package://toon/shaders/zr_gbuffer_encode_toon.wgsl",
-            "fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferredGBufferOutput { return ZrDeferredGBufferOutput(surface.base_color, vec4<f32>(0.0), vec4<f32>(ctx.shadow_params.z)); }\n",
+            "fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferredGBufferOutput { return ZrDeferredGBufferOutput(surface.base_color, vec4<f32>(0.0), vec4<f32>(ctx.shadow_params.z), vec4<f32>(surface.emissive, 1.0)); }\n",
         );
         register_shader(
             &asset_manager,

@@ -21,15 +21,15 @@ pub(super) const MODULE_CONVENTION_STATUS_ROWS_PATH: &str =
 pub(super) const REVIEW_STATUS_SYNC_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_status_sync/row_data_owner.rs";
 pub(super) const STATUS_SUPPORT_STATUS_DOCS_ROWS_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status/child_group_status_row_doc_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs/child_group_status_row_doc_rows.rs";
 pub(super) const M3_STRUCTURE_SUPPORT_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/lock_poison_module_maps.rs";
 pub(super) const M3_STRUCTURE_SUPPORT_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/lock_poison_module_maps.rs";
 pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/top_row_review_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/top_row_review_maps.rs";
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/top_row_review_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/top_row_review_maps.rs";
 pub(super) const STATUS_SUPPORT_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/row_data_maps/child_group_row_data_maps/status_row_doc_maps.rs";
 pub(super) const STATUS_SUPPORT_DATE_MAP_PATH: &str =

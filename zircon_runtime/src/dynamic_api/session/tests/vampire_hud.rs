@@ -8,8 +8,8 @@ use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
 use super::vampire_runtime_support::*;
 
 #[cfg_attr(
-    not(feature = "zr-vm-real-backend"),
-    ignore = "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR"
+    not(feature = "backend-zr-vm"),
+    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
 )]
 #[test]
 fn vampire_project_session_writes_world_hud_for_scene_authored_enemies() {
@@ -68,8 +68,8 @@ fn vampire_project_session_writes_world_hud_for_scene_authored_enemies() {
 }
 
 #[cfg_attr(
-    not(feature = "zr-vm-real-backend"),
-    ignore = "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR"
+    not(feature = "backend-zr-vm"),
+    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
 )]
 #[test]
 fn vampire_project_session_keeps_hud_after_runtime_ticks() {
@@ -102,8 +102,8 @@ fn vampire_project_session_keeps_hud_after_runtime_ticks() {
 }
 
 #[cfg_attr(
-    not(feature = "zr-vm-real-backend"),
-    ignore = "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR"
+    not(feature = "backend-zr-vm"),
+    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
 )]
 #[test]
 fn vampire_project_session_capture_frame_draws_world_hud_bars() {

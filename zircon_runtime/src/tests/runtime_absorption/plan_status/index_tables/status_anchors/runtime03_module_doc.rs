@@ -4,17 +4,8 @@ use super::super::super::support::assert_contains_all;
 fn runtime_15_runtime_03_module_doc_status_index_anchors_are_locked() {
     let index_source =
         include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let structure_convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let module_convention =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
+    let runtime_03_output_records = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/03/2026-07-09-schedule-and-frame-loop-alignment-output-records.md"
     );
     let output_anchors = include_str!(
         "../../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_output_anchors.py"
@@ -42,12 +33,12 @@ fn runtime_15_runtime_03_module_doc_status_index_anchors_are_locked() {
     .join("\n");
 
     let runtime_03_index_anchors = [
-        "Runtime 03 Schedule/frame-loop module-doc 镜像元数据",
-        "Runtime 05 status-output Runtime 03 module-doc row",
+        "schedule_frame_loop_boundary",
+        "runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts",
         "frame schedule module-doc anchors 3/3",
-        "guard/test files 8/8",
+        "guard/test files 11/11",
         "Runtime 03 guard anchors 14/14",
-        "ecs_schedule/time/session/schedule_parallel Cargo gates",
+        "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates",
     ];
     assert_contains_all(
         "runtime plan-status output anchor inventory",
@@ -62,12 +53,7 @@ fn runtime_15_runtime_03_module_doc_status_index_anchors_are_locked() {
         "runtime_15_runtime_03_module_doc_status_index_anchors_are_locked",
     ];
     for (label, source) in [
-        ("Runtime 15 subplan", runtime_15_plan),
-        ("runtime index", index_source),
-        ("engine code structure convention", structure_convention),
-        ("engine code review findings", review_findings),
-        ("module convention doc", module_convention),
-        ("runtime implementation session note", session_note),
+        ("Runtime 03 output records", runtime_03_output_records),
         ("Runtime 15 status row data", status_row_data),
         ("Runtime 15 expected status map", status_map.as_str()),
         ("Runtime 15 expected date map", date_map.as_str()),

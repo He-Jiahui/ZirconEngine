@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use super::super::support::{assert_contains_all, read_repo_text, read_text};
+use super::super::support::{
+    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
+    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows, read_text,
+};
 
 #[path = "ui/platform_input.rs"]
 mod platform_input;
@@ -26,40 +29,28 @@ fn runtime_15_ui_editor_showcase_descriptor_builders_use_owner_name() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let ui_doc = read_repo_text(manifest_root, "docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let status_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
-        ),
-        "Runtime 15 expected status slice should be readable",
-    );
-    let date_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
-        ),
-        "Runtime 15 expected date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let status_slice = read_runtime_15_naming_status_map(manifest_root);
+    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_helpers.exists(),
@@ -129,7 +120,7 @@ fn runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context() {
         "UI table column helper owner should be readable",
     );
     let rust_guard = read_text(
-        &manifest_root.join("src/tests/runtime_absorption/naming_boundary.rs"),
+        &manifest_root.join("src/tests/runtime_absorption/naming_boundary/classifiers.rs"),
         "runtime naming boundary guard should be readable",
     );
     let python_audit = read_repo_text(
@@ -138,40 +129,28 @@ fn runtime_15_ui_table_sorting_mode_server_literal_stays_allowed_context() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let ui_doc = read_repo_text(manifest_root, "docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let status_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
-        ),
-        "Runtime 15 expected status slice should be readable",
-    );
-    let date_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
-        ),
-        "Runtime 15 expected date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let status_slice = read_runtime_15_naming_status_map(manifest_root);
+    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "UI table column helper owner",
@@ -240,16 +219,19 @@ fn runtime_15_ui_template_schema_uses_source_fixture_names() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -257,24 +239,9 @@ fn runtime_15_ui_template_schema_uses_source_fixture_names() {
     );
     let template_doc = read_repo_text(manifest_root, "docs/zircon_runtime/ui/template/pipeline.md");
     let interface_doc = read_repo_text(manifest_root, "docs/zircon_runtime_interface/ui/mod.md");
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let status_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming-boundary expected status slice should be readable",
-    );
-    let date_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming-boundary expected date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let status_slice = read_runtime_15_naming_status_map(manifest_root);
+    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "UI asset schema report interface",

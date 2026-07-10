@@ -11,6 +11,7 @@ use crate::graphics::scene::{
 use crate::graphics::ViewportFrame;
 
 mod pbr_matrix;
+mod reflection_probe_product;
 
 use pbr_matrix::{
     assert_pbr_matrix_environment_response, assert_real_hdri_reflection_response,

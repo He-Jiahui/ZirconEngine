@@ -4,8 +4,8 @@ use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
 use super::vampire_runtime_support::*;
 
 #[cfg_attr(
-    not(feature = "zr-vm-real-backend"),
-    ignore = "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR"
+    not(feature = "backend-zr-vm"),
+    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
 )]
 #[test]
 fn vampire_project_session_starts_paused_until_start_button_click() {
@@ -56,8 +56,8 @@ fn vampire_project_session_starts_paused_until_start_button_click() {
 }
 
 #[cfg_attr(
-    not(feature = "zr-vm-real-backend"),
-    ignore = "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR"
+    not(feature = "backend-zr-vm"),
+    ignore = "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR"
 )]
 #[test]
 fn vampire_project_session_game_over_menu_retries_to_playing() {

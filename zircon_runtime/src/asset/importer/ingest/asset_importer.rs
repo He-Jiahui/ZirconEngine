@@ -1,11 +1,14 @@
+#[cfg(feature = "text")]
+use super::import_font_asset;
 use super::{
     import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
-    import_font_asset, import_gltf, import_material, import_mesh, import_model,
-    import_physics_material, import_scene, import_shader, import_shader_package, import_texture,
-    import_ui_icon_asset, import_ui_theme_asset, import_ui_zui_asset,
+    import_gltf, import_material, import_mesh, import_model, import_physics_material, import_scene,
+    import_texture, import_ui_icon_asset, import_ui_theme_asset,
 };
 #[cfg(test)]
 use super::{import_obj, import_sound};
+#[cfg(feature = "graphics")]
+use super::{import_shader, import_shader_package};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
@@ -89,6 +92,7 @@ impl AssetImporter {
                 .with_full_suffixes([".zmaterial"]),
             import_material::import_material,
         )?;
+        #[cfg(feature = "text")]
         self.register_function(
             descriptor("zircon.builtin.toml.font", AssetKind::Font, 1)
                 .with_full_suffixes([".font.toml"]),
@@ -169,12 +173,6 @@ impl AssetImporter {
             )
             .with_full_suffixes([".navigation.toml"]),
             import_authoring_asset::import_navigation_settings,
-        )?;
-        self.register_function(
-            descriptor("zircon.builtin.ui_document.zui", AssetKind::UiWidget, 2)
-                .with_full_suffixes([".zui"])
-                .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle]),
-            import_ui_zui_asset::import_ui_zui_asset,
         )?;
         self.register_function(
             descriptor("zircon.builtin.ui_theme.toml", AssetKind::UiStyle, 1)
@@ -277,6 +275,7 @@ impl AssetImporter {
             import_cube_lut::import_cube_lut,
         )?;
 
+        #[cfg(feature = "graphics")]
         self.register_function(
             descriptor(
                 "zircon.builtin.shader.zshader_package",
@@ -287,24 +286,28 @@ impl AssetImporter {
             .with_additional_output_kinds([AssetKind::Data]),
             import_shader_package::import_shader_package,
         )?;
+        #[cfg(feature = "graphics")]
         self.register_optional(
             plugin_required_descriptor("zircon.plugin_required.shader.wgsl", AssetKind::Shader, 1)
                 .with_source_extensions(["wgsl"])
                 .with_required_capabilities(["runtime.asset.importer.shader.wgsl"]),
             "wgsl shader importer plugin is not installed",
         )?;
+        #[cfg(feature = "graphics")]
         self.register_function(
             descriptor("zircon.builtin.shader.glsl", AssetKind::Shader, 1)
                 .with_source_extensions(["glsl", "vert", "frag", "comp", "vs", "fs", "cs"])
                 .with_required_capabilities(["runtime.asset.importer.shader.glsl"]),
             import_shader::import_shader,
         )?;
+        #[cfg(feature = "graphics")]
         self.register_function(
             descriptor("zircon.builtin.shader.spirv", AssetKind::Shader, 1)
                 .with_source_extensions(["spv"])
                 .with_required_capabilities(["runtime.asset.importer.shader.spirv"]),
             import_shader::import_shader,
         )?;
+        #[cfg(feature = "graphics")]
         self.register_optional(
             descriptor("zircon.optional.shader.hlsl_cg", AssetKind::Shader, 1)
                 .with_source_extensions(["hlsl", "cg", "fx"])
@@ -412,17 +415,7 @@ impl AssetImporter {
     #[cfg(test)]
     pub(crate) fn first_wave_plugin_fixture_importers_for_test() -> Vec<FunctionAssetImporter> {
         vec![
-            FunctionAssetImporter::new(
-                plugin_fixture_descriptor(
-                    "ui_document_importer.zui_document",
-                    "ui_document_importer",
-                    AssetKind::UiWidget,
-                )
-                .with_full_suffixes([".zui"])
-                .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle])
-                .with_required_capabilities(["runtime.asset.importer.ui_document"]),
-                import_ui_zui_asset::import_ui_zui_asset,
-            ),
+            crate::asset::tests::support::ui_document_importer_fixture(),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
                     "texture_importer.image",

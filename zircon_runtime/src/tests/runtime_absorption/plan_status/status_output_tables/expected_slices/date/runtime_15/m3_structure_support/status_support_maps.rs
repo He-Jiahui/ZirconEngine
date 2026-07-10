@@ -20,7 +20,6 @@ mod row_data_maps;
 mod runtime_row_data_maps;
 
 // Parent-level mirror for source guards that read this route file directly.
-// Runtime 15 M3 render shader template assembly guard support child-owner split.
 // Status: runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred.
 // Date: Some("2026-06-27").
 // Files:
@@ -54,6 +53,15 @@ const REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_DATE: &str = "2026-07-02";
 const REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_NAME: &str =
     "Runtime 15 M3 review-guard row-data status-mirror child split";
 const REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_DATE: &str = "2026-07-04";
+const REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard row-data moved-row guard child-owner split";
+const REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_DATE: &str = "2026-06-30";
+const REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard moved-row guard folder-backed split";
+const REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_DATE: &str = "2026-07-02";
+const REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard moved-row status-mirror child split";
+const REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_DATE: &str = "2026-07-04";
 
 pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
     if slice == REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_STATUS_NAME {
@@ -61,6 +69,15 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
     }
     if slice == REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_NAME {
         return Some(REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_DATE);
+    }
+    if slice == REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_STATUS_NAME {
+        return Some(REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_DATE);
+    }
+    if slice == REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_STATUS_NAME {
+        return Some(REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_DATE);
+    }
+    if slice == REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_STATUS_NAME {
+        return Some(REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_DATE);
     }
     row_data_maps::expected_date_for_slice(slice)
         .or_else(|| plan_doc_support_maps::expected_date_for_slice(slice))

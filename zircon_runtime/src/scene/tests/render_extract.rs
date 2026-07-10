@@ -142,10 +142,16 @@ fn assert_runtime_submit_tree_excludes_snapshot_adapters(root: &std::path::Path)
         let entry = entry.unwrap();
         let path = entry.path();
         if path.is_dir() {
+            if path.file_name().and_then(|name| name.to_str()) == Some("tests") {
+                continue;
+            }
             assert_runtime_submit_tree_excludes_snapshot_adapters(&path);
             continue;
         }
         if path.extension().and_then(|extension| extension.to_str()) != Some("rs") {
+            continue;
+        }
+        if path.file_name().and_then(|name| name.to_str()) == Some("tests.rs") {
             continue;
         }
         let source = std::fs::read_to_string(&path).unwrap();

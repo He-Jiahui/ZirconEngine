@@ -98,10 +98,15 @@ pub(super) fn status_support_review_rows_guard_child_source_blob() -> String {
 
 pub(super) fn moved_rows_child_source_blob() -> String {
     [
-        read_runtime_src(MOVED_ROWS_DELEGATION_PATH),
-        read_runtime_src(MOVED_ROWS_CODE_REVIEW_PATH),
-        read_runtime_src(MOVED_ROWS_TYPED_ERROR_PATH),
-        read_runtime_src(MOVED_ROWS_STATUS_MIRRORS_PATH),
-    ]
-    .join("\n")
+        MOVED_ROWS_DELEGATION_PATH,
+        MOVED_ROWS_CODE_REVIEW_PATH,
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/source_delegation.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/review_guard_rows.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/structure_guard_rows.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/typed_error_structure_rows.rs",
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/code_review_rows/plugin_importer_rows.rs",
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/moved_row_rows.rs",
+        MOVED_ROWS_TYPED_ERROR_PATH,
+        MOVED_ROWS_STATUS_MIRRORS_PATH,
+    ].iter().map(|path| read_runtime_src(path)).collect::<Vec<_>>().join("\n")
 }

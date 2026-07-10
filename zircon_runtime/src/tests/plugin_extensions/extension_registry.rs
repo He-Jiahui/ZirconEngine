@@ -264,8 +264,9 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
     let report = catalog.runtime_extensions();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert_eq!(report.registry.modules().len(), 1);
-    assert_eq!(report.registry.modules()[0].name, "WeatherPlugin");
+    assert_eq!(report.registry.modules().len(), 2);
+    assert_eq!(report.registry.modules()[0].name, "weather.runtime");
+    assert_eq!(report.registry.modules()[1].name, "WeatherPlugin");
     assert_eq!(report.registry.render_features().len(), 1);
     assert_eq!(
         report.registry.render_features()[0].name,

@@ -28,8 +28,10 @@ pub use graph_execution::{
     RenderPassGpuExecutionContext,
 };
 
-pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};
-pub(crate) use deferred::{GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT};
+pub(crate) use core::{create_depth_texture, FINAL_COLOR_FORMAT, SCENE_COLOR_HDR_FORMAT};
+pub(crate) use deferred::{
+    GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT,
+};
 pub(crate) use lighting::{
     light_buffer::pack_lighting_extract, light_grid_pass::build_light_grid_for_frame,
 };

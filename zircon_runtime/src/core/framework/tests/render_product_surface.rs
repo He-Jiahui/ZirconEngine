@@ -1,15 +1,46 @@
 use super::*;
 
 #[test]
-fn render_product_pipeline_camera_projection_selects_core_pipeline_kind() {
-    let perspective = ViewportCameraSnapshot::default();
-    assert_eq!(perspective.core_pipeline_kind(), CorePipelineKind::Core3d);
+fn render_product_camera_projection_and_core_pipeline_are_independent() {
+    let core3d = CameraRenderDescriptor::from_camera_payload(
+        None,
+        ViewportCameraSnapshot {
+            core_pipeline: CorePipelineKind::Core3d,
+            projection_mode: super::super::render::ProjectionMode::Orthographic,
+            ..ViewportCameraSnapshot::default()
+        },
+    );
+    let core2d = CameraRenderDescriptor::from_camera_payload(
+        None,
+        ViewportCameraSnapshot {
+            core_pipeline: CorePipelineKind::Core2d,
+            projection_mode: super::super::render::ProjectionMode::Orthographic,
+            ..ViewportCameraSnapshot::default()
+        },
+    );
 
-    let orthographic = ViewportCameraSnapshot {
+    assert_eq!(core3d.camera.core_pipeline, CorePipelineKind::Core3d);
+    assert_eq!(core2d.camera.core_pipeline, CorePipelineKind::Core2d);
+    assert_eq!(core3d.camera.projection_mode, core2d.camera.projection_mode);
+    assert_eq!(
+        core3d.camera.projection_mode,
+        super::super::render::ProjectionMode::Orthographic
+    );
+}
+
+#[test]
+fn render_product_orthographic_projection_keeps_orthographic_matrix_in_core3d() {
+    let camera = ViewportCameraSnapshot {
+        core_pipeline: CorePipelineKind::Core3d,
         projection_mode: super::super::render::ProjectionMode::Orthographic,
         ..ViewportCameraSnapshot::default()
     };
-    assert_eq!(orthographic.core_pipeline_kind(), CorePipelineKind::Core2d);
+    let projection =
+        super::super::render::ViewProjectionMatrixPair::from_camera(&camera, UVec2::new(1280, 720))
+            .clip_from_world_unjittered;
+
+    assert_eq!(camera.core_pipeline_kind(), CorePipelineKind::Core3d);
+    assert_eq!(projection.w_axis.w, 1.0);
 }
 
 #[test]

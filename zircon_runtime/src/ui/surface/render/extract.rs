@@ -30,7 +30,8 @@ use super::drag_overlay::{
 };
 use super::dropdowns::{dropdown_render_commands, dropdown_suppresses_owner_text};
 use super::feedback::{
-    feedback_render_commands, feedback_suppresses_owner_image, feedback_suppresses_owner_text,
+    feedback_render_commands, feedback_suppresses_owner_image, feedback_suppresses_owner_surface,
+    feedback_suppresses_owner_text,
 };
 use super::node_visual_data::UiNodeVisualData;
 use super::notification_center::{
@@ -146,6 +147,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_with_component_states_and_tex
             };
             let owner_style =
                 if collection_row_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || feedback_suppresses_owner_surface(node.template_metadata.as_ref())
                     || dialog_suppresses_owner_surface(node.template_metadata.as_ref())
                     || command_palette_suppresses_owner_surface(node.template_metadata.as_ref())
                     || notification_center_suppresses_owner_surface(node.template_metadata.as_ref())

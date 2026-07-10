@@ -8,6 +8,5 @@ pub use readiness::{RenderLightFamilyReadiness, RenderLightReadinessReport};
 pub use shadow_settings::{LightShadowSettings, ShadowPcfQuality, ShadowResolutionTier};
 pub use snapshots::{
     RenderAmbientLightSnapshot, RenderBakedLightingExtract, RenderDirectionalLightSnapshot,
-    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderReflectionProbeSnapshot,
-    RenderSpotLightSnapshot,
+    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderSpotLightSnapshot,
 };

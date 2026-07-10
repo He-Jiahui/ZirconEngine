@@ -1,4 +1,5 @@
 mod completion;
+mod feature_provider_selections;
 mod lookup;
 mod selection_defaults;
 

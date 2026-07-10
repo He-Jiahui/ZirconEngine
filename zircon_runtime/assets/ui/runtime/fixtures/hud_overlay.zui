@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "runtime.ui.hud_overlay"
+id = "res://ui/runtime/fixtures/hud_overlay.zui"
 version = 2
 display_name = "Runtime HUD Overlay"
 

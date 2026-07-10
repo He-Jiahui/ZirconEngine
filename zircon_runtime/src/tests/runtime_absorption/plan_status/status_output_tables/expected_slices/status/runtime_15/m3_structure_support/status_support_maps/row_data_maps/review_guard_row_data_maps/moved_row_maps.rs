@@ -1,5 +1,8 @@
 pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
     match slice {
+        "Runtime 15 M3 review-guard row-data moved-row guard child-owner split" => Some(
+            "runtime_15_review_guard_row_data_moved_rows_child_owner_split_static_passed_cargo_deferred",
+        ),
         "Runtime 15 M3 review-guard moved-row guard folder-backed split" => Some(
             "runtime_15_review_guard_moved_row_guard_folder_backed_static_passed_cargo_deferred",
         ),

@@ -348,8 +348,11 @@ fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
         .map(|index| SdfAtlasSlot {
             key: SdfAtlasGlyphKey {
                 glyph: char::from_u32('A' as u32 + index as u32).unwrap_or('A'),
+                glyph_id: None,
+                font_id: None,
                 font: Some("res://fonts/default.font.toml".to_string()),
                 font_family: Some("Zircon Sans".to_string()),
+                language: None,
                 font_weight: 400,
                 bake_params: SdfBakeParams::default(),
             },
@@ -402,8 +405,11 @@ fn slot_on_page(glyph: char, page_index: u32, rect: SdfAtlasRect) -> SdfAtlasSlo
     SdfAtlasSlot {
         key: SdfAtlasGlyphKey {
             glyph,
+            glyph_id: None,
+            font_id: None,
             font: Some("res://fonts/default.font.toml".to_string()),
             font_family: Some("Zircon Sans".to_string()),
+            language: None,
             font_weight: 400,
             bake_params: SdfBakeParams::default(),
         },

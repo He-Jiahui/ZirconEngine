@@ -18,8 +18,15 @@ fn runtime_15_post_process_stack_is_folder_backed() {
         read_runtime_src("core/framework/render/post_process/stack/tests/temporal_history.rs");
     let effect_stack_tests =
         read_runtime_src("core/framework/render/post_process/stack/tests/effect_stack.rs");
-    let plan_07 = read_repo("docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_07 = format!(
+        "{}\n{}",
+        read_repo(
+            "docs/plans/zircon_runtime/render/07/2026-07-09-postprocess-color-pipeline-output-records.md",
+        ),
+        render_index,
+    );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -141,8 +148,8 @@ fn runtime_15_post_process_stack_is_folder_backed() {
     .map(|source| source.matches("\nfn ").count())
     .sum::<usize>();
     assert_eq!(
-        total_stack_tests, 17,
-        "post-process stack child owners should preserve all 17 moved stack tests"
+        total_stack_tests, 19,
+        "post-process stack child owners should preserve all 19 current stack tests"
     );
 
     for (path, source, budget) in [

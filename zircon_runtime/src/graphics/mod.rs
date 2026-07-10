@@ -22,9 +22,7 @@ pub(crate) mod types;
 pub(crate) mod virtual_geometry_runtime_provider;
 pub(crate) mod visibility;
 
-// Public module entries: feature-specific extract source contracts, the common
-// prelude, and the module descriptor surface.
-pub mod hybrid_gi_extract_sources;
+// Public module entries: the common prelude and module descriptor surface.
 pub mod prelude;
 pub mod runtime_builtin_graphics;
 

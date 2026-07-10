@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "runtime.ui.quest_log_dialog"
+id = "res://ui/runtime/fixtures/quest_log_dialog.zui"
 version = 2
 display_name = "Runtime Quest Log Dialog"
 

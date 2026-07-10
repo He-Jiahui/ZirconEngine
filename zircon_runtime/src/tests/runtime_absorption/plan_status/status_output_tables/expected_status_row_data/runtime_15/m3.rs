@@ -2,6 +2,8 @@ use super::ExpectedStatusOutputSlice;
 
 #[path = "m3/asset_budget_tests.rs"]
 mod asset_budget_tests;
+#[path = "m3/current_structure_owner_inventory.rs"]
+mod current_structure_owner_inventory;
 #[path = "m3/foundation_guards.rs"]
 mod foundation_guards;
 #[path = "m3/lock_poison_status.rs"]

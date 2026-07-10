@@ -29,10 +29,8 @@ pub(super) use source_cache::{
     NativeBitmapAtlasSourceCache, NativeBitmapAtlasSourceCacheFrameReport,
 };
 use storage::{
-    native_bitmap_atlas_has_mixed_storage_formats,
-    native_bitmap_atlas_storage_formats_are_contiguous,
-    native_bitmap_atlas_storage_formats_in_frame, single_native_bitmap_atlas_storage_format,
-    NativeBitmapAtlasStorageSubmission,
+    native_bitmap_atlas_has_mixed_storage_formats, native_bitmap_atlas_storage_submissions,
+    single_native_bitmap_atlas_storage_format, NativeBitmapAtlasStorageSubmission,
 };
 
 const NATIVE_BITMAP_ATLAS_WORK_PAGE_GENERATION: u64 = 0;
@@ -151,32 +149,14 @@ impl NativeBitmapAtlasFrame {
     }
 
     pub(super) fn storage_submissions(&self) -> Vec<NativeBitmapAtlasStorageSubmission> {
-        native_bitmap_atlas_storage_formats_in_frame(
-            self.source_images
-                .iter()
-                .map(|image| image.source.format.storage_format()),
+        native_bitmap_atlas_storage_submissions(
+            &self.submission.run.atlas,
+            &self.source_images,
+            self.frame_index,
+            self.viewport_size,
+            self.clip_rect,
+            self.face_epoch,
         )
-        .into_iter()
-        .filter_map(|storage_format| {
-            let source_images = self
-                .source_images
-                .iter()
-                .filter(|image| image.source.format.storage_format() == storage_format)
-                .cloned()
-                .collect::<Vec<_>>();
-            (!source_images.is_empty()).then(|| {
-                NativeBitmapAtlasStorageSubmission::new(
-                    storage_format,
-                    self.submission.run.atlas.clone(),
-                    source_images,
-                    self.frame_index,
-                    self.viewport_size,
-                    self.clip_rect,
-                    self.face_epoch,
-                )
-            })
-        })
-        .collect()
     }
 
     pub(super) fn atlas_layer_count(&self) -> u32 {
@@ -275,11 +255,6 @@ impl NativeBitmapAtlasFrame {
     ) -> bool {
         if !self.source_coverage_supports_replacement()
             || !self.background_composite_supports_replacement()
-            || !native_bitmap_atlas_storage_formats_are_contiguous(
-                self.source_images
-                    .iter()
-                    .map(|image| image.source.format.storage_format()),
-            )
         {
             return false;
         }

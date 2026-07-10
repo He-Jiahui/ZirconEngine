@@ -6,9 +6,13 @@ use std::{
 };
 
 use crate::core::framework::render::{
-    ShapedGlyph, ShapedGlyphRun, ShapedTextLine, TextOrientation, TextShapeRequest, VerticalMode,
+    normalized_open_type_features, ShapedGlyph, ShapedGlyphRun, ShapedTextLine, TextOrientation,
+    TextShapeRequest, VerticalMode,
 };
-use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
+use crate::graphics::text::font::shared_font_database_generation;
+use zircon_runtime_interface::ui::surface::{
+    normalize_ui_text_language_tag, UiResolvedStyle, UiTextDirection, UiTextRange,
+};
 
 pub(crate) const DEFAULT_SHAPED_RUN_CACHE_CAPACITY: usize = 1024;
 pub(crate) const DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
@@ -27,6 +31,7 @@ pub(crate) struct ShapedRunCacheKey {
     pub(crate) vertical_mode: VerticalMode,
     pub(crate) features_hash: u64,
     pub(crate) language: Option<String>,
+    pub(crate) font_database_generation: u64,
 }
 
 impl ShapedRunCacheKey {
@@ -45,8 +50,9 @@ impl ShapedRunCacheKey {
             base_direction: request.base_direction,
             orientation: request.orientation,
             vertical_mode: request.vertical_mode,
-            features_hash: shaping_features_hash(request.include_kerning),
-            language: None,
+            features_hash: shaping_features_hash(request),
+            language: normalize_ui_text_language_tag(request.language),
+            font_database_generation: shared_font_database_generation(),
         }
     }
 }
@@ -317,10 +323,11 @@ fn hash_text(text: &str) -> u64 {
     hasher.finish()
 }
 
-fn shaping_features_hash(include_kerning: bool) -> u64 {
+fn shaping_features_hash(request: &TextShapeRequest<'_>) -> u64 {
     let mut hasher = DefaultHasher::new();
-    b"shaped-run-features-v1".hash(&mut hasher);
-    include_kerning.hash(&mut hasher);
+    b"shaped-run-features-v2".hash(&mut hasher);
+    request.include_kerning.hash(&mut hasher);
+    normalized_open_type_features(request.features).hash(&mut hasher);
     hasher.finish()
 }
 

@@ -42,7 +42,7 @@ fn module_descriptor_with_asset_importers(
         ASSET_MODULE_NAME,
         "Asynchronous asset I/O and CPU-side decoding",
     )
-    .with_init_level(InitLevel::Servers)
+    .with_init_level(InitLevel::Services)
     .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_module_dependency(ModuleDependencySpec::named(TASKS_MODULE_NAME))
     .with_driver(DriverDescriptor::new(

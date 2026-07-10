@@ -64,6 +64,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/render_shader_support.rs",
             "expected_slices/status/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
             "expected_slices/date/runtime_15/m3_structure_support/status_support_maps/render_shader_maps.rs",
+            "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
             "runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed",
             "runtime_15_shader_prewarm_builtin_standard_material_template_source_is_wired",
         ],

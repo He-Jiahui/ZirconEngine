@@ -8,7 +8,16 @@ impl RuntimeExtensionRegistry {
         &mut self,
         world: &mut World,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.apply_component_types_to_world(world)?;
+        self.finalize();
+        self.apply_finalized_to_world(world)
+    }
+
+    pub(crate) fn apply_finalized_to_world(
+        &self,
+        world: &mut World,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        debug_assert!(self.is_finalized());
+        self.apply_finalized_component_types_to_world(world)?;
         for (_, resource) in self.plugin_resources() {
             resource.apply(world);
         }

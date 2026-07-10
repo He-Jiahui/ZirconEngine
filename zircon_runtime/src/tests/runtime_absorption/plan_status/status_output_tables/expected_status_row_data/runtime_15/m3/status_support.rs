@@ -28,7 +28,6 @@ mod runtime_index_anchors;
 // - structure_convention/production_file_budget/render_shader_template_assembly/sources.rs
 // Guard: runtime_15_render_shader_template_assembly_support_children_are_folder_backed.
 // Cargo gate deferred.
-// Runtime 15 M3 render shader template assembly assertion contract child-owner split.
 // Status: runtime_15_render_shader_template_assembly_assertion_contract_child_owner_split_static_passed_cargo_deferred.
 // Files:
 // - structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions.rs

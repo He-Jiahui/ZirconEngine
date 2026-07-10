@@ -1,15 +1,20 @@
+#[cfg(feature = "graphics")]
 use crate::core::framework::render::{
     GBufferChannelMask, GeometrySourceDescriptor, ShadingModelDescriptor,
     GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
+#[cfg(feature = "ui")]
+use crate::plugin::UiComponentDescriptor;
 use crate::plugin::{
     ComponentTypeDescriptor, PluginEventCatalogManifest, PluginOptionManifest,
-    RuntimeExtensionRegistryError, UiComponentDescriptor,
+    RuntimeExtensionRegistryError,
 };
 
+#[cfg(feature = "ui")]
+use super::super::validation::validate_ui_component_descriptor;
 use super::super::validation::{
     validate_component_type_descriptor, validate_plugin_event_catalog_manifest,
-    validate_plugin_option_manifest, validate_ui_component_descriptor,
+    validate_plugin_option_manifest,
 };
 use super::super::RuntimeExtensionRegistry;
 
@@ -31,6 +36,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "ui")]
     pub fn register_ui_component(
         &mut self,
         descriptor: UiComponentDescriptor,
@@ -85,6 +91,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_geometry_source(
         &mut self,
         plugin_id: impl AsRef<str>,
@@ -94,6 +101,7 @@ impl RuntimeExtensionRegistry {
         self.register_geometry_source_for_owner(owner, descriptor)
     }
 
+    #[cfg(feature = "graphics")]
     pub(in crate::plugin) fn register_geometry_source_for_owner(
         &mut self,
         owner: crate::plugin::PluginModuleId,
@@ -110,6 +118,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_shading_model(
         &mut self,
         plugin_id: impl AsRef<str>,
@@ -119,6 +128,7 @@ impl RuntimeExtensionRegistry {
         self.register_shading_model_for_owner(owner, descriptor)
     }
 
+    #[cfg(feature = "graphics")]
     pub(in crate::plugin) fn register_shading_model_for_owner(
         &mut self,
         owner: crate::plugin::PluginModuleId,
@@ -136,6 +146,7 @@ impl RuntimeExtensionRegistry {
     }
 }
 
+#[cfg(feature = "graphics")]
 fn validate_geometry_source_descriptor(
     descriptor: &GeometrySourceDescriptor,
 ) -> Result<String, RuntimeExtensionRegistryError> {
@@ -190,6 +201,7 @@ fn validate_geometry_source_descriptor(
     Ok(token)
 }
 
+#[cfg(feature = "graphics")]
 fn validate_shading_model_descriptor(
     descriptor: &ShadingModelDescriptor,
 ) -> Result<String, RuntimeExtensionRegistryError> {

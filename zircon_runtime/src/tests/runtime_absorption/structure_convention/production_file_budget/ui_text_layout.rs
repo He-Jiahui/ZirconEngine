@@ -20,7 +20,7 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
         &parent,
         &[
             "mod visual_order;",
-            "visual_order::apply_visual_order(line, direction);",
+            "visual_order::apply_visual_order(line, text, direction);",
             "pub(crate) fn measure_text_size",
             "pub(crate) fn layout_text",
             "mod range_mapping;",
@@ -45,16 +45,16 @@ fn runtime_15_ui_text_layout_engine_visual_order_is_child_owner() {
         );
     }
     assert_contains_all(
-        "UI text layout visual-order child owns BiDi scaffold internals",
+        "UI text layout visual-order child adapts the shared UAX#9 line owner",
         &visual_order,
         &[
             "pub(super) fn apply_visual_order",
             "struct VisualTextToken",
             "struct VisualTextCluster",
             "struct VisualTextFragment",
-            "fn visual_text_fragments(",
-            "fn assign_neutral_cluster_directions(",
-            "fn neutral_token_direction(",
+            "fn logical_text_clusters(",
+            "analyze_bidi_line",
+            "mirrored_bidi_char",
             "fn push_visual_fragment(",
             "source_subrange",
         ],

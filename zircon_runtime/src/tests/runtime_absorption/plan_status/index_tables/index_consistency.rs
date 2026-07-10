@@ -26,7 +26,7 @@ fn runtime_index_problem_rows_reference_existing_subplans() {
     for line in problem_section.lines() {
         let cells = markdown_table_cells(line);
         if cells.len() == 4
-            && cells[0] != "#"
+            && cells[0] != "问题"
             && !cells[0].chars().all(|character| character == '-')
         {
             assert!(

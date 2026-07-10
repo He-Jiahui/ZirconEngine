@@ -87,11 +87,7 @@ pub(super) fn assert_runtime_09_to_12_anchors(sources: &RecentStaticGuardSources
         "runtime_12_gamepad_bridge_keeps_runtime_abi_path",
     ];
 
-    assert_contains_all(
-        "Runtime 09 subplan",
-        sources.runtime_09_plan,
-        &runtime_09_anchors,
-    );
+    assert_contains_all("Runtime 09 subplan", &sources.archives, &runtime_09_anchors);
     assert_contains_all(
         "Runtime 09 mirror doc",
         sources.runtime_09_doc,
@@ -99,7 +95,7 @@ pub(super) fn assert_runtime_09_to_12_anchors(sources: &RecentStaticGuardSources
     );
     assert_contains_all(
         "Runtime 10 subplan",
-        sources.runtime_10_plan,
+        &sources.archives,
         &runtime_10_plan_anchors,
     );
     assert_contains_all(
@@ -112,21 +108,13 @@ pub(super) fn assert_runtime_09_to_12_anchors(sources: &RecentStaticGuardSources
         sources.runtime_10_interface_doc,
         &runtime_10_interface_anchors,
     );
-    assert_contains_all(
-        "Runtime 11 subplan",
-        sources.runtime_11_plan,
-        &runtime_11_anchors,
-    );
+    assert_contains_all("Runtime 11 subplan", &sources.archives, &runtime_11_anchors);
     assert_contains_all(
         "Runtime 11 mirror doc",
         sources.runtime_11_doc,
         &runtime_11_anchors,
     );
-    assert_contains_all(
-        "Runtime 12 subplan",
-        sources.runtime_12_plan,
-        &runtime_12_anchors,
-    );
+    assert_contains_all("Runtime 12 subplan", &sources.archives, &runtime_12_anchors);
     assert_contains_all(
         "Runtime 12 mirror doc",
         sources.runtime_12_doc,

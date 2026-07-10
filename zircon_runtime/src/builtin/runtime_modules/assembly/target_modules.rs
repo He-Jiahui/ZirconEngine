@@ -34,7 +34,8 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
         .iter()
         .cloned()
         .collect::<HashSet<_>>();
-    let core_modules = match runtime_core_modules_for_target_with_render_features(
+    #[cfg(feature = "graphics")]
+    let core_modules = runtime_core_modules_for_target_with_render_features(
         target,
         inputs.asset_importers(),
         inputs.render_features(),
@@ -45,7 +46,11 @@ pub(super) fn runtime_modules_for_target_with_registration_inputs_for_manifest(
         inputs.hybrid_gi_runtime_providers(),
         inputs.solari_runtime_providers(),
         inputs.virtual_geometry_runtime_providers(),
-    ) {
+    );
+    #[cfg(not(feature = "graphics"))]
+    let core_modules =
+        runtime_core_modules_for_target_with_render_features(target, inputs.asset_importers());
+    let core_modules = match core_modules {
         Ok(modules) => modules,
         Err(error) => return RuntimeModuleLoadReport::from_core_error(error),
     };

@@ -4,10 +4,12 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
     let session_source = include_str!("../../../dynamic_api/session.rs");
     let api_table_tests = include_str!("../../../dynamic_api/tests/api_table.rs");
     let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
-    let runtime_10_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
+    let runtime_10_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
 
     for required_exports_anchor in [
         "fn catch_ffi_panic(",
@@ -96,9 +98,9 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         "session.rs` owner 函数保持 Rust ABI",
     ] {
         assert!(
-            runtime_10_plan.contains(required_plan_anchor)
-                || runtime_index.contains(required_plan_anchor),
-            "Runtime 10 plan/index should record `{required_plan_anchor}`"
+            runtime_10_output.contains(required_plan_anchor)
+                || runtime_index_output.contains(required_plan_anchor),
+            "Runtime 10 output records should record `{required_plan_anchor}`"
         );
     }
 }

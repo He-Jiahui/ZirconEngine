@@ -189,9 +189,9 @@ fn custom_deferred_dispatch(
         let function_name = deferred_shading_function_name(&descriptor.deferred_include);
         dispatch.push_str("    if (shading_model_id == ");
         dispatch.push_str(&descriptor.id.value().to_string());
-        dispatch.push_str("u) {\n        return ");
+        dispatch.push_str("u) {\n        return add_deferred_emissive(");
         dispatch.push_str(&function_name);
-        dispatch.push_str("(position, coord, albedo, material, normal);\n    }\n");
+        dispatch.push_str("(position, coord, albedo, material, normal), emissive);\n    }\n");
     }
     Ok(dispatch)
 }

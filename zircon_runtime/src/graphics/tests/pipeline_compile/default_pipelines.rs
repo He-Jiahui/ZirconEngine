@@ -558,6 +558,12 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     pass_resource_access(
         &compiled,
+        "gbuffer-mesh",
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
+        RenderGraphResourceAccessKind::Write,
+    );
+    pass_resource_access(
+        &compiled,
         "deferred-lighting",
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         RenderGraphResourceAccessKind::Read,
@@ -577,6 +583,12 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     pass_resource_access(
         &compiled,
         "deferred-lighting",
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
+        RenderGraphResourceAccessKind::Read,
+    );
+    pass_resource_access(
+        &compiled,
+        "deferred-lighting",
         PostProcessGraphResourceNames::FINAL_COLOR,
         RenderGraphResourceAccessKind::Read,
     );
@@ -586,8 +598,8 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             .passes()
             .iter()
             .flat_map(|pass| pass.resources.iter())
-            .any(|resource| resource.name == PostProcessGraphResourceNames::GBUFFER_MATERIAL),
-        "default deferred graph should declare its backed material G-buffer"
+            .any(|resource| resource.name == PostProcessGraphResourceNames::GBUFFER_EMISSIVE),
+        "default deferred graph should declare its backed HDR emissive G-buffer"
     );
     assert_eq!(
         compiled.required_extract_sections,

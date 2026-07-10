@@ -65,7 +65,7 @@ pub(super) fn assert_status_rows_and_docs_are_synced() {
     }
 
     let frameworks = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     assert_contains_all(
         "frameworks mirror",

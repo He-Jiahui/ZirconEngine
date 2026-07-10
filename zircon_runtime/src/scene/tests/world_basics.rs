@@ -2,9 +2,10 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::render::{
-    ProjectionMode, RenderAmbientLightSnapshot, RenderMaterialAlphaMode, RenderPhase,
-    RenderPhaseMeshSource, RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteImageMode,
-    RenderSpriteRect, RenderSpriteSliceBorder, RenderSpriteSliceScaleMode, RenderSpriteSlicer,
+    CorePipelineKind, ProjectionMode, RenderAmbientLightSnapshot, RenderMaterialAlphaMode,
+    RenderPhase, RenderPhaseMeshSource, RenderSpriteAnchor, RenderSpriteAtlasRegion,
+    RenderSpriteImageMode, RenderSpriteRect, RenderSpriteSliceBorder, RenderSpriteSliceScaleMode,
+    RenderSpriteSlicer,
 };
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::{Transform, Vec2, Vec3, Vec4};

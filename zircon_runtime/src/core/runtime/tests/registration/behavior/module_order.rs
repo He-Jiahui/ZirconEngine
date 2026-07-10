@@ -18,8 +18,8 @@ fn module_activation_order_sorts_levels_and_declared_dependencies() {
         ModuleDescriptor::new("KernelModule", "kernel").with_init_level(InitLevel::Kernel),
         ModuleDescriptor::new("SceneModule", "scene")
             .with_init_level(InitLevel::Scene)
-            .with_module_dependency(ModuleDependencySpec::named("ServersModule")),
-        ModuleDescriptor::new("ServersModule", "servers").with_init_level(InitLevel::Servers),
+            .with_module_dependency(ModuleDependencySpec::named("ServicesModule")),
+        ModuleDescriptor::new("ServicesModule", "services").with_init_level(InitLevel::Services),
         ModuleDescriptor::new("PostModule", "post")
             .with_module_dependency(ModuleDependencySpec::named("EditorModule")),
     ];
@@ -30,7 +30,7 @@ fn module_activation_order_sorts_levels_and_declared_dependencies() {
         order,
         vec![
             "KernelModule".to_owned(),
-            "ServersModule".to_owned(),
+            "ServicesModule".to_owned(),
             "SceneModule".to_owned(),
             "EditorModule".to_owned(),
             "PostModule".to_owned(),
@@ -82,10 +82,10 @@ fn module_activation_order_rejects_dependency_on_later_init_level() {
 fn module_activation_order_reports_same_level_cycles() {
     let descriptors = [
         ModuleDescriptor::new("AssetModule", "asset")
-            .with_init_level(InitLevel::Servers)
+            .with_init_level(InitLevel::Services)
             .with_module_dependency(ModuleDependencySpec::named("InputModule")),
         ModuleDescriptor::new("InputModule", "input")
-            .with_init_level(InitLevel::Servers)
+            .with_init_level(InitLevel::Services)
             .with_module_dependency(ModuleDependencySpec::named("AssetModule")),
     ];
 

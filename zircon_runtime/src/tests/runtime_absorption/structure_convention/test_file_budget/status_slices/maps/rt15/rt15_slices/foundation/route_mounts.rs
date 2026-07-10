@@ -10,10 +10,7 @@ fn runtime_15_foundation_expected_slice_maps_route_mounts_are_child_owned() {
     assert_contains_all(
         "Runtime 15 expected-slice maps parent mounts foundation route",
         &expected_slice_maps_parent,
-        &[
-            "#[path = \"rt15_slices/foundation.rs\"]",
-            "mod foundation;",
-        ],
+        &["#[path = \"rt15_slices/foundation.rs\"]", "mod foundation;"],
     );
     assert_contains_all(
         "foundation expected-slice map guard parent mounts focused children",

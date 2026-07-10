@@ -1,15 +1,25 @@
 #[test]
 fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation() {
-    let runtime_09_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
+    let runtime_09_plan = runtime_plan_source_with_archive(
+        "09",
+        include_str!(
+            "../../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
+        ),
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_09_plan = runtime_09_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let ui_architecture_doc =
         include_str!("../../../../../../docs/zircon_runtime/ui/architecture.md");
-    let runtime_05_plan = include_str!(
+    let runtime_05_plan = runtime_plan_source_with_archive(
+        "05",
+        include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
+    ),
     );
+    let runtime_05_plan = runtime_05_plan.as_str();
     let review = include_str!(
         "../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
     );

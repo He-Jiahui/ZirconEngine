@@ -5,7 +5,7 @@ const RAW_DEPTH_BINDING_DECLARATION: &str =
 const FALLBACK_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(11) var scene_depth_tex: texture_2d<f32>;";
 const RAW_DEPTH_SAMPLE_RETURN: &str =
-    "return clamp(textureSample(scene_depth_tex, scene_depth_sampler, uv), 0.0, 1.0);";
+    "return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);";
 const FALLBACK_DEPTH_SAMPLE_RETURN: &str = "return clamp(uv.y, 0.0, 1.0);";
 const DOF_PREPARE_RAW_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(0) var scene_depth_tex: texture_depth_2d;";
@@ -181,6 +181,18 @@ mod tests {
             PostProcessDepthSamplingMode::for_backend_name("wgpu(metal)"),
             PostProcessDepthSamplingMode::RawDepthTexture
         );
+    }
+
+    #[test]
+    fn raw_depth_shader_uses_derivative_free_integer_loads() {
+        let shader_source = PostProcessDepthSamplingMode::RawDepthTexture
+            .post_process_shader_source(POST_PROCESS_SHADER);
+
+        naga::front::wgsl::parse_str(&shader_source)
+            .expect("raw-depth post-process shader must parse");
+        assert!(shader_source
+            .contains("return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);"));
+        assert!(!shader_source.contains("textureSample(scene_depth_tex"));
     }
 
     #[test]

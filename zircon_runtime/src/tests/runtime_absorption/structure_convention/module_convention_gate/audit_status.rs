@@ -140,12 +140,15 @@ fn runtime_15_module_convention_zero_debt_revalidation_is_status_locked() {
 
 #[test]
 fn runtime_15_module_convention_audit_script_family_uses_gate_names() {
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     assert_contains_all(
         "engine code structure convention audit script family names",
         &structure_convention,
         &[
-            "runtime_structure_audits/`（`module_convention_gate.py` + `module_convention_gate_markdown.py`",
+            "module_convention_gate.py",
+            "module_convention_gate_markdown.py",
             "audit_runtime_structure.py",
         ],
     );
@@ -158,15 +161,16 @@ fn runtime_15_module_convention_audit_script_family_uses_gate_names() {
         ],
     );
 
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
     assert_contains_all(
         "Runtime 15 module convention script inventory uses current gate files",
         &runtime_15_plan,
         &[
-            ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py",
-            ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py",
-            "module_convention_gate.py` + `module_convention_gate_markdown.py",
+            "module_convention_gate.py",
+            "module_convention_gate_markdown.py",
+            "audit_runtime_structure.py",
         ],
     );
     assert_not_contains(

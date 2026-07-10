@@ -20,7 +20,6 @@ mod row_data_maps;
 mod runtime_row_data_maps;
 
 // Parent-level mirror for source guards that read this route file directly.
-// Runtime 15 M3 render shader template assembly guard support child-owner split.
 // Status: runtime_15_render_shader_template_assembly_guard_support_child_owner_split_static_passed_cargo_deferred.
 // Files:
 // - structure_convention/production_file_budget/render_shader_template_assembly.rs
@@ -53,6 +52,18 @@ const REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_NAME: &str =
     "Runtime 15 M3 review-guard row-data status-mirror child split";
 const REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_ID: &str =
     "runtime_15_review_guard_row_data_status_mirror_child_split_static_passed_cargo_deferred";
+const REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard row-data moved-row guard child-owner split";
+const REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_STATUS_ID: &str =
+    "runtime_15_review_guard_row_data_moved_rows_child_owner_split_static_passed_cargo_deferred";
+const REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard moved-row guard folder-backed split";
+const REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_STATUS_ID: &str =
+    "runtime_15_review_guard_moved_row_guard_folder_backed_static_passed_cargo_deferred";
+const REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_STATUS_NAME: &str =
+    "Runtime 15 M3 review-guard moved-row status-mirror child split";
+const REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_STATUS_ID: &str =
+    "runtime_15_review_guard_moved_row_status_mirror_child_split_static_passed_cargo_deferred";
 
 pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
     if slice == REVIEW_GUARD_ROW_DATA_FOLDER_BACKED_STATUS_NAME {
@@ -60,6 +71,15 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
     }
     if slice == REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_NAME {
         return Some(REVIEW_GUARD_ROW_DATA_STATUS_MIRROR_STATUS_ID);
+    }
+    if slice == REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_STATUS_NAME {
+        return Some(REVIEW_GUARD_MOVED_ROW_CHILD_OWNER_STATUS_ID);
+    }
+    if slice == REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_STATUS_NAME {
+        return Some(REVIEW_GUARD_MOVED_ROW_FOLDER_BACKED_STATUS_ID);
+    }
+    if slice == REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_STATUS_NAME {
+        return Some(REVIEW_GUARD_MOVED_ROW_STATUS_MIRROR_STATUS_ID);
     }
     row_data_maps::expected_status_for_slice(slice)
         .or_else(|| plan_doc_support_maps::expected_status_for_slice(slice))

@@ -7,8 +7,11 @@ use std::{
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::core::framework::render::{
-    CapturedFrame, RenderFramework, RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
-    RenderQualityProfile, RenderViewportDescriptor,
+    CapturedFrame, PostProcessGraphResourceNames, RenderFramework, RenderHybridGiPreparedFrame,
+    RenderHybridGiPreparedProbe, RenderHybridGiPreparedProbeRtLighting,
+    RenderHybridGiPreparedProbeSceneData, RenderHybridGiPreparedTraceRegionSceneData,
+    RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs, RenderQualityProfile,
+    RenderViewportDescriptor,
 };
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::graphics::{
@@ -21,6 +24,8 @@ use super::*;
 
 const OUTPUT_STEM: &str = "plan18_hybrid_gi_lumen_style_seed_visual_20260707";
 const PANEL_SEPARATOR_PX: u32 = 4;
+const HYBRID_GI_SCENE_PACKET_MINIMUM_SIZE_BYTES: u64 = 710 * 4;
+const HYBRID_GI_TRACE_PACKET_MINIMUM_SIZE_BYTES: u64 = 448 * 4;
 
 #[test]
 #[ignore = "writes Hybrid GI visual evidence under docs/tests/runtime/render"]
@@ -92,10 +97,7 @@ fn render_hybrid_gi_visual_frame(
         .set_quality_profile(viewport, hybrid_gi_visual_quality_profile(profile_suffix))
         .unwrap();
     framework
-        .submit_frame_extract(
-            viewport,
-            direct_hybrid_gi_extract(viewport_size, probe_irradiance_rgb.unwrap_or([0, 0, 0])),
-        )
+        .submit_frame_extract(viewport, direct_hybrid_gi_extract(viewport_size))
         .unwrap();
     framework
         .capture_frame(viewport)
@@ -147,8 +149,12 @@ fn direct_hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.scene-prepare")
-            .read_texture("scene-depth")
-            .write_buffer("hybrid-gi-scene"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .write_buffer_with_minimum_size(
+                PostProcessGraphResourceNames::HYBRID_GI_SCENE,
+                HYBRID_GI_SCENE_PACKET_MINIMUM_SIZE_BYTES,
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-trace-schedule",
@@ -160,16 +166,20 @@ fn direct_hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
                 [8, 8, 1],
                 [1, 1, 1],
             ))
-            .read_buffer("hybrid-gi-scene")
-            .write_buffer("hybrid-gi-trace"),
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_SCENE)
+            .write_buffer_with_minimum_size(
+                PostProcessGraphResourceNames::HYBRID_GI_TRACE,
+                HYBRID_GI_TRACE_PACKET_MINIMUM_SIZE_BYTES,
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-resolve",
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.resolve")
-            .read_buffer("hybrid-gi-trace")
-            .write_texture("hybrid-gi-lighting"),
+            .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_TRACE)
+            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
@@ -190,56 +200,19 @@ fn noop_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> R
     Ok(())
 }
 
-fn direct_hybrid_gi_extract(viewport_size: UVec2, rt_lighting_rgb: [u8; 3]) -> RenderFrameExtract {
+fn direct_hybrid_gi_extract(viewport_size: UVec2) -> RenderFrameExtract {
     let world = World::new();
-    let mesh = world
-        .nodes()
-        .iter()
-        .find(|node| node.mesh.is_some())
-        .map(|node| node.id)
-        .expect("default world should contain a renderable mesh");
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
         quality: Default::default(),
-        trace_budget: 0,
-        card_budget: 0,
-        voxel_budget: 0,
+        trace_budget: 1,
+        card_budget: 1,
+        voxel_budget: 1,
         debug_view: Default::default(),
-        probe_budget: 1,
-        tracing_budget: 1,
-        probes: vec![direct_hybrid_gi_probe(mesh, 200)],
-        trace_regions: vec![direct_hybrid_gi_trace_region(mesh, 300, rt_lighting_rgb)],
     });
     extract
-}
-
-fn direct_hybrid_gi_probe(entity: u64, probe_id: u32) -> RenderHybridGiProbe {
-    RenderHybridGiProbe {
-        entity,
-        probe_id,
-        position: Vec3::ZERO,
-        radius: 1.0,
-        parent_probe_id: None,
-        resident: true,
-        ray_budget: 128,
-    }
-}
-
-fn direct_hybrid_gi_trace_region(
-    entity: u64,
-    region_id: u32,
-    rt_lighting_rgb: [u8; 3],
-) -> RenderHybridGiTraceRegion {
-    RenderHybridGiTraceRegion {
-        entity,
-        region_id,
-        bounds_center: Vec3::ZERO,
-        bounds_radius: 1.0,
-        screen_coverage: 1.0,
-        rt_lighting_rgb,
-    }
 }
 
 fn seeded_hybrid_gi_runtime_provider(
@@ -273,17 +246,23 @@ struct SeededHybridGiRuntimeState {
 impl HybridGiRuntimeState for SeededHybridGiRuntimeState {
     fn prepare_frame(
         &mut self,
-        input: HybridGiRuntimePrepareInput<'_>,
+        _input: HybridGiRuntimePrepareInput<'_>,
     ) -> HybridGiRuntimePrepareOutput {
-        let renderer_outputs = self
+        let renderer_outputs =
+            self.probe_irradiance_rgb
+                .map_or_else(RenderPluginRendererOutputs::default, |rgb| {
+                    RenderPluginRendererOutputs {
+                        hybrid_gi: seeded_hybrid_gi_readback_outputs(rgb),
+                        ..RenderPluginRendererOutputs::default()
+                    }
+                });
+        let prepared_frame = self
             .probe_irradiance_rgb
-            .map(|rgb| RenderPluginRendererOutputs {
-                hybrid_gi: seeded_hybrid_gi_readback_outputs(&input, rgb),
-                ..RenderPluginRendererOutputs::default()
-            })
-            .unwrap_or_default();
+            .map(seeded_hybrid_gi_prepared_frame);
 
-        HybridGiRuntimePrepareOutput::new(Vec::new()).with_renderer_outputs(renderer_outputs)
+        HybridGiRuntimePrepareOutput::new(Vec::new())
+            .with_renderer_outputs(renderer_outputs)
+            .with_prepared_frame(prepared_frame)
     }
 
     fn update_after_render(&mut self, _feedback: HybridGiRuntimeFeedback) -> HybridGiRuntimeUpdate {
@@ -291,39 +270,48 @@ impl HybridGiRuntimeState for SeededHybridGiRuntimeState {
     }
 }
 
-fn seeded_hybrid_gi_readback_outputs(
-    input: &HybridGiRuntimePrepareInput<'_>,
-    rgb: [u8; 3],
-) -> RenderHybridGiReadbackOutputs {
-    let extract = input.extract();
-    let completed_probe_ids = extract
-        .map(|extract| {
-            extract
-                .probes
-                .iter()
-                .map(|probe| probe.probe_id)
-                .collect::<Vec<_>>()
-        })
-        .filter(|probe_ids| !probe_ids.is_empty())
-        .unwrap_or_else(|| vec![200]);
-    let completed_trace_region_ids = extract
-        .map(|extract| {
-            extract
-                .trace_regions
-                .iter()
-                .map(|region| region.region_id)
-                .collect::<Vec<_>>()
-        })
-        .filter(|region_ids| !region_ids.is_empty())
-        .unwrap_or_else(|| vec![300]);
+fn seeded_hybrid_gi_readback_outputs(rgb: [u8; 3]) -> RenderHybridGiReadbackOutputs {
     let rgb16 = [u16::from(rgb[0]), u16::from(rgb[1]), u16::from(rgb[2])];
 
     RenderHybridGiReadbackOutputs {
-        completed_probe_ids,
-        completed_trace_region_ids,
+        completed_probe_ids: vec![200],
+        completed_trace_region_ids: vec![300],
         probe_irradiance_rgb: vec![rgb16],
         probe_rt_lighting_rgb: vec![rgb16],
         ..RenderHybridGiReadbackOutputs::default()
+    }
+}
+
+fn seeded_hybrid_gi_prepared_frame(rgb: [u8; 3]) -> RenderHybridGiPreparedFrame {
+    RenderHybridGiPreparedFrame {
+        resident_probes: vec![RenderHybridGiPreparedProbe {
+            probe_id: 200,
+            slot: 0,
+            ray_budget: 32,
+            irradiance_rgb: rgb,
+        }],
+        scheduled_trace_region_ids: vec![300],
+        probe_scene_data: vec![RenderHybridGiPreparedProbeSceneData {
+            probe_id: 200,
+            position_x_q: 2048,
+            position_y_q: 2048,
+            position_z_q: 2048,
+            radius_q: 96,
+        }],
+        probe_rt_lighting_rgb: vec![RenderHybridGiPreparedProbeRtLighting {
+            probe_id: 200,
+            rt_lighting_rgb: rgb,
+        }],
+        trace_region_scene_data: vec![RenderHybridGiPreparedTraceRegionSceneData {
+            region_id: 300,
+            center_x_q: 2048,
+            center_y_q: 2048,
+            center_z_q: 2048,
+            radius_q: 96,
+            coverage_q: 128,
+            rt_lighting_rgb: rgb,
+        }],
+        ..RenderHybridGiPreparedFrame::default()
     }
 }
 

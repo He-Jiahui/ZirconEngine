@@ -2,9 +2,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
+use crate::core::framework::audio::AudioChannelLayout;
+use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
-use crate::core::framework::sound::SoundChannelLayout;
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::{
@@ -13,10 +13,14 @@ use crate::asset::{
     AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
     AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
     AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
-    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetImporter,
-    AssetReference, AssetUri, MaterialAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
+    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetImportContext,
+    AssetImportError, AssetImportOutcome, AssetImporter, AssetImporterDescriptor, AssetKind,
+    AssetReference, AssetUri, FunctionAssetImporter, ImportedAsset, MaterialAsset,
+    PhysicsMaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset,
+    SceneMobilityAsset, SoundAsset, TransformAsset, UiV2ComponentAsset, UiV2StyleAsset,
+    UiV2ViewAsset,
 };
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 pub(crate) fn write_valid_wgsl(path: PathBuf) {
     if let Some(parent) = path.parent() {
@@ -63,6 +67,44 @@ pub(crate) fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
     importer
 }
 
+pub(crate) fn ui_document_importer_fixture() -> FunctionAssetImporter {
+    FunctionAssetImporter::new(
+        AssetImporterDescriptor::new(
+            "ui_document_importer.zui_document",
+            "ui_document_importer",
+            AssetKind::UiWidget,
+            2,
+        )
+        .with_priority(120)
+        .with_full_suffixes([".zui"])
+        .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle])
+        .with_required_capabilities(["runtime.asset.importer.ui_document"]),
+        import_ui_zui_document_fixture,
+    )
+}
+
+fn import_ui_zui_document_fixture(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let document = context.source_text()?;
+    let parsed = crate::ui::v2::UiZuiAssetLoader::load_zui_str(&document).map_err(|source| {
+        AssetImportError::UiV2Document {
+            context: "parse .zui ui asset fixture",
+            source: source.into(),
+        }
+    })?;
+    let imported = match parsed.asset.kind {
+        UiV2AssetKind::View => ImportedAsset::UiV2View(UiV2ViewAsset { document: parsed }),
+        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => {
+            ImportedAsset::UiV2Style(UiV2StyleAsset { document: parsed })
+        }
+        UiV2AssetKind::Component => {
+            ImportedAsset::UiV2Component(UiV2ComponentAsset { document: parsed })
+        }
+    };
+    Ok(AssetImportOutcome::new(context.uri.clone(), imported))
+}
+
 pub(crate) fn write_triangle_obj(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
@@ -88,7 +130,7 @@ pub(crate) fn sample_sound_asset(uri: &str) -> SoundAsset {
         uri: AssetUri::parse(uri).unwrap(),
         sample_rate_hz: 48_000,
         channel_count: 1,
-        channel_layout: SoundChannelLayout::mono(),
+        channel_layout: AudioChannelLayout::mono(),
         samples: vec![0.0, 0.5, -0.5, 32767.0 / 32768.0],
     }
 }

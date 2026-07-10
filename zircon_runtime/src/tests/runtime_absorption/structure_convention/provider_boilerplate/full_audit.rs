@@ -9,12 +9,19 @@ fn runtime_15_no_duplicated_provider_boilerplate() {
     let prepare_input = read_runtime_src("graphics/runtime_provider/prepare_input.rs");
     let particle_feedback =
         read_runtime_src("graphics/particle_runtime_provider/runtime_feedback.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let render_index = runtime_15_plan.clone();
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     assert_contains_all(

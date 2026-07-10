@@ -2,23 +2,23 @@ use super::*;
 
 pub(in super::super::super) const CODE_REVIEW_STATUS_MAP_SOURCE: &str =
     "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/maps/code_review.rs";
-pub(in super::super::super) const STATUS_REVIEW_CODE_REVIEW_CHILD: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review_guard_maps.rs";
+pub(in super::super::super) const STATUS_REVIEW_CODE_REVIEW_CHILD: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps.rs";
 pub(in super::super::super) const STATUS_REVIEW_CODE_REVIEW_CHILDREN: &[&str] = &[
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/direct_assertion_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/expected_slice_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/folder_backed_summary_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/source_inventory_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/status_doc_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/structure_guard_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/expected_slice_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/folder_backed_summary_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/source_inventory_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/status_doc_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/structure_guard_rows.rs",
 ];
-pub(in super::super::super) const DATE_REVIEW_CODE_REVIEW_CHILD: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review_guard_maps.rs";
+pub(in super::super::super) const DATE_REVIEW_CODE_REVIEW_CHILD: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps.rs";
 pub(in super::super::super) const DATE_REVIEW_CODE_REVIEW_CHILDREN: &[&str] = &[
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/direct_assertion_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/expected_slice_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/folder_backed_summary_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/source_inventory_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/status_doc_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/structure_guard_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/expected_slice_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/folder_backed_summary_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/source_inventory_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/status_doc_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/structure_guard_rows.rs",
 ];
 
 pub(in super::super::super) fn read_status_review_code_review_sources() -> String {

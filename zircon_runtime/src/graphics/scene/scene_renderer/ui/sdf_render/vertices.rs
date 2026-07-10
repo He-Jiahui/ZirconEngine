@@ -1,14 +1,16 @@
 use bytemuck::{Pod, Zeroable};
 
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::{ShapedGlyphRotation, VerticalMode};
 use crate::core::math::UVec2;
 use crate::graphics::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
 use crate::graphics::text::font::FontDatabase;
 use crate::graphics::text::layout::justify_line_advances;
+use crate::graphics::text::shaping::{vertical_glyph_advance, vertical_glyph_rotation};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWritingMode};
 
-use super::super::render::ScreenSpaceUiTextBatch;
+use super::super::render::{ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch};
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::super::sdf_atlas::{SdfAtlasPlan, SdfAtlasRect, SdfAtlasRun};
 use super::super::sdf_char_run::sdf_scalar_is_invisible_format;
@@ -29,11 +31,11 @@ pub(super) struct ScreenSpaceUiSdfVertex {
 }
 
 #[derive(Clone, Copy)]
-struct SdfUvRect {
-    x0: f32,
-    y0: f32,
-    x1: f32,
-    y1: f32,
+pub(super) struct SdfUvRect {
+    pub(super) x0: f32,
+    pub(super) y0: f32,
+    pub(super) x1: f32,
+    pub(super) y1: f32,
 }
 
 impl ScreenSpaceUiSdfVertex {
@@ -147,6 +149,7 @@ fn push_horizontal_sdf_text_vertices(
             text.color,
             glyph.screen_px_range,
             slot.page_key.page_index,
+            ShapedGlyphRotation::None,
         );
         cursor_x += advance;
     }
@@ -180,16 +183,28 @@ fn push_vertical_sdf_text_vertices(
     clip: UiFrame,
     viewport: UiFrame,
 ) {
-    // This first vertical-rl slice remaps SDF quads into a column; font
-    // vertical substitutions and sideways Latin rotation belong to shaping.
-    let natural_advances = glyphs
-        .iter()
-        .map(|glyph| glyph.metrics.advance)
+    if text.shaped_glyphs.len() == glyphs.len() && !text.shaped_glyphs.is_empty() {
+        push_vertical_shaped_sdf_text_vertices(vertices, text, glyphs, plan, clip, viewport);
+        return;
+    }
+
+    let natural_advances = text
+        .text
+        .chars()
+        .zip(glyphs.iter())
+        .map(|(character, glyph)| {
+            let mut cluster_bytes = [0_u8; 4];
+            vertical_glyph_advance(
+                VerticalMode::Mixed,
+                character.encode_utf8(&mut cluster_bytes),
+                glyph.metrics.advance,
+                text.font_size,
+            )
+        })
         .collect::<Vec<_>>();
-    let natural_text_width = natural_advances.iter().sum();
-    let glyph_advances = resolve_sdf_glyph_advances(text, natural_advances, natural_text_width);
+    let glyph_advances = resolve_vertical_sdf_glyph_advances(text, natural_advances);
     let mut cursor_y = text_frame_device_origin(text.frame).y;
-    for (glyph, advance) in glyphs.into_iter().zip(glyph_advances) {
+    for ((character, glyph), advance) in text.text.chars().zip(glyphs).zip(glyph_advances) {
         let advance = advance.max(0.0);
         let Some(slot_index) = glyph.slot_index else {
             cursor_y += advance;
@@ -203,7 +218,10 @@ fn push_vertical_sdf_text_vertices(
             cursor_y += advance;
             continue;
         }
-        let frame = vertical_sdf_glyph_frame(text, &glyph, cursor_y, advance);
+        let mut cluster_bytes = [0_u8; 4];
+        let cluster_text = character.encode_utf8(&mut cluster_bytes);
+        let rotation = vertical_glyph_rotation(VerticalMode::Mixed, cluster_text);
+        let frame = vertical_sdf_glyph_frame(text, &glyph, cursor_y, advance, rotation);
         push_clipped_glyph_quad(
             vertices,
             frame,
@@ -213,9 +231,75 @@ fn push_vertical_sdf_text_vertices(
             text.color,
             glyph.screen_px_range,
             slot.page_key.page_index,
+            rotation,
         );
         cursor_y += advance;
     }
+}
+
+fn push_vertical_shaped_sdf_text_vertices(
+    vertices: &mut Vec<ScreenSpaceUiSdfVertex>,
+    text: &ScreenSpaceUiTextBatch,
+    glyphs: Vec<RunGlyph>,
+    plan: &SdfAtlasPlan,
+    clip: UiFrame,
+    viewport: UiFrame,
+) {
+    let mut cursor_y = text_frame_device_origin(text.frame).y;
+    for (shaped, glyph) in text.shaped_glyphs.iter().zip(glyphs) {
+        let advance = shaped.advance.max(0.0);
+        let Some(slot_index) = glyph.slot_index else {
+            cursor_y += advance;
+            continue;
+        };
+        let Some(slot) = plan.slots.get(slot_index) else {
+            cursor_y += advance;
+            continue;
+        };
+        if !glyph.visible || glyph.metrics.bitmap_width == 0 || glyph.metrics.bitmap_height == 0 {
+            cursor_y += advance;
+            continue;
+        }
+        let frame = vertical_shaped_sdf_glyph_frame(text, &glyph, cursor_y, advance, shaped);
+        push_clipped_glyph_quad(
+            vertices,
+            frame,
+            clip,
+            viewport,
+            atlas_uv_rect(slot.rect, plan.atlas_size, &glyph),
+            text.color,
+            glyph.screen_px_range,
+            slot.page_key.page_index,
+            shaped.rotation,
+        );
+        cursor_y += advance;
+    }
+}
+
+pub(super) fn vertical_shaped_sdf_glyph_frame(
+    text: &ScreenSpaceUiTextBatch,
+    glyph: &RunGlyph,
+    cursor_y: f32,
+    advance: f32,
+    shaped: &ScreenSpaceUiShapedGlyph,
+) -> UiFrame {
+    let has_vertical_origin = matches!(shaped.rotation, ShapedGlyphRotation::None)
+        && (shaped.offset_x.abs() > f32::EPSILON || shaped.offset_y.abs() > f32::EPSILON);
+    if !has_vertical_origin {
+        return vertical_sdf_glyph_frame(text, glyph, cursor_y, advance, shaped.rotation);
+    }
+
+    let positioned_frame = text_frame_device_origin(text.frame);
+    text_glyph_device_frame(UiFrame::new(
+        positioned_frame.x
+            + positioned_frame.width * 0.5
+            + shaped.offset_x
+            + glyph.metrics.bitmap_left,
+        cursor_y + shaped.offset_y
+            - (glyph.metrics.bitmap_bottom + glyph.metrics.bitmap_height as f32),
+        glyph.metrics.bitmap_width as f32,
+        glyph.metrics.bitmap_height as f32,
+    ))
 }
 
 pub(super) fn vertical_sdf_glyph_frame(
@@ -223,10 +307,15 @@ pub(super) fn vertical_sdf_glyph_frame(
     glyph: &RunGlyph,
     cursor_y: f32,
     advance: f32,
+    rotation: ShapedGlyphRotation,
 ) -> UiFrame {
     let positioned_frame = text_frame_device_origin(text.frame);
-    let width = glyph.metrics.bitmap_width as f32;
-    let height = glyph.metrics.bitmap_height as f32;
+    let bitmap_width = glyph.metrics.bitmap_width as f32;
+    let bitmap_height = glyph.metrics.bitmap_height as f32;
+    let (width, height) = match rotation {
+        ShapedGlyphRotation::None => (bitmap_width, bitmap_height),
+        ShapedGlyphRotation::Cw90 => (bitmap_height, bitmap_width),
+    };
     text_glyph_device_frame(UiFrame::new(
         positioned_frame.x + (positioned_frame.width - width).max(0.0) * 0.5,
         cursor_y + (advance - height).max(0.0) * 0.5,
@@ -254,8 +343,16 @@ fn resolve_run_glyphs(
     font_database: &mut FontDatabase,
     asset_manager: &ProjectAssetManager,
 ) -> Vec<RunGlyph> {
-    text.text
-        .chars()
+    let source_scalars = if text.shaped_glyphs.is_empty() {
+        text.text.chars().collect::<Vec<_>>()
+    } else {
+        text.shaped_glyphs
+            .iter()
+            .map(|glyph| glyph.source_scalar)
+            .collect::<Vec<_>>()
+    };
+    source_scalars
+        .into_iter()
         .zip(run.glyph_slot_indices.iter().copied())
         .map(|(glyph, slot_index)| match slot_index {
             Some(slot_index) => match (
@@ -312,6 +409,7 @@ fn measured_run_glyph(
             glyph,
             text.font.as_deref(),
             text.font_family.as_deref(),
+            text.language.as_deref(),
             text.font_weight,
             text.font_size,
             font_database,
@@ -367,6 +465,18 @@ pub(super) fn resolve_sdf_glyph_advances(
     .unwrap_or(natural_advances)
 }
 
+pub(super) fn resolve_vertical_sdf_glyph_advances(
+    text: &ScreenSpaceUiTextBatch,
+    natural_advances: Vec<f32>,
+) -> Vec<f32> {
+    resolved_layout_advances_for_sdf_glyphs(
+        text.text.as_str(),
+        text.glyph_advances.as_slice(),
+        natural_advances.len(),
+    )
+    .unwrap_or(natural_advances)
+}
+
 pub(super) fn sdf_screen_px_range(display_px: f32, bake_params: SdfBakeParams) -> f32 {
     bake_params.screen_px_range(display_px)
 }
@@ -393,6 +503,7 @@ fn push_clipped_glyph_quad(
     color: [f32; 4],
     screen_px_range: f32,
     page_index: u32,
+    rotation: ShapedGlyphRotation,
 ) {
     let Some(clipped) = frame
         .intersection(clip)
@@ -404,10 +515,10 @@ fn push_clipped_glyph_quad(
     let right = (clipped.right() - frame.x) / frame.width.max(1.0);
     let top = (clipped.y - frame.y) / frame.height.max(1.0);
     let bottom = (clipped.bottom() - frame.y) / frame.height.max(1.0);
-    let uv_width = uv.x1 - uv.x0;
-    let uv_height = uv.y1 - uv.y0;
-    let uv0 = [uv.x0 + uv_width * left, uv.y0 + uv_height * top];
-    let uv1 = [uv.x0 + uv_width * right, uv.y0 + uv_height * bottom];
+    let uv_top_left = sdf_uv_at_destination(uv, left, top, rotation);
+    let uv_top_right = sdf_uv_at_destination(uv, right, top, rotation);
+    let uv_bottom_right = sdf_uv_at_destination(uv, right, bottom, rotation);
+    let uv_bottom_left = sdf_uv_at_destination(uv, left, bottom, rotation);
     let x0 = pixel_to_ndc_x(clipped.x, viewport.width);
     let x1 = pixel_to_ndc_x(clipped.right(), viewport.width);
     let y0 = pixel_to_ndc_y(clipped.y, viewport.height);
@@ -416,47 +527,63 @@ fn push_clipped_glyph_quad(
     vertices.extend_from_slice(&[
         ScreenSpaceUiSdfVertex {
             position: [x0, y0],
-            uv: [uv0[0], uv0[1]],
+            uv: uv_top_left,
             color,
             screen_px_range,
             page_index,
         },
         ScreenSpaceUiSdfVertex {
             position: [x1, y0],
-            uv: [uv1[0], uv0[1]],
+            uv: uv_top_right,
             color,
             screen_px_range,
             page_index,
         },
         ScreenSpaceUiSdfVertex {
             position: [x1, y1],
-            uv: [uv1[0], uv1[1]],
+            uv: uv_bottom_right,
             color,
             screen_px_range,
             page_index,
         },
         ScreenSpaceUiSdfVertex {
             position: [x0, y0],
-            uv: [uv0[0], uv0[1]],
+            uv: uv_top_left,
             color,
             screen_px_range,
             page_index,
         },
         ScreenSpaceUiSdfVertex {
             position: [x1, y1],
-            uv: [uv1[0], uv1[1]],
+            uv: uv_bottom_right,
             color,
             screen_px_range,
             page_index,
         },
         ScreenSpaceUiSdfVertex {
             position: [x0, y1],
-            uv: [uv0[0], uv1[1]],
+            uv: uv_bottom_left,
             color,
             screen_px_range,
             page_index,
         },
     ]);
+}
+
+pub(super) fn sdf_uv_at_destination(
+    uv: SdfUvRect,
+    destination_x: f32,
+    destination_y: f32,
+    rotation: ShapedGlyphRotation,
+) -> [f32; 2] {
+    let (source_x, source_y) = match rotation {
+        ShapedGlyphRotation::None => (destination_x, destination_y),
+        ShapedGlyphRotation::Cw90 => (destination_y, 1.0 - destination_x),
+    };
+    [
+        uv.x0 + (uv.x1 - uv.x0) * source_x,
+        uv.y0 + (uv.y1 - uv.y0) * source_y,
+    ]
 }
 
 pub(super) fn pixel_to_ndc_x(x: f32, width: f32) -> f32 {

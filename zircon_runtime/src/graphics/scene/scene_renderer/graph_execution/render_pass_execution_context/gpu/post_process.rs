@@ -460,7 +460,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderPassPostProcessStack
     streamer: &'a ResourceStreamer,
     runtime_features: SceneRuntimeFeatureFlags,
     history_textures: Option<&'a SceneFrameHistoryTextures>,
-    history_available: bool,
+    pub(super) history_available: bool,
     material_gbuffer_valid: bool,
 }
 
@@ -522,6 +522,11 @@ mod tests {
 }
 
 impl<'a> RenderPassPostProcessStackContext<'a> {
+    pub(super) fn hybrid_gi_history_available(self) -> bool {
+        self.history_textures
+            .is_some_and(SceneFrameHistoryTextures::global_illumination_history_valid)
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn new(
         post_process: &'a ScenePostProcessResources,
         target: &'a OffscreenTarget,

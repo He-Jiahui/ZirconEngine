@@ -131,8 +131,8 @@ fn runtime_15_material_custom_shading_model_runtime_registry_is_wired() {
     let material_pass_product_assertions = read_runtime_src(
         "graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/assertions.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let material_doc = read_repo("docs/zircon_runtime/core/framework/render/material.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

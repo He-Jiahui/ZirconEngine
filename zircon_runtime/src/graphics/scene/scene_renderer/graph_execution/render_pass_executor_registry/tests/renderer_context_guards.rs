@@ -496,6 +496,16 @@ fn deferred_gbuffer_executor_requires_renderer_context_instead_of_nooping() {
     import_test_texture(
         &mut resources,
         &backend.device,
+        PostProcessGraphResourceNames::GBUFFER_NORMAL,
+    );
+    import_test_texture(
+        &mut resources,
+        &backend.device,
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
+    );
+    import_test_texture(
+        &mut resources,
+        &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
     let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
@@ -570,6 +580,7 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,
         PostProcessGraphResourceNames::SCENE_DEPTH,

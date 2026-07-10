@@ -233,7 +233,6 @@ fn target_runtime_modules_follow_descriptor_activation_order() {
             crate::input::INPUT_MODULE_NAME,
             crate::asset::ASSET_MODULE_NAME,
             crate::scene::SCENE_MODULE_NAME,
-            crate::script::SCRIPT_MODULE_NAME,
         ]
     );
 }

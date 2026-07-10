@@ -11,7 +11,6 @@ use crate::scene::ecs::{
 use crate::scene::World;
 
 use super::super::owner::PluginModuleId;
-use super::super::typed_extension_point::ExtensionSlot;
 use super::super::RuntimeExtensionRegistry;
 
 type SystemBuildFn =
@@ -209,15 +208,8 @@ impl RuntimeExtensionRegistry {
 
     pub fn plugin_systems(&self) -> impl Iterator<Item = (PluginModuleId, &SystemRegistration)> {
         self.plugin_systems
-            .values()
             .iter()
-            .enumerate()
-            .filter_map(|(index, registration)| {
-                let slot = ExtensionSlot::from_raw(index as u32);
-                self.plugin_systems
-                    .owner_for_slot(slot)
-                    .map(|owner| (owner, registration))
-            })
+            .map(|(owner, _key, registration)| (owner, registration))
     }
 }
 

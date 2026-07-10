@@ -37,8 +37,8 @@ fn runtime_15_shader_prewarm_plugin_geometry_source_descriptor_registration_is_w
     let build_tool = read_repo("tools/zircon_build.py");
     let build_shader_descriptors = read_repo("tools/zircon_build_plugin_shader_descriptors.py");
     let build_plugin_tests = read_repo("tools/tests/test_zircon_build_plugin_carriers.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let package_manifest_doc = read_repo("docs/zircon_runtime/plugin/package_manifest.md");
     let build_tool_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");

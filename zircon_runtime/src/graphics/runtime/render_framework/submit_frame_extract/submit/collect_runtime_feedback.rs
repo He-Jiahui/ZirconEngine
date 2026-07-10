@@ -127,6 +127,8 @@ fn append_hybrid_gi_scene_prepare_readback(
         atlas_samples,
         capture_samples,
         surface_cache_depth_samples,
+        surface_cache_pages,
+        voxel_clipmaps,
         voxel_clipmap_ids,
         voxel_samples,
         voxel_occupancy,
@@ -153,6 +155,10 @@ fn append_hybrid_gi_scene_prepare_readback(
     renderer_outputs
         .surface_cache_depth_samples
         .extend(surface_cache_depth_samples);
+    renderer_outputs
+        .surface_cache_pages
+        .extend(surface_cache_pages);
+    renderer_outputs.voxel_clipmaps.extend(voxel_clipmaps);
     renderer_outputs.voxel_clipmap_ids.extend(voxel_clipmap_ids);
     renderer_outputs.voxel_samples.extend(voxel_samples);
     renderer_outputs.voxel_occupancy.extend(voxel_occupancy);

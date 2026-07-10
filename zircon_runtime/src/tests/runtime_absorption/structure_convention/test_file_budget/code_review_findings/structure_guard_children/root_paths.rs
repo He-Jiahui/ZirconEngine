@@ -93,6 +93,6 @@ pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_STRUCTURE_GUARD_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/structure_guard_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/structure_guard_rows.rs";
 pub(super) const REVIEW_GUARD_STRUCTURE_GUARD_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/structure_guard_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/structure_guard_rows.rs";

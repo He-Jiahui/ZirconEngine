@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    SoundAutomationBinding, SoundChannelLayout, SoundDynamicEventCatalog, SoundEffectDescriptor,
+    AudioChannelLayout, SoundAutomationBinding, SoundDynamicEventCatalog, SoundEffectDescriptor,
     SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundTrackId,
 };
 
@@ -9,7 +9,7 @@ use super::{
 pub struct SoundMixerGraph {
     pub sample_rate_hz: u32,
     pub channel_count: u16,
-    pub channel_layout: SoundChannelLayout,
+    pub channel_layout: AudioChannelLayout,
     pub tracks: Vec<SoundTrackDescriptor>,
     pub sources: Vec<SoundSourceDescriptor>,
     pub automation_bindings: Vec<SoundAutomationBinding>,
@@ -21,7 +21,7 @@ impl SoundMixerGraph {
         Self {
             sample_rate_hz,
             channel_count: 2,
-            channel_layout: SoundChannelLayout::stereo(),
+            channel_layout: AudioChannelLayout::stereo(),
             tracks: vec![SoundTrackDescriptor::master()],
             sources: Vec::new(),
             automation_bindings: Vec::new(),

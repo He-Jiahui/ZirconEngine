@@ -1,6 +1,4 @@
-use crate::core::manager::{
-    resolve_animation_manager, resolve_physics_manager, resolve_render_framework,
-};
+use crate::core::manager::{resolve_animation_manager, resolve_render_framework};
 use crate::core::CoreHandle;
 
 use super::render_stats_store::record_render_stats_diagnostics;
@@ -50,19 +48,7 @@ fn collect_render_diagnostics(core: &CoreHandle) -> RuntimeRenderDiagnostics {
 }
 
 fn collect_physics_diagnostics(core: &CoreHandle) -> RuntimePhysicsDiagnostics {
-    let physics = match resolve_physics_manager(core) {
-        Ok(physics) => physics,
-        Err(error) => return RuntimePhysicsDiagnostics::unavailable(error.to_string()),
-    };
-    let settings = physics.settings();
-
-    RuntimePhysicsDiagnostics {
-        available: true,
-        backend_name: Some(physics.backend_name()),
-        backend_status: Some(physics.backend_status()),
-        fixed_hz: Some(settings.fixed_hz),
-        error: None,
-    }
+    super::physics_collection::collect(core)
 }
 
 fn collect_animation_diagnostics(core: &CoreHandle) -> RuntimeAnimationDiagnostics {

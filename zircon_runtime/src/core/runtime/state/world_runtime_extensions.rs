@@ -1,9 +1,21 @@
 use crate::plugin::{PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 use crate::scene::World;
 
-#[derive(Clone, Debug, Default)]
+#[cfg(test)]
+#[path = "world_runtime_extensions/tests.rs"]
+mod tests;
+
+#[derive(Clone, Debug)]
 pub(crate) struct WorldRuntimeExtensionSet {
     registry: RuntimeExtensionRegistry,
+}
+
+impl Default for WorldRuntimeExtensionSet {
+    fn default() -> Self {
+        let mut registry = RuntimeExtensionRegistry::default();
+        registry.finalize();
+        Self { registry }
+    }
 }
 
 impl WorldRuntimeExtensionSet {
@@ -11,15 +23,18 @@ impl WorldRuntimeExtensionSet {
         &mut self,
         extensions: &RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        merge_world_runtime_extensions(&mut self.registry, extensions)
+        let mut candidate = self.registry.clone();
+        merge_world_runtime_extensions(&mut candidate, extensions)?;
+        candidate.finalize();
+        self.registry = candidate;
+        Ok(())
     }
 
     pub(crate) fn apply_to_world(
         &self,
         world: &mut World,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let mut registry = self.registry.clone();
-        registry.apply_to_world(world)
+        self.registry.apply_finalized_to_world(world)
     }
 }
 

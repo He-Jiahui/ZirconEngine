@@ -14,8 +14,6 @@ struct HistoryGraphResourceBindingFlags
     pub exposure: bool,
 }
 
-const HYBRID_GI_HISTORY_RESOURCE: &str = "history-global-illumination";
-
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_history_graph_resources(
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
@@ -65,8 +63,16 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         bind_live_texture_view(
             graph,
             resources,
-            HYBRID_GI_HISTORY_RESOURCE,
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
             history_textures.global_illumination_view.clone(),
+        );
+        bind_live_texture_view(
+            graph,
+            resources,
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
+            history_textures
+                .global_illumination_temporal_metadata_view
+                .clone(),
         );
     }
 
@@ -155,7 +161,12 @@ mod tests {
         ));
         assert!(resources
             .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
-        assert!(resources.has_texture_view(HYBRID_GI_HISTORY_RESOURCE));
+        assert!(
+            resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
+        );
+        assert!(resources.has_texture_view(
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA
+        ));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT));
 
@@ -163,9 +174,9 @@ mod tests {
             .validate_materialized_graph_resources(&graph)
             .expect("live history externals should be bound before validation");
         assert_eq!(report.required_external_count, 0);
-        assert_eq!(report.report_only_external_count, 7);
-        assert_eq!(report.bound_report_only_external_count, 7);
-        assert_eq!(report.bound_external_count(), 7);
+        assert_eq!(report.report_only_external_count, 8);
+        assert_eq!(report.bound_report_only_external_count, 8);
+        assert_eq!(report.bound_external_count(), 8);
         assert_eq!(report.missing_external_count(), 0);
     }
 
@@ -199,7 +210,12 @@ mod tests {
         assert!(!resources.has_texture_view(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS));
         assert!(!resources
             .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
-        assert!(!resources.has_texture_view(HYBRID_GI_HISTORY_RESOURCE));
+        assert!(
+            !resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
+        );
+        assert!(!resources.has_texture_view(
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA
+        ));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::EXPOSURE_PREVIOUS));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::EXPOSURE_CURRENT));
     }
@@ -230,13 +246,23 @@ mod tests {
             &mut builder,
             PostProcessGraphResourceNames::EXPOSURE_CURRENT,
         );
-        let hybrid_gi_history = report_only_texture(&mut builder, HYBRID_GI_HISTORY_RESOURCE);
+        let hybrid_gi_history = report_only_texture(
+            &mut builder,
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
+        );
+        let hybrid_gi_temporal_metadata_history = report_only_texture(
+            &mut builder,
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
+        );
         let pass = side_effect_pass(&mut builder, "history-use");
         builder.read_external(pass, taa_previous).unwrap();
         builder.write_external(pass, taa_current).unwrap();
         builder.read_external(pass, ssr_previous).unwrap();
         builder.read_external(pass, hzb_previous).unwrap();
         builder.write_external(pass, hybrid_gi_history).unwrap();
+        builder
+            .write_external(pass, hybrid_gi_temporal_metadata_history)
+            .unwrap();
         builder.read_external(pass, exposure_previous).unwrap();
         builder
             .write_storage_external(pass, exposure_current)

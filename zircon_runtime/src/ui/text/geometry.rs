@@ -45,11 +45,24 @@ fn caret_frame_for_text_layout_inner(
     measure_context: Option<SourceMeasureContext<'_>>,
 ) -> Option<UiFrame> {
     let offset = caret.offset;
-    let line = layout
-        .lines
-        .iter()
-        .find(|line| offset >= line.source_range.start && offset <= line.source_range.end)
-        .or_else(|| layout.lines.last())?;
+    let line = match caret.affinity {
+        UiTextCaretAffinity::Upstream => layout
+            .lines
+            .iter()
+            .find(|line| offset >= line.source_range.start && offset <= line.source_range.end),
+        UiTextCaretAffinity::Downstream => layout
+            .lines
+            .iter()
+            .rev()
+            .find(|line| offset >= line.source_range.start && offset <= line.source_range.end),
+    }
+    .or_else(|| {
+        layout
+            .lines
+            .first()
+            .filter(|line| offset < line.source_range.start)
+    })
+    .or_else(|| layout.lines.last())?;
     let bias = match caret.affinity {
         UiTextCaretAffinity::Upstream => SourceVisualBias::Leading,
         UiTextCaretAffinity::Downstream => SourceVisualBias::Trailing,
@@ -428,6 +441,41 @@ mod tests {
 
         assert_eq!(caret, UiFrame::new(20.0, 34.0, 10.0, 1.0));
         assert_eq!(frames, vec![UiFrame::new(20.0, 16.0, 10.0, 24.0)]);
+    }
+
+    #[test]
+    fn text_caret_affinity_soft_wrap_boundary() {
+        let mut layout = layout_with_advances("ab", vec![6.0, 6.0]);
+        let mut second_line = layout.lines[0].clone();
+        second_line.text = "cd".to_string();
+        second_line.frame = UiFrame::new(10.0, 32.0, 12.0, 12.0);
+        second_line.source_range = UiTextRange { start: 2, end: 4 };
+        second_line.visual_range = UiTextRange { start: 0, end: 2 };
+        second_line.runs[0].text = second_line.text.clone();
+        second_line.runs[0].source_range = second_line.source_range;
+        second_line.runs[0].visual_range = second_line.visual_range;
+        layout.lines.push(second_line);
+        layout.source_range = UiTextRange { start: 0, end: 4 };
+
+        let upstream = caret_frame_for_text_layout(
+            &layout,
+            &UiTextCaret {
+                offset: 2,
+                affinity: UiTextCaretAffinity::Upstream,
+            },
+        )
+        .expect("upstream caret frame");
+        let downstream = caret_frame_for_text_layout(
+            &layout,
+            &UiTextCaret {
+                offset: 2,
+                affinity: UiTextCaretAffinity::Downstream,
+            },
+        )
+        .expect("downstream caret frame");
+
+        assert_eq!(upstream, UiFrame::new(22.0, 20.0, 1.0, 12.0));
+        assert_eq!(downstream, UiFrame::new(10.0, 32.0, 1.0, 12.0));
     }
 
     #[test]

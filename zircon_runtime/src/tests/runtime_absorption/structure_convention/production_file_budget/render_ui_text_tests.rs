@@ -8,7 +8,8 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let text_plan = read_repo("docs/plans/zircon_runtime/text/index.md");
+    let text_plan =
+        read_repo("docs/plans/zircon_runtime/text/09/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let graphics_text_doc = read_repo("docs/zircon_runtime/graphics/text.md");
@@ -72,8 +73,8 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     );
     assert_eq!(
         tests.matches("#[test]").count(),
-        10,
-        "screen-space UI text test owner should preserve the 10 moved private tests"
+        11,
+        "screen-space UI text test owner should preserve the 10 moved private tests plus the raster-upload diagnostics regression"
     );
 
     for (path, source) in [

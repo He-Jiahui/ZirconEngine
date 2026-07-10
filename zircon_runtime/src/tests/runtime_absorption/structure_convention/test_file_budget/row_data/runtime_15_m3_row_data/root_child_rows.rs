@@ -13,7 +13,7 @@ pub(super) const RUNTIME_15_M3_ROW_DATA_GUARD_CHILDREN: &[(&str, &str, &str)] = 
     ),
     (
         "root_inventory",
-        ROOT_INVENTORY_GUARD_PATH,
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_m3_row_data/root_inventory.rs",
         ROOT_INVENTORY_CHILD_SPLIT_GUARD_NAME,
     ),
     (

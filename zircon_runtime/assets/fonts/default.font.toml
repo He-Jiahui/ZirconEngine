@@ -1,3 +1,83 @@
 source = "FiraMono-subset.ttf"
 family = "Fira Mono"
 render_mode = "native"
+fallback_families = [
+    "Noto Sans",
+    "Noto Sans CJK SC",
+    "Noto Sans CJK TC",
+    "Noto Sans CJK JP",
+    "Noto Sans CJK KR",
+    "Microsoft YaHei UI",
+    "Yu Gothic UI",
+    "Malgun Gothic",
+    "Noto Sans Arabic",
+    "Noto Sans Hebrew",
+    "Noto Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Sans Symbols",
+    "Microsoft YaHei UI",
+    "Segoe UI",
+]
+
+[composite_font]
+default_family = "Fira Mono"
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans CJK SC"
+scripts = ["han"]
+ranges = [[13312, 19903], [19968, 40959]]
+cultures = ["zh-Hans"]
+
+[[composite_font.sub_fonts]]
+family = "Microsoft YaHei UI"
+scripts = ["han"]
+ranges = [[13312, 19903], [19968, 40959]]
+cultures = ["zh-Hans"]
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans CJK TC"
+scripts = ["han"]
+ranges = [[13312, 19903], [19968, 40959]]
+cultures = ["zh-Hant"]
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans CJK JP"
+scripts = ["han", "hiragana", "katakana"]
+ranges = [[12352, 12543], [12784, 12799], [13312, 19903], [19968, 40959]]
+cultures = ["ja"]
+
+[[composite_font.sub_fonts]]
+family = "Yu Gothic UI"
+scripts = ["han", "hiragana", "katakana"]
+ranges = [[12352, 12543], [12784, 12799], [13312, 19903], [19968, 40959]]
+cultures = ["ja"]
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans CJK KR"
+scripts = ["han", "hangul"]
+ranges = [[4352, 4607], [12592, 12687], [13312, 19903], [19968, 40959], [44032, 55215]]
+cultures = ["ko"]
+
+[[composite_font.sub_fonts]]
+family = "Malgun Gothic"
+scripts = ["han", "hangul"]
+ranges = [[4352, 4607], [12592, 12687], [13312, 19903], [19968, 40959], [44032, 55215]]
+cultures = ["ko"]
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans Arabic"
+scripts = ["arabic"]
+ranges = [[1536, 1791], [1872, 1919], [2208, 2303]]
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans Hebrew"
+scripts = ["hebrew"]
+ranges = [[1424, 1535]]
+
+[[composite_font.sub_fonts]]
+family = "Noto Color Emoji"
+ranges = [[9728, 10175], [126976, 129791]]
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans Symbols"
+ranges = [[8592, 9727], [10176, 11263]]

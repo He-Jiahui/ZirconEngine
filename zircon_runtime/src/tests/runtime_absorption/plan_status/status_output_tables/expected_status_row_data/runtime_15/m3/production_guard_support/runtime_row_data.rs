@@ -13,12 +13,12 @@ mod status_support_priority_rows;
 // Runtime 15 M3 scene-script row-data root inventory child split.
 // Status: runtime_15_scene_script_row_data_root_inventory_child_split_static_passed_cargo_deferred.
 // Files:
-// - structure_convention/test_file_budget/status_output_row_data/runtime_15_scene_script_row_data.rs
-// - structure_convention/test_file_budget/status_output_row_data/runtime_15_scene_script_row_data/root_paths.rs
-// - structure_convention/test_file_budget/status_output_row_data/runtime_15_scene_script_row_data/root_statuses.rs
-// - structure_convention/test_file_budget/status_output_row_data/runtime_15_scene_script_row_data/root_child_rows.rs
-// - structure_convention/test_file_budget/status_output_row_data/runtime_15_scene_script_row_data/root_owner_paths.rs
-// - structure_convention/test_file_budget/status_output_row_data/runtime_15_scene_script_row_data/root_inventory.rs
+// - structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data.rs
+// - structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_paths.rs
+// - structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_statuses.rs
+// - structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_child_rows.rs
+// - structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_owner_paths.rs
+// - structure_convention/test_file_budget/row_data/runtime_15_scene_script_row_data/root_inventory.rs
 // Guard: runtime_15_scene_script_row_data_root_inventory_is_child_owned.
 // Cargo gate deferred.
 

@@ -14,10 +14,17 @@ impl PostProcessGraphResourceNames {
     pub const GBUFFER_ALBEDO: &'static str = "gbuffer-albedo";
     pub const GBUFFER_NORMAL: &'static str = "gbuffer-normal";
     pub const GBUFFER_MATERIAL: &'static str = "gbuffer-material";
+    pub const GBUFFER_EMISSIVE: &'static str = "gbuffer-emissive";
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
     pub const CONTACT_SHADOW_OCCLUSION: &'static str = "contact-shadow-occlusion";
     pub const GLOBAL_ILLUMINATION: &'static str = "global-illumination";
+    pub const HYBRID_GI_SCENE: &'static str = "hybrid-gi-scene";
+    pub const HYBRID_GI_TRACE: &'static str = "hybrid-gi-trace";
     pub const HYBRID_GI_LIGHTING: &'static str = "hybrid-gi-lighting";
+    pub const HYBRID_GI_TEMPORAL_METADATA: &'static str = "hybrid-gi-temporal-metadata";
+    pub const HISTORY_PREVIOUS_HYBRID_GI: &'static str = "history-global-illumination";
+    pub const HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA: &'static str =
+        "history-global-illumination-temporal-metadata";
     pub const LIGHT_LIST: &'static str = "light-list";
     pub const LIGHT_GRID_PARAMS: &'static str = "light-grid-params";
     pub const LIGHT_ZBINS: &'static str = "light-zbins";

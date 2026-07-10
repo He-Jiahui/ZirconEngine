@@ -170,7 +170,10 @@ fn runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed() {
     let guard = "runtime_15_shader_prewarm_manifest_guard_children_are_folder_backed";
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md")
+        + &read_repo(
+            "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

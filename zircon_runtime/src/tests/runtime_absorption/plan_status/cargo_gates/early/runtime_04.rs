@@ -1,10 +1,16 @@
 #[test]
 fn runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation() {
-    let runtime_04_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+    let runtime_04_plan = runtime_plan_source_with_archive(
+        "04",
+        include_str!(
+            "../../../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+        ),
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_04_plan = runtime_04_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let asset_facade_doc = include_str!("../../../../../../../docs/zircon_runtime/asset/facade.md");
     let asset_worker_doc =
         include_str!("../../../../../../../docs/zircon_runtime/asset/worker_pool.md");

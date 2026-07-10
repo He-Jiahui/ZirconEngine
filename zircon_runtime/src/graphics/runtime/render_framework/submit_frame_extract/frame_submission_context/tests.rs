@@ -155,7 +155,7 @@ fn hybrid_gi_payload_source_clears_when_plan_degrades_feature() {
             &AdvancedProviderAvailability::new().with_virtual_geometry_provider("vg"),
         ),
         Some(RenderHybridGiExtract::default()),
-        RenderHybridGiPayloadSource::Authored,
+        RenderHybridGiPayloadSource::SceneRepresentation,
         None,
         RenderVirtualGeometryPayloadSource::None,
     );
@@ -169,7 +169,7 @@ fn hybrid_gi_payload_source_clears_when_plan_degrades_feature() {
 }
 
 #[test]
-fn hybrid_gi_payload_source_survives_for_provider_backed_extract() {
+fn hybrid_gi_scene_representation_source_survives_for_provider_backed_settings() {
     let context = context_with_advanced_plan_and_payloads(
         AdvancedProfileRuntimePlan::from_profile_bundle(
             &RenderProfileBundle::advanced_render(),
@@ -179,7 +179,7 @@ fn hybrid_gi_payload_source_survives_for_provider_backed_extract() {
                 .with_hybrid_gi_provider("hgi"),
         ),
         Some(RenderHybridGiExtract::default()),
-        RenderHybridGiPayloadSource::Authored,
+        RenderHybridGiPayloadSource::SceneRepresentation,
         None,
         RenderVirtualGeometryPayloadSource::None,
     );
@@ -188,7 +188,7 @@ fn hybrid_gi_payload_source_survives_for_provider_backed_extract() {
     assert!(context.hybrid_gi_extract().is_some());
     assert_eq!(
         context.hybrid_gi_payload_source(),
-        RenderHybridGiPayloadSource::Authored
+        RenderHybridGiPayloadSource::SceneRepresentation
     );
 }
 

@@ -1,18 +1,16 @@
 #[test]
 fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     let ui_assets = include_str!("../../../../asset/assets/ui.rs");
+    let ui_document_loader = include_str!("../../../../asset/assets/ui/document_loader.rs");
     let importer_error = include_str!("../../../../asset/importer/error.rs");
-    let import_ui_zui_asset =
-        include_str!("../../../../asset/importer/ingest/import_ui_zui_asset.rs");
-    let ui_v2_document_import =
-        include_str!("../../../../asset/importer/ingest/ui_v2_document_import.rs");
+    let ui_document_importer =
+        include_str!("../../../../../../zircon_plugins/ui_document_importer/runtime/src/lib.rs");
     let import_ui_theme_asset =
         include_str!("../../../../asset/importer/ingest/import_ui_theme_asset.rs");
     let import_ui_icon_asset =
         include_str!("../../../../asset/importer/ingest/import_ui_icon_asset.rs");
     let wrapper_tests = include_str!("../../../../asset/tests/assets/ui/wrappers.rs");
     let importer_tests = include_str!("../../../../asset/tests/assets/ui/importer.rs");
-    let fixture_tests = include_str!("../../../../asset/tests/assets/ui/fixture_validation.rs");
     let review_findings =
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let runtime_15_plan = include_str!(
@@ -45,8 +43,8 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         "InvalidSourceUri {",
         "Parse(#[from] UiV2AssetError)",
         "ComponentRequiresZui",
-        "UiAssetLoader::load_toml_str(document)?",
-        "UiV2AssetLoader::load_toml_str(document)?",
+        "load_current_ui_document(document)?",
+        "load_ui_v2_document(document)?",
     ] {
         assert!(
             ui_assets.contains(required),
@@ -82,7 +80,7 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     }
 
     for (label, source) in [
-        ("ZUI importer", import_ui_zui_asset),
+        ("ZUI importer", ui_document_importer),
         ("UI theme importer", import_ui_theme_asset),
         ("UI icon importer", import_ui_icon_asset),
     ] {
@@ -109,10 +107,10 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         "UiV2AssetKind::ThemeTokens",
     ] {
         assert!(
-            import_ui_zui_asset.contains(required)
-                || ui_v2_document_import.contains(required)
+            ui_document_importer.contains(required)
+                || ui_document_loader.contains(required)
                 || ui_assets.contains(required)
-                || fixture_tests.contains(required),
+                || wrapper_tests.contains(required),
             "UI v2 importer path should contain typed branch `{required}`"
         );
     }
@@ -122,7 +120,7 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         "AssetImportError::UiIconDocument",
     ] {
         assert!(
-            import_ui_zui_asset.contains(required)
+            ui_document_importer.contains(required)
                 || import_ui_theme_asset.contains(required)
                 || import_ui_icon_asset.contains(required),
             "UI specialized importer should preserve typed source `{required}`"
@@ -143,7 +141,7 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         assert!(
             wrapper_tests.contains(required)
                 || importer_tests.contains(required)
-                || fixture_tests.contains(required),
+                || wrapper_tests.contains(required),
             "UI asset typed-error behavior tests should contain `{required}`"
         );
     }

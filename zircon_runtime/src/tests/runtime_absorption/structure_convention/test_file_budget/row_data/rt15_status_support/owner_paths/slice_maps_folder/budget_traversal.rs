@@ -9,7 +9,7 @@ pub(super) fn assert_expected_slice_owner_path_budget_traversal_is_current() {
 
     for moved_anchor in [
         "support_layout_rows.rs",
-        "route_meta/naming_boundary_rows.rs",
+        "route_metadata/naming_boundary_rows.rs",
         "structure_support/parent_route_rows.rs",
         "status_support_maps/route_guard_rows.rs",
         "review_guard_structure/root_route_rows/route_metadata_rows.rs",

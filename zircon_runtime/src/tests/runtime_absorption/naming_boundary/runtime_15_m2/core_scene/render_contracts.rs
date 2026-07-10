@@ -9,16 +9,19 @@ fn runtime_15_render_shader_definition_uses_bare_flag_names() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -30,24 +33,9 @@ fn runtime_15_render_shader_definition_uses_bare_flag_names() {
         manifest_root,
         "docs/zircon_runtime/asset/zmeta-shader-material.md",
     );
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let expected_status = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming boundary expected status map should be readable",
-    );
-    let expected_date = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming boundary expected date map should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let expected_status = read_runtime_15_naming_status_map(manifest_root);
+    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "render shader definition bare flag serde branch",
@@ -96,16 +84,19 @@ fn runtime_15_frame_extract_snapshot_adapter_uses_current_names() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -113,24 +104,9 @@ fn runtime_15_frame_extract_snapshot_adapter_uses_current_names() {
     );
     let scene_render_extract_doc =
         read_repo_text(manifest_root, "docs/zircon_runtime/scene/render_extract.md");
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let expected_status = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming boundary expected status map should be readable",
-    );
-    let expected_date = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming boundary expected date map should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let expected_status = read_runtime_15_naming_status_map(manifest_root);
+    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "frame extract snapshot adapter source names",

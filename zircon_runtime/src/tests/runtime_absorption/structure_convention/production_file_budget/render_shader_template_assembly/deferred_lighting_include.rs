@@ -57,10 +57,10 @@ fn runtime_15_deferred_lighting_include_source_dispatch_is_owned() {
         "deferred lighting entry keeps built-in dispatch and custom dispatch marker",
         &deferred_lighting_wgsl,
         &[
-            "return shade_deferred_unlit(albedo);",
-            "return shade_deferred_blinn_phong(position, coord, albedo, material, normal);",
+            "return add_deferred_emissive(shade_deferred_unlit(albedo), emissive);",
+            "shade_deferred_blinn_phong(position, coord, albedo, material, normal),",
             "zr-deferred-lighting-custom-shading-model-dispatch",
-            "return shade_deferred_standard_pbr(position, coord, albedo, material, normal);",
+            "shade_deferred_standard_pbr(position, coord, albedo, material, normal),",
         ],
     );
     assert_contains_all(
@@ -95,8 +95,9 @@ fn runtime_15_deferred_lighting_include_source_dispatch_is_owned() {
         ],
     );
 
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let template_doc = read_repo("docs/zircon_runtime/graphics/shader/template.md");
     let material_doc = read_repo("docs/zircon_runtime/core/framework/render/material.md");

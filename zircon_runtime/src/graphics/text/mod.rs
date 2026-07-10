@@ -6,4 +6,5 @@ pub(crate) mod font;
 pub(crate) mod layout;
 pub(crate) mod parallel;
 pub(crate) mod raster;
+pub(crate) mod rich;
 pub(crate) mod shaping;

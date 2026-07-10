@@ -87,13 +87,17 @@ pub use core_pipeline::{
 };
 pub use environment::{
     append_rgb_as_rgba16f_texels, append_rgba16f_texels, build_environment_brdf_lut,
-    build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
-    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_face_size_from_equirect_height, cubemap_scaled_uv_for_texel,
-    cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction, cubemap_texel_solid_angle,
-    decode_rgb_from_rgba16f_texels, decode_rgba16f_texels, encode_rgba16f_texels,
-    environment_brdf_lut_integrate, environment_brdf_lut_texel_index, equirect_uv_from_direction,
-    resolve_ibl_bake_artifact_payload, select_ibl_bake_artifact,
+    build_source_cubemap_from_captured_faces,
+    build_source_cubemap_from_captured_faces_with_quality, build_source_cubemap_from_equirect,
+    build_source_cubemap_from_source_mips, build_source_cubemap_from_source_mips_with_quality,
+    build_source_cubemap_irradiance_cube, cubemap_direction_from_scaled_uv,
+    cubemap_face_scaled_uv_from_direction, cubemap_face_size_from_equirect_height,
+    cubemap_scaled_uv_for_texel, cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction,
+    cubemap_texel_solid_angle, decode_rgb_from_rgba16f_texels, decode_rgba16f_texels,
+    encode_rgba16f_texels, environment_brdf_lut_integrate, environment_brdf_lut_texel_index,
+    equirect_uv_from_direction, reflection_probe_box_project_direction,
+    reflection_probe_influence_weight, resolve_ibl_bake_artifact_payload, select_ibl_bake_artifact,
+    select_reflection_probe_blend, source_cubemap_capture_hash,
     source_cubemap_environment_with_bake_artifact, source_cubemap_evaluate_irradiance_sh9,
     source_cubemap_face_mip_offset, source_cubemap_face_size_from_equirect_height,
     source_cubemap_irradiance_mip_level, source_cubemap_mip_chain_with_bake_artifact,
@@ -106,9 +110,11 @@ pub use environment::{
     IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactReadbackError,
     IblBakeArtifactReadbackSectionKind, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
     IblBakeArtifactResolvedPayload, IblBakeArtifactSelection, IblBakeArtifactSource, IblBakeKey,
-    ProceduralSkyParams, SkyboxMode, SkyboxSettings, SourceCubemapBakeArtifactError,
-    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9,
-    SourceCubemapMipChain, SourceCubemapUploadKey, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+    ProbeBakeTiming, ProbeInfluenceShape, ProceduralSkyParams, ReflectionProbeBlend,
+    ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError, SkyboxMode,
+    SkyboxSettings, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
+    SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
+    SourceCubemapPrefilterQuality, SourceCubemapUploadKey, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
     ENVIRONMENT_BRDF_LUT_SIZE, IBL_BAKE_ALGORITHM_VERSION, IBL_BAKE_ARTIFACT_HEADER_SIZE,
     IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
     PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION, RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
@@ -138,8 +144,8 @@ pub use light::{
     GpuLightData, GpuLightType, LightShadowSettings, RenderAmbientLightSnapshot,
     RenderBakedLightingExtract, RenderDirectionalLightSnapshot, RenderLightFamilyReadiness,
     RenderLightReadinessReport, RenderPointLightSnapshot, RenderRectLightSnapshot,
-    RenderReflectionProbeSnapshot, RenderSpotLightSnapshot, ShadowPcfQuality, ShadowResolutionTier,
-    GPU_LIGHT_DATA_STRIDE, SHADOW_SLOT_NONE,
+    RenderSpotLightSnapshot, ShadowPcfQuality, ShadowResolutionTier, GPU_LIGHT_DATA_STRIDE,
+    SHADOW_SLOT_NONE,
 };
 pub use material::{
     ColorMaterialDescriptor, GBufferChannelMask, MaterialPropertyOverrideBlock,
@@ -167,7 +173,7 @@ pub use material::{
     RenderMaterialPropertyUniformUnsupportedReason, RenderMaterialPropertyValue,
     RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
     RenderMaterialReadinessDiagnostic, RenderMaterialReadinessReport,
-    RenderMaterialReadinessStatus, RenderMaterialReadinessSummary,
+    RenderMaterialReadinessStatus, RenderMaterialReadinessSummary, RenderMaterialTextureDimension,
     RenderMaterialTextureSlotFallback, RenderMaterialTextureSlotFallbackReason,
     RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
     RenderMaterialTextureTransform, RenderMaterialValidationError, ShadingModelDescriptor,
@@ -185,8 +191,9 @@ pub use overlay::{
 pub use plugin_renderer_outputs::{
     RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-    RenderHybridGiTraceTileRecord, RenderHybridGiVoxelCellDominantNodeRecord,
-    RenderHybridGiVoxelCellRecord, RenderHybridGiVoxelCellSampleRecord,
+    RenderHybridGiSurfaceCachePageRecord, RenderHybridGiTraceTileRecord,
+    RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
+    RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelClipmapRecord,
     RenderHybridGiVoxelOccupancyMaskRecord, RenderParticleGpuReadbackOutputs,
     RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
     RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryPageReplacementRecord,
@@ -239,7 +246,6 @@ pub use scene_extract::{
     SceneViewportRenderPacket, RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
     RENDER_MESH_STABLE_KEY_PRIMITIVE_BITS,
 };
-pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
     builtin_geometry_source_descriptor, builtin_geometry_source_descriptors,
     derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
@@ -293,13 +299,15 @@ pub use sprite::{
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use temporal_jitter::{halton, TemporalJitterSample, TemporalJitterSequence};
 pub use text::font::{
-    CompositeFontDescriptor, FaceIndex, FontFaceDescriptor, FontFaceId, FontFamilyDescriptor,
-    FontFamilyName, FontMatch, FontQuery, FontScript, FontStretch, FontStyle, FontWeight,
-    InstancedFaceId, SubFontRange, VariationCoords,
+    CompositeFontDescriptor, FaceIndex, FontCultureTag, FontFaceDescriptor, FontFaceId,
+    FontFamilyDescriptor, FontFamilyName, FontMatch, FontQuery, FontScript, FontStretch, FontStyle,
+    FontWeight, InstancedFaceId, SubFontRange, VariationCoords,
 };
 pub use text::{
-    ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
-    ShapedTextLine, TextOrientation, TextShapeRequest, TextShapingService, VerticalMode,
+    normalized_open_type_features, InlineBaseline, InlineObjectRef, LinkRef, OpenTypeFeature,
+    ParagraphOverride, RichParseResult, RichTextFormat, ShapedGlyph, ShapedGlyphClusterFlags,
+    ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript, ShapedTextLine, StyleOverride,
+    StyledRun, TextOrientation, TextShapeRequest, TextShapingService, VerticalMode,
 };
 pub use view_matrix_pair::ViewProjectionMatrixPair;
 pub use virtual_geometry_debug_snapshot::{

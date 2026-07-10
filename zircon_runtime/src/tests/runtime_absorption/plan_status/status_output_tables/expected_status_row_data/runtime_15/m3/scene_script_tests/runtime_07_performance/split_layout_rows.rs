@@ -24,7 +24,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters/split_layout/sources.rs",
             "tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters/split_layout/status_docs.rs",
             "runtime_15_runtime_07_hotspot_inventory_ecs_extract_counters_split_layout_guard_folder_backed_split",
-            "expected_test_file_count = 73",
+            "expected_test_file_count = 91",
         ],
     ),
     (
@@ -62,7 +62,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "tests/runtime_absorption/performance_hotspots/submit_context/split_layout/sources.rs",
             "tests/runtime_absorption/performance_hotspots/submit_context/split_layout/status_docs.rs",
             "runtime_15_runtime_07_submit_context_split_layout_guard_folder_backed_split",
-            "expected_test_file_count = 61",
+            "expected_test_file_count = 91",
         ],
     ),
     (

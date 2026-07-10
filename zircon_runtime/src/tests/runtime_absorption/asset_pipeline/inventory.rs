@@ -30,11 +30,17 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_FILES: &[&str] = &[
     "src/asset/tests/pipeline/worker_pool.rs",
     "src/asset/tests/watcher.rs",
     "src/asset/tests/assets/artifact_store.rs",
+    "src/asset/tests/assets/artifact_store/scene_components.rs",
+    "src/asset/tests/assets/artifact_store/scene_script.rs",
     "src/core/resource/tests.rs",
     "src/tests/runtime_absorption/asset_surface.rs",
+    "src/tests/runtime_absorption/asset_surface/facade_query.rs",
     "src/tests/runtime_absorption/asset_worker_policy.rs",
+    "src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs",
     "src/tests/runtime_absorption/asset_pipeline.rs",
+    "src/tests/runtime_absorption/asset_pipeline/mirror_docs.rs",
     "src/tests/runtime_absorption/plan_status/cargo_gates/early.rs",
+    "src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_04.rs",
 ];
 
 pub(super) const EXPECTED_RUNTIME_04_GUARD_ANCHORS: &[&str] = &[
@@ -90,7 +96,7 @@ pub(super) const EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
 pub(super) const ASSET_PIPELINE_MIRROR_DOC_ANCHORS: &[&str] = &[
     "asset_pipeline_boundary",
     "expected_source_file_count = 22",
-    "expected_guard_file_count = 11",
+    "expected_guard_file_count = 17",
     "worker_diagnostic_count = 7",
     "expected_worker_diagnostic_count = 7",
     "artifact_store_roundtrip_count = 4",

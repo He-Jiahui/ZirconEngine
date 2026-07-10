@@ -16,6 +16,14 @@ pub const SOURCE_CUBEMAP_MAX_FACE_SIZE: u32 = 1024;
 pub const SOURCE_CUBEMAP_ROUGHEST_MIP: u32 = 10;
 pub const SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE: Real = SOURCE_CUBEMAP_ROUGHEST_MIP as Real;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SourceCubemapPrefilterQuality {
+    Fast,
+    #[default]
+    Normal,
+    High,
+}
+
 pub type SourceCubemapIrradianceSh9 = [[Real; 4]; SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT];
 
 #[derive(Clone, Debug, PartialEq)]
@@ -124,6 +132,27 @@ pub fn source_cubemap_sample_count(face_size: u32, mip_count: u32) -> usize {
     per_face * SOURCE_CUBEMAP_FACE_COUNT
 }
 
+pub fn source_cubemap_capture_hash(
+    face_size: u32,
+    face_major_base_texels: &[[Real; 4]],
+) -> [u32; 4] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(&face_size.max(1).to_le_bytes());
+    for texel in face_major_base_texels {
+        for channel in texel {
+            hasher.update(&channel.to_bits().to_le_bytes());
+        }
+    }
+    let hash = hasher.finalize();
+    let bytes = hash.as_bytes();
+    [
+        u32::from_le_bytes(bytes[0..4].try_into().expect("blake3 word 0")),
+        u32::from_le_bytes(bytes[4..8].try_into().expect("blake3 word 1")),
+        u32::from_le_bytes(bytes[8..12].try_into().expect("blake3 word 2")),
+        u32::from_le_bytes(bytes[12..16].try_into().expect("blake3 word 3")),
+    ]
+}
+
 pub fn source_cubemap_face_mip_offset(
     face_size: u32,
     mip_count: u32,
@@ -167,7 +196,13 @@ where
         mip_count,
         source_cubemap_irradiance_mip_level(face_size, mip_count),
     );
-    pmrem::prefilter_pmrem_mips_from_source(&mut texels, &source_mips, face_size, mip_count);
+    pmrem::prefilter_pmrem_mips_from_source(
+        &mut texels,
+        &source_mips,
+        face_size,
+        mip_count,
+        SourceCubemapPrefilterQuality::Normal,
+    );
 
     average_last_mip_faces(&mut texels, face_size, mip_count);
     SourceCubemapMipChain::new_with_source_texels_and_irradiance_sh9(
@@ -175,6 +210,99 @@ where
         mip_count,
         source_mips,
         texels,
+        irradiance_sh9,
+    )
+}
+
+/// Builds the source mip pyramid, PMREM chain, and SH9 data from six captured
+/// face images in cmft face order. Input contains only mip zero, face-major.
+pub fn build_source_cubemap_from_captured_faces(
+    face_size: u32,
+    captured_face_texels: Vec<[Real; 4]>,
+) -> SourceCubemapMipChain {
+    build_source_cubemap_from_captured_faces_with_quality(
+        face_size,
+        captured_face_texels,
+        SourceCubemapPrefilterQuality::Normal,
+    )
+}
+
+pub fn build_source_cubemap_from_captured_faces_with_quality(
+    face_size: u32,
+    captured_face_texels: Vec<[Real; 4]>,
+    quality: SourceCubemapPrefilterQuality,
+) -> SourceCubemapMipChain {
+    let face_size = face_size.max(1);
+    let expected_base_texel_count =
+        face_size as usize * face_size as usize * SOURCE_CUBEMAP_FACE_COUNT;
+    assert_eq!(
+        captured_face_texels.len(),
+        expected_base_texel_count,
+        "captured cubemap must contain six face-major mip-zero images"
+    );
+
+    let mip_count = source_cubemap_mip_count(face_size);
+    let mut source_storage = vec![[0.0; 4]; source_cubemap_sample_count(face_size, mip_count)];
+    let face_texel_count = face_size as usize * face_size as usize;
+    for face in CubemapFace::ALL {
+        let source_offset = face.index() * face_texel_count;
+        let target_offset = source_cubemap_face_mip_offset(face_size, mip_count, face, 0);
+        source_storage[target_offset..target_offset + face_texel_count].copy_from_slice(
+            &captured_face_texels[source_offset..source_offset + face_texel_count],
+        );
+    }
+
+    let source_mips = mipmap::source_cubemap_mips_from_base(&source_storage, face_size, mip_count);
+    build_source_cubemap_from_source_mips_with_quality(face_size, mip_count, source_mips, quality)
+}
+
+/// Rebuild Zircon PMREM/SH9 from an external cubemap's source mip pyramid.
+pub fn build_source_cubemap_from_source_mips(
+    face_size: u32,
+    mip_count: u32,
+    source_texels: Vec<[Real; 4]>,
+) -> SourceCubemapMipChain {
+    build_source_cubemap_from_source_mips_with_quality(
+        face_size,
+        mip_count,
+        source_texels,
+        SourceCubemapPrefilterQuality::Normal,
+    )
+}
+
+pub fn build_source_cubemap_from_source_mips_with_quality(
+    face_size: u32,
+    mip_count: u32,
+    source_texels: Vec<[Real; 4]>,
+    quality: SourceCubemapPrefilterQuality,
+) -> SourceCubemapMipChain {
+    let face_size = face_size.max(1);
+    let mip_count = mip_count.max(1);
+    assert_eq!(
+        source_texels.len(),
+        source_cubemap_sample_count(face_size, mip_count),
+        "external source cubemap texel count must match face size and mip count"
+    );
+    let irradiance_sh9 = source_cubemap_irradiance_sh9_from_texels(
+        &source_texels,
+        face_size,
+        mip_count,
+        source_cubemap_irradiance_mip_level(face_size, mip_count),
+    );
+    let mut pmrem_texels = source_texels.clone();
+    pmrem::prefilter_pmrem_mips_from_source(
+        &mut pmrem_texels,
+        &source_texels,
+        face_size,
+        mip_count,
+        quality,
+    );
+    average_last_mip_faces(&mut pmrem_texels, face_size, mip_count);
+    SourceCubemapMipChain::new_with_source_texels_and_irradiance_sh9(
+        face_size,
+        mip_count,
+        source_texels,
+        pmrem_texels,
         irradiance_sh9,
     )
 }
@@ -483,305 +611,4 @@ fn average_last_mip_faces(texels: &mut [[Real; 4]], face_size: u32, mip_count: u
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn source_cubemap_face_size_clamps_equirect_height_to_power_of_two() {
-        assert_eq!(source_cubemap_face_size_from_equirect_height(512), 256);
-        assert_eq!(source_cubemap_face_size_from_equirect_height(32), 64);
-        assert_eq!(source_cubemap_face_size_from_equirect_height(4096), 1024);
-    }
-
-    #[test]
-    fn source_cubemap_mip_layout_is_face_major() {
-        assert_eq!(source_cubemap_mip_count(4), 3);
-        assert_eq!(source_cubemap_sample_count(4, 3), 6 * (16 + 4 + 1));
-        assert_eq!(
-            source_cubemap_face_mip_offset(4, 3, CubemapFace::PositiveX, 1),
-            16
-        );
-        assert_eq!(
-            source_cubemap_face_mip_offset(4, 3, CubemapFace::NegativeX, 0),
-            21
-        );
-    }
-
-    #[test]
-    fn source_cubemap_roughness_mip_mapping_matches_shader_contract() {
-        let mip_count = 9;
-        assert_close(source_cubemap_pmrem_mip_from_roughness(0.0, mip_count), 0.0);
-        assert_close(source_cubemap_pmrem_mip_from_roughness(1.0, mip_count), 8.0);
-        assert_close(source_cubemap_roughness_from_pmrem_mip(0, mip_count), 0.0);
-        assert_close(source_cubemap_roughness_from_pmrem_mip(8, mip_count), 1.0);
-
-        let mut previous = 0.0;
-        for mip in 1..mip_count {
-            let roughness = source_cubemap_roughness_from_pmrem_mip(mip, mip_count);
-            assert!(
-                roughness >= previous,
-                "roughness should increase with mip level, mip={mip} roughness={roughness} previous={previous}"
-            );
-            previous = roughness;
-        }
-    }
-
-    #[test]
-    fn source_cubemap_public_roughness_mip_constants_match_max_face_size() {
-        assert_eq!(
-            SOURCE_CUBEMAP_ROUGHEST_MIP,
-            source_cubemap_mip_count(SOURCE_CUBEMAP_MAX_FACE_SIZE) - 1
-        );
-        assert_close(
-            SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
-            SOURCE_CUBEMAP_ROUGHEST_MIP as Real,
-        );
-    }
-
-    #[test]
-    fn source_cubemap_irradiance_mip_prefers_thirty_two_face_source() {
-        assert_eq!(source_cubemap_irradiance_mip_level(16, 5), 0);
-        assert_eq!(source_cubemap_irradiance_mip_level(64, 7), 1);
-        assert_eq!(source_cubemap_irradiance_mip_level(256, 9), 3);
-    }
-
-    #[test]
-    fn source_cubemap_constant_equirect_preserves_all_mips() {
-        let cubemap = build_source_cubemap_from_equirect(4, |_, _| [0.25, 0.5, 0.75, 1.0]);
-
-        assert_eq!(cubemap.face_size(), 4);
-        assert_eq!(cubemap.mip_count(), 3);
-        for texel in cubemap.texels() {
-            assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
-        }
-    }
-
-    #[test]
-    fn source_cubemap_sh9_preserves_constant_diffuse_environment() {
-        let cubemap = build_source_cubemap_from_equirect(64, |_, _| [0.25, 0.5, 0.75, 1.0]);
-        let irradiance = source_cubemap_evaluate_irradiance_sh9(
-            cubemap.irradiance_sh9(),
-            normalize_or_positive_z([0.25, 1.0, 0.5]),
-        );
-
-        assert_vec3_close(irradiance, [0.25, 0.5, 0.75], 0.002);
-    }
-
-    #[test]
-    fn source_cubemap_sh9_tracks_vertical_environment_gradient() {
-        let cubemap = build_source_cubemap_from_equirect(64, |_, v| {
-            let sky_weight = 1.0 - v;
-            [sky_weight, sky_weight, sky_weight, 1.0]
-        });
-        let up = source_cubemap_evaluate_irradiance_sh9(cubemap.irradiance_sh9(), [0.0, 1.0, 0.0]);
-        let down =
-            source_cubemap_evaluate_irradiance_sh9(cubemap.irradiance_sh9(), [0.0, -1.0, 0.0]);
-
-        assert!(
-            up[0] > down[0] + 0.2,
-            "up-facing diffuse irradiance should see the brighter sky, up={up:?} down={down:?}"
-        );
-    }
-
-    #[test]
-    fn source_cubemap_cmft_pmrem_mips_blur_high_frequency_source() {
-        let cubemap = build_source_cubemap_from_equirect(8, |u, _| {
-            if u < 0.5 {
-                [0.0, 0.0, 0.0, 1.0]
-            } else {
-                [1.0, 1.0, 1.0, 1.0]
-            }
-        });
-        let last_mip = cubemap.mip_count() - 1;
-        let last = cubemap.texel(CubemapFace::PositiveX, last_mip, 0, 0);
-
-        assert_eq!(cubemap.texel(CubemapFace::NegativeX, 0, 4, 4)[0], 0.0);
-        assert_eq!(cubemap.texel(CubemapFace::PositiveX, 0, 4, 4)[0], 1.0);
-        assert!(
-            last[0] > 0.1 && last[0] < 0.9,
-            "lowest radiance mip should be blurred toward the environment average, got {last:?}"
-        );
-        for face in CubemapFace::ALL {
-            assert_eq!(cubemap.texel(face, last_mip, 0, 0), last);
-        }
-    }
-
-    #[test]
-    fn source_cubemap_saturated_roughness_mip_uses_cosine_convolution() {
-        let cubemap = build_source_cubemap_from_equirect(64, |u, v| {
-            let stripe = if (u * 37.0).floor() as i32 & 1 == 0 {
-                0.1
-            } else {
-                1.2
-            };
-            let horizon = (1.0 - (v - 0.52).abs() * 8.0).max(0.0) * 2.0;
-            let luma = stripe + horizon;
-            [luma, luma * 0.85, luma * 0.65, 1.0]
-        });
-        let saturated_mip =
-            source_cubemap_pmrem_mip_from_roughness(1.0, cubemap.mip_count()).round() as u32;
-        assert!(
-            saturated_mip > 0,
-            "roughness=1 should select a PMREM mip below the base level"
-        );
-        let mip_size = source_cubemap_mip_size(cubemap.face_size(), saturated_mip);
-        let previous_variance = mip_luma_variance(&cubemap, saturated_mip - 1);
-        let saturated_variance = mip_luma_variance(&cubemap, saturated_mip);
-        let mut max_downsample_luma_delta: Real = 0.0;
-
-        for face in CubemapFace::ALL {
-            for y in 0..mip_size {
-                for x in 0..mip_size {
-                    let direction = cubemap_texel_direction(face, x, y, mip_size);
-                    let ordinary_downsample = sample_cubemap_linear_at_mip(
-                        cubemap.texels(),
-                        cubemap.face_size(),
-                        cubemap.mip_count(),
-                        direction,
-                        saturated_mip - 1,
-                    );
-                    let actual = cubemap.texel(face, saturated_mip, x, y);
-                    max_downsample_luma_delta = max_downsample_luma_delta
-                        .max((luma4(actual) - luma4(ordinary_downsample)).abs());
-                }
-            }
-        }
-
-        assert!(
-            max_downsample_luma_delta > 0.025,
-            "roughness=1 PMREM mip should be a source-space cosine convolution, not ordinary previous-mip downsample, delta={max_downsample_luma_delta}"
-        );
-        assert!(
-            saturated_variance < previous_variance * 0.75,
-            "roughness=1 PMREM mip should further blur high-frequency energy, previous={previous_variance} saturated={saturated_variance}"
-        );
-    }
-
-    #[test]
-    fn source_cubemap_cmft_pmrem_reduces_mip_luma_variance() {
-        let cubemap = build_source_cubemap_from_equirect(16, |u, v| {
-            let cell_x = (u * 24.0).floor() as i32;
-            let cell_y = (v * 12.0).floor() as i32;
-            if (cell_x + cell_y) & 1 == 0 {
-                [0.0, 0.0, 0.0, 1.0]
-            } else {
-                [1.0, 1.0, 1.0, 1.0]
-            }
-        });
-        let base_variance = mip_luma_variance(&cubemap, 0);
-        let rough_variance = mip_luma_variance(&cubemap, cubemap.mip_count().saturating_sub(2));
-
-        assert!(
-            rough_variance < base_variance * 0.45,
-            "rough PMREM mip should reduce high-frequency luma variance, base={base_variance} rough={rough_variance}"
-        );
-    }
-
-    #[test]
-    fn source_cubemap_samples_equirect_uv_from_cube_face_direction() {
-        let cubemap = build_source_cubemap_from_equirect(3, |u, v| [u, v, 0.0, 1.0]);
-
-        assert_vec4_close(
-            cubemap.texel(CubemapFace::PositiveZ, 0, 1, 1),
-            [0.5, 0.5, 0.0, 1.0],
-        );
-        assert_vec4_close(
-            cubemap.texel(CubemapFace::PositiveX, 0, 1, 1),
-            [0.75, 0.5, 0.0, 1.0],
-        );
-    }
-
-    #[test]
-    fn source_cubemap_linear_sampling_bleeds_across_face_edges() {
-        let face_size = 4;
-        let mip_count = 1;
-        let mut texels =
-            vec![[0.0, 0.0, 0.0, 1.0]; source_cubemap_sample_count(face_size, mip_count)];
-        fill_face_texels(
-            &mut texels,
-            face_size,
-            mip_count,
-            CubemapFace::PositiveX,
-            [1.0, 0.0, 0.0, 1.0],
-        );
-        fill_face_texels(
-            &mut texels,
-            face_size,
-            mip_count,
-            CubemapFace::PositiveZ,
-            [0.0, 1.0, 0.0, 1.0],
-        );
-        let direction = cubemap_direction_from_scaled_uv(CubemapFace::PositiveX, [-0.98, 0.0]);
-
-        let color = sample_source_cubemap_trilinear(&texels, face_size, mip_count, direction, 0.0);
-
-        assert!(
-            color[0] < 0.9 && color[1] > 0.05,
-            "sampling near +X left edge should include +Z neighbor texels instead of clamping inside +X, color={color:?}"
-        );
-    }
-
-    fn fill_face_texels(
-        texels: &mut [[Real; 4]],
-        face_size: u32,
-        mip_count: u32,
-        face: CubemapFace,
-        color: [Real; 4],
-    ) {
-        let offset = source_cubemap_face_mip_offset(face_size, mip_count, face, 0);
-        for y in 0..face_size {
-            for x in 0..face_size {
-                texels[offset + y as usize * face_size as usize + x as usize] = color;
-            }
-        }
-    }
-
-    fn assert_vec4_close(actual: [Real; 4], expected: [Real; 4]) {
-        for index in 0..4 {
-            assert!(
-                (actual[index] - expected[index]).abs() <= 0.00001,
-                "component {index}: actual={actual:?} expected={expected:?}"
-            );
-        }
-    }
-
-    fn assert_close(actual: Real, expected: Real) {
-        assert!(
-            (actual - expected).abs() <= 0.00001,
-            "actual={actual} expected={expected}"
-        );
-    }
-
-    fn assert_vec3_close(actual: [Real; 3], expected: [Real; 3], tolerance: Real) {
-        for index in 0..3 {
-            assert!(
-                (actual[index] - expected[index]).abs() <= tolerance,
-                "component {index}: actual={actual:?} expected={expected:?}"
-            );
-        }
-    }
-
-    fn mip_luma_variance(cubemap: &SourceCubemapMipChain, mip_level: u32) -> Real {
-        let mip_size = source_cubemap_mip_size(cubemap.face_size(), mip_level);
-        let mut sum = 0.0;
-        let mut sum_sq = 0.0;
-        let mut count = 0.0;
-        for face in CubemapFace::ALL {
-            for y in 0..mip_size {
-                for x in 0..mip_size {
-                    let texel = cubemap.texel(face, mip_level, x, y);
-                    let luma = luma4(texel);
-                    sum += luma;
-                    sum_sq += luma * luma;
-                    count += 1.0;
-                }
-            }
-        }
-        let mean = sum / count;
-        sum_sq / count - mean * mean
-    }
-
-    fn luma4(texel: [Real; 4]) -> Real {
-        0.2126 * texel[0] + 0.7152 * texel[1] + 0.0722 * texel[2]
-    }
-}
+mod tests;

@@ -37,7 +37,7 @@ pub(super) const SPLIT_LAYOUT_STATUS_MIRRORS_PATH: &str =
     "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/split/status_mirrors.rs";
 
 const STRUCTURE_READ_ROOT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/runtime_15_expected_slice_maps";
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices";
 const TOP_LEVEL_SUPPORT_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/top_level_support.rs";
 const TOP_LEVEL_SUPPORT_ROW_CHILDREN: &[&str] = &[

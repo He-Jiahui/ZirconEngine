@@ -67,7 +67,7 @@ fn runtime_15_review_guard_direct_assertion_folder_backed_status_mirrors_are_cur
         );
     }
     assert!(
-        !route_source.contains("let status_support_rows ="),
+        !route_source.contains(&["let status", "_support_rows ="].concat()),
         "status_mirrors.rs should delegate status source reads to child files"
     );
 }

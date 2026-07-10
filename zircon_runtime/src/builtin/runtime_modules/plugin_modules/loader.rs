@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::engine_module::EngineModule;
-#[cfg(feature = "plugin-ui")]
+#[cfg(feature = "ui")]
 use crate::ui;
 
 use super::super::ids::RuntimePluginId;
@@ -12,13 +12,13 @@ pub(in crate::builtin::runtime_modules) fn module_for_plugin(
 ) -> Option<Arc<dyn EngineModule>> {
     match id {
         RuntimePluginId::Ui => {
-            #[cfg(feature = "plugin-ui")]
+            #[cfg(feature = "ui")]
             {
                 return Some(Arc::new(ui::UiModule));
             }
-            #[cfg(not(feature = "plugin-ui"))]
+            #[cfg(not(feature = "ui"))]
             {
-                warnings.push("plugin-ui feature is disabled".to_string());
+                warnings.push("ui feature is disabled".to_string());
                 None
             }
         }

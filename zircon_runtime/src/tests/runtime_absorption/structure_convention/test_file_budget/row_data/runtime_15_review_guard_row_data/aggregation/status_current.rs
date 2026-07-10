@@ -41,7 +41,7 @@ fn runtime_15_review_guard_row_data_aggregation_status_is_current() {
         ),
         (
             "Frameworks 02 plan",
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         (
             "review findings",

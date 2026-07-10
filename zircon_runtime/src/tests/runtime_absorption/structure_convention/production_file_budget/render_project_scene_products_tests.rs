@@ -6,8 +6,8 @@ fn runtime_15_project_render_scene_products_tests_are_child_owner() {
     let project_scenes = read_runtime_src("graphics/tests/project_render/project_scenes.rs");
     let render_quality = read_runtime_src("graphics/tests/project_render/render_quality.rs");
 
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_product_submit_doc =

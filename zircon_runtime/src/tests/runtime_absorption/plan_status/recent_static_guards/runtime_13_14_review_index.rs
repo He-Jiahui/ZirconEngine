@@ -24,11 +24,7 @@ pub(super) fn assert_runtime_13_14_review_index_anchors(sources: &RecentStaticGu
         "engine_module_declared_layer_does_not_own_runtime_lifecycle",
     ];
 
-    assert_contains_all(
-        "Runtime 13 subplan",
-        sources.runtime_13_plan,
-        &runtime_13_anchors,
-    );
+    assert_contains_all("Runtime 13 subplan", &sources.archives, &runtime_13_anchors);
     assert_contains_all(
         "Runtime 13 mirror doc",
         sources.runtime_13_doc,
@@ -36,7 +32,7 @@ pub(super) fn assert_runtime_13_14_review_index_anchors(sources: &RecentStaticGu
     );
     assert_contains_all(
         "Runtime 14 subplan",
-        sources.runtime_14_plan,
+        &sources.archives,
         &runtime_14_plan_anchors,
     );
     assert_contains_all(
@@ -99,7 +95,7 @@ pub(super) fn assert_runtime_13_14_review_index_anchors(sources: &RecentStaticGu
     );
     assert_contains_all(
         "Runtime plan index",
-        sources.runtime_index,
+        &sources.archives,
         &[
             "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
             "runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",

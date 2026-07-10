@@ -29,7 +29,7 @@ pub(super) fn assert_status_support_review_rows_row_data_status_is_current() {
     for path in [
         "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
         "docs/plans/zircon_runtime/runtime/index.md",
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         "docs/plans/engine-code-review-findings-2026-06.md",
         "docs/plans/engine-code-structure-convention.md",
         "docs/zircon_runtime/structure/module-convention.md",

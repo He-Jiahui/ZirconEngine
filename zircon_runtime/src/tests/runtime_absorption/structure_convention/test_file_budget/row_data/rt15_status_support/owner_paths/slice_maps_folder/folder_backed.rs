@@ -22,8 +22,7 @@ fn runtime_15_status_support_expected_slice_owner_paths_guard_is_folder_backed()
     );
     let child_blob = expected_slice_owner_path_guard_child_source_blob();
     for (module_name, representative_fn) in EXPECTED_SLICE_OWNER_PATH_GUARD_CHILDREN {
-        let module_mount =
-            format!("#[path = \"slice_maps_folder/{module_name}.rs\"]");
+        let module_mount = format!("#[path = \"slice_maps_folder/{module_name}.rs\"]");
         assert_contains_all(
             "expected-slice owner paths guard mounts child modules",
             &parent,
@@ -95,7 +94,7 @@ fn assert_expected_slice_owner_paths_guard_status_is_current() {
     for path in [
         "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
         "docs/plans/zircon_runtime/runtime/index.md",
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         "docs/plans/engine-code-review-findings-2026-06.md",
         "docs/plans/engine-code-structure-convention.md",
         "docs/zircon_runtime/structure/module-convention.md",

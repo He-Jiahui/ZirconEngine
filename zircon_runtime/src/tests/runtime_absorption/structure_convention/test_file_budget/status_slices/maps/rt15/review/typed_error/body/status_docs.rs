@@ -9,7 +9,7 @@ fn runtime_15_review_guard_expected_slice_typed_error_guard_body_status_is_synce
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
@@ -33,9 +33,9 @@ fn runtime_15_review_guard_expected_slice_typed_error_guard_body_status_is_synce
                 "Runtime 15 M3 review guard typed-error expected-slice map child split",
                 "runtime_15_review_guard_typed_error_expected_slice_map_child_split_static_passed_cargo_deferred",
                 "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs",
-                "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_maps.rs",
+                "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps.rs",
                 "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs",
-                "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_maps.rs",
+                "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps.rs",
                 "runtime_15_review_guard_expected_slice_typed_error_maps_are_child_owned",
                 "Cargo gate deferred",
             ],

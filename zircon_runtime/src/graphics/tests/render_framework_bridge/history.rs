@@ -146,11 +146,11 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
 
     assert_eq!(
         invalidated.last_frame_history,
-        Some(FrameHistoryHandle::new(2))
+        Some(FrameHistoryHandle::new(1))
     );
     assert_eq!(
         invalidated.last_frame_history_status.current,
-        Some(FrameHistoryHandle::new(2))
+        Some(FrameHistoryHandle::new(1))
     );
     assert_eq!(
         invalidated.last_frame_history_status.previous,

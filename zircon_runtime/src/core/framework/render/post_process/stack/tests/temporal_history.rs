@@ -143,3 +143,36 @@ fn without_history_resources_keeps_scene_velocity_for_motion_blur() {
         .initial_resources
         .contains(&PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX.to_string()));
 }
+
+#[test]
+fn without_history_resources_keeps_scene_velocity_for_hybrid_gi_rejection() {
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &Default::default(),
+        &Default::default(),
+        &RenderPostProcessEffectStackSettings::default(),
+        true,
+        true,
+        &AntiAliasSettings::taa(),
+    )
+    .with_hybrid_gi_lighting_input()
+    .without_history_resources();
+
+    assert!(stack
+        .initial_resources
+        .contains(&PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string()));
+    assert!(stack
+        .initial_resources
+        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+}
+
+#[test]
+fn hybrid_gi_lighting_input_declares_scene_velocity_for_motion_rejection() {
+    let stack = PostProcessStackDescriptor::default().with_hybrid_gi_lighting_input();
+
+    assert!(stack
+        .initial_resources
+        .contains(&PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string()));
+    assert!(stack
+        .initial_resources
+        .contains(&PostProcessGraphResourceNames::SCENE_VELOCITY.to_string()));
+}

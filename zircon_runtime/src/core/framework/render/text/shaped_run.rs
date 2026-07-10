@@ -50,6 +50,25 @@ pub struct ShapedGlyphClusterFlags {
     pub virtual_glyph: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct OpenTypeFeature {
+    pub tag: [u8; 4],
+    pub value: u32,
+}
+
+impl OpenTypeFeature {
+    pub const fn new(tag: [u8; 4], value: u32) -> Self {
+        Self { tag, value }
+    }
+}
+
+pub fn normalized_open_type_features(features: &[OpenTypeFeature]) -> Vec<OpenTypeFeature> {
+    let mut normalized = features.to_vec();
+    normalized.sort_unstable();
+    normalized.dedup();
+    normalized
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ShapedGlyph {
     pub glyph_id: u32,
@@ -63,6 +82,8 @@ pub struct ShapedGlyph {
     pub offset_x: f32,
     pub offset_y: f32,
     pub direction: UiTextDirection,
+    #[serde(default)]
+    pub bidi_level: u8,
     #[serde(default)]
     pub cluster_flags: ShapedGlyphClusterFlags,
     #[serde(default)]
@@ -109,6 +130,8 @@ pub struct TextShapeRequest<'a> {
     pub orientation: TextOrientation,
     pub vertical_mode: VerticalMode,
     pub include_kerning: bool,
+    pub language: Option<&'a str>,
+    pub features: &'a [OpenTypeFeature],
 }
 
 impl<'a> TextShapeRequest<'a> {
@@ -136,8 +159,68 @@ impl<'a> TextShapeRequest<'a> {
             orientation: TextOrientation::Horizontal,
             vertical_mode: VerticalMode::Mixed,
             include_kerning,
+            language: normalized_style_language(style),
+            features: &[],
         }
     }
+
+    pub fn vertical(
+        text: &'a str,
+        style: &'a UiResolvedStyle,
+        base_direction: UiTextDirection,
+        source_range: UiTextRange,
+        vertical_mode: VerticalMode,
+    ) -> Self {
+        Self::vertical_with_kerning(
+            text,
+            style,
+            base_direction,
+            source_range,
+            vertical_mode,
+            true,
+        )
+    }
+
+    pub fn vertical_with_kerning(
+        text: &'a str,
+        style: &'a UiResolvedStyle,
+        base_direction: UiTextDirection,
+        source_range: UiTextRange,
+        vertical_mode: VerticalMode,
+        include_kerning: bool,
+    ) -> Self {
+        Self {
+            text,
+            style,
+            base_direction,
+            source_range,
+            orientation: TextOrientation::Vertical,
+            vertical_mode,
+            include_kerning,
+            language: normalized_style_language(style),
+            features: &[],
+        }
+    }
+
+    pub fn with_language(mut self, language: Option<&'a str>) -> Self {
+        self.language = language
+            .map(str::trim)
+            .filter(|language| !language.is_empty());
+        self
+    }
+
+    pub fn with_features(mut self, features: &'a [OpenTypeFeature]) -> Self {
+        self.features = features;
+        self
+    }
+}
+
+fn normalized_style_language(style: &UiResolvedStyle) -> Option<&str> {
+    style
+        .language
+        .as_deref()
+        .map(str::trim)
+        .filter(|language| !language.is_empty())
 }
 
 const fn default_include_kerning() -> bool {

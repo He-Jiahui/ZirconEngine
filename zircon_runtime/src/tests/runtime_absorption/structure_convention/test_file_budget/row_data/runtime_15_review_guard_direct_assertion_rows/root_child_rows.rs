@@ -13,13 +13,13 @@ pub(super) const DIRECT_ASSERTION_GUARD_CHILDREN: &[(&str, &str, &str)] = &[
     ),
     (
         "root_inventory",
-        ROOT_INVENTORY_GUARD_PATH,
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/root_inventory.rs",
         ROOT_INVENTORY_CHILD_SPLIT_GUARD_NAME,
     ),
     (
         "row_ownership",
         "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_direct_assertion_rows/row_ownership.rs",
-        CHILD_OWNER_GUARD_NAME,
+        "runtime_15_review_guard_direct_assertion_row_ownership_guard_is_child_backed",
     ),
     (
         "status_mirrors",

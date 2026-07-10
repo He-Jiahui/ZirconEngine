@@ -17,16 +17,21 @@ fn runtime_14_module_family_root_seats_match_documented_judgements() {
     }
 
     let plan_doc = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
+        "../../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
     );
     for required_anchor in [
-        "animation / navigation / diagnostic_log / engine_module",
-        "四族在 crate 根的席位与判词一致",
+        "crate 根四族席位总守卫",
         "runtime_14_module_family_root_seats_match_documented_judgements",
     ] {
         assert!(
             plan_doc.contains(required_anchor),
             "Runtime 14 plan should record the crate-root family judgement anchor `{required_anchor}`"
+        );
+    }
+    for family in ["animation", "navigation", "diagnostic_log", "engine_module"] {
+        assert!(
+            plan_doc.contains(&format!("`{family}`")),
+            "Runtime 14 output should retain the `{family}` root-seat judgement"
         );
     }
 

@@ -20,8 +20,8 @@ use super::{
     RenderParticleBoundsSnapshot, RenderParticlePreviousSpriteSnapshot,
     RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPhaseQueueSummary,
     RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderQueueValue,
-    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderResolvedPostProcessSettings,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
+    RenderRectLightSnapshot, RenderResolvedPostProcessSettings, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     SceneViewportExtractRequest, SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot,
     VolumeEvaluationError, VolumeEvaluationRequest, VolumeEvaluator, DEFAULT_CAMERA_EXPOSURE_EV100,
 };
@@ -340,7 +340,6 @@ pub struct LightingExtract {
     pub spot_lights: Vec<RenderSpotLightSnapshot>,
     pub ambient_lights: Vec<RenderAmbientLightSnapshot>,
     pub rect_lights: Vec<RenderRectLightSnapshot>,
-    pub reflection_probes: Vec<RenderReflectionProbeSnapshot>,
     pub baked_lighting: Option<RenderBakedLightingExtract>,
     pub hybrid_global_illumination: Option<RenderHybridGiExtract>,
 }
@@ -592,7 +591,6 @@ impl RenderFrameExtract {
                 spot_lights: snapshot.scene.spot_lights.clone(),
                 ambient_lights: snapshot.scene.ambient_lights.clone(),
                 rect_lights: snapshot.scene.rect_lights.clone(),
-                reflection_probes: Vec::new(),
                 baked_lighting: None,
                 hybrid_global_illumination: None,
             },

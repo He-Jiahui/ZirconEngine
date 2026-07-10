@@ -77,6 +77,48 @@ fn sdf_atlas_plan_keys_glyph_slots_by_font_identity_and_fixed_bake_params() {
 }
 
 #[test]
+fn sdf_atlas_plan_separates_locale_sensitive_glyph_slots() {
+    let mut simplified = text_batch("界", UiFrame::new(0.0, 0.0, 16.0, 16.0));
+    simplified.language = Some("zh-Hans".to_string());
+    let mut japanese = text_batch("界", UiFrame::new(0.0, 16.0, 16.0, 16.0));
+    japanese.language = Some("ja".to_string());
+
+    let plan = plan_sdf_atlas(&[simplified, japanese]);
+
+    assert_eq!(plan.slots.len(), 2);
+    assert_eq!(plan.slots[0].key.language.as_deref(), Some("ja"));
+    assert_eq!(plan.slots[1].key.language.as_deref(), Some("zh-hans"));
+}
+
+#[test]
+fn sdf_atlas_plan_preserves_shaped_glyph_and_face_identity() {
+    let mut vertical = text_batch("。", UiFrame::new(0.0, 0.0, 32.0, 48.0));
+    vertical.writing_mode = UiTextWritingMode::VerticalRl;
+    vertical.shaped_glyphs = vec![ScreenSpaceUiShapedGlyph {
+        glyph_id: 321,
+        font_id: Some(FontFaceId(17)),
+        source_scalar: '。',
+        source_range: UiTextRange {
+            start: 0,
+            end: "。".len(),
+        },
+        advance: 30.0,
+        offset_x: -15.0,
+        offset_y: 27.0,
+        rotation: ShapedGlyphRotation::None,
+        requires_atlas_slot: true,
+    }];
+
+    let plan = plan_sdf_atlas(&[vertical]);
+
+    assert_eq!(plan.slots.len(), 1);
+    assert_eq!(plan.slots[0].key.glyph, '。');
+    assert_eq!(plan.slots[0].key.glyph_id, Some(321));
+    assert_eq!(plan.slots[0].key.font_id, Some(17));
+    assert_eq!(plan.runs[0].glyph_slot_indices, vec![Some(0)]);
+}
+
+#[test]
 fn render_text_sdf_atlas_unified_with_alpha() {
     let plan = plan_sdf_atlas(&[text_batch("SDF", UiFrame::new(0.0, 0.0, 48.0, 16.0))]);
     let alpha_page = GlyphAtlasPageSpec::new(

@@ -6,6 +6,7 @@ mod line_break;
 mod measure;
 mod overflow;
 mod tab;
+mod vertical_layout;
 
 pub(crate) use align::justify_line_advances;
 pub(crate) use line_break::{
@@ -20,3 +21,4 @@ pub(crate) use measure::{
 };
 pub(crate) use overflow::{ellipsize_text, EllipsisPlacement, EllipsisSegment, ELLIPSIS};
 pub(crate) use tab::tab_aligned_advances;
+pub(crate) use vertical_layout::layout_vertical_rl_columns;

@@ -1,4 +1,6 @@
+use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::render_graph::RenderGraphAttachmentOps;
 
 use super::super::super::super::resources::ResourceStreamer;
 use super::super::scene_renderer_core::SceneRendererCore;
@@ -10,10 +12,11 @@ impl SceneRendererCore {
         queue: &wgpu::Queue,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
-        color_view: &wgpu::TextureView,
+        scene_color_view: &wgpu::TextureView,
+        final_color_view: &wgpu::TextureView,
         depth_view: &wgpu::TextureView,
     ) -> Result<(), GraphicsError> {
-        self.write_scene_uniform(device, queue, frame);
+        self.write_scene_uniform(device, queue, streamer, frame, true);
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-scene-encoder"),
         });
@@ -54,10 +57,10 @@ impl SceneRendererCore {
             streamer,
             frame,
         )?;
-        self.overlay_renderer.record(
+        self.overlay_renderer.record_scene_content(
             &mut encoder,
             device,
-            color_view,
+            scene_color_view,
             depth_view,
             &self.scene_bind_group,
             &mesh_draws,
@@ -65,16 +68,33 @@ impl SceneRendererCore {
             &mut self.mesh_pipelines,
             streamer,
             frame,
-            &prepared_overlays,
             Some(&self.shadow_atlas_resources),
+        );
+        self.post_process.execute_output_transfer(
+            device,
+            &mut encoder,
+            scene_color_view,
+            final_color_view,
+            PostProcessGraphResourceNames::FINAL_COMPOSITED,
+            RenderGraphAttachmentOps::clear_store(),
+            frame.render_region(),
+        );
+        self.overlay_renderer.record_overlays(
+            &mut encoder,
+            final_color_view,
+            depth_view,
+            &self.scene_bind_group,
+            frame,
+            &prepared_overlays,
+            frame.render_region(),
         );
         self.screen_space_ui_renderer.record(
             device,
             queue,
             &mut encoder,
-            color_view,
+            final_color_view,
             frame,
-            crate::render_graph::RenderGraphAttachmentOps::load_store(),
+            RenderGraphAttachmentOps::load_store(),
         );
         queue.submit([encoder.finish()]);
         let _prev_transform_roll_report = self.gpu_scene.roll_prev_transforms_after_success();

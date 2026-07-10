@@ -10,5 +10,7 @@ mod p0_robustness;
 mod plugin_importer_dx;
 #[path = "code_review_findings/render_structure.rs"]
 mod render_structure;
+#[path = "code_review_findings/status_placeholder_guard.rs"]
+mod status_placeholder_guard;
 #[path = "code_review_findings/typed_error_convergence/mod.rs"]
 mod typed_error_convergence;

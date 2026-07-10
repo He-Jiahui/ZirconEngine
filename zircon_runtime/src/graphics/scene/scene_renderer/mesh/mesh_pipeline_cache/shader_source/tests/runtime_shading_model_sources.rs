@@ -45,6 +45,7 @@ fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferred
             clamp(surface.occlusion, 0.0, 1.0),
             zr_deferred_encode_material_flags(ZR_GBUFFER_TOON_DEBUG_ID, receive_shadows),
         ),
+        vec4<f32>(surface.emissive, 1.0),
     );
 }
 "#;

@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    AdvancedRenderFeature, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
-    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, SolariCapabilityRequirement,
+    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderFrameworkError,
+    RenderPipelineHandle, RenderQualityProfile, SolariCapabilityRequirement,
 };
 use crate::graphics::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
 
@@ -76,18 +76,6 @@ trait RenderQualityProfileCapabilityRequirements {
 impl RenderQualityProfileCapabilityRequirements for RenderQualityProfile {
     fn capability_requirements(&self) -> Vec<RenderFeatureCapabilityRequirement> {
         let mut requirements = Vec::new();
-        if self.features.virtual_geometry {
-            push_advanced_feature_requirements(
-                &mut requirements,
-                AdvancedRenderFeature::VirtualGeometry,
-            );
-        }
-        if self.features.hybrid_global_illumination {
-            push_advanced_feature_requirements(
-                &mut requirements,
-                AdvancedRenderFeature::HybridGlobalIllumination,
-            );
-        }
         if self.features.anti_alias {
             requirements.push(RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias);
         }
@@ -102,16 +90,6 @@ impl RenderQualityProfileCapabilityRequirements for RenderQualityProfile {
             }
         }
         requirements
-    }
-}
-
-fn push_advanced_feature_requirements(
-    requirements: &mut Vec<RenderFeatureCapabilityRequirement>,
-    feature: AdvancedRenderFeature,
-) {
-    for capability in feature.required_capabilities() {
-        let requirement = RenderFeatureCapabilityRequirement::from_capability_kind(*capability);
-        push_unique_requirement(requirements, requirement);
     }
 }
 
@@ -142,14 +120,30 @@ mod tests {
     use super::{validate_compiled_pipeline_capabilities, validate_quality_profile_capabilities};
 
     #[test]
-    fn quality_profile_capability_validation_reports_all_missing_flagship_features() {
-        let profile = RenderQualityProfile::new("flagship")
+    fn quality_profile_capability_validation_allows_advanced_features_to_degrade() {
+        let profile = RenderQualityProfile::new("degradable-advanced")
             .with_virtual_geometry(true)
             .with_hybrid_global_illumination(true);
         let capabilities = RenderCapabilitySummary {
             backend_name: "capability-test".to_string(),
             supports_offscreen: true,
             supports_fxaa: true,
+            ..Default::default()
+        };
+
+        validate_quality_profile_capabilities(
+            Some(RenderPipelineHandle::new(7)),
+            &profile,
+            &capabilities,
+        )
+        .expect("advanced profile features should degrade through the runtime plan");
+    }
+
+    #[test]
+    fn quality_profile_capability_validation_keeps_non_degradable_requirements_strict() {
+        let profile = RenderQualityProfile::new("strict-aa");
+        let capabilities = RenderCapabilitySummary {
+            backend_name: "capability-test".to_string(),
             ..Default::default()
         };
 
@@ -164,18 +158,10 @@ mod tests {
             error,
             RenderFrameworkError::CapabilityMismatch {
                 pipeline: 7,
-                reason:
-                    "quality profile `flagship` requires virtual_geometry, storage_buffers, indirect_draw, buffer_readback, hybrid_global_illumination"
-                        .to_string(),
-                missing: vec![
-                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::VirtualGeometry),
-                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::StorageBuffers),
-                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::IndirectDraw),
-                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::BufferReadback),
-                    RenderCapabilityMismatchDetail::new(
-                        RenderCapabilityKind::HybridGlobalIllumination,
-                    ),
-                ],
+                reason: "quality profile `strict-aa` requires screen_space_anti_alias".to_string(),
+                missing: vec![RenderCapabilityMismatchDetail::new(
+                    RenderCapabilityKind::ScreenSpaceAntiAlias,
+                )],
             }
         );
     }

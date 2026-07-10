@@ -1,60 +1,136 @@
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::post_process::hzb_build_dispatch_groups;
+use crate::graphics::visibility::HzbBuildPlan;
+use wgpu::util::DeviceExt;
 
 use super::super::super::params::hzb_params::HzbParams;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 
+pub(super) struct HzbBuildMipResources<'a> {
+    pub bind_group_layout: &'a wgpu::BindGroupLayout,
+    pub pipeline: &'a wgpu::ComputePipeline,
+    pub params_buffer: &'a wgpu::Buffer,
+    pub fallback_source_view: &'a wgpu::TextureView,
+}
+
+pub(super) fn create_hzb_params_upload_buffer(
+    device: &wgpu::Device,
+    plan: HzbBuildPlan,
+) -> wgpu::Buffer {
+    let params = (0..plan.mip_count)
+        .map(|target_mip_level| {
+            let target_size = plan.mip_size(target_mip_level);
+            HzbParams {
+                target_size: [target_size.x.max(1), target_size.y.max(1)],
+                target_mip_level,
+                _pad0: 0,
+            }
+        })
+        .collect::<Vec<_>>();
+    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("zircon-hzb-build-params-upload"),
+        contents: bytemuck::cast_slice(&params),
+        usage: wgpu::BufferUsages::COPY_SRC,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn execute_hzb_build_mip_with_resources(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    scene_depth_view: &wgpu::TextureView,
+    source_hzb_view: Option<&wgpu::TextureView>,
+    target_hzb_view: &wgpu::TextureView,
+    target_size: UVec2,
+    target_mip_level: u32,
+    params_upload_buffer: &wgpu::Buffer,
+    resources: HzbBuildMipResources<'_>,
+) {
+    let params_size = std::mem::size_of::<HzbParams>() as u64;
+    encoder.copy_buffer_to_buffer(
+        params_upload_buffer,
+        u64::from(target_mip_level) * params_size,
+        resources.params_buffer,
+        0,
+        params_size,
+    );
+
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("zircon-hzb-build-bind-group"),
+        layout: resources.bind_group_layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(scene_depth_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(
+                    source_hzb_view.unwrap_or(resources.fallback_source_view),
+                ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: resources.params_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(target_hzb_view),
+            },
+        ],
+    });
+
+    let dispatch_groups = hzb_build_dispatch_groups(target_size);
+    let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+        label: Some("HzbBuildPass"),
+        timestamp_writes: None,
+    });
+    pass.set_pipeline(resources.pipeline);
+    pass.set_bind_group(0, &bind_group, &[]);
+    pass.dispatch_workgroups(dispatch_groups[0], dispatch_groups[1], dispatch_groups[2]);
+}
+
 impl ScenePostProcessResources {
+    pub(crate) fn create_hzb_params_upload_buffer(
+        &self,
+        device: &wgpu::Device,
+        plan: HzbBuildPlan,
+    ) -> wgpu::Buffer {
+        create_hzb_params_upload_buffer(device, plan)
+    }
+
     pub(crate) fn execute_hzb_build_mip(
         &self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_depth_view: &wgpu::TextureView,
         source_hzb_view: Option<&wgpu::TextureView>,
         target_hzb_view: &wgpu::TextureView,
         target_size: UVec2,
         target_mip_level: u32,
+        scene_depth_sample_count: u32,
+        params_upload_buffer: &wgpu::Buffer,
     ) {
-        let params = HzbParams {
-            target_size: [target_size.x.max(1), target_size.y.max(1)],
-            target_mip_level,
-            _pad0: 0,
+        let (bind_group_layout, pipeline) = if scene_depth_sample_count > 1 {
+            (&self.hzb_msaa_bind_group_layout, &self.hzb_msaa_pipeline)
+        } else {
+            (&self.hzb_bind_group_layout, &self.hzb_pipeline)
         };
-        queue.write_buffer(&self.hzb_params_buffer, 0, bytemuck::bytes_of(&params));
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-hzb-build-bind-group"),
-            layout: &self.hzb_bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(scene_depth_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(
-                        source_hzb_view.unwrap_or(&self.hzb_source_texture_view),
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: self.hzb_params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::TextureView(target_hzb_view),
-                },
-            ],
-        });
-
-        let dispatch_groups = hzb_build_dispatch_groups(target_size);
-        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("HzbBuildPass"),
-            timestamp_writes: None,
-        });
-        pass.set_pipeline(&self.hzb_pipeline);
-        pass.set_bind_group(0, &bind_group, &[]);
-        pass.dispatch_workgroups(dispatch_groups[0], dispatch_groups[1], dispatch_groups[2]);
+        execute_hzb_build_mip_with_resources(
+            device,
+            encoder,
+            scene_depth_view,
+            source_hzb_view,
+            target_hzb_view,
+            target_size,
+            target_mip_level,
+            params_upload_buffer,
+            HzbBuildMipResources {
+                bind_group_layout,
+                pipeline,
+                params_buffer: &self.hzb_params_buffer,
+                fallback_source_view: &self.hzb_source_texture_view,
+            },
+        );
     }
 }

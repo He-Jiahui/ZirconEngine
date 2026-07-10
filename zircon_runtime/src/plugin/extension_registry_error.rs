@@ -1,3 +1,4 @@
+use crate::core::CoreError;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -54,6 +55,8 @@ pub enum RuntimeExtensionRegistryError {
     InvalidSceneHook(String),
     #[error("invalid plugin module: {0}")]
     InvalidPluginModule(String),
+    #[error("runtime plugin module descriptor ordering failed: {0}")]
+    InvalidPluginModuleOrder(#[source] CoreError),
     #[error("plugin system {0} already registered")]
     DuplicatePluginSystem(String),
     #[error("invalid plugin system: {0}")]

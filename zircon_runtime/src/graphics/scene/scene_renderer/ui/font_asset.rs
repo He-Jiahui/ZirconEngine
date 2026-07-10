@@ -208,6 +208,7 @@ mod tests {
             family_members: Vec::new(),
             variable_instances: Vec::new(),
             fallback_families: Vec::new(),
+            composite_font: None,
             render_strategy,
             metadata: None,
         }

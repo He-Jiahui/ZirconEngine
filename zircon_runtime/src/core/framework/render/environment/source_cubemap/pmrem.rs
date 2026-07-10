@@ -1,6 +1,7 @@
 use super::{
     normalize_or_positive_z, sample_source_cubemap_trilinear, source_cubemap_face_mip_offset,
     source_cubemap_mip_size, source_cubemap_roughness_from_pmrem_mip, tangent_basis,
+    SourceCubemapPrefilterQuality,
 };
 use crate::core::framework::render::environment::{cubemap_texel_direction, CubemapFace};
 use crate::core::math::Real;
@@ -8,17 +9,12 @@ use crate::core::math::Real;
 const CMFT_FILTER_THRESHOLD: Real = 0.00001;
 const CMFT_GLOSS_SCALE: Real = 10.0;
 const CMFT_GLOSS_BIAS: Real = 3.0;
-const CMFT_LOW_ROUGHNESS_SAMPLE_COUNT: u32 = 96;
-const CMFT_DEFAULT_SAMPLE_COUNT: u32 = 192;
-const CMFT_ROUGH_SAMPLE_COUNT: u32 = 384;
-const CMFT_LOW_ROUGHNESS_THRESHOLD: Real = 0.2;
-const CMFT_ROUGH_SAMPLE_THRESHOLD: Real = 0.6;
-
 pub(super) fn prefilter_pmrem_mips_from_source(
     texels: &mut [[Real; 4]],
     source_mips: &[[Real; 4]],
     face_size: u32,
     mip_count: u32,
+    quality: SourceCubemapPrefilterQuality,
 ) {
     if mip_count <= 1 {
         return;
@@ -26,7 +22,7 @@ pub(super) fn prefilter_pmrem_mips_from_source(
 
     for mip in 1..mip_count {
         let mip_size = source_cubemap_mip_size(face_size, mip);
-        let filter = CmftRadianceFilter::new(mip, mip_count, face_size);
+        let filter = CmftRadianceFilter::new(mip, mip_count, face_size, quality);
         for face in CubemapFace::ALL {
             let dest_offset = source_cubemap_face_mip_offset(face_size, mip_count, face, mip);
             for y in 0..mip_size {
@@ -55,7 +51,12 @@ struct CmftRadianceFilter {
 }
 
 impl CmftRadianceFilter {
-    fn new(mip: u32, mip_count: u32, source_face_size: u32) -> Self {
+    fn new(
+        mip: u32,
+        mip_count: u32,
+        source_face_size: u32,
+        quality: SourceCubemapPrefilterQuality,
+    ) -> Self {
         let mip_size = source_cubemap_mip_size(source_face_size, mip);
         let mip_size_f = mip_size.max(1) as Real;
         let specular_power =
@@ -70,7 +71,7 @@ impl CmftRadianceFilter {
             roughness,
             specular_power,
             cos_angle: filter_angle.cos().max(0.0),
-            sample_count: cmft_sample_count_for_roughness(roughness),
+            sample_count: cmft_sample_count_for_mip(mip, mip_count, quality),
         }
     }
 }
@@ -145,13 +146,19 @@ fn cmft_cosine_power_filter_angle(specular_power: Real) -> Real {
         .acos()
 }
 
-fn cmft_sample_count_for_roughness(roughness: Real) -> u32 {
-    if roughness < CMFT_LOW_ROUGHNESS_THRESHOLD {
-        CMFT_LOW_ROUGHNESS_SAMPLE_COUNT
-    } else if roughness >= CMFT_ROUGH_SAMPLE_THRESHOLD {
-        CMFT_ROUGH_SAMPLE_COUNT
-    } else {
-        CMFT_DEFAULT_SAMPLE_COUNT
+fn cmft_sample_count_for_mip(
+    mip: u32,
+    mip_count: u32,
+    quality: SourceCubemapPrefilterQuality,
+) -> u32 {
+    let terminal_mip = mip.saturating_add(2) >= mip_count.max(1);
+    match (quality, terminal_mip) {
+        (SourceCubemapPrefilterQuality::Fast, false) => 32,
+        (SourceCubemapPrefilterQuality::Fast, true) => 64,
+        (SourceCubemapPrefilterQuality::Normal, false) => 64,
+        (SourceCubemapPrefilterQuality::Normal, true) => 128,
+        (SourceCubemapPrefilterQuality::High, false) => 128,
+        (SourceCubemapPrefilterQuality::High, true) => 256,
     }
 }
 
@@ -188,4 +195,37 @@ fn radical_inverse_vdc(mut bits: u32) -> Real {
 
 fn dot3(a: [Real; 3], b: [Real; 3]) -> Real {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cmft_sample_count_for_mip, SourceCubemapPrefilterQuality};
+
+    #[test]
+    fn cmft_prefilter_quality_matches_planned_mid_and_terminal_mip_budgets() {
+        assert_eq!(
+            cmft_sample_count_for_mip(3, 8, SourceCubemapPrefilterQuality::Fast),
+            32
+        );
+        assert_eq!(
+            cmft_sample_count_for_mip(6, 8, SourceCubemapPrefilterQuality::Fast),
+            64
+        );
+        assert_eq!(
+            cmft_sample_count_for_mip(3, 8, SourceCubemapPrefilterQuality::Normal),
+            64
+        );
+        assert_eq!(
+            cmft_sample_count_for_mip(7, 8, SourceCubemapPrefilterQuality::Normal),
+            128
+        );
+        assert_eq!(
+            cmft_sample_count_for_mip(3, 8, SourceCubemapPrefilterQuality::High),
+            128
+        );
+        assert_eq!(
+            cmft_sample_count_for_mip(7, 8, SourceCubemapPrefilterQuality::High),
+            256
+        );
+    }
 }

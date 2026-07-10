@@ -1,29 +1,33 @@
 use super::{
-    IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey, SkyboxSettings,
-    SourceCubemapEnvironment,
+    IblBakeArtifactContents, IblBakeArtifactRequest, IblBakeKey, ReflectionProbeData,
+    SkyboxSettings, SourceCubemapEnvironment,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnvironmentExtract {
     pub skybox: SkyboxSettings,
+    pub probes: Vec<ReflectionProbeData>,
 }
 
 impl EnvironmentExtract {
     pub fn disabled() -> Self {
         Self {
             skybox: SkyboxSettings::none(),
+            probes: Vec::new(),
         }
     }
 
     pub fn procedural_default() -> Self {
         Self {
             skybox: SkyboxSettings::procedural_default(),
+            probes: Vec::new(),
         }
     }
 
     pub fn source_cubemap(source_cubemap: SourceCubemapEnvironment) -> Self {
         Self {
             skybox: SkyboxSettings::source_cubemap(source_cubemap),
+            probes: Vec::new(),
         }
     }
 
@@ -37,6 +41,15 @@ impl EnvironmentExtract {
 
     pub fn skybox_enabled(&self) -> bool {
         self.skybox.is_enabled()
+    }
+
+    pub fn with_reflection_probes(mut self, probes: Vec<ReflectionProbeData>) -> Self {
+        self.probes = probes;
+        self
+    }
+
+    pub fn reflection_probes(&self) -> &[ReflectionProbeData] {
+        &self.probes
     }
 
     pub fn ibl_bake_key(&self) -> Option<IblBakeKey> {

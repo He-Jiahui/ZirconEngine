@@ -101,11 +101,7 @@ fn app_target_profiles_keep_client_and_editor_windowed_while_server_stays_headle
     assert_feature_contains_all(
         features,
         "target-client",
-        &[
-            "zircon_runtime/target-client",
-            "default-platform",
-            "plugin-ui",
-        ],
+        &["zircon_runtime/target-client", "default-platform", "ui"],
     );
     assert_feature_contains_all(
         features,
@@ -124,12 +120,7 @@ fn app_target_profiles_keep_client_and_editor_windowed_while_server_stays_headle
     assert_feature_excludes_all(
         features,
         "target-server",
-        &[
-            "default-platform",
-            "plugin-ui",
-            "platform-winit",
-            "gamepad-gilrs",
-        ],
+        &["default-platform", "ui", "platform-winit", "gamepad-gilrs"],
     );
 }
 
@@ -216,4 +207,27 @@ fn app_host_backend_dependencies_stay_optional_and_feature_owned() {
         "zircon_runtime",
         "default-features"
     ));
+}
+
+#[test]
+fn app_feature_names_forward_current_frameworks_vocabulary_without_aliases() {
+    let manifest = app_manifest();
+    let features = manifest_features(&manifest);
+
+    assert_feature_contains_all(features, "ui", &["zircon_runtime/ui"]);
+    assert_feature_contains_all(
+        features,
+        "backend-zr-vm",
+        &[
+            "first-party-zr-vm-language-runtime-plugin",
+            "zircon_first_party_runtime_catalog/backend-zr-vm",
+            "zircon_runtime/backend-zr-vm",
+        ],
+    );
+    for retired in ["plugin-ui", "first-party-zr-vm-real-backend"] {
+        assert!(
+            !features.contains_key(retired),
+            "retired feature `{retired}` must not survive as an alias"
+        );
+    }
 }

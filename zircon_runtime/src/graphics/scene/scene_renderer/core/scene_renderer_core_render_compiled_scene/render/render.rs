@@ -59,7 +59,13 @@ impl SceneRendererCore {
         render_pass_executors
             .validate_compiled_pipeline(pipeline)
             .map_err(GraphicsError::Asset)?;
-        self.write_scene_uniform(device, queue, frame);
+        self.write_scene_uniform(
+            device,
+            queue,
+            streamer,
+            frame,
+            runtime_features.reflection_probes_enabled,
+        );
         let shadow_frame_plan =
             crate::graphics::scene::scene_renderer::shadow::build_shadow_frame_plan(
                 &mut self.shadow_atlas_allocator,

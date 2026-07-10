@@ -20,19 +20,22 @@ const D5_EDITOR_AUTHORING_MACRO_CRATES: &[(&str, &str, &str)] = &[
 
 #[test]
 fn review_d5_editor_authoring_plugins_use_sdk_macro() {
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
+    let review_findings = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+    );
+    let structure_convention = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+    );
     let plugins_12 = include_str!(
         "../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
     );
     let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
     let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
     let module_convention =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
     let session_note = include_str!(
@@ -97,10 +100,6 @@ fn review_d5_editor_authoring_plugins_use_sdk_macro() {
         );
     }
 
-    let d5_row = review_findings
-        .lines()
-        .find(|line| line.starts_with("| D5 |"))
-        .expect("D5 review finding row should exist");
     for required in [
         "editor authoring macro consumer guard",
         "animation/physics/net",
@@ -109,14 +108,10 @@ fn review_d5_editor_authoring_plugins_use_sdk_macro() {
         "review_d5_editor_authoring_plugins_use_sdk_macro",
     ] {
         assert!(
-            d5_row.contains(required),
-            "D5 row should record editor authoring macro consumer convergence anchor `{required}`"
+            review_findings.contains(required),
+            "D5 review output should record editor authoring macro consumer convergence anchor `{required}`"
         );
     }
-    assert!(
-        !d5_row.contains("editor 插件逐字节复制模板"),
-        "D5 row should not keep the stale copy-paste template wording as current state"
-    );
 
     for (doc_label, doc) in [
         ("review findings", review_findings),

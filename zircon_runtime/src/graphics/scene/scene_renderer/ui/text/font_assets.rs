@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 use super::super::font_asset::{load_ui_font_manifest_with_asset_manager, LoadedUiFontManifest};
 use super::DEFAULT_FONT_ASSET;
 use crate::asset::ProjectAssetManager;
+use crate::graphics::text::font::publish_shared_font_database;
 use crate::graphics::text::font::FontDatabase;
 use crate::ui::text::shaper::resolve_text_render_mode;
 
@@ -53,6 +54,7 @@ pub(super) fn load_font_asset_record(
     let manifest = load_ui_font_manifest_with_asset_manager(asset_ref, Some(asset_manager))?;
     let face = register_loaded_font_manifest(font_database, &manifest)?;
     let _ = font_database.load_face_into_font_system(face, font_system);
+    publish_shared_font_database(font_database);
     Some(LoadedUiFontAsset {
         family: manifest.family,
         render_mode: manifest.render_mode,

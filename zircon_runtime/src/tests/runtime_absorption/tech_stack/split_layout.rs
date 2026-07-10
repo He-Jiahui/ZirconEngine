@@ -7,28 +7,40 @@ const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const FRAMEWORKS_02_PLAN: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
+const FRAMEWORKS_02_OUTPUT_ARCHIVE: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
+);
 const RUNTIME_15_PLAN: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+);
+const RUNTIME_15_OUTPUT_ARCHIVE: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
 const RUNTIME_INDEX: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+const STRUCTURE_CONVENTION_OUTPUT_ARCHIVE: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+);
 const REVIEW_FINDINGS_PLAN: &str =
     include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+const REVIEW_FINDINGS_OUTPUT_ARCHIVE: &str = include_str!(
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+);
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
 const SESSION_NOTE: &str = include_str!(
     "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
 );
 const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests.rs"
+    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_platform_rows.rs"
 );
 const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
 );
 const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/core_route_rows.rs"
 );
 
 #[test]
@@ -128,11 +140,16 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     for (label, source) in [
-        ("Frameworks 02 plan", FRAMEWORKS_02_PLAN),
-        ("Runtime 15 plan", RUNTIME_15_PLAN),
-        ("runtime index", RUNTIME_INDEX),
-        ("structure convention plan", STRUCTURE_CONVENTION_PLAN),
-        ("review findings plan", REVIEW_FINDINGS_PLAN),
+        ("Frameworks 02 output archive", FRAMEWORKS_02_OUTPUT_ARCHIVE),
+        ("Runtime 15 output archive", RUNTIME_15_OUTPUT_ARCHIVE),
+        (
+            "structure convention output archive",
+            STRUCTURE_CONVENTION_OUTPUT_ARCHIVE,
+        ),
+        (
+            "review findings output archive",
+            REVIEW_FINDINGS_OUTPUT_ARCHIVE,
+        ),
         ("module convention doc", MODULE_CONVENTION_DOC),
         ("session note", SESSION_NOTE),
         ("status row data", STATUS_ROW_DATA),
@@ -142,6 +159,35 @@ fn assert_docs_and_status_mirror_split() {
             source.contains("runtime_15_tech_stack_route_owner_split_static_passed_cargo_deferred"),
             "{label} should mirror the tech_stack route-owner split status"
         );
+    }
+    for (label, source, route_anchor) in [
+        (
+            "Frameworks 02 plan",
+            FRAMEWORKS_02_PLAN,
+            "02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
+        ),
+        (
+            "Runtime 15 plan",
+            RUNTIME_15_PLAN,
+            "15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        ),
+        (
+            "runtime index",
+            RUNTIME_INDEX,
+            "15-code-structure-and-module-conventions.md",
+        ),
+        (
+            "structure convention plan",
+            STRUCTURE_CONVENTION_PLAN,
+            "15/2026-07-09-engine-code-structure-output-records.md",
+        ),
+        (
+            "review findings plan",
+            REVIEW_FINDINGS_PLAN,
+            "15/2026-07-09-engine-code-review-findings-output-records.md",
+        ),
+    ] {
+        assert_contains_all(label, source, &[route_anchor, "此处仅展示当前现状的概述"]);
     }
     assert!(
         DATE_MAP.contains("Runtime 15 M3 tech-stack route-owner split"),
@@ -160,8 +206,8 @@ fn assert_docs_and_status_mirror_split() {
         ],
     );
     assert_contains_all(
-        "Frameworks 02 plan",
-        FRAMEWORKS_02_PLAN,
+        "Frameworks 02 output archive",
+        FRAMEWORKS_02_OUTPUT_ARCHIVE,
         &[
             "frameworks_02_m3_tech_stack_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 tech-stack route-owner split",

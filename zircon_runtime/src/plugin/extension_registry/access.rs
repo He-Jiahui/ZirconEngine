@@ -1,4 +1,5 @@
 use crate::asset::AssetImporterRegistry;
+#[cfg(feature = "graphics")]
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -13,26 +14,32 @@ mod runtime_core;
 mod scene_hook;
 
 impl RuntimeExtensionRegistry {
+    #[cfg(feature = "graphics")]
     pub fn render_features(&self) -> &[RenderFeatureDescriptor] {
         self.render_features.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
         self.render_pass_executors.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub fn runtime_prepare_collectors(&self) -> &[RuntimePrepareCollectorRegistration] {
         self.runtime_prepare_collectors.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub fn hybrid_gi_runtime_providers(&self) -> &[HybridGiRuntimeProviderRegistration] {
         self.hybrid_gi_runtime_providers.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub fn solari_runtime_providers(&self) -> &[SolariRuntimeProviderRegistration] {
         self.solari_runtime_providers.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub fn virtual_geometry_runtime_providers(
         &self,
     ) -> &[VirtualGeometryRuntimeProviderRegistration] {

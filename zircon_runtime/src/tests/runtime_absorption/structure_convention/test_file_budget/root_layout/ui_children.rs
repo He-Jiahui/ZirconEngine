@@ -141,9 +141,7 @@ fn runtime_15_test_file_budget_root_layout_ui_child_scan_is_child_owner() {
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_second.rs",
-    );
+    let status_rows = ui_tests_second_status_row_source();
 
     assert_contains_all(
         "root-layout guard parent mounts UI child scan",

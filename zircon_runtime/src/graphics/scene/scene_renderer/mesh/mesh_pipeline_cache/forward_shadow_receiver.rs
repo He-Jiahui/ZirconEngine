@@ -1,6 +1,7 @@
 use bytemuck::bytes_of;
 use wgpu::util::DeviceExt;
 
+use crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
     LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
 };
@@ -39,45 +40,48 @@ impl MeshPipelineCache {
         let shadow_atlas_globals_buffer = shadow_atlas_resources
             .map(ShadowAtlasResources::globals_buffer)
             .unwrap_or(&self.forward_shadow_atlas_fallback_globals_buffer);
+        let reflection_probe_bindings = self.reflection_probes.bindings();
+        let mut entries = vec![
+            wgpu::BindGroupEntry {
+                binding: SHADOW_ATLAS_BINDING,
+                resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_ATLAS_SAMPLER_BINDING,
+                resource: wgpu::BindingResource::Sampler(shadow_atlas_sampler),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_ATLAS_SLOT_BUFFER_BINDING,
+                resource: shadow_atlas_slot_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: SHADOW_GLOBALS_BINDING,
+                resource: shadow_atlas_globals_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: LIGHT_GRID_PARAMS_BINDING,
+                resource: light_grid_params_buffer
+                    .unwrap_or(&self.forward_light_grid_params_buffer)
+                    .as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: LIGHT_ZBINS_BINDING,
+                resource: light_zbins_buffer
+                    .unwrap_or(&self.forward_light_grid_empty_zbins_buffer)
+                    .as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: LIGHT_TILE_MASKS_BINDING,
+                resource: light_tile_masks_buffer
+                    .unwrap_or(&self.forward_light_grid_empty_tile_masks_buffer)
+                    .as_entire_binding(),
+            },
+        ];
+        entries.extend(reflection_probe_bindings.bind_group_entries());
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("zircon-forward-shadow-receiver-bind-group"),
             layout: &self.forward_shadow_receiver_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_ATLAS_BINDING,
-                    resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_ATLAS_SAMPLER_BINDING,
-                    resource: wgpu::BindingResource::Sampler(shadow_atlas_sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_ATLAS_SLOT_BUFFER_BINDING,
-                    resource: shadow_atlas_slot_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: SHADOW_GLOBALS_BINDING,
-                    resource: shadow_atlas_globals_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: LIGHT_GRID_PARAMS_BINDING,
-                    resource: light_grid_params_buffer
-                        .unwrap_or(&self.forward_light_grid_params_buffer)
-                        .as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: LIGHT_ZBINS_BINDING,
-                    resource: light_zbins_buffer
-                        .unwrap_or(&self.forward_light_grid_empty_zbins_buffer)
-                        .as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: LIGHT_TILE_MASKS_BINDING,
-                    resource: light_tile_masks_buffer
-                        .unwrap_or(&self.forward_light_grid_empty_tile_masks_buffer)
-                        .as_entire_binding(),
-                },
-            ],
+            entries: &entries,
         })
     }
 }
@@ -89,6 +93,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_forward_shadow_re
     entries.extend(shadow_atlas_bind_group_layout_entries(
         FORWARD_SHADOW_RECEIVER_BINDING_SHADER_STAGES,
     ));
+    entries.extend(reflection_probe_bind_group_layout_entries());
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: LIGHT_GRID_PARAMS_BINDING,

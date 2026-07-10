@@ -1,4 +1,6 @@
-use crate::core::framework::render::{FrameHistoryHandle, RenderViewportHandle};
+use crate::core::framework::render::{
+    FrameHistoryHandle, FrameHistoryInvalidationReason, RenderViewportHandle,
+};
 
 use crate::graphics::runtime::render_framework::render_framework_state::RenderFrameworkState;
 
@@ -66,14 +68,23 @@ fn should_rotate_history(
         .get(&viewport)
         .and_then(|record| record.history(context.camera_history_key()))
         .is_none_or(|history| {
-            !history.is_compatible(
+            history_invalidation_requires_reallocation(history.incompatibility_reason(
                 context.size(),
                 context.render_size(),
                 context.pipeline_handle(),
                 &context.compiled_pipeline().history_bindings,
                 context.history_validation_key(),
-            )
+            ))
         })
+}
+
+const fn history_invalidation_requires_reallocation(
+    reason: Option<FrameHistoryInvalidationReason>,
+) -> bool {
+    !matches!(
+        reason,
+        None | Some(FrameHistoryInvalidationReason::FrameInputsChanged)
+    )
 }
 
 fn allocate_history_handle(state: &mut RenderFrameworkState) -> FrameHistoryHandle {
@@ -92,4 +103,23 @@ fn current_history_handle(
             .history(context.camera_history_key())
             .map(|history| history.handle())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frame_input_changes_invalidate_content_without_reallocating_history_textures() {
+        assert!(!history_invalidation_requires_reallocation(Some(
+            FrameHistoryInvalidationReason::FrameInputsChanged
+        )));
+        assert!(!history_invalidation_requires_reallocation(None));
+        assert!(history_invalidation_requires_reallocation(Some(
+            FrameHistoryInvalidationReason::RenderSizeChanged
+        )));
+        assert!(history_invalidation_requires_reallocation(Some(
+            FrameHistoryInvalidationReason::PipelineChanged
+        )));
+    }
 }

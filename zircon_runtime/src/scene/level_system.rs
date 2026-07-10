@@ -4,14 +4,20 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::animation::AnimationPoseOutput;
-use crate::core::framework::physics::{
-    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan,
-};
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::world::World;
 use crate::scene::{ecs::RuntimeSceneSystemContext, EntityId, WorldDriver, WORLD_DRIVER_NAME};
+
+#[cfg(feature = "physics-contracts")]
+#[path = "level_system/physics_runtime_enabled.rs"]
+mod physics_runtime;
+#[cfg(not(feature = "physics-contracts"))]
+#[path = "level_system/physics_runtime_disabled.rs"]
+mod physics_runtime;
+
+use physics_runtime::PhysicsRuntimeState;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {
@@ -38,9 +44,7 @@ pub struct LevelSystem {
 
 #[derive(Clone, Debug, Default)]
 struct WorldRuntimeState {
-    physics_step_plan: Option<PhysicsWorldStepPlan>,
-    physics_contacts: Vec<PhysicsContactEvent>,
-    physics_triggers: Vec<PhysicsTriggerEvent>,
+    physics: PhysicsRuntimeState,
     animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
     animation_graph_times: BTreeMap<EntityId, Real>,
     animation_state_machine_times: BTreeMap<EntityId, Real>,
@@ -151,30 +155,6 @@ impl LevelSystem {
         let result = system.run(RuntimeSceneSystemContext::new(core, self, delta_seconds));
         self.with_world_mut(|world| world.schedule_mut().restore_runtime_system(system));
         result.map(|_| true)
-    }
-
-    pub fn last_physics_step_plan(&self) -> Option<PhysicsWorldStepPlan> {
-        self.lock_runtime_state().physics_step_plan
-    }
-
-    pub fn physics_contacts(&self) -> Vec<PhysicsContactEvent> {
-        self.lock_runtime_state().physics_contacts.clone()
-    }
-
-    pub fn physics_triggers(&self) -> Vec<PhysicsTriggerEvent> {
-        self.lock_runtime_state().physics_triggers.clone()
-    }
-
-    pub fn record_physics_step(
-        &self,
-        physics_step_plan: PhysicsWorldStepPlan,
-        physics_contacts: Vec<PhysicsContactEvent>,
-        physics_triggers: Vec<PhysicsTriggerEvent>,
-    ) {
-        let mut runtime_state = self.lock_runtime_state();
-        runtime_state.physics_step_plan = Some(physics_step_plan);
-        runtime_state.physics_contacts = physics_contacts;
-        runtime_state.physics_triggers = physics_triggers;
     }
 
     pub fn animation_pose(&self, entity: EntityId) -> Option<AnimationPoseOutput> {
@@ -293,6 +273,7 @@ mod tests {
         assert!(level.snapshot().contains_entity(entity));
 
         poison_mutex(&level.runtime_state);
+        #[cfg(feature = "physics-contracts")]
         assert_eq!(level.last_physics_step_plan(), None);
         level.mark_script_binding_started(entity, "behavior");
         assert!(level.script_binding_started(entity, "behavior"));

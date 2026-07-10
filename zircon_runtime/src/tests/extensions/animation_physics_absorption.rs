@@ -12,10 +12,11 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let plugin_workspace_manifest =
         std::fs::read_to_string(repo_root.join("zircon_plugins/Cargo.toml")).unwrap_or_default();
     let physics_plugin_root = repo_root.join("zircon_plugins/physics");
-    let physics_plugin_lib =
-        std::fs::read_to_string(physics_plugin_root.join("runtime/src/lib.rs")).unwrap_or_default();
     let physics_plugin_module =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/module.rs"))
+            .unwrap_or_default();
+    let physics_plugin_registration =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/plugin.rs"))
             .unwrap_or_default();
     let physics_plugin_manager_service =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/manager/service.rs"))
@@ -54,7 +55,9 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
             && physics_plugin_manager_service.contains("tick_scene_world")
             && physics_plugin_runtime_system.contains("PhysicsRuntimeSystem")
             && physics_plugin_runtime_system.contains("PHYSICS_STEP_SYSTEM")
-            && physics_plugin_lib.contains("register_runtime_system(registry, owner)"),
+            && physics_plugin_runtime_system.contains("PHYSICS_SYNC_TO_SCENE_SYSTEM")
+            && physics_plugin_registration.contains("RuntimePluginRegistrationBuilder")
+            && physics_plugin_registration.contains("register_runtime_systems(&mut module)"),
         "physics plugin should own module wiring, manager behavior, and runtime system registration"
     );
     assert!(
@@ -111,14 +114,8 @@ fn animation_domain_keeps_framework_contract_and_plugin_wrapper_boundary() {
     let animation_plugin_lib =
         std::fs::read_to_string(animation_plugin_root.join("runtime/src/lib.rs"))
             .unwrap_or_default();
-    let animation_plugin_module =
-        std::fs::read_to_string(animation_plugin_root.join("runtime/src/module.rs"))
-            .unwrap_or_default();
-    let animation_plugin_manager =
-        std::fs::read_to_string(animation_plugin_root.join("runtime/src/manager.rs"))
-            .unwrap_or_default();
-    let animation_plugin_sequence =
-        std::fs::read_to_string(animation_plugin_root.join("runtime/src/sequence.rs"))
+    let animation_plugin_registration =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/plugin.rs"))
             .unwrap_or_default();
     let animation_plugin_runtime_system =
         std::fs::read_to_string(animation_plugin_root.join("runtime/src/runtime_system.rs"))
@@ -152,15 +149,11 @@ fn animation_domain_keeps_framework_contract_and_plugin_wrapper_boundary() {
     );
     assert!(
         animation_plugin_lib.contains("pub use zircon_runtime::animation")
-            && animation_plugin_module.contains("AnimationDriver")
-            && animation_plugin_module.contains("AnimationManagerHandle")
-            && animation_plugin_module.contains("module_descriptor")
-            && animation_plugin_manager.contains("impl AnimationManager for DefaultAnimationManager")
-            && animation_plugin_manager.contains("apply_sequence_to_world")
-            && animation_plugin_sequence.contains("apply_sequence_to_world")
+            && animation_plugin_registration.contains("RuntimePluginRegistrationBuilder")
+            && animation_plugin_registration.contains("with_module_descriptor(module_descriptor())")
+            && animation_plugin_registration.contains("register_runtime_system(&mut module)")
             && animation_plugin_runtime_system.contains("AnimationRuntimeSystem")
-            && animation_plugin_runtime_system.contains("ANIMATION_EVALUATE_SYSTEM")
-            && animation_plugin_lib.contains("register_runtime_system(registry, owner)"),
+            && animation_plugin_runtime_system.contains("ANIMATION_EVALUATE_SYSTEM"),
         "animation plugin should wrap the runtime-owned animation family with plugin metadata and runtime system registration"
     );
     assert!(

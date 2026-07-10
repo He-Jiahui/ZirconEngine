@@ -25,7 +25,7 @@ use super::super::super::super::shadow::atlas::{
 use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
-use super::super::super::constants::DEPTH_FORMAT;
+use super::super::super::constants::{DEPTH_FORMAT, SCENE_COLOR_HDR_FORMAT};
 use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginResources, SceneRendererCore,
 };
@@ -39,7 +39,7 @@ impl SceneRendererCore {
         asset_manager: Arc<ProjectAssetManager>,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        target_format: wgpu::TextureFormat,
+        final_color_format: wgpu::TextureFormat,
         backend_name: &str,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: &[RenderFeatureDescriptor],
@@ -59,9 +59,10 @@ impl SceneRendererCore {
             skinned_joint_palette_uniform_min_binding_size(),
         );
 
+        let scene_color_format = SCENE_COLOR_HDR_FORMAT;
         let mut mesh_pipelines = MeshPipelineCache::new(
             device,
-            target_format,
+            scene_color_format,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
@@ -70,7 +71,7 @@ impl SceneRendererCore {
             mesh_pipelines.register_geometry_source_descriptor(descriptor);
         }
         let ibl_bake_pipeline_cache = IblBakeWgpuPipelineCache::new(device);
-        let scene_clear = SceneRegionClearResources::new(device, target_format, DEPTH_FORMAT);
+        let scene_clear = SceneRegionClearResources::new(device, scene_color_format, DEPTH_FORMAT);
         let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
         let shadow_atlas_resources =
             ShadowAtlasResources::new(device, ShadowAtlasResourceConfig::default());
@@ -88,16 +89,17 @@ impl SceneRendererCore {
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
-            target_format,
+            mesh_pipelines.reflection_probes.bindings(),
+            scene_color_format,
             &plugin_shading_models,
         )?;
         let particle_renderer =
-            ParticleRenderer::new(device, &scene_bind_group_bundle.layout, target_format);
+            ParticleRenderer::new(device, &scene_bind_group_bundle.layout, scene_color_format);
         let sprite_renderer = SpriteRenderer::new(
             device,
             &scene_bind_group_bundle.layout,
             &texture_bind_group_layout,
-            target_format,
+            scene_color_format,
         );
         let hzb_occlusion_culler = hzb_occlusion_supported_by_limits(&device.limits()).then(|| {
             HzbOcclusionCuller::new(
@@ -107,16 +109,17 @@ impl SceneRendererCore {
             )
         });
         let post_process =
-            ScenePostProcessResources::new(device, queue, target_format, backend_name);
+            ScenePostProcessResources::new(device, queue, final_color_format, backend_name);
         let overlay_renderer = ViewportOverlayRenderer::new(
             device,
-            target_format,
+            scene_color_format,
+            final_color_format,
             &scene_bind_group_bundle.layout,
             &texture_bind_group_layout,
             icon_source,
         );
         let screen_space_ui_renderer =
-            ScreenSpaceUiRenderer::new(asset_manager, device, queue, target_format);
+            ScreenSpaceUiRenderer::new(asset_manager, device, queue, final_color_format);
         let advanced_plugin_resources = SceneRendererAdvancedPluginResources::new(
             device,
             render_features,
@@ -130,7 +133,8 @@ impl SceneRendererCore {
             scene_environment_cubemap: scene_bind_group_bundle.environment_cubemap,
             scene_environment_brdf_lut: scene_bind_group_bundle.environment_brdf_lut,
             scene_bind_group: scene_bind_group_bundle.bind_group,
-            target_format,
+            scene_color_format,
+            final_color_format,
             depth_format: DEPTH_FORMAT,
             mesh_command_generation: 0,
             material_texture_bind_group_layout,

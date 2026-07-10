@@ -5,11 +5,10 @@ use crate::core::framework::render::{
     AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
     AdvancedRenderFeature, CapturedFrame, FallbackSkyboxKind, PreviewEnvironmentExtract,
     RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderHybridGiExtract,
-    RenderHybridGiPayloadSource, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderLayerSet,
-    RenderMeshSnapshot, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderStats, RenderViewportDescriptor, RenderVirtualGeometryCluster,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderHybridGiPayloadSource, RenderLayerSet, RenderMeshSnapshot, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Real, Transform, UVec2, Vec3, Vec4};
@@ -53,7 +52,7 @@ fn render_product_advanced_submits_vg_hgi_only_with_runtime_providers() {
     );
     assert_eq!(
         stats.last_hybrid_gi_payload_source,
-        RenderHybridGiPayloadSource::Authored
+        RenderHybridGiPayloadSource::SceneRepresentation
     );
     assert_eq!(
         advanced_provider_report(&stats, AdvancedRenderFeature::VirtualGeometry).status,
@@ -260,22 +259,10 @@ pub(super) fn advanced_product_extract() -> crate::core::framework::render::Rend
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
         quality: Default::default(),
-        trace_budget: 0,
+        trace_budget: 2,
         card_budget: 1,
         voxel_budget: 2,
         debug_view: Default::default(),
-        probe_budget: 1,
-        tracing_budget: 1,
-        probes: vec![
-            hybrid_gi_probe(mesh, 30, false, Vec3::ZERO, 128),
-            hybrid_gi_probe(mesh, 20, true, Vec3::new(0.1, 0.0, 0.0), 64),
-            hybrid_gi_probe(mesh, 10, false, Vec3::new(100.0, 0.0, 0.0), 32),
-        ],
-        trace_regions: vec![
-            hybrid_gi_trace_region(mesh, 40, Vec3::ZERO, 8.0),
-            hybrid_gi_trace_region(mesh, 50, Vec3::new(0.1, 0.0, 0.0), 5.0),
-            hybrid_gi_trace_region(mesh, 60, Vec3::new(100.0, 0.0, 0.0), 10.0),
-        ],
     });
     extract
 }
@@ -306,40 +293,6 @@ fn virtual_geometry_page(page_id: u32, resident: bool) -> RenderVirtualGeometryP
         page_id,
         resident,
         size_bytes: 4096,
-    }
-}
-
-fn hybrid_gi_probe(
-    entity: u64,
-    probe_id: u32,
-    resident: bool,
-    position: Vec3,
-    ray_budget: u32,
-) -> RenderHybridGiProbe {
-    RenderHybridGiProbe {
-        entity,
-        probe_id,
-        position,
-        radius: 0.5,
-        parent_probe_id: None,
-        resident,
-        ray_budget,
-    }
-}
-
-fn hybrid_gi_trace_region(
-    entity: u64,
-    region_id: u32,
-    bounds_center: Vec3,
-    screen_coverage: f32,
-) -> RenderHybridGiTraceRegion {
-    RenderHybridGiTraceRegion {
-        entity,
-        region_id,
-        bounds_center,
-        bounds_radius: 0.5,
-        screen_coverage,
-        rt_lighting_rgb: [0, 0, 0],
     }
 }
 

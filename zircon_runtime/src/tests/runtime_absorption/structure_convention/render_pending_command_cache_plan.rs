@@ -53,10 +53,17 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
         read_runtime_src("core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs");
     let product_diagnostics =
         read_runtime_src("core/runtime/diagnostics/render_stats_store/product.rs");
-    let plan_02 = read_repo("docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let plan_02 = read_repo(
+        "docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let mesh_pass_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pass.md");
     let module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -355,17 +362,26 @@ fn runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build() 
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs",
-                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
-                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs",
-                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs",
-                "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs",
                 "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs",
                 "graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs",
                 "runtime_15_pending_command_cache_plan_is_observable_before_mesh_draw_build",
             ],
         );
     }
+
+    assert_contains_all(
+        "pending command cache focused child-owner documentation",
+        &format!(
+            "{plan_02}\n{render_index}\n{review_findings}\n{structure_convention}\n{mesh_pass_doc}\n{module_convention}"
+        ),
+        &[
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs",
+            "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs",
+        ],
+    );
 }
 
 fn read_runtime_src(relative: &str) -> String {

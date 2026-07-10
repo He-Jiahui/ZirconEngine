@@ -10,7 +10,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextWritingMode,
 };
 
-use super::rich_text::parse_source_runs;
+use super::rich_text::parse_source_text;
 
 mod candidate_line;
 mod direction;
@@ -32,7 +32,8 @@ use wrapping::wrap_source_runs_with_provider;
 pub(crate) use direction::resolve_direction as resolve_text_direction;
 
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
-    measure_backend_text_size(text, style)
+    let parsed = parse_source_text(text, style.rich_text);
+    measure_backend_text_size(&parsed.text, style)
 }
 
 pub(crate) fn measure_text_size_with_provider<P>(
@@ -43,7 +44,8 @@ pub(crate) fn measure_text_size_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    measure_backend_text_size_with_provider(text, style, provider)
+    let parsed = parse_source_text(text, style.rich_text);
+    measure_backend_text_size_with_provider(&parsed.text, style, provider)
 }
 
 pub(crate) fn measure_text_source_range_width(
@@ -51,7 +53,8 @@ pub(crate) fn measure_text_source_range_width(
     style: &UiResolvedStyle,
     range: UiTextRange,
 ) -> f32 {
-    measure_backend_text_source_range_width(text, style, range)
+    let parsed = parse_source_text(text, style.rich_text);
+    measure_backend_text_source_range_width(&parsed.text, style, range)
 }
 
 pub(crate) fn layout_text(
@@ -74,19 +77,22 @@ pub(crate) fn layout_text_with_provider<P>(
 where
     P: TextShapeRunProvider + ?Sized,
 {
-    let effective_style = resolve_overflow_style_with_provider(text, style, frame, provider);
+    let parsed = parse_source_text(text, style.rich_text);
+    let visible_text = parsed.text.as_str();
+    let effective_style =
+        resolve_overflow_style_with_provider(visible_text, style, frame, provider);
     let style = &effective_style;
     let font_size = style.font_size.max(MIN_TEXT_FONT_SIZE);
     let metrics: TextLineMetrics = line_metrics_with_provider(style, provider);
     let line_height = metrics.line_height;
     if matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl) {
         return vertical::layout_vertical_text_with_provider(
-            text, style, frame, clip_frame, font_size, metrics, provider,
+            &parsed, style, frame, clip_frame, font_size, metrics, provider,
         );
     }
 
-    let direction = resolve_text_direction(text, style.text_direction);
-    let source_runs = parse_source_runs(text, style.rich_text);
+    let direction = resolve_text_direction(visible_text, style.text_direction);
+    let source_runs = parsed.runs;
     let max_width = frame.width.max(text_advance(font_size));
     let mut lines =
         wrap_source_runs_with_provider(&source_runs, style.wrap, max_width, style, provider);
@@ -118,7 +124,7 @@ where
         }
     }
     for line in &mut lines {
-        visual_order::apply_visual_order(line, direction);
+        visual_order::apply_visual_order(line, visible_text, direction);
     }
 
     let mut resolved_lines = Vec::new();
@@ -176,7 +182,7 @@ where
         measured_height,
         source_range: UiTextRange {
             start: 0,
-            end: text.len(),
+            end: visible_text.len(),
         },
         lines: resolved_lines,
         overflow_clipped,

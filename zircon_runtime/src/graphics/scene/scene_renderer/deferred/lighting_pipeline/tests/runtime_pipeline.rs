@@ -5,6 +5,7 @@ use crate::core::framework::render::ShaderAssetKind;
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScene;
+use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
 
 use super::super::super::lighting_bind_group_layout::create_lighting_bind_group_layout;
 use super::super::create_lighting_pipeline;
@@ -28,6 +29,7 @@ fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferred
             clamp(surface.occlusion, 0.0, 1.0),
             zr_deferred_encode_material_flags(16u, receive_shadows),
         ),
+        vec4<f32>(surface.emissive, 1.0),
     );
 }
 "#;
@@ -128,35 +130,6 @@ fn register_shader(asset_manager: &ProjectAssetManager, locator_text: &str, sour
 fn scene_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-test-custom-deferred-lighting-scene-layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX
-                    | wgpu::ShaderStages::FRAGMENT
-                    | wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Texture {
-                    multisampled: false,
-                    view_dimension: wgpu::TextureViewDimension::Cube,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                count: None,
-            },
-        ],
+        entries: &scene_bind_group_layout_entries(),
     })
 }

@@ -7,8 +7,8 @@ fn runtime_15_render_product_anti_alias_focused_tests_are_child_owners() {
     let reactive_mask =
         read_runtime_src("graphics/tests/render_product_anti_alias/reactive_mask.rs");
 
-    let plan_07 = read_repo("docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_07 = read_repo("docs/plans/zircon_runtime/render/07/2026-07-09-postprocess-color-pipeline-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let anti_alias_doc = read_repo("docs/zircon_runtime/core/framework/render/anti_alias.md");

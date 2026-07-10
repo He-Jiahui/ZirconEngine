@@ -13,8 +13,8 @@ use crate::asset::{
     SceneVignetteSettingsAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
-use crate::core::framework::render::{ProjectionMode, RenderCameraClearColor};
+use crate::core::framework::render::{CorePipelineKind, ProjectionMode, RenderCameraClearColor};
+use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 
 mod camera;
 mod foundation;

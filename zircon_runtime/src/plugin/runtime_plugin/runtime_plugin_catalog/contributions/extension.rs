@@ -1,6 +1,7 @@
 use crate::plugin::{PluginModuleId, RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 
 use super::super::descriptor_contributions::merge_descriptor_extension_registry_contributions;
+#[cfg(feature = "graphics")]
 use super::super::render_contributions::merge_render_extension_registry_contributions;
 use super::diagnostic::push_runtime_extension_result;
 
@@ -47,18 +48,21 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn merge_extension
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
+    #[cfg(feature = "graphics")]
     for (owner, descriptor) in extensions.geometry_source_entries() {
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_geometry_source_for_owner(target_owner, descriptor.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
+    #[cfg(feature = "graphics")]
     for (owner, descriptor) in extensions.shading_model_entries() {
         let result = intern_target_owner(registry, extensions, owner).and_then(|target_owner| {
             registry.register_shading_model_for_owner(target_owner, descriptor.clone())
         });
         push_runtime_extension_result(result, diagnostics, fatal_diagnostics);
     }
+    #[cfg(feature = "graphics")]
     merge_render_extension_registry_contributions(
         extensions,
         registry,

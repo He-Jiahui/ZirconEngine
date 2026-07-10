@@ -261,6 +261,18 @@ pub(super) fn update_base_stats(
     state.stats.last_ui_command_count = ui_stats.command_count();
     state.stats.last_ui_quad_count = ui_stats.quad_count();
     state.stats.last_ui_text_payload_count = ui_stats.text_payload_count();
+    let ui_text_report = state.renderer.last_ui_text_prepare_report();
+    state.stats.last_ui_text_glyph_count = ui_text_report.native_font_ids.glyph_count;
+    state.stats.last_ui_text_unmapped_glyph_count =
+        ui_text_report.native_font_ids.unmapped_glyph_count;
+    state.stats.last_ui_text_visible_raster_glyph_count =
+        ui_text_report.raster_upload.visible_raster_glyph_count;
+    state.stats.last_ui_text_raster_source_image_count =
+        ui_text_report.raster_upload.source_image_count;
+    state.stats.last_ui_text_raster_worker_pending_count =
+        ui_text_report.raster_upload.worker_request_pending_count;
+    state.stats.last_ui_text_raster_worker_failed_count =
+        ui_text_report.raster_upload.worker_request_failed_count;
     state.stats.last_ui_image_payload_count = ui_stats.image_payload_count();
     state.stats.last_ui_clipped_command_count = ui_stats.clipped_command_count();
     state.stats.last_ui_graph_executed_pass_count = state

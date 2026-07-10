@@ -89,7 +89,7 @@ fn offline_bake_outputs_baked_lighting_and_reflection_probe_data_that_changes_re
 
     let mut baked_extract = base_extract.clone();
     baked_extract.lighting.baked_lighting = Some(bake_output.baked_lighting);
-    baked_extract.lighting.reflection_probes = bake_output.reflection_probes;
+    baked_extract.environment.probes = bake_output.reflection_probes;
 
     let server = fixture.server();
     let baked_frame = fixture.render_extract(

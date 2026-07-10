@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use image::{GenericImageView, ImageFormat};
+use image::{DynamicImage, GenericImageView, ImageFormat};
 
 use super::{AssetImportContext, AssetImportError};
 
@@ -12,6 +12,14 @@ pub struct DecodedTextureImage {
     pub rgba: Vec<u8>,
 }
 
+/// Linear RGBA32F image data for import stages that must preserve HDR radiance.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DecodedTextureImageRgba32F {
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<[f32; 4]>,
+}
+
 /// Decode image bytes using Bevy-style source format selection.
 ///
 /// The default path trusts the source extension. Import settings can request
@@ -19,8 +27,34 @@ pub struct DecodedTextureImage {
 pub fn decode_texture_source_image(
     context: &AssetImportContext,
 ) -> Result<DecodedTextureImage, AssetImportError> {
+    let image = decode_texture_source_dynamic_image(context)?;
+    let (width, height) = image.dimensions();
+    Ok(DecodedTextureImage {
+        width,
+        height,
+        rgba: image.to_rgba8().into_raw(),
+    })
+}
+
+/// Decode source image bytes without quantizing HDR/EXR radiance through RGBA8.
+pub fn decode_texture_source_image_rgba32f(
+    context: &AssetImportContext,
+) -> Result<DecodedTextureImageRgba32F, AssetImportError> {
+    let image = decode_texture_source_dynamic_image(context)?;
+    let (width, height) = image.dimensions();
+    let rgba = image.to_rgba32f().pixels().map(|pixel| pixel.0).collect();
+    Ok(DecodedTextureImageRgba32F {
+        width,
+        height,
+        rgba,
+    })
+}
+
+fn decode_texture_source_dynamic_image(
+    context: &AssetImportContext,
+) -> Result<DynamicImage, AssetImportError> {
     let setting = image_format_setting(context)?;
-    let image = match setting {
+    Ok(match setting {
         ImageFormatSetting::FromExtension { extension, format } => {
             image::load_from_memory_with_format(&context.source_bytes, format).map_err(|error| {
                 decode_error_value(
@@ -47,12 +81,6 @@ pub fn decode_texture_source_image(
                 decode_error_value(context, format!("decode guessed image: {error}"))
             })?
         }
-    };
-    let (width, height) = image.dimensions();
-    Ok(DecodedTextureImage {
-        width,
-        height,
-        rgba: image.to_rgba8().into_raw(),
     })
 }
 

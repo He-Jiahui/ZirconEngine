@@ -92,3 +92,14 @@ pub(super) fn frontmatter_lines<'a>(label: &str, path: &str, source: &'a str) ->
 
     panic!("{label} priority plan doc `{path}` should close YAML frontmatter");
 }
+
+pub(super) fn runtime_index_with_output_archive_source() -> String {
+    let mut source = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    source.push('\n');
+    source.push_str(priority_plan_doc_current_owner_archive_source());
+    source
+}
+
+pub(super) fn priority_plan_doc_current_owner_archive_source() -> &'static str {
+    crate::tests::runtime_absorption::structure_convention::priority_plan_doc_current_owner_archive_source()
+}

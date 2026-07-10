@@ -68,6 +68,7 @@ pub(super) fn camera_to_asset(
     post_process_settings: Option<ScenePostProcessSettingsAsset>,
 ) -> Result<SceneCameraAsset, SceneProjectError> {
     Ok(SceneCameraAsset {
+        core_pipeline: camera.core_pipeline,
         projection_mode: camera.projection_mode,
         fov_y_radians: camera.fov_y_radians,
         ortho_size: camera.ortho_size,

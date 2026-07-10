@@ -55,6 +55,19 @@ fn zcube_staged_ibl_bundle_keeps_source_cube_separate_from_derived_pmrem() {
         other => panic!("expected asset-derived .zribl hit, got {other:?}"),
     };
 
+    let staged_environment = store
+        .read_source_cubemap_environment(&request, test_uri())
+        .expect("staged source and derived artifacts should restore a render environment");
+    assert_rgba16f_close(
+        staged_environment.mip_chain.source_texels(),
+        source.source_texels(),
+    );
+    assert_rgba16f_close(staged_environment.mip_chain.texels(), source.texels());
+    assert_ne!(
+        staged_environment.bake_artifact_hash, [0; 4],
+        "restored environments must carry the derived artifact identity"
+    );
+
     let runtime_cache = IblBakeArtifactCacheStore::new(&root);
     let dispatch =
         resolve_ibl_bake_artifact_runtime_dispatch(&runtime_cache, &request, &[asset_blob.clone()])

@@ -1,58 +1,99 @@
-use std::cell::RefCell;
-
 use glyphon::{
     cosmic_text::{FeatureTag, FontFeatures},
-    Attrs, Buffer, Family, FontSystem, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
+    Attrs, Buffer, Family, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
 };
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
 use crate::core::framework::render::{
-    ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedTextLine,
-    TextOrientation, TextShapeRequest,
+    normalized_open_type_features, ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation,
+    ShapedGlyphRun, ShapedTextLine, TextOrientation, TextShapeRequest,
 };
+use crate::graphics::text::font::FontDatabase;
 
+use super::bidi::BidiParagraph;
 use super::line_break::{ClusterLineBreakFlags, LineBreakOpportunityMap};
+use super::normalize::ShapingTextView;
 use super::script_segment::{
     script_for_range, script_segments, shaped_script_for_cluster, ScriptSegment,
 };
+use super::vertical::apply_vertical_layout;
 
-thread_local! {
-    static FONT_SYSTEM: RefCell<FontSystem> = RefCell::new(FontSystem::new());
-}
+mod font_system_cache;
+
+use super::fallback_text_spans;
+use font_system_cache::with_font_system;
 
 const DEFAULT_FALLBACK_ADVANCE_EM: f32 = 0.56;
 
 pub(crate) fn shape_text(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
-    shape_with_cosmic(request).unwrap_or_else(|| fallback_shape(request))
+    let text_view = ShapingTextView::v1_disabled(request.text);
+    let bidi = BidiParagraph::new(text_view.shaping_text(), request.base_direction);
+    if let Some(shaped) = shape_with_cosmic(request, &text_view, &bidi) {
+        return shaped;
+    }
+    let mut shaped = fallback_shape(request, &text_view, &bidi);
+    apply_vertical_layout(&mut shaped, request, None);
+    shaped
 }
 
-fn shape_with_cosmic(request: TextShapeRequest<'_>) -> Option<ShapedGlyphRun> {
-    if request.text.is_empty() {
-        return Some(empty_run(request));
+fn shape_with_cosmic(
+    request: TextShapeRequest<'_>,
+    text_view: &ShapingTextView<'_>,
+    bidi: &BidiParagraph<'_>,
+) -> Option<ShapedGlyphRun> {
+    if text_view.shaping_text().is_empty() {
+        let mut shaped = empty_run(request, bidi);
+        apply_vertical_layout(&mut shaped, request, None);
+        return Some(shaped);
     }
 
-    FONT_SYSTEM.with(|font_system| {
-        let mut font_system = font_system.borrow_mut();
+    with_font_system(request.language, |font_system, font_database| {
         let line_height = resolved_line_height(request);
         let metrics = Metrics::new(request.style.font_size.max(1.0), line_height);
-        let mut buffer = Buffer::new(&mut font_system, metrics);
-        let mut buffer = buffer.borrow_with(&mut font_system);
+        let mut buffer = Buffer::new(font_system, metrics);
+        let mut buffer = buffer.borrow_with(font_system);
         buffer.set_size(None, Some(line_height));
         buffer.set_wrap(Wrap::None);
-        buffer.set_text(
-            request.text,
-            &attrs_for_style(request),
-            Shaping::Advanced,
-            None,
-        );
+        let default_attrs = attrs_for_style(request);
+        let fallback_spans = fallback_text_spans(text_view.shaping_text(), request, font_database);
+        if fallback_spans.is_empty() {
+            buffer.set_text(
+                text_view.shaping_text(),
+                &default_attrs,
+                Shaping::Advanced,
+                None,
+            );
+        } else {
+            buffer.set_rich_text(
+                fallback_spans.iter().map(|span| {
+                    let attrs = span
+                        .family
+                        .as_deref()
+                        .map(|family| default_attrs.clone().family(Family::Name(family)))
+                        .unwrap_or_else(|| default_attrs.clone());
+                    (&text_view.shaping_text()[span.range.clone()], attrs)
+                }),
+                &default_attrs,
+                Shaping::Advanced,
+                None,
+            );
+        }
         buffer.shape_until_scroll(true);
 
-        let line_breaks = LineBreakOpportunityMap::new(request.text);
-        let scripts = script_segments(request.text);
+        let line_breaks = LineBreakOpportunityMap::new(text_view.shaping_text());
+        let scripts = script_segments(text_view.shaping_text());
         let mut lines = Vec::new();
         for run in buffer.layout_runs() {
-            lines.push(line_from_layout_run(request, &run, &line_breaks, &scripts));
+            lines.push(line_from_layout_run(
+                request,
+                text_view,
+                &run,
+                &line_breaks,
+                &scripts,
+                bidi,
+                font_database,
+            ));
         }
 
         if lines.is_empty() {
@@ -64,28 +105,35 @@ fn shape_with_cosmic(request: TextShapeRequest<'_>) -> Option<ShapedGlyphRun> {
             .map(|line| line.measured_width)
             .fold(0.0_f32, f32::max);
         let measured_height = lines.iter().map(|line| line.line_height).sum::<f32>();
-        Some(ShapedGlyphRun {
+        let mut shaped = ShapedGlyphRun {
             source_text: request.text.to_string(),
             source_range: request.source_range,
-            direction: request.base_direction,
+            direction: bidi.resolved_base_direction(),
             orientation: request.orientation,
             vertical_mode: request.vertical_mode,
             include_kerning: request.include_kerning,
             measured_width,
             measured_height,
             lines,
-        })
+        };
+        apply_vertical_layout(&mut shaped, request, Some(font_database));
+        Some(shaped)
     })
 }
 
 fn line_from_layout_run(
     request: TextShapeRequest<'_>,
+    text_view: &ShapingTextView<'_>,
     run: &glyphon::LayoutRun<'_>,
     line_breaks: &LineBreakOpportunityMap,
     scripts: &[ScriptSegment],
+    bidi: &BidiParagraph<'_>,
+    font_database: &FontDatabase,
 ) -> ShapedTextLine {
-    let line_visual_start = line_visual_start(request.text, run.line_i);
-    let line_source_start = request.source_range.start + line_visual_start;
+    let line_visual_start = line_visual_start(text_view.shaping_text(), run.line_i);
+    let line_shaping_range = line_visual_start..line_visual_start + run.text.len();
+    let line_source_range = text_view.source_range_for_shaping_range(line_shaping_range);
+    let line_source_start = request.source_range.start + line_source_range.start;
     let visual_range = UiTextRange {
         start: 0,
         end: run.text.len(),
@@ -100,12 +148,15 @@ fn line_from_layout_run(
             previous_range = Some(current_range);
             glyph_from_layout_glyph(
                 request,
+                text_view,
                 glyph,
                 run.rtl,
                 line_visual_start,
                 cluster_start,
                 line_breaks,
                 scripts,
+                bidi,
+                font_database,
             )
         })
         .collect::<Vec<_>>();
@@ -115,7 +166,7 @@ fn line_from_layout_run(
         text: run.text.to_string(),
         source_range: UiTextRange {
             start: line_source_start,
-            end: line_source_start + run.text.len(),
+            end: request.source_range.start + line_source_range.end,
         },
         visual_range,
         measured_width: run.line_w.max(0.0),
@@ -127,26 +178,36 @@ fn line_from_layout_run(
 
 fn glyph_from_layout_glyph(
     request: TextShapeRequest<'_>,
+    text_view: &ShapingTextView<'_>,
     glyph: &LayoutGlyph,
     run_rtl: bool,
     line_visual_start: usize,
     cluster_start: bool,
     line_breaks: &LineBreakOpportunityMap,
     scripts: &[ScriptSegment],
+    bidi: &BidiParagraph<'_>,
+    font_database: &FontDatabase,
 ) -> ShapedGlyph {
+    let shaping_range = line_visual_start + glyph.start..line_visual_start + glyph.end;
+    let projected_source_range = text_view.source_range_for_shaping_range(shaping_range.clone());
     let source_range = absolute_range(
-        request.source_range.start + line_visual_start,
-        glyph.start,
-        glyph.end,
+        request.source_range.start,
+        projected_source_range.start,
+        projected_source_range.end,
     );
-    let cluster_text = request
-        .text
+    let cluster_text = text_view
+        .shaping_text()
         .get(
-            (line_visual_start + glyph.start).min(request.text.len())
-                ..(line_visual_start + glyph.end).min(request.text.len()),
+            shaping_range.start.min(text_view.shaping_text().len())
+                ..shaping_range.end.min(text_view.shaping_text().len()),
         )
         .unwrap_or_default();
-    let direction = if glyph.level.is_rtl() || run_rtl {
+    let local_range = UiTextRange {
+        start: line_visual_start + glyph.start,
+        end: line_visual_start + glyph.end,
+    };
+    let bidi_level = bidi.level_for_range(local_range);
+    let direction = if bidi_level % 2 == 1 || glyph.level.is_rtl() || run_rtl {
         UiTextDirection::RightToLeft
     } else {
         UiTextDirection::LeftToRight
@@ -159,17 +220,13 @@ fn glyph_from_layout_glyph(
     } else {
         ClusterLineBreakFlags::default()
     };
-    let local_range = UiTextRange {
-        start: line_visual_start + glyph.start,
-        end: line_visual_start + glyph.end,
-    };
     let script = shaped_script_for_cluster(cluster_text, script_for_range(scripts, local_range));
 
     let (offset_x, offset_y) =
         glyph_layout_offset_px(glyph.font_size, glyph.x_offset, glyph.y_offset);
     ShapedGlyph {
         glyph_id: glyph.glyph_id as u32,
-        font_id: None,
+        font_id: font_database.font_face_id(glyph.font_id),
         source_range,
         visual_range: UiTextRange {
             start: glyph.start,
@@ -181,8 +238,9 @@ fn glyph_from_layout_glyph(
         offset_x,
         offset_y,
         direction,
+        bidi_level,
         cluster_flags: cluster_flags(cluster_text, direction, cluster_start, cluster_line_breaks),
-        rotation: rotation_for_request(request),
+        rotation: ShapedGlyphRotation::None,
         script,
     }
 }
@@ -214,12 +272,12 @@ fn line_visual_start(text: &str, line_i: usize) -> usize {
     offset
 }
 
-fn empty_run(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
+fn empty_run(request: TextShapeRequest<'_>, bidi: &BidiParagraph<'_>) -> ShapedGlyphRun {
     let line_height = resolved_line_height(request);
     ShapedGlyphRun {
         source_text: request.text.to_string(),
         source_range: request.source_range,
-        direction: request.base_direction,
+        direction: bidi.resolved_base_direction(),
         orientation: request.orientation,
         vertical_mode: request.vertical_mode,
         include_kerning: request.include_kerning,
@@ -238,25 +296,38 @@ fn empty_run(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
     }
 }
 
-fn fallback_shape(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
+fn fallback_shape(
+    request: TextShapeRequest<'_>,
+    text_view: &ShapingTextView<'_>,
+    bidi: &BidiParagraph<'_>,
+) -> ShapedGlyphRun {
     let line_height = resolved_line_height(request);
     let baseline = request.style.font_size.max(1.0) * 0.8;
-    let line_breaks = LineBreakOpportunityMap::new(request.text);
-    let scripts = script_segments(request.text);
+    let line_breaks = LineBreakOpportunityMap::new(text_view.shaping_text());
+    let scripts = script_segments(text_view.shaping_text());
     let mut x = 0.0_f32;
     let mut glyphs = Vec::new();
 
-    for (visual_start, grapheme) in request.text.grapheme_indices(true) {
+    for (visual_start, grapheme) in text_view.shaping_text().grapheme_indices(true) {
         let visual_end = visual_start + grapheme.len();
         let advance = fallback_grapheme_advance(grapheme, request.style.font_size.max(1.0));
-        let direction = match request.base_direction {
-            UiTextDirection::RightToLeft => UiTextDirection::RightToLeft,
-            _ => UiTextDirection::LeftToRight,
+        let local_range = UiTextRange {
+            start: visual_start,
+            end: visual_end,
+        };
+        let bidi_level = bidi.level_for_range(local_range);
+        let direction = if bidi_level % 2 == 1 {
+            UiTextDirection::RightToLeft
+        } else {
+            UiTextDirection::LeftToRight
         };
         glyphs.push(ShapedGlyph {
             glyph_id: synthetic_glyph_id(grapheme),
             font_id: None,
-            source_range: absolute_range(request.source_range.start, visual_start, visual_end),
+            source_range: {
+                let projected = text_view.source_range_for_shaping_range(visual_start..visual_end);
+                absolute_range(request.source_range.start, projected.start, projected.end)
+            },
             visual_range: UiTextRange {
                 start: visual_start,
                 end: visual_end,
@@ -267,23 +338,15 @@ fn fallback_shape(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
             offset_x: 0.0,
             offset_y: 0.0,
             direction,
+            bidi_level,
             cluster_flags: cluster_flags(
                 grapheme,
                 direction,
                 true,
                 line_breaks.flags_for_cluster(visual_start, visual_end),
             ),
-            rotation: rotation_for_request(request),
-            script: shaped_script_for_cluster(
-                grapheme,
-                script_for_range(
-                    &scripts,
-                    UiTextRange {
-                        start: visual_start,
-                        end: visual_end,
-                    },
-                ),
-            ),
+            rotation: ShapedGlyphRotation::None,
+            script: shaped_script_for_cluster(grapheme, script_for_range(&scripts, local_range)),
         });
         x += advance;
     }
@@ -291,7 +354,7 @@ fn fallback_shape(request: TextShapeRequest<'_>) -> ShapedGlyphRun {
     ShapedGlyphRun {
         source_text: request.text.to_string(),
         source_range: request.source_range,
-        direction: request.base_direction,
+        direction: bidi.resolved_base_direction(),
         orientation: request.orientation,
         vertical_mode: request.vertical_mode,
         include_kerning: request.include_kerning,
@@ -349,12 +412,37 @@ fn attrs_for_style<'a>(request: TextShapeRequest<'a>) -> Attrs<'a> {
     let attrs = attrs.weight(Weight(UiResolvedStyle::normalized_font_weight(
         request.style.font_weight,
     )));
-    if request.include_kerning {
+    let uses_vertical_features = matches!(request.orientation, TextOrientation::Vertical)
+        && !matches!(
+            request.vertical_mode,
+            crate::core::framework::render::VerticalMode::Sideways
+        );
+    if request.include_kerning && request.features.is_empty() && !uses_vertical_features {
         return attrs;
     }
 
     let mut features = FontFeatures::new();
-    features.disable(FeatureTag::KERNING);
+    if !request.include_kerning {
+        features.disable(FeatureTag::KERNING);
+    }
+    let requested_features = normalized_open_type_features(request.features);
+    if uses_vertical_features {
+        if !requested_features
+            .iter()
+            .any(|feature| feature.tag == *b"vert")
+        {
+            features.set(FeatureTag::new(b"vert"), 1);
+        }
+        if !requested_features
+            .iter()
+            .any(|feature| feature.tag == *b"vrt2")
+        {
+            features.set(FeatureTag::new(b"vrt2"), 1);
+        }
+    }
+    for feature in requested_features {
+        features.set(FeatureTag::new(&feature.tag), feature.value);
+    }
     attrs.font_features(features)
 }
 
@@ -363,13 +451,6 @@ fn resolved_line_height(request: TextShapeRequest<'_>) -> f32 {
         .style
         .line_height
         .max(request.style.font_size.max(1.0))
-}
-
-fn rotation_for_request(request: TextShapeRequest<'_>) -> ShapedGlyphRotation {
-    match request.orientation {
-        TextOrientation::Horizontal => ShapedGlyphRotation::None,
-        TextOrientation::Vertical => ShapedGlyphRotation::Cw90,
-    }
 }
 
 fn absolute_range(source_start: usize, visual_start: usize, visual_end: usize) -> UiTextRange {
@@ -429,7 +510,7 @@ mod tests {
     use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
     use super::{attrs_for_style, glyph_layout_offset_px};
-    use crate::core::framework::render::TextShapeRequest;
+    use crate::core::framework::render::{OpenTypeFeature, TextShapeRequest};
 
     #[test]
     fn glyph_layout_offsets_are_projected_to_pixels() {
@@ -463,5 +544,60 @@ mod tests {
             .features
             .iter()
             .any(|feature| feature.tag == FeatureTag::KERNING && feature.value == 0));
+    }
+
+    #[test]
+    fn attrs_apply_normalized_open_type_features() {
+        let style = UiResolvedStyle::default();
+        let features = [
+            OpenTypeFeature::new(*b"tnum", 1),
+            OpenTypeFeature::new(*b"liga", 0),
+        ];
+        let attrs = attrs_for_style(
+            TextShapeRequest::horizontal(
+                "0123",
+                &style,
+                UiTextDirection::LeftToRight,
+                UiTextRange { start: 0, end: 4 },
+            )
+            .with_features(&features),
+        );
+
+        assert!(attrs
+            .font_features
+            .features
+            .iter()
+            .any(|feature| feature.tag == FeatureTag::new(b"tnum") && feature.value == 1));
+        assert!(attrs
+            .font_features
+            .features
+            .iter()
+            .any(|feature| feature.tag == FeatureTag::new(b"liga") && feature.value == 0));
+    }
+
+    #[test]
+    fn attrs_enable_vertical_substitution_features_for_upright_glyphs() {
+        let style = UiResolvedStyle::default();
+        let attrs = attrs_for_style(TextShapeRequest::vertical(
+            "本文。",
+            &style,
+            UiTextDirection::LeftToRight,
+            UiTextRange {
+                start: 0,
+                end: "本文。".len(),
+            },
+            crate::core::framework::render::VerticalMode::Mixed,
+        ));
+
+        assert!(attrs
+            .font_features
+            .features
+            .iter()
+            .any(|feature| feature.tag == FeatureTag::new(b"vert") && feature.value == 1));
+        assert!(attrs
+            .font_features
+            .features
+            .iter()
+            .any(|feature| feature.tag == FeatureTag::new(b"vrt2") && feature.value == 1));
     }
 }

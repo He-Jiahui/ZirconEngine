@@ -63,10 +63,10 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
 // runtime_15_review_guard_status_support_review_rows_row_data_owner_is_child_backed
 // Runtime 15 M3 review-guard status-support review rows guard folder-backed split anchor mirror:
 // runtime_15_review_guard_status_support_review_rows_guard_folder_backed_static_passed_cargo_deferred
-// structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows.rs
-// structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows/route_children.rs
-// structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows/export_chain.rs
-// structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows/status_current.rs
+// structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows.rs
+// structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows/route_children.rs
+// structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows/export_chain.rs
+// structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data/status_support_review_guard_rows/status_current.rs
 // runtime_15_review_guard_status_support_review_rows_guard_is_folder_backed
 // Runtime 15 M3 plugin-importer row-data owner child split anchor mirror:
 // runtime_15_plugin_importer_row_data_owner_child_split_static_passed_cargo_deferred

@@ -5,7 +5,7 @@ fn runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_body_doc
     super::super::status_mirrors::assert_status_docs_for_child_owner_split();
 
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     for (label, source) in [
         (

@@ -1,6 +1,14 @@
 use std::fs;
 use std::path::Path;
 
+#[path = "support/status_evidence.rs"]
+mod status_evidence;
+
+pub(super) use status_evidence::{
+    read_runtime_15_naming_date_map, read_runtime_15_naming_status_map,
+    read_runtime_15_naming_status_rows,
+};
+
 pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
     let missing = required
         .iter()

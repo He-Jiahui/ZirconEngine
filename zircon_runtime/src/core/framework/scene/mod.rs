@@ -3,6 +3,7 @@ use crate::core::CoreError;
 mod entity_path;
 mod level_summary;
 mod mobility;
+pub mod physics;
 mod property_value;
 mod world_handle;
 

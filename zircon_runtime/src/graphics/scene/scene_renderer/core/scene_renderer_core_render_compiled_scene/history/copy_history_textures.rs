@@ -52,6 +52,7 @@ impl SceneRendererCore {
                     graph_resources,
                     history,
                 );
+                history.set_global_illumination_history_valid(global_illumination_copied);
             }
             if runtime_features.ssao_enabled {
                 encoder.copy_texture_to_texture(
@@ -103,28 +104,37 @@ fn copy_global_illumination_history(
     graph_resources: &RenderGraphExecutionResources,
     history: &SceneFrameHistoryTextures,
 ) -> bool {
-    for resource_name in [
+    let graph_lighting_copied = [
         PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
         PostProcessGraphResourceNames::GLOBAL_ILLUMINATION,
-    ] {
-        if copy_owned_global_illumination_history_source(
+    ]
+    .into_iter()
+    .any(|resource_name| {
+        copy_owned_global_illumination_history_source(
             encoder,
             target,
             render_region,
             graph_resources,
             history,
             resource_name,
-        ) {
-            return true;
-        }
+        )
+    });
+
+    if !graph_lighting_copied {
+        encoder.copy_texture_to_texture(
+            target.global_illumination.as_image_copy(),
+            history.global_illumination.as_image_copy(),
+            texture_extent(target.render_size),
+        );
     }
 
-    encoder.copy_texture_to_texture(
-        target.global_illumination.as_image_copy(),
-        history.global_illumination.as_image_copy(),
-        texture_extent(target.render_size),
-    );
-    true
+    copy_owned_global_illumination_temporal_metadata(
+        encoder,
+        target,
+        render_region,
+        graph_resources,
+        history,
+    )
 }
 
 fn copy_owned_global_illumination_history_source(
@@ -159,7 +169,44 @@ fn copy_owned_global_illumination_history_source(
 }
 
 fn owned_global_illumination_history_source_is_copyable(desc: &TextureDesc) -> bool {
-    desc.sample_count == 1 && !desc.format.is_depth()
+    desc.sample_count == 1 && desc.format == crate::rhi::TextureFormat::Rgba16Float
+}
+
+fn copy_owned_global_illumination_temporal_metadata(
+    encoder: &mut wgpu::CommandEncoder,
+    target: &OffscreenTarget,
+    render_region: ViewportRenderRegion,
+    graph_resources: &RenderGraphExecutionResources,
+    history: &SceneFrameHistoryTextures,
+) -> bool {
+    let resource_name = PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA;
+    let (Some(metadata), Some(desc)) = (
+        graph_resources.owned_texture(resource_name),
+        graph_resources.owned_texture_desc(resource_name),
+    ) else {
+        return false;
+    };
+    if !owned_global_illumination_temporal_metadata_is_copyable(desc) {
+        return false;
+    }
+    let Some(extent) = history_region_copy_extent(
+        UVec2::new(desc.width, desc.height),
+        target.size,
+        render_region,
+    ) else {
+        return false;
+    };
+
+    let mut destination = history
+        .global_illumination_temporal_metadata
+        .as_image_copy();
+    destination.origin = history_region_copy_origin(render_region);
+    encoder.copy_texture_to_texture(metadata.as_image_copy(), destination, extent);
+    true
+}
+
+fn owned_global_illumination_temporal_metadata_is_copyable(desc: &TextureDesc) -> bool {
+    desc.sample_count == 1 && desc.format == crate::rhi::TextureFormat::Rgba16Float
 }
 
 fn screen_space_reflection_history_copy_extent(
@@ -264,15 +311,16 @@ mod tests {
     use super::{
         history_region_copy_extent, history_region_copy_origin,
         owned_global_illumination_history_source_is_copyable,
+        owned_global_illumination_temporal_metadata_is_copyable,
     };
 
     #[test]
-    fn global_illumination_history_source_accepts_single_sample_color_graph_output() {
+    fn global_illumination_history_source_requires_single_sample_rgba16_float() {
         let desc = TextureDesc::new(
             "hybrid-gi-lighting",
             64,
             64,
-            TextureFormat::Rgba8UnormSrgb,
+            TextureFormat::Rgba16Float,
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
         );
 
@@ -280,12 +328,12 @@ mod tests {
     }
 
     #[test]
-    fn global_illumination_history_source_rejects_msaa_or_depth_graph_output() {
+    fn global_illumination_history_source_rejects_msaa_depth_or_sdr_graph_output() {
         let msaa = TextureDesc::new(
             "hybrid-gi-lighting",
             64,
             64,
-            TextureFormat::Rgba8UnormSrgb,
+            TextureFormat::Rgba16Float,
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
         )
         .with_sample_count(4);
@@ -296,10 +344,47 @@ mod tests {
             TextureFormat::Depth32Float,
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
         );
+        let sdr = TextureDesc::new(
+            "hybrid-gi-lighting",
+            64,
+            64,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
+        );
 
         assert!(!owned_global_illumination_history_source_is_copyable(&msaa));
         assert!(!owned_global_illumination_history_source_is_copyable(
             &depth
+        ));
+        assert!(!owned_global_illumination_history_source_is_copyable(&sdr));
+    }
+
+    #[test]
+    fn global_illumination_temporal_metadata_requires_single_sample_rgba16_float() {
+        let valid = TextureDesc::new(
+            "hybrid-gi-temporal-metadata",
+            64,
+            64,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
+        );
+        let wrong_format = TextureDesc::new(
+            "hybrid-gi-temporal-metadata",
+            64,
+            64,
+            TextureFormat::Rgba8Unorm,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_SRC,
+        );
+        let msaa = valid.clone().with_sample_count(4);
+
+        assert!(owned_global_illumination_temporal_metadata_is_copyable(
+            &valid
+        ));
+        assert!(!owned_global_illumination_temporal_metadata_is_copyable(
+            &wrong_format
+        ));
+        assert!(!owned_global_illumination_temporal_metadata_is_copyable(
+            &msaa
         ));
     }
 

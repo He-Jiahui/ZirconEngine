@@ -7,6 +7,6 @@ mod pack;
 mod pipeline;
 mod project;
 mod registry;
-mod support;
+pub(crate) mod support;
 mod virtual_geometry_cook;
 mod watcher;

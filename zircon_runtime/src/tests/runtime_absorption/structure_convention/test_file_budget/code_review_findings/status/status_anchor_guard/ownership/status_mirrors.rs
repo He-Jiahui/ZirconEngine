@@ -63,10 +63,7 @@ fn runtime_15_code_review_findings_status_docs_status_anchor_child_ownership_is_
     ] {
         assert_contains_all(label, source, &status_anchors);
         for (_, child_path, _) in STATUS_DOC_STATUS_ANCHOR_CHILD_OWNERSHIP_CHILDREN {
-            assert!(
-                source.contains(child_path),
-                "{label} should mirror status-anchor child-ownership child {child_path}"
-            );
+            assert_contains_all(label, source, &[*child_path]);
         }
     }
     assert_contains_all(

@@ -7,7 +7,6 @@ use crate::scene::ecs::Resource;
 use crate::scene::World;
 
 use super::super::owner::PluginModuleId;
-use super::super::typed_extension_point::ExtensionSlot;
 use super::super::RuntimeExtensionRegistry;
 
 type ResourceApplyFn = Arc<dyn Fn(&mut World) + Send + Sync>;
@@ -111,14 +110,7 @@ impl RuntimeExtensionRegistry {
         &self,
     ) -> impl Iterator<Item = (PluginModuleId, &ResourceRegistration)> {
         self.plugin_resources
-            .values()
             .iter()
-            .enumerate()
-            .filter_map(|(index, registration)| {
-                let slot = ExtensionSlot::from_raw(index as u32);
-                self.plugin_resources
-                    .owner_for_slot(slot)
-                    .map(|owner| (owner, registration))
-            })
+            .map(|(owner, _key, registration)| (owner, registration))
     }
 }

@@ -16,7 +16,8 @@ pub use install::{
     ZrPackPromotionMethod, ZrPackPromotionReport, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
 };
 pub use manifest::{
-    ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
+    ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackManifest,
+    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
 };
 pub use reader::ZrPackReader;
 pub use trim::{

@@ -176,3 +176,33 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
         ]
     );
 }
+
+#[test]
+fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
+    const PLUGIN_PACKET_SIZE_BYTES: u64 = 1_280;
+
+    let descriptor = RenderFeatureDescriptor::new(
+        "fixed-size-plugin-packet",
+        vec!["view".to_string()],
+        Vec::new(),
+        vec![RenderFeaturePassDescriptor::new(
+            RenderPassStage::Lighting,
+            "fixed-size-plugin-packet-write",
+            QueueLane::AsyncCompute,
+        )
+        .with_executor_id("test.fixed-size-plugin-packet")
+        .with_side_effects()
+        .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES)],
+    );
+
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .with_plugin_render_features(vec![descriptor])
+        .compile(&test_extract())
+        .unwrap();
+    let lifetime = graph_resource_lifetime(&compiled, "fixed-size-plugin-packet");
+    let RenderGraphResourceDesc::Buffer(desc) = &lifetime.desc else {
+        panic!("fixed-size plugin packet should compile as a transient buffer");
+    };
+
+    assert_eq!(desc.size_bytes, PLUGIN_PACKET_SIZE_BYTES);
+}

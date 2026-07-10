@@ -5,6 +5,13 @@ mod collect;
 mod devtools;
 mod frame_diagnostics;
 mod physics;
+mod physics_backend;
+#[cfg(feature = "physics-contracts")]
+#[path = "physics_collection_enabled.rs"]
+mod physics_collection;
+#[cfg(not(feature = "physics-contracts"))]
+#[path = "physics_collection_disabled.rs"]
+mod physics_collection;
 pub mod profiling;
 mod render;
 mod render_stats_store;
@@ -21,6 +28,7 @@ pub use devtools::{
 };
 pub use frame_diagnostics::{FrameDiagnostics, FrameDiagnosticsStatus};
 pub use physics::RuntimePhysicsDiagnostics;
+pub use physics_backend::RuntimePhysicsBackendDiagnostics;
 pub use profiling::{
     analyze_counter_hotspots, analyze_hotspots, feature_enabled as profiling_feature_enabled,
     start_capture, stop_capture, CounterHotspotEntry, CounterHotspotReport, HotspotReport,

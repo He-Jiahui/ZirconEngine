@@ -20,7 +20,7 @@ mod websocket;
 pub use diagnostics::NetDiagnostics;
 pub use download::{
     NetDownloadAttemptDescriptor, NetDownloadChunk, NetDownloadManifest, NetDownloadProgress,
-    NetDownloadStatus, ZrChunkEntry, ZrPackManifest,
+    NetDownloadStatus,
 };
 pub use endpoint::NetEndpoint;
 pub use error::NetError;

@@ -19,8 +19,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         "Runtime 15 M3 status output review-guard row-data guard child-owner split",
         &[
             "runtime_15_status_output_review_guard_row_data_guard_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_row_data.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data.rs",
             "runtime_15_status_output_m3_review_guard_row_data_is_child_owner",
             "Cargo gate deferred",
         ],
@@ -29,8 +29,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         "Runtime 15 M3 review-guard row-data status-doc guard child-owner split",
         &[
             "runtime_15_review_guard_row_data_status_docs_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data_status_docs.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_status_docs.rs",
             "runtime_15_status_output_review_guard_row_data_status_docs_are_child_owner",
             "Cargo gate deferred",
         ],
@@ -39,8 +39,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         "Runtime 15 M3 review-guard row-data moved-row guard child-owner split",
         &[
             "runtime_15_review_guard_row_data_moved_rows_child_owner_split_static_passed_cargo_deferred",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_review_guard_row_data_moved_rows.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows.rs",
             "runtime_15_status_output_m3_review_guard_row_data_moved_rows_are_child_owner",
             "Cargo gate deferred",
         ],

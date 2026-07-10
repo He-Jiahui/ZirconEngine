@@ -11,11 +11,18 @@ fn runtime_15_diagnostics_use_frame_trait_without_world_wrapper() {
     let ecs_frame_diagnostics = read_runtime_src("scene/ecs/frame_performance_diagnostics.rs");
     let world = read_runtime_src("scene/world/world.rs");
     let world_performance_diagnostics = read_runtime_src("scene/world/performance_diagnostics.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let diagnostics_doc = read_repo("docs/zircon_runtime/core/diagnostics.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
@@ -158,11 +165,18 @@ fn runtime_15_diagnostics_guard_is_folder_backed() {
     let parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
     let child =
         read_runtime_src("tests/runtime_absorption/structure_convention/diagnostics_surface.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let status_rows = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards.rs",

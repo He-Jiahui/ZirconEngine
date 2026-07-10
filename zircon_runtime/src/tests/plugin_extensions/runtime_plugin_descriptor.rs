@@ -1,5 +1,5 @@
 use crate::builtin::{RuntimePluginId, RuntimeTargetMode};
-use crate::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
+use crate::core::{CoreError, InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use crate::plugin::{
     ExportPackagingStrategy, PluginFeatureBundleManifest, PluginFeatureDependency,
     PluginModuleKind, PluginModuleManifest, RuntimeExtensionRegistry, RuntimePlugin,
@@ -371,6 +371,47 @@ fn runtime_plugin_descriptor_projects_embedded_module_descriptor_to_manifest() {
         runtime_module.capabilities,
         vec!["runtime.plugin.weather".to_string()]
     );
+}
+
+#[test]
+fn invalid_descriptor_module_order_blocks_catalog_registration() {
+    let first = RuntimePluginDescriptor::builder(
+        "weather_first",
+        "Weather First",
+        RuntimePluginId::Particles,
+        "zircon_plugin_weather_first_runtime",
+    )
+    .with_module_descriptor(
+        ModuleDescriptor::new("weather_first.runtime", "Weather first runtime")
+            .with_init_level(InitLevel::Scene)
+            .with_module_dependency(ModuleDependencySpec::named("weather_second.runtime")),
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_capability("runtime.plugin.weather_first")
+    .build();
+    let second = RuntimePluginDescriptor::builder(
+        "weather_second",
+        "Weather Second",
+        RuntimePluginId::Particles,
+        "zircon_plugin_weather_second_runtime",
+    )
+    .with_module_descriptor(
+        ModuleDescriptor::new("weather_second.runtime", "Weather second runtime")
+            .with_init_level(InitLevel::Scene)
+            .with_module_dependency(ModuleDependencySpec::named("weather_first.runtime")),
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_capability("runtime.plugin.weather_second")
+    .build();
+
+    let catalog = RuntimePluginCatalog::from_descriptors([second, first]);
+
+    assert!(!catalog.is_success());
+    assert!(catalog.registrations().is_empty());
+    assert!(matches!(
+        catalog.module_order_error(),
+        Some(CoreError::ModuleDependencyCycle { .. })
+    ));
 }
 
 #[test]

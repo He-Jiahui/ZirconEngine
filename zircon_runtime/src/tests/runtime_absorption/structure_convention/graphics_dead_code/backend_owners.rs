@@ -9,12 +9,19 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
     let frame_graph_binder = read_runtime_src(
         "graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs",
     );
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let render_index = runtime_15_plan.clone();
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
 
@@ -26,13 +33,14 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
         "offscreen retained WGPU texture owners",
         &offscreen_target,
         &[
-            "pub(crate) const RETAINED_FRAME_TEXTURE_COUNT: usize = 9;",
+            "pub(crate) const RETAINED_FRAME_TEXTURE_COUNT: usize = 10;",
             "pub(crate) fn retained_frame_texture_count(&self) -> usize",
             "&self.final_color",
             "&self.global_illumination",
             "&self.scene_color",
             "&self.bloom",
             "&self.gbuffer_albedo",
+            "&self.gbuffer_emissive",
             "&self.gbuffer_material",
             "&self.normal",
             "&self.ambient_occlusion",
@@ -48,6 +56,7 @@ fn runtime_15_offscreen_target_texture_owner_cleanup() {
             "scene_color: scene_color.texture",
             "bloom: bloom.texture",
             "gbuffer_albedo: gbuffer_albedo.texture",
+            "gbuffer_emissive: gbuffer_emissive.texture",
             "gbuffer_material: gbuffer_material.texture",
             "normal: normal.texture",
             "ambient_occlusion: ambient_occlusion.texture",

@@ -21,6 +21,8 @@ use fixture::{
 
 #[path = "render_product_post_process_full_chain/fixture.rs"]
 mod fixture;
+#[path = "render_product_post_process_full_chain/visual_export.rs"]
+mod visual_export;
 
 const PARTICLE_TRANSPARENT_EXECUTOR_ID: &str = "particle.transparent";
 const PARTICLE_VELOCITY_EXECUTOR_ID: &str = "particle.velocity";

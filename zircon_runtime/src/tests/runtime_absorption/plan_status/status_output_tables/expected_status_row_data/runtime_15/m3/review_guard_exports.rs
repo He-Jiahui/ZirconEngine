@@ -1,5 +1,22 @@
 use super::{review_guard_splits, ExpectedStatusOutputSlice};
 
+pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] = review_guard_splits::CODE_REVIEW_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_DIRECT_ASSERTION_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    review_guard_splits::CODE_REVIEW_DIRECT_ASSERTION_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_PLUGIN_IMPORTER_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    review_guard_splits::CODE_REVIEW_PLUGIN_IMPORTER_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_STRUCTURE_GUARD_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    review_guard_splits::CODE_REVIEW_STRUCTURE_GUARD_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_TYPED_ERROR_STRUCTURE_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    review_guard_splits::CODE_REVIEW_TYPED_ERROR_STRUCTURE_EXPECTED_STATUS_OUTPUT_SLICES;
+pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES:
+    &[ExpectedStatusOutputSlice] =
+    review_guard_splits::CODE_REVIEW_ROW_DATA_OWNER_EXPECTED_STATUS_OUTPUT_SLICES;
 pub(in super::super) const REVIEW_GUARD_CODE_REVIEW_REVIEW_GUARD_P0_EXPECTED_STATUS_OUTPUT_SLICES:
     &[ExpectedStatusOutputSlice] =
     review_guard_splits::CODE_REVIEW_REVIEW_GUARD_P0_EXPECTED_STATUS_OUTPUT_SLICES;

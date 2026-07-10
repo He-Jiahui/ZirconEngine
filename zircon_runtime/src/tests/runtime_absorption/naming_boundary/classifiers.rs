@@ -69,6 +69,7 @@ pub(super) fn classify_editor_reference(relative_path: &str) -> Option<&'static 
     }
     if relative_path.starts_with("src/plugin/")
         || relative_path.starts_with("src/builtin/runtime_modules/")
+        || relative_path == "src/core/runtime/lifecycle.rs"
     {
         return Some("runtime-profile-editor-host-target");
     }

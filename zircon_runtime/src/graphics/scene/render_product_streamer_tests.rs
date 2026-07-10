@@ -7,7 +7,7 @@ use crate::asset::{
 };
 use crate::core::framework::render::{
     MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialFallbackReason,
-    RenderMaterialLightingModel, RenderMaterialPropertyValue,
+    RenderMaterialLightingModel, RenderMaterialPropertyValue, RenderMaterialTextureDimension,
     RenderMaterialTextureSlotFallbackReason, RenderMaterialTextureTransform,
     RenderMaterialValidationError, RenderShaderBindGroupLayoutDescriptor,
     RenderShaderBindingDescriptor, RenderShaderBindingResourceType, RenderShaderDefinitionValue,

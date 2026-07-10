@@ -16,6 +16,22 @@ fn pack_round_trip() {
 }
 
 #[test]
+fn pack_manifest_chunk_plan_round_trips_from_asset_owner() {
+    let manifest = ZrPackManifest::new(1, 12)
+        .with_chunk(ZrChunkEntry::new([1; 32], 0, 4))
+        .with_chunk(ZrChunkEntry::new([2; 32], 4, 8));
+
+    assert_eq!(manifest.covered_bytes(), 12);
+    assert!(manifest.is_complete_byte_plan());
+    assert_eq!(manifest.chunks[1].end_offset(), Some(12));
+    let json = serde_json::to_value(&manifest).unwrap();
+    assert_eq!(
+        serde_json::from_value::<ZrPackManifest>(json).unwrap(),
+        manifest
+    );
+}
+
+#[test]
 fn duplicate_content_stored_once() {
     let report = ZrPackWriter::write([
         ZrPackInputAsset::new("a/same.bin", b"same-bytes".to_vec()),

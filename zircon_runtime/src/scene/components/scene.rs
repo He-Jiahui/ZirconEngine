@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{
-    PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
-};
 use crate::core::framework::render::{
-    MaterialPropertyOverrideBlock, ProjectionMode, RenderCameraClearColor, RenderCameraTarget,
-    RenderMaterialAlphaMode, RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100,
+    CorePipelineKind, MaterialPropertyOverrideBlock, ProjectionMode, RenderCameraClearColor,
+    RenderCameraTarget, RenderMaterialAlphaMode, RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100,
     DEFAULT_CAMERA_MSAA_SAMPLES, DEFAULT_RENDER_LAYER_MASK,
+};
+use crate::core::framework::scene::physics::{
+    PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec3, Vec4};
@@ -114,6 +114,9 @@ pub type Active = ActiveSelf;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CameraComponent {
+    /// Selects Core2d or Core3d without constraining perspective/orthographic projection.
+    #[serde(default)]
+    pub core_pipeline: CorePipelineKind,
     #[serde(default)]
     pub projection_mode: ProjectionMode,
     #[serde(default = "default_camera_fov_y_radians")]
@@ -145,6 +148,7 @@ pub struct CameraComponent {
 impl Default for CameraComponent {
     fn default() -> Self {
         Self {
+            core_pipeline: CorePipelineKind::Core3d,
             projection_mode: ProjectionMode::Perspective,
             fov_y_radians: default_camera_fov_y_radians(),
             ortho_size: default_camera_ortho_size(),

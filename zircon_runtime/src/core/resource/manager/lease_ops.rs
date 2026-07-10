@@ -15,13 +15,8 @@ impl ResourceManager {
         TMarker: ResourceMarker,
         TData: ResourceData,
     {
-        let record = self.registry().get(handle.id()).cloned()?;
-        if record.kind != TMarker::KIND {
-            return None;
-        }
-
-        let payload = self.get_untyped(handle.id())?;
-        let payload = Arc::downcast::<TData>(payload.into_any_arc()).ok()?;
+        let snapshot = self.snapshot::<TMarker, TData>(handle)?;
+        let payload = Arc::clone(snapshot.resource());
         {
             let mut runtime = self.lock_runtime_write();
             let slot = runtime.entry(handle.id()).or_default();

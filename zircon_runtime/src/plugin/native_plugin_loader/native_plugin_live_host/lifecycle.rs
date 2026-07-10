@@ -346,6 +346,7 @@ impl NativePluginLiveHost {
                                 .unwrap_or_else(|restore_error| vec![restore_error.to_string()]),
                         );
                         loaded.insert(reload_state.key.clone(), existing);
+                        reload_state.mark_existing_restored();
                     }
                     return Err(NativePluginLiveHostLifecycleError::HotReloadRestore {
                         source: error,

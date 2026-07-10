@@ -2,7 +2,8 @@ use crate::core::math::UVec2;
 
 use crate::graphics::scene::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
-    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
+    FINAL_COLOR_FORMAT, GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT,
+    NORMAL_FORMAT, SCENE_COLOR_HDR_FORMAT,
 };
 
 use super::super::offscreen_target::OffscreenTarget;
@@ -23,7 +24,7 @@ impl OffscreenTarget {
             device,
             "zircon-offscreen-final-color",
             size,
-            OFFSCREEN_FORMAT,
+            FINAL_COLOR_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
@@ -32,7 +33,7 @@ impl OffscreenTarget {
             device,
             "zircon-offscreen-scene-color",
             render_size,
-            OFFSCREEN_FORMAT,
+            SCENE_COLOR_HDR_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_SRC,
@@ -41,7 +42,7 @@ impl OffscreenTarget {
             device,
             "zircon-offscreen-global-illumination",
             render_size,
-            OFFSCREEN_FORMAT,
+            SCENE_COLOR_HDR_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_SRC,
@@ -50,7 +51,7 @@ impl OffscreenTarget {
             device,
             "zircon-offscreen-bloom",
             render_size,
-            OFFSCREEN_FORMAT,
+            SCENE_COLOR_HDR_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::COPY_SRC,
@@ -60,6 +61,13 @@ impl OffscreenTarget {
             "zircon-offscreen-gbuffer-albedo",
             render_size,
             GBUFFER_ALBEDO_FORMAT,
+            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        );
+        let gbuffer_emissive = create_texture_bundle(
+            device,
+            "zircon-offscreen-gbuffer-emissive",
+            render_size,
+            GBUFFER_EMISSIVE_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         );
         let gbuffer_material = create_texture_bundle(
@@ -105,6 +113,8 @@ impl OffscreenTarget {
             bloom_view: bloom.view,
             gbuffer_albedo: gbuffer_albedo.texture,
             gbuffer_albedo_view: gbuffer_albedo.view,
+            gbuffer_emissive: gbuffer_emissive.texture,
+            gbuffer_emissive_view: gbuffer_emissive.view,
             gbuffer_material: gbuffer_material.texture,
             gbuffer_material_view: gbuffer_material.view,
             normal: normal.texture,

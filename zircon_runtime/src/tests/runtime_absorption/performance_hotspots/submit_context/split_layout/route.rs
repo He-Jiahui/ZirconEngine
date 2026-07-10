@@ -48,7 +48,7 @@ fn assert_submit_context_support_children(sources: &SplitLayoutSources) {
             "pub(super) fn load() -> Self",
             "frame_submission_context.rs",
             "submit_runtime_frame.rs",
-            "07-runtime-performance-hotpath.md",
+            "2026-07-09-runtime-performance-hotpath-output-records.md",
         ],
     );
     assert_contains_all(

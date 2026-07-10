@@ -2,7 +2,7 @@ use crate::graphics::text::layout::measured_grapheme_widths;
 use crate::ui::text::{hit_test_text_layout, layout_text, measure_text_size};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
-    surface::{UiResolvedStyle, UiTextAlign, UiTextWrap},
+    surface::{UiResolvedStyle, UiTextAlign, UiTextCaretAffinity, UiTextWrap},
 };
 
 #[test]
@@ -55,6 +55,25 @@ fn text_hit_test_uses_resolved_tab_advances() {
     assert_eq!(before_tab_midpoint.visual_grapheme_index, 1);
     assert_eq!(after_tab_midpoint.source_offset, "a\t".len());
     assert_eq!(after_tab_midpoint.visual_grapheme_index, 2);
+}
+
+#[test]
+fn text_hit_test_mixed_bidi_maps_visual_rtl_edges_to_logical_source_affinity() {
+    let style = fixed_text_style();
+    let text = "abc אב";
+    let layout = layout_text(text, &style, UiFrame::new(0.0, 0.0, 120.0, 20.0), None);
+    let line = &layout.lines[0];
+    let rtl_visual_index = 4;
+    let rtl_x = line.frame.x
+        + line.glyph_advances[..rtl_visual_index].iter().sum::<f32>()
+        + line.glyph_advances[rtl_visual_index] * 0.25;
+
+    let hit = hit_test_text_layout(&layout, UiPoint::new(rtl_x, 4.0));
+
+    assert_eq!(line.text, "abc בא");
+    assert_eq!(hit.visual_grapheme_index, rtl_visual_index);
+    assert_eq!(hit.source_offset, text.len());
+    assert_eq!(hit.affinity, UiTextCaretAffinity::Downstream);
 }
 
 #[test]

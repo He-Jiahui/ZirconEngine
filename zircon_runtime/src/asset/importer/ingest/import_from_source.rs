@@ -46,15 +46,22 @@ impl AssetImporter {
         source_bytes: Vec<u8>,
         import_settings: toml::Table,
     ) -> Result<AssetImportOutcome, AssetImportError> {
-        let importer = self.registry().select(source_path)?;
-        let descriptor = importer.descriptor().clone();
         let context = AssetImportContext::new(
             source_path.to_path_buf(),
             uri.clone(),
             source_bytes,
             import_settings,
         );
-        let outcome = importer.import(&context)?;
+        self.import_context(&context)
+    }
+
+    pub fn import_context(
+        &self,
+        context: &AssetImportContext,
+    ) -> Result<AssetImportOutcome, AssetImportError> {
+        let importer = self.registry().select(&context.source_path)?;
+        let descriptor = importer.descriptor().clone();
+        let outcome = importer.import(context)?;
         if outcome.entries.is_empty() {
             return Err(AssetImportError::Parse(format!(
                 "asset importer {} returned no imported asset entries",

@@ -2,7 +2,6 @@
 
 mod acoustics;
 mod automation;
-mod channel_layout;
 mod components;
 mod effects;
 mod error;
@@ -17,6 +16,9 @@ mod playback;
 mod preset;
 mod status;
 
+pub(crate) use crate::core::framework::audio::AudioChannelLayout;
+#[cfg(test)]
+pub(crate) use crate::core::framework::audio::AudioSpeakerChannel;
 pub use acoustics::{
     SoundHrtfProfileDescriptor, SoundRayTracedImpulseResponseDescriptor,
     SoundRayTracingConvolutionStatus,
@@ -26,7 +28,6 @@ pub use automation::{
     SoundAutomationKeyframe, SoundAutomationTarget, SoundTimelineAutomationSample,
     SoundTimelineAutomationTrack, SoundTimelineSequence, SoundTimelineSequenceAdvance,
 };
-pub use channel_layout::{SoundChannelLayout, SoundSpeakerChannel};
 pub use components::{
     SoundAttenuationMode, SoundExternalSourceBlock, SoundListenerDescriptor, SoundSourceDescriptor,
     SoundSourceInput, SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings,

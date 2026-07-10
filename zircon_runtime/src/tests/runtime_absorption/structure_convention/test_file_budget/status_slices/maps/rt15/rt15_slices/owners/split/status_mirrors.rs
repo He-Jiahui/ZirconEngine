@@ -37,7 +37,7 @@ pub(super) fn assert_status_docs_for_child_owner_split() {
     }
 
     let frameworks = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     assert_contains_all(
         "frameworks child-owner mirror",

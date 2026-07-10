@@ -1,10 +1,16 @@
 #[test]
 fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_validation() {
-    let runtime_07_plan = include_str!(
+    let runtime_07_plan = runtime_plan_source_with_archive(
+        "07",
+        include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+    ),
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_07_plan = runtime_07_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let hotspot_doc =
         include_str!("../../../../../../../docs/zircon_runtime/performance/hotspot_inventory.md");
     let dynamic_session_doc =
@@ -55,7 +61,7 @@ fn runtime_07_performance_hotpath_cargo_gate_stays_visible_until_performance_val
         "Runtime 07 validation gate commands",
         runtime_07_plan,
         &[
-            "cargo test -p zircon_runtime --lib vampire_project_session_reports_runtime_fps_and_render_work --features zr-vm-real-backend --locked -- --nocapture --test-threads=1",
+            "cargo test -p zircon_runtime --lib vampire_project_session_reports_runtime_fps_and_render_work --features backend-zr-vm --locked -- --nocapture --test-threads=1",
             "cargo check -p zircon_runtime --lib --locked",
             "cargo test -p zircon_runtime --lib extract --locked -- --nocapture",
             "cargo test -p zircon_runtime --lib ecs_query --locked -- --nocapture",

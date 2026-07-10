@@ -42,7 +42,7 @@ fn runtime_15_status_support_expected_slice_guard_body_status_mirrors_are_regist
         ("Runtime index", read_repo("docs/plans/zircon_runtime/runtime/index.md")),
         (
             "Frameworks 02",
-            read_repo("docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"),
+            read_repo("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
         ),
         (
             "review findings",
@@ -70,7 +70,7 @@ fn runtime_15_status_support_expected_slice_guard_body_status_mirrors_are_regist
     assert_contains_all(
         "Frameworks 02 status-support guard body mirror",
         &read_repo(
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         &[GUARD_BODY_FRAMEWORKS_STATUS],
     );

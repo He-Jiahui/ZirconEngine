@@ -19,7 +19,6 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
         ("module convention doc", sources.module_doc),
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
-        ("status-output row data", sources.status_rows),
         ("session note", sources.session_note),
     ] {
         assert_contains_all(
@@ -34,6 +33,18 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
             ],
         );
     }
+
+    assert_contains_all(
+        "status-output split-layout row data",
+        sources.status_rows,
+        &[
+            SLICE,
+            STATUS,
+            "submit_context/split_layout",
+            GUARD,
+            "expected_test_file_count = 91",
+        ],
+    );
 
     assert_contains_all(
         "status-output status slice",
@@ -54,7 +65,6 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
         ("module convention doc", sources.module_doc),
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
-        ("status-output row data", sources.status_rows),
         ("session note", sources.session_note),
     ] {
         assert_contains_all(
@@ -68,4 +78,15 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
             ],
         );
     }
+
+    assert_contains_all(
+        "status-output primary row data",
+        sources.legacy_status_rows,
+        &[
+            LEGACY_SLICE,
+            LEGACY_STATUS,
+            "source_extract_payloads",
+            LEGACY_GUARD,
+        ],
+    );
 }

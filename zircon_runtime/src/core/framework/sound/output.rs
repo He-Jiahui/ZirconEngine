@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{SoundChannelLayout, SoundMixBlock, SoundOutputDeviceId};
+use super::{AudioChannelLayout, SoundMixBlock, SoundOutputDeviceId};
 
 /// Default output latency target for descriptor builders that do not expose backend tuning yet.
 pub const DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS: usize = 2;
@@ -15,7 +15,7 @@ pub struct SoundBackendCapability {
     pub max_sample_rate_hz: u32,
     pub min_channel_count: u16,
     pub max_channel_count: u16,
-    pub supported_channel_layouts: Vec<SoundChannelLayout>,
+    pub supported_channel_layouts: Vec<AudioChannelLayout>,
     pub min_block_size_frames: usize,
     pub max_block_size_frames: usize,
     pub notes: Vec<String>,
@@ -46,7 +46,7 @@ pub struct SoundOutputDeviceDescriptor {
     pub display_name: String,
     pub sample_rate_hz: u32,
     pub channel_count: u16,
-    pub channel_layout: SoundChannelLayout,
+    pub channel_layout: AudioChannelLayout,
     pub block_size_frames: usize,
     pub latency_blocks: usize,
 }
@@ -73,7 +73,7 @@ impl SoundOutputDeviceDescriptor {
             display_name: "Software Output".to_string(),
             sample_rate_hz,
             channel_count,
-            channel_layout: SoundChannelLayout::for_channel_count(channel_count),
+            channel_layout: AudioChannelLayout::for_channel_count(channel_count),
             block_size_frames,
             latency_blocks: DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS,
         }

@@ -112,6 +112,9 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     fs::write(ui_dir.join("theme.zui"), V2_STYLE_UI_TOML).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
     manager.scan_and_import().unwrap();
 
     let layout = manager
@@ -162,6 +165,9 @@ fn project_manager_scans_zui_assets_and_restores_component_payloads() {
     fs::write(ui_dir.join("button.zui"), V2_COMPONENT_UI_TOML).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
     manager.scan_and_import().unwrap();
 
     let component = manager

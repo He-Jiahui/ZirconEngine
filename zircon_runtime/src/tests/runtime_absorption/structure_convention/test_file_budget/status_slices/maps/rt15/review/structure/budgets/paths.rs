@@ -7,7 +7,8 @@ pub(super) const STRUCTURE_SUPPORT_BUDGETS_FRAMEWORKS_STATUS: &str =
 pub(super) const STRUCTURE_SUPPORT_BUDGETS_GUARD: &str =
     "runtime_15_structure_support_expected_slice_budgets_are_folder_backed";
 
-pub(super) const STRUCTURE_SUPPORT_BUDGETS_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets.rs";
+pub(super) const STRUCTURE_SUPPORT_BUDGETS_ROUTE_PATH: &str =
+    "structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets.rs";
 pub(super) const STRUCTURE_SUPPORT_BUDGET_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets/folder_backed.rs",
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/structure/budgets/paths.rs",

@@ -8,7 +8,6 @@ use crate::scene::ecs::Event;
 use crate::scene::World;
 
 use super::super::owner::PluginModuleId;
-use super::super::typed_extension_point::ExtensionSlot;
 use super::super::validation::validate_plugin_event_catalog_manifest;
 use super::super::RuntimeExtensionRegistry;
 
@@ -104,15 +103,8 @@ impl RuntimeExtensionRegistry {
 
     pub fn plugin_events(&self) -> impl Iterator<Item = (PluginModuleId, &EventRegistration)> {
         self.plugin_events
-            .values()
             .iter()
-            .enumerate()
-            .filter_map(|(index, registration)| {
-                let slot = ExtensionSlot::from_raw(index as u32);
-                self.plugin_events
-                    .owner_for_slot(slot)
-                    .map(|owner| (owner, registration))
-            })
+            .map(|(owner, _key, registration)| (owner, registration))
     }
 
     fn push_derived_event_catalog_entry(

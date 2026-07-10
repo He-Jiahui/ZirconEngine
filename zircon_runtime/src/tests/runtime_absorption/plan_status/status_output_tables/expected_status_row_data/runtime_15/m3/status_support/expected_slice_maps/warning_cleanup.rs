@@ -5,7 +5,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[(
     &[
         "runtime_15_structure_convention_warning_cleanup_static_passed_cargo_deferred",
         "structure_convention/test_file_budget/historical_oversized_roots.rs",
-        "structure_convention/test_file_budget/status_output_row_data/evidence_anchors.rs",
+        "structure_convention/test_file_budget/row_data/evidence_anchors.rs",
         "structure_convention/test_file_budget/code_review_findings/status_docs/source_anchors.rs",
         "structure_convention/test_file_budget/root_layout/folder_backed/assertions.rs",
         "structure_convention/test_file_budget/rhi_command_list.rs",

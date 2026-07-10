@@ -1,12 +1,10 @@
-use crate::core::framework::physics::PhysicsBackendStatus;
-
-use super::FrameDiagnostics;
+use super::{FrameDiagnostics, RuntimePhysicsBackendDiagnostics};
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimePhysicsDiagnostics {
     pub available: bool,
     pub backend_name: Option<String>,
-    pub backend_status: Option<PhysicsBackendStatus>,
+    pub backend_status: Option<RuntimePhysicsBackendDiagnostics>,
     pub fixed_hz: Option<u32>,
     pub error: Option<String>,
 }

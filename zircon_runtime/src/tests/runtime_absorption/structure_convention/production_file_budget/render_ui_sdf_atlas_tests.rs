@@ -19,8 +19,8 @@ fn runtime_15_screen_space_ui_sdf_atlas_tests_are_child_owner_split() {
     ]
     .join("\n");
 
-    let plan_14 = read_repo("docs/plans/zircon_runtime/render/14-2d-stack.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_14 = read_repo("docs/plans/zircon_runtime/render/14/2026-07-09-2d-stack-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_product_submit = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");

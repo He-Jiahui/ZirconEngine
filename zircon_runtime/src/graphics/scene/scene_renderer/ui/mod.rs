@@ -15,3 +15,4 @@ mod text;
 mod text_pixel_snap;
 
 pub(crate) use screen_space_ui_renderer::ScreenSpaceUiRenderer;
+pub(crate) use text::ScreenSpaceUiTextPrepareReport;

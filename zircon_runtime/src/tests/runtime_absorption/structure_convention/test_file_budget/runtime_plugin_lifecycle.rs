@@ -5,6 +5,14 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
     let parent = read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle.rs");
     let fixtures =
         read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/lifecycle_fixtures.rs");
+    let capability_projection =
+        read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/capability_projection.rs");
+    let kernel_lifecycle =
+        read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/kernel_lifecycle.rs");
+    let native_projection =
+        read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/native_projection.rs");
+    let registration_order =
+        read_runtime_src("tests/plugin_extensions/runtime_plugin_lifecycle/registration_order.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -32,12 +40,8 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
     );
 
     for moved_fixture in [
-        "struct OptionalDependencyProbe",
-        "struct LifecycleOrderPlugin",
-        "struct ReadyOrderPlugin",
-        "struct OrderedLifecyclePlugin",
-        "struct LifecycleOrderFeature",
-        "struct ReadyOrderFeature",
+        "struct RecordingModuleLifecycle",
+        "struct KernelLifecyclePlugin",
     ] {
         assert!(
             !parent.contains(moved_fixture),
@@ -49,22 +53,27 @@ fn runtime_15_runtime_plugin_lifecycle_fixture_owner_is_folder_backed() {
         "runtime plugin lifecycle fixture child owns lifecycle helper types",
         &fixtures,
         &[
-            "use super::*;",
-            "pub(super) struct OptionalDependencyProbe",
-            "pub(super) struct LifecycleOrderPlugin",
-            "pub(super) struct ReadyOrderPlugin",
-            "pub(super) struct OrderedLifecyclePlugin",
-            "pub(super) struct LifecycleOrderFeature",
-            "pub(super) struct ReadyOrderFeature",
-            "impl RuntimePlugin for OptionalDependencyProbe",
-            "impl RuntimePluginFeature for ReadyOrderFeature",
+            "pub(super) struct RecordingModuleLifecycle",
+            "pub(super) struct KernelLifecyclePlugin",
+            "impl ModuleLifecycle for RecordingModuleLifecycle",
+            "impl RuntimePlugin for KernelLifecyclePlugin",
         ],
     );
 
     assert_eq!(
-        parent.matches("#[test]").count() + fixtures.matches("#[test]").count(),
-        11,
-        "runtime plugin lifecycle parent plus fixture child should preserve the current 11 tests"
+        [
+            parent.as_str(),
+            fixtures.as_str(),
+            capability_projection.as_str(),
+            kernel_lifecycle.as_str(),
+            native_projection.as_str(),
+            registration_order.as_str(),
+        ]
+        .into_iter()
+        .map(|source| source.matches("#[test]").count())
+        .sum::<usize>(),
+        8,
+        "runtime plugin lifecycle owner tree should preserve the current 8 tests"
     );
     assert_eq!(
         fixtures.matches("#[test]").count(),

@@ -5,6 +5,7 @@ use crate::core::framework::render::{
     ShaderVariantMissReport, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::PipelineKey;
+use crate::graphics::scene::scene_renderer::environment::SceneReflectionProbeResources;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshPassPipelineKind, MeshPipelineVariantId,
 };
@@ -31,6 +32,7 @@ pub(crate) struct MeshPipelineCache {
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::mesh) fallback_shadow_atlas_view:
         wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer) reflection_probes: SceneReflectionProbeResources,
     pub(in crate::graphics::scene::scene_renderer::mesh) shader_modules:
         HashMap<String, wgpu::ShaderModule>,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_variant_pipelines:

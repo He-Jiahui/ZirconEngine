@@ -1,10 +1,16 @@
 #[test]
 fn runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation() {
-    let runtime_08_plan = include_str!(
+    let runtime_08_plan = runtime_plan_source_with_archive(
+        "08",
+        include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
+    ),
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_08_plan = runtime_08_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let ecs_doc = include_str!("../../../../../../../docs/zircon_runtime/scene/ecs.md");
     let review = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"

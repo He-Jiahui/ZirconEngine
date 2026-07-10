@@ -84,6 +84,13 @@ impl TextShapeParagraph {
             orientation: self.orientation,
             vertical_mode: self.vertical_mode,
             include_kerning: self.include_kerning,
+            language: self
+                .style
+                .language
+                .as_deref()
+                .map(str::trim)
+                .filter(|language| !language.is_empty()),
+            features: &[],
         }
     }
 

@@ -5,6 +5,7 @@ mod ibl_bake_artifact;
 mod ibl_bake_artifact_blob;
 mod ibl_bake_artifact_readback;
 mod ibl_bake_artifact_resolution;
+mod reflection_probe;
 mod rgba16f;
 mod skybox;
 mod source_cubemap;
@@ -38,6 +39,11 @@ pub use ibl_bake_artifact_readback::{
 pub use ibl_bake_artifact_resolution::{
     resolve_ibl_bake_artifact_payload, IblBakeArtifactBlobCandidate, IblBakeArtifactResolvedPayload,
 };
+pub use reflection_probe::{
+    reflection_probe_box_project_direction, reflection_probe_influence_weight,
+    select_reflection_probe_blend, ProbeBakeTiming, ProbeInfluenceShape, ReflectionProbeBlend,
+    ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError,
+};
 pub use rgba16f::{
     append_rgb_as_rgba16f_texels, append_rgba16f_texels, decode_rgb_from_rgba16f_texels,
     decode_rgba16f_texels, encode_rgba16f_texels, RGBA16F_TEXEL_SIZE_BYTES,
@@ -47,14 +53,18 @@ pub use skybox::{
     SourceCubemapUploadKey, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,
 };
 pub use source_cubemap::{
-    build_source_cubemap_from_equirect, source_cubemap_evaluate_irradiance_sh9,
+    build_source_cubemap_from_captured_faces,
+    build_source_cubemap_from_captured_faces_with_quality, build_source_cubemap_from_equirect,
+    build_source_cubemap_from_source_mips, build_source_cubemap_from_source_mips_with_quality,
+    source_cubemap_capture_hash, source_cubemap_evaluate_irradiance_sh9,
     source_cubemap_face_mip_offset, source_cubemap_face_size_from_equirect_height,
     source_cubemap_irradiance_mip_level, source_cubemap_mip_count, source_cubemap_mip_size,
     source_cubemap_pmrem_mip_from_roughness, source_cubemap_roughness_from_pmrem_mip,
     source_cubemap_sample_count, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
-    SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE, SOURCE_CUBEMAP_MAX_FACE_SIZE,
-    SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_ROUGHEST_MIP, SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
+    SourceCubemapPrefilterQuality, SOURCE_CUBEMAP_FACE_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE,
+    SOURCE_CUBEMAP_MAX_FACE_SIZE, SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_ROUGHEST_MIP,
+    SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
 };
 pub use source_cubemap_artifact::{
     source_cubemap_environment_with_bake_artifact, source_cubemap_mip_chain_with_bake_artifact,

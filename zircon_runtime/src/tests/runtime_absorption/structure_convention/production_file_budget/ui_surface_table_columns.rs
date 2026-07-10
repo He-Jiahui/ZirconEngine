@@ -4,6 +4,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_ui_surface_table_column_helpers_are_child_owner() {
     let parent = read_runtime_src("ui/surface/surface/default_interactions/table/mod.rs");
     let columns = read_runtime_src("ui/surface/surface/default_interactions/table/columns.rs");
+    let mutation = read_runtime_src("ui/surface/surface/default_interactions/table/mutation.rs");
     let selection = read_runtime_src("ui/surface/surface/default_interactions/table/selection.rs");
     let virtualization =
         read_runtime_src("ui/surface/surface/default_interactions/table/virtualization.rs");
@@ -23,12 +24,13 @@ fn runtime_15_ui_surface_table_column_helpers_are_child_owner() {
         &parent,
         &[
             "mod columns;",
+            "mod mutation;",
             "mod selection;",
             "mod virtualization;",
             "pub(in crate::ui::surface::surface) fn apply_default_table_pointer_action(",
             "fn apply_default_table_column_resize_press(",
             "fn apply_default_table_sort_header_release(",
-            "fn apply_table_mutation(",
+            "self.apply_table_column_widths_mutation(",
             "columns::encode_table_column_resize_drag(",
             "columns::table_column_width(",
             "columns::is_table_column_resize_handle",
@@ -71,6 +73,20 @@ fn runtime_15_ui_surface_table_column_helpers_are_child_owner() {
         ],
     );
 
+    assert_contains_all(
+        "mutation child owns table property mutation and accepted binding-report flow",
+        &mutation,
+        &[
+            "pub(super) fn apply_table_column_widths_mutation(",
+            "pub(super) fn apply_table_columns_width_mutation(",
+            "pub(super) fn apply_table_sort_model_mutation(",
+            "pub(super) fn apply_table_columns_sort_direction_mutation(",
+            "pub(super) fn apply_table_rows_sort_mutation(",
+            "pub(super) fn apply_table_mutation(",
+            "UiPropertyMutationStatus::Accepted",
+        ],
+    );
+
     for (path, source) in [
         (
             "ui/surface/surface/default_interactions/table/mod.rs",
@@ -79,6 +95,10 @@ fn runtime_15_ui_surface_table_column_helpers_are_child_owner() {
         (
             "ui/surface/surface/default_interactions/table/columns.rs",
             columns.as_str(),
+        ),
+        (
+            "ui/surface/surface/default_interactions/table/mutation.rs",
+            mutation.as_str(),
         ),
         (
             "ui/surface/surface/default_interactions/table/selection.rs",

@@ -125,6 +125,20 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    pub fn write_buffer_with_minimum_size(
+        self,
+        name: impl Into<String>,
+        minimum_size_bytes: u64,
+    ) -> Self {
+        self.with_resource_minimum_size(
+            name,
+            RenderFeatureResourceKind::Buffer,
+            RenderFeatureResourceAccess::Write,
+            RenderFeatureResourceWriteMode::Storage,
+            minimum_size_bytes,
+        )
+    }
+
     pub fn read_external(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
@@ -337,9 +351,30 @@ impl RenderFeaturePassDescriptor {
             name: name.into(),
             kind,
             access,
+            minimum_size_bytes: None,
             attachment_ops,
             write_mode,
             external_binding,
+        });
+        self
+    }
+
+    fn with_resource_minimum_size(
+        mut self,
+        name: impl Into<String>,
+        kind: RenderFeatureResourceKind,
+        access: RenderFeatureResourceAccess,
+        write_mode: RenderFeatureResourceWriteMode,
+        minimum_size_bytes: u64,
+    ) -> Self {
+        self.resources.push(RenderFeatureResourceDescriptor {
+            name: name.into(),
+            kind,
+            access,
+            minimum_size_bytes: Some(minimum_size_bytes),
+            attachment_ops: None,
+            write_mode,
+            external_binding: RenderGraphExternalResourceBinding::report_only(),
         });
         self
     }
@@ -385,6 +420,7 @@ fn render_feature_resource_for_shader_binding(
         name: binding.name.clone(),
         kind,
         access,
+        minimum_size_bytes: None,
         attachment_ops: None,
         write_mode,
         external_binding: RenderGraphExternalResourceBinding::report_only(),

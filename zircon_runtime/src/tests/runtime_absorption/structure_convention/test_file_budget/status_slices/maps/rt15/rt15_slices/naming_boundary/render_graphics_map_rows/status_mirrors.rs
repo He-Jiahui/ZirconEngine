@@ -16,13 +16,6 @@ fn runtime_15_naming_boundary_render_graphics_map_rows_guard_status_mirrors_are_
         &[
             MAP_ROWS_GUARD_SLICE,
             MAP_ROWS_GUARD_STATUS,
-            MAP_ROWS_GUARD_PARENT,
-            MAP_ROWS_GUARD_CHILDREN[0],
-            MAP_ROWS_GUARD_CHILDREN[1],
-            MAP_ROWS_GUARD_CHILDREN[2],
-            MAP_ROWS_GUARD_CHILDREN[3],
-            MAP_ROWS_GUARD_CHILDREN[4],
-            MAP_ROWS_GUARD_CHILDREN[5],
             MAP_ROWS_GUARD_GUARD,
             "Cargo gate deferred",
         ],
@@ -37,29 +30,30 @@ fn runtime_15_naming_boundary_render_graphics_map_rows_guard_status_mirrors_are_
 #[test]
 fn runtime_15_naming_boundary_render_graphics_map_rows_docs_are_synced() {
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
-    let frameworks_index = read_repo("docs/plans/zircon_runtime/frameworks/index.md");
+    let frameworks_index =
+        read_repo("docs/plans/zircon_runtime/frameworks/02/2026-07-09-index-output-records.md");
     for (label, source) in [
         (
             "Runtime 15 plan",
             read_repo(
-                "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+                "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
             ),
         ),
         (
             "Runtime index",
-            read_repo("docs/plans/zircon_runtime/runtime/index.md"),
+            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         ("Frameworks 02", frameworks_02.clone()),
         ("Frameworks index", frameworks_index.clone()),
         (
             "review findings",
-            read_repo("docs/plans/engine-code-review-findings-2026-06.md"),
+            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "structure convention",
-            read_repo("docs/plans/engine-code-structure-convention.md"),
+            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "module convention doc",

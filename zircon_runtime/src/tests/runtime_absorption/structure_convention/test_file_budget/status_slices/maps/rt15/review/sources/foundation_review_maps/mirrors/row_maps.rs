@@ -12,8 +12,8 @@ fn runtime_15_review_guard_foundation_status_date_maps_status_is_mirrored() {
         &[
             REVIEW_FOUNDATION_MAPS_SLICE,
             REVIEW_FOUNDATION_MAPS_STATUS,
-            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows.rs",
-            "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows.rs",
+            "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows.rs",
+            "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows.rs",
             REVIEW_FOUNDATION_MAPS_GUARD,
             REVIEW_FOUNDATION_MAP_GUARD_SLICE,
             REVIEW_FOUNDATION_MAP_GUARD_STATUS,

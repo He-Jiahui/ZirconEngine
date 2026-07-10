@@ -6,15 +6,18 @@ fn review_f5_asset_authoring_uses_typed_error() {
     let import_authoring_asset =
         include_str!("../../../../../asset/importer/ingest/import_authoring_asset.rs");
     let asset_authoring_tests = include_str!("../../../../../asset/tests/assets/authoring.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    let review_findings = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_15_output = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+    );
+    let runtime_index_output = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
+    let convention = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+    );
     let authoring_doc =
         include_str!("../../../../../../../docs/zircon_runtime/asset/assets/authoring.md");
 
@@ -63,8 +66,8 @@ fn review_f5_asset_authoring_uses_typed_error() {
     ] {
         assert!(
             review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
+                || runtime_15_output.contains(doc_anchor)
+                || runtime_index_output.contains(doc_anchor)
                 || convention.contains(doc_anchor)
                 || authoring_doc.contains(doc_anchor),
             "F5 asset authoring docs should record `{doc_anchor}`"

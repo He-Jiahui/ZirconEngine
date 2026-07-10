@@ -187,11 +187,15 @@ fn material_readiness_report_summary_counts_status_and_prepared_summaries() {
         standard_texture_slot_states: vec![
             RenderMaterialTextureSlotState {
                 slot: "base_color".to_string(),
+                expected_dimension: None,
+                actual_dimension: None,
                 texture_id: Some(ResourceId::from_stable_label("texture:base")),
                 fallback: None,
             },
             RenderMaterialTextureSlotState {
                 slot: "normal".to_string(),
+                expected_dimension: None,
+                actual_dimension: None,
                 texture_id: None,
                 fallback: None,
             },
@@ -203,6 +207,8 @@ fn material_readiness_report_summary_counts_status_and_prepared_summaries() {
         }),
         non_standard_texture_slot_states: vec![RenderMaterialTextureSlotState {
             slot: "mask_map".to_string(),
+            expected_dimension: None,
+            actual_dimension: None,
             texture_id: None,
             fallback: None,
         }],

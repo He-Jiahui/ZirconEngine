@@ -1,6 +1,7 @@
-use crate::plugin::{PluginFeatureBundleManifest, ProjectPluginSelection};
+use crate::plugin::{PluginFeatureBundleManifest, ProjectPluginManifest, ProjectPluginSelection};
 
 use super::super::super::feature_registration_report::project_selection_from_feature_manifest;
+use super::super::feature_definitions::FeatureDefinition;
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_owner_feature_selection(
     owner_selection: &mut ProjectPluginSelection,
@@ -31,4 +32,31 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_owner_
         return;
     }
     owner_selection.features.push(catalog_selection);
+}
+
+pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn complete_external_provider_selection(
+    manifest: &mut ProjectPluginManifest,
+    definition: &FeatureDefinition,
+) {
+    let Some(provider_package_id) = definition.external_provider_for_owner() else {
+        return;
+    };
+    if manifest
+        .selections
+        .iter()
+        .any(|selection| selection.id == provider_package_id)
+    {
+        return;
+    }
+    let feature_selection = project_selection_from_feature_manifest(&definition.manifest);
+    manifest.selections.push(ProjectPluginSelection {
+        id: provider_package_id.to_string(),
+        enabled: false,
+        required: false,
+        target_modes: feature_selection.target_modes,
+        packaging: feature_selection.packaging,
+        runtime_crate: feature_selection.runtime_crate,
+        editor_crate: feature_selection.editor_crate,
+        features: Vec::new(),
+    });
 }

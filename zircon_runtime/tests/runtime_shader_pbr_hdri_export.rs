@@ -45,17 +45,17 @@ use scene_fixtures::{
     SinglePbrSphereCameraView,
 };
 
-const PBR_MATRIX_DIMENSION: usize = 10;
+const PBR_MATRIX_DIMENSION: usize = 8;
 const PBR_MATRIX_OUTPUT_SIZE: UVec2 = UVec2::new(1600, 1200);
-const PBR_MATRIX_ORTHO_SIZE: f32 = 7.2;
+const PBR_MATRIX_ORTHO_SIZE: f32 = 5.8;
 const PBR_MATRIX_STEP_X: f32 = 0.7;
 const PBR_MATRIX_STEP_Y: f32 = 0.62;
 const PBR_MATRIX_SPHERE_SCALE: f32 = 0.21;
-const PBR_MATRIX_CELL_SAMPLE_SIZE: u32 = 56;
+const PBR_MATRIX_CELL_SAMPLE_SIZE: u32 = 40;
 const PBR_MATRIX_HDRI_OUTPUT_NAME: &str =
-    "runtime_shader_pbr_real_hdri_lakes_10x10_cosine_pmrem_reflection_20260706.png";
+    "runtime_shader_pbr_real_hdri_lakes_8x8_cmft_pmrem_reflection_20260710.png";
 const PBR_MATRIX_HDRI_2K_OUTPUT_NAME: &str =
-    "runtime_shader_pbr_real_hdri_lakes_2k_10x10_cosine_pmrem_reflection_20260706.png";
+    "runtime_shader_pbr_real_hdri_lakes_2k_8x8_cmft_pmrem_reflection_20260710.png";
 const PBR_MATRIX_HDRI_1K_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_1k_angular_source_pmrem_mip_diagnostic_20260706.png";
 const PBR_SINGLE_HDRI_OUTPUT_SIZE: UVec2 = UVec2::new(1280, 960);
@@ -155,6 +155,14 @@ fn mirror_cardinal_120deg_view_cases() -> [MirrorMultiViewCase; 4] {
 fn mirror_cardinal_120deg_row_count() -> u32 {
     let case_count = mirror_cardinal_120deg_view_cases().len() as u32;
     (case_count + PBR_MIRROR_MULTI_VIEW_COLUMNS - 1) / PBR_MIRROR_MULTI_VIEW_COLUMNS
+}
+
+#[test]
+fn runtime_shader_pbr_matrix_contract_uses_requested_eight_by_eight_grid() {
+    assert_eq!(PBR_MATRIX_DIMENSION, 8);
+    assert_eq!(PBR_MATRIX_DIMENSION * PBR_MATRIX_DIMENSION, 64);
+    assert_eq!(pbr_matrix_axis_value(0), 0.0);
+    assert_eq!(pbr_matrix_axis_value(PBR_MATRIX_DIMENSION - 1), 1.0);
 }
 
 #[test]

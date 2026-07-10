@@ -522,7 +522,7 @@ impl RenderFramework for FakeRenderFramework {
             last_hybrid_gi_voxel_resident_clipmap_count: 21,
             last_hybrid_gi_voxel_dirty_clipmap_count: 22,
             last_hybrid_gi_voxel_invalidated_clipmap_count: 23,
-            last_hybrid_gi_payload_source: RenderHybridGiPayloadSource::Authored,
+            last_hybrid_gi_payload_source: RenderHybridGiPayloadSource::SceneRepresentation,
             advanced_provider_availability: AdvancedProviderAvailability::new()
                 .with_virtual_geometry_provider("diagnostics-vg-provider"),
             last_advanced_provider_reports: vec![

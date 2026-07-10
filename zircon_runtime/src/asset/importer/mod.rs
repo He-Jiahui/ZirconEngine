@@ -1,4 +1,5 @@
 mod contract;
+mod environment_ibl;
 mod error;
 mod image_decode;
 mod ingest;
@@ -12,8 +13,17 @@ pub use contract::{
     AssetSchemaMigrationReport, DiagnosticOnlyAssetImporter, FunctionAssetImporter,
     ImportedAssetEntry,
 };
+pub use environment_ibl::{
+    stage_environment_ibl_source, stage_external_source_cubemap_texture,
+    EnvironmentIblSourceStagingError, EnvironmentIblSourceStagingReport,
+    EnvironmentIblSourceStagingStatus, ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING,
+    ENVIRONMENT_IBL_IMPORT_SETTING,
+};
 pub use error::AssetImportError;
-pub use image_decode::{decode_texture_source_image, DecodedTextureImage};
+pub use image_decode::{
+    decode_texture_source_image, decode_texture_source_image_rgba32f, DecodedTextureImage,
+    DecodedTextureImageRgba32F,
+};
 pub use ingest::AssetImporter;
 pub use native::{
     NativeAssetImportEntryMetadata, NativeAssetImportRequestMetadata,

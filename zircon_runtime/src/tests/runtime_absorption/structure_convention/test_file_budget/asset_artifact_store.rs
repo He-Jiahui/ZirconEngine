@@ -74,7 +74,7 @@ fn runtime_15_asset_artifact_store_tests_are_folder_backed() {
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
         15,
-        "asset artifact store child modules should preserve the original 15 parent tests"
+        "asset artifact store child modules should preserve the current 15 tests"
     );
 
     assert_contains_all(

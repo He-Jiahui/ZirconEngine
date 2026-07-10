@@ -63,7 +63,7 @@ fn zr_shadow_compare(slot: ZrShadowSlot, atlas_uv: vec2<f32>, receiver_depth: f3
     let atlas_min = slot.atlas_scale_bias.zw;
     let atlas_max = slot.atlas_scale_bias.zw + slot.atlas_scale_bias.xy;
     let sample_uv = clamp(atlas_uv + vec2<f32>(offset) * atlas_texel, atlas_min, atlas_max);
-    return textureSampleCompare(zr_shadow_atlas, zr_shadow_sampler, sample_uv, receiver_depth);
+    return textureSampleCompareLevel(zr_shadow_atlas, zr_shadow_sampler, sample_uv, receiver_depth);
 }
 
 fn zr_sample_shadow_slot_low(slot: ZrShadowSlot, atlas_uv: vec2<f32>, receiver_depth: f32) -> f32 {

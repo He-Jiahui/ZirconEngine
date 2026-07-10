@@ -72,14 +72,14 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRender
     pub(super) draw_command_count: usize,
     pub(super) pipeline_count: usize,
     pub(super) requires_background_composite: bool,
-    pub(super) upload_request_count: usize,
-    pub(super) upload_requeued_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) upload_request_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) upload_requeued_count: usize,
     pub(super) upload_missing_page_requeue_count: usize,
     pub(super) upload_page_generation_mismatch_requeue_count: usize,
     pub(super) upload_face_invalidated_count: usize,
-    pub(super) upload_byte_len: usize,
-    pub(super) upload_ready_to_write_texture: bool,
-    pub(super) upload_failure_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) upload_byte_len: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) upload_ready_to_write_texture: bool,
+    pub(in crate::graphics::scene::scene_renderer::ui) upload_failure_count: usize,
     pub(super) invalidated_storage_pass_count: usize,
 }
 
@@ -511,6 +511,23 @@ impl GlyphAtlasBitmapRenderer {
 }
 
 impl GlyphAtlasBitmapRendererPrepareReport {
+    #[cfg(test)]
+    pub(in crate::graphics::scene::scene_renderer::ui) fn with_upload_counters_for_test(
+        mut self,
+        request_count: usize,
+        upload_byte_len: usize,
+        requeued_count: usize,
+        failure_count: usize,
+        ready_to_write_texture: bool,
+    ) -> Self {
+        self.upload_request_count = request_count;
+        self.upload_byte_len = upload_byte_len;
+        self.upload_requeued_count = requeued_count;
+        self.upload_failure_count = failure_count;
+        self.upload_ready_to_write_texture = ready_to_write_texture;
+        self
+    }
+
     fn with_upload_report(mut self, upload: GlyphAtlasBitmapTextureUploadFrameReport) -> Self {
         self.upload_request_count = upload.request_count;
         self.upload_requeued_count = upload.requeued_upload_count;

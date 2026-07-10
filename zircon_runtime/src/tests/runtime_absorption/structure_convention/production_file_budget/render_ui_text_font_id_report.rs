@@ -5,6 +5,8 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/text.rs");
     let font_id_report =
         read_runtime_src("graphics/scene/scene_renderer/ui/text/font_id_report.rs");
+    let prepare_report =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/prepare_report.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -22,6 +24,7 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         &parent,
         &[
             "mod font_id_report;",
+            "mod prepare_report;",
             "use self::font_id_report::{",
             "ScreenSpaceUiTextSystem",
             "ScreenSpaceUiTextPrepareReport",
@@ -34,8 +37,8 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         "pub(super) struct ScreenSpaceUiTextFontIdReport",
         "fn resolved_style_for_text_batch(",
         "fn accumulate_text_font_id_report(",
-        "shape_horizontal_line",
-        "annotate_fallback_font_ids",
+        "fn accumulate_backend_glyphs(",
+        "font_database.font_face_id(glyph.font_id)",
     ] {
         assert!(
             !parent.contains(moved_owner),
@@ -47,25 +50,49 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
         );
     }
     assert_contains_all(
-        "screen-space UI text font-id child owns fallback reporting bridge",
+        "screen-space UI text font-id child owns actual backend reporting",
         &font_id_report,
         &[
             "pub(super) struct ScreenSpaceUiTextFontIdReport",
             "pub(super) fn accumulate_text_font_id_report",
             "UiResolvedStyle",
-            "UiTextRange",
             "font_query_for_style",
-            "shape_horizontal_line",
-            "annotate_fallback_font_ids",
+            "buffer.layout_runs()",
+            "font_database.font_face_id(glyph.font_id)",
+            "unmapped_glyph_count",
             "resolve_text_render_mode(UiTextRenderMode::Native, None)",
         ],
     );
+    for moved_report_owner in [
+        "pub(crate) struct ScreenSpaceUiTextPrepareReport",
+        "pub(crate) struct ScreenSpaceUiTextRasterUploadReport",
+        "fn text_raster_upload_report(",
+    ] {
+        assert!(
+            !parent.contains(moved_report_owner),
+            "scene_renderer/ui/text.rs should delegate prepare-report owner `{moved_report_owner}`"
+        );
+        assert!(
+            prepare_report.contains(moved_report_owner),
+            "text/prepare_report.rs should own `{moved_report_owner}`"
+        );
+    }
+    for forbidden_bridge in ["shape_horizontal_line", "annotate_fallback_font_ids"] {
+        assert!(
+            !font_id_report.contains(forbidden_bridge),
+            "text/font_id_report.rs must not retain post-shape bridge `{forbidden_bridge}`"
+        );
+    }
 
     for (path, source) in [
         ("graphics/scene/scene_renderer/ui/text.rs", parent.as_str()),
         (
             "graphics/scene/scene_renderer/ui/text/font_id_report.rs",
             font_id_report.as_str(),
+        ),
+        (
+            "graphics/scene/scene_renderer/ui/text/prepare_report.rs",
+            prepare_report.as_str(),
         ),
     ] {
         let line_count = source.lines().count();

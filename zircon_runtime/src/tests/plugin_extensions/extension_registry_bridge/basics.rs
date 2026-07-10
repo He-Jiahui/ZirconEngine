@@ -196,7 +196,7 @@ fn weak_bridge_records_debug_diagnostics() {
 }
 
 #[test]
-fn finish_context_resolves_strong_and_weak_interfaces() {
+fn frozen_bridge_table_resolves_strong_and_weak_interfaces() {
     let mut registry = RuntimeExtensionRegistry::default();
     let owner = registry.intern_plugin_module("weather.runtime").unwrap();
     registry
@@ -205,13 +205,12 @@ fn finish_context_resolves_strong_and_weak_interfaces() {
             Arc::new(WeatherQueryProvider { temperature: 17 }),
         )
         .unwrap();
-    let capabilities = CapabilityView::default();
-    let context = PluginFinishContext::new(&mut registry, &capabilities);
+    let bridge_table = registry.frozen_bridge_table();
 
-    let strong = context
+    let strong = bridge_table
         .resolve_strong::<dyn WeatherQueryInterface>()
         .expect("strong bridge");
-    let weak = context.resolve_weak::<dyn WeatherQueryInterface>();
+    let weak: WeakBridge<dyn WeatherQueryInterface> = WeakBridge::owned(bridge_table);
 
     assert_eq!(strong.sample_temperature(), 17);
     assert_eq!(weak.call(|provider| provider.sample_temperature()), Ok(17));

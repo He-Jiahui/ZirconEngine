@@ -195,6 +195,7 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     let direct_lights = zr_standard_pbr_gpu_light_lighting(surface, diffuse_color, ctx);
     let view_dir_ws = zr_scene_view_dir_ws(ctx.position_ws);
     let environment_lights = zr_environment_pbr_indirect(
+        ctx.position_ws,
         surface.normal_ws,
         view_dir_ws,
         surface.roughness,

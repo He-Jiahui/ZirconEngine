@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::SoundChannelLayout;
+use super::AudioChannelLayout;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SoundBackendState {
@@ -17,5 +17,5 @@ pub struct SoundBackendStatus {
     pub detail: Option<String>,
     pub sample_rate_hz: u32,
     pub channel_count: u16,
-    pub channel_layout: SoundChannelLayout,
+    pub channel_layout: AudioChannelLayout,
 }

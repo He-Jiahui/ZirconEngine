@@ -11,8 +11,6 @@ const TEST_ATTRIBUTE: &str = concat!("#[", "test", "]");
 
 const STATUS: &str =
     "runtime_15_plan_status_index_tables_parent_guard_folder_backed_static_passed_cargo_deferred";
-const FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_plan_status_index_tables_parent_guard_folder_backed_static_passed_cargo_deferred";
 const SLICE: &str = "Runtime 15 M3 plan-status index-tables parent guard folder-backed split";
 const GUARD: &str = "runtime_15_plan_status_index_tables_parent_guard_is_folder_backed";
 

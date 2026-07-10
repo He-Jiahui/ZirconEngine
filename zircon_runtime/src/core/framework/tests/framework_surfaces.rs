@@ -178,6 +178,7 @@ fn time_framework_root_stays_structural_after_folder_split() {
 }
 
 #[test]
+#[cfg(feature = "physics-contracts")]
 fn physics_framework_root_stays_structural_after_folder_split() {
     let physics_mod = include_str!("../physics/mod.rs");
 
@@ -188,12 +189,10 @@ fn physics_framework_root_stays_structural_after_folder_split() {
         "mod body_type;",
         "mod collider_shape;",
         "mod collider_sync_state;",
-        "mod combine_rule;",
         "mod contact_event;",
         "mod joint_sync_state;",
         "mod joint_type;",
         "mod manager;",
-        "mod material_metadata;",
         "mod material_sync_state;",
         "mod query_filter;",
         "mod ray_cast_hit;",
@@ -214,12 +213,10 @@ fn physics_framework_root_stays_structural_after_folder_split() {
         "PhysicsBodyType",
         "PhysicsColliderShape",
         "PhysicsColliderSyncState",
-        "PhysicsCombineRule",
         "PhysicsContactEvent",
         "PhysicsJointSyncState",
         "PhysicsJointType",
         "PhysicsManager",
-        "PhysicsMaterialMetadata",
         "PhysicsMaterialSyncState",
         "PhysicsQueryFilter",
         "PhysicsRayCastHit",
@@ -528,7 +525,7 @@ fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_cont
 }
 
 #[test]
-fn hybrid_gi_extract_defaults_to_public_settings_and_empty_internal_fixture() {
+fn hybrid_gi_extract_defaults_to_public_settings_only() {
     let extract = RenderHybridGiExtract::default();
 
     assert!(!extract.enabled);
@@ -537,10 +534,6 @@ fn hybrid_gi_extract_defaults_to_public_settings_and_empty_internal_fixture() {
     assert_eq!(extract.card_budget, 0);
     assert_eq!(extract.voxel_budget, 0);
     assert_eq!(extract.debug_view, RenderHybridGiDebugView::None);
-    assert_eq!(extract.probe_budget, 0);
-    assert_eq!(extract.tracing_budget, 0);
-    assert!(extract.probes.is_empty());
-    assert!(extract.trace_regions.is_empty());
     assert!(!RenderFeatureQualitySettings::default().hybrid_global_illumination);
 }
 

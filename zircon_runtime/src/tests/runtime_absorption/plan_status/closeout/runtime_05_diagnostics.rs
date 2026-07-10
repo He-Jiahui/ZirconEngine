@@ -1,10 +1,8 @@
+use super::super::support::runtime_numbered_archive_sources;
+
 #[test]
 fn runtime_05_scene_failure_triage_records_minimum_lower_layer_diagnostics() {
-    let runtime_05_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let archive_source = runtime_numbered_archive_sources();
     let review = include_str!(
         "../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
     );
@@ -35,8 +33,7 @@ fn runtime_05_scene_failure_triage_records_minimum_lower_layer_diagnostics() {
     ];
 
     for (label, source) in [
-        ("Runtime 05 closeout plan", runtime_05_plan),
-        ("runtime index", runtime_index),
+        ("runtime numbered archives", archive_source.as_str()),
         ("M0 architecture review", review),
         ("runtime-interface convergence", convergence),
     ] {

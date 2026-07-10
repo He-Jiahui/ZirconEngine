@@ -523,6 +523,7 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     let view_dir = scene_view_dir_ws(input.world_position);
     let direct_lights = gpu_light_lighting(input.clip_position.xy, input.world_position, world_normal, material, diffuse_color, input.shadow_params);
     let environment_lights = zr_environment_pbr_indirect(
+        input.world_position,
         world_normal,
         view_dir,
         material.roughness,

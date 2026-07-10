@@ -16,21 +16,21 @@ pub(super) const GUARD_FRAMEWORKS_STATUS: &str =
 pub(super) const GUARD_GUARD: &str =
     "runtime_15_review_guard_foundation_expected_slice_rows_guard_is_folder_backed";
 
-pub(super) const ROWS_STATUS_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows.rs";
-pub(super) const ROWS_DATE_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows.rs";
+pub(super) const ROWS_STATUS_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows.rs";
+pub(super) const ROWS_DATE_PARENT: &str = "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows.rs";
 pub(super) const ROWS_STATUS_CHILDREN: &[&str] = &[
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/route_metadata_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/root_route_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/foundation_status_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/source_metadata_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/expected_slice_map_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/route_metadata_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/root_route_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/foundation_status_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/source_metadata_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/expected_slice_map_rows.rs",
 ];
 pub(super) const ROWS_DATE_CHILDREN: &[&str] = &[
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/route_metadata_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/root_route_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/foundation_status_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/source_metadata_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/foundation_review_maps/expected_slice_rows/expected_slice_map_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/route_metadata_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/root_route_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/foundation_status_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/source_metadata_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/foundation_review_maps/expected_slice_rows/expected_slice_map_rows.rs",
 ];
 
 pub(super) const STRUCTURE_GUARD_PATH: &str = "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/sources/foundation_review_maps/expected_slice_rows.rs";

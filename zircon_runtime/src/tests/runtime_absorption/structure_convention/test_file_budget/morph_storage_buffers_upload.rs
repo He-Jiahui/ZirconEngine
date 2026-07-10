@@ -14,8 +14,8 @@ fn runtime_15_morph_storage_buffers_upload_is_wired() {
     let morphed_wgsl = read_runtime_src("graphics/shader/wgsl/zr_geometry_morphed.wgsl");
     let skinned_morphed_wgsl =
         read_runtime_src("graphics/shader/wgsl/zr_geometry_skinned_morphed.wgsl");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let gpu_scene_doc = read_repo("docs/zircon_runtime/graphics/scene/gpu_scene/mod.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

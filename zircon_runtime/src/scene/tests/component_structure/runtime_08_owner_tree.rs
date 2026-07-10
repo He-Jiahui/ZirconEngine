@@ -87,7 +87,13 @@ fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
         ),
         (
             "observer",
-            &["callbacks.rs", "entry.rs", "id.rs", "store.rs", "utils.rs"][..],
+            &[
+                "callback_registry.rs",
+                "callbacks.rs",
+                "entry.rs",
+                "id.rs",
+                "store.rs",
+            ][..],
         ),
         ("resource", &["id.rs", "marker.rs", "registry.rs"][..]),
         ("resource_store", &["store.rs", "stored_resource.rs"][..]),
@@ -154,12 +160,12 @@ fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
         "retired flat Runtime 08 ECS storage owner `storage/component_storage.rs` should not be restored"
     );
     for child in [
+        "component_results.rs",
         "entry.rs",
         "location.rs",
         "sparse.rs",
         "store.rs",
         "table.rs",
-        "utils.rs",
     ] {
         assert!(
             component_storage_root.join(child).exists(),

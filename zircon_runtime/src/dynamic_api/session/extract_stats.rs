@@ -136,14 +136,12 @@ fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {
         .iter()
         .map(|light| option_string_bytes(&light.degradation_reason))
         .sum::<usize>();
-    bytes += slice_bytes(&extract.lighting.reflection_probes);
+    bytes += slice_bytes(&extract.environment.probes);
     bytes += extract.lighting.baked_lighting.as_ref().map_or(0, |_| {
         std::mem::size_of_val(&extract.lighting.baked_lighting)
     });
     if let Some(hybrid_gi) = &extract.lighting.hybrid_global_illumination {
         bytes += std::mem::size_of_val(hybrid_gi);
-        bytes += slice_bytes(&hybrid_gi.probes);
-        bytes += slice_bytes(&hybrid_gi.trace_regions);
     }
 
     bytes += slice_bytes(&extract.post_process.volumes);

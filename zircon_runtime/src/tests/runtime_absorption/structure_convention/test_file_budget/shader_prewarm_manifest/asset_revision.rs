@@ -7,8 +7,8 @@ fn runtime_15_shader_prewarm_asset_revision_export_is_wired() {
     let tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
     let raw_revision_tests =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/tests/raw_revision.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let template_doc = read_repo("docs/zircon_runtime/graphics/shader/template.md");
     let product_submit_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");

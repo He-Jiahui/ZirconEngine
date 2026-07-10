@@ -1,13 +1,12 @@
 use crate::core::framework::render::{
     RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe, RenderHybridGiPreparedProbeSceneData,
-    RenderHybridGiProbe,
 };
 use crate::core::math::{Mat4, UVec2, Vec3};
 use bytemuck::Zeroable;
 
 use crate::graphics::types::ViewportRenderFrame;
 
-use super::super::super::super::constants::{MAX_HYBRID_GI_PROBES, MAX_HYBRID_GI_TRACE_REGIONS};
+use super::super::super::super::constants::MAX_HYBRID_GI_PROBES;
 use super::super::super::super::hybrid_gi_probe_gpu::GpuHybridGiProbe;
 use super::super::camera_matrices::view_projection;
 
@@ -20,20 +19,20 @@ pub(in super::super) fn encode_hybrid_gi_probes(
     frame: &ViewportRenderFrame,
     viewport_size: UVec2,
     enabled: bool,
-) -> ([GpuHybridGiProbe; MAX_HYBRID_GI_PROBES], u32, u32) {
+) -> ([GpuHybridGiProbe; MAX_HYBRID_GI_PROBES], u32) {
     let mut probes = [GpuHybridGiProbe::zeroed(); MAX_HYBRID_GI_PROBES];
     if !enabled {
-        return (probes, 0, 0);
+        return (probes, 0);
     }
 
-    let Some(hybrid_gi) = frame
+    let Some(_hybrid_gi) = frame
         .extract
         .lighting
         .hybrid_global_illumination
         .as_ref()
         .filter(|extract| extract.enabled)
     else {
-        return (probes, 0, 0);
+        return (probes, 0);
     };
 
     let camera = &frame.extract.view.camera;
@@ -41,13 +40,6 @@ pub(in super::super) fn encode_hybrid_gi_probes(
     let camera_position = camera.transform.translation;
     let mut count = 0;
 
-    for probe in hybrid_gi.probes.iter().take(MAX_HYBRID_GI_PROBES) {
-        let Some(gpu_probe) = project_hybrid_gi_probe(probe, view_proj, camera_position) else {
-            continue;
-        };
-        probes[count] = gpu_probe;
-        count += 1;
-    }
     if let Some(prepared_frame) = frame
         .prepared_runtime_sidebands()
         .hybrid_gi_prepared_frame()
@@ -55,13 +47,6 @@ pub(in super::super) fn encode_hybrid_gi_probes(
         for prepared_probe in &prepared_frame.resident_probes {
             if count >= MAX_HYBRID_GI_PROBES {
                 break;
-            }
-            if hybrid_gi
-                .probes
-                .iter()
-                .any(|probe| probe.probe_id == prepared_probe.probe_id)
-            {
-                continue;
             }
             let Some(gpu_probe) = project_prepared_hybrid_gi_probe(
                 prepared_probe,
@@ -76,14 +61,7 @@ pub(in super::super) fn encode_hybrid_gi_probes(
         }
     }
 
-    let scheduled_trace_region_count = hybrid_gi
-        .trace_regions
-        .iter()
-        .take(MAX_HYBRID_GI_TRACE_REGIONS)
-        .filter(|region| project_screen_uv(view_proj, region.bounds_center).is_some())
-        .count() as u32;
-
-    (probes, count as u32, scheduled_trace_region_count)
+    (probes, count as u32)
 }
 
 fn project_prepared_hybrid_gi_probe(
@@ -125,25 +103,6 @@ fn project_prepared_hybrid_gi_probe(
             rt_lighting[2],
             rt_lighting_weight,
         ],
-        temporal_signature_and_padding: [temporal_signature, 1.0, 0.0, 0.0],
-    })
-}
-
-fn project_hybrid_gi_probe(
-    probe: &RenderHybridGiProbe,
-    view_proj: Mat4,
-    camera_position: Vec3,
-) -> Option<GpuHybridGiProbe> {
-    let (uv_x, uv_y) = project_screen_uv(view_proj, probe.position)?;
-    let screen_radius = projected_screen_radius(probe.radius, probe.position, camera_position);
-    let budget_weight = ((probe.ray_budget.max(1) as f32) / 128.0).clamp(0.25, 1.5);
-    let temporal_signature = ((probe.probe_id % 1024) as f32 + 1.0) / 1024.0;
-
-    Some(GpuHybridGiProbe {
-        screen_uv_and_radius: [uv_x, uv_y, screen_radius, budget_weight],
-        irradiance_and_intensity: [0.32, 0.38, 0.46, 1.0],
-        hierarchy_irradiance_rgb_and_weight: [0.0, 0.0, 0.0, 0.0],
-        hierarchy_rt_lighting_rgb_and_weight: [0.0, 0.0, 0.0, 0.0],
         temporal_signature_and_padding: [temporal_signature, 1.0, 0.0, 0.0],
     })
 }
@@ -199,9 +158,9 @@ mod tests {
     use super::*;
     use crate::core::framework::render::{
         RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiPreparedProbeRtLighting,
-        RenderHybridGiTraceRegion, RenderPreparedRuntimeSidebands,
+        RenderPreparedRuntimeSidebands,
     };
-    use crate::core::math::{UVec2, Vec3};
+    use crate::core::math::UVec2;
     use crate::graphics::ViewportRenderFrame;
     use crate::scene::world::World;
 
@@ -212,28 +171,21 @@ mod tests {
             UVec2::new(160, 120),
         );
 
-        let (_, probe_count, trace_region_count) =
-            encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), false);
+        let (_, probe_count) = encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), false);
 
         assert_eq!(probe_count, 0);
-        assert_eq!(trace_region_count, 0);
     }
 
     #[test]
-    fn hybrid_gi_probe_encoder_projects_visible_probe() {
+    fn hybrid_gi_probe_encoder_requires_prepared_scene_probe_sideband() {
         let frame = ViewportRenderFrame::from_extract(
-            hybrid_gi_extract_with_probe_and_trace_region(),
+            hybrid_gi_scene_representation_extract(),
             UVec2::new(160, 120),
         );
 
-        let (probes, probe_count, trace_region_count) =
-            encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), true);
+        let (_, probe_count) = encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), true);
 
-        assert_eq!(probe_count, 1);
-        assert_eq!(trace_region_count, 1);
-        assert!(probes[0].screen_uv_and_radius[0] > 0.0);
-        assert!(probes[0].screen_uv_and_radius[2] > 0.0);
-        assert!(probes[0].irradiance_and_intensity[3] > 0.0);
+        assert_eq!(probe_count, 0);
     }
 
     #[test]
@@ -267,11 +219,9 @@ mod tests {
             )),
         );
 
-        let (probes, probe_count, trace_region_count) =
-            encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), true);
+        let (probes, probe_count) = encode_hybrid_gi_probes(&frame, UVec2::new(160, 120), true);
 
         assert_eq!(probe_count, 1);
-        assert_eq!(trace_region_count, 0);
         assert!(probes[0].screen_uv_and_radius[2] > 0.0);
         assert_eq!(probes[0].irradiance_and_intensity[0], 32.0_f32 / 255.0);
         assert_eq!(
@@ -279,40 +229,6 @@ mod tests {
             240.0_f32 / 255.0
         );
         assert!(probes[0].hierarchy_rt_lighting_rgb_and_weight[3] > 0.0);
-    }
-
-    fn hybrid_gi_extract_with_probe_and_trace_region() -> RenderFrameExtract {
-        let world = World::new();
-        let mesh = world
-            .nodes()
-            .iter()
-            .find(|node| node.mesh.is_some())
-            .map(|node| node.id)
-            .expect("default world should contain a renderable mesh");
-        let mut extract = world.to_render_frame_extract();
-        extract.apply_viewport_size(UVec2::new(160, 120));
-        extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
-            enabled: true,
-            probes: vec![RenderHybridGiProbe {
-                entity: mesh,
-                probe_id: 200,
-                position: Vec3::ZERO,
-                radius: 1.0,
-                resident: true,
-                ray_budget: 128,
-                ..RenderHybridGiProbe::default()
-            }],
-            trace_regions: vec![RenderHybridGiTraceRegion {
-                entity: mesh,
-                region_id: 300,
-                bounds_center: Vec3::ZERO,
-                bounds_radius: 1.0,
-                screen_coverage: 1.0,
-                rt_lighting_rgb: [255, 72, 48],
-            }],
-            ..RenderHybridGiExtract::default()
-        });
-        extract
     }
 
     fn hybrid_gi_scene_representation_extract() -> RenderFrameExtract {
@@ -324,8 +240,6 @@ mod tests {
             trace_budget: 2,
             card_budget: 1,
             voxel_budget: 1,
-            probes: Vec::new(),
-            trace_regions: Vec::new(),
             ..RenderHybridGiExtract::default()
         });
         extract

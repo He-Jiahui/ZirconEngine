@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use super::super::support::{assert_contains_all, read_repo_text};
+use super::super::support::{
+    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
+    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows,
+};
 
 #[test]
 fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
@@ -15,16 +18,19 @@ fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -36,18 +42,9 @@ fn runtime_15_editor_workbench_authority_label_uses_editor_name() {
     );
     let editor_commands_doc =
         read_repo_text(manifest_root, "docs/zircon_editor/ui/host/commands.md");
-    let status_rows = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-    );
-    let status_slice = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
-    );
-    let date_slice = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let status_slice = read_runtime_15_naming_status_map(manifest_root);
+    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "editor workbench extension feedback",
@@ -165,33 +162,27 @@ fn runtime_15_editor_workbench_archived_fixtures_use_current_names() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let status_rows = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-    );
-    let expected_status = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-    );
-    let expected_date = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let expected_status = read_runtime_15_naming_status_map(manifest_root);
+    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !repo_root

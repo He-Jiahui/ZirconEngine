@@ -10,8 +10,9 @@ use crate::asset::assets::{
 };
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    IblBakeArtifactRequest, SourceCubemapIrradianceCube, SourceCubemapMipChain,
-    IBL_BAKE_ALGORITHM_VERSION, SOURCE_CUBEMAP_FACE_COUNT,
+    source_cubemap_environment_with_bake_artifact, IblBakeArtifactRequest,
+    SourceCubemapBakeArtifactError, SourceCubemapEnvironment, SourceCubemapIrradianceCube,
+    SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION, SOURCE_CUBEMAP_FACE_COUNT,
 };
 
 use super::ibl_bake_artifact_asset_derived::{
@@ -123,6 +124,45 @@ impl IblSourceCubemapStagingStore {
         Ok(IblSourceCubemapStagingRead::Hit(cubemap))
     }
 
+    pub fn read_source_cubemap_environment(
+        &self,
+        request: &IblBakeArtifactRequest,
+        uri: AssetUri,
+    ) -> Result<SourceCubemapEnvironment, IblSourceCubemapStagingError> {
+        let source = match self.read_source_cubemap_zcube(request, uri)? {
+            IblSourceCubemapStagingRead::Hit(source) => source,
+            IblSourceCubemapStagingRead::Missing => {
+                return Err(IblSourceCubemapStagingError::MissingSourceCubemap)
+            }
+        };
+        let derived = match self
+            .asset_derived_store()
+            .read_asset_derived_artifact(request)
+            .map_err(IblSourceCubemapStagingError::AssetDerived)?
+        {
+            super::IblBakeArtifactAssetDerivedRead::Hit(blob) => blob,
+            super::IblBakeArtifactAssetDerivedRead::Missing => {
+                return Err(IblSourceCubemapStagingError::MissingAssetDerived)
+            }
+            super::IblBakeArtifactAssetDerivedRead::Rejected(source) => {
+                return Err(IblSourceCubemapStagingError::RejectedAssetDerived(source))
+            }
+        };
+
+        let source_chain = SourceCubemapMipChain::new(
+            source.face_size(),
+            source.mip_count(),
+            source.texels().to_vec(),
+        );
+        let environment = SourceCubemapEnvironment::new(
+            source_chain,
+            request.bake_key().source_revision,
+            request.bake_key().source_hash,
+        );
+        source_cubemap_environment_with_bake_artifact(environment, derived.payload())
+            .map_err(IblSourceCubemapStagingError::ApplyAssetDerived)
+    }
+
     pub fn write_source_cubemap_staged_bundle(
         &self,
         request: &IblBakeArtifactRequest,
@@ -229,6 +269,14 @@ pub enum IblSourceCubemapStagingError {
     },
     #[error("source cubemap .zcube helper returned a non-container payload")]
     UnexpectedZcubePayload,
+    #[error("staged source cubemap .zcube is missing")]
+    MissingSourceCubemap,
+    #[error("staged asset-derived .zribl is missing")]
+    MissingAssetDerived,
+    #[error("staged asset-derived .zribl was rejected: {0:?}")]
+    RejectedAssetDerived(crate::core::framework::render::IblBakeArtifactBlobError),
+    #[error("apply staged asset-derived .zribl to source cubemap: {0:?}")]
+    ApplyAssetDerived(SourceCubemapBakeArtifactError),
     #[error("write staged asset-derived .zribl: {0}")]
     AssetDerived(#[source] IblBakeArtifactAssetDerivedError),
 }

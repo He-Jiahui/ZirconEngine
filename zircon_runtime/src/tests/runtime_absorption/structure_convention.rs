@@ -40,40 +40,10 @@ mod rhi_wgpu_lock_poison;
 mod runtime_dead_code;
 #[path = "structure_convention/script_vm_lock_poison.rs"]
 mod script_vm_lock_poison;
+#[path = "structure_convention/support.rs"]
+mod support;
 #[path = "structure_convention/test_file_budget/mod.rs"]
 mod test_file_budget;
 
-fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
-    let missing: Vec<_> = required
-        .iter()
-        .copied()
-        .filter(|anchor| !source.contains(anchor))
-        .collect();
-    assert!(
-        missing.is_empty(),
-        "{label} missing required anchors: {missing:?}"
-    );
-}
-
-fn runtime_src_path(relative: &str) -> std::path::PathBuf {
-    if let Some(manifest_dir) = option_env!("CARGO_MANIFEST_DIR") {
-        std::path::PathBuf::from(manifest_dir)
-            .join("src")
-            .join(relative)
-    } else {
-        std::path::PathBuf::from("zircon_runtime")
-            .join("src")
-            .join(relative)
-    }
-}
-
-fn repo_path(relative: &str) -> std::path::PathBuf {
-    if let Some(manifest_dir) = option_env!("CARGO_MANIFEST_DIR") {
-        std::path::PathBuf::from(manifest_dir)
-            .parent()
-            .expect("zircon_runtime manifest should live under repository root")
-            .join(relative)
-    } else {
-        std::path::PathBuf::from(relative)
-    }
-}
+pub(super) use support::priority_plan_doc_current_owner_archive_source;
+use support::{assert_contains_all, repo_path, runtime_src_path};

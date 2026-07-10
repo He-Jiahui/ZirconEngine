@@ -9,7 +9,7 @@ impl ScenePostProcessResources {
     pub(crate) fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        target_format: wgpu::TextureFormat,
+        final_color_format: wgpu::TextureFormat,
         backend_name: &str,
     ) -> Self {
         let depth_sampling_mode = PostProcessDepthSamplingMode::for_backend_name(backend_name);
@@ -17,6 +17,7 @@ impl ScenePostProcessResources {
         let ssao_bind_group_layout = bind_group_layouts::ssao(device);
         let cluster_bind_group_layout = bind_group_layouts::cluster(device);
         let hzb_bind_group_layout = bind_group_layouts::hzb(device);
+        let hzb_msaa_bind_group_layout = bind_group_layouts::hzb_msaa(device);
         let exposure_histogram_bind_group_layout = bind_group_layouts::exposure_histogram(device);
         let exposure_resolve_bind_group_layout = bind_group_layouts::exposure_resolve(device);
         let color_lut_bake_bind_group_layout = bind_group_layouts::color_lut_bake(device);
@@ -37,10 +38,11 @@ impl ScenePostProcessResources {
         let smaa_bind_group_layout = bind_group_layouts::smaa(device);
         let pipeline_bundle = create_pipeline_bundle(
             device,
-            target_format,
+            final_color_format,
             &bloom_bind_group_layout,
             &cluster_bind_group_layout,
             &hzb_bind_group_layout,
+            &hzb_msaa_bind_group_layout,
             &exposure_histogram_bind_group_layout,
             &exposure_resolve_bind_group_layout,
             &color_lut_bake_bind_group_layout,
@@ -64,6 +66,7 @@ impl ScenePostProcessResources {
             ssao_bind_group_layout,
             cluster_bind_group_layout,
             hzb_bind_group_layout,
+            hzb_msaa_bind_group_layout,
             exposure_histogram_bind_group_layout,
             exposure_resolve_bind_group_layout,
             color_lut_bake_bind_group_layout,
@@ -80,6 +83,7 @@ impl ScenePostProcessResources {
             ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
             hzb_pipeline: pipeline_bundle.hzb_pipeline,
+            hzb_msaa_pipeline: pipeline_bundle.hzb_msaa_pipeline,
             exposure_histogram_pipeline: pipeline_bundle.exposure_histogram_pipeline,
             exposure_resolve_pipeline: pipeline_bundle.exposure_resolve_pipeline,
             color_lut_bake_pipeline: pipeline_bundle.color_lut_bake_pipeline,

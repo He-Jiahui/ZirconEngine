@@ -16,6 +16,19 @@ pub struct IblBakeKey {
     pub source_hash: [u32; 4],
 }
 
+impl IblBakeKey {
+    pub const fn source_cubemap(source_revision: u64, source_hash: [u32; 4]) -> Self {
+        Self {
+            source_kind: SkyboxMode::SourceCubemap as u32,
+            source_revision,
+            horizon_color: [0; 4],
+            zenith_color: [0; 4],
+            ground_color: [0; 4],
+            source_hash,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct SourceCubemapUploadKey {
     pub source_revision: u64,
@@ -135,14 +148,7 @@ impl SourceCubemapEnvironment {
     }
 
     pub fn ibl_bake_key(&self) -> IblBakeKey {
-        IblBakeKey {
-            source_kind: SkyboxMode::SourceCubemap.source_kind(),
-            source_revision: self.source_revision,
-            horizon_color: [0; 4],
-            zenith_color: [0; 4],
-            ground_color: [0; 4],
-            source_hash: self.source_hash,
-        }
+        IblBakeKey::source_cubemap(self.source_revision, self.source_hash)
     }
 
     pub fn ibl_bake_artifact_request(

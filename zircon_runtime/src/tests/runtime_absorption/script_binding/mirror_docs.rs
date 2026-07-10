@@ -53,18 +53,21 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
         "Runtime 13 macro host-function count should match script_binding_boundary"
     );
 
-    let script_host_guard = include_str!("../script_host_ledger.rs");
-    let script_binding_mirror_guard = include_str!("mirror_docs.rs");
-    let script_binding_gameplay_guard = include_str!("gameplay_host.rs");
-    let gameplay_tests = include_str!("../../../script/vm/gameplay_host/tests.rs");
-    let cargo_gate_guard = include_str!("../plan_status/cargo_gates/late.rs");
+    let guard_sources = [
+        include_str!("../script_host_ledger.rs"),
+        include_str!("../script_host_ledger/ledger.rs"),
+        include_str!("../script_host_ledger/capability.rs"),
+        include_str!("../script_host_ledger/ecs_facade.rs"),
+        include_str!("../script_binding.rs"),
+        include_str!("mirror_docs.rs"),
+        include_str!("gameplay_host.rs"),
+        include_str!("../../../script/vm/gameplay_host/tests/combat_lifecycle.rs"),
+        include_str!("../plan_status/cargo_gates/late/runtime_13.rs"),
+    ]
+    .join("\n");
     for guard_anchor in RUNTIME_13_GUARD_ANCHORS {
         assert!(
-            script_host_guard.contains(guard_anchor)
-                || script_binding_mirror_guard.contains(guard_anchor)
-                || script_binding_gameplay_guard.contains(guard_anchor)
-                || gameplay_tests.contains(guard_anchor)
-                || cargo_gate_guard.contains(guard_anchor),
+            guard_sources.contains(guard_anchor),
             "Runtime 13 guard anchor `{guard_anchor}` should stay visible to script_binding_boundary"
         );
     }

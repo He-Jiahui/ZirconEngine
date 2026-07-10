@@ -6,6 +6,8 @@ pub(in crate::graphics::scene::scene_renderer::post_process::resources::construc
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) hzb_pipeline:
         wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) hzb_msaa_pipeline:
+        wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) exposure_histogram_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process::resources::construct) exposure_resolve_pipeline:

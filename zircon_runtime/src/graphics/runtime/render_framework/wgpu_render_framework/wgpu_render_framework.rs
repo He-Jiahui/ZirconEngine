@@ -83,6 +83,27 @@ impl WgpuRenderFramework {
             .renderer
             .last_scene_velocity_readback_rg16_float_bytes()
     }
+
+    #[cfg(test)]
+    pub(crate) fn reflection_probe_upload_diagnostics_for_tests(
+        &self,
+    ) -> (usize, usize, usize, usize, Option<String>) {
+        let _operation_guard = self.lock_operation();
+        self.lock_state()
+            .renderer
+            .reflection_probe_upload_diagnostics_for_tests()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reflection_probe_gpu_upload_diagnostics_for_tests(
+        &self,
+    ) -> Result<(u32, [[f32; 4]; 2], [[u16; 4]; 2]), RenderFrameworkError> {
+        let _operation_guard = self.lock_operation();
+        self.lock_state()
+            .renderer
+            .reflection_probe_gpu_upload_diagnostics_for_tests()
+            .map_err(render_framework_backend_error)
+    }
 }
 
 #[cfg(test)]

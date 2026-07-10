@@ -6,8 +6,8 @@ use crate::core::framework::render::{
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload,
     RenderMaterialPropertyValueState, RenderMaterialPropertyValueSummary,
-    RenderMaterialTextureSlotState, RenderMaterialTextureSlotSummary,
-    RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
+    RenderMaterialTextureDimension, RenderMaterialTextureSlotState,
+    RenderMaterialTextureSlotSummary, RenderMaterialValidationError, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::{MaterialMarker, ResourceHandle, ResourceId, ResourceLocator};
@@ -221,6 +221,8 @@ impl ResourceStreamer {
                 (
                     "base_color",
                     base_color_texture.id(),
+                    Some(base_color_texture.expected_dimension),
+                    base_color_texture.actual_dimension,
                     base_color_texture.slot_fallback.clone(),
                 )
             }),
@@ -228,6 +230,8 @@ impl ResourceStreamer {
                 (
                     "normal",
                     normal_texture.id(),
+                    Some(normal_texture.expected_dimension),
+                    normal_texture.actual_dimension,
                     normal_texture.slot_fallback.clone(),
                 )
             }),
@@ -235,6 +239,8 @@ impl ResourceStreamer {
                 (
                     "metallic_roughness",
                     metallic_roughness_texture.id(),
+                    Some(metallic_roughness_texture.expected_dimension),
+                    metallic_roughness_texture.actual_dimension,
                     metallic_roughness_texture.slot_fallback.clone(),
                 )
             }),
@@ -242,6 +248,8 @@ impl ResourceStreamer {
                 (
                     "occlusion",
                     occlusion_texture.id(),
+                    Some(occlusion_texture.expected_dimension),
+                    occlusion_texture.actual_dimension,
                     occlusion_texture.slot_fallback.clone(),
                 )
             }),
@@ -249,6 +257,8 @@ impl ResourceStreamer {
                 (
                     "emissive",
                     emissive_texture.id(),
+                    Some(emissive_texture.expected_dimension),
+                    emissive_texture.actual_dimension,
                     emissive_texture.slot_fallback.clone(),
                 )
             }),
@@ -258,16 +268,27 @@ impl ResourceStreamer {
         .collect::<Vec<_>>();
         let standard_texture_slot_ids = standard_texture_slots
             .iter()
-            .map(|(_, texture_id, _)| *texture_id)
+            .map(|(_, texture_id, _, _, _)| *texture_id)
             .collect::<Vec<_>>();
         let shader_slot_textures = material
             .all_texture_slots()
             .into_iter()
             .filter(|(slot, _)| !is_standard_texture_slot(slot))
             .map(|(slot, texture)| {
-                let resolved = self.resolve_texture_reference_with_support(
+                let expected_dimension = shader_contract
+                    .as_ref()
+                    .and_then(|shader| {
+                        shader
+                            .texture_slots
+                            .iter()
+                            .find(|shader_slot| shader_slot.name == slot)
+                    })
+                    .map(crate::asset::ShaderTextureSlotAsset::expected_dimension)
+                    .unwrap_or(RenderMaterialTextureDimension::D2);
+                let resolved = self.resolve_texture_reference_with_dimension_support(
                     &slot,
                     Some(texture),
+                    expected_dimension,
                     texture_support,
                 );
                 (slot, resolved)
@@ -330,18 +351,28 @@ impl ResourceStreamer {
             RenderMaterialTextureSlotSummary::from_texture_ids(&standard_texture_slot_ids),
         );
         readiness.standard_texture_slot_states =
-            RenderMaterialTextureSlotState::from_resolved_slots(
-                standard_texture_slots
-                    .iter()
-                    .map(|(slot, texture_id, fallback)| (*slot, *texture_id, fallback.clone())),
+            RenderMaterialTextureSlotState::from_dimensioned_slots(
+                standard_texture_slots.iter().map(
+                    |(slot, texture_id, expected, actual, fallback)| {
+                        (*slot, *texture_id, *expected, *actual, fallback.clone())
+                    },
+                ),
             );
         readiness.texture_slot_summary = Some(
             RenderMaterialTextureSlotSummary::from_non_standard_slots(&non_standard_texture_slots),
         );
         readiness.non_standard_texture_slot_states =
-            RenderMaterialTextureSlotState::from_resolved_slots(shader_slot_textures.iter().map(
-                |(slot, texture)| (slot.clone(), texture.id(), texture.slot_fallback.clone()),
-            ));
+            RenderMaterialTextureSlotState::from_dimensioned_slots(
+                shader_slot_textures.iter().map(|(slot, texture)| {
+                    (
+                        slot.clone(),
+                        texture.id(),
+                        Some(texture.expected_dimension),
+                        texture.actual_dimension,
+                        texture.slot_fallback.clone(),
+                    )
+                }),
+            );
         let (shader_id, shader_revision, shader_readiness) =
             self.ensure_shader_source(&descriptor.dependencies.shader)?;
         if let Some(shader_readiness) = shader_readiness {

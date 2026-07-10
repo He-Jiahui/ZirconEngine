@@ -13,11 +13,11 @@ use super::super::super::culling::parallel_frustum::{
 };
 use super::super::super::declarations::{
     VisibilityBounds, VisibilityBvhInstance, VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy,
-    VisibilityContext, VisibilityHistorySnapshot, VisibilityRelevanceEntry,
+    VisibilityContext, VisibilityHistorySnapshot, VisibilityHybridGiProbe,
+    VisibilityRelevanceEntry,
 };
 use super::super::super::planning::{
     build_bvh_update_plan::build_bvh_update_plan, build_draw_commands::build_draw_commands,
-    build_hybrid_gi_plan::build_hybrid_gi_plan,
     build_instance_upload_plan::build_instance_upload_plan,
     build_particle_upload_plan::build_particle_upload_plan,
     build_virtual_geometry_plan::build_virtual_geometry_plan,
@@ -73,7 +73,7 @@ impl VisibilityContext {
         previous: Option<&VisibilityHistorySnapshot>,
         previous_static_index: Option<&VisibilityStaticIndex>,
         task_pool: Option<&TaskPool>,
-        hybrid_global_illumination: Option<&RenderHybridGiExtract>,
+        _hybrid_global_illumination: Option<&RenderHybridGiExtract>,
         virtual_geometry: Option<&RenderVirtualGeometryExtract>,
     ) -> Self {
         let BatchingResult {
@@ -122,17 +122,10 @@ impl VisibilityContext {
         let visible_batches =
             Self::visible_batches_for_entities(&batches, &main_view_visible_entities);
         let (visible_instances, draw_commands) = build_draw_commands(&visible_batches);
-        let (
-            hybrid_gi_active_probes,
-            hybrid_gi_update_plan,
-            hybrid_gi_feedback,
-            hybrid_gi_requested_probes,
-        ) = build_hybrid_gi_plan(
-            hybrid_global_illumination,
-            &main_view_visible_entities,
-            &value.view.camera,
-            previous,
-        );
+        let hybrid_gi_active_probes: Vec<VisibilityHybridGiProbe> = Vec::new();
+        let hybrid_gi_update_plan = Default::default();
+        let hybrid_gi_feedback = Default::default();
+        let hybrid_gi_requested_probes: Vec<u32> = Vec::new();
         let (
             virtual_geometry_visible_clusters,
             virtual_geometry_draw_segments,

@@ -5,8 +5,15 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs");
     let tests =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs");
-    let plan_02 = read_repo("docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_02 = format!(
+        "{}\n{}",
+        read_repo(
+            "docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md",
+        ),
+        render_index,
+    );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let mesh_pass_doc =

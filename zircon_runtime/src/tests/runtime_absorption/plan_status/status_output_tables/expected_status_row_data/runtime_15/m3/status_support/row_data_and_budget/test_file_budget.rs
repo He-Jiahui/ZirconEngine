@@ -56,7 +56,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "runtime_15_root_layout_status_output_runtime_15_row_data_child_source_sync_static_passed_cargo_deferred",
             "structure_convention/test_file_budget/root_layout/folder_backed.rs",
             "structure_convention/test_file_budget/root_layout/folder_backed/sources.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_row_data/row_ownership.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_row_data/row_ownership.rs",
             "runtime_15_test_file_budget_guard_is_folder_backed",
             "runtime_15_status_output_runtime_15_row_data_is_child_owner",
             "Cargo gate deferred",

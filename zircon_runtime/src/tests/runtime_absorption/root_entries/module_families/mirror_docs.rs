@@ -67,12 +67,14 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
         (
             "Runtime 14 plan",
             include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
+                "../../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
             ),
         ),
         (
             "runtime index",
-            include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+            include_str!(
+                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+            ),
         ),
         (
             "M0 review",

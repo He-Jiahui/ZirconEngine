@@ -9,8 +9,11 @@ fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
         "graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs",
     );
 
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09-camera-render-ordering.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_09 = read_repo(
+        "docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let advanced_doc = read_repo("docs/zircon_runtime/core/framework/render/advanced.md");
@@ -40,7 +43,7 @@ fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
         "fn virtual_geometry_payload_source_survives_for_provider_backed_extract(",
         "fn render_taa_jitter_zero_when_taa_inactive(",
         "fn hybrid_gi_payload_source_clears_when_plan_degrades_feature(",
-        "fn hybrid_gi_payload_source_survives_for_provider_backed_extract(",
+        "fn hybrid_gi_scene_representation_source_survives_for_provider_backed_settings(",
     ] {
         assert!(
             !parent.contains(moved_test),
@@ -60,7 +63,7 @@ fn runtime_15_render_frame_submission_context_tests_are_child_owner() {
             "fn virtual_geometry_payload_source_survives_for_provider_backed_extract(",
             "fn render_taa_jitter_zero_when_taa_inactive(",
             "fn hybrid_gi_payload_source_clears_when_plan_degrades_feature(",
-            "fn hybrid_gi_payload_source_survives_for_provider_backed_extract(",
+            "fn hybrid_gi_scene_representation_source_survives_for_provider_backed_settings(",
             "fn context_with_advanced_plan(",
             "fn empty_pipeline() -> CompiledRenderPipeline",
         ],

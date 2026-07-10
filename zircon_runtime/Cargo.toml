@@ -31,15 +31,52 @@ path = "src/bin/zircon_shader_ide_env/main.rs"
 [features]
 default = ["target-client"]
 runtime-ui-integration-tests = []
-jolt = []
+backend-jolt = []
 core-min = []
-plugin-ui = []
+ai-contracts = []
+net-contracts = []
+physics-contracts = []
+sound-contracts = []
+animation = []
+diagnostic-log = []
+dynamic-api = [
+    "animation",
+    "diagnostic-log",
+    "graphics",
+    "navigation",
+    "script",
+    "ui",
+]
+graphics = [
+    "text",
+    "dep:glyphon",
+    "dep:naga",
+    "dep:pollster",
+    "dep:raw-window-handle",
+    "dep:wgpu",
+]
+navigation = []
+script = ["diagnostic-log"]
+text = [
+    "dep:fontsdf",
+    "dep:rustybuzz",
+    "dep:swash",
+    "dep:ttf-parser",
+    "dep:unicode-linebreak",
+    "dep:unicode-bidi",
+    "dep:unicode-normalization",
+    "dep:unicode-script",
+    "dep:unicode-segmentation",
+    "dep:unicode-vo",
+    "dep:woff2-patched",
+]
+ui = ["graphics", "dep:taffy"]
 accessibility-accesskit = ["dep:accesskit"]
 profiling = []
 profiling-chrome = ["profiling"]
 profiling-tracy = ["profiling", "dep:tracing-subscriber", "dep:tracing-tracy"]
 profiling-memory = ["profiling"]
-zr-vm-real-backend = ["dep:zr_vm_rust_binding", "dep:zr_vm_rust_binding_sys"]
+backend-zr-vm = ["dep:zr_vm_rust_binding", "dep:zr_vm_rust_binding_sys"]
 default-platform = [
     "platform-window",
     "platform-winit",
@@ -68,16 +105,39 @@ gamepad-gilrs = ["input-gamepad"]
 gamepad-browser = ["input-gamepad"]
 target-client = [
     "core-min",
-    "plugin-ui",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
     "default-platform",
 ]
 target-server = [
     "core-min",
+    "diagnostic-log",
     "platform-headless",
 ]
 target-editor-host = [
     "core-min",
-    "plugin-ui",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
     "default-platform",
 ]
 
@@ -91,32 +151,37 @@ crossbeam-channel.workspace = true
 crossbeam-utils = "0.8.21"
 glam.workspace = true
 gltf.workspace = true
-glyphon = "0.11.0"
-fontsdf = "0.5.3"
+glyphon = { version = "0.11.0", optional = true }
+fontsdf = { version = "0.5.3", optional = true }
 image.workspace = true
-naga.workspace = true
+naga = { workspace = true, optional = true }
 notify.workspace = true
-pollster.workspace = true
-raw-window-handle = "0.6.2"
+pollster = { workspace = true, optional = true }
+raw-window-handle = { version = "0.6.2", optional = true }
 rayon = "1.11.0"
 ron = "0.12.1"
+rustybuzz = { version = "0.20.1", optional = true }
 serde.workspace = true
 serde_json = "1.0.149"
-swash = "0.2.7"
-taffy = { version = "0.10", default-features = false, features = ["std", "block_layout", "flexbox", "grid", "content_size", "taffy_tree"] }
+swash = { version = "0.2.7", optional = true }
+taffy = { version = "0.10", default-features = false, features = ["std", "block_layout", "flexbox", "grid", "content_size", "taffy_tree"], optional = true }
 tobj.workspace = true
 thiserror.workspace = true
 toml.workspace = true
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.20", optional = true }
 tracing-tracy = { version = "0.11.4", optional = true }
-ttf-parser = "0.25.1"
-unicode-linebreak = "0.1.5"
-unicode-script = "0.5.8"
-unicode-segmentation = "1.13.2"
+ttf-parser = { version = "0.25.1", optional = true }
+unicode-linebreak = { version = "0.1.5", optional = true }
+unicode-bidi = { version = "0.3.18", optional = true }
+unicode-normalization = { version = "0.1.24", optional = true }
+unicode-script = { version = "0.5.8", optional = true }
+unicode-segmentation = { version = "1.13.2", optional = true }
+unicode-vo = { version = "0.1.0", optional = true }
 uuid.workspace = true
-wgpu.workspace = true
+wgpu = { workspace = true, optional = true }
 winit = { workspace = true, default-features = false, optional = true }
+woff2-patched = { version = "0.4.0", optional = true }
 libloading = "0.9.0"
 zstd = "0.13.3"
 zip = { version = "9.0.0-pre2", default-features = false, features = ["deflate-flate2"] }
@@ -124,3 +189,6 @@ zircon_runtime_interface = { path = "../zircon_runtime_interface" }
 zircon_runtime_reflection_macros = { path = "reflection_macros" }
 zr_vm_rust_binding = { path = "../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding", optional = true }
 zr_vm_rust_binding_sys = { path = "../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }
+
+[dev-dependencies]
+ttf2woff2 = { version = "0.13.1", default-features = false }

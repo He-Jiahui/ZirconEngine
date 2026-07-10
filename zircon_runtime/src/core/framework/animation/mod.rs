@@ -17,6 +17,7 @@ mod pose_source;
 mod runtime_status;
 mod sequence_apply_report;
 mod state_machine_evaluation;
+mod target_id;
 mod tick;
 mod timeline;
 mod track_path;
@@ -44,6 +45,7 @@ pub use sequence_apply_report::AnimationSequenceApplyReport;
 pub use state_machine_evaluation::{
     AnimationStateMachineEvaluation, AnimationStateTransitionEvaluation,
 };
+pub use target_id::AnimationTargetId;
 pub use tick::{AnimationTickReport, AnimationTickRequest};
 pub use timeline::{
     AnimationTimelineClipDescriptor, AnimationTimelineDescriptor, AnimationTimelineEventDescriptor,

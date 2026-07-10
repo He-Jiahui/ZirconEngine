@@ -4,7 +4,7 @@ mod owner_selection;
 
 use super::feature_definition_collection::feature_definition_map;
 use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
-use owner_selection::complete_owner_feature_selection;
+use owner_selection::{complete_external_provider_selection, complete_owner_feature_selection};
 
 pub(super) fn complete_project_feature_selections(
     registrations: &[RuntimePluginRegistrationReport],
@@ -28,5 +28,11 @@ pub(super) fn complete_project_feature_selections(
                 feature_definition.external_provider_for_owner(),
             );
         }
+    }
+    for feature_key in &feature_definitions.definition_order {
+        let Some(feature_definition) = feature_definitions.definitions.get(feature_key) else {
+            continue;
+        };
+        complete_external_provider_selection(completed, feature_definition);
     }
 }

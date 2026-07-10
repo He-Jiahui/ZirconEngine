@@ -1,3 +1,6 @@
+#[path = "status_row_data_support_maps/ownership_mirrors.rs"]
+mod ownership_mirrors;
+
 pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
     match slice {
         "Runtime 15 M3 status output owner stale-path follow-up" => Some(
@@ -108,18 +111,3 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         _ => None,
     }
 }
-
-// Files: plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/runtime_07_performance.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/script_vm_runtime.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/plugin_extension_tests.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/script_vm_gameplay_shader.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/scene_ecs_tests.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/scene_script_tests/scene_asset_world.rs.
-// Guard: runtime_15_scene_script_row_data_owner_is_child_backed.
-// Status: runtime_15_scene_script_row_data_guard_folder_backed_static_passed_cargo_deferred.
-// Guard: runtime_15_scene_script_row_data_guard_is_folder_backed.
-// Status: runtime_15_scene_script_row_data_status_mirror_child_split_static_passed_cargo_deferred.
-// Guard: runtime_15_scene_script_row_data_status_mirror_children_are_child_owned.
-// Status: runtime_15_scene_script_row_data_root_inventory_child_split_static_passed_cargo_deferred.
-// Guard: runtime_15_scene_script_row_data_root_inventory_is_child_owned.
-// Files: plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/runtime_index_anchors.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs.rs.
-// Guard: runtime_15_status_support_row_data_owner_is_child_backed.
-// Files: plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/test_file_budget.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/runtime_row_data.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/hub_editor_support.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/render_shader_support.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget/m3_m4_row_data.rs.
-// Guard: runtime_15_status_support_row_data_and_budget_children_are_child_owned.
-// Files: plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/runtime_rhi.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/asset_tests.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/budget_render_ui.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/naming_core_asset_dynamic.rs; plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/naming_graphics_misc.rs.
-// Guard: runtime_15_asset_budget_row_data_owner_is_child_backed.

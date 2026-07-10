@@ -1,10 +1,14 @@
-use super::super::support::frontmatter_status;
+use super::super::support::{frontmatter_status, runtime_plan_source_with_archive};
 
 #[test]
 fn runtime_05_closeout_status_waits_for_full_scene_cargo_gate() {
-    let source = include_str!(
+    let source = runtime_plan_source_with_archive(
+        "05",
+        include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
+    ),
     );
+    let source = source.as_str();
 
     assert_eq!(
         frontmatter_status(source),

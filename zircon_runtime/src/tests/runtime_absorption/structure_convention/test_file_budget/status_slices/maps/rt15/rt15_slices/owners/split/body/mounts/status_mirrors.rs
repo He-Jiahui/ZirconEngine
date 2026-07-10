@@ -65,7 +65,7 @@ fn runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_body_rou
         );
     }
     let frameworks = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     assert_contains_all(
         "Frameworks 02 child-owner route-mount mirror",

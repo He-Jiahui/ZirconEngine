@@ -308,7 +308,7 @@ mod tests {
     use crate::core::math::UVec2;
     use crate::graphics::backend::{OffscreenTarget, RenderBackend};
     use crate::graphics::scene::scene_renderer::core::DEPTH_FORMAT;
-    use crate::graphics::scene::scene_renderer::core::OFFSCREEN_FORMAT;
+    use crate::graphics::scene::scene_renderer::core::SCENE_COLOR_HDR_FORMAT;
 
     use super::*;
 
@@ -317,7 +317,7 @@ mod tests {
         let backend = RenderBackend::new_offscreen().unwrap();
         let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let resources =
-            SceneRegionClearResources::new(&backend.device, OFFSCREEN_FORMAT, DEPTH_FORMAT);
+            SceneRegionClearResources::new(&backend.device, SCENE_COLOR_HDR_FORMAT, DEPTH_FORMAT);
         let mut encoder = backend
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {

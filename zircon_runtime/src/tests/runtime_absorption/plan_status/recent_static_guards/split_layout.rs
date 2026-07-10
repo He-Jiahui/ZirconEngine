@@ -1,15 +1,14 @@
-use super::super::support::assert_contains_all;
+use super::super::support::{assert_contains_all, runtime_numbered_archive_sources};
 
 const STATUS: &str =
     "runtime_15_plan_status_recent_static_guards_folder_backed_static_passed_cargo_deferred";
-const FRAMEWORKS_STATUS: &str =
-    "frameworks_02_m3_plan_status_recent_static_guards_folder_backed_static_passed_cargo_deferred";
 const SLICE: &str = "Runtime 15 M3 plan-status recent static guards folder-backed split";
 const GUARD: &str = "runtime_15_plan_status_recent_static_guards_are_folder_backed";
 
 const PARENT_PATH: &str = "plan_status/recent_static_guards.rs";
 const CHILD_PATHS: &[&str] = &[
     "plan_status/recent_static_guards/document_sources.rs",
+    "plan_status/recent_static_guards/parent_routing.rs",
     "plan_status/recent_static_guards/runtime_01_to_04.rs",
     "plan_status/recent_static_guards/runtime_05_to_08.rs",
     "plan_status/recent_static_guards/runtime_09_to_12.rs",
@@ -22,6 +21,7 @@ fn runtime_15_plan_status_recent_static_guards_are_folder_backed() {
     let parent = include_str!("../recent_static_guards.rs");
     let child_sources = [
         include_str!("document_sources.rs"),
+        include_str!("parent_routing.rs"),
         include_str!("runtime_01_to_04.rs"),
         include_str!("runtime_05_to_08.rs"),
         include_str!("runtime_09_to_12.rs"),
@@ -34,6 +34,7 @@ fn runtime_15_plan_status_recent_static_guards_are_folder_backed() {
         parent,
         &[
             "mod document_sources;",
+            "mod parent_routing;",
             "mod runtime_01_to_04;",
             "mod runtime_05_to_08;",
             "mod runtime_09_to_12;",
@@ -64,11 +65,12 @@ fn runtime_15_plan_status_recent_static_guards_are_folder_backed() {
     for (path, source, max_lines) in [
         (PARENT_PATH, parent, 40usize),
         (CHILD_PATHS[0], child_sources[0], 190),
-        (CHILD_PATHS[1], child_sources[1], 190),
-        (CHILD_PATHS[2], child_sources[2], 120),
-        (CHILD_PATHS[3], child_sources[3], 190),
+        (CHILD_PATHS[1], child_sources[1], 80),
+        (CHILD_PATHS[2], child_sources[2], 190),
+        (CHILD_PATHS[3], child_sources[3], 120),
         (CHILD_PATHS[4], child_sources[4], 190),
         (CHILD_PATHS[5], child_sources[5], 190),
+        (CHILD_PATHS[6], child_sources[6], 190),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -97,7 +99,7 @@ fn runtime_15_plan_status_recent_static_guards_are_folder_backed() {
             STATUS,
             PARENT_PATH,
             CHILD_PATHS[0],
-            CHILD_PATHS[5],
+            CHILD_PATHS[6],
             GUARD,
         ],
     );
@@ -132,47 +134,10 @@ fn runtime_15_plan_status_recent_static_guards_are_folder_backed() {
         &[SLICE, "2026-07-05"],
     );
 
-    for (label, source) in [
-        (
-            "Runtime 15 subplan",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-            ),
-        ),
-        (
-            "runtime index",
-            include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        ),
-        (
-            "engine code structure convention",
-            include_str!("../../../../../../docs/plans/engine-code-structure-convention.md"),
-        ),
-        (
-            "engine code review findings",
-            include_str!(
-                "../../../../../../docs/plans/engine-code-review-findings-2026-06.md"
-            ),
-        ),
-        (
-            "module convention doc",
-            include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "runtime implementation session note",
-            include_str!(
-                "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-            ),
-        ),
-    ] {
-        assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[5]]);
-    }
-
-    let frameworks = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
-    );
+    let archive_source = runtime_numbered_archive_sources();
     assert_contains_all(
-        "frameworks plan records recent static guard split",
-        frameworks,
-        &[SLICE, STATUS, FRAMEWORKS_STATUS, GUARD],
+        "runtime numbered archives",
+        &archive_source,
+        &[SLICE, STATUS, GUARD, CHILD_PATHS[6]],
     );
 }

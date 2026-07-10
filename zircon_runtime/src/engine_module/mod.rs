@@ -9,8 +9,8 @@ mod service_factory;
 pub use crate::core::{
     CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, InitLevel, LifecycleState,
     ManagerDescriptor, ModuleContext, ModuleDependencySpec, ModuleDescriptor, ModuleLifecycle,
-    NoopModuleLifecycle, PluginContext, PluginDescriptor, PluginFactory, RegistryName, ServiceKind,
-    StartupMode,
+    NoopModuleLifecycle, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
+    ServiceFactory, ServiceKind, StartupMode,
 };
 
 pub use contexts::{module_context, plugin_context};

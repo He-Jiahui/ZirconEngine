@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::super::super::support::{assert_contains_all, read_repo_text, read_text};
+use super::super::super::support::{
+    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
+    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows, read_text,
+};
 
 #[test]
 fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
@@ -23,33 +26,25 @@ fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
         &hybrid_gi_root.join("renderer/gpu_resources/execute_prepare/trace_region_inputs.rs"),
         "Hybrid GI trace-region inputs source should be readable",
     );
-    let runtime_parent_chain = read_text(
-        &hybrid_gi_root
-            .join("renderer/post_process_sources/encode_hybrid_gi_probes/runtime_parent_chain.rs"),
-        "Hybrid GI runtime parent-chain source should be readable",
-    );
-    let hierarchy_weight = read_text(
-        &hybrid_gi_root.join(
-            "renderer/post_process_sources/encode_hybrid_gi_probes/hybrid_gi_hierarchy_resolve_weight.rs",
-        ),
-        "Hybrid GI hierarchy resolve-weight source should be readable",
-    );
     let audit_script = read_repo_text(
         manifest_root,
         ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py",
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -59,24 +54,9 @@ fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
         manifest_root,
         "docs/zircon_runtime/graphics/render-product-submit.md",
     );
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let status_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming-boundary status slice should be readable",
-    );
-    let date_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 naming-boundary date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let status_slice = read_runtime_15_naming_status_map(manifest_root);
+    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !hybrid_gi_files.is_empty(),
@@ -90,24 +70,29 @@ fn runtime_15_hybrid_gi_extract_scene_source_uses_current_names() {
             path
         );
     }
+    let gpu_prepare_sources =
+        collect_inputs + "\n" + &probe_quantization + "\n" + &trace_region_inputs;
     assert_contains_all(
-        "Hybrid GI extract scene-source names",
-        &(collect_inputs
-            + "\n"
-            + &probe_quantization
-            + "\n"
-            + &trace_region_inputs
-            + "\n"
-            + &runtime_parent_chain
-            + "\n"
-            + &hierarchy_weight),
+        "Hybrid GI scene-representation runtime sources",
+        &gpu_prepare_sources,
         &[
-            "extract_trace_region_ids",
-            "extract-backed",
-            "extract-sourced RenderHybridGiProbe",
-            "extract_input",
+            "HybridGiResolveRuntime",
+            "probe_scene_data",
+            "trace_region_scene_data",
+            "scheduled_trace_region_ids",
         ],
     );
+    for retired_term in [
+        "extract_trace_region_ids",
+        "extract-backed",
+        "extract-sourced RenderHybridGiProbe",
+        "extract_input",
+    ] {
+        assert!(
+            !gpu_prepare_sources.contains(retired_term),
+            "Hybrid GI GPU prepare sources must not retain retired scene-source term {retired_term}"
+        );
+    }
     assert!(
         !audit_script.contains("legacy-hybrid-gi-render-debt"),
         "hard-cutover audit should not retain the retired Hybrid GI legacy debt bucket"
@@ -151,6 +136,9 @@ fn collect_rust_files(root: &Path, files: &mut Vec<PathBuf>) {
         let entry = entry.expect("Hybrid GI runtime entry should be readable");
         let path = entry.path();
         if path.is_dir() {
+            if path.file_name().and_then(|name| name.to_str()) == Some("test_sources") {
+                continue;
+            }
             collect_rust_files(&path, files);
         } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
             files.push(path);

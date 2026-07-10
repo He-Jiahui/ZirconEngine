@@ -470,13 +470,17 @@ impl PostProcessStackDescriptor {
     }
 
     pub fn with_hybrid_gi_lighting_input(mut self) -> Self {
-        if !self
-            .initial_resources
-            .iter()
-            .any(|resource| resource == PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
-        {
-            self.initial_resources
-                .push(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING.to_string());
+        for required_resource in [
+            PostProcessGraphResourceNames::HYBRID_GI_LIGHTING,
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
+        ] {
+            if !self
+                .initial_resources
+                .iter()
+                .any(|resource| resource == required_resource)
+            {
+                self.initial_resources.push(required_resource.to_string());
+            }
         }
         for effect in &mut self.effects {
             if effect.kind != PostProcessEffectKind::Uber {
@@ -542,7 +546,11 @@ impl PostProcessStackDescriptor {
                 || resource == PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
                 || resource == PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
         });
-        if !needs_reconstructed_motion_vectors {
+        let needs_scene_velocity = stack
+            .initial_resources
+            .iter()
+            .any(|resource| resource == PostProcessGraphResourceNames::HYBRID_GI_LIGHTING);
+        if !needs_reconstructed_motion_vectors && !needs_scene_velocity {
             stack
                 .initial_resources
                 .retain(|resource| resource != PostProcessGraphResourceNames::SCENE_VELOCITY);

@@ -1,7 +1,8 @@
 use crate::asset::{AssetReference, TextureUploadSupport};
 use crate::core::framework::render::{
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialTextureSlotFallback, RenderMaterialValidationError,
+    RenderMaterialTextureDimension, RenderMaterialTextureSlotFallback,
+    RenderMaterialValidationError,
 };
 use crate::core::resource::ResourceId;
 
@@ -15,6 +16,9 @@ pub(in crate::graphics::scene::resources) struct ResolvedTextureReference {
     pub(in crate::graphics::scene::resources) fallback_usage: Option<RenderMaterialFallbackUsage>,
     pub(in crate::graphics::scene::resources) slot_fallback:
         Option<RenderMaterialTextureSlotFallback>,
+    pub(in crate::graphics::scene::resources) expected_dimension: RenderMaterialTextureDimension,
+    pub(in crate::graphics::scene::resources) actual_dimension:
+        Option<RenderMaterialTextureDimension>,
 }
 
 impl ResolvedTextureReference {
@@ -42,12 +46,29 @@ impl ResourceStreamer {
         reference: Option<&AssetReference>,
         support: TextureUploadSupport,
     ) -> ResolvedTextureReference {
+        self.resolve_texture_reference_with_dimension_support(
+            slot,
+            reference,
+            RenderMaterialTextureDimension::D2,
+            support,
+        )
+    }
+
+    pub(in crate::graphics::scene::resources) fn resolve_texture_reference_with_dimension_support(
+        &self,
+        slot: &str,
+        reference: Option<&AssetReference>,
+        expected_dimension: RenderMaterialTextureDimension,
+        support: TextureUploadSupport,
+    ) -> ResolvedTextureReference {
         let Some(reference) = reference else {
             return ResolvedTextureReference {
                 id: None,
                 validation_error: None,
                 fallback_usage: None,
                 slot_fallback: None,
+                expected_dimension,
+                actual_dimension: None,
             };
         };
 
@@ -74,6 +95,8 @@ impl ResourceStreamer {
                 slot_fallback: Some(RenderMaterialTextureSlotFallback::unresolved_reference(
                     reference.clone(),
                 )),
+                expected_dimension,
+                actual_dimension: None,
             };
         };
 
@@ -98,9 +121,40 @@ impl ResourceStreamer {
                     slot_fallback: Some(RenderMaterialTextureSlotFallback::unresolved_reference(
                         reference.clone(),
                     )),
+                    expected_dimension,
+                    actual_dimension: None,
                 };
             }
         };
+
+        let actual_dimension = RenderMaterialTextureDimension::from_image_descriptor(
+            &texture.render_image_descriptor(),
+        );
+        if actual_dimension != expected_dimension {
+            return ResolvedTextureReference {
+                id: None,
+                validation_error: Some(RenderMaterialValidationError::TextureDimensionMismatch {
+                    slot: slot.to_string(),
+                    reference: reference.clone(),
+                    expected: expected_dimension,
+                    actual: actual_dimension,
+                }),
+                fallback_usage: Some(RenderMaterialFallbackUsage {
+                    reason: RenderMaterialFallbackReason::Texture {
+                        slot: slot.to_string(),
+                        reference: reference.clone(),
+                    },
+                    fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
+                }),
+                slot_fallback: Some(RenderMaterialTextureSlotFallback::dimension_mismatch(
+                    reference.clone(),
+                    expected_dimension,
+                    actual_dimension,
+                )),
+                expected_dimension,
+                actual_dimension: Some(actual_dimension),
+            };
+        }
 
         if let Some(reason) = texture.upload_readiness(support).unsupported_reason() {
             return ResolvedTextureReference {
@@ -121,6 +175,8 @@ impl ResourceStreamer {
                     reference.clone(),
                     reason,
                 )),
+                expected_dimension,
+                actual_dimension: Some(actual_dimension),
             };
         }
 
@@ -129,6 +185,8 @@ impl ResourceStreamer {
             validation_error: None,
             fallback_usage: None,
             slot_fallback: None,
+            expected_dimension,
+            actual_dimension: Some(actual_dimension),
         }
     }
 }

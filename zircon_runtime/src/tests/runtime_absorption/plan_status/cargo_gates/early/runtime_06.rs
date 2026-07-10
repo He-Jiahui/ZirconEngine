@@ -1,18 +1,25 @@
 #[test]
 fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation() {
-    let runtime_06_plan = include_str!(
+    let runtime_06_plan = runtime_plan_source_with_archive(
+        "06",
+        include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+    ),
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_06_plan = runtime_06_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let native_boundary_doc =
         include_str!("../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
     let runtime_interface_doc = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-interface-convergence.md"
     );
-    let runtime_05_plan = include_str!(
+    let runtime_05_plan = runtime_plan_source_with_archive("05", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
-    );
+    ));
+    let runtime_05_plan = runtime_05_plan.as_str();
     let review = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
     );
@@ -94,7 +101,7 @@ fn runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validatio
         runtime_06_plan,
         &[
             "cargo test -p zircon_runtime --lib script::vm --locked -- --nocapture",
-            "cargo test -p zircon_runtime --lib vampire_project_session --features zr-vm-real-backend --locked -- --nocapture --test-threads=1",
+            "cargo test -p zircon_runtime --lib vampire_project_session --features backend-zr-vm --locked -- --nocapture --test-threads=1",
             "cargo check -p zircon_runtime --lib --locked",
             "cargo test -p zircon_runtime --lib plugin --locked -- --nocapture",
             "cargo test -p zircon_app --locked",

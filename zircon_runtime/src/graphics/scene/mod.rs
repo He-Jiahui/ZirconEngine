@@ -32,8 +32,9 @@ pub(crate) use scene_renderer::{
     mesh_pipeline_standard_material_template_source_for_shader_pass_and_descriptor,
     pack_lighting_extract, validate_mesh_prewarm_request_render_pipeline, CascadeRange,
     CascadeSplitConfig, MeshPipelineShaderSource, RenderGraphLightGridReport, ShadowAtlasAllocator,
-    ShadowAtlasResourceConfig, ShadowLightSlotAssignment, FALLBACK_MESH_SHADER,
-    GBUFFER_ALBEDO_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
+    ShadowAtlasResourceConfig, ShadowLightSlotAssignment, FALLBACK_MESH_SHADER, FINAL_COLOR_FORMAT,
+    GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT,
+    SCENE_COLOR_HDR_FORMAT,
 };
 pub use scene_renderer::{
     ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,

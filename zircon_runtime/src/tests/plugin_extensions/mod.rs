@@ -19,6 +19,7 @@ mod extension_registry_modules;
 mod extension_registry_options;
 mod extension_registry_scene_hooks;
 mod extension_registry_systems;
+mod extension_registry_typed_points;
 mod manifest_contributions;
 mod native_plugin_loader;
 mod package_manifest_declarations;

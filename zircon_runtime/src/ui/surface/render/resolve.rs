@@ -1,9 +1,9 @@
 use toml::Value;
 
 use zircon_runtime_interface::ui::surface::{
-    UiEditableTextState, UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextCaret,
-    UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
-    UiTextSelection, UiTextWrap, UiTextWritingMode, UiVisualAssetRef,
+    normalize_ui_text_language_tag, UiEditableTextState, UiRenderCommandKind, UiResolvedStyle,
+    UiTextAlign, UiTextCaret, UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange,
+    UiTextRenderMode, UiTextSelection, UiTextWrap, UiTextWritingMode, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 use zircon_runtime_interface::ui::widget::UiWidgetBehavior;
@@ -66,6 +66,11 @@ pub(in crate::ui::surface) fn resolve_style(
         font_family: resolve_style_table_string(metadata, "font", "family")
             .or_else(|| resolve_style_string(metadata, "font_family"))
             .map(str::to_string),
+        language: normalize_ui_text_language_tag(
+            resolve_style_table_string(metadata, "font", "language")
+                .or_else(|| resolve_style_string(metadata, "text_language"))
+                .or_else(|| resolve_style_string(metadata, "language")),
+        ),
         font_weight,
         font_size,
         line_height: resolve_style_table_number(metadata, "font", "line_height")
@@ -736,5 +741,23 @@ writing_mode = "vertical-rl"
         let style = resolve_style(Some(&metadata));
 
         assert_eq!(style.text_writing_mode, UiTextWritingMode::VerticalRl);
+    }
+
+    #[test]
+    fn resolve_style_parses_run_language_from_font_table() {
+        let metadata = UiTemplateNodeMetadata {
+            attributes: toml::from_str(
+                r#"
+[font]
+language = "zh-Hans-CN"
+"#,
+            )
+            .unwrap(),
+            ..Default::default()
+        };
+
+        let style = resolve_style(Some(&metadata));
+
+        assert_eq!(style.language.as_deref(), Some("zh-hans-cn"));
     }
 }

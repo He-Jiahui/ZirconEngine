@@ -26,6 +26,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
         .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)
@@ -64,5 +65,20 @@ mod tests {
             atlas.external_binding,
             RenderGraphExternalResourceBinding::required_texture()
         );
+    }
+
+    #[test]
+    fn deferred_lighting_reads_hdr_emissive_gbuffer_resource() {
+        let descriptor = descriptor();
+        let pass = descriptor
+            .stage_passes
+            .iter()
+            .find(|pass| pass.pass_name == "deferred-lighting")
+            .expect("deferred lighting pass");
+
+        assert!(pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::GBUFFER_EMISSIVE
+                && resource.access == RenderFeatureResourceAccess::Read
+        }));
     }
 }

@@ -1,10 +1,13 @@
 #[test]
 fn runtime_03_schedule_frame_loop_cargo_gate_stays_visible_until_schedule_validation() {
-    let runtime_03_plan = include_str!(
+    let runtime_03_plan = runtime_plan_source_with_archive("03", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    ));
+    let runtime_03_plan = runtime_03_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let frame_schedule_doc =
         include_str!("../../../../../../../docs/zircon_runtime/core/frame_schedule.md");
     let schedule_parallel_doc = include_str!(

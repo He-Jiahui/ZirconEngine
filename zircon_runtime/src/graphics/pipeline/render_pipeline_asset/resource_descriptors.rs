@@ -68,14 +68,18 @@ pub(super) fn texture_desc_for(
         .with_mip_levels(post_process_intermediate_mip_levels(name, width, height))
 }
 
-pub(super) fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> BufferDesc {
+pub(super) fn buffer_desc_for(
+    name: &str,
+    extract: &RenderFrameExtract,
+    minimum_size_bytes: Option<u64>,
+) -> BufferDesc {
     use crate::graphics::scene::lighting::light_grid_builder::{
         LIGHT_GRID_MAX_TILE_WORDS, LIGHT_GRID_MAX_ZBIN_WORDS, LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES,
     };
 
     let view_size = extract.view.effective_render_size();
     let pixel_count = u64::from(view_size.x.max(1)) * u64::from(view_size.y.max(1));
-    let size_bytes = match name {
+    let inferred_size_bytes = match name {
         PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
             LIGHT_GRID_PARAMS_UNIFORM_SIZE_BYTES as u64
         }
@@ -90,6 +94,7 @@ pub(super) fn buffer_desc_for(name: &str, extract: &RenderFrameExtract) -> Buffe
         }
         _ => pixel_count.max(1) * 4,
     };
+    let size_bytes = inferred_size_bytes.max(minimum_size_bytes.unwrap_or(0));
     let usage = match name {
         PostProcessGraphResourceNames::LIGHT_GRID_PARAMS => {
             BufferUsage::UNIFORM | BufferUsage::COPY_DST
@@ -130,6 +135,8 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
         | PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE
         | PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX
         | PostProcessGraphResourceNames::HZB_FURTHEST
+        | PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
+        | PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
         | PostProcessGraphResourceNames::TAA_HISTORY_CURRENT => {
             Some(post_process_high_quality_hdr_format())
         }
@@ -138,10 +145,13 @@ fn post_process_intermediate_format(name: &str) -> Option<TextureFormat> {
         | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_SPECULAR_OCCLUSION => Some(
             post_process_texture_format(RenderPostProcessTextureFormat::Rgba8Unorm),
         ),
-        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH
-        | PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY => Some(
-            post_process_texture_format(RenderPostProcessTextureFormat::Rgba8UnormSrgb),
-        ),
+        PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH => {
+            Some(post_process_intermediate_hdr_format())
+        }
+        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY
+        | PostProcessGraphResourceNames::GLOBAL_ILLUMINATION => {
+            Some(post_process_high_quality_hdr_format())
+        }
         _ => None,
     }
 }
@@ -212,5 +222,36 @@ fn is_scene_color_resource(name: &str) -> bool {
 }
 
 fn is_single_sample_graph_product(name: &str) -> bool {
-    matches!(name, PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
+    matches!(
+        name,
+        PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
+            | PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{post_process_intermediate_format, PostProcessGraphResourceNames, TextureFormat};
+
+    #[test]
+    fn reflection_and_gi_products_preserve_hdr_before_output_transfer() {
+        assert_eq!(
+            post_process_intermediate_format(PostProcessGraphResourceNames::DEPTH_OF_FIELD_BOKEH),
+            Some(TextureFormat::Rg11b10Ufloat)
+        );
+        assert_eq!(
+            post_process_intermediate_format(
+                PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY
+            ),
+            Some(TextureFormat::Rgba16Float)
+        );
+        assert_eq!(
+            post_process_intermediate_format(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
+            Some(TextureFormat::Rgba16Float)
+        );
+        assert_eq!(
+            post_process_intermediate_format(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING),
+            Some(TextureFormat::Rgba16Float)
+        );
+    }
 }

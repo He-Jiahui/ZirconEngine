@@ -6,8 +6,8 @@ fn runtime_15_render_product_mesh_cache_virtual_geometry_tests_are_child_owner()
     let virtual_geometry =
         read_runtime_src("graphics/tests/render_product_mesh_cache/virtual_geometry.rs");
 
-    let plan_02 = read_repo("docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_02 = read_repo("docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let mesh_pass_doc =

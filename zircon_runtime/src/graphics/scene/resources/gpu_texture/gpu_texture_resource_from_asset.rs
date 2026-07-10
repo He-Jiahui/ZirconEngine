@@ -598,12 +598,19 @@ fn texture_view_descriptor(
             dimension: Some(wgpu::TextureViewDimension::D1),
             ..Default::default()
         },
-        RenderImageDimension::D2 => wgpu::TextureViewDescriptor {
-            dimension: Some(wgpu::TextureViewDimension::D2),
-            base_array_layer: 0,
-            array_layer_count: Some(1),
-            ..Default::default()
-        },
+        RenderImageDimension::D2 => {
+            let layer_count = descriptor.array_layer_count.max(1);
+            wgpu::TextureViewDescriptor {
+                dimension: Some(if layer_count > 1 {
+                    wgpu::TextureViewDimension::D2Array
+                } else {
+                    wgpu::TextureViewDimension::D2
+                }),
+                base_array_layer: 0,
+                array_layer_count: Some(layer_count),
+                ..Default::default()
+            }
+        }
         RenderImageDimension::D3 => wgpu::TextureViewDescriptor {
             dimension: Some(wgpu::TextureViewDimension::D3),
             ..Default::default()

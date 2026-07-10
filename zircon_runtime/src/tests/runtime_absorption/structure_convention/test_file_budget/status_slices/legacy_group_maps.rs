@@ -26,13 +26,13 @@ fn runtime_15_status_output_expected_slice_legacy_group_maps_are_child_owners() 
     let date_runtime_11_14 = read_runtime_src(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/pre_runtime_15/runtime_11_14.rs",
     );
-    let status_runtime_15 = read_runtime_src(
+    let status_runtime_15 = read_runtime_src_route_tree(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs",
     );
-    let date_runtime_15 = read_runtime_src(
+    let date_runtime_15 = read_runtime_src_route_tree(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs",
     );
-    let status_rows = read_runtime_src(
+    let status_rows = read_runtime_src_route_tree(
         "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs",
     );
     let runtime_15_plan =

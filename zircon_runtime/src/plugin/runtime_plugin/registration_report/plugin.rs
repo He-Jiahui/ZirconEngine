@@ -17,6 +17,9 @@ impl RuntimePluginRegistrationReport {
         let mut extensions = RuntimeExtensionRegistry::default();
         let mut diagnostics = Vec::new();
         validate_runtime_plugin_descriptor(plugin, &mut diagnostics);
+        if let Err(error) = extensions.register_module(plugin.module_descriptor().clone()) {
+            diagnostics.push(error.to_string());
+        }
         if let Err(error) = plugin.register(&mut extensions) {
             diagnostics.push(error.to_string());
         }

@@ -132,6 +132,71 @@ fn render_framework_stats_report_graph_stage_execution() {
 }
 
 #[test]
+fn render_graph_steady_state_second_frame_skips_recompile() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.apply_viewport_size(viewport_size);
+
+    server
+        .submit_frame_extract(viewport, extract.clone())
+        .unwrap();
+    let first = server.query_stats().unwrap();
+    server.submit_frame_extract(viewport, extract).unwrap();
+    let second = server.query_stats().unwrap();
+
+    assert!(first.last_graph_compiled_cache_miss_count > 0);
+    assert_eq!(
+        second.last_graph_compiled_cache_miss_count, first.last_graph_compiled_cache_miss_count,
+        "an unchanged second frame must not recompile the graph"
+    );
+    assert_eq!(
+        second.last_graph_compiled_cache_hit_count,
+        first.last_graph_compiled_cache_hit_count + 1,
+        "the unchanged second frame must reuse the compiled graph"
+    );
+    assert_eq!(
+        second.last_graph_compiled_cache_entry_count,
+        first.last_graph_compiled_cache_entry_count
+    );
+}
+
+#[test]
+fn render_graph_executed_markers_match_dump_pass_rows() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.apply_viewport_size(viewport_size);
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_async_compute(false),
+        )
+        .unwrap();
+    let expected_markers = compiled
+        .graph
+        .dump()
+        .pass_rows
+        .iter()
+        .filter(|pass| !pass.culled)
+        .map(|pass| debug_markers::marker_for_render_graph_pass(&pass.name))
+        .collect::<Vec<_>>();
+
+    server.submit_frame_extract(viewport, extract).unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(stats.last_graph_executed_debug_markers, expected_markers);
+}
+
+#[test]
 fn render_framework_stats_report_shadow_atlas_graph_execution() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();

@@ -149,6 +149,7 @@ impl World {
                         scale: crate::core::math::Vec3::from_array(entity.transform.scale),
                     },
                     camera: entity.camera.clone().map(|camera| CameraComponent {
+                        core_pipeline: camera.core_pipeline,
                         projection_mode: camera.projection_mode,
                         fov_y_radians: camera.fov_y_radians,
                         ortho_size: camera.ortho_size,

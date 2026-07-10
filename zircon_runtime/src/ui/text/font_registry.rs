@@ -114,10 +114,18 @@ impl UiFontRegistry {
                 source: source.to_string(),
             },
         });
-        self.extend_fallback_chain(
-            std::iter::once(family.as_str())
-                .chain(asset.fallback_families.iter().map(String::as_str)),
-        );
+        let mut fallback_families = vec![family.as_str()];
+        fallback_families.extend(asset.fallback_families.iter().map(String::as_str));
+        if let Some(composite) = &asset.composite_font {
+            fallback_families.push(composite.default_family.as_str());
+            fallback_families.extend(
+                composite
+                    .sub_fonts
+                    .iter()
+                    .map(|sub_font| sub_font.family.as_str()),
+            );
+        }
+        self.extend_fallback_chain(fallback_families);
         Ok(id)
     }
 

@@ -66,8 +66,8 @@ fn runtime_15_asset_pack_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 42,
-        "asset pack child modules should preserve the original 42 tests"
+        migrated_test_count, 43,
+        "asset pack child modules should preserve the current 43 tests"
     );
 
     assert_contains_all(

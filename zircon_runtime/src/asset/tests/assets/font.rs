@@ -4,15 +4,30 @@ use std::path::PathBuf;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
-    AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError, FontAssetRenderStrategy,
-    ImportedAsset,
+    AssetImportError, AssetImporter, AssetKind, AssetUri, FontAsset, FontAssetError,
+    FontAssetRenderStrategy, ImportedAsset,
 };
+use crate::core::framework::render::FontScript;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 const FONT_TOML: &str = r#"
 source = "FiraMono-subset.ttf"
 family = "Fira Mono"
 render_mode = "sdf"
+"#;
+
+const COMPOSITE_FONT_TOML: &str = r#"
+source = "FiraMono-subset.ttf"
+family = "Fira Mono"
+
+[composite_font]
+default_family = "Fira Mono"
+
+[[composite_font.sub_fonts]]
+family = "Noto Sans CJK SC"
+scripts = ["han"]
+ranges = [[13312, 19903], [19968, 40959]]
+cultures = ["zh-Hans"]
 "#;
 
 #[test]
@@ -28,6 +43,64 @@ fn font_asset_wrapper_parses_runtime_font_manifest_fields() {
 }
 
 #[test]
+fn font_asset_parses_composite_font_culture_ranges() {
+    let font = FontAsset::from_toml_str(COMPOSITE_FONT_TOML).unwrap();
+    let composite = font
+        .composite_font
+        .as_ref()
+        .expect("composite font descriptor should be preserved");
+
+    assert_eq!(composite.default_family.as_str(), "Fira Mono");
+    assert_eq!(composite.sub_fonts.len(), 1);
+    assert_eq!(composite.sub_fonts[0].family.as_str(), "Noto Sans CJK SC");
+    assert_eq!(composite.sub_fonts[0].cultures[0].as_str(), "zh-Hans");
+    assert!(composite.sub_fonts[0].cultures[0].matches("zh-Hans-CN"));
+}
+
+#[test]
+fn runtime_default_font_manifest_declares_culture_aware_composite_font() {
+    let document = fs::read_to_string(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/default.font.toml"),
+    )
+    .unwrap();
+    let font = FontAsset::from_toml_str(&document).unwrap();
+    let composite = font
+        .composite_font
+        .expect("runtime default font should declare a CompositeFont");
+
+    assert_eq!(composite.default_family.as_str(), "Fira Mono");
+    assert!(composite.sub_fonts.iter().any(|sub_font| {
+        sub_font.family.as_str() == "Noto Sans CJK SC"
+            && sub_font
+                .cultures
+                .iter()
+                .any(|culture| culture.matches("zh-Hans-CN"))
+    }));
+    assert!(composite.sub_fonts.iter().any(|sub_font| {
+        sub_font.family.as_str() == "Noto Sans CJK JP"
+            && sub_font
+                .cultures
+                .iter()
+                .any(|culture| culture.matches("ja-JP"))
+    }));
+    assert!(composite.sub_fonts.iter().any(|sub_font| {
+        sub_font.family.as_str() == "Noto Sans Arabic"
+            && sub_font.scripts.contains(&FontScript::Arabic)
+    }));
+    assert!(composite.sub_fonts.iter().any(|sub_font| {
+        sub_font.family.as_str() == "Noto Color Emoji"
+            && sub_font
+                .ranges
+                .iter()
+                .any(|(start, end)| *start <= 0x1F600 && 0x1F600 <= *end)
+    }));
+    assert!(font
+        .fallback_families
+        .iter()
+        .any(|family| family == "Segoe UI Emoji"));
+}
+
+#[test]
 fn font_asset_effective_render_mode_uses_strategy_default_and_constraints() {
     let font = FontAsset {
         source: "FiraMono-subset.ttf".to_string(),
@@ -37,6 +110,7 @@ fn font_asset_effective_render_mode_uses_strategy_default_and_constraints() {
         family_members: Vec::new(),
         variable_instances: Vec::new(),
         fallback_families: Vec::new(),
+        composite_font: None,
         render_strategy: FontAssetRenderStrategy {
             default_mode: Some(UiTextRenderMode::Auto),
             allow_native: Some(false),
@@ -87,6 +161,33 @@ fn importer_decodes_font_assets_from_font_toml() {
         }
         other => panic!("unexpected font import: {other:?}"),
     }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_preserves_woff2_decode_error_source() {
+    let root = unique_temp_project_root("font_asset_invalid_woff2");
+    fs::create_dir_all(&root).unwrap();
+    let font_path = root.join("invalid.font.toml");
+    fs::write(
+        &font_path,
+        "source = \"invalid.woff2\"\nfamily = \"Invalid Font\"\n",
+    )
+    .unwrap();
+    fs::write(root.join("invalid.woff2"), b"wOF2invalid").unwrap();
+
+    let error = AssetImporter::default()
+        .import_from_source(
+            &font_path,
+            &AssetUri::parse("res://fonts/invalid.font.toml").unwrap(),
+        )
+        .expect_err("malformed WOFF2 should preserve the decoder failure");
+
+    assert!(matches!(error, AssetImportError::FontSourceDecode { .. }));
+    let decoder_error = std::error::Error::source(&error)
+        .expect("import error should expose the font decoder source");
+    assert!(decoder_error.source().is_some());
 
     let _ = fs::remove_dir_all(root);
 }

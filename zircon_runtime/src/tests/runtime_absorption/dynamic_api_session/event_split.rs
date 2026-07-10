@@ -3,10 +3,12 @@ fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
     let session_source = include_str!("../../../dynamic_api/session.rs");
     let events_source = include_str!("../../../dynamic_api/session/events.rs");
     let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
-    let runtime_10_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
+    let runtime_10_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
 
     for required_session_anchor in [
         "mod events;",
@@ -54,12 +56,12 @@ fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
         "Dynamic Session Event Split",
         "session/events.rs",
         "runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router",
-        "expected_source_file_count = 21",
+        "expected_source_file_count = 35",
     ] {
         assert!(
             session_doc.contains(doc_anchor)
-                || runtime_10_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor),
+                || runtime_10_output.contains(doc_anchor)
+                || runtime_index_output.contains(doc_anchor),
             "Runtime 10 event split docs should retain `{doc_anchor}`"
         );
     }

@@ -73,7 +73,7 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
 
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = runtime_index_with_output_archive_source();
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -132,7 +132,7 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
 fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = runtime_index_with_output_archive_source();
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -162,8 +162,13 @@ fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
                 "Cargo gate deferred",
             ],
         );
-        assert_child_owner_windows_name_full_inventory(label, source);
     }
+
+    let current_owner_archive = priority_plan_doc_current_owner_archive_source();
+    assert_child_owner_windows_name_full_inventory(
+        "priority-plan-doc current-owner archive",
+        &current_owner_archive,
+    );
 
     assert_contains_all(
         "status expected-slice map",

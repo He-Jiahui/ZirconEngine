@@ -32,9 +32,18 @@ fn runtime_15_prepared_mesh_queue_is_folder_backed() {
     );
     let mesh_pass_processor =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs");
-    let plan_02 = read_repo("docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_02 = format!(
+        "{}\n{}",
+        read_repo(
+            "docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md",
+        ),
+        render_index,
+    );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");

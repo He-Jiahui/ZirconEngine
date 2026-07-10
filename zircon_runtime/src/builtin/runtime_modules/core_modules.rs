@@ -3,18 +3,24 @@ use std::sync::Arc;
 
 use crate::asset::AssetImporterRegistry;
 use crate::core::framework::error::{CoreError, CoreResult};
+#[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::core::runtime::modules::{
     DiagnosticsCoreModule, FrameCountModule, LogModule, TasksModule, TimeModule,
 };
 use crate::core::sort_module_activation_order;
 use crate::engine_module::EngineModule;
+#[cfg(feature = "graphics")]
+use crate::graphics;
+#[cfg(feature = "graphics")]
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
-use crate::{asset, foundation, graphics, input, platform, scene, script};
+#[cfg(feature = "script")]
+use crate::script;
+use crate::{asset, foundation, input, platform, scene};
 
 use super::ids::RuntimeTargetMode;
 
@@ -26,18 +32,28 @@ pub fn runtime_core_modules() -> Vec<Arc<dyn EngineModule>> {
 pub(super) fn runtime_core_modules_for_target(
     target: RuntimeTargetMode,
 ) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
-    runtime_core_modules_for_target_with_render_features(
-        target,
-        &AssetImporterRegistry::default(),
-        &[],
-        &[],
-        &[],
-        &[],
-        &[],
-        &[],
-        &[],
-        &[],
-    )
+    #[cfg(feature = "graphics")]
+    {
+        runtime_core_modules_for_target_with_render_features(
+            target,
+            &AssetImporterRegistry::default(),
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+            &[],
+        )
+    }
+    #[cfg(not(feature = "graphics"))]
+    {
+        runtime_core_modules_for_target_with_render_features(
+            target,
+            &AssetImporterRegistry::default(),
+        )
+    }
 }
 
 pub(super) fn minimal_profile_runtime_modules() -> CoreResult<Vec<Arc<dyn EngineModule>>> {
@@ -50,6 +66,7 @@ pub(super) fn minimal_profile_runtime_modules() -> CoreResult<Vec<Arc<dyn Engine
     ])
 }
 
+#[cfg(feature = "graphics")]
 pub(super) fn runtime_core_modules_for_target_with_render_features(
     target: RuntimeTargetMode,
     asset_importers: &AssetImporterRegistry,
@@ -90,7 +107,36 @@ pub(super) fn runtime_core_modules_for_target_with_render_features(
             ),
         ));
     }
-    modules.push(Arc::new(script::ScriptModule));
+    #[cfg(feature = "script")]
+    if target != RuntimeTargetMode::ServerRuntime {
+        modules.push(Arc::new(script::ScriptModule));
+    }
+    sort_runtime_modules_by_descriptor_order(modules)
+}
+
+#[cfg(not(feature = "graphics"))]
+pub(super) fn runtime_core_modules_for_target_with_render_features(
+    target: RuntimeTargetMode,
+    asset_importers: &AssetImporterRegistry,
+) -> CoreResult<Vec<Arc<dyn EngineModule>>> {
+    let mut modules: Vec<Arc<dyn EngineModule>> = vec![
+        Arc::new(foundation::FoundationModule),
+        Arc::new(LogModule),
+        Arc::new(TasksModule),
+        Arc::new(TimeModule),
+        Arc::new(FrameCountModule),
+        Arc::new(DiagnosticsCoreModule),
+        Arc::new(platform::PlatformModule),
+        Arc::new(input::InputModule),
+        Arc::new(asset::AssetModule::with_asset_importers(
+            asset_importers.clone(),
+        )),
+        Arc::new(scene::SceneModule),
+    ];
+    #[cfg(feature = "script")]
+    if target != RuntimeTargetMode::ServerRuntime {
+        modules.push(Arc::new(script::ScriptModule));
+    }
     sort_runtime_modules_by_descriptor_order(modules)
 }
 

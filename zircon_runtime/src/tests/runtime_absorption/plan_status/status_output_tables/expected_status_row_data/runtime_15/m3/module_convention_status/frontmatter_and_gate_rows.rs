@@ -38,7 +38,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
             "runtime_15_module_convention_guard_source_reconciliation_static_passed_cargo_deferred",
             "structure_convention/module_convention_gate/module_doc_frontmatter.rs",
             "structure_convention/module_convention_gate/split_layout.rs",
-            "structure_convention/test_file_budget/status_output_row_data/runtime_15_m3_child_group_moved_rows/module_convention_rows.rs",
+            "structure_convention/test_file_budget/row_data/runtime_15_m3_child_group_moved_rows/module_convention_rows.rs",
             "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/frontmatter_and_gate_rows.rs",
             "plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/lock_poison_module_maps.rs",
             "plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/lock_poison_module_maps.rs",

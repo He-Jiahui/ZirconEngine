@@ -11,5 +11,6 @@ fn encode_gbuffer(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> ZrDeferred
             clamp(surface.occlusion, 0.0, 1.0),
             zr_deferred_encode_material_flags(surface.shading_model_id, receive_shadows),
         ),
+        vec4<f32>(max(surface.emissive, vec3<f32>(0.0)), 1.0),
     );
 }

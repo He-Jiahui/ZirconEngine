@@ -95,6 +95,9 @@ pub(super) fn deferred_gbuffer_executor(
     let material_attachment_ops = context
         .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
+    let emissive_attachment_ops = context
+        .attachment_ops_for_write(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
+        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_deferred_gbuffer_to_resources(
@@ -102,10 +105,12 @@ pub(super) fn deferred_gbuffer_executor(
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         attachment_ops,
         normal_attachment_ops,
         material_attachment_ops,
+        emissive_attachment_ops,
     )
 }
 
@@ -122,6 +127,7 @@ pub(super) fn deferred_lighting_executor(
         PostProcessGraphResourceNames::GBUFFER_ALBEDO,
         PostProcessGraphResourceNames::GBUFFER_NORMAL,
         PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         PostProcessGraphResourceNames::FINAL_COLOR,
         PostProcessGraphResourceNames::SCENE_COLOR,

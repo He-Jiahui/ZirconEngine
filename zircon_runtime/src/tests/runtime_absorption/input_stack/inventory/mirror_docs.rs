@@ -8,12 +8,14 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
         (
             "Runtime 12 plan",
             include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
+                "../../../../../../docs/plans/zircon_runtime/runtime/12/2026-07-09-input-stack-and-action-mapping-output-records.md"
             ),
         ),
         (
             "runtime index",
-            include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+            include_str!(
+                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+            ),
         ),
         (
             "M0 review",
@@ -35,6 +37,8 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
             "expected_runtime_module_count = 12",
             "expected_framework_module_count = 20",
             "expected_test_module_count = 7",
+            "expected_guard_file_count = 6",
+            "missing_guard_files = []",
             "public_surface_anchors = 26/26",
             "runtime_12_guard_anchors = 5/5",
             "missing_gamepad_abi_anchors = []",

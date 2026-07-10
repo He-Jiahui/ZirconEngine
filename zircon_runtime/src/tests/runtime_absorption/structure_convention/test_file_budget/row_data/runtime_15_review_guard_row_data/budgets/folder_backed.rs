@@ -8,7 +8,7 @@ const REVIEW_GUARD_ROW_DATA_BUDGETS_DATE_MAP_PATH: &str =
 #[test]
 fn runtime_15_review_guard_row_data_budgets_guard_is_folder_backed() {
     let parent = read_runtime_src(REVIEW_GUARD_ROW_DATA_BUDGETS_PATH);
-    let status_rows = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PATH);
+    let status_rows = review_guard_status_support_review_rows_source_blob();
     let status_map = read_runtime_src(REVIEW_GUARD_ROW_DATA_BUDGETS_STATUS_MAP_PATH);
     let date_map = read_runtime_src(REVIEW_GUARD_ROW_DATA_BUDGETS_DATE_MAP_PATH);
 

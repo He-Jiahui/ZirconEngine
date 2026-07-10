@@ -15,7 +15,8 @@ pub(super) const GUARD_BODY_STATUS_MIRRORS_FRAMEWORKS_STATUS: &str =
 pub(super) const GUARD_BODY_STATUS_MIRRORS_GUARD: &str =
     "runtime_15_status_support_expected_slice_guard_body_status_mirrors_are_folder_backed";
 
-pub(super) const GUARD_BODY_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/guard_body.rs";
+pub(super) const GUARD_BODY_ROUTE_PATH: &str =
+    "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/guard_body.rs";
 pub(super) const GUARD_BODY_STATUS_MIRRORS_ROUTE_PATH: &str = "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/status_mirrors.rs";
 pub(super) const GUARD_BODY_CHILDREN: &[&str] = &[
     "structure_convention/test_file_budget/status_slices/maps/rt15/review/status/body/budgets.rs",

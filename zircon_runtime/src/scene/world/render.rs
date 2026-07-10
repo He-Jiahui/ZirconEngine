@@ -182,7 +182,6 @@ impl World {
                 spot_lights,
                 ambient_lights,
                 rect_lights,
-                reflection_probes: Vec::new(),
                 baked_lighting: None,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
             },
@@ -536,6 +535,7 @@ impl World {
         });
         let camera = ViewportCameraSnapshot {
             transform,
+            core_pipeline: component.core_pipeline,
             projection_mode: component.projection_mode,
             fov_y_radians: component.fov_y_radians,
             ortho_size: component.ortho_size,
@@ -692,7 +692,6 @@ fn inactive_camera_frame_extract(
             spot_lights: Vec::new(),
             ambient_lights: Vec::new(),
             rect_lights: Vec::new(),
-            reflection_probes: Vec::new(),
             baked_lighting: None,
             hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
         },

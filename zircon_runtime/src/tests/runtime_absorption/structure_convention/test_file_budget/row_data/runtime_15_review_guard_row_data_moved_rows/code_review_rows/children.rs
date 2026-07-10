@@ -70,7 +70,7 @@ pub(super) const CODE_REVIEW_ROWS_ROUTE_METADATA_CHILDREN: &[(&str, &str)] = &[
     ("status_mirrors", CODE_REVIEW_ROWS_STATUS_MIRRORS_PATH),
 ];
 
-pub(super) fn code_review_rows_child_source_blob() -> String {
+pub(in super::super) fn code_review_rows_child_source_blob() -> String {
     CODE_REVIEW_ROW_CHILDREN
         .iter()
         .map(|(_, path, _)| super::read_runtime_src(path))

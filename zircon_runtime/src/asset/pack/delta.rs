@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::framework::net::ZrChunkEntry;
-
 use super::dedup::zrpack_content_hash;
 use super::manifest::{
     validate_zrpack_asset_entries, validate_zrpack_asset_path_list,
@@ -11,7 +9,8 @@ use super::manifest::{
 use super::{
     reader::{read_header_u32, read_header_u64, validate_chunk_payload_extent},
     writer::{header_size, ZrPackInputAsset, ZrPackWriteReport, ZrPackWriter},
-    ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackReader, ZRPACK_FORMAT_VERSION,
+    ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackReader,
+    ZRPACK_FORMAT_VERSION,
 };
 
 pub const ZRPACK_DELTA_MAGIC: [u8; 4] = *b"ZRPD";

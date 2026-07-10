@@ -113,6 +113,7 @@ impl SdfFontBakeCache {
         glyph: char,
         font: Option<&str>,
         font_family: Option<&str>,
+        language: Option<&str>,
         font_weight: u16,
         font_size: f32,
         font_database: &mut FontDatabase,
@@ -120,8 +121,14 @@ impl SdfFontBakeCache {
     ) -> SdfGlyphMetrics {
         let key = SdfAtlasGlyphKey {
             glyph,
+            glyph_id: None,
+            font_id: None,
             font: font.map(str::to_string),
             font_family: font_family.map(str::to_string),
+            language: language
+                .map(str::trim)
+                .filter(|language| !language.is_empty())
+                .map(str::to_string),
             font_weight: UiResolvedStyle::normalized_font_weight(font_weight),
             bake_params: SdfBakeParams::default(),
         };
@@ -136,12 +143,16 @@ impl SdfFontBakeCache {
         asset_manager: &ProjectAssetManager,
     ) -> SdfGlyphMetrics {
         let px = key.bake_params.bake_em_px_f32();
-        let Some(font) = self.font_for_key(key, font_database, asset_manager) else {
-            return fallback_metrics(px);
-        };
-        let index = glyph_index(font, key.glyph);
-        let metrics = font.metrics_indexed_sdf(index, px);
-        glyph_metrics(font, px, metrics)
+        for face in self.resolve_faces_for_key(key, font_database, asset_manager) {
+            if !self.ensure_sdf_font(face, font_database) {
+                continue;
+            }
+            let font = self.fonts.get(&face).expect("ensured SDF font");
+            let index = glyph_index(font, key);
+            let metrics = font.metrics_indexed_sdf(index, px);
+            return glyph_metrics(font, px, metrics);
+        }
+        fallback_metrics(px)
     }
 
     fn bake_glyph(
@@ -151,33 +162,45 @@ impl SdfFontBakeCache {
         asset_manager: &ProjectAssetManager,
     ) -> RawBakedGlyph {
         let px = key.bake_params.bake_em_px_f32();
-        let Some(font) = self.font_for_key(key, font_database, asset_manager) else {
-            return RawBakedGlyph::empty(fallback_metrics(px));
-        };
-        let index = glyph_index(font, key.glyph);
-        let (metrics, bitmap) = font.rasterize_indexed_sdf(index, px);
-        let metrics = glyph_metrics(font, px, metrics);
-        let visible = metrics.bitmap_width > 0
-            && metrics.bitmap_height > 0
-            && bitmap.iter().any(|value| *value != 0);
-
-        if visible {
-            RawBakedGlyph {
-                metrics,
-                bitmap,
-                visible,
+        for face in self.resolve_faces_for_key(key, font_database, asset_manager) {
+            if !self.ensure_sdf_font(face, font_database) {
+                continue;
             }
-        } else {
-            RawBakedGlyph::empty(metrics)
+            let font = self.fonts.get(&face).expect("ensured SDF font");
+            let index = glyph_index(font, key);
+            let (metrics, bitmap) = font.rasterize_indexed_sdf(index, px);
+            let metrics = glyph_metrics(font, px, metrics);
+            let visible = metrics.bitmap_width > 0
+                && metrics.bitmap_height > 0
+                && bitmap.iter().any(|value| *value != 0);
+
+            return if visible {
+                RawBakedGlyph {
+                    metrics,
+                    bitmap,
+                    visible,
+                }
+            } else {
+                RawBakedGlyph::empty(metrics)
+            };
         }
+        RawBakedGlyph::empty(fallback_metrics(px))
     }
 
-    fn font_for_key(
+    fn resolve_faces_for_key(
         &mut self,
         key: &SdfAtlasGlyphKey,
         font_database: &mut FontDatabase,
         asset_manager: &ProjectAssetManager,
-    ) -> Option<&fontsdf::Font> {
+    ) -> Vec<FontFaceId> {
+        if let Some(face) = key.font_id.map(FontFaceId) {
+            return font_database
+                .face_bytes(face)
+                .is_ok()
+                .then_some(face)
+                .into_iter()
+                .collect();
+        }
         let requested_face = resolve_font_face(key.font.as_deref(), font_database, asset_manager);
         let default_face =
             resolve_font_face(Some(DEFAULT_FONT_ASSET), font_database, asset_manager);
@@ -187,27 +210,27 @@ impl SdfFontBakeCache {
                 key.glyph,
                 &font_query_for_key(key),
                 None,
+                key.language.as_deref(),
             )
         });
-        let face = [resolved_face, requested_face, default_face]
+        let mut faces = Vec::new();
+        for face in [resolved_face, requested_face, default_face]
             .into_iter()
             .flatten()
-            .find(|face| self.ensure_sdf_font(*face, font_database))?;
-
-        self.fonts.get(&face)
+        {
+            if !faces.contains(&face) {
+                faces.push(face);
+            }
+        }
+        faces
     }
 
     fn ensure_sdf_font(&mut self, face: FontFaceId, font_database: &FontDatabase) -> bool {
         if self.fonts.contains_key(&face) {
             return true;
         }
-
-        if font_database.face_index(face).ok() != Some(0) {
-            return false;
-        }
-
         let Some(font) = font_database
-            .face_bytes(face)
+            .standalone_face_bytes(face)
             .ok()
             .and_then(|bytes| fontsdf::Font::from_bytes(bytes.as_ref()).ok())
         else {
@@ -277,9 +300,15 @@ fn register_loaded_font_manifest(
         .ok()
 }
 
-fn glyph_index(font: &fontsdf::Font, glyph: char) -> u16 {
-    if font.chars().contains_key(&glyph) {
-        font.lookup_glyph_index(glyph)
+fn glyph_index(font: &fontsdf::Font, key: &SdfAtlasGlyphKey) -> u16 {
+    if let Some(glyph_id) = key
+        .glyph_id
+        .and_then(|glyph_id| u16::try_from(glyph_id).ok())
+    {
+        return glyph_id;
+    }
+    if font.chars().contains_key(&key.glyph) {
+        font.lookup_glyph_index(key.glyph)
     } else {
         0
     }

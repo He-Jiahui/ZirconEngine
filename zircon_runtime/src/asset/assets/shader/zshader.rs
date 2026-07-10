@@ -406,6 +406,14 @@ pub struct ShaderTextureSlotAsset {
     pub editor: BTreeMap<String, String>,
 }
 
+impl ShaderTextureSlotAsset {
+    pub fn expected_dimension(
+        &self,
+    ) -> crate::core::framework::render::RenderMaterialTextureDimension {
+        crate::core::framework::render::RenderMaterialTextureDimension::from_shader_kind(&self.kind)
+    }
+}
+
 impl From<&ZShaderTextureSlotDocument> for ShaderTextureSlotAsset {
     fn from(slot: &ZShaderTextureSlotDocument) -> Self {
         Self {

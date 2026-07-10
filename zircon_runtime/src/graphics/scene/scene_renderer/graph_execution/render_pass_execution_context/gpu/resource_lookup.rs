@@ -53,6 +53,25 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         )
     }
 
+    pub fn require_owned_texture_full_mip_view(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<wgpu::TextureView, String> {
+        if let Some(resolver) = self.resource_resolver {
+            let declaration =
+                resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
+            if declaration.kind != RenderGraphResourceKind::TransientTexture {
+                return Err(format!(
+                    "render graph resource `{resource_name}` must be a transient texture before a full-mip view can be requested"
+                ));
+            }
+            self.resources
+                .require_texture_view_for_declaration(declaration)?;
+        }
+        self.resources.owned_texture_full_mip_view(resource_name)
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn require_texture_view_by_name<'resources>(
         resources: &'resources RenderGraphExecutionResources,
         resource_resolver: Option<RgResourceResolver<'a>>,
@@ -268,7 +287,7 @@ mod tests {
     use super::RenderPassGpuExecutionContext;
 
     #[test]
-    fn public_gpu_buffer_lookup_requires_compiled_pass_declaration_access() {
+    fn public_gpu_resource_lookup_requires_compiled_pass_declaration_access() {
         let Ok(backend) = RenderBackend::new_offscreen() else {
             return;
         };
@@ -288,10 +307,24 @@ mod tests {
             256,
             BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
         ));
+        let hzb = builder.create_texture(
+            TextureDesc::new(
+                "hzb-furthest",
+                8,
+                8,
+                TextureFormat::Rgba16Float,
+                TextureUsage::SAMPLED | TextureUsage::STORAGE,
+            )
+            .with_mip_levels(4),
+        );
         let depth_prepass = builder.add_pass("depth-prepass", QueueLane::Graphics);
         builder.write_texture(depth_prepass, scene_depth).unwrap();
+        let hzb_build = builder.add_pass("hzb-build", QueueLane::AsyncCompute);
+        builder.read_texture(hzb_build, scene_depth).unwrap();
+        builder.write_texture(hzb_build, hzb).unwrap();
         let pass = builder.add_pass("hybrid-gi-scene-prepare", QueueLane::Graphics);
         builder.read_texture(pass, scene_depth).unwrap();
+        builder.read_texture(pass, hzb).unwrap();
         builder.write_buffer(pass, hybrid_gi_scene).unwrap();
         let output = builder.import_external_resource("viewport-output");
         let present = builder.add_pass("present", QueueLane::Graphics);
@@ -371,6 +404,14 @@ mod tests {
             .unwrap()
             .require_buffer("hybrid-gi-scene", RenderGraphResourceAccessKind::Write)
             .expect("declared write buffer should resolve through the public GPU facade");
+        context
+            .gpu()
+            .unwrap()
+            .require_owned_texture_full_mip_view(
+                "hzb-furthest",
+                RenderGraphResourceAccessKind::Read,
+            )
+            .expect("declared transient HZB read should expose its full mip chain");
         let error = context
             .gpu()
             .unwrap()

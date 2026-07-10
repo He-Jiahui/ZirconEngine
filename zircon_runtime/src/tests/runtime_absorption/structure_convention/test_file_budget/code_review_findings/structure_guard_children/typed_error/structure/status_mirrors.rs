@@ -1,9 +1,9 @@
 use super::*;
 
 const REVIEW_GUARD_STRUCTURE_ASSERTION_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_structure_maps/structure_assertion_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
 const REVIEW_GUARD_STRUCTURE_ASSERTION_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_structure_maps/structure_assertion_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_structure_maps/structure_assertion_maps.rs";
 
 pub(super) fn assert_structure_assertions_guard_status_mirrors_are_current() {
     let status_rows = review_guard_status_rows_source();
@@ -20,7 +20,7 @@ pub(super) fn assert_structure_assertions_guard_status_mirrors_are_current() {
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let frameworks_index = read_repo("docs/plans/zircon_runtime/frameworks/index.md");

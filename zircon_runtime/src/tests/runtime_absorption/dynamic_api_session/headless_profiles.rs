@@ -9,10 +9,12 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
     let session_entry_point_tests =
         include_str!("../../../dynamic_api/tests/session_entry_points.rs");
     let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
-    let runtime_10_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
+    let runtime_10_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index_output = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
 
     for required_source_anchor in [
         "render_bridge: Option<RuntimeRenderBridge>",
@@ -145,15 +147,15 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
     }
 
     for required_plan_anchor in [
-        "headless/minimal profile 明确跳过 render bridge",
+        "headless/minimal 跳过 bridge",
         "capture 返回空帧",
         "surface bind/unbind/present 为 no-op",
         "runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces",
     ] {
         assert!(
-            runtime_10_plan.contains(required_plan_anchor)
-                || runtime_index.contains(required_plan_anchor),
-            "Runtime 10 plan status should record `{required_plan_anchor}`"
+            runtime_10_output.contains(required_plan_anchor)
+                || runtime_index_output.contains(required_plan_anchor),
+            "Runtime 10 output status should record `{required_plan_anchor}`"
         );
     }
 }

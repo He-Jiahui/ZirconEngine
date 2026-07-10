@@ -5,11 +5,14 @@ use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
 };
 
+#[cfg(feature = "net-contracts")]
+use super::net::{NetEndpoint, NetError, NetPacket, NetSocketId};
+#[cfg(feature = "physics-contracts")]
+use super::physics::PhysicsSettings;
+use super::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use super::{
     animation::{AnimationParameterValue, AnimationPlaybackSettings, AnimationTrackPath},
     input::{InputButton, InputEvent, InputEventRecord, InputSnapshot},
-    net::{NetEndpoint, NetError, NetPacket, NetSocketId},
-    physics::{PhysicsCombineRule, PhysicsMaterialMetadata, PhysicsSettings},
     render::{
         CameraRenderDescriptor, CapturedFrame, CorePipelineKind, FallbackSkyboxKind,
         FrameHistoryHandle, GeometryExtract, GeometryPhaseInput, PostProcessEffectKind,
@@ -73,14 +76,18 @@ fn framework_contract_types_are_constructible() {
     let property_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
     let track_path = AnimationTrackPath::new(entity_path.clone(), property_path.clone());
     let playback = AnimationPlaybackSettings::default();
+    #[cfg(feature = "net-contracts")]
     let socket = NetSocketId::new(5);
+    #[cfg(feature = "net-contracts")]
     let endpoint = NetEndpoint::new("127.0.0.1", 9000);
+    #[cfg(feature = "net-contracts")]
     let packet = NetPacket {
         source: endpoint.clone(),
         payload: vec![1, 2, 3],
     };
     let material = PhysicsMaterialMetadata::default();
     let lighting_model = RenderMaterialLightingModel::Unlit;
+    #[cfg(feature = "physics-contracts")]
     let physics = PhysicsSettings::default();
     let level = LevelSummary {
         handle: WorldHandle::new(42),
@@ -103,14 +110,17 @@ fn framework_contract_types_are_constructible() {
     assert_eq!(entity_path.to_string(), "Root/Hero");
     assert_eq!(property_path.to_string(), "Transform.translation");
     assert_eq!(track_path.to_string(), "Root/Hero:Transform.translation");
-    assert_eq!(socket.raw(), 5);
-    assert_eq!(endpoint.host, "127.0.0.1");
-    assert_eq!(endpoint.port, 9000);
-    assert_eq!(packet.payload, vec![1, 2, 3]);
-    assert_eq!(
-        NetError::UnknownSocket { socket },
-        NetError::UnknownSocket { socket }
-    );
+    #[cfg(feature = "net-contracts")]
+    {
+        assert_eq!(socket.raw(), 5);
+        assert_eq!(endpoint.host, "127.0.0.1");
+        assert_eq!(endpoint.port, 9000);
+        assert_eq!(packet.payload, vec![1, 2, 3]);
+        assert_eq!(
+            NetError::UnknownSocket { socket },
+            NetError::UnknownSocket { socket }
+        );
+    }
     assert_eq!(
         AnimationParameterValue::Trigger,
         AnimationParameterValue::Trigger
@@ -119,6 +129,7 @@ fn framework_contract_types_are_constructible() {
     assert_eq!(material.friction_combine, PhysicsCombineRule::Average);
     assert!(lighting_model.is_unlit());
     assert_eq!(lighting_model.to_string(), "unlit");
+    #[cfg(feature = "physics-contracts")]
     assert_eq!(physics.fixed_hz, 60);
     assert_eq!(level.handle.get(), 42);
     assert_eq!(Mobility::default(), Mobility::Dynamic);

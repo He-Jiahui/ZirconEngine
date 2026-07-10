@@ -6,7 +6,7 @@ pub(super) fn assert_typed_error_status_doc_row_routes_are_child_backed() {
 
     for (module_name, marker) in TYPED_ERROR_STATUS_DOCS_ROW_DATA_CHILDREN {
         let child_path = typed_error_status_docs_row_data_child_path(module_name);
-        let module_mount = format!("#[path = \"status/{module_name}.rs\"]");
+        let module_mount = format!("#[path = \"status_docs/{module_name}.rs\"]");
         let re_export = format!("pub(super) use {module_name}::*;");
         assert_contains_all(
             "typed-error status-doc row-data route mounts child row groups",

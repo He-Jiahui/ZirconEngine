@@ -9,9 +9,9 @@ pub(in super::super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
 pub(in super::super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(in super::super) const REVIEW_GUARD_TYPED_ERROR_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps.rs";
 pub(in super::super) const REVIEW_GUARD_TYPED_ERROR_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_maps.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps.rs";
 
 pub(in super::super) fn typed_error_source_inventory_status_rows_source() -> String {
     let mut source = String::new();
@@ -33,7 +33,7 @@ pub(in super::super) fn typed_error_source_inventory_status_map_source() -> Stri
         read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH),
         read_runtime_src(REVIEW_GUARD_TYPED_ERROR_STATUS_MAP_PATH),
         read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_maps/source_inventory_rows.rs",
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/source_inventory_rows.rs",
         )
     )
 }
@@ -44,7 +44,7 @@ pub(in super::super) fn typed_error_source_inventory_date_map_source() -> String
         read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH),
         read_runtime_src(REVIEW_GUARD_TYPED_ERROR_DATE_MAP_PATH),
         read_runtime_src(
-            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_maps/source_inventory_rows.rs",
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/source_inventory_rows.rs",
         )
     )
 }

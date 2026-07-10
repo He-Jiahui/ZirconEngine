@@ -8,8 +8,8 @@ fn runtime_15_m4_behavior_postprocess_tests_are_child_owner() {
     let queue_override = read_runtime_src("graphics/tests/m4_behavior_layers/queue_override.rs");
     let transparent3d = read_runtime_src("graphics/tests/m4_behavior_layers/transparent3d.rs");
 
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09-camera-render-ordering.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let session_doc = read_repo(".codex/sessions/20260617-0926-render-hzb-progress.md");

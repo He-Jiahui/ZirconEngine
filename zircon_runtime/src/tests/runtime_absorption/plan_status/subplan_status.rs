@@ -1,11 +1,11 @@
 use super::support::{
     frontmatter_last_refined, frontmatter_status, markdown_table_cells, max_iso_date,
-    runtime_subplan_sources,
+    runtime_subplan_sources, runtime_subplan_sources_with_archives,
 };
 
 #[test]
 fn runtime_plan_last_refined_covers_latest_recorded_date() {
-    for (filename, source) in runtime_subplan_sources() {
+    for (filename, source) in runtime_subplan_sources_with_archives() {
         let last_refined = frontmatter_last_refined(&source).unwrap_or_else(|| {
             panic!("runtime plan {filename} should keep a last_refined frontmatter date")
         });
@@ -62,7 +62,7 @@ fn runtime_plan_frontmatter_status_uses_known_lifecycle_values() {
 
 #[test]
 fn runtime_subplans_keep_status_and_evidence_tables() {
-    for (filename, source) in runtime_subplan_sources() {
+    for (filename, source) in runtime_subplan_sources_with_archives() {
         for required_anchor in ["## 状态与产出记录", "| 里程碑 | 切片 | 状态 |"] {
             assert!(
                 source.contains(required_anchor),
@@ -74,22 +74,20 @@ fn runtime_subplans_keep_status_and_evidence_tables() {
 
 #[test]
 fn runtime_subplan_status_records_keep_non_empty_evidence() {
-    for (filename, source) in runtime_subplan_sources() {
-        let status_start = source
-            .find("## 状态与产出记录")
-            .unwrap_or_else(|| panic!("runtime plan {filename} should keep a status section"));
-        let status_section = &source[status_start..];
-        let status_section = status_section
-            .find("\n## ")
-            .map(|next_heading| &status_section[..next_heading])
-            .unwrap_or(status_section);
+    for (filename, source) in runtime_subplan_sources_with_archives() {
         let mut record_rows = Vec::new();
 
-        for line in status_section.lines() {
+        for line in source.lines() {
             let cells = markdown_table_cells(line);
             if cells.len() == 5
                 && cells[0] != "里程碑"
                 && !cells[0].chars().all(|character| character == '-')
+                && [
+                    "pass", "pending", "deferred", "active", "complete", "待", "完成", "阻塞",
+                    "通过",
+                ]
+                .iter()
+                .any(|marker| cells[2].contains(marker))
             {
                 record_rows.push(cells);
             }

@@ -2,10 +2,22 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use crate::core::framework::net::ZrPackManifest;
-
 pub const ZRPACK_MAGIC: [u8; 4] = *b"ZRPK";
 pub const ZRPACK_FORMAT_VERSION: u32 = 1;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZrPackManifest {
+    pub version: u32,
+    pub chunks: Vec<ZrChunkEntry>,
+    pub total_size: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZrChunkEntry {
+    pub hash: [u8; 32],
+    pub offset: u64,
+    pub size: u32,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ZrPackDocumentManifest {
@@ -18,6 +30,39 @@ pub struct ZrPackAssetEntry {
     pub path: String,
     pub chunk_hash: [u8; 32],
     pub size: u64,
+}
+
+impl ZrPackManifest {
+    pub fn new(version: u32, total_size: u64) -> Self {
+        Self {
+            version,
+            chunks: Vec::new(),
+            total_size,
+        }
+    }
+
+    pub fn with_chunk(mut self, chunk: ZrChunkEntry) -> Self {
+        self.chunks.push(chunk);
+        self
+    }
+
+    pub fn covered_bytes(&self) -> u64 {
+        self.chunks.iter().map(|chunk| u64::from(chunk.size)).sum()
+    }
+
+    pub fn is_complete_byte_plan(&self) -> bool {
+        self.covered_bytes() == self.total_size
+    }
+}
+
+impl ZrChunkEntry {
+    pub fn new(hash: [u8; 32], offset: u64, size: u32) -> Self {
+        Self { hash, offset, size }
+    }
+
+    pub fn end_offset(&self) -> Option<u64> {
+        self.offset.checked_add(u64::from(self.size))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

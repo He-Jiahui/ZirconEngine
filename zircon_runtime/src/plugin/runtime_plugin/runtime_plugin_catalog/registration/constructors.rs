@@ -6,12 +6,16 @@ use super::order::{order_runtime_plugin_descriptors, order_runtime_plugins};
 impl RuntimePluginCatalog {
     pub fn from_plugins<'a>(plugins: impl IntoIterator<Item = &'a dyn RuntimePlugin>) -> Self {
         let mut catalog = Self::default();
-        let (plugins, order_diagnostics) =
-            order_runtime_plugins(plugins.into_iter().collect::<Vec<_>>());
+        let plugins = match order_runtime_plugins(plugins.into_iter().collect::<Vec<_>>()) {
+            Ok(plugins) => plugins,
+            Err(error) => {
+                catalog.reject_module_order(error);
+                return catalog;
+            }
+        };
         for plugin in plugins {
             catalog.register(plugin);
         }
-        catalog.diagnostics.extend(order_diagnostics);
         catalog
     }
 
@@ -19,12 +23,17 @@ impl RuntimePluginCatalog {
         descriptors: impl IntoIterator<Item = RuntimePluginDescriptor>,
     ) -> Self {
         let mut catalog = Self::default();
-        let (descriptors, order_diagnostics) =
-            order_runtime_plugin_descriptors(descriptors.into_iter().collect::<Vec<_>>());
+        let descriptors =
+            match order_runtime_plugin_descriptors(descriptors.into_iter().collect::<Vec<_>>()) {
+                Ok(descriptors) => descriptors,
+                Err(error) => {
+                    catalog.reject_module_order(error);
+                    return catalog;
+                }
+            };
         for descriptor in descriptors {
             catalog.register(&descriptor);
         }
-        catalog.diagnostics.extend(order_diagnostics);
         catalog
     }
 

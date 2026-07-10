@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_status_support_folder_backed_status_is_current() {
-    let review_guard_rows = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PATH);
+    let review_guard_rows = review_guard_status_support_review_rows_source_blob();
     let status_map = read_runtime_src(REVIEW_GUARD_TYPED_ERROR_STATUS_MAP_PATH);
     let date_map = read_runtime_src(REVIEW_GUARD_TYPED_ERROR_DATE_MAP_PATH);
 

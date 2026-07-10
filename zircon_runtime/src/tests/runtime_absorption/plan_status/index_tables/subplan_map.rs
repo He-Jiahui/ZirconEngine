@@ -1,53 +1,11 @@
 use super::super::support::{
     assert_contains_all, first_backtick_value, index_section_between, leading_plan_id,
-    markdown_table_cells, runtime_subplan_sources,
+    markdown_table_cells, runtime_numbered_archive_sources, runtime_subplan_sources,
 };
 
-fn runtime_15_status_sources() -> [(&'static str, &'static str); 8] {
-    [
-        (
-            "Runtime 15 subplan",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-            ),
-        ),
-        (
-            "engine code structure convention",
-            include_str!("../../../../../../docs/plans/engine-code-structure-convention.md"),
-        ),
-        (
-            "engine code review findings",
-            include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        ),
-        (
-            "module convention doc",
-            include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "runtime implementation session note",
-            include_str!(
-                "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-            ),
-        ),
-        (
-            "Runtime 15 status row data",
-            include_str!(
-                "../status_output_tables/expected_status_row_data/runtime_15/m3/status_support/runtime_index_anchors/index_baseline.rs"
-            ),
-        ),
-        (
-            "Runtime 15 expected status map",
-            include_str!(
-                "../status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/runtime_index_anchor_maps/index_baseline_maps.rs"
-            ),
-        ),
-        (
-            "Runtime 15 expected date map",
-            include_str!(
-                "../status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/plan_doc_support_maps/runtime_index_anchor_maps/index_baseline_maps.rs"
-            ),
-        ),
-    ]
+fn assert_runtime_15_archived_status(anchors: &[&str]) {
+    let archive_source = runtime_numbered_archive_sources();
+    assert_contains_all("runtime numbered archives", &archive_source, anchors);
 }
 
 #[test]
@@ -138,9 +96,7 @@ fn runtime_15_runtime_index_subplan_map_covers_01_15_status_locked() {
         "15-code-structure-and-module-conventions.md",
         "EXPECTED_SUBPLAN_COUNT = 15",
     ];
-    for (label, source) in runtime_15_status_sources() {
-        assert_contains_all(label, source, &status_anchors[..3]);
-    }
+    assert_runtime_15_archived_status(&status_anchors[..3]);
     assert_contains_all(
         "runtime index",
         index_source,
@@ -149,8 +105,6 @@ fn runtime_15_runtime_index_subplan_map_covers_01_15_status_locked() {
             "`15-code-structure-and-module-conventions.md`",
             "Runtime 14",
             "Runtime 15",
-            status_anchors[0],
-            status_anchors[1],
         ],
     );
     assert_contains_all(
@@ -197,19 +151,8 @@ fn runtime_15_runtime_index_problem_row_parser_covers_p01_p17_status_locked() {
         "runtime_15_runtime_index_problem_row_parser_p01_p17_sync_static_passed_cargo_deferred",
         "runtime_15_runtime_index_problem_row_parser_covers_p01_p17_status_locked",
     ];
-    for (label, source) in runtime_15_status_sources() {
-        assert_contains_all(label, source, &status_anchors);
-    }
-    assert_contains_all(
-        "runtime index",
-        index_source,
-        &[
-            "P1",
-            "P17",
-            "Runtime 15 M3 runtime index problem-row parser P01-P17 sync",
-            "runtime_15_runtime_index_problem_row_parser_p01_p17_sync_static_passed_cargo_deferred",
-        ],
-    );
+    assert_runtime_15_archived_status(&status_anchors);
+    assert_contains_all("runtime index", index_source, &["P1", "P17"]);
     assert_contains_all(
         "runtime plan-status source parser",
         boundary_sources,

@@ -1,13 +1,17 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 
 use crate::core::resource::{AssetReference, ResourceLocator, ResourceLocatorError};
-use crate::ui::template::{collect_document_resource_dependencies, UiAssetLoader};
-use crate::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::ui::style::UiThemeDocument;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2AssetKind};
+
+mod document_loader;
+mod resource_references;
+
+use document_loader::{load_current_ui_document, load_ui_v2_document, load_zui_document};
+use resource_references::collect_resource_uris;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -244,8 +248,7 @@ impl UiV2ComponentAsset {
     }
 
     pub fn from_zui_str(document: &str) -> UiV2AssetDocumentResult<Self> {
-        let document =
-            UiZuiAssetLoader::load_zui_str(document).map_err(UiV2AssetDocumentError::Parse)?;
+        let document = load_zui_document(document).map_err(UiV2AssetDocumentError::Parse)?;
         if document.asset.kind != UiV2AssetKind::Component {
             return Err(UiV2AssetDocumentError::UnexpectedKind {
                 expected: UiV2AssetKind::Component,
@@ -282,15 +285,8 @@ pub fn ui_asset_references(document: &UiAssetDocument) -> Vec<AssetReference> {
         push_reference(reference, &mut references, &mut seen);
     }
 
-    if let Ok(report) =
-        collect_document_resource_dependencies(document, &BTreeMap::new(), &BTreeMap::new())
-    {
-        for dependency in report.dependencies {
-            push_reference(&dependency.reference.uri, &mut references, &mut seen);
-            if let Some(fallback_uri) = dependency.reference.fallback.uri.as_deref() {
-                push_reference(fallback_uri, &mut references, &mut seen);
-            }
-        }
+    for uri in collect_resource_uris(document) {
+        push_reference(&uri, &mut references, &mut seen);
     }
     references
 }
@@ -338,7 +334,7 @@ fn push_reference(
 }
 
 fn parse_typed(document: &str, expected: UiAssetKind) -> UiAssetDocumentResult<UiAssetDocument> {
-    let parsed = UiAssetLoader::load_toml_str(document)?;
+    let parsed = load_current_ui_document(document)?;
     if parsed.asset.kind != expected {
         return Err(UiAssetDocumentError::UnexpectedKind {
             expected,
@@ -352,7 +348,7 @@ fn parse_v2_typed(
     document: &str,
     expected: UiV2AssetKind,
 ) -> UiV2AssetDocumentResult<UiV2AssetDocument> {
-    let parsed = UiV2AssetLoader::load_toml_str(document)?;
+    let parsed = load_ui_v2_document(document)?;
     let matches_style_import =
         expected == UiV2AssetKind::Style && parsed.asset.kind == UiV2AssetKind::ThemeTokens;
     if parsed.asset.kind != expected && !matches_style_import {

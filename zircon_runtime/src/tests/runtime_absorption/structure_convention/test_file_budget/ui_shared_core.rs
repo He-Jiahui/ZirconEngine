@@ -41,9 +41,7 @@ fn runtime_15_ui_shared_core_guard_child_owners_are_folder_backed() {
     let scroll_mutation = read_runtime_src(
         "tests/runtime_absorption/structure_convention/test_file_budget/ui_shared_core/scroll_mutation.rs",
     );
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
-    );
+    let status_rows = ui_tests_first_status_row_source();
     let status_map = [
         read_runtime_src(
             "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs",

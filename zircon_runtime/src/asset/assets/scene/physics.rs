@@ -1,5 +1,5 @@
 use crate::asset::AssetReference;
-use crate::core::framework::physics::{
+use crate::core::framework::scene::physics::{
     PhysicsJointConstraintMetadata, PhysicsMaterialMetadata, PhysicsSkeletonJointBinding,
 };
 use crate::core::math::Real;

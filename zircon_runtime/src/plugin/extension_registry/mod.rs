@@ -1,6 +1,7 @@
 mod access;
 mod apply_to_asset_manager;
 mod apply_to_module;
+#[cfg(feature = "ui")]
 mod apply_to_ui;
 mod apply_to_world;
 mod owner;

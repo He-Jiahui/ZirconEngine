@@ -28,7 +28,7 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
             "mod database;",
             "mod descriptors;",
             "mod matching;",
-            "pub(crate) use database::FontDatabase;",
+            "pub(crate) use database::{FontDatabase, SystemFontPolicy};",
         ],
     );
     assert_contains_all(
@@ -49,7 +49,7 @@ fn runtime_15_font_database_descriptor_helpers_are_child_owner() {
     for moved_descriptor_owner in [
         "fn family_from_source_path(",
         "pub(super) fn descriptor_from_font_bytes(",
-        "fn face_family_name(",
+        "\nfn face_family_name(",
         "fn ttf_name_by_id(",
         "fn style_from_ttf(",
         "pub(super) fn stretch_from_ttf_width_class(",

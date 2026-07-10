@@ -9,7 +9,7 @@ fn runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries() {
 
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = runtime_index_with_output_archive_source();
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

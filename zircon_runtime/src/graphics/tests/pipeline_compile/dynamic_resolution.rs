@@ -65,8 +65,9 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
 
     assert!(
         geometry_shader.contains("@location(1) normal: vec4<f32>")
-            && geometry_shader.contains("@location(2) material: vec4<f32>"),
-        "deferred geometry should emit normal and material G-buffer targets"
+            && geometry_shader.contains("@location(2) material: vec4<f32>")
+            && geometry_shader.contains("@location(3) emissive: vec4<f32>"),
+        "deferred geometry should emit normal, material, and emissive G-buffer targets"
     );
     assert!(
         geometry_shader.contains("standard_material_properties.data0.x")
@@ -79,6 +80,12 @@ fn deferred_material_gbuffer_shaders_encode_and_decode_material_channels() {
         lighting_shader.contains("var gbuffer_material_tex: texture_2d<f32>")
             && lighting_shader.contains("textureLoad(gbuffer_material_tex"),
         "deferred lighting should read the material G-buffer"
+    );
+    assert!(
+        lighting_shader.contains("var gbuffer_emissive_tex: texture_2d<f32>")
+            && lighting_shader.contains("textureLoad(gbuffer_emissive_tex")
+            && lighting_shader.contains("add_deferred_emissive"),
+        "deferred lighting should restore the HDR emissive G-buffer"
     );
     assert!(
         lighting_shader.contains("let roughness =") && lighting_shader.contains("let metallic ="),

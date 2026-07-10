@@ -5,9 +5,13 @@ use crate::core::CoreError;
 use crate::core::ServiceKind;
 
 #[test]
-fn registry_name_accepts_only_exact_three_segment_names() {
+fn registry_name_accepts_module_namespaces_before_kind_and_service() {
     let valid = RegistryName::new("TestModule.Manager.ClockManager").unwrap();
     assert_eq!(valid.as_str(), "TestModule.Manager.ClockManager");
+    let namespaced = RegistryName::new("weather.runtime.Manager.ClockManager").unwrap();
+    assert_eq!(namespaced.module_name(), "weather.runtime");
+    assert_eq!(namespaced.service_kind(), ServiceKind::Manager);
+    assert_eq!(namespaced.service_name(), "ClockManager");
 
     for invalid in [
         "",
@@ -22,6 +26,7 @@ fn registry_name_accepts_only_exact_three_segment_names() {
         "TestModule.Manager. ClockManager",
         "TestModule.Manager.ClockManager ",
         "TestModule.Manager.ClockManager.Extra",
+        "TestModule..runtime.Manager.ClockManager",
     ] {
         let error = RegistryName::new(invalid).unwrap_err();
         assert!(matches!(
@@ -43,7 +48,18 @@ fn registry_name_from_parts_builds_canonical_service_names() {
 
 #[test]
 fn registry_name_from_parts_rejects_invalid_segments() {
-    for invalid_module in ["", " TestModule", "TestModule ", "Test.Module"] {
+    let namespaced =
+        RegistryName::from_parts("weather.runtime", ServiceKind::Driver, "ClockDriver");
+    assert_eq!(namespaced.as_str(), "weather.runtime.Driver.ClockDriver");
+
+    for invalid_module in [
+        "",
+        " TestModule",
+        "TestModule ",
+        ".TestModule",
+        "TestModule.",
+        "Test..Module",
+    ] {
         assert!(std::panic::catch_unwind(|| {
             RegistryName::from_parts(invalid_module, ServiceKind::Driver, "ClockDriver");
         })
@@ -86,16 +102,13 @@ fn registry_name_caches_segments_without_changing_string_contract() {
     assert!(registry_name_source.contains("self.as_str().hash(state)"));
     assert!(registry_name_source.contains("fn registry_separator_offsets(value: &str)"));
     assert!(registry_name_source.contains("let bytes = value.as_bytes();"));
-    assert!(registry_name_source.contains("let mut separator_count = 0;"));
-    assert!(registry_name_source.contains("while index < bytes.len()"));
-    assert!(registry_name_source.contains("first_separator = index;"));
-    assert!(registry_name_source.contains("second_separator = index;"));
-    assert!(registry_name_source.contains("separator_count += 1;"));
-    assert!(registry_name_source.contains("if separator_count == 2"));
-    assert!(registry_name_source.contains("Some((first_separator, second_separator))"));
-    assert!(registry_name_source.contains("return None;"));
+    assert!(registry_name_source.contains("let mut kind_end = None;"));
+    assert!(registry_name_source.contains("while index > 0"));
+    assert!(registry_name_source.contains("if let Some(kind_end) = kind_end"));
+    assert!(registry_name_source.contains("return Some((index, kind_end));"));
     assert!(registry_name_source.contains("fn is_canonical_segment(value: &str) -> bool"));
     assert!(registry_name_source.contains("fn is_canonical_dot_free_segment(value: &str) -> bool"));
+    assert!(registry_name_source.contains("fn is_canonical_module_namespace(value: &str) -> bool"));
     assert!(registry_name_source.contains("first.is_whitespace()"));
     assert!(registry_name_source.contains("let last = match chars.next_back()"));
     assert!(registry_name_source.contains("Some(last) => last"));
@@ -103,7 +116,7 @@ fn registry_name_caches_segments_without_changing_string_contract() {
     assert!(registry_name_source.contains("!last.is_whitespace()"));
     assert!(registry_name_source.contains("ch == '.'"));
     assert!(registry_name_source.contains("!last.is_whitespace()"));
-    assert!(registry_name_source.contains("is_canonical_dot_free_segment(module)"));
+    assert!(registry_name_source.contains("is_canonical_module_namespace(module)"));
     assert!(registry_name_source.contains("is_canonical_dot_free_segment(service)"));
     assert!(registry_name_source
         .contains("let kind_segment = &value.as_bytes()[kind_start..kind_end];"));

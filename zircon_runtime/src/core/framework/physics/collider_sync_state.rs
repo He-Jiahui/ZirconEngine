@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 use crate::core::framework::scene::EntityId;
 use crate::core::math::Transform;
 
-use super::{PhysicsColliderShape, PhysicsMaterialMetadata};
+use super::PhysicsColliderShape;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsColliderSyncState {

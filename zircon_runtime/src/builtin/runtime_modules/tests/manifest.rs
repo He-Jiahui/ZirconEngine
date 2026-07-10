@@ -25,12 +25,12 @@ fn project_manifest_overlays_mode_baseline() {
         }),
     );
 
-    #[cfg(feature = "plugin-ui")]
+    #[cfg(feature = "ui")]
     assert!(manifest
         .selections
         .iter()
         .any(|selection| selection.id == RuntimePluginId::Ui.key()));
-    #[cfg(not(feature = "plugin-ui"))]
+    #[cfg(not(feature = "ui"))]
     assert!(manifest
         .selections
         .iter()

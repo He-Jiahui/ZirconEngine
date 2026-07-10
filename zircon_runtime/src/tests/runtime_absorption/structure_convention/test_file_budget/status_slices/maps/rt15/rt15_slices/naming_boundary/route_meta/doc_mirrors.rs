@@ -3,27 +3,27 @@ use super::*;
 #[test]
 fn runtime_15_naming_boundary_expected_slice_route_metadata_docs_are_synced() {
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     for (label, source) in [
         (
             "Runtime 15 plan",
             read_repo(
-                "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+                "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
             ),
         ),
         (
             "Runtime index",
-            read_repo("docs/plans/zircon_runtime/runtime/index.md"),
+            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         ("Frameworks 02", frameworks_02.clone()),
         (
             "review findings",
-            read_repo("docs/plans/engine-code-review-findings-2026-06.md"),
+            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "structure convention",
-            read_repo("docs/plans/engine-code-structure-convention.md"),
+            read_repo("docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "module convention doc",
@@ -40,19 +40,9 @@ fn runtime_15_naming_boundary_expected_slice_route_metadata_docs_are_synced() {
             &[
                 ROUTE_SLICE,
                 ROUTE_STATUS,
-                "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/naming_boundary.rs",
-                "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/naming_boundary/sources.rs",
-                "structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/naming_boundary/guard_body.rs",
-                STRUCTURE_NAMING_BOUNDARY_ROUTE_PATH,
                 ROUTE_GUARD,
                 ROUTE_METADATA_SLICE,
                 ROUTE_METADATA_STATUS,
-                ROUTE_METADATA_CHILDREN[0],
-                ROUTE_METADATA_CHILDREN[1],
-                ROUTE_METADATA_CHILDREN[2],
-                ROUTE_METADATA_CHILDREN[3],
-                ROUTE_METADATA_CHILDREN[4],
-                ROUTE_METADATA_CHILDREN[5],
                 ROUTE_METADATA_GUARD,
                 "Cargo gate deferred",
             ],

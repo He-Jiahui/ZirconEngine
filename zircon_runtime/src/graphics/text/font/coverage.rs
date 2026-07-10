@@ -50,6 +50,17 @@ impl FontCoverage {
             Self::Unknown => true,
         }
     }
+
+    #[cfg(test)]
+    pub(super) fn from_codepoints(codepoints: &[char]) -> Self {
+        let mut codepoints = codepoints
+            .iter()
+            .map(|codepoint| *codepoint as u32)
+            .collect::<Vec<_>>();
+        codepoints.sort_unstable();
+        codepoints.dedup();
+        Self::Known(compact_codepoint_ranges(codepoints))
+    }
 }
 
 fn compact_codepoint_ranges(codepoints: Vec<u32>) -> Vec<(u32, u32)> {

@@ -25,13 +25,23 @@ pub(super) fn runtime_extension_report_for_project(
     let mut registry = RuntimeExtensionRegistry::default();
     let mut diagnostics = Vec::new();
     let mut fatal_diagnostics = Vec::new();
-    merge_enabled_runtime_extensions(
+    if let Err(error) = merge_enabled_runtime_extensions(
         registrations,
         &enabled_plugins,
         &mut registry,
         &mut diagnostics,
         &mut fatal_diagnostics,
-    );
+    ) {
+        let diagnostic = format!("runtime plugin module descriptor ordering failed: {error}");
+        diagnostics.push(diagnostic.clone());
+        fatal_diagnostics.push(diagnostic);
+        registry.finalize();
+        return RuntimeExtensionCatalogReport {
+            registry,
+            diagnostics,
+            fatal_diagnostics,
+        };
+    }
     append_feature_dependency_diagnostics(feature_report, &mut diagnostics, &mut fatal_diagnostics);
     merge_available_feature_extensions(
         feature_registrations,
@@ -41,6 +51,7 @@ pub(super) fn runtime_extension_report_for_project(
         &mut diagnostics,
         &mut fatal_diagnostics,
     );
+    registry.finalize();
     RuntimeExtensionCatalogReport {
         registry,
         diagnostics,

@@ -8,6 +8,7 @@ fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components()
         .insert(
             camera,
             CameraComponent {
+                core_pipeline: CorePipelineKind::Core2d,
                 projection_mode: ProjectionMode::Orthographic,
                 ..CameraComponent::default()
             },
@@ -112,6 +113,7 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
         .insert(
             camera,
             CameraComponent {
+                core_pipeline: CorePipelineKind::Core2d,
                 projection_mode: ProjectionMode::Orthographic,
                 ..CameraComponent::default()
             },
@@ -178,6 +180,7 @@ fn render_product_sprite_mesh2d_component_does_not_count_as_particle_sprite() {
         .insert(
             camera,
             CameraComponent {
+                core_pipeline: CorePipelineKind::Core2d,
                 projection_mode: ProjectionMode::Orthographic,
                 ..CameraComponent::default()
             },

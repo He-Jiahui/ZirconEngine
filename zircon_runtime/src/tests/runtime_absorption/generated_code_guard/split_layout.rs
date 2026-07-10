@@ -73,7 +73,7 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
     }
 
     let row_data = include_str!(
-        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs"
+        "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/structure_guard_rows.rs"
     );
     assert_contains_all(
         "module-convention row data records generated-code guard split",
@@ -89,31 +89,31 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
     );
 
     let status_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+        "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
     );
     assert_contains_all("structure route status map", status_map, &[SLICE, STATUS]);
 
     let date_map = include_str!(
-        "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+        "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
     );
     assert_contains_all("structure route date map", date_map, &[SLICE, "2026-07-05"]);
 
     for (label, source) in [
         (
             "Runtime 15 subplan",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
+            include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
         ),
         (
             "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+            include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "engine code structure convention",
-            include_str!("../../../../../docs/plans/engine-code-structure-convention.md"),
+            include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "engine code review findings",
-            include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+            include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "module convention doc",
@@ -128,7 +128,7 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
     }
 
     let frameworks = include_str!(
-        "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
+        "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
     );
     assert_contains_all(
         "frameworks plan records generated-code guard split",

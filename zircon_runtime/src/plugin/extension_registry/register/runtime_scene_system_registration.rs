@@ -9,7 +9,6 @@ use crate::scene::ecs::{
 };
 
 use super::super::owner::PluginModuleId;
-use super::super::typed_extension_point::ExtensionSlot;
 use super::super::RuntimeExtensionRegistry;
 use super::system_registration::validate_plugin_system_id;
 
@@ -192,14 +191,7 @@ impl RuntimeExtensionRegistry {
         &self,
     ) -> impl Iterator<Item = (PluginModuleId, &RuntimeSceneSystemRegistration)> {
         self.plugin_runtime_systems
-            .values()
             .iter()
-            .enumerate()
-            .filter_map(|(index, registration)| {
-                let slot = ExtensionSlot::from_raw(index as u32);
-                self.plugin_runtime_systems
-                    .owner_for_slot(slot)
-                    .map(|owner| (owner, registration))
-            })
+            .map(|(owner, _key, registration)| (owner, registration))
     }
 }

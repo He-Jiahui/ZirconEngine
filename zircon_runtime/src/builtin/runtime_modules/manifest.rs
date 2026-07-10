@@ -30,7 +30,7 @@ pub fn default_manifest_for_target(target: RuntimeTargetMode) -> ProjectPluginMa
 }
 
 fn default_ui_plugin_selection() -> Vec<ProjectPluginSelection> {
-    #[cfg(feature = "plugin-ui")]
+    #[cfg(feature = "ui")]
     {
         vec![ProjectPluginSelection::runtime_plugin(
             RuntimePluginId::Ui,
@@ -38,7 +38,7 @@ fn default_ui_plugin_selection() -> Vec<ProjectPluginSelection> {
             true,
         )]
     }
-    #[cfg(not(feature = "plugin-ui"))]
+    #[cfg(not(feature = "ui"))]
     {
         Vec::new()
     }

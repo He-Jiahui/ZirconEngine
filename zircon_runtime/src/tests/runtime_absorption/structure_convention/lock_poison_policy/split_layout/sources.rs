@@ -87,14 +87,20 @@ pub(super) fn read_lock_poison_sources() -> LockPoisonSources {
             "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/input_script.rs",
         ),
         runtime_15_plan: read_repo(
-            "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+            "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
         ),
-        runtime_index: read_repo("docs/plans/zircon_runtime/runtime/index.md"),
-        review_findings: read_repo("docs/plans/engine-code-review-findings-2026-06.md"),
-        structure_convention: read_repo("docs/plans/engine-code-structure-convention.md"),
+        runtime_index: read_repo(
+            "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        ),
+        review_findings: read_repo(
+            "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        ),
+        structure_convention: read_repo(
+            "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+        ),
         module_doc: read_repo("docs/zircon_runtime/structure/module-convention.md"),
         frameworks_plan: read_repo(
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         session_note: read_repo(
             ".codex/sessions/20260612-0847-runtime-architecture-implementation.md",

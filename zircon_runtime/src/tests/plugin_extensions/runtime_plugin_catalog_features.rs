@@ -133,6 +133,20 @@ fn runtime_plugin_catalog_projects_external_feature_packages_under_owner() {
         projected.runtime_crate.as_deref(),
         Some("zircon_plugin_sound_timeline_animation_runtime")
     );
+    let provider = completed
+        .selections
+        .iter()
+        .find(|selection| selection.id == "sound_timeline_animation_track")
+        .expect("external feature provider package selection");
+    assert!(!provider.enabled);
+    assert_eq!(
+        provider.runtime_crate.as_deref(),
+        Some("zircon_plugin_sound_timeline_animation_runtime")
+    );
+    assert_eq!(
+        provider.editor_crate.as_deref(),
+        Some("zircon_plugin_sound_timeline_animation_editor")
+    );
 }
 
 #[test]

@@ -3,9 +3,9 @@ use std::ops::Range;
 use wgpu::util::DeviceExt;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiPaintPayload, UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiResolvedStyle,
-    UiTextAlign, UiTextDirection, UiTextPaintDecorationKind, UiTextRange, UiTextRenderMode,
-    UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
+    normalize_ui_text_language_tag, UiPaintPayload, UiRenderCommand, UiRenderCommandKind,
+    UiRenderExtract, UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextPaintDecorationKind,
+    UiTextRange, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap, UiTextWritingMode,
 };
 
 use crate::core::framework::render::SkyboxMode;
@@ -18,11 +18,13 @@ use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
 mod background;
 mod color;
 mod geometry;
+mod text_advances;
 
 use background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
 use color::parse_color;
 pub(super) use geometry::ScreenSpaceUiVertex;
 use geometry::{frame_to_scissor, push_rect, ScreenSpaceUiScissor};
+pub(super) use text_advances::ScreenSpaceUiShapedGlyph;
 
 struct PreparedScreenSpaceUi {
     vertex_buffer: Option<wgpu::Buffer>,
@@ -45,10 +47,12 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) clip_frame: Option<UiFrame>,
     pub(super) source_range: Option<UiTextRange>,
     pub(super) glyph_advances: Vec<f32>,
+    pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
     pub(super) color: [f32; 4],
     pub(super) background_color: Option<[f32; 4]>,
     pub(super) font: Option<String>,
     pub(super) font_family: Option<String>,
+    pub(super) language: Option<String>,
     pub(super) font_weight: u16,
     pub(super) font_size: f32,
     pub(super) line_height: f32,
@@ -638,16 +642,62 @@ fn push_text_batch(
         return;
     }
 
+    let language = normalize_ui_text_language_tag(command.style.language.as_deref());
+    let resolved_source_range = source_range.unwrap_or(UiTextRange {
+        start: 0,
+        end: text.len(),
+    });
+    let mut shaped_glyphs = Vec::new();
+    let glyph_advances = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
+        let shaping_style = UiResolvedStyle {
+            font: font.clone(),
+            font_family: font_family.clone(),
+            language: language.clone(),
+            font_weight,
+            font_size,
+            line_height,
+            text_direction,
+            text_writing_mode: writing_mode,
+            ..UiResolvedStyle::default()
+        };
+        shaped_glyphs = text_advances::resolved_vertical_text_glyphs(
+            text.as_str(),
+            &shaping_style,
+            text_direction,
+            resolved_source_range,
+        );
+        let resolved_advances = if glyph_advances.is_empty() {
+            text_advances::vertical_advances_by_source_grapheme(
+                text.as_str(),
+                resolved_source_range,
+                &shaped_glyphs,
+            )
+        } else {
+            glyph_advances
+        };
+        text_advances::apply_resolved_vertical_advances(
+            text.as_str(),
+            resolved_source_range,
+            resolved_advances.as_slice(),
+            &mut shaped_glyphs,
+        );
+        resolved_advances
+    } else {
+        glyph_advances
+    };
+
     let batch = ScreenSpaceUiTextBatch {
         text,
         frame,
         clip_frame: command.clip_frame,
         source_range,
         glyph_advances,
+        shaped_glyphs,
         color,
         background_color: text_batch_background_color(command, frame, viewport, backgrounds),
         font,
         font_family,
+        language,
         font_weight: UiResolvedStyle::normalized_font_weight(font_weight),
         font_size: font_size.max(1.0),
         line_height: line_height.max(font_size.max(1.0)),

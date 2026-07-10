@@ -70,9 +70,17 @@ pub(super) struct NativePluginHotReloadState {
     pub(super) module_kind: PluginModuleKind,
     pub(super) key: String,
     existing: Option<LoadedNativePlugin>,
-    previous_unloaded: bool,
+    previous_plugin_disposition: PreviousPluginDisposition,
     diagnostics: Vec<String>,
     runtime_snapshot: Option<PluginStateSnapshot>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PreviousPluginDisposition {
+    NotLoaded,
+    HeldForRollback,
+    Unloaded,
+    Restored,
 }
 
 impl NativePluginHotReloadState {
@@ -81,11 +89,16 @@ impl NativePluginHotReloadState {
         key: String,
         existing: Option<LoadedNativePlugin>,
     ) -> Self {
+        let previous_plugin_disposition = if existing.is_some() {
+            PreviousPluginDisposition::HeldForRollback
+        } else {
+            PreviousPluginDisposition::NotLoaded
+        };
         Self {
             module_kind,
             key,
             existing,
-            previous_unloaded: false,
+            previous_plugin_disposition,
             diagnostics: Vec::new(),
             runtime_snapshot: None,
         }
@@ -138,8 +151,12 @@ impl NativePluginHotReloadState {
     }
 
     pub(super) fn mark_existing_unloaded(&mut self, diagnostics: Vec<String>) {
-        self.previous_unloaded = true;
+        self.previous_plugin_disposition = PreviousPluginDisposition::Unloaded;
         self.diagnostics.extend(diagnostics);
+    }
+
+    pub(super) fn mark_existing_restored(&mut self) {
+        self.previous_plugin_disposition = PreviousPluginDisposition::Restored;
     }
 
     pub(super) fn rollback_error(&mut self, error: String) -> String {
@@ -147,21 +164,21 @@ impl NativePluginHotReloadState {
     }
 
     pub(super) fn rollback_diagnostic(&self) -> String {
-        let rollback = if self.existing.is_some() {
-            format!(
-                "rolled back to the previously loaded {} native package",
-                module_kind_label(self.module_kind)
-            )
-        } else if self.previous_unloaded {
-            format!(
+        let rollback = match self.previous_plugin_disposition {
+            PreviousPluginDisposition::HeldForRollback | PreviousPluginDisposition::Restored => {
+                format!(
+                    "rolled back to the previously loaded {} native package",
+                    module_kind_label(self.module_kind)
+                )
+            }
+            PreviousPluginDisposition::Unloaded => format!(
                 "rollback unavailable because previous {} native package was already unloaded",
                 module_kind_label(self.module_kind)
-            )
-        } else {
-            format!(
+            ),
+            PreviousPluginDisposition::NotLoaded => format!(
                 "rollback not needed because no {} native package was previously loaded",
                 module_kind_label(self.module_kind)
-            )
+            ),
         };
         if self.diagnostics.is_empty() {
             rollback

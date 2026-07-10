@@ -1,0 +1,356 @@
+use std::sync::mpsc;
+
+use crate::core::math::UVec2;
+use crate::graphics::visibility::HzbBuilder;
+
+use super::execute_hzb_build::{
+    create_hzb_params_upload_buffer, execute_hzb_build_mip_with_resources, HzbBuildMipResources,
+};
+
+const TEST_SCENE_SIZE: UVec2 = UVec2::new(4, 4);
+const TEST_DEPTH_F16_BITS: u16 = 0x3400;
+const F16_ONE_BITS: u16 = 0x3c00;
+const COPY_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+
+#[test]
+fn hzb_build_preserves_per_mip_params_and_resolves_msaa_depth() {
+    let Some((device, queue)) = test_device() else {
+        eprintln!("skipping HZB WGPU regression because no adapter is available");
+        return;
+    };
+    let resources = TestHzbBuildResources::new(&device);
+
+    for sample_count in [1, 4] {
+        assert_hzb_depth_chain(&device, &queue, &resources, sample_count);
+    }
+}
+
+fn assert_hzb_depth_chain(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    resources: &TestHzbBuildResources,
+    sample_count: u32,
+) {
+    let plan = HzbBuilder::new(TEST_SCENE_SIZE).build_plan();
+    assert_eq!(plan.hzb_size, UVec2::new(2, 2));
+    assert_eq!(plan.mip_count, 2);
+
+    let depth_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-scene-depth"),
+        size: wgpu::Extent3d {
+            width: TEST_SCENE_SIZE.x,
+            height: TEST_SCENE_SIZE.y,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Depth32Float,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let hzb_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-output"),
+        size: wgpu::Extent3d {
+            width: plan.hzb_size.x,
+            height: plan.hzb_size.y,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: plan.mip_count,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Rgba16Float,
+        usage: wgpu::TextureUsages::STORAGE_BINDING
+            | wgpu::TextureUsages::TEXTURE_BINDING
+            | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let readback_size = COPY_BYTES_PER_ROW as u64 * 3;
+    let readback = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-readback"),
+        size: readback_size,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-encoder"),
+    });
+    let params_upload_buffer = create_hzb_params_upload_buffer(device, plan);
+    {
+        let _clear = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("zircon-hzb-wgpu-regression-depth-clear"),
+            color_attachments: &[],
+            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
+                view: &depth_view,
+                depth_ops: Some(wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(0.25),
+                    store: wgpu::StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
+            occlusion_query_set: None,
+            timestamp_writes: None,
+            multiview_mask: None,
+        });
+    }
+
+    for mip_level in 0..plan.mip_count {
+        let source_view = (mip_level > 0).then(|| hzb_mip_view(&hzb_texture, mip_level - 1));
+        let target_view = hzb_mip_view(&hzb_texture, mip_level);
+        let (bind_group_layout, pipeline) = resources.pipeline_for_sample_count(sample_count);
+        execute_hzb_build_mip_with_resources(
+            device,
+            &mut encoder,
+            &depth_view,
+            source_view.as_ref(),
+            &target_view,
+            plan.mip_size(mip_level),
+            mip_level,
+            &params_upload_buffer,
+            HzbBuildMipResources {
+                bind_group_layout,
+                pipeline,
+                params_buffer: &resources.params_buffer,
+                fallback_source_view: &resources.fallback_source_view,
+            },
+        );
+    }
+
+    let mut readback_offset = 0_u64;
+    for mip_level in 0..plan.mip_count {
+        let mip_size = plan.mip_size(mip_level);
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &hzb_texture,
+                mip_level,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: readback_offset,
+                    bytes_per_row: Some(COPY_BYTES_PER_ROW),
+                    rows_per_image: Some(mip_size.y),
+                },
+            },
+            wgpu::Extent3d {
+                width: mip_size.x,
+                height: mip_size.y,
+                depth_or_array_layers: 1,
+            },
+        );
+        readback_offset += u64::from(COPY_BYTES_PER_ROW * mip_size.y);
+    }
+    queue.submit([encoder.finish()]);
+
+    let bytes = readback_bytes(device, &readback, readback_size);
+    let mut readback_offset = 0_usize;
+    for mip_level in 0..plan.mip_count {
+        let mip_size = plan.mip_size(mip_level);
+        for y in 0..mip_size.y as usize {
+            for x in 0..mip_size.x as usize {
+                let offset = readback_offset + y * COPY_BYTES_PER_ROW as usize + x * 8;
+                assert_eq!(read_u16(&bytes, offset), TEST_DEPTH_F16_BITS);
+                assert_eq!(read_u16(&bytes, offset + 2), TEST_DEPTH_F16_BITS);
+                assert_eq!(read_u16(&bytes, offset + 4), 0);
+                assert_eq!(read_u16(&bytes, offset + 6), F16_ONE_BITS);
+            }
+        }
+        readback_offset += COPY_BYTES_PER_ROW as usize * mip_size.y as usize;
+    }
+}
+
+struct TestHzbBuildResources {
+    single_sample_layout: wgpu::BindGroupLayout,
+    multisample_layout: wgpu::BindGroupLayout,
+    single_sample_pipeline: wgpu::ComputePipeline,
+    multisample_pipeline: wgpu::ComputePipeline,
+    params_buffer: wgpu::Buffer,
+    _fallback_source_texture: wgpu::Texture,
+    fallback_source_view: wgpu::TextureView,
+}
+
+impl TestHzbBuildResources {
+    fn new(device: &wgpu::Device) -> Self {
+        let single_sample_layout = hzb_bind_group_layout(device, false);
+        let multisample_layout = hzb_bind_group_layout(device, true);
+        let single_sample_pipeline = hzb_pipeline(
+            device,
+            &single_sample_layout,
+            include_str!("../../shaders/hzb_build.wgsl"),
+            "zircon-hzb-wgpu-regression-single-sample-pipeline",
+        );
+        let multisample_pipeline = hzb_pipeline(
+            device,
+            &multisample_layout,
+            include_str!("../../shaders/hzb_build_msaa.wgsl"),
+            "zircon-hzb-wgpu-regression-msaa-pipeline",
+        );
+        let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("zircon-hzb-wgpu-regression-params"),
+            size: 16,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let fallback_source_texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("zircon-hzb-wgpu-regression-fallback-source"),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba16Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        let fallback_source_view =
+            fallback_source_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        Self {
+            single_sample_layout,
+            multisample_layout,
+            single_sample_pipeline,
+            multisample_pipeline,
+            params_buffer,
+            _fallback_source_texture: fallback_source_texture,
+            fallback_source_view,
+        }
+    }
+
+    fn pipeline_for_sample_count(
+        &self,
+        sample_count: u32,
+    ) -> (&wgpu::BindGroupLayout, &wgpu::ComputePipeline) {
+        if sample_count > 1 {
+            (&self.multisample_layout, &self.multisample_pipeline)
+        } else {
+            (&self.single_sample_layout, &self.single_sample_pipeline)
+        }
+    }
+}
+
+fn hzb_bind_group_layout(device: &wgpu::Device, multisampled: bool) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-bind-group-layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Texture {
+                    multisampled,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Depth,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::StorageTexture {
+                    access: wgpu::StorageTextureAccess::WriteOnly,
+                    format: wgpu::TextureFormat::Rgba16Float,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn hzb_pipeline(
+    device: &wgpu::Device,
+    bind_group_layout: &wgpu::BindGroupLayout,
+    shader_source: &'static str,
+    label: &'static str,
+) -> wgpu::ComputePipeline {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some(label),
+        source: wgpu::ShaderSource::Wgsl(shader_source.into()),
+    });
+    let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some(label),
+        bind_group_layouts: &[Some(bind_group_layout)],
+        immediate_size: 0,
+    });
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some(label),
+        layout: Some(&layout),
+        module: &shader,
+        entry_point: Some("cs_main"),
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
+        cache: None,
+    })
+}
+
+fn hzb_mip_view(texture: &wgpu::Texture, mip_level: u32) -> wgpu::TextureView {
+    texture.create_view(&wgpu::TextureViewDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-mip-view"),
+        base_mip_level: mip_level,
+        mip_level_count: Some(1),
+        ..Default::default()
+    })
+}
+
+fn readback_bytes(device: &wgpu::Device, buffer: &wgpu::Buffer, size: u64) -> Vec<u8> {
+    let slice = buffer.slice(..size);
+    let (sender, receiver) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        sender.send(result).ok();
+    });
+    device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
+    receiver.recv().unwrap().unwrap();
+    let mapped = slice.get_mapped_range();
+    let bytes = mapped.to_vec();
+    drop(mapped);
+    buffer.unmap();
+    bytes
+}
+
+fn read_u16(bytes: &[u8], offset: usize) -> u16 {
+    u16::from_le_bytes([bytes[offset], bytes[offset + 1]])
+}
+
+fn test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
+    let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
+    descriptor.backends = wgpu::Backends::PRIMARY;
+    let instance = wgpu::Instance::new(descriptor);
+    let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::LowPower,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    }))
+    .ok()?;
+    pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+        label: Some("zircon-hzb-wgpu-regression-device"),
+        required_features: wgpu::Features::empty(),
+        required_limits: adapter.limits(),
+        memory_hints: wgpu::MemoryHints::Performance,
+        trace: wgpu::Trace::Off,
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
+    }))
+    .ok()
+}

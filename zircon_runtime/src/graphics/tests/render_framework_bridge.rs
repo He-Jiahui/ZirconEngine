@@ -10,13 +10,13 @@ use crate::core::framework::render::{
     RenderChromaticAberrationSettings, RenderColorGradingSettings, RenderColorLookupSettings,
     RenderDepthOfFieldSettings, RenderDitherSettings, RenderDynamicResolutionSettings,
     RenderFilmGrainSettings, RenderFogSettings, RenderFrameExtract, RenderFramework,
-    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderHybridGiProbe,
-    RenderHybridGiTraceRegion, RenderPipelineHandle, RenderPostProcessEffectStackSettings,
-    RenderPostProcessVolumeProfile, RenderQualityProfile, RenderScreenSpaceReflectionSettings,
-    RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderVignetteSettings,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle, SortedRenderCamera,
-    ViewportCameraSnapshot, VolumeComponentOverride, COLOR_LUT_SIZE_DEFAULT,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPipelineHandle,
+    RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderQualityProfile,
+    RenderScreenSpaceReflectionSettings, RenderStats, RenderViewportDescriptor,
+    RenderViewportHandle, RenderVignetteSettings, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource,
+    RenderWorldSnapshotHandle, SortedRenderCamera, ViewportCameraSnapshot, VolumeComponentOverride,
+    COLOR_LUT_SIZE_DEFAULT,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::scene::world::World;
@@ -147,122 +147,10 @@ fn advanced_provider_report(
         .expect("advanced provider report should be recorded")
 }
 
-fn render_hybrid_gi_history_capture(
-    seed_rt_lighting_rgb: [u8; 3],
-) -> crate::core::framework::render::CapturedFrame {
-    let server = pluginized_wgpu_render_framework_with_advanced_providers();
-    let viewport_size = UVec2::new(160, 120);
-    let viewport = server
-        .create_viewport(RenderViewportDescriptor::new(viewport_size))
-        .unwrap();
-    server
-        .set_quality_profile(
-            viewport,
-            RenderQualityProfile::new("hybrid-gi-history")
-                .with_hybrid_global_illumination(true)
-                .with_virtual_geometry(false)
-                .with_clustered_lighting(false)
-                .with_screen_space_ambient_occlusion(false)
-                .with_temporal_history(false)
-                .with_bloom(false)
-                .with_color_grading(false)
-                .with_reflection_probes(false)
-                .with_baked_lighting(false)
-                .with_particle_rendering(false)
-                .with_async_compute(false),
-        )
-        .unwrap();
-
-    server
-        .submit_frame_extract(
-            viewport,
-            hybrid_gi_history_seed_extract(viewport_size, seed_rt_lighting_rgb),
-        )
-        .unwrap();
-    server
-        .submit_frame_extract(viewport, hybrid_gi_temporal_history_extract(viewport_size))
-        .unwrap();
-
-    server
-        .capture_frame(viewport)
-        .unwrap()
-        .expect("expected captured second-frame hybrid GI output")
-}
-
 fn empty_flagship_extract() -> RenderFrameExtract {
     let world = World::new();
     let mut extract = world.to_render_frame_extract();
     extract.apply_viewport_size(UVec2::new(320, 240));
-    extract
-}
-
-fn hybrid_gi_history_seed_extract(
-    viewport_size: UVec2,
-    seed_rt_lighting_rgb: [u8; 3],
-) -> RenderFrameExtract {
-    let world = World::new();
-    let mesh = world
-        .nodes()
-        .iter()
-        .find(|node| node.mesh.is_some())
-        .map(|node| node.id)
-        .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
-    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
-        enabled: true,
-        quality: Default::default(),
-        trace_budget: 0,
-        card_budget: 0,
-        voxel_budget: 0,
-        debug_view: Default::default(),
-        probe_budget: 3,
-        tracing_budget: 1,
-        probes: vec![
-            hybrid_gi_probe(mesh, 100, true, Vec3::new(-0.85, 0.0, 0.0), 96),
-            hybrid_gi_probe_with_parent(250, 100, mesh, false, Vec3::new(-0.25, 0.0, 0.0), 96),
-            hybrid_gi_probe_with_parent(300, 250, mesh, false, Vec3::ZERO, 128),
-        ],
-        trace_regions: vec![
-            hybrid_gi_trace_region(mesh, 40, Vec3::ZERO, 0.2),
-            hybrid_gi_trace_region_with_rt_lighting(
-                mesh,
-                50,
-                Vec3::new(-0.85, 0.0, 0.0),
-                0.95,
-                seed_rt_lighting_rgb,
-            ),
-        ],
-    });
-    extract
-}
-
-fn hybrid_gi_temporal_history_extract(viewport_size: UVec2) -> RenderFrameExtract {
-    let world = World::new();
-    let mesh = world
-        .nodes()
-        .iter()
-        .find(|node| node.mesh.is_some())
-        .map(|node| node.id)
-        .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
-    extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
-        enabled: true,
-        quality: Default::default(),
-        trace_budget: 0,
-        card_budget: 0,
-        voxel_budget: 0,
-        debug_view: Default::default(),
-        probe_budget: 3,
-        tracing_budget: 0,
-        probes: vec![
-            hybrid_gi_probe(mesh, 100, true, Vec3::new(-0.85, 0.0, 0.0), 96),
-            hybrid_gi_probe_with_parent(250, 100, mesh, false, Vec3::new(-0.25, 0.0, 0.0), 96),
-            hybrid_gi_probe_with_parent(300, 250, mesh, false, Vec3::ZERO, 128),
-        ],
-        trace_regions: Vec::new(),
-    });
     extract
 }
 
@@ -301,22 +189,10 @@ fn flagship_extract() -> RenderFrameExtract {
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,
         quality: Default::default(),
-        trace_budget: 0,
+        trace_budget: 2,
         card_budget: 1,
         voxel_budget: 2,
         debug_view: Default::default(),
-        probe_budget: 1,
-        tracing_budget: 1,
-        probes: vec![
-            hybrid_gi_probe(mesh, 30, false, Vec3::ZERO, 128),
-            hybrid_gi_probe(mesh, 20, true, Vec3::new(0.1, 0.0, 0.0), 64),
-            hybrid_gi_probe(mesh, 10, false, Vec3::new(100.0, 0.0, 0.0), 32),
-        ],
-        trace_regions: vec![
-            hybrid_gi_trace_region(mesh, 40, Vec3::ZERO, 8.0),
-            hybrid_gi_trace_region(mesh, 50, Vec3::new(0.1, 0.0, 0.0), 5.0),
-            hybrid_gi_trace_region(mesh, 60, Vec3::new(100.0, 0.0, 0.0), 10.0),
-        ],
     });
     extract
 }
@@ -348,76 +224,6 @@ fn virtual_geometry_page(page_id: u32, resident: bool) -> RenderVirtualGeometryP
         page_id,
         resident,
         size_bytes: 4096,
-    }
-}
-
-fn hybrid_gi_probe(
-    entity: u64,
-    probe_id: u32,
-    resident: bool,
-    position: Vec3,
-    ray_budget: u32,
-) -> RenderHybridGiProbe {
-    RenderHybridGiProbe {
-        entity,
-        probe_id,
-        position,
-        radius: 0.5,
-        parent_probe_id: None,
-        resident,
-        ray_budget,
-    }
-}
-
-fn hybrid_gi_probe_with_parent(
-    probe_id: u32,
-    parent_probe_id: u32,
-    entity: u64,
-    resident: bool,
-    position: Vec3,
-    ray_budget: u32,
-) -> RenderHybridGiProbe {
-    RenderHybridGiProbe {
-        entity,
-        probe_id,
-        position,
-        radius: 0.8,
-        parent_probe_id: Some(parent_probe_id),
-        resident,
-        ray_budget,
-    }
-}
-
-fn hybrid_gi_trace_region(
-    entity: u64,
-    region_id: u32,
-    bounds_center: Vec3,
-    screen_coverage: f32,
-) -> RenderHybridGiTraceRegion {
-    RenderHybridGiTraceRegion {
-        entity,
-        region_id,
-        bounds_center,
-        bounds_radius: 0.5,
-        screen_coverage,
-        rt_lighting_rgb: [0, 0, 0],
-    }
-}
-
-fn hybrid_gi_trace_region_with_rt_lighting(
-    entity: u64,
-    region_id: u32,
-    bounds_center: Vec3,
-    screen_coverage: f32,
-    rt_lighting_rgb: [u8; 3],
-) -> RenderHybridGiTraceRegion {
-    RenderHybridGiTraceRegion {
-        entity,
-        region_id,
-        bounds_center,
-        bounds_radius: 0.5,
-        screen_coverage,
-        rt_lighting_rgb,
     }
 }
 

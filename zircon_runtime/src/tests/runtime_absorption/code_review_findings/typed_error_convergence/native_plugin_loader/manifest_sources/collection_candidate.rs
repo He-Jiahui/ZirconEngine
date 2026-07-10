@@ -6,14 +6,14 @@ fn review_f5_native_plugin_manifest_collection_uses_typed_error() {
     let native_boundary =
         include_str!("../../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
     let review_findings =
-        include_str!("../../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
     let runtime_15_plan = include_str!(
-        "../../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
     let runtime_index =
-        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let convention =
-        include_str!("../../../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
     let status_rows = include_str!(
@@ -98,14 +98,14 @@ fn review_f5_native_plugin_manifest_candidate_uses_typed_error() {
     let native_boundary =
         include_str!("../../../../../../../../docs/engine-architecture/native-plugin-boundary.md");
     let review_findings =
-        include_str!("../../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
     let runtime_15_plan = include_str!(
-        "../../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
     let runtime_index =
-        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let convention =
-        include_str!("../../../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let module_convention =
         include_str!("../../../../../../../../docs/zircon_runtime/structure/module-convention.md");
     let status_rows = include_str!(

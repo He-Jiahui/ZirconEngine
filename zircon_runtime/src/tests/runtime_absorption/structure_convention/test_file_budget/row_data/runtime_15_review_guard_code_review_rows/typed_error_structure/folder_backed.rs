@@ -4,8 +4,7 @@ pub(super) fn assert_typed_error_structure_assertions_guard_is_folder_backed() {
     let route_source = read_runtime_src(TYPED_ERROR_STRUCTURE_ASSERTIONS_GUARD_PATH);
 
     for (module_name, path, marker) in TYPED_ERROR_STRUCTURE_ASSERTIONS_GUARD_CHILDREN {
-        let module_mount =
-            format!("#[path = \"typed_error_structure/{module_name}.rs\"]");
+        let module_mount = format!("#[path = \"typed_error_structure/{module_name}.rs\"]");
         assert_contains_all(
             "typed-error structure-assertions guard route mounts folder-backed children",
             &route_source,

@@ -77,7 +77,7 @@ fn runtime_15_review_guard_moved_row_folder_backed_status_mirrors_are_current() 
         );
     }
     assert!(
-        !route_source.contains("let status_rows ="),
+        !route_source.contains(&["let status", "_rows ="].concat()),
         "status_mirrors.rs should delegate status source reads to child files"
     );
 }

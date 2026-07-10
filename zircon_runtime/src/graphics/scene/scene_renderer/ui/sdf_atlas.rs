@@ -1,16 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+use super::render::ScreenSpaceUiTextBatch;
+use super::sdf_params::SdfBakeParams;
 use crate::core::math::UVec2;
 use crate::graphics::text::atlas::{
     GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
     GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
     GlyphAtlasShelfAllocator, GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
-use zircon_runtime_interface::ui::surface::UiResolvedStyle;
 
-use super::render::ScreenSpaceUiTextBatch;
-use super::sdf_char_run::sdf_scalar_requires_atlas_slot;
-use super::sdf_params::SdfBakeParams;
+#[path = "sdf_atlas/text_keys.rs"]
+mod text_keys;
+
+use text_keys::collect_sdf_atlas_text_keys;
 
 const SDF_ATLAS_SLOT_SIZE_PX: u32 = 64;
 const SDF_ATLAS_MIN_GRID_SIDE: u32 = 8;
@@ -121,8 +123,11 @@ pub(super) struct SdfAtlasRect {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(super) struct SdfAtlasGlyphKey {
     pub(super) glyph: char,
+    pub(super) glyph_id: Option<u32>,
+    pub(super) font_id: Option<u64>,
     pub(super) font: Option<String>,
     pub(super) font_family: Option<String>,
+    pub(super) language: Option<String>,
     pub(super) font_weight: u16,
     pub(super) bake_params: SdfBakeParams,
 }
@@ -389,38 +394,6 @@ fn plan_sdf_atlas_with_quality(
 ) -> SdfAtlasPlan {
     let (unique_keys, run_keys) = collect_sdf_atlas_text_keys(texts);
     plan_sdf_atlas_from_slot_keys(unique_keys.into_iter().collect(), run_keys, quality)
-}
-
-fn collect_sdf_atlas_text_keys(
-    texts: &[ScreenSpaceUiTextBatch],
-) -> (
-    BTreeSet<SdfAtlasGlyphKey>,
-    Vec<Vec<Option<SdfAtlasGlyphKey>>>,
-) {
-    let mut unique_keys = BTreeSet::<SdfAtlasGlyphKey>::new();
-    let mut run_keys = Vec::with_capacity(texts.len());
-
-    for text in texts {
-        let mut glyph_keys = Vec::new();
-        for glyph in text.text.chars() {
-            if !sdf_scalar_requires_atlas_slot(glyph) {
-                glyph_keys.push(None);
-                continue;
-            }
-            let key = SdfAtlasGlyphKey {
-                glyph,
-                font: text.font.clone(),
-                font_family: text.font_family.clone(),
-                font_weight: UiResolvedStyle::normalized_font_weight(text.font_weight),
-                bake_params: SdfBakeParams::default(),
-            };
-            unique_keys.insert(key.clone());
-            glyph_keys.push(Some(key));
-        }
-        run_keys.push(glyph_keys);
-    }
-
-    (unique_keys, run_keys)
 }
 
 fn plan_sdf_atlas_from_slot_keys(

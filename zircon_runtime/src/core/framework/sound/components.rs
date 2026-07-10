@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    ExternalAudioSourceHandle, SoundChannelLayout, SoundClipId, SoundImpulseResponseId,
+    AudioChannelLayout, ExternalAudioSourceHandle, SoundClipId, SoundImpulseResponseId,
     SoundListenerId, SoundParameterId, SoundPlaybackCompletionAction, SoundSourceId, SoundTrackId,
     SoundVolumeId,
 };
@@ -71,14 +71,14 @@ pub struct SoundExternalSourceBlock {
     pub sample_rate_hz: u32,
     pub channel_count: u16,
     /// Provider-declared speaker layout for the interleaved frames in `samples`.
-    pub channel_layout: SoundChannelLayout,
+    pub channel_layout: AudioChannelLayout,
     pub samples: Vec<f32>,
 }
 
 impl SoundExternalSourceBlock {
     pub fn new(
         sample_rate_hz: u32,
-        channel_layout: SoundChannelLayout,
+        channel_layout: AudioChannelLayout,
         samples: impl Into<Vec<f32>>,
     ) -> Self {
         Self {

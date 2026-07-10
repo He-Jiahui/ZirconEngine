@@ -18,7 +18,7 @@ fn runtime_15_status_support_route_metadata_row_data_is_folder_backed() {
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
@@ -30,10 +30,10 @@ fn runtime_15_status_support_route_metadata_row_data_is_folder_backed() {
         "route metadata row-data parent mounts focused children",
         &parent,
         &[
-            "#[path = \"route_meta/naming_boundary_rows.rs\"]",
-            "#[path = \"route_meta/child_owner_guard_rows.rs\"]",
-            "#[path = \"route_meta/child_owner_budget_rows.rs\"]",
-            "#[path = \"route_meta/row_data_owner_rows.rs\"]",
+            "#[path = \"route_metadata/naming_boundary_rows.rs\"]",
+            "#[path = \"route_metadata/child_owner_guard_rows.rs\"]",
+            "#[path = \"route_metadata/child_owner_budget_rows.rs\"]",
+            "#[path = \"route_metadata/row_data_owner_rows.rs\"]",
             "row_data_owner_rows::EXPECTED_STATUS_OUTPUT_SLICES[0]",
         ],
     );
@@ -59,10 +59,10 @@ fn runtime_15_status_support_route_metadata_row_data_is_folder_backed() {
         ROUTE_METADATA_ROW_DATA_STATUS_NAME,
         ROUTE_METADATA_ROW_DATA_STATUS_ID,
         "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata.rs",
-        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/naming_boundary_rows.rs",
-        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/child_owner_guard_rows.rs",
-        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/child_owner_budget_rows.rs",
-        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/row_data_owner_rows.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/naming_boundary_rows.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/child_owner_guard_rows.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/child_owner_budget_rows.rs",
+        "plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/row_data_owner_rows.rs",
         ROUTE_METADATA_ROW_DATA_GUARD_NAME,
         "Cargo gate deferred",
     ];

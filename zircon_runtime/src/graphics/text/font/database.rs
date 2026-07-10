@@ -1,30 +1,68 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use glyphon::{fontdb, FontSystem};
 
+use crate::asset::assets::{
+    decode_font_source, standalone_sfnt_face, FontFaceExtractionError, FontSourceDecodeError,
+};
 use crate::asset::FontAsset;
 use crate::core::framework::render::{
     CompositeFontDescriptor, FontFaceDescriptor, FontFaceId, FontFamilyName, FontMatch, FontQuery,
-    FontScript, FontStretch, FontStyle, FontWeight, InstancedFaceId, VariationCoords,
+    InstancedFaceId, VariationCoords,
 };
 
+#[cfg(test)]
+use crate::core::framework::render::{FontStretch, FontStyle, FontWeight};
+
 use super::asset_registration::{font_asset_descriptors, FontAssetSourceKey};
+use super::backend::BackendFaceMap;
 use super::coverage::FontCoverage;
 use super::default_families::default_runtime_font_families;
 use super::descriptors::{
     descriptor_from_font_bytes, descriptor_from_fontdb_face, source_key_from_fontdb_source,
 };
+use super::fallback::{MissingGlyphDiagnosticsReport, MissingGlyphLog};
 use super::matching::{dedupe_families, stretch_distance, style_distance, weight_distance};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error)]
 pub(crate) enum FontDatabaseError {
+    #[error("font family is empty")]
     EmptyFamily,
+    #[error("font source contains no bytes")]
     EmptyBytes,
-    ReadFailed,
+    #[error("font source {path} could not be read: {source}")]
+    ReadFailed {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("font source {path} could not be decoded: {source}")]
+    SourceDecode {
+        path: PathBuf,
+        #[source]
+        source: FontSourceDecodeError,
+    },
+    #[error("font face {face_index} could not be materialized: {source}")]
+    FaceExtraction {
+        face_index: u32,
+        #[source]
+        source: FontFaceExtractionError,
+    },
+    #[error("font face bytes are unavailable for {0:?}")]
     FaceBytesUnavailable(FontFaceId),
+    #[error("font face is unknown: {0:?}")]
     UnknownFace(FontFaceId),
+    #[error("font face has no shaping-backend identity: {0:?}")]
+    BackendFaceUnavailable(FontFaceId),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum SystemFontPolicy {
+    #[default]
+    Disabled,
+    Discover,
 }
 
 #[derive(Clone, Debug)]
@@ -76,6 +114,10 @@ pub(crate) struct FontDatabase {
     source_face_index: HashMap<FontSourceKey, FontFaceId>,
     asset_source_index: HashMap<FontAssetSourceKey, FontFaceId>,
     fallback_families: Vec<FontFamilyName>,
+    active_composite_font: Option<CompositeFontDescriptor>,
+    backend_database: fontdb::Database,
+    backend_faces: BackendFaceMap,
+    missing_glyphs: Arc<Mutex<MissingGlyphLog>>,
 }
 
 impl Default for FontDatabase {
@@ -86,6 +128,10 @@ impl Default for FontDatabase {
             source_face_index: HashMap::new(),
             asset_source_index: HashMap::new(),
             fallback_families: Vec::new(),
+            active_composite_font: None,
+            backend_database: fontdb::Database::new(),
+            backend_faces: BackendFaceMap::default(),
+            missing_glyphs: Arc::new(Mutex::new(MissingGlyphLog::default())),
         }
     }
 }
@@ -113,7 +159,7 @@ impl FontDatabase {
             return Ok(*face);
         }
 
-        let bytes = std::fs::read(source_path).map_err(|_| FontDatabaseError::ReadFailed)?;
+        let bytes = read_decoded_font_source(source_path)?;
         let descriptor = descriptor_from_font_bytes(&bytes, family, source_path, face_index);
         self.register_stored_face(
             descriptor,
@@ -128,7 +174,7 @@ impl FontDatabase {
         source_path: impl AsRef<Path>,
     ) -> Result<Vec<FontFaceId>, FontDatabaseError> {
         let source_path = source_path.as_ref();
-        let bytes = std::fs::read(source_path).map_err(|_| FontDatabaseError::ReadFailed)?;
+        let bytes = read_decoded_font_source(source_path)?;
         let bytes: Arc<[u8]> = Arc::from(bytes.into_boxed_slice());
         let mut faces = Vec::new();
 
@@ -139,15 +185,40 @@ impl FontDatabase {
                 faces.push(face);
             }
         }
-        self.extend_fallback_families(asset.fallback_families.iter().map(String::as_str));
+        let mut fallback_families: Vec<&str> =
+            asset.fallback_families.iter().map(String::as_str).collect();
+        if let Some(composite) = &asset.composite_font {
+            fallback_families.push(composite.default_family.as_str());
+            fallback_families.extend(
+                composite
+                    .sub_fonts
+                    .iter()
+                    .map(|sub_font| sub_font.family.as_str()),
+            );
+            self.active_composite_font = Some(composite.clone());
+        }
+        self.extend_fallback_families(fallback_families);
         Ok(faces)
     }
 
-    pub(crate) fn load_system_fonts(&mut self) -> usize {
-        let mut system_database = fontdb::Database::new();
-        system_database.load_system_fonts();
+    pub(crate) fn apply_system_font_policy(&mut self, policy: SystemFontPolicy) -> usize {
+        if policy == SystemFontPolicy::Disabled {
+            return 0;
+        }
+        let existing_backend_faces = self
+            .backend_database
+            .faces()
+            .map(|face| face.id)
+            .collect::<HashSet<_>>();
+        self.backend_database.load_system_fonts();
+        let system_faces = self
+            .backend_database
+            .faces()
+            .filter(|face| !existing_backend_faces.contains(&face.id))
+            .cloned()
+            .collect::<Vec<_>>();
         let before = self.faces.len();
-        for info in system_database.faces() {
+        for info in &system_faces {
             let _ = self.register_system_face(info);
         }
         self.faces.len().saturating_sub(before)
@@ -158,9 +229,35 @@ impl FontDatabase {
         face: FontFaceId,
         font_system: &mut FontSystem,
     ) -> Result<(), FontDatabaseError> {
-        let source = self.glyphon_source(face)?;
-        font_system.db_mut().load_font_source(source);
+        if self.backend_face_id(face).is_none() {
+            return Err(FontDatabaseError::BackendFaceUnavailable(face));
+        }
+        self.sync_font_system(font_system);
         Ok(())
+    }
+
+    pub(crate) fn sync_font_system(&self, font_system: &mut FontSystem) {
+        let locale = font_system.locale().to_string();
+        *font_system = FontSystem::new_with_locale_and_db(locale, self.backend_database.clone());
+    }
+
+    pub(crate) fn set_default_ui_family(&mut self, family: &str) {
+        self.backend_database
+            .set_sans_serif_family(family.to_string());
+        self.backend_database
+            .set_monospace_family(family.to_string());
+    }
+
+    pub(crate) fn backend_database_snapshot(&self) -> fontdb::Database {
+        self.backend_database.clone()
+    }
+
+    pub(crate) fn font_face_id(&self, backend: fontdb::ID) -> Option<FontFaceId> {
+        self.backend_faces.font_face_id(backend)
+    }
+
+    pub(crate) fn backend_face_id(&self, face: FontFaceId) -> Option<fontdb::ID> {
+        self.backend_faces.backend_face_id(face)
     }
 
     fn register_stored_face(
@@ -185,6 +282,23 @@ impl FontDatabase {
         coverage: FontCoverage,
         source_path: Option<PathBuf>,
     ) -> Result<FontFaceId, FontDatabaseError> {
+        self.register_stored_font_source_with_backend(
+            descriptor,
+            source,
+            coverage,
+            source_path,
+            None,
+        )
+    }
+
+    fn register_stored_font_source_with_backend(
+        &mut self,
+        descriptor: FontFaceDescriptor,
+        source: StoredFontSource,
+        coverage: FontCoverage,
+        source_path: Option<PathBuf>,
+        backend_face: Option<fontdb::ID>,
+    ) -> Result<FontFaceId, FontDatabaseError> {
         if descriptor.family.is_empty() {
             return Err(FontDatabaseError::EmptyFamily);
         }
@@ -195,6 +309,9 @@ impl FontDatabase {
         let id = FontFaceId(self.faces.len() as u64 + 1);
         let family_key = normalized_family_key(descriptor.family.as_str());
         let face_index = descriptor.face_index;
+        let backend_source = backend_face
+            .is_none()
+            .then(|| fontdb_source_from_stored(&source));
         self.faces.push(StoredFontFace {
             descriptor,
             source,
@@ -209,6 +326,18 @@ impl FontDatabase {
                 },
                 id,
             );
+        }
+        if let Some(backend_face) = backend_face.or_else(|| {
+            backend_source.and_then(|source| {
+                let loaded = self.backend_database.load_font_source(source);
+                loaded.into_iter().find(|backend_face| {
+                    self.backend_database
+                        .face(*backend_face)
+                        .is_some_and(|info| info.index == face_index)
+                })
+            })
+        }) {
+            self.backend_faces.insert(backend_face, id);
         }
         let _ = self.instance(id, &VariationCoords::default())?;
         Ok(id)
@@ -259,8 +388,10 @@ impl FontDatabase {
         codepoint: char,
         query: &FontQuery,
         composite: Option<&CompositeFontDescriptor>,
+        language: Option<&str>,
     ) -> Vec<FontFaceId> {
-        super::fallback::FallbackResolver::new(self, query, composite)
+        let composite = composite.or(self.active_composite_font.as_ref());
+        super::fallback::FallbackResolver::new(self, query, composite, language)
             .candidates_for_codepoint(codepoint)
     }
 
@@ -270,23 +401,40 @@ impl FontDatabase {
         codepoint: char,
         query: &FontQuery,
         composite: Option<&CompositeFontDescriptor>,
+        language: Option<&str>,
     ) -> FontFaceId {
-        super::fallback::FallbackResolver::new(self, query, composite)
-            .resolve_codepoint(primary, codepoint)
-            .face
+        let composite = composite.or(self.active_composite_font.as_ref());
+        let mut resolver = super::fallback::FallbackResolver::new(self, query, composite, language);
+        let resolution = resolver.resolve_codepoint(primary, codepoint);
+        self.missing_glyph_log().append(resolver.take_diagnostics());
+        resolution.face
     }
 
-    pub(crate) fn resolve_fallback_face_for_cluster(
+    pub(crate) fn resolve_shaping_face_for_cluster(
         &self,
-        primary: FontFaceId,
-        script: FontScript,
+        script: crate::core::framework::render::FontScript,
         codepoints: &[char],
         query: &FontQuery,
-        composite: Option<&CompositeFontDescriptor>,
-    ) -> FontFaceId {
-        super::fallback::FallbackResolver::new(self, query, composite)
-            .resolve(primary, script, codepoints)
-            .face
+        language: Option<&str>,
+    ) -> Option<FontFaceId> {
+        let primary = self.match_face(query)?.face;
+        let mut resolver = super::fallback::FallbackResolver::new(
+            self,
+            query,
+            self.active_composite_font.as_ref(),
+            language,
+        );
+        let resolution = resolver.resolve(primary, script, codepoints);
+        self.missing_glyph_log().append(resolver.take_diagnostics());
+        Some(resolution.face)
+    }
+
+    pub(crate) fn face_family_name(&self, face: FontFaceId) -> Option<FontFamilyName> {
+        self.face(face).map(|face| face.descriptor.family.clone())
+    }
+
+    pub(crate) fn take_missing_glyph_diagnostics(&self) -> MissingGlyphDiagnosticsReport {
+        self.missing_glyph_log().take_report()
     }
 
     pub(crate) fn face_bytes(&self, face: FontFaceId) -> Result<Arc<[u8]>, FontDatabaseError> {
@@ -295,7 +443,14 @@ impl FontDatabase {
             .ok_or(FontDatabaseError::UnknownFace(face))?;
         match &stored.source {
             StoredFontSource::SharedBytes(bytes) => Ok(Arc::clone(bytes)),
-            StoredFontSource::FontDb { .. } => Err(FontDatabaseError::FaceBytesUnavailable(face)),
+            StoredFontSource::FontDb { .. } => {
+                let backend = self
+                    .backend_face_id(face)
+                    .ok_or(FontDatabaseError::BackendFaceUnavailable(face))?;
+                self.backend_database
+                    .with_face_data(backend, |bytes, _| Arc::<[u8]>::from(bytes))
+                    .ok_or(FontDatabaseError::FaceBytesUnavailable(face))
+            }
         }
     }
 
@@ -307,6 +462,20 @@ impl FontDatabase {
             .face_index)
     }
 
+    pub(crate) fn standalone_face_bytes(
+        &self,
+        face: FontFaceId,
+    ) -> Result<Arc<[u8]>, FontDatabaseError> {
+        let bytes = self.face_bytes(face)?;
+        let face_index = self.face_index(face)?;
+        if face_index == 0 && !bytes.starts_with(b"ttcf") {
+            return Ok(bytes);
+        }
+        standalone_sfnt_face(bytes.as_ref(), face_index)
+            .map(|bytes| Arc::from(bytes.into_boxed_slice()))
+            .map_err(|source| FontDatabaseError::FaceExtraction { face_index, source })
+    }
+
     pub(crate) fn instance(
         &self,
         face: FontFaceId,
@@ -316,11 +485,17 @@ impl FontDatabase {
             return Err(FontDatabaseError::UnknownFace(face));
         }
 
+        let mut normalized: Vec<(u32, u32)> = variations
+            .0
+            .iter()
+            .map(|(tag, value)| (*tag, value.to_bits()))
+            .collect();
+        normalized.sort_unstable();
         let mut hash = face.0.wrapping_mul(1_099_511_628_211);
-        for (tag, value) in &variations.0 {
-            hash ^= *tag as u64;
+        for (tag, value_bits) in normalized {
+            hash ^= tag as u64;
             hash = hash.wrapping_mul(1_099_511_628_211);
-            hash ^= value.to_bits() as u64;
+            hash ^= value_bits as u64;
             hash = hash.wrapping_mul(1_099_511_628_211);
         }
         Ok(InstancedFaceId(hash))
@@ -329,20 +504,6 @@ impl FontDatabase {
     fn face(&self, face: FontFaceId) -> Option<&StoredFontFace> {
         let index = face.0.checked_sub(1)? as usize;
         self.faces.get(index)
-    }
-
-    fn glyphon_source(&self, face: FontFaceId) -> Result<fontdb::Source, FontDatabaseError> {
-        let stored = self
-            .face(face)
-            .ok_or(FontDatabaseError::UnknownFace(face))?;
-        match &stored.source {
-            StoredFontSource::SharedBytes(bytes) => {
-                Ok(fontdb::Source::Binary(Arc::new(SharedFontBytes {
-                    bytes: Arc::clone(bytes),
-                })))
-            }
-            StoredFontSource::FontDb { source, .. } => Ok(source.clone()),
-        }
     }
 
     fn match_face_in_family_order(
@@ -389,9 +550,16 @@ impl FontDatabase {
             .all(|codepoint| self.face_covers_codepoint(face, *codepoint))
     }
 
-    fn face_covers_codepoint(&self, face: FontFaceId, codepoint: char) -> bool {
+    pub(super) fn face_covers_codepoint(&self, face: FontFaceId, codepoint: char) -> bool {
         self.face(face)
             .is_some_and(|stored| stored.coverage.contains(codepoint))
+    }
+
+    pub(super) fn face_coverage_count(&self, face: FontFaceId, codepoints: &[char]) -> usize {
+        codepoints
+            .iter()
+            .filter(|codepoint| self.face_covers_codepoint(face, **codepoint))
+            .count()
     }
 
     #[cfg(test)]
@@ -401,6 +569,20 @@ impl FontDatabase {
         bytes: Arc<[u8]>,
     ) -> Result<FontFaceId, FontDatabaseError> {
         self.register_stored_face(descriptor, bytes, None)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn register_test_face_with_coverage(
+        &mut self,
+        descriptor: FontFaceDescriptor,
+        codepoints: &[char],
+    ) -> Result<FontFaceId, FontDatabaseError> {
+        self.register_stored_font_source(
+            descriptor,
+            StoredFontSource::SharedBytes(Arc::from([0_u8].as_slice())),
+            FontCoverage::from_codepoints(codepoints),
+            None,
+        )
     }
 
     fn register_system_face(
@@ -417,13 +599,20 @@ impl FontDatabase {
             return Ok(Some(*face));
         }
 
-        let id = self.register_stored_font_source(
+        let coverage = self
+            .backend_database
+            .with_face_data(info.id, |bytes, face_index| {
+                FontCoverage::from_sfnt_bytes(bytes, face_index)
+            })
+            .unwrap_or(FontCoverage::Unknown);
+        let id = self.register_stored_font_source_with_backend(
             descriptor,
             StoredFontSource::FontDb {
                 source: info.source.clone(),
             },
-            FontCoverage::Unknown,
+            coverage,
             None,
+            Some(info.id),
         )?;
         self.source_face_index.insert(source_key, id);
         Ok(Some(id))
@@ -439,6 +628,21 @@ impl FontDatabase {
             style_distance(stored.descriptor.style, query.style),
         )
     }
+
+    fn missing_glyph_log(&self) -> std::sync::MutexGuard<'_, MissingGlyphLog> {
+        self.missing_glyphs
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+fn fontdb_source_from_stored(source: &StoredFontSource) -> fontdb::Source {
+    match source {
+        StoredFontSource::SharedBytes(bytes) => fontdb::Source::Binary(Arc::new(SharedFontBytes {
+            bytes: Arc::clone(bytes),
+        })),
+        StoredFontSource::FontDb { source } => source.clone(),
+    }
 }
 
 impl AsRef<[u8]> for SharedFontBytes {
@@ -453,6 +657,19 @@ pub(super) fn normalized_family_key(family: &str) -> String {
 
 pub(super) fn canonical_source_key(source_path: &Path) -> PathBuf {
     std::fs::canonicalize(source_path).unwrap_or_else(|_| source_path.to_path_buf())
+}
+
+fn read_decoded_font_source(source_path: &Path) -> Result<Vec<u8>, FontDatabaseError> {
+    let bytes = std::fs::read(source_path).map_err(|source| FontDatabaseError::ReadFailed {
+        path: source_path.to_path_buf(),
+        source,
+    })?;
+    decode_font_source(bytes)
+        .map(|source| source.into_bytes())
+        .map_err(|source| FontDatabaseError::SourceDecode {
+            path: source_path.to_path_buf(),
+            source,
+        })
 }
 
 #[cfg(test)]

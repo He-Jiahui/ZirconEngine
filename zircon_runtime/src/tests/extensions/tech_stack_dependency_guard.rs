@@ -66,7 +66,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() {
     let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
 
     assert!(
-        runtime_manifest.contains("zr-vm-real-backend"),
+        runtime_manifest.contains("backend-zr-vm"),
         "real ZrVM backend should stay explicitly feature gated"
     );
     assert!(
@@ -210,45 +210,52 @@ fn export_archive_policy_allows_zip_only_for_archive_materializer() {
 }
 
 #[test]
-fn physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned() {
+fn physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned() {
     let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
     let physics_manifest = read_repo_file("zircon_plugins/physics/runtime/Cargo.toml");
-    let physics_backend = read_repo_file("zircon_plugins/physics/runtime/src/backend.rs");
+    let physics_backend = format!(
+        "{}\n{}",
+        read_repo_file("zircon_plugins/physics/runtime/src/backend/mod.rs"),
+        read_repo_file("zircon_plugins/physics/runtime/src/backend/selection.rs")
+    );
     let physics_options = read_repo_file("docs/zircon_plugins/physics-plugin-options.md");
     let physics_runtime_doc = read_repo_file("docs/zircon_plugins/physics/runtime.md");
     let manifests = all_manifest_sources();
 
-    let jolt_feature_slots = manifests
-        .iter()
-        .map(|source| source.matches("jolt = []").count())
-        .sum::<usize>();
+    let jolt_feature_slots = runtime_manifest.matches("backend-jolt = []").count()
+        + physics_manifest
+            .matches("backend-jolt = [\"dep:joltc-sys\"]")
+            .count();
     assert_eq!(
         jolt_feature_slots, 2,
-        "Runtime 01 M3 expects exactly two visible-but-unavailable jolt feature slots"
+        "Runtime 01 M3 expects one runtime profile hook and one dependency-backed plugin feature"
     );
     assert!(
-        runtime_manifest.contains("jolt = []")
-            && physics_manifest.contains("jolt = []"),
-        "the jolt feature slots should stay in the runtime profile and physics plugin manifests until the plugin-owned bridge lands"
+        runtime_manifest.contains("backend-jolt = []")
+            && physics_manifest.contains("backend-jolt = [\"dep:joltc-sys\"]")
+            && physics_manifest.contains("joltc-sys = { version = \"=0.3.1\", optional = true }"),
+        "runtime should keep profile vocabulary while the physics plugin owns the optional Jolt dependency"
     );
     assert!(
-        physics_backend.contains("const JOLT_BACKEND_AVAILABLE: bool = false")
+        physics_backend
+            .contains("JOLT_BACKEND_AVAILABLE: bool = cfg!(feature = \"backend-jolt\")")
+            && physics_backend.contains("#[cfg(feature = \"backend-jolt\")]\nmod jolt;")
             && physics_backend.contains("PhysicsRuntimeBackend::Unavailable")
-            && physics_backend
-                .contains("feature `jolt` is enabled, but no runtime Jolt backend is linked"),
-        "physics backend source should keep jolt unavailable instead of downgrading it to builtin"
+            && physics_backend.contains("feature `backend-jolt` is not enabled"),
+        "physics backend source should enable Jolt only through the plugin feature and keep feature-off unavailable without builtin fallback"
     );
     assert!(
-        physics_options.contains("only executable V1 backend")
-            && physics_options.contains("Jolt as the future native backend direction")
+        physics_options.contains("selected native backend")
+            && physics_options.contains("optional `joltc-sys`")
+            && physics_options.contains("Neither path silently downgrades to builtin stepping")
             && physics_options.contains("No Rapier dependency is introduced")
-            && physics_options.contains("never become a `zircon_runtime` dependency")
-            && physics_options.contains("JOLT_BACKEND_AVAILABLE = false"),
-        "physics option decision should keep builtin executable, jolt future/plugin-owned, and rapier out of the primary path"
+            && physics_options.contains("no concrete physics library is added to `zircon_runtime`"),
+        "physics option decision should keep Jolt feature-gated and plugin-owned while Rapier stays off the primary path"
     );
     assert!(
-        physics_runtime_doc.contains("builtin remains the only executable V1 backend")
-            && physics_runtime_doc.contains("Jolt is the future native backend direction")
+        physics_runtime_doc
+            .contains("Jolt is executable when the plugin's `backend-jolt` feature is enabled")
+            && physics_runtime_doc.contains("feature-off Jolt remains explicitly unavailable")
             && physics_runtime_doc.contains("Rapier is not introduced on the primary path"),
         "physics runtime doc should cross-reference the Runtime 01 backend option ruling"
     );

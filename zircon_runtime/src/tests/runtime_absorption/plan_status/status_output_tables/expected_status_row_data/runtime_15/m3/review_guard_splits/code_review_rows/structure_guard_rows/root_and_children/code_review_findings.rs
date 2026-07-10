@@ -60,9 +60,9 @@ pub(super) const STRUCTURE_GUARD_CHILDREN_SOURCE_MAP_SYNC: &[&str] = &[
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/review_guard_groups.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/source_inventory.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_docs.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners/root_sources.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_child_owners/root_sources.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners/root_sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_owners/root_sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_sources.rs",
+    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_owners/root_sources.rs",
     "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_native_fixture_leaf_owners/root_sources.rs",
     "runtime_15_code_review_findings_structure_guard_children_are_mounted",
     "runtime_15_code_review_findings_structure_guard_review_groups_are_child_owned",
@@ -72,22 +72,6 @@ pub(super) const STRUCTURE_GUARD_CHILDREN_SOURCE_MAP_SYNC: &[&str] = &[
     "Cargo gate deferred",
 ];
 
-pub(super) const STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_SPLIT: &[&str] = &[
-    "runtime_15_structure_guard_plugin_importer_child_split_static_passed_cargo_deferred",
-    "Runtime 15 M3 structure guard plugin-importer child split",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/top_level_children.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/structure_assertions.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/source_inventory.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_docs.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/child_ownership.rs",
-    "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children/plugin_importer/status_mirrors.rs",
-    "runtime_15_code_review_findings_structure_guard_plugin_importer_is_child_owned",
-    "runtime_15_structure_guard_plugin_importer_is_child_backed",
-    "runtime_15_structure_guard_plugin_importer_status_mirrors_are_current",
-    "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_owner",
-    "runtime_15_plugin_importer_dx_structure_assertions_children_are_child_owned",
-    "runtime_15_plugin_importer_dx_source_inventory_is_child_owner",
-    "runtime_15_plugin_importer_dx_status_docs_are_child_owner",
-    "Cargo gate deferred",
-];
+pub(super) use plugin_importer::STRUCTURE_GUARD_PLUGIN_IMPORTER_CHILD_SPLIT;
+#[path = "code_review_findings/plugin_importer.rs"]
+mod plugin_importer;

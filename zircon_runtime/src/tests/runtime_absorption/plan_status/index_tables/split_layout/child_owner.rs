@@ -1,3 +1,4 @@
+use super::super::super::support::runtime_numbered_archive_sources;
 use super::{assert_contains_all, CHILD_PATHS, PARENT_PATH, TEST_ATTRIBUTE};
 
 #[test]
@@ -20,20 +21,6 @@ fn runtime_15_plan_status_index_tables_guard_child_owner_split() {
     let split_layout_child_owner = include_str!("child_owner.rs");
     let split_layout_parent_guard = include_str!("parent_guard.rs");
     let split_layout_split_guard = include_str!("split_guard.rs");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let structure_convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let module_convention =
-        include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md",
-    );
     let status_row_data = include_str!(
         "../../status_output_tables/expected_status_row_data/runtime_15/m3/status_support/runtime_index_anchors/plan_status_children.rs",
     );
@@ -185,13 +172,9 @@ fn runtime_15_plan_status_index_tables_guard_child_owner_split() {
         "plan_status/index_tables/index_consistency.rs",
         "runtime_15_plan_status_index_tables_guard_child_owner_split",
     ];
+    let archive_source = runtime_numbered_archive_sources();
     for (label, source) in [
-        ("Runtime 15 subplan", runtime_15_plan),
-        ("runtime index", runtime_index),
-        ("engine code structure convention", structure_convention),
-        ("engine code review findings", review_findings),
-        ("module convention doc", module_convention),
-        ("runtime implementation session note", session_note),
+        ("runtime numbered archives", archive_source.as_str()),
         ("Runtime 15 status row data", status_row_data),
         ("Runtime 15 expected status map", status_map.as_str()),
         ("Runtime 15 expected date map", date_map.as_str()),

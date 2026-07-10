@@ -14,7 +14,8 @@ mod writer;
 pub use dedup::zrpack_content_hash;
 pub use delta::{ZrPackDeltaDocumentManifest, ZrPackDeltaReader, ZrPackDeltaWriter};
 pub use manifest::{
-    ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
+    ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackManifest,
+    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
 };
 pub use reader::ZrPackReader;
 pub use trim::{ZrPackTrimConfig, ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReport};

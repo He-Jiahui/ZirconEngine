@@ -40,7 +40,7 @@ pub(super) fn status_support_date_map_source_blob() -> String {
 pub(super) fn review_guard_status_map_source_blob() -> String {
     [
         read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH),
-        read_runtime_src("tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_maps/row_data_rows.rs"),
+        read_runtime_src("tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/row_data_rows.rs"),
     ]
     .join("\n")
 }
@@ -48,7 +48,7 @@ pub(super) fn review_guard_status_map_source_blob() -> String {
 pub(super) fn review_guard_date_map_source_blob() -> String {
     [
         read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH),
-        read_runtime_src("tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_maps/row_data_rows.rs"),
+        read_runtime_src("tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/row_data_rows.rs"),
     ]
     .join("\n")
 }

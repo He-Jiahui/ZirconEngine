@@ -1,5 +1,7 @@
 use crate::asset::AssetImporterRegistry;
+#[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+#[cfg(feature = "graphics")]
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -15,13 +17,21 @@ pub(super) struct RuntimeModuleRegistrationInputs {
     linked_plugin_ids: Vec<String>,
     asset_importers: AssetImporterRegistry,
     asset_importer_errors: Vec<String>,
+    #[cfg(feature = "graphics")]
     render_features: Vec<RenderFeatureDescriptor>,
+    #[cfg(feature = "graphics")]
     geometry_sources: Vec<GeometrySourceDescriptor>,
+    #[cfg(feature = "graphics")]
     shading_models: Vec<ShadingModelDescriptor>,
+    #[cfg(feature = "graphics")]
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
+    #[cfg(feature = "graphics")]
     runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
+    #[cfg(feature = "graphics")]
     hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
+    #[cfg(feature = "graphics")]
     solari_runtime_providers: Vec<SolariRuntimeProviderRegistration>,
+    #[cfg(feature = "graphics")]
     virtual_geometry_runtime_providers: Vec<VirtualGeometryRuntimeProviderRegistration>,
 }
 
@@ -40,13 +50,21 @@ impl RuntimeModuleRegistrationInputs {
                 .collect(),
             asset_importers: AssetImporterRegistry::default(),
             asset_importer_errors: Vec::new(),
+            #[cfg(feature = "graphics")]
             render_features: Vec::new(),
+            #[cfg(feature = "graphics")]
             geometry_sources: Vec::new(),
+            #[cfg(feature = "graphics")]
             shading_models: Vec::new(),
+            #[cfg(feature = "graphics")]
             render_pass_executors: Vec::new(),
+            #[cfg(feature = "graphics")]
             runtime_prepare_collectors: Vec::new(),
+            #[cfg(feature = "graphics")]
             hybrid_gi_runtime_providers: Vec::new(),
+            #[cfg(feature = "graphics")]
             solari_runtime_providers: Vec::new(),
+            #[cfg(feature = "graphics")]
             virtual_geometry_runtime_providers: Vec::new(),
         }
     }
@@ -63,34 +81,42 @@ impl RuntimeModuleRegistrationInputs {
         &self.asset_importer_errors
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn render_features(&self) -> &[RenderFeatureDescriptor] {
         &self.render_features
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn geometry_sources(&self) -> &[GeometrySourceDescriptor] {
         &self.geometry_sources
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn shading_models(&self) -> &[ShadingModelDescriptor] {
         &self.shading_models
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
         &self.render_pass_executors
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn runtime_prepare_collectors(&self) -> &[RuntimePrepareCollectorRegistration] {
         &self.runtime_prepare_collectors
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn hybrid_gi_runtime_providers(&self) -> &[HybridGiRuntimeProviderRegistration] {
         &self.hybrid_gi_runtime_providers
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn solari_runtime_providers(&self) -> &[SolariRuntimeProviderRegistration] {
         &self.solari_runtime_providers
     }
 
+    #[cfg(feature = "graphics")]
     pub(super) fn virtual_geometry_runtime_providers(
         &self,
     ) -> &[VirtualGeometryRuntimeProviderRegistration] {
@@ -108,13 +134,21 @@ impl RuntimeModuleRegistrationInputs {
                 .collect(),
             asset_importers: extension_inputs.asset_importers,
             asset_importer_errors: extension_inputs.asset_importer_errors,
+            #[cfg(feature = "graphics")]
             render_features: extension_inputs.render_features,
+            #[cfg(feature = "graphics")]
             geometry_sources: extension_inputs.geometry_sources,
+            #[cfg(feature = "graphics")]
             shading_models: extension_inputs.shading_models,
+            #[cfg(feature = "graphics")]
             render_pass_executors: extension_inputs.render_pass_executors,
+            #[cfg(feature = "graphics")]
             runtime_prepare_collectors: extension_inputs.runtime_prepare_collectors,
+            #[cfg(feature = "graphics")]
             hybrid_gi_runtime_providers: extension_inputs.hybrid_gi_runtime_providers,
+            #[cfg(feature = "graphics")]
             solari_runtime_providers: extension_inputs.solari_runtime_providers,
+            #[cfg(feature = "graphics")]
             virtual_geometry_runtime_providers: extension_inputs.virtual_geometry_runtime_providers,
         }
     }
@@ -158,7 +192,7 @@ pub(super) fn registration_inputs_for_plugin_and_feature_reports(
     )
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "graphics"))]
 mod tests {
     use super::*;
     use crate::builtin::RuntimePluginId;

@@ -32,7 +32,7 @@ pub(super) fn assert_runtime_08_mirror_docs() {
         for required_anchor in [
             "ecs_kernel_data_boundary",
             "expected_source_file_count = 69",
-            "expected_test_file_count = 8",
+            "expected_test_file_count = 10",
             "archetype_anchors = 15/15",
             "storage_anchors = 9/9",
             "component_identity_anchors = 18/18",

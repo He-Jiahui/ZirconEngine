@@ -112,9 +112,7 @@ fn runtime_15_ui_runtime_input_reply_routes_tests_are_folder_backed() {
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let ui_doc = read_repo("docs/zircon_runtime/ui/architecture.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/ui_tests_first.rs",
-    );
+    let status_rows = ui_tests_first_status_row_source();
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan.as_str()),
         ("Runtime index", runtime_index.as_str()),

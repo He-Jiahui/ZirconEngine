@@ -6,7 +6,7 @@ fn runtime_15_review_guard_source_inventory_status_is_mirrored() {
     let status_map = read_status_review_foundation_sources();
     let date_map = read_date_review_foundation_sources();
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
 
     assert_contains_all(

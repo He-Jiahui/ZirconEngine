@@ -3,8 +3,9 @@ use std::hash::{Hash, Hasher};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
-        UiResolvedStyle, UiResolvedTextLayout, UiTextAlign, UiTextDirection, UiTextOverflow,
-        UiTextRange, UiTextRenderMode, UiTextWrap, UiTextWritingMode,
+        normalize_ui_text_language_tag, UiResolvedStyle, UiResolvedTextLayout, UiTextAlign,
+        UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode, UiTextWrap,
+        UiTextWritingMode,
     },
 };
 
@@ -23,6 +24,7 @@ pub(crate) struct UiTextLayoutResolution {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiTextStyleKey {
     pub font_family: Option<String>,
+    pub language: Option<String>,
     pub font_weight: u16,
     pub font_size_bits: u32,
     pub line_height_bits: u32,
@@ -68,6 +70,7 @@ impl UiTextStyleKey {
     pub(crate) fn from_style(style: &UiResolvedStyle) -> Self {
         Self {
             font_family: style.font_family.clone().or_else(|| style.font.clone()),
+            language: normalize_ui_text_language_tag(style.language.as_deref()),
             font_weight: style.font_weight,
             font_size_bits: style.font_size.to_bits(),
             line_height_bits: style.line_height.to_bits(),
@@ -247,6 +250,21 @@ mod tests {
         style.font_weight = 600;
 
         assert_ne!(key, UiTextStyleKey::from_style(&style));
+    }
+
+    #[test]
+    fn style_key_normalizes_and_separates_run_language() {
+        let mut style = UiResolvedStyle {
+            language: Some(" ZH-hans ".to_string()),
+            ..UiResolvedStyle::default()
+        };
+        let simplified = UiTextStyleKey::from_style(&style);
+
+        style.language = Some("zh-HANS".to_string());
+        assert_eq!(simplified, UiTextStyleKey::from_style(&style));
+
+        style.language = Some("ja".to_string());
+        assert_ne!(simplified, UiTextStyleKey::from_style(&style));
     }
 
     #[test]

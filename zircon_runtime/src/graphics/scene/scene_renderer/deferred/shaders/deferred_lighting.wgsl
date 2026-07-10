@@ -24,6 +24,7 @@ const ZR_STANDARD_MATERIAL_MIN_ROUGHNESS: f32 = 0.001;
 @group(1) @binding(2) var background_tex: texture_2d<f32>;
 @group(1) @binding(3) var gbuffer_material_tex: texture_2d<f32>;
 @group(1) @binding(4) var scene_depth_tex: texture_depth_2d;
+@group(1) @binding(5) var gbuffer_emissive_tex: texture_2d<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -238,6 +239,10 @@ fn deferred_diffuse_color(albedo: vec4<f32>, metallic: f32, shading_model_id: u3
     return albedo.rgb * mix(1.0, 0.55, metallic);
 }
 
+fn add_deferred_emissive(shaded: vec4<f32>, emissive: vec3<f32>) -> vec4<f32> {
+    return vec4<f32>(shaded.rgb + max(emissive, vec3<f32>(0.0)), shaded.a);
+}
+
 fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, material: vec4<f32>, normal: vec3<f32>, shading_model_id: u32) -> vec4<f32> {
     let metallic = clamp(material.r, 0.0, 1.0);
     let roughness = clamp(max(material.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS), ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
@@ -250,6 +255,7 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
     let diffuse_color = deferred_diffuse_color(albedo, metallic, shading_model_id);
     let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, occlusion, diffuse_color, view_dir, shading_model_id, receive_shadows);
     let environment_lights = zr_environment_pbr_indirect(
+        world_position,
         normal,
         view_dir,
         roughness,
@@ -275,13 +281,20 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;
     let normal = normalize(encoded_normal * 2.0 - vec3<f32>(1.0, 1.0, 1.0));
     let material = textureLoad(gbuffer_material_tex, coord, 0);
+    let emissive = textureLoad(gbuffer_emissive_tex, coord, 0).rgb;
     let shading_model_id = decode_shading_model_id(material.a);
     if (shading_model_id == ZR_SHADING_MODEL_UNLIT_ID) {
-        return shade_deferred_unlit(albedo);
+        return add_deferred_emissive(shade_deferred_unlit(albedo), emissive);
     }
     if (shading_model_id == ZR_SHADING_MODEL_BLINN_PHONG_ID) {
-        return shade_deferred_blinn_phong(position, coord, albedo, material, normal);
+        return add_deferred_emissive(
+            shade_deferred_blinn_phong(position, coord, albedo, material, normal),
+            emissive,
+        );
     }
     // zr-deferred-lighting-custom-shading-model-dispatch
-    return shade_deferred_standard_pbr(position, coord, albedo, material, normal);
+    return add_deferred_emissive(
+        shade_deferred_standard_pbr(position, coord, albedo, material, normal),
+        emissive,
+    );
 }

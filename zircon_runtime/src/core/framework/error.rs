@@ -15,7 +15,7 @@ pub enum ZirconError {
 
 pub type CoreResult<T> = std::result::Result<T, CoreError>;
 
-#[derive(Debug, Error)]
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum CoreError {
     #[error("invalid registry name: {0}")]
     InvalidRegistryName(String),

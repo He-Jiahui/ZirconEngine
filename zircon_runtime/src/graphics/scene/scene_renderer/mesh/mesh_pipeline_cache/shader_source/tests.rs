@@ -219,6 +219,10 @@ fn mesh_pipeline_deferred_gbuffer_template_source_writes_albedo_and_material_tar
     assert!(source.wgsl_source.contains("@location(0) albedo"));
     assert!(source.wgsl_source.contains("@location(1) normal"));
     assert!(source.wgsl_source.contains("@location(2) material"));
+    assert!(source.wgsl_source.contains("@location(3) emissive"));
+    assert!(source
+        .wgsl_source
+        .contains("vec4<f32>(max(surface.emissive, vec3<f32>(0.0)), 1.0)"));
     assert!(source.wgsl_source.contains("surface.normal_ws * 0.5"));
     assert!(source
         .wgsl_source

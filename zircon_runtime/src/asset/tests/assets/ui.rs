@@ -18,7 +18,7 @@ const LAYOUT_UI_TOML: &str = r#"
 [asset]
 kind = "layout"
 id = "editor.ui_asset_editor"
-version = 1
+version = 3
 display_name = "UI Asset Editor"
 
 [imports]
@@ -48,7 +48,7 @@ const WIDGET_UI_TOML: &str = r#"
 [asset]
 kind = "widget"
 id = "ui.common.button"
-version = 1
+version = 3
 display_name = "Toolbar Button"
 
 [root]
@@ -95,7 +95,7 @@ const STYLE_UI_TOML: &str = r#"
 [asset]
 kind = "style"
 id = "ui.theme.editor"
-version = 1
+version = 3
 display_name = "Editor Theme"
 
 [imports]
@@ -225,34 +225,9 @@ uri = "res://ui/icons/run.svg"
 
 const INVALID_UI_TOML: &str = "not = [";
 
-mod fixture_validation;
 mod importer;
 mod project_manager;
 mod references;
 mod wrappers;
 
-fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
-    let mut importer = AssetImporter::default();
-    importer
-        .register_first_wave_plugin_fixture_importers_for_test()
-        .unwrap();
-    importer
-}
-
-fn legacy_v2_component_toml() -> &'static str {
-    r#"
-[asset]
-kind = "component"
-id = "legacy.component"
-version = 2
-display_name = "Legacy Component"
-
-[components.ToolbarButton]
-root = "button_root"
-
-[nodes.button_root]
-component = "Button"
-control_id = "ToolbarButtonRoot"
-props = { text = "Action" }
-"#
-}
+use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;

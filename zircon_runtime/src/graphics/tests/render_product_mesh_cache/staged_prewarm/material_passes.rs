@@ -612,7 +612,8 @@ fn material_mesh_shader_cache_product_feature() -> RenderFeatureDescriptor {
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-            .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL),
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE),
         ],
     )
 }
@@ -636,6 +637,7 @@ fn material_mesh_deferred_lighting_product_feature() -> RenderFeatureDescriptor 
         .read_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE)
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_required_external_texture(PostProcessGraphResourceNames::SHADOW_ATLAS)
         .read_buffer(PostProcessGraphResourceNames::LIGHT_GRID_PARAMS)

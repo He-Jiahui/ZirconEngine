@@ -3,6 +3,7 @@ use super::super::lighting_pipeline::create_lighting_pipeline;
 use super::DeferredSceneResources;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::ShadingModelDescriptor;
+use crate::graphics::scene::scene_renderer::environment::ReflectionProbeGpuBindings;
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
 use crate::graphics::types::GraphicsError;
 use wgpu::util::DeviceExt;
@@ -14,6 +15,7 @@ impl DeferredSceneResources {
         scene_layout: &wgpu::BindGroupLayout,
         _material_layout: &wgpu::BindGroupLayout,
         gpu_scene_layout: &wgpu::BindGroupLayout,
+        reflection_probe_bindings: ReflectionProbeGpuBindings,
         target_format: wgpu::TextureFormat,
         plugin_shading_models: &[ShadingModelDescriptor],
     ) -> Result<Self, GraphicsError> {
@@ -59,6 +61,7 @@ impl DeferredSceneResources {
             shadow_atlas_fallback_view,
             shadow_atlas_fallback_slot_buffer,
             shadow_atlas_fallback_globals_buffer,
+            reflection_probe_bindings,
         })
     }
 }

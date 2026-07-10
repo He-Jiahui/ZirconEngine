@@ -106,6 +106,8 @@ fn append_hybrid_gi_scene_prepare(
         atlas_samples,
         capture_samples,
         surface_cache_depth_samples,
+        surface_cache_pages,
+        voxel_clipmaps,
         voxel_clipmap_ids,
         voxel_samples,
         voxel_occupancy,
@@ -127,6 +129,8 @@ fn append_hybrid_gi_scene_prepare(
     base.capture_samples.extend(capture_samples);
     base.surface_cache_depth_samples
         .extend(surface_cache_depth_samples);
+    base.surface_cache_pages.extend(surface_cache_pages);
+    base.voxel_clipmaps.extend(voxel_clipmaps);
     base.voxel_clipmap_ids.extend(voxel_clipmap_ids);
     base.voxel_samples.extend(voxel_samples);
     base.voxel_occupancy.extend(voxel_occupancy);

@@ -175,9 +175,8 @@ fn load_scene_depth(coord: vec2<i32>, viewport_size: vec2<u32>) -> f32 {
     let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
     let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
     let physical_coord = physical_coord_i32(clamped);
-    let target_size = vec2<f32>(textureDimensions(scene_depth_tex));
-    let uv = (vec2<f32>(physical_coord) + vec2<f32>(0.5, 0.5)) / max(target_size, vec2<f32>(1.0, 1.0));
-    return clamp(textureSample(scene_depth_tex, scene_depth_sampler, uv), 0.0, 1.0);
+    // Keep depth reads derivative-free when SSR calls this helper from data-dependent loops.
+    return clamp(textureLoad(scene_depth_tex, physical_coord, 0), 0.0, 1.0);
 }
 
 fn linearize_scene_depth(raw_depth: f32) -> f32 {

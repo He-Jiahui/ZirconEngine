@@ -191,6 +191,17 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.frame.viewport_size
     }
 
+    pub fn history_available(&self) -> bool {
+        self.post_process_stack
+            .map(|stack| stack.history_available)
+            .unwrap_or(false)
+    }
+
+    pub fn hybrid_gi_history_available(&self) -> bool {
+        self.post_process_stack
+            .is_some_and(RenderPassPostProcessStackContext::hybrid_gi_history_available)
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn render_region(&self) -> ViewportRenderRegion {
         self.frame.render_region()
     }
@@ -777,13 +788,4 @@ fn record_depth_clear_pass(
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn depth_prepass_binds_forward_shadow_receiver_layout_slot() {
-        let source = include_str!("gpu.rs");
-
-        assert!(source.contains("record_depth_prepass_to_resources"));
-        assert!(source.contains("create_forward_shadow_receiver_bind_group"));
-        assert!(source.contains("bind_forward_shadow_receiver_if_needed"));
-    }
-}
+mod tests;

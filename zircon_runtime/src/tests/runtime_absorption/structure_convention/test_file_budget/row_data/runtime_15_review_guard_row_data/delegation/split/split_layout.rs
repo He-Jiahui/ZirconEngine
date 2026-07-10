@@ -90,7 +90,7 @@ fn runtime_15_review_guard_row_data_delegation_split_layout_guard_is_folder_back
         ),
         (
             "Frameworks 02 plan",
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         (
             "review findings",

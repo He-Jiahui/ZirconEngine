@@ -48,7 +48,7 @@ fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
     }
 
     let runtime_14_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
+        "../../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
     );
     for required_anchor in [
         "animation runtime-status JSON 边界守卫",

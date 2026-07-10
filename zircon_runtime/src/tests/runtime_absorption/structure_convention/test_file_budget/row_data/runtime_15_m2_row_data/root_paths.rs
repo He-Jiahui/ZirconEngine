@@ -27,4 +27,4 @@ pub(super) const STATUS_SUPPORT_STATUS_MAP_PATH: &str =
 pub(super) const STATUS_SUPPORT_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps/m2_row_data_maps.rs";
 pub(super) const PRODUCTION_GUARD_SUPPORT_ROWS_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status/foundation_m2_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs/foundation_m2_rows.rs";

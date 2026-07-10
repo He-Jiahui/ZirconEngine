@@ -182,7 +182,8 @@ fn material_validation_error_source(
         | RenderMaterialValidationError::MissingRuntimeShaderSource
         | RenderMaterialValidationError::UnresolvedShaderReference { .. }
         | RenderMaterialValidationError::UnresolvedTextureReference { .. }
-        | RenderMaterialValidationError::TextureNotUploadReady { .. } => {
+        | RenderMaterialValidationError::TextureNotUploadReady { .. }
+        | RenderMaterialValidationError::TextureDimensionMismatch { .. } => {
             Some(RenderMaterialDiagnosticSource::DependencyResolution)
         }
         RenderMaterialValidationError::UnknownPropertyOverride { source, .. }

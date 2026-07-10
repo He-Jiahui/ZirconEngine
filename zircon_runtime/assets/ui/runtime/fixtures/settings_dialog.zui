@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "runtime.ui.settings_dialog"
+id = "res://ui/runtime/fixtures/settings_dialog.zui"
 version = 2
 display_name = "Runtime Settings Dialog"
 

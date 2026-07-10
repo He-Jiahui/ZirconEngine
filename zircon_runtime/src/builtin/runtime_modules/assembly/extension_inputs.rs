@@ -1,5 +1,7 @@
 use crate::asset::AssetImporterRegistry;
+#[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+#[cfg(feature = "graphics")]
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -10,13 +12,21 @@ use crate::plugin::RuntimeExtensionRegistry;
 pub(super) struct RuntimeModuleExtensionInputs {
     pub(super) asset_importers: AssetImporterRegistry,
     pub(super) asset_importer_errors: Vec<String>,
+    #[cfg(feature = "graphics")]
     pub(super) render_features: Vec<RenderFeatureDescriptor>,
+    #[cfg(feature = "graphics")]
     pub(super) geometry_sources: Vec<GeometrySourceDescriptor>,
+    #[cfg(feature = "graphics")]
     pub(super) shading_models: Vec<ShadingModelDescriptor>,
+    #[cfg(feature = "graphics")]
     pub(super) render_pass_executors: Vec<RenderPassExecutorRegistration>,
+    #[cfg(feature = "graphics")]
     pub(super) runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
+    #[cfg(feature = "graphics")]
     pub(super) hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
+    #[cfg(feature = "graphics")]
     pub(super) solari_runtime_providers: Vec<SolariRuntimeProviderRegistration>,
+    #[cfg(feature = "graphics")]
     pub(super) virtual_geometry_runtime_providers: Vec<VirtualGeometryRuntimeProviderRegistration>,
 }
 
@@ -29,13 +39,21 @@ pub(super) fn extension_inputs_from_extension_registries<'a>(
     RuntimeModuleExtensionInputs {
         asset_importers,
         asset_importer_errors,
+        #[cfg(feature = "graphics")]
         render_features: collect_render_features(&registries),
+        #[cfg(feature = "graphics")]
         geometry_sources: collect_geometry_sources(&registries),
+        #[cfg(feature = "graphics")]
         shading_models: collect_shading_models(&registries),
+        #[cfg(feature = "graphics")]
         render_pass_executors: collect_render_pass_executors(&registries),
+        #[cfg(feature = "graphics")]
         runtime_prepare_collectors: collect_runtime_prepare_collectors(&registries),
+        #[cfg(feature = "graphics")]
         hybrid_gi_runtime_providers: collect_hybrid_gi_runtime_providers(&registries),
+        #[cfg(feature = "graphics")]
         solari_runtime_providers: collect_solari_runtime_providers(&registries),
+        #[cfg(feature = "graphics")]
         virtual_geometry_runtime_providers: collect_virtual_geometry_runtime_providers(&registries),
     }
 }
@@ -55,6 +73,7 @@ fn asset_importers_from_extension_registries<'a>(
     (asset_importers, errors)
 }
 
+#[cfg(feature = "graphics")]
 fn collect_render_features(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<RenderFeatureDescriptor> {
@@ -64,6 +83,7 @@ fn collect_render_features(
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_geometry_sources(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<GeometrySourceDescriptor> {
@@ -73,6 +93,7 @@ fn collect_geometry_sources(
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_shading_models(registries: &[&RuntimeExtensionRegistry]) -> Vec<ShadingModelDescriptor> {
     registries
         .iter()
@@ -80,6 +101,7 @@ fn collect_shading_models(registries: &[&RuntimeExtensionRegistry]) -> Vec<Shadi
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_render_pass_executors(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<RenderPassExecutorRegistration> {
@@ -89,6 +111,7 @@ fn collect_render_pass_executors(
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_runtime_prepare_collectors(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<RuntimePrepareCollectorRegistration> {
@@ -98,6 +121,7 @@ fn collect_runtime_prepare_collectors(
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_hybrid_gi_runtime_providers(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<HybridGiRuntimeProviderRegistration> {
@@ -107,6 +131,7 @@ fn collect_hybrid_gi_runtime_providers(
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_solari_runtime_providers(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<SolariRuntimeProviderRegistration> {
@@ -116,6 +141,7 @@ fn collect_solari_runtime_providers(
         .collect()
 }
 
+#[cfg(feature = "graphics")]
 fn collect_virtual_geometry_runtime_providers(
     registries: &[&RuntimeExtensionRegistry],
 ) -> Vec<VirtualGeometryRuntimeProviderRegistration> {

@@ -141,6 +141,7 @@ fn scene_assets_roundtrip_camera_product_fields() {
     .unwrap();
     let camera = world.active_camera();
     *world.get_mut::<CameraComponent>(camera).unwrap() = CameraComponent {
+        core_pipeline: CorePipelineKind::Core2d,
         projection_mode: ProjectionMode::Orthographic,
         fov_y_radians: 0.7,
         ortho_size: 18.0,
@@ -168,6 +169,7 @@ fn scene_assets_roundtrip_camera_product_fields() {
         .find(|entity| entity.entity == camera)
         .and_then(|entity| entity.camera.as_ref())
         .unwrap();
+    assert_eq!(saved_camera.core_pipeline, CorePipelineKind::Core2d);
     assert_eq!(saved_camera.projection_mode, ProjectionMode::Orthographic);
     assert!(matches!(
         &saved_camera.target,
@@ -180,6 +182,7 @@ fn scene_assets_roundtrip_camera_product_fields() {
 
     let loaded = World::from_scene_asset(&project, &saved).unwrap();
     let loaded_camera = loaded.find_node(camera).unwrap().camera.unwrap();
+    assert_eq!(loaded_camera.core_pipeline, CorePipelineKind::Core2d);
     assert_eq!(loaded_camera.projection_mode, ProjectionMode::Orthographic);
     assert_eq!(loaded_camera.ortho_size, 18.0);
     assert!(matches!(

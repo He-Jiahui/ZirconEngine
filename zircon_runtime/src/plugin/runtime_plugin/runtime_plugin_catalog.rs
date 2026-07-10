@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use crate::core::CoreError;
+
 use super::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 mod access;
@@ -23,12 +27,12 @@ mod feature_status;
 mod feature_status_record;
 mod feature_support;
 mod features;
-mod lifecycle;
 mod package_feature_definitions;
 mod project;
 mod project_extension_report;
 mod project_manifest;
 mod registration;
+#[cfg(feature = "graphics")]
 mod render_contributions;
 mod runtime_extensions;
 mod runtime_feature_definitions;
@@ -50,5 +54,6 @@ pub use feature_report::{RuntimePluginFeatureBlock, RuntimePluginFeatureDependen
 pub struct RuntimePluginCatalog {
     registrations: Vec<RuntimePluginRegistrationReport>,
     feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
+    module_order_error: Option<Arc<CoreError>>,
     diagnostics: Vec<String>,
 }

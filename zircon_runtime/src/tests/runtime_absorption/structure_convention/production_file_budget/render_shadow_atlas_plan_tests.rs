@@ -8,8 +8,8 @@ fn runtime_15_shadow_atlas_plan_tests_are_child_owners() {
     let plan = read_runtime_src("graphics/scene/scene_renderer/shadow/plan.rs");
     let plan_tests = read_runtime_src("graphics/scene/scene_renderer/shadow/plan/tests.rs");
 
-    let plan_05 = read_repo("docs/plans/zircon_runtime/render/05-lighting-shadows.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_05 = read_repo("docs/plans/zircon_runtime/render/05/2026-07-09-lighting-shadows-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let shadow_doc = read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/shadow.md");

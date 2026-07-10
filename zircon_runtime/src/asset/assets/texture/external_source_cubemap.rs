@@ -6,6 +6,10 @@ use crate::core::framework::render::{
 
 use super::{TextureAsset, TexturePayload};
 
+mod decode;
+
+pub use decode::{decode_external_source_cubemap, ExternalSourceCubemapDecodeError};
+
 const DDS_HEADER_SIZE: usize = 128;
 const DDS_DX10_HEADER_SIZE: usize = 148;
 const DDSD_MIPMAPCOUNT: u32 = 0x0002_0000;
@@ -122,7 +126,7 @@ fn parse_dds_source_cubemap_header(
     let mip_count = dds_mip_count(bytes)?;
     let caps = read_u32_le(bytes, 108, ExternalSourceCubemapContainerKind::Dds)?;
     let caps2 = read_u32_le(bytes, 112, ExternalSourceCubemapContainerKind::Dds)?;
-    let legacy_cubemap = caps2 & DDSCAPS2_CUBEMAP != 0;
+    let caps2_cubemap = caps2 & DDSCAPS2_CUBEMAP != 0;
     let dx10 = bytes.get(84..88) == Some(b"DX10");
 
     let (is_cubemap, array_layers) = if dx10 {
@@ -133,23 +137,23 @@ fn parse_dds_source_cubemap_header(
         )?;
         let misc_flag = read_u32_le(bytes, 136, ExternalSourceCubemapContainerKind::Dds)?;
         let dx10_cubemap = misc_flag & DDS_RESOURCE_MISC_TEXTURECUBE != 0;
-        if legacy_cubemap && dx10_cubemap {
+        if caps2_cubemap && dx10_cubemap {
             return Err(invalid_header(
                 ExternalSourceCubemapContainerKind::Dds,
-                "cubemap declared by both legacy caps2 and DX10 misc flag",
+                "cubemap declared by both DDS caps2 and DX10 misc flag",
             ));
         }
         let array_size = read_u32_le(bytes, 140, ExternalSourceCubemapContainerKind::Dds)?;
         (
-            legacy_cubemap || dx10_cubemap,
+            caps2_cubemap || dx10_cubemap,
             array_size
                 .max(1)
                 .saturating_mul(SOURCE_CUBEMAP_FACE_COUNT as u32),
         )
     } else {
         (
-            legacy_cubemap,
-            if legacy_cubemap {
+            caps2_cubemap,
+            if caps2_cubemap {
                 SOURCE_CUBEMAP_FACE_COUNT as u32
             } else {
                 1
@@ -166,13 +170,14 @@ fn parse_dds_source_cubemap_header(
             "cubemap must set DDSCAPS_COMPLEX",
         ));
     }
-    if legacy_cubemap && caps2 & DDSCAPS2_CUBEMAP_ALL_FACES != DDSCAPS2_CUBEMAP_ALL_FACES {
+    if caps2_cubemap && caps2 & DDSCAPS2_CUBEMAP_ALL_FACES != DDSCAPS2_CUBEMAP_ALL_FACES {
         return Err(invalid_header(
             ExternalSourceCubemapContainerKind::Dds,
-            "legacy cubemap must declare all six face flags",
+            "DDS caps2 cubemap must declare all six face flags",
         ));
     }
 
+    validate_dds_source_pixel_format(bytes, dx10)?;
     Ok(Some(ExternalSourceCubemapHeader {
         kind: ExternalSourceCubemapContainerKind::Dds,
         face_size: square_face_size(ExternalSourceCubemapContainerKind::Dds, width, height)?,
@@ -203,6 +208,7 @@ fn parse_ktx1_source_cubemap_header(
         return Ok(None);
     }
     validate_ktx_cubemap_header(ExternalSourceCubemapContainerKind::Ktx1, face_count, depth)?;
+    validate_ktx1_source_pixel_format(bytes)?;
 
     Ok(Some(ExternalSourceCubemapHeader {
         kind: ExternalSourceCubemapContainerKind::Ktx1,
@@ -234,6 +240,7 @@ fn parse_ktx2_source_cubemap_header(
         return Ok(None);
     }
     validate_ktx_cubemap_header(ExternalSourceCubemapContainerKind::Ktx2, face_count, depth)?;
+    validate_ktx2_source_pixel_format(bytes)?;
 
     Ok(Some(ExternalSourceCubemapHeader {
         kind: ExternalSourceCubemapContainerKind::Ktx2,
@@ -241,6 +248,63 @@ fn parse_ktx2_source_cubemap_header(
         mip_count,
         array_layers: layer_count.saturating_mul(face_count),
     }))
+}
+
+fn validate_dds_source_pixel_format(
+    bytes: &[u8],
+    dx10: bool,
+) -> Result<(), ExternalSourceCubemapContainerError> {
+    let supported = if dx10 {
+        matches!(
+            read_u32_le(bytes, 128, ExternalSourceCubemapContainerKind::Dds)?,
+            2 | 10
+        )
+    } else {
+        matches!(
+            read_u32_le(bytes, 84, ExternalSourceCubemapContainerKind::Dds)?,
+            113 | 116
+        )
+    };
+    if supported {
+        return Ok(());
+    }
+    Err(
+        ExternalSourceCubemapContainerError::UnsupportedSourcePixelFormat {
+            kind: ExternalSourceCubemapContainerKind::Dds,
+            format: "expected RGBA16F or RGBA32F DDS source cubemap".to_string(),
+        },
+    )
+}
+
+fn validate_ktx1_source_pixel_format(
+    bytes: &[u8],
+) -> Result<(), ExternalSourceCubemapContainerError> {
+    let internal_format = read_u32_le(bytes, 28, ExternalSourceCubemapContainerKind::Ktx1)?;
+    if matches!(internal_format, 0x881a | 0x8814) {
+        return Ok(());
+    }
+    Err(
+        ExternalSourceCubemapContainerError::UnsupportedSourcePixelFormat {
+            kind: ExternalSourceCubemapContainerKind::Ktx1,
+            format: format!("GL internal format 0x{internal_format:08x}; expected RGBA16F/RGBA32F"),
+        },
+    )
+}
+
+fn validate_ktx2_source_pixel_format(
+    bytes: &[u8],
+) -> Result<(), ExternalSourceCubemapContainerError> {
+    let vk_format = read_u32_le(bytes, 12, ExternalSourceCubemapContainerKind::Ktx2)?;
+    let supercompression = read_u32_le(bytes, 44, ExternalSourceCubemapContainerKind::Ktx2)?;
+    if matches!(vk_format, 97 | 109) && supercompression == 0 {
+        return Ok(());
+    }
+    Err(ExternalSourceCubemapContainerError::UnsupportedSourcePixelFormat {
+        kind: ExternalSourceCubemapContainerKind::Ktx2,
+        format: format!(
+            "Vulkan format {vk_format}, supercompression {supercompression}; expected uncompressed RGBA16F/RGBA32F"
+        ),
+    })
 }
 
 fn validate_texture_metadata(
@@ -447,6 +511,11 @@ pub enum ExternalSourceCubemapContainerError {
     InvalidHeader {
         kind: ExternalSourceCubemapContainerKind,
         reason: String,
+    },
+    #[error("{kind:?} external source cubemap pixel format is unsupported: {format}")]
+    UnsupportedSourcePixelFormat {
+        kind: ExternalSourceCubemapContainerKind,
+        format: String,
     },
     #[error("{kind:?} external source cubemap arrays are not supported by .zcube: array_layers={array_layers}")]
     UnsupportedCubemapArray {

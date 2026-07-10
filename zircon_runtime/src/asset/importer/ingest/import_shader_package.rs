@@ -363,12 +363,12 @@ fn reserved_shader_module_prefix(symbol: &str) -> Option<&'static str> {
 fn zshader_v2_import_error(uri: &AssetUri, path: &Path, error: ZShaderV2Error) -> AssetImportError {
     let migration_note = match &error {
         ZShaderV2Error::MissingDocumentField { field } if field == "kind" => {
-            "; legacy v1 .zshader must be migrated to schema v2 with kind = \"surface\", \"include\", \"compute\", or \"fullscreen\""
+            "; schema v1 .zshader must be migrated to schema v2 with kind = \"surface\", \"include\", \"compute\", or \"fullscreen\""
         }
         ZShaderV2Error::ForbiddenField { field, .. }
             if matches!(field.as_str(), "pipeline_layout" | "shader_defs" | "shader_def_values") =>
         {
-            "; legacy user-authored pipeline layout and shader_defs fields are removed from .zshader v2 and must be migrated to generated ABI/options"
+            "; removed user-authored pipeline layout and shader_defs fields must be migrated to generated ABI/options for .zshader v2"
         }
         _ => ""
     };

@@ -75,7 +75,7 @@ fn runtime_15_status_support_expected_slice_guard_body_status_mirrors_status_is_
     assert_contains_all(
         "Frameworks 02 status-support guard body status-mirror mirror",
         &read_repo(
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         &[
             GUARD_BODY_STATUS_MIRRORS_SLICE,

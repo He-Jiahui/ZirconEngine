@@ -49,23 +49,19 @@ fn graphics_root_no_longer_exports_runtime_ui_host_surface() {
 }
 
 #[test]
-fn hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter() {
+fn hybrid_gi_authored_probe_trace_surface_is_hard_cut() {
     use std::path::{Path, PathBuf};
 
+    let render_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/core/framework/render");
     let graphics_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/graphics");
-    let allowed_adapter = PathBuf::from("hybrid_gi_extract_sources/normalize.rs");
     let mut violations = Vec::new();
 
-    collect_rust_files(
-        &graphics_root,
-        &graphics_root,
-        &mut |relative_path, source| {
+    for root in [&render_root, &graphics_root] {
+        collect_rust_files(root, root, &mut |relative_path, source| {
             let normalized_path = normalize_test_path(relative_path);
-            if normalized_path == allowed_adapter
-                || normalized_path.components().any(|component| {
-                    matches!(component.as_os_str().to_str(), Some("tests" | "tests.rs"))
-                })
-            {
+            if normalized_path.components().any(|component| {
+                matches!(component.as_os_str().to_str(), Some("tests" | "tests.rs"))
+            }) {
                 return;
             }
 
@@ -77,14 +73,37 @@ fn hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter() {
             if production_source.contains("RenderHybridGiProbe")
                 || production_source.contains("RenderHybridGiTraceRegion")
             {
-                violations.push(normalized_path.display().to_string());
+                violations.push(root.join(normalized_path).display().to_string());
             }
-        },
-    );
+        });
+    }
 
     assert!(
         violations.is_empty(),
-        "RenderHybridGiProbe / RenderHybridGiTraceRegion should stay behind hybrid_gi_extract_sources::normalize; production leaks: {violations:?}"
+        "authored RenderHybridGiProbe / RenderHybridGiTraceRegion production surfaces must be removed: {violations:?}"
+    );
+
+    let scene_extract_source = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/core/framework/render/scene_extract.rs"
+    ));
+    for forbidden_field in [
+        "pub probe_budget:",
+        "pub tracing_budget:",
+        "pub probes:",
+        "pub trace_regions:",
+    ] {
+        assert!(
+            !scene_extract_source.contains(forbidden_field),
+            "RenderHybridGiExtract must remain a settings/budget/debug payload without `{forbidden_field}`"
+        );
+    }
+
+    let graphics_mod_source =
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/graphics/mod.rs"));
+    assert!(
+        !graphics_mod_source.contains("pub mod hybrid_gi_extract_sources;"),
+        "the retired authored extract-source adapter must not remain exported"
     );
 
     fn collect_rust_files(root: &Path, current: &Path, visit: &mut impl FnMut(&Path, &str)) {

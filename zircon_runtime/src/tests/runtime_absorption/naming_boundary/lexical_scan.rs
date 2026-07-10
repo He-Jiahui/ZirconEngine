@@ -1,6 +1,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[path = "lexical_scan/production_lines.rs"]
+mod production_lines;
+
+use production_lines::production_source_lines;
+
 #[derive(Debug)]
 pub(super) struct NamingReference {
     pub(super) path: String,
@@ -37,11 +42,11 @@ pub(super) fn collect_naming_references(
         let relative = relative_path(manifest_root, path);
         let source = fs::read_to_string(path)
             .unwrap_or_else(|error| panic!("failed to read {relative}: {error}"));
-        for (line_index, line) in source.lines().enumerate() {
+        for (line_index, line) in production_source_lines(&source) {
             if line_has_term(line, term) {
                 references.push(NamingReference {
                     path: relative.clone(),
-                    line: line_index + 1,
+                    line: line_index,
                     snippet: line.trim().to_string(),
                 });
             }
@@ -59,11 +64,11 @@ pub(super) fn collect_server_references(
         let relative = relative_path(manifest_root, path);
         let source = fs::read_to_string(path)
             .unwrap_or_else(|error| panic!("failed to read {relative}: {error}"));
-        for (line_index, line) in source.lines().enumerate() {
+        for (line_index, line) in production_source_lines(&source) {
             if server_tokens(line).next().is_some() {
                 references.push(NamingReference {
                     path: relative.clone(),
-                    line: line_index + 1,
+                    line: line_index,
                     snippet: line.trim().to_string(),
                 });
             }

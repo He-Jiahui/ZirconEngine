@@ -262,6 +262,7 @@ impl ScreenSpaceUiSdfRenderer {
                                 glyph,
                                 text.font.as_deref(),
                                 text.font_family.as_deref(),
+                                text.language.as_deref(),
                                 text.font_weight,
                                 text.font_size,
                                 font_database,

@@ -20,6 +20,9 @@ pub const MAX_DYNAMIC_RESOLUTION_SCALE: Real = 1.0;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewportCameraSnapshot {
     pub transform: Transform,
+    /// Selects the render schedule independently from the projection matrix.
+    #[serde(default)]
+    pub core_pipeline: CorePipelineKind,
     pub projection_mode: ProjectionMode,
     pub fov_y_radians: Real,
     pub ortho_size: Real,
@@ -47,7 +50,7 @@ impl ViewportCameraSnapshot {
     }
 
     pub fn core_pipeline_kind(&self) -> CorePipelineKind {
-        self.projection_mode.core_pipeline_kind()
+        self.core_pipeline
     }
 
     pub fn effective_viewport_size(&self, target_size: UVec2) -> UVec2 {
@@ -117,15 +120,6 @@ pub enum ProjectionMode {
 impl Default for ProjectionMode {
     fn default() -> Self {
         Self::Perspective
-    }
-}
-
-impl ProjectionMode {
-    pub const fn core_pipeline_kind(self) -> CorePipelineKind {
-        match self {
-            Self::Orthographic => CorePipelineKind::Core2d,
-            Self::Perspective => CorePipelineKind::Core3d,
-        }
     }
 }
 
@@ -384,6 +378,7 @@ impl Default for ViewportCameraSnapshot {
     fn default() -> Self {
         Self {
             transform: Transform::default(),
+            core_pipeline: CorePipelineKind::Core3d,
             projection_mode: ProjectionMode::Perspective,
             fov_y_radians: 60.0_f32.to_radians(),
             ortho_size: 5.0,

@@ -1,4 +1,4 @@
-use crate::core::framework::physics::PhysicsCombineRule;
+use crate::core::framework::scene::physics::PhysicsCombineRule;
 
 use crate::asset::tests::support::sample_physics_material_asset;
 use crate::asset::PhysicsMaterialAsset;

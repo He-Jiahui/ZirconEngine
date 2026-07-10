@@ -1,12 +1,24 @@
 pub(crate) fn hzb(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    hzb_for_depth_sampling(device, false, "zircon-hzb-bind-group-layout")
+}
+
+pub(crate) fn hzb_msaa(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    hzb_for_depth_sampling(device, true, "zircon-hzb-msaa-bind-group-layout")
+}
+
+fn hzb_for_depth_sampling(
+    device: &wgpu::Device,
+    multisampled: bool,
+    label: &'static str,
+) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("zircon-hzb-bind-group-layout"),
+        label: Some(label),
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Texture {
-                    multisampled: false,
+                    multisampled,
                     view_dimension: wgpu::TextureViewDimension::D2,
                     sample_type: wgpu::TextureSampleType::Depth,
                 },

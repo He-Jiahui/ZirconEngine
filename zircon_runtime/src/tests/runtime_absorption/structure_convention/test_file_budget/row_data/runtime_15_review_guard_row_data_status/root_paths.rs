@@ -29,9 +29,9 @@ pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_TYPED_ERROR_ROW_DATA_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/typed_error_maps/row_data_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/row_data_rows.rs";
 pub(super) const REVIEW_GUARD_TYPED_ERROR_ROW_DATA_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/typed_error_maps/row_data_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/typed_error_maps/row_data_rows.rs";
 pub(super) const STATUS_SUPPORT_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs";
 pub(super) const STATUS_SUPPORT_DATE_MAP_PATH: &str =

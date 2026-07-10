@@ -80,25 +80,6 @@ pub struct RenderRectLightSnapshot {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RenderReflectionProbeSnapshot {
-    pub position: Vec3,
-    pub radius: Real,
-    pub color: Vec3,
-    pub intensity: Real,
-}
-
-impl Default for RenderReflectionProbeSnapshot {
-    fn default() -> Self {
-        Self {
-            position: Vec3::ZERO,
-            radius: 0.0,
-            color: Vec3::ZERO,
-            intensity: 0.0,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderBakedLightingExtract {
     pub color: Vec3,
     pub intensity: Real,

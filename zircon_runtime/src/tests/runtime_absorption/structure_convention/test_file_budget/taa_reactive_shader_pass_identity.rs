@@ -17,11 +17,18 @@ fn runtime_15_taa_reactive_shader_pass_identity_is_wired() {
     let prewarm_manifest_pass_types =
         read_runtime_src("bin/zircon_shader_prewarm/manifest/pass_types.rs");
     let prewarm_tests = read_runtime_src("bin/zircon_shader_prewarm/manifest/tests.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo(
+        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
 
     assert_contains_all(
         "framework shader pass key exposes a dedicated TAA reactive mask pass",

@@ -53,12 +53,25 @@ impl SceneFrameHistoryTextures {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: super::super::super::core::OFFSCREEN_FORMAT,
+            format: super::super::super::core::SCENE_COLOR_HDR_FORMAT,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
         let global_illumination_view =
             global_illumination.create_view(&wgpu::TextureViewDescriptor::default());
+        let global_illumination_temporal_metadata =
+            device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("zircon-history-global-illumination-temporal-metadata"),
+                size: texture_extent(size),
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba16Float,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            });
+        let global_illumination_temporal_metadata_view = global_illumination_temporal_metadata
+            .create_view(&wgpu::TextureViewDescriptor::default());
         let ambient_occlusion = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-history-ambient-occlusion"),
             size: texture_extent(size),
@@ -77,7 +90,7 @@ impl SceneFrameHistoryTextures {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: super::super::super::core::OFFSCREEN_FORMAT,
+            format: super::super::super::core::SCENE_COLOR_HDR_FORMAT,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -98,9 +111,10 @@ impl SceneFrameHistoryTextures {
         let exposure_write =
             create_exposure_history_buffer(device, "zircon-history-exposure-write");
 
-        clear_texture(queue, &global_illumination, size, &[0, 0, 0, 255]);
+        clear_rgba16_float_texture(queue, &global_illumination, size);
+        clear_rgba16_float_texture(queue, &global_illumination_temporal_metadata, size);
         clear_texture(queue, &ambient_occlusion, size, &[255, 255, 255, 255]);
-        clear_texture(queue, &screen_space_reflection, size, &[0, 0, 0, 0]);
+        clear_rgba16_float_texture(queue, &screen_space_reflection, size);
 
         Self {
             size,
@@ -109,6 +123,9 @@ impl SceneFrameHistoryTextures {
             taa_scene_color,
             global_illumination,
             global_illumination_view,
+            global_illumination_temporal_metadata,
+            global_illumination_temporal_metadata_view,
+            global_illumination_history_valid: false,
             ambient_occlusion,
             ambient_occlusion_view,
             screen_space_reflection,

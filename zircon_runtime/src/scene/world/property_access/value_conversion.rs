@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
+use crate::core::framework::animation::AnimationParameterValue;
+use crate::core::framework::scene::physics::PhysicsCombineRule;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::core::framework::{animation::AnimationParameterValue, physics::PhysicsCombineRule};
 use crate::core::math::{Quat, Real, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, ResourceMarker};
 use crate::scene::components::{JointKind, Mobility, RigidBodyType};

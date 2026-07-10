@@ -6,7 +6,10 @@ fn runtime_15_status_output_review_guard_direct_assertion_rows_are_child_owner()
     let code_review_rows = read_runtime_src(CODE_REVIEW_ROWS_PATH);
     let direct_assertion_rows = read_runtime_src(DIRECT_ASSERTION_ROWS_PATH);
     let direct_assertion_child_rows = direct_assertion_row_data_child_source_blob();
-    let plugin_importer_rows = read_runtime_src(PLUGIN_IMPORTER_ROWS_PATH);
+    let plugin_importer_rows = read_runtime_src_with_children(
+        PLUGIN_IMPORTER_ROWS_PATH,
+        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows",
+    );
 
     let direct_assertion_slices = [
         "Runtime 15 M3 code review findings direct assertions child-owner split",

@@ -10,10 +10,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         gbuffer_albedo_resource_name: &str,
         gbuffer_normal_resource_name: &str,
         gbuffer_material_resource_name: &str,
+        gbuffer_emissive_resource_name: &str,
         depth_resource_name: &str,
         albedo_attachment_ops: RenderGraphAttachmentOps,
         normal_attachment_ops: RenderGraphAttachmentOps,
         material_attachment_ops: RenderGraphAttachmentOps,
+        emissive_attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
         let resources = &*self.resources;
         let resource_resolver = self.resource_resolver;
@@ -27,6 +29,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resources,
             resource_resolver,
             gbuffer_material_resource_name,
+            RenderGraphResourceAccessKind::Write,
+        )?;
+        let gbuffer_emissive_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            gbuffer_emissive_resource_name,
             RenderGraphResourceAccessKind::Write,
         )?;
         let gbuffer_normal_view = Self::require_texture_view_by_name(
@@ -64,6 +72,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             gbuffer_albedo_view,
             gbuffer_normal_view,
             gbuffer_material_view,
+            gbuffer_emissive_view,
             depth_view,
             self.scene_bind_group,
             mesh_draw_lists.gpu_scene_bind_group,
@@ -72,6 +81,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             albedo_attachment_ops,
             normal_attachment_ops,
             material_attachment_ops,
+            emissive_attachment_ops,
             render_region,
             [
                 mesh_draw_lists.opaque_stream(),
@@ -88,6 +98,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         gbuffer_albedo_resource_name: &str,
         gbuffer_normal_resource_name: &str,
         gbuffer_material_resource_name: &str,
+        gbuffer_emissive_resource_name: &str,
         scene_depth_resource_name: &str,
         background_resource_name: &str,
         scene_color_resource_name: &str,
@@ -111,6 +122,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resources,
             resource_resolver,
             gbuffer_material_resource_name,
+            RenderGraphResourceAccessKind::Read,
+        )?;
+        let gbuffer_emissive_view = Self::require_texture_view_by_name(
+            resources,
+            resource_resolver,
+            gbuffer_emissive_resource_name,
             RenderGraphResourceAccessKind::Read,
         )?;
         let scene_depth_view = Self::require_texture_view_by_name(
@@ -174,6 +191,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             gbuffer_albedo_view,
             gbuffer_normal_view,
             gbuffer_material_view,
+            gbuffer_emissive_view,
             scene_depth_view,
             self.shadow_atlas_resources,
             light_grid_params_buffer,

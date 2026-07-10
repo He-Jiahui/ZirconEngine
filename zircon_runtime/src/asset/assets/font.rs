@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::core::framework::render::CompositeFontDescriptor;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 pub type FontAssetResult<T> = std::result::Result<T, FontAssetError>;
@@ -20,6 +21,8 @@ pub struct FontAsset {
     pub variable_instances: Vec<FontAssetVariableInstance>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fallback_families: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub composite_font: Option<CompositeFontDescriptor>,
     #[serde(default, skip_serializing_if = "FontAssetRenderStrategy::is_default")]
     pub render_strategy: FontAssetRenderStrategy,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -149,11 +152,35 @@ pub struct FontAssetParsedFace {
     pub weight: u16,
     pub width_class: u16,
     pub style: FontAssetFaceStyle,
+    #[serde(default)]
+    pub metrics: FontAssetFaceMetrics,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub variation_axes: Vec<FontAssetVariationAxis>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub named_instances: Vec<FontAssetVariableInstance>,
     pub cmap: FontAssetCmapCoverage,
+}
+
+/// Font-unit metrics shared by layout and decoration rendering.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FontAssetFaceMetrics {
+    pub units_per_em: u16,
+    pub ascender: i16,
+    pub descender: i16,
+    pub line_gap: i16,
+    pub uses_typographic_metrics: bool,
+    pub windows_ascender: i16,
+    pub windows_descender: i16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub underline: Option<FontAssetLineMetrics>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strikeout: Option<FontAssetLineMetrics>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FontAssetLineMetrics {
+    pub position: i16,
+    pub thickness: i16,
 }
 
 impl FontAssetParsedFace {

@@ -104,6 +104,19 @@ fn rgba8_material_texture_view_keeps_current_d2_binding_contract() {
 }
 
 #[test]
+fn texture_array_view_uses_d2_array_dimension_and_all_layers() {
+    let mut descriptor = test_descriptor(vec![RenderImageUsage::Sampled]);
+    descriptor.depth_or_array_layers = 4;
+    descriptor.array_layer_count = 4;
+
+    let view = texture_view_descriptor(&descriptor);
+
+    assert_eq!(view.dimension, Some(wgpu::TextureViewDimension::D2Array));
+    assert_eq!(view.base_array_layer, 0);
+    assert_eq!(view.array_layer_count, Some(4));
+}
+
+#[test]
 fn cube_texture_view_uses_cube_dimension_and_all_faces() {
     let mut descriptor = test_descriptor(vec![RenderImageUsage::Sampled]);
     descriptor.dimension = RenderImageDimension::Cube;

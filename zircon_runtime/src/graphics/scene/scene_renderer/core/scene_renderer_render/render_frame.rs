@@ -7,10 +7,47 @@ use super::super::scene_renderer_target::{ensure_offscreen_target, finish_viewpo
 use super::super::target_extent::viewport_size;
 
 impl SceneRenderer {
+    #[cfg(test)]
+    pub(crate) fn reflection_probe_upload_diagnostics_for_tests(
+        &self,
+    ) -> (usize, usize, usize, usize, Option<String>) {
+        self.core
+            .mesh_pipelines
+            .reflection_probes
+            .last_report_diagnostics()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reflection_probe_gpu_upload_diagnostics_for_tests(
+        &self,
+    ) -> Result<(u32, [[f32; 4]; 2], [[u16; 4]; 2]), GraphicsError> {
+        self.core
+            .mesh_pipelines
+            .reflection_probes
+            .gpu_upload_diagnostics(&self.backend.device, &self.backend.queue)
+    }
+
     pub fn render_frame(
         &mut self,
         frame: &ViewportRenderFrame,
     ) -> Result<ViewportFrame, GraphicsError> {
+        self.render_frame_to_offscreen_target(frame)?;
+        let target = self.target.as_ref().expect("offscreen target");
+
+        finish_viewport_frame(
+            &self.backend.device,
+            &self.backend.queue,
+            &target.final_color,
+            target.size,
+            self.generation,
+            RenderCaptureReport::framework_offscreen(frame.output_target().kind(), target.size),
+        )
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn render_frame_to_offscreen_target(
+        &mut self,
+        frame: &ViewportRenderFrame,
+    ) -> Result<(), GraphicsError> {
         reset_last_runtime_outputs(self);
 
         self.streamer.ensure_scene_resources(
@@ -29,6 +66,7 @@ impl SceneRenderer {
             &self.backend.queue,
             &self.streamer,
             frame,
+            &target.scene_color_view,
             &target.final_color_view,
             &target.depth_view,
         )?;
@@ -41,14 +79,6 @@ impl SceneRenderer {
             target.size,
         )?;
         self.generation += 1;
-
-        finish_viewport_frame(
-            &self.backend.device,
-            &self.backend.queue,
-            &target.final_color,
-            target.size,
-            self.generation,
-            RenderCaptureReport::framework_offscreen(frame.output_target().kind(), target.size),
-        )
+        Ok(())
     }
 }

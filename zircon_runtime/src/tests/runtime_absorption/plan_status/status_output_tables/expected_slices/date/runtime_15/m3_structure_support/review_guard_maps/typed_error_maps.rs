@@ -11,6 +11,10 @@ mod status_doc_rows;
 
 pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
     match slice {
+        "Runtime 15 M3 review-guard typed-error rows guard folder-backed split"
+        | "Runtime 15 M3 review-guard typed-error rows split-layout guard folder-backed split" => {
+            return Some("2026-07-06");
+        }
         "Runtime 15 M3 review-guard status-support row-data folder-backed split" => {
             return Some("2026-07-05");
         }

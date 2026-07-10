@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 use crate::core::framework::scene::EntityId;
-
-use super::PhysicsMaterialMetadata;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsMaterialSyncState {

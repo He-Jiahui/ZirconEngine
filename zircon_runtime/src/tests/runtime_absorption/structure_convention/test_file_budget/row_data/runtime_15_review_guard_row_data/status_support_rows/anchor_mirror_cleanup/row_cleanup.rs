@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn runtime_15_review_guard_status_support_parent_has_no_anchor_mirror() {
     let parent = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PARENT_PATH);
-    let review_guard_rows = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PATH);
+    let review_guard_rows = review_guard_status_support_review_rows_source_blob();
     let typed_error_status_doc_rows =
         read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_TYPED_ERROR_STATUS_DOC_ROWS_PATH);
     let source_inventory_foundation_rows =

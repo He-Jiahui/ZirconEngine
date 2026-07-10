@@ -7,17 +7,16 @@ fn importer_registry_routes_zui_to_document_backend() {
     let path = root.join("hud_overlay.zui");
     fs::write(&path, minimal_zui_component_toml()).unwrap();
 
-    let default_descriptor = AssetImporter::default()
+    let default_error = AssetImporter::default()
         .registry()
         .descriptor_for_source(&path)
-        .unwrap();
-    assert_eq!(default_descriptor.id, "zircon.builtin.ui_document.zui");
-    assert_eq!(default_descriptor.importer_version, 2);
-    assert_eq!(default_descriptor.full_suffixes, vec![".zui"]);
-    let default_imported = AssetImporter::default()
-        .import_from_source(&path, &AssetUri::parse("res://ui/hud_overlay.zui").unwrap())
-        .unwrap();
-    assert!(matches!(default_imported, ImportedAsset::UiV2Component(_)));
+        .unwrap_err();
+    assert!(
+        default_error
+            .to_string()
+            .contains("no asset importer registered"),
+        "unexpected error: {default_error}"
+    );
 
     let fixture_importer = importer_with_first_wave_plugin_fixtures();
     let fixture_descriptor = fixture_importer
@@ -25,6 +24,7 @@ fn importer_registry_routes_zui_to_document_backend() {
         .descriptor_for_source(&path)
         .unwrap();
     assert_eq!(fixture_descriptor.id, "ui_document_importer.zui_document");
+    assert_eq!(fixture_descriptor.importer_version, 2);
     assert_eq!(fixture_descriptor.full_suffixes, vec![".zui"]);
 
     let imported = fixture_importer

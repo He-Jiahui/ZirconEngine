@@ -1,6 +1,5 @@
-use super::{
-    assert_contains_all, CHILD_PATHS, FRAMEWORKS_STATUS, GUARD, PARENT_PATH, SLICE, STATUS,
-};
+use super::super::super::support::runtime_numbered_archive_sources;
+use super::{assert_contains_all, CHILD_PATHS, GUARD, PARENT_PATH, SLICE, STATUS};
 
 #[test]
 fn runtime_15_plan_status_index_tables_parent_guard_is_folder_backed() {
@@ -103,47 +102,10 @@ fn runtime_15_plan_status_index_tables_parent_guard_is_folder_backed() {
         &[SLICE, "2026-07-05"],
     );
 
-    for (label, source) in [
-        (
-            "Runtime 15 subplan",
-            include_str!(
-                "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-            ),
-        ),
-        (
-            "runtime index",
-            include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        ),
-        (
-            "engine code structure convention",
-            include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md"),
-        ),
-        (
-            "engine code review findings",
-            include_str!(
-                "../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"
-            ),
-        ),
-        (
-            "module convention doc",
-            include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "runtime implementation session note",
-            include_str!(
-                "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-            ),
-        ),
-    ] {
-        assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[1]]);
-    }
-
-    let frameworks = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
-    );
+    let archive_source = runtime_numbered_archive_sources();
     assert_contains_all(
-        "frameworks plan records index-table parent guard split",
-        frameworks,
-        &[SLICE, STATUS, FRAMEWORKS_STATUS, GUARD],
+        "runtime numbered archives",
+        &archive_source,
+        &[SLICE, STATUS, GUARD, CHILD_PATHS[1]],
     );
 }

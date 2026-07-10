@@ -52,8 +52,21 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_bind
             },
             count: None,
         },
+        wgpu::BindGroupLayoutEntry {
+            binding: 5,
+            visibility: wgpu::ShaderStages::FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+                multisampled: false,
+                view_dimension: wgpu::TextureViewDimension::D2,
+                sample_type: wgpu::TextureSampleType::Float { filterable: false },
+            },
+            count: None,
+        },
     ];
     entries.extend(crate::graphics::scene::scene_renderer::shadow::atlas::shadow_atlas_bind_group_layout_entries(wgpu::ShaderStages::FRAGMENT));
+    entries.extend(
+        crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries(),
+    );
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: 20,

@@ -45,7 +45,7 @@ pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources
 
     assert_contains_all(
         "Runtime 01 subplan",
-        sources.runtime_01_plan,
+        &sources.archives,
         &runtime_01_plan_anchors,
     );
     assert_contains_all(
@@ -82,7 +82,7 @@ pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources
     );
     assert_contains_all(
         "Runtime 02 subplan",
-        sources.runtime_02_plan,
+        &sources.archives,
         &runtime_02_plan_anchors,
     );
     assert_contains_all(
@@ -100,11 +100,7 @@ pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources
         sources.runtime_02_generated_doc,
         &runtime_02_doc_anchors[2..],
     );
-    assert_contains_all(
-        "Runtime 03 subplan",
-        sources.runtime_03_plan,
-        &runtime_03_anchors,
-    );
+    assert_contains_all("Runtime 03 subplan", &sources.archives, &runtime_03_anchors);
     assert_contains_all(
         "Runtime 03 frame schedule doc",
         sources.runtime_03_frame_doc,
@@ -118,11 +114,7 @@ pub(super) fn assert_runtime_01_to_04_anchors(sources: &RecentStaticGuardSources
             "schedule_parallel_batches_chain_through_job_handles",
         ],
     );
-    assert_contains_all(
-        "Runtime 04 subplan",
-        sources.runtime_04_plan,
-        &runtime_04_anchors,
-    );
+    assert_contains_all("Runtime 04 subplan", &sources.archives, &runtime_04_anchors);
     assert_contains_all(
         "Runtime 04 asset facade doc",
         sources.runtime_04_facade_doc,

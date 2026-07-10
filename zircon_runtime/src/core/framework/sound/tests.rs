@@ -8,7 +8,7 @@ fn default_sound_plugin_options_match_runtime_contract() {
     assert_eq!(options.backend, "software-mixer");
     assert_eq!(options.sample_rate_hz, 48_000);
     assert_eq!(options.channel_count, 2);
-    assert_eq!(options.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(options.channel_layout, AudioChannelLayout::stereo());
     assert_eq!(options.global_volume_gain, 1.0);
     assert_eq!(options.block_size_frames, 256);
     assert_eq!(options.max_voices, 128);
@@ -32,7 +32,7 @@ fn default_stereo_mixer_graph_keeps_master_track_and_event_namespace() {
 
     assert_eq!(graph.sample_rate_hz, 48_000);
     assert_eq!(graph.channel_count, 2);
-    assert_eq!(graph.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(graph.channel_layout, AudioChannelLayout::stereo());
     assert_eq!(graph.tracks.len(), 1);
     assert_eq!(master.id, SoundTrackId::master());
     assert_eq!(master.display_name, "Master");
@@ -50,13 +50,13 @@ fn default_stereo_mixer_graph_keeps_master_track_and_event_namespace() {
 
 #[test]
 fn sound_channel_layouts_name_speaker_order_for_multichannel_formats() {
-    let mono = SoundChannelLayout::mono();
-    let stereo = SoundChannelLayout::stereo();
-    let quad = SoundChannelLayout::quad();
-    let surround_5_0 = SoundChannelLayout::surround_5_0();
-    let surround = SoundChannelLayout::surround_5_1();
-    let surround_side = SoundChannelLayout::surround_5_1_side();
-    let surround_7_0 = SoundChannelLayout::surround_7_0();
+    let mono = AudioChannelLayout::mono();
+    let stereo = AudioChannelLayout::stereo();
+    let quad = AudioChannelLayout::quad();
+    let surround_5_0 = AudioChannelLayout::surround_5_0();
+    let surround = AudioChannelLayout::surround_5_1();
+    let surround_side = AudioChannelLayout::surround_5_1_side();
+    let surround_7_0 = AudioChannelLayout::surround_7_0();
 
     assert_eq!(mono.channel_count, 1);
     assert_eq!(stereo.channel_count, 2);
@@ -68,74 +68,74 @@ fn sound_channel_layouts_name_speaker_order_for_multichannel_formats() {
     assert_eq!(
         quad.speakers,
         vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontRight,
-            SoundSpeakerChannel::BackLeft,
-            SoundSpeakerChannel::BackRight,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontRight,
+            AudioSpeakerChannel::BackLeft,
+            AudioSpeakerChannel::BackRight,
         ]
     );
     assert_eq!(
         surround_5_0.speakers,
         vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontRight,
-            SoundSpeakerChannel::FrontCenter,
-            SoundSpeakerChannel::BackLeft,
-            SoundSpeakerChannel::BackRight,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontRight,
+            AudioSpeakerChannel::FrontCenter,
+            AudioSpeakerChannel::BackLeft,
+            AudioSpeakerChannel::BackRight,
         ]
     );
     assert_eq!(
         surround.speakers,
         vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontRight,
-            SoundSpeakerChannel::FrontCenter,
-            SoundSpeakerChannel::LowFrequency,
-            SoundSpeakerChannel::BackLeft,
-            SoundSpeakerChannel::BackRight,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontRight,
+            AudioSpeakerChannel::FrontCenter,
+            AudioSpeakerChannel::LowFrequency,
+            AudioSpeakerChannel::BackLeft,
+            AudioSpeakerChannel::BackRight,
         ]
     );
     assert_eq!(
         surround_side.speakers,
         vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontRight,
-            SoundSpeakerChannel::FrontCenter,
-            SoundSpeakerChannel::LowFrequency,
-            SoundSpeakerChannel::SideLeft,
-            SoundSpeakerChannel::SideRight,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontRight,
+            AudioSpeakerChannel::FrontCenter,
+            AudioSpeakerChannel::LowFrequency,
+            AudioSpeakerChannel::SideLeft,
+            AudioSpeakerChannel::SideRight,
         ]
     );
     assert_eq!(
         surround_7_0.speakers,
         vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontRight,
-            SoundSpeakerChannel::FrontCenter,
-            SoundSpeakerChannel::BackLeft,
-            SoundSpeakerChannel::BackRight,
-            SoundSpeakerChannel::SideLeft,
-            SoundSpeakerChannel::SideRight,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontRight,
+            AudioSpeakerChannel::FrontCenter,
+            AudioSpeakerChannel::BackLeft,
+            AudioSpeakerChannel::BackRight,
+            AudioSpeakerChannel::SideLeft,
+            AudioSpeakerChannel::SideRight,
         ]
     );
     assert_eq!(
-        SoundChannelLayout::for_channel_count(4),
-        SoundChannelLayout::quad()
+        AudioChannelLayout::for_channel_count(4),
+        AudioChannelLayout::quad()
     );
     assert_eq!(
-        SoundChannelLayout::for_channel_count(5),
-        SoundChannelLayout::surround_5_0()
+        AudioChannelLayout::for_channel_count(5),
+        AudioChannelLayout::surround_5_0()
     );
     assert_eq!(
-        SoundChannelLayout::for_channel_count(7),
-        SoundChannelLayout::surround_7_0()
+        AudioChannelLayout::for_channel_count(7),
+        AudioChannelLayout::surround_7_0()
     );
     assert_eq!(
-        SoundChannelLayout::for_channel_count(8),
-        SoundChannelLayout::surround_7_1()
+        AudioChannelLayout::for_channel_count(8),
+        AudioChannelLayout::surround_7_1()
     );
     assert_eq!(
-        SoundChannelLayout::named_layout_names(),
+        AudioChannelLayout::named_layout_names(),
         &[
             "mono",
             "stereo",
@@ -147,65 +147,65 @@ fn sound_channel_layouts_name_speaker_order_for_multichannel_formats() {
             "surround_7_1",
         ]
     );
-    for layout_name in SoundChannelLayout::named_layout_names() {
-        let layout = SoundChannelLayout::from_name(layout_name).expect("known layout name");
+    for layout_name in AudioChannelLayout::named_layout_names() {
+        let layout = AudioChannelLayout::from_name(layout_name).expect("known layout name");
         assert_eq!(layout.name, *layout_name);
     }
-    assert_eq!(SoundChannelLayout::from_name("discrete_12"), None);
-    assert_eq!(SoundChannelLayout::from_name("surround_6_1"), None);
-    assert!(SoundChannelLayout::discrete(12).matches_channel_count(12));
-    assert!(!SoundChannelLayout::discrete(12).matches_channel_count(2));
-    assert!(!SoundChannelLayout::surround_5_1().matches_channel_count(2));
+    assert_eq!(AudioChannelLayout::from_name("discrete_12"), None);
+    assert_eq!(AudioChannelLayout::from_name("surround_6_1"), None);
+    assert!(AudioChannelLayout::discrete(12).matches_channel_count(12));
+    assert!(!AudioChannelLayout::discrete(12).matches_channel_count(2));
+    assert!(!AudioChannelLayout::surround_5_1().matches_channel_count(2));
     assert_eq!(
-        serde_json::to_value(SoundSpeakerChannel::LowFrequency).unwrap(),
+        serde_json::to_value(AudioSpeakerChannel::LowFrequency).unwrap(),
         "low_frequency"
     );
 }
 
 #[test]
 fn sound_channel_layout_contract_rejects_ambiguous_speaker_metadata() {
-    let mut reordered_stereo = SoundChannelLayout::stereo();
+    let mut reordered_stereo = AudioChannelLayout::stereo();
     reordered_stereo.speakers.reverse();
 
     assert!(!reordered_stereo.is_canonical_named_layout());
     assert!(!reordered_stereo.is_valid_contract_layout());
 
-    let duplicate_custom = SoundChannelLayout {
+    let duplicate_custom = AudioChannelLayout {
         name: "custom_duplicate_front".to_string(),
         channel_count: 2,
         speakers: vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontLeft,
         ],
     };
     assert!(duplicate_custom.has_matching_speaker_count());
     assert!(!duplicate_custom.has_unique_speakers());
     assert!(!duplicate_custom.is_valid_contract_layout());
 
-    let custom_named_speakers = SoundChannelLayout {
+    let custom_named_speakers = AudioChannelLayout {
         name: "custom_front_lfe".to_string(),
         channel_count: 2,
         speakers: vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::LowFrequency,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::LowFrequency,
         ],
     };
     assert!(custom_named_speakers.is_valid_contract_layout());
-    assert!(SoundChannelLayout::discrete(12).is_valid_contract_layout());
+    assert!(AudioChannelLayout::discrete(12).is_valid_contract_layout());
 
-    let invalid_discrete = SoundChannelLayout {
+    let invalid_discrete = AudioChannelLayout {
         name: "speakerless_custom".to_string(),
         channel_count: 12,
         speakers: Vec::new(),
     };
     assert!(!invalid_discrete.is_valid_contract_layout());
 
-    let discrete_with_named_speakers = SoundChannelLayout {
+    let discrete_with_named_speakers = AudioChannelLayout {
         name: "discrete_2".to_string(),
         channel_count: 2,
         speakers: vec![
-            SoundSpeakerChannel::FrontLeft,
-            SoundSpeakerChannel::FrontRight,
+            AudioSpeakerChannel::FrontLeft,
+            AudioSpeakerChannel::FrontRight,
         ],
     };
     assert!(!discrete_with_named_speakers.is_valid_contract_layout());
@@ -236,7 +236,7 @@ fn clip_source_defaults_to_master_track_and_neutral_spatial_contract() {
         SoundAttenuationMode::InverseDistance
     );
     assert_eq!(source.spatial.convolution_send, None);
-    assert_eq!(block.channel_layout, SoundChannelLayout::surround_5_1());
+    assert_eq!(block.channel_layout, AudioChannelLayout::surround_5_1());
     assert_eq!(block.samples.len(), 24);
 }
 
@@ -245,13 +245,13 @@ fn external_source_block_carries_explicit_channel_layout_contract() {
     let block = SoundExternalSourceBlock {
         sample_rate_hz: 48_000,
         channel_count: 6,
-        channel_layout: SoundChannelLayout::surround_5_1_side(),
+        channel_layout: AudioChannelLayout::surround_5_1_side(),
         samples: vec![0.0; 12],
     };
 
     assert_eq!(
         block.channel_layout,
-        SoundChannelLayout::surround_5_1_side()
+        AudioChannelLayout::surround_5_1_side()
     );
     assert!(block
         .channel_layout
@@ -267,14 +267,14 @@ fn external_source_block_carries_explicit_channel_layout_contract() {
 fn external_source_block_constructor_derives_count_from_declared_layout() {
     let block = SoundExternalSourceBlock::new(
         48_000,
-        SoundChannelLayout::surround_5_1_side(),
+        AudioChannelLayout::surround_5_1_side(),
         vec![0.0; 12],
     );
 
     assert_eq!(block.channel_count, 6);
     assert_eq!(
         block.channel_layout,
-        SoundChannelLayout::surround_5_1_side()
+        AudioChannelLayout::surround_5_1_side()
     );
     assert!(block
         .channel_layout

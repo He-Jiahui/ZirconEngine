@@ -1,5 +1,5 @@
 use crate::asset::{AssetUri, SoundAsset, SoundAssetError};
-use crate::core::framework::sound::SoundChannelLayout;
+use crate::core::framework::audio::AudioChannelLayout;
 
 const WAVE_FORMAT_EXTENSIBLE: u16 = 0xfffe;
 const PCM_SUBFORMAT_GUID: [u8; 16] = [
@@ -22,7 +22,7 @@ fn sound_asset_plain_wav_uses_named_layout_fallback_from_channel_count() {
     .unwrap();
 
     assert_eq!(asset.channel_count, 2);
-    assert_eq!(asset.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(asset.channel_layout, AudioChannelLayout::stereo());
     assert_eq!(asset.frame_count(), 1);
 }
 
@@ -43,7 +43,7 @@ fn sound_asset_wav_extensible_preserves_side_bed_channel_layout() {
     assert_eq!(asset.channel_count, 6);
     assert_eq!(
         asset.channel_layout,
-        SoundChannelLayout::surround_5_1_side()
+        AudioChannelLayout::surround_5_1_side()
     );
     assert_eq!(asset.frame_count(), 1);
 }

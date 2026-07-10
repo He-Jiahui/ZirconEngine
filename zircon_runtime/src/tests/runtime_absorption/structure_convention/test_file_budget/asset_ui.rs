@@ -3,7 +3,6 @@ use super::*;
 #[test]
 fn runtime_15_asset_ui_tests_are_folder_backed() {
     let parent = read_runtime_src("asset/tests/assets/ui.rs");
-    let fixture_validation = read_runtime_src("asset/tests/assets/ui/fixture_validation.rs");
     let importer = read_runtime_src("asset/tests/assets/ui/importer.rs");
     let project_manager = read_runtime_src("asset/tests/assets/ui/project_manager.rs");
     let references = read_runtime_src("asset/tests/assets/ui/references.rs");
@@ -23,13 +22,11 @@ fn runtime_15_asset_ui_tests_are_folder_backed() {
         "asset UI parent test module mounts",
         &parent,
         &[
-            "mod fixture_validation;",
             "mod importer;",
             "mod project_manager;",
             "mod references;",
             "mod wrappers;",
-            "fn importer_with_first_wave_plugin_fixtures",
-            "fn legacy_v2_component_toml",
+            "use crate::asset::tests::support::importer_with_first_wave_plugin_fixtures;",
         ],
     );
     for moved_test in [
@@ -66,15 +63,14 @@ fn runtime_15_asset_ui_tests_are_folder_backed() {
         references.as_str(),
         importer.as_str(),
         project_manager.as_str(),
-        fixture_validation.as_str(),
     ];
     assert_eq!(
         migrated_child_sources
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        19,
-        "asset UI child modules should preserve the current 19 parent tests"
+        18,
+        "asset UI child modules should preserve the current 18 tests after the retired v2 fixture rejection was removed"
     );
 
     assert_contains_all(
@@ -118,22 +114,8 @@ fn runtime_15_asset_ui_tests_are_folder_backed() {
             "fn project_manager_scans_zui_assets_and_restores_component_payloads",
         ],
     );
-    assert_contains_all(
-        "asset UI fixture validation child owns legacy fixture rejection",
-        &fixture_validation,
-        &[
-            "use super::*;",
-            "fn fixture_v2_toml_importer_rejects_component_kind_in_favor_of_zui",
-            "legacy_v2_component_toml",
-        ],
-    );
-
     for (path, source) in [
         ("asset/tests/assets/ui.rs", parent.as_str()),
-        (
-            "asset/tests/assets/ui/fixture_validation.rs",
-            fixture_validation.as_str(),
-        ),
         ("asset/tests/assets/ui/importer.rs", importer.as_str()),
         (
             "asset/tests/assets/ui/project_manager.rs",

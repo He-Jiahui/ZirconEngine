@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::framework::physics::PhysicsMaterialMetadata;
+use crate::core::framework::scene::physics::PhysicsMaterialMetadata;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsMaterialAsset {

@@ -43,6 +43,7 @@ struct ZrDeferredGBufferOutput {
     @location(0) albedo: vec4<f32>,
     @location(1) normal: vec4<f32>,
     @location(2) material: vec4<f32>,
+    @location(3) emissive: vec4<f32>,
 };
 
 const ZR_DEFERRED_MATERIAL_SHADING_MODEL_MASK: u32 = 0x7Fu;

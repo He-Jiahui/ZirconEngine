@@ -5,8 +5,8 @@ fn runtime_15_gpu_scene_tests_are_child_owner() {
     let root = read_runtime_src("graphics/scene/gpu_scene/gpu_scene.rs");
     let tests = read_runtime_src("graphics/scene/gpu_scene/gpu_scene/tests.rs");
 
-    let plan_03 = read_repo("docs/plans/zircon_runtime/render/03-gpu-scene-gpu-driven.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_03 = read_repo("docs/plans/zircon_runtime/render/03/2026-07-09-gpu-scene-gpu-driven-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let gpu_scene_doc = read_repo("docs/zircon_runtime/graphics/scene/gpu_scene/mod.md");

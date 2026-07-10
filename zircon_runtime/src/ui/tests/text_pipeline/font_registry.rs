@@ -18,6 +18,7 @@ fn text_font_registry_registers_assets_and_fallback_chain() {
             "Inter".to_string(),
             " ".to_string(),
         ],
+        composite_font: None,
         render_strategy: FontAssetRenderStrategy::default(),
         metadata: None,
     };
@@ -63,6 +64,7 @@ fn text_font_registry_uses_asset_render_strategy_default_mode() {
         family_members: Vec::new(),
         variable_instances: Vec::new(),
         fallback_families: Vec::new(),
+        composite_font: None,
         render_strategy: FontAssetRenderStrategy {
             default_mode: Some(UiTextRenderMode::Auto),
             allow_native: Some(false),

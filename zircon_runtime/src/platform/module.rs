@@ -20,7 +20,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         PLATFORM_MODULE_NAME,
         "Platform, windowing, and OS integration",
     )
-    .with_init_level(InitLevel::Servers)
+    .with_init_level(InitLevel::Services)
     .with_module_dependency(ModuleDependencySpec::named(FOUNDATION_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(PLATFORM_MODULE_NAME, ServiceKind::Driver, "PlatformDriver"),

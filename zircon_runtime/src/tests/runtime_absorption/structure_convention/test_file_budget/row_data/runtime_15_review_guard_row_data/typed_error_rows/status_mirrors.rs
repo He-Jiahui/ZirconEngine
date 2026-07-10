@@ -2,9 +2,9 @@ use super::*;
 
 #[test]
 fn runtime_15_review_guard_typed_error_row_data_status_mirrors_are_current() {
-    let status_rows = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PATH);
-    let status_map = read_runtime_src(REVIEW_GUARD_TYPED_ERROR_STATUS_MAP_PATH);
-    let date_map = read_runtime_src(REVIEW_GUARD_TYPED_ERROR_DATE_MAP_PATH);
+    let status_rows = review_guard_status_support_review_rows_source_blob();
+    let status_map = read_runtime_src_route_tree(REVIEW_GUARD_TYPED_ERROR_STATUS_MAP_PATH);
+    let date_map = read_runtime_src_route_tree(REVIEW_GUARD_TYPED_ERROR_DATE_MAP_PATH);
     let docs = [
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
         read_repo("docs/plans/zircon_runtime/runtime/index.md"),

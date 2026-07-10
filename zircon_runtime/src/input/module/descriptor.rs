@@ -27,7 +27,7 @@ pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
         INPUT_MODULE_NAME,
         "High-level input routing and action maps",
     )
-    .with_init_level(InitLevel::Servers)
+    .with_init_level(InitLevel::Services)
     .with_module_dependency(ModuleDependencySpec::named(PLATFORM_MODULE_NAME))
     .with_driver(DriverDescriptor::new(
         qualified_name(INPUT_MODULE_NAME, ServiceKind::Driver, "InputDriver"),

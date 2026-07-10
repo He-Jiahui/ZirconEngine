@@ -20,23 +20,26 @@ const RUNTIME_HELPERS_FIXTURE: &str = include_str!(
 
 #[test]
 fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
+    let review_findings = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+    );
+    let structure_convention = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+    );
     let plugins_11 =
         include_str!("../../../../../../docs/plans/zircon_plugins/11-plugin-call-bridge.md");
     let plugins_12 = include_str!(
-        "../../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
+        "../../../../../../docs/plans/zircon_plugins/12/2026-07-09-plugin-dx-and-structure-framework-output-records.md"
     );
     let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
     let physics_doc = include_str!("../../../../../../docs/zircon_plugins/physics/runtime.md");
     let animation_doc = include_str!("../../../../../../docs/zircon_plugins/animation/runtime.md");
     let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
     let module_convention =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
     let session_note = include_str!(

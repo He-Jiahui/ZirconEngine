@@ -5,7 +5,7 @@ fn runtime_15_plugin_feature_compile_particle_tests_are_child_owner() {
     let parent = read_runtime_src("graphics/tests/plugin_feature_compile.rs");
     let particle = read_runtime_src("graphics/tests/plugin_feature_compile/particle.rs");
 
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_framework_architecture =

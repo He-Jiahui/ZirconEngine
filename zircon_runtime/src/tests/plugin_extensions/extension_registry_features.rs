@@ -54,9 +54,11 @@ fn runtime_plugin_catalog_merges_available_feature_extensions_after_base_plugins
         catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert_eq!(report.registry.modules().len(), 1);
+    assert_eq!(report.registry.modules().len(), 3);
+    assert_eq!(report.registry.modules()[0].name, "sound.runtime");
+    assert_eq!(report.registry.modules()[1].name, "animation.runtime");
     assert_eq!(
-        report.registry.modules()[0].name,
+        report.registry.modules()[2].name,
         "SoundTimelineAnimationFeatureModule"
     );
 }
@@ -181,7 +183,8 @@ fn runtime_extension_catalog_treats_blocked_optional_features_as_warnings() {
     assert!(report.fatal_diagnostics.is_empty());
     assert!(report.diagnostics.iter().any(|diagnostic| diagnostic
         .contains("optional feature sound.timeline_animation_track is blocked")));
-    assert!(report.registry.modules().is_empty());
+    assert_eq!(report.registry.modules().len(), 1);
+    assert_eq!(report.registry.modules()[0].name, "sound.runtime");
 }
 
 #[test]
@@ -220,7 +223,8 @@ fn runtime_extension_catalog_treats_blocked_required_features_as_fatal() {
     assert!(report.has_fatal_diagnostics());
     assert!(report.fatal_diagnostics.iter().any(|diagnostic| diagnostic
         .contains("required feature sound.timeline_animation_track is blocked")));
-    assert!(report.registry.modules().is_empty());
+    assert_eq!(report.registry.modules().len(), 1);
+    assert_eq!(report.registry.modules()[0].name, "sound.runtime");
 }
 
 #[test]

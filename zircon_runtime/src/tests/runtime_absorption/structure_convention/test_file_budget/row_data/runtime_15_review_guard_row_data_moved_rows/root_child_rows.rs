@@ -23,7 +23,7 @@ pub(super) const MOVED_ROWS_CHILDREN: &[(&str, &str, &str)] = &[
     ),
     (
         "root_inventory",
-        ROOT_INVENTORY_GUARD_PATH,
+        "tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_row_data_moved_rows/root_inventory.rs",
         ROOT_INVENTORY_CHILD_SPLIT_GUARD_NAME,
     ),
 ];

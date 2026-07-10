@@ -46,16 +46,8 @@ pub(super) fn assert_runtime_05_to_08_anchors(sources: &RecentStaticGuardSources
         "change_tick_comparison_survives_wraparound",
     ];
 
-    assert_contains_all(
-        "Runtime 05 subplan",
-        sources.runtime_05_plan,
-        &runtime_05_anchors,
-    );
-    assert_contains_all(
-        "Runtime 06 subplan",
-        sources.runtime_06_plan,
-        &runtime_06_anchors,
-    );
+    assert_contains_all("Runtime 05 subplan", &sources.archives, &runtime_05_anchors);
+    assert_contains_all("Runtime 06 subplan", &sources.archives, &runtime_06_anchors);
     assert_contains_all(
         "Runtime 06 native plugin doc",
         sources.runtime_06_native_doc,
@@ -68,7 +60,7 @@ pub(super) fn assert_runtime_05_to_08_anchors(sources: &RecentStaticGuardSources
     );
     assert_contains_all(
         "Runtime 07 subplan",
-        sources.runtime_07_plan,
+        &sources.archives,
         &runtime_07_plan_anchors,
     );
     assert_contains_all(
@@ -76,11 +68,7 @@ pub(super) fn assert_runtime_05_to_08_anchors(sources: &RecentStaticGuardSources
         sources.runtime_07_doc,
         &runtime_07_doc_anchors,
     );
-    assert_contains_all(
-        "Runtime 08 subplan",
-        sources.runtime_08_plan,
-        &runtime_08_anchors,
-    );
+    assert_contains_all("Runtime 08 subplan", &sources.archives, &runtime_08_anchors);
     assert_contains_all(
         "Runtime 08 ECS doc",
         sources.runtime_08_doc,

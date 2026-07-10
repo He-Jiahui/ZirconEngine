@@ -3,7 +3,7 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{
+use crate::core::framework::scene::physics::{
     PhysicsCombineRule, PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
     PhysicsSkeletonJointBinding,
 };

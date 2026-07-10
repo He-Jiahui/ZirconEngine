@@ -15,7 +15,7 @@ fn runtime_15_status_output_expected_slice_guard_maps_status_is_synced() {
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let frameworks_plan = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     let frameworks_index = read_repo("docs/plans/zircon_runtime/frameworks/index.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

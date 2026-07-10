@@ -69,10 +69,10 @@ pub(in super::super) const TOP_LEVEL_SUPPORT_ROW_CHILDREN: &[&str] = &[
 pub(in super::super) const ROUTE_METADATA_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata.rs";
 pub(in super::super) const ROUTE_METADATA_ROW_CHILDREN: &[&str] = &[
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/child_owner_budget_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/child_owner_guard_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/naming_boundary_rows.rs",
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_meta/row_data_owner_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/child_owner_budget_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/child_owner_guard_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/naming_boundary_rows.rs",
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps/route_metadata/row_data_owner_rows.rs",
 ];
 pub(in super::super) const STATUS_SUPPORT_STATUS_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps/m3_m4_expected_slice_maps.rs";

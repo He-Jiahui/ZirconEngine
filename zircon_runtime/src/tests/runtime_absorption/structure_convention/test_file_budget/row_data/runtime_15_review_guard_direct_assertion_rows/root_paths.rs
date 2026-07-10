@@ -40,8 +40,12 @@ pub(super) const TOP_LEVEL_EXPECTED_STATUS_ROW_DATA_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs";
 pub(super) const RUNTIME_15_EXPECTED_STATUS_ROW_DATA_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs";
+pub(super) const RUNTIME_15_REVIEW_GUARD_EXPORTS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3_review_guard_exports.rs";
 pub(super) const RUNTIME_15_M3_EXPECTED_STATUS_ROW_DATA_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs";
+pub(super) const RUNTIME_15_M3_REVIEW_GUARD_EXPORTS_PATH: &str =
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_exports.rs";
 pub(super) const STATUS_SUPPORT_ROWS_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows/review_guard_rows.rs";
 pub(super) const STATUS_SUPPORT_REVIEW_GUARD_ROWS_PATH: &str =

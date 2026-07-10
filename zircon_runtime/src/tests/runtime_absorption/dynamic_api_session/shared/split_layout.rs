@@ -132,7 +132,7 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
     }
 
     let row_data = include_str!(
-        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs"
+        "../../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status/structure_guard_rows.rs"
     );
     assert_contains_all(
         "module-convention row data records dynamic API shared data split",
@@ -148,21 +148,21 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
     );
 
     let status_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+        "../../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
     );
     assert_contains_all("structure route status map", status_map, &[SLICE, STATUS]);
 
     let date_map = include_str!(
-        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+        "../../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/guard_rows.rs"
     );
     assert_contains_all("structure route date map", date_map, &[SLICE, "2026-07-05"]);
 
     for source in [
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md"),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
         include_str!(
             "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
@@ -177,7 +177,7 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
     }
 
     let frameworks = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
+        "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
     );
     assert_contains_all(
         "frameworks plan records dynamic API shared data split",

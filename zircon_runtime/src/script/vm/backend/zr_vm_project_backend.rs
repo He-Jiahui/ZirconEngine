@@ -1,4 +1,4 @@
-#[cfg(feature = "zr-vm-real-backend")]
+#[cfg(feature = "backend-zr-vm")]
 mod real_backend;
 
 use std::sync::Arc;
@@ -55,7 +55,7 @@ fn validate_zr_vm_project_package(package: &VmPluginPackage) -> Result<(), VmErr
     Ok(())
 }
 
-#[cfg(feature = "zr-vm-real-backend")]
+#[cfg(feature = "backend-zr-vm")]
 fn load_project_package(
     package: &VmPluginPackage,
     host: &VmPluginHostContext,
@@ -63,13 +63,13 @@ fn load_project_package(
     real_backend::load_project_package(package, host)
 }
 
-#[cfg(not(feature = "zr-vm-real-backend"))]
+#[cfg(not(feature = "backend-zr-vm"))]
 fn load_project_package(
     _package: &VmPluginPackage,
     _host: &VmPluginHostContext,
 ) -> Result<Box<dyn VmPluginInstance>, VmError> {
     Err(VmError::BackendUnavailable(
-        "zr_vm runtime binding is disabled; build zircon_runtime with feature zr-vm-real-backend and set ZR_VM_RUST_BINDING_LIB_DIR"
+        "zr_vm runtime binding is disabled; build zircon_runtime with feature backend-zr-vm and set ZR_VM_RUST_BINDING_LIB_DIR"
             .to_string(),
     ))
 }

@@ -53,6 +53,11 @@ fn create_solid_fallback_texture(
     color_space: RenderImageColorSpace,
     fallback: RenderImageFallbackKind,
 ) -> GpuTextureResource {
+    let texture_format = match format {
+        RGBA8_UNORM_FORMAT => wgpu::TextureFormat::Rgba8Unorm,
+        RGBA8_UNORM_SRGB_FORMAT => wgpu::TextureFormat::Rgba8UnormSrgb,
+        unsupported => panic!("unsupported fallback texture format `{unsupported}`"),
+    };
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some(texture_label),
         size: wgpu::Extent3d {
@@ -63,7 +68,7 @@ fn create_solid_fallback_texture(
         mip_level_count: 1,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: crate::graphics::scene::OFFSCREEN_FORMAT,
+        format: texture_format,
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         view_formats: &[],
     });

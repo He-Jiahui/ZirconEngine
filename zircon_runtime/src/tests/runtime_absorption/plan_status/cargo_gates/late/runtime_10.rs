@@ -1,10 +1,13 @@
 #[test]
 fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validation() {
-    let runtime_10_plan = include_str!(
+    let runtime_10_plan = runtime_plan_source_with_archive("10", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    ));
+    let runtime_10_plan = runtime_10_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let dynamic_api_doc =
         include_str!("../../../../../../../docs/zircon_runtime/dynamic_api/session.md");
 
@@ -41,11 +44,9 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
         &["cargo test -p zircon_runtime --lib dynamic_api --locked -- --nocapture"],
     );
 
-    let runtime_10_index_row =
-        runtime_index_row_for(runtime_index, "10-dynamic-api-and-interface-convergence.md");
     assert_contains_all(
-        "Runtime 10 index row",
-        runtime_10_index_row,
+        "Runtime 10 archived index evidence",
+        runtime_index,
         &[
             "M1.3 FFI panic 边界已静态落地",
             "M1.3 rustfmt/锚点/差异检查通过",
@@ -53,10 +54,9 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
         ],
     );
 
-    let runtime_10_problem_row = runtime_index_problem_row_for(runtime_index, "P13", "dynamic API");
     assert_contains_all(
-        "Runtime index P13 row",
-        runtime_10_problem_row,
+        "Runtime index P13 archived evidence",
+        runtime_index,
         &[
             "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
             "panic-boundary、完整 app loader 与 runtime UI/editor Cargo 验证仍待活动编译通道空闲后重跑",
@@ -77,14 +77,18 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
 
 #[test]
 fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff() {
-    let runtime_10_plan = include_str!(
+    let runtime_10_plan = runtime_plan_source_with_archive("10", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let runtime_05_plan = include_str!(
+    ));
+    let runtime_10_plan = runtime_10_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
+    let runtime_05_plan = runtime_plan_source_with_archive("05", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
-    );
+    ));
+    let runtime_05_plan = runtime_05_plan.as_str();
     let convergence_doc = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-interface-convergence.md"
     );
@@ -160,11 +164,9 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         ],
     );
 
-    let runtime_10_index_row =
-        runtime_index_row_for(runtime_index, "10-dynamic-api-and-interface-convergence.md");
     assert_contains_all(
-        "Runtime 10 index row",
-        runtime_10_index_row,
+        "Runtime 10 archived index evidence",
+        runtime_index,
         &[
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
             "M2 UI 镜像契约 owner/Cargo gate",
@@ -175,10 +177,9 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         ],
     );
 
-    let runtime_10_problem_row = runtime_index_problem_row_for(runtime_index, "P13", "dynamic API");
     assert_contains_all(
-        "Runtime index P13 row",
-        runtime_10_problem_row,
+        "Runtime index P13 archived evidence",
+        runtime_index,
         &[
             "interface `ui/` 22 条目镜像契约",
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",

@@ -2,11 +2,14 @@ use super::*;
 
 #[test]
 fn runtime_15_f12_production_dead_code_current_state_is_zero_hit() {
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let runtime_index = runtime_15_plan.clone();
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = runtime_15_plan.clone();
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let session_note =
         read_repo(".codex/sessions/20260612-0847-runtime-architecture-implementation.md");
@@ -20,10 +23,8 @@ fn runtime_15_f12_production_dead_code_current_state_is_zero_hit() {
         "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/foundation.rs",
     );
 
-    let s10_row = runtime_15_plan
-        .lines()
-        .find(|line| line.starts_with("| S10 |"))
-        .expect("Runtime 15 plan should keep the S10 dead-code row");
+    let s10_row = slice_entry(&runtime_15_plan, F12_CURRENT_STATE_WORDING_SLICE)
+        .expect("Runtime 15 numbered output should keep the F12 current-state record");
     assert_contains_all(
         "Runtime 15 S10 row",
         s10_row,

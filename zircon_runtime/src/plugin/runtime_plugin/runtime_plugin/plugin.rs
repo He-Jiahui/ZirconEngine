@@ -1,7 +1,7 @@
-use crate::core::ModuleDescriptor;
+use crate::core::{ModuleDescriptor, ModuleLifecycle};
 use crate::plugin::{
-    PluginFinishContext, PluginPackageManifest, PluginReadyContext, PluginRuntimeContext,
-    ProjectPluginSelection, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
+    PluginPackageManifest, ProjectPluginSelection, RuntimeExtensionRegistry,
+    RuntimeExtensionRegistryError,
 };
 
 use super::super::RuntimePluginDescriptor;
@@ -11,6 +11,11 @@ pub trait RuntimePlugin {
 
     fn module_descriptor(&self) -> &ModuleDescriptor {
         self.descriptor().module_descriptor()
+    }
+
+    /// Returns the kernel-owned lifecycle attached to the embedded module descriptor.
+    fn lifecycle(&self) -> &dyn ModuleLifecycle {
+        self.module_descriptor().lifecycle.as_ref()
     }
 
     fn package_manifest(&self) -> PluginPackageManifest {
@@ -27,29 +32,6 @@ pub trait RuntimePlugin {
     ) -> Result<(), RuntimeExtensionRegistryError> {
         Ok(())
     }
-
-    fn ready(
-        &self,
-        _context: &PluginReadyContext<'_>,
-    ) -> Result<bool, RuntimeExtensionRegistryError> {
-        Ok(true)
-    }
-
-    fn finish(
-        &self,
-        _context: &mut PluginFinishContext<'_>,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        Ok(())
-    }
-
-    fn activate(
-        &self,
-        _context: &mut PluginRuntimeContext<'_>,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        Ok(())
-    }
-
-    fn deactivate(&self, _context: &mut PluginRuntimeContext<'_>) {}
 }
 
 impl RuntimePlugin for RuntimePluginDescriptor {

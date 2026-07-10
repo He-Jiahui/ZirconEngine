@@ -1,26 +1,37 @@
 use std::fmt;
 use std::sync::Arc;
 
+#[cfg(feature = "ai-contracts")]
+use crate::core::framework::ai::AiManager;
+#[cfg(feature = "net-contracts")]
+use crate::core::framework::net::NetManager;
+#[cfg(feature = "physics-contracts")]
+use crate::core::framework::physics::PhysicsManager;
+#[cfg(feature = "sound-contracts")]
+use crate::core::framework::sound::SoundManager;
 use crate::core::framework::{
-    ai::AiManager,
     animation::AnimationManager,
     asset::ResourceManager,
     foundation::{ConfigManager, EventManager},
     input::{InputActionManager, InputManager},
     navigation::NavigationManager,
-    net::NetManager,
-    physics::PhysicsManager,
     render::{RenderFramework, RenderingManager},
     scene::LevelManager,
-    sound::SoundManager,
 };
 use crate::core::{CoreError, CoreHandle};
 
+#[cfg(feature = "ai-contracts")]
+use super::AI_MANAGER_NAME;
+#[cfg(feature = "net-contracts")]
+use super::NET_MANAGER_NAME;
+#[cfg(feature = "physics-contracts")]
+use super::PHYSICS_MANAGER_NAME;
+#[cfg(feature = "sound-contracts")]
+use super::SOUND_MANAGER_NAME;
 use super::{
-    AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME,
-    NET_MANAGER_NAME, PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
-    RESOURCE_MANAGER_NAME, SOUND_MANAGER_NAME,
+    ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME,
+    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
 };
 
 macro_rules! define_manager_holder {
@@ -130,6 +141,7 @@ define_manager_holder!(
     EVENT_MANAGER_NAME,
     event
 );
+#[cfg(feature = "ai-contracts")]
 define_manager_holder!(
     AiManagerHandle,
     AiManager,
@@ -137,6 +149,7 @@ define_manager_holder!(
     AI_MANAGER_NAME,
     ai
 );
+#[cfg(feature = "net-contracts")]
 define_manager_holder!(
     NetManagerHandle,
     NetManager,
@@ -144,6 +157,7 @@ define_manager_holder!(
     NET_MANAGER_NAME,
     net
 );
+#[cfg(feature = "physics-contracts")]
 define_manager_holder!(
     PhysicsManagerHandle,
     PhysicsManager,
@@ -158,6 +172,7 @@ define_manager_holder!(
     ANIMATION_MANAGER_NAME,
     animation
 );
+#[cfg(feature = "sound-contracts")]
 define_manager_holder!(
     SoundManagerHandle,
     SoundManager,

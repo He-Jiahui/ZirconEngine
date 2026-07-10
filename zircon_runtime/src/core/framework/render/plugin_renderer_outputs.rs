@@ -133,6 +133,8 @@ pub struct RenderHybridGiScenePrepareReadbackOutputs {
     pub atlas_samples: Vec<RenderHybridGiScenePrepareSample>,
     pub capture_samples: Vec<RenderHybridGiScenePrepareSample>,
     pub surface_cache_depth_samples: Vec<RenderHybridGiScenePrepareSample>,
+    pub surface_cache_pages: Vec<RenderHybridGiSurfaceCachePageRecord>,
+    pub voxel_clipmaps: Vec<RenderHybridGiVoxelClipmapRecord>,
     pub voxel_clipmap_ids: Vec<u32>,
     pub voxel_samples: Vec<RenderHybridGiScenePrepareSample>,
     pub voxel_occupancy: Vec<u32>,
@@ -153,6 +155,8 @@ impl RenderHybridGiScenePrepareReadbackOutputs {
         !self.atlas_samples.is_empty()
             || !self.capture_samples.is_empty()
             || !self.surface_cache_depth_samples.is_empty()
+            || !self.surface_cache_pages.is_empty()
+            || !self.voxel_clipmaps.is_empty()
             || !self.voxel_samples.is_empty()
             || !self.voxel_occupancy.is_empty()
             || !self.voxel_occupancy_masks.is_empty()
@@ -168,6 +172,27 @@ impl RenderHybridGiScenePrepareReadbackOutputs {
 pub struct RenderHybridGiScenePrepareSample {
     pub index: u32,
     pub rgba8: [u8; 4],
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiSurfaceCachePageRecord {
+    pub page_id: u32,
+    pub owner_card_id: u32,
+    pub atlas_slot_id: u32,
+    pub bounds_center_x_bits: u32,
+    pub bounds_center_y_bits: u32,
+    pub bounds_center_z_bits: u32,
+    pub bounds_radius_bits: u32,
+    pub radiance_rgba8: [u8; 4],
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiVoxelClipmapRecord {
+    pub clipmap_id: u32,
+    pub center_x_bits: u32,
+    pub center_y_bits: u32,
+    pub center_z_bits: u32,
+    pub half_extent_bits: u32,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -209,7 +234,8 @@ pub struct RenderHybridGiVoxelCellDominantNodeRecord {
 mod tests {
     use super::{
         RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
-        RenderHybridGiScenePrepareSample, RenderHybridGiTraceTileRecord,
+        RenderHybridGiScenePrepareSample, RenderHybridGiSurfaceCachePageRecord,
+        RenderHybridGiTraceTileRecord, RenderHybridGiVoxelClipmapRecord,
         RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
         RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
         RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
@@ -331,6 +357,36 @@ mod tests {
                 voxel_samples: vec![RenderHybridGiScenePrepareSample {
                     index: 4,
                     rgba8: [8, 16, 24, 255],
+                }],
+                ..RenderHybridGiScenePrepareReadbackOutputs::default()
+            },
+            ..RenderHybridGiReadbackOutputs::default()
+        };
+
+        assert!(outputs.scene_prepare.has_runtime_feedback_payload());
+        assert!(!outputs.is_empty());
+    }
+
+    #[test]
+    fn hybrid_gi_readback_outputs_report_world_space_trace_lookup_records() {
+        let outputs = RenderHybridGiReadbackOutputs {
+            scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
+                surface_cache_pages: vec![RenderHybridGiSurfaceCachePageRecord {
+                    page_id: 3,
+                    owner_card_id: 7,
+                    atlas_slot_id: 11,
+                    bounds_center_x_bits: 1.0_f32.to_bits(),
+                    bounds_center_y_bits: 2.0_f32.to_bits(),
+                    bounds_center_z_bits: 3.0_f32.to_bits(),
+                    bounds_radius_bits: 4.0_f32.to_bits(),
+                    radiance_rgba8: [24, 48, 96, 255],
+                }],
+                voxel_clipmaps: vec![RenderHybridGiVoxelClipmapRecord {
+                    clipmap_id: 5,
+                    center_x_bits: 0.0_f32.to_bits(),
+                    center_y_bits: 1.0_f32.to_bits(),
+                    center_z_bits: 2.0_f32.to_bits(),
+                    half_extent_bits: 8.0_f32.to_bits(),
                 }],
                 ..RenderHybridGiScenePrepareReadbackOutputs::default()
             },

@@ -21,6 +21,9 @@ mod virtual_geometry_provider;
 
 use virtual_geometry_provider::test_virtual_geometry_runtime_provider;
 
+const HYBRID_GI_SCENE_PACKET_MINIMUM_SIZE_BYTES: u64 = 710 * 4;
+const HYBRID_GI_TRACE_PACKET_MINIMUM_SIZE_BYTES: u64 = 448 * 4;
+
 pub(super) fn pluginized_wgpu_render_framework() -> WgpuRenderFramework {
     pluginized_wgpu_render_framework_with_asset_manager(Arc::new(ProjectAssetManager::default()))
 }
@@ -195,8 +198,12 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.scene-prepare")
-            .read_texture("scene-depth")
-            .write_buffer("hybrid-gi-scene"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .write_buffer_with_minimum_size(
+                PostProcessGraphResourceNames::HYBRID_GI_SCENE,
+                HYBRID_GI_SCENE_PACKET_MINIMUM_SIZE_BYTES,
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-trace-schedule",
@@ -208,23 +215,27 @@ pub(super) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
                 [8, 8, 1],
                 [1, 1, 1],
             ))
-            .read_buffer("hybrid-gi-scene")
-            .write_buffer("hybrid-gi-trace"),
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_SCENE)
+            .write_buffer_with_minimum_size(
+                PostProcessGraphResourceNames::HYBRID_GI_TRACE,
+                HYBRID_GI_TRACE_PACKET_MINIMUM_SIZE_BYTES,
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-resolve",
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.resolve")
-            .read_buffer("hybrid-gi-trace")
-            .write_texture("hybrid-gi-lighting"),
+            .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_TRACE)
+            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "hybrid-gi-history",
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.history")
-            .read_texture("hybrid-gi-lighting")
+            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
             .write_external_texture("history-global-illumination"),
         ],
     )

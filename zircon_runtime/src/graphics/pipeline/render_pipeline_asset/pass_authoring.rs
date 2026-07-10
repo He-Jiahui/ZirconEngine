@@ -79,7 +79,7 @@ fn author_graph_resources(
             RenderFeatureResourceKind::Buffer => {
                 buffer_resources.insert(
                     name.clone(),
-                    graph.create_buffer(buffer_desc_for(name, extract)),
+                    graph.create_buffer(buffer_desc_for(name, extract, plan.minimum_size_bytes)),
                 );
             }
             RenderFeatureResourceKind::External => {

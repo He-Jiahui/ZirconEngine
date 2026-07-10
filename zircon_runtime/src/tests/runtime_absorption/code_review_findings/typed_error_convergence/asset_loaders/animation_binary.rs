@@ -14,15 +14,18 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
     let import_animation_asset =
         include_str!("../../../../../asset/importer/ingest/import_animation_asset.rs");
     let animation_tests = include_str!("../../../../../asset/tests/assets/animation.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    let review_findings = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_15_plan = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+    );
+    let runtime_index = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
+    let convention = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+    );
     let animation_doc =
         include_str!("../../../../../../../docs/zircon_runtime/asset/assets/animation.md");
 

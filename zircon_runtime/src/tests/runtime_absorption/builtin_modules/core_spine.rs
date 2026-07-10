@@ -22,7 +22,7 @@ fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
         );
     }
 
-    #[cfg(feature = "plugin-ui")]
+    #[cfg(feature = "ui")]
     assert!(
         descriptors
             .iter()
@@ -62,7 +62,7 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
         "graphics base should remain in the minimal runtime core before script"
     );
 
-    #[cfg(feature = "plugin-ui")]
+    #[cfg(feature = "ui")]
     {
         let ui_index = descriptors
             .iter()
@@ -76,10 +76,10 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
         );
     }
 
-    #[cfg(not(feature = "plugin-ui"))]
+    #[cfg(not(feature = "ui"))]
     assert_eq!(
         script_index,
         descriptors.len() - 1,
-        "core-min runtime spine should stop at script when plugin-ui is disabled"
+        "core-min runtime spine should stop at script when ui is disabled"
     );
 }

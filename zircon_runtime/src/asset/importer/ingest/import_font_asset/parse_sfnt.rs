@@ -1,26 +1,29 @@
 use std::collections::BTreeSet;
 
 use crate::asset::assets::{
-    FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceStyle, FontAssetMetadata,
-    FontAssetParsedFace, FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
-    FontAssetVariationCoord,
+    DecodedFontSource, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetFaceMetrics,
+    FontAssetFaceStyle, FontAssetLineMetrics, FontAssetMetadata, FontAssetParsedFace,
+    FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
+    FontAssetVariationCoord, FontMetadataParseError,
 };
-use ttf_parser::{name_id, Face, FaceParsingError, Style, Tag};
+use ttf_parser::{name_id, Face, Style, Tag};
 
-pub(super) fn parse_font_metadata(bytes: &[u8]) -> Result<FontAssetMetadata, FontParseError> {
-    if is_woff2(bytes) {
-        return Err(FontParseError::Woff2DecodeUnsupported);
-    }
-
+pub(super) fn parse_font_metadata(
+    source: &DecodedFontSource,
+) -> Result<FontAssetMetadata, FontMetadataParseError> {
+    let bytes = source.bytes();
     let face_count = ttf_parser::fonts_in_collection(bytes).unwrap_or(1);
-    let source_format = if face_count > 1 {
+    let source_format = if source.source_format() == FontAssetSourceFormat::Woff2 {
+        FontAssetSourceFormat::Woff2
+    } else if face_count > 1 {
         FontAssetSourceFormat::TrueTypeCollection
     } else {
         FontAssetSourceFormat::Sfnt
     };
     let mut faces = Vec::new();
     for face_index in 0..face_count {
-        let face = Face::parse(bytes, face_index)?;
+        let face = Face::parse(bytes, face_index)
+            .map_err(|error| FontMetadataParseError::new(face_index, error))?;
         faces.push(parse_face(bytes, face_index, &face));
     }
 
@@ -31,38 +34,10 @@ pub(super) fn parse_font_metadata(bytes: &[u8]) -> Result<FontAssetMetadata, Fon
     })
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum FontParseError {
-    Face(FaceParsingError),
-    Woff2DecodeUnsupported,
-}
-
-impl std::fmt::Display for FontParseError {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Face(error) => write!(formatter, "{error}"),
-            Self::Woff2DecodeUnsupported => {
-                write!(
-                    formatter,
-                    "WOFF2 decode is not yet wired into the font importer"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for FontParseError {}
-
-impl From<FaceParsingError> for FontParseError {
-    fn from(error: FaceParsingError) -> Self {
-        Self::Face(error)
-    }
-}
-
 fn parse_face(bytes: &[u8], face_index: u32, face: &Face<'_>) -> FontAssetParsedFace {
     let axes = variation_axes(face);
     let named_instances = parse_named_instances(
-        face.table_data(Tag::from_bytes(b"fvar")),
+        face.raw_face().table(Tag::from_bytes(b"fvar")),
         axes.len(),
         |name_id| name_by_id(face, name_id),
     );
@@ -78,9 +53,32 @@ fn parse_face(bytes: &[u8], face_index: u32, face: &Face<'_>) -> FontAssetParsed
         weight: face.weight().to_number(),
         width_class: face.width().to_number(),
         style: style_from_face(face.style()),
+        metrics: face_metrics(face),
         variation_axes: axes,
         named_instances,
         cmap: cmap_coverage(bytes, face),
+    }
+}
+
+fn face_metrics(face: &Face<'_>) -> FontAssetFaceMetrics {
+    let os2 = face.tables().os2;
+    FontAssetFaceMetrics {
+        units_per_em: face.units_per_em(),
+        ascender: face.ascender(),
+        descender: face.descender(),
+        line_gap: face.line_gap(),
+        uses_typographic_metrics: os2.is_some_and(|table| table.use_typographic_metrics()),
+        windows_ascender: os2.map(|table| table.windows_ascender()).unwrap_or(0),
+        windows_descender: os2.map(|table| table.windows_descender()).unwrap_or(0),
+        underline: face.underline_metrics().map(line_metrics),
+        strikeout: face.strikeout_metrics().map(line_metrics),
+    }
+}
+
+fn line_metrics(metrics: ttf_parser::LineMetrics) -> FontAssetLineMetrics {
+    FontAssetLineMetrics {
+        position: metrics.position,
+        thickness: metrics.thickness,
     }
 }
 
@@ -268,142 +266,5 @@ fn tag_to_string(tag: Tag) -> String {
     String::from_utf8_lossy(&tag.to_bytes()).into_owned()
 }
 
-fn is_woff2(bytes: &[u8]) -> bool {
-    bytes.starts_with(b"wOF2")
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn fira_regular() -> Vec<u8> {
-        std::fs::read(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("assets")
-                .join("fonts")
-                .join("FiraSans-Regular.ttf"),
-        )
-        .unwrap()
-    }
-
-    #[test]
-    fn text_font_cmap_coverage_bitset_matches_face() {
-        let bytes = fira_regular();
-        let metadata = parse_font_metadata(&bytes).unwrap();
-        let face = Face::parse(&bytes, 0).unwrap();
-        let coverage = &metadata.faces[0].cmap;
-
-        assert!(coverage.codepoint_count > 0);
-        for ch in ['A', 'a', '0'] {
-            assert_eq!(
-                coverage.contains_codepoint(ch as u32),
-                face.glyph_index(ch).is_some()
-            );
-        }
-    }
-
-    #[test]
-    fn text_font_static_face_reports_no_variable_axes() {
-        let bytes = fira_regular();
-        let metadata = parse_font_metadata(&bytes).unwrap();
-
-        assert_eq!(metadata.face_count, 1);
-        assert!(metadata.faces[0].variation_axes.is_empty());
-        assert!(metadata.faces[0].named_instances.is_empty());
-    }
-
-    #[test]
-    fn text_font_parse_ttf_extracts_os2_name_metadata() {
-        let bytes = fira_regular();
-        let metadata = parse_font_metadata(&bytes).unwrap();
-        let face = &metadata.faces[0];
-
-        assert_eq!(metadata.source_format, FontAssetSourceFormat::Sfnt);
-        assert_eq!(face.face_index, 0);
-        assert!(face
-            .family
-            .as_deref()
-            .is_some_and(|family| family.contains("Fira")));
-        assert_eq!(face.weight, 400);
-        assert_eq!(face.width_class, 5);
-        assert_eq!(face.style, FontAssetFaceStyle::Normal);
-    }
-
-    #[test]
-    fn text_font_parse_ttc_enumerates_faces() {
-        let regular = fira_regular();
-        let mut second_face = regular.clone();
-        patch_os2_weight(&mut second_face, 700);
-        let collection = ttc_from_fonts(&[regular.as_slice(), second_face.as_slice()]);
-
-        let metadata = parse_font_metadata(&collection).unwrap();
-
-        assert_eq!(
-            metadata.source_format,
-            FontAssetSourceFormat::TrueTypeCollection
-        );
-        assert_eq!(metadata.face_count, 2);
-        assert_eq!(metadata.faces[0].face_index, 0);
-        assert_eq!(metadata.faces[1].face_index, 1);
-        assert_eq!(metadata.faces[0].weight, 400);
-        assert_eq!(metadata.faces[1].weight, 700);
-    }
-
-    fn ttc_from_fonts(fonts: &[&[u8]]) -> Vec<u8> {
-        let header_len = 12 + fonts.len() * 4;
-        let mut output = vec![0; header_len];
-        output[0..4].copy_from_slice(b"ttcf");
-        output[4..8].copy_from_slice(&0x0001_0000_u32.to_be_bytes());
-        output[8..12].copy_from_slice(&(fonts.len() as u32).to_be_bytes());
-
-        for (font_index, font) in fonts.iter().enumerate() {
-            pad_to_four(&mut output);
-            let directory_offset = output.len();
-            let offset_slot = 12 + font_index * 4;
-            output[offset_slot..offset_slot + 4]
-                .copy_from_slice(&(directory_offset as u32).to_be_bytes());
-
-            let table_count = u16::from_be_bytes([font[4], font[5]]) as usize;
-            let directory_len = 12 + table_count * 16;
-            output.extend_from_slice(&font[..directory_len]);
-            for table_index in 0..table_count {
-                let record_offset = 12 + table_index * 16;
-                let source_offset = read_u32(font, record_offset + 8) as usize;
-                let source_len = read_u32(font, record_offset + 12) as usize;
-                pad_to_four(&mut output);
-                let target_offset = output.len();
-                output.extend_from_slice(&font[source_offset..source_offset + source_len]);
-                output[directory_offset + record_offset + 8..directory_offset + record_offset + 12]
-                    .copy_from_slice(&(target_offset as u32).to_be_bytes());
-            }
-        }
-        output
-    }
-
-    fn patch_os2_weight(bytes: &mut [u8], weight: u16) {
-        let offset = sfnt_table_offset(bytes, b"OS/2").unwrap() + 4;
-        bytes[offset..offset + 2].copy_from_slice(&weight.to_be_bytes());
-    }
-
-    fn sfnt_table_offset(bytes: &[u8], tag: &[u8; 4]) -> Option<usize> {
-        let table_count = u16::from_be_bytes([*bytes.get(4)?, *bytes.get(5)?]) as usize;
-        for table_index in 0..table_count {
-            let record_offset = 12 + table_index * 16;
-            if bytes.get(record_offset..record_offset + 4)? != &tag[..] {
-                continue;
-            }
-            return Some(read_u32(bytes, record_offset + 8) as usize);
-        }
-        None
-    }
-
-    fn read_u32(data: &[u8], offset: usize) -> u32 {
-        u32::from_be_bytes(data[offset..offset + 4].try_into().unwrap())
-    }
-
-    fn pad_to_four(data: &mut Vec<u8>) {
-        while data.len() % 4 != 0 {
-            data.push(0);
-        }
-    }
-}
+mod tests;

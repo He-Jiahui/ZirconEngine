@@ -11,6 +11,40 @@ use super::{
     NativeBitmapAtlasSourceImage,
 };
 
+pub(super) fn native_bitmap_atlas_storage_submissions(
+    atlas: &GlyphAtlasSet,
+    source_images: &[NativeBitmapAtlasSourceImage],
+    frame_index: u64,
+    viewport_size: UVec2,
+    clip_rect: GlyphAtlasScreenRect,
+    face_epoch: u64,
+) -> Vec<NativeBitmapAtlasStorageSubmission> {
+    let mut runs = Vec::<(GlyphAtlasStorageFormat, Vec<NativeBitmapAtlasSourceImage>)>::new();
+    for image in source_images {
+        let storage_format = image.source.format.storage_format();
+        match runs.last_mut() {
+            Some((run_format, run_images)) if *run_format == storage_format => {
+                run_images.push(image.clone());
+            }
+            _ => runs.push((storage_format, vec![image.clone()])),
+        }
+    }
+
+    runs.into_iter()
+        .map(|(storage_format, run_images)| {
+            NativeBitmapAtlasStorageSubmission::new(
+                storage_format,
+                atlas.clone(),
+                run_images,
+                frame_index,
+                viewport_size,
+                clip_rect,
+                face_epoch,
+            )
+        })
+        .collect()
+}
+
 pub(in crate::graphics::scene::scene_renderer::ui::text) struct NativeBitmapAtlasStorageSubmission {
     pub(in crate::graphics::scene::scene_renderer::ui::text) storage_format:
         GlyphAtlasStorageFormat,
@@ -118,38 +152,4 @@ where
         return false;
     };
     formats.any(|format| format != first)
-}
-
-pub(super) fn native_bitmap_atlas_storage_formats_in_frame<I>(
-    formats: I,
-) -> Vec<GlyphAtlasStorageFormat>
-where
-    I: IntoIterator<Item = GlyphAtlasStorageFormat>,
-{
-    let mut unique_formats = Vec::new();
-    for format in formats {
-        if !unique_formats.contains(&format) {
-            unique_formats.push(format);
-        }
-    }
-    unique_formats
-}
-
-pub(super) fn native_bitmap_atlas_storage_formats_are_contiguous<I>(formats: I) -> bool
-where
-    I: IntoIterator<Item = GlyphAtlasStorageFormat>,
-{
-    let mut seen_formats = Vec::new();
-    let mut previous_format = None;
-    for format in formats {
-        if previous_format == Some(format) {
-            continue;
-        }
-        if seen_formats.contains(&format) {
-            return false;
-        }
-        seen_formats.push(format);
-        previous_format = Some(format);
-    }
-    true
 }

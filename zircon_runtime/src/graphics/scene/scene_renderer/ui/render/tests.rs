@@ -33,6 +33,7 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
                     style: UiResolvedStyle {
                         background_color: Some("#112233".to_string()),
                         foreground_color: Some("#ddeeff".to_string()),
+                        language: Some("zh-Hans-CN".to_string()),
                         font_weight: 650,
                         font_size: 18.0,
                         line_height: 22.0,
@@ -53,6 +54,7 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
 
     assert_eq!(plan.draws.len(), 1);
     assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].language.as_deref(), Some("zh-hans-cn"));
     assert_eq!(plan.native_texts[0].font_weight, 650);
     assert_eq!(
         plan.native_texts[0].background_color,

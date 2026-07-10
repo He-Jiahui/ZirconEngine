@@ -1,11 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::framework::net::{ZrChunkEntry, ZrPackManifest};
-
 use super::manifest::validate_zrpack_asset_path;
 use super::{
-    zrpack_content_hash, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
-    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
+    zrpack_content_hash, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
+    ZrPackManifest, ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
 };
 
 const ZRPACK_HEADER_SIZE: usize = 24;

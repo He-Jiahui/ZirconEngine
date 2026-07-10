@@ -12,11 +12,16 @@ fn optional_extension_module_registration_keeps_current_owner_packages_explicit(
         "zircon_runtime should not revive the old optional extensions umbrella"
     );
 
+    assert!(
+        !runtime_root.join("src/physics").exists(),
+        "physics runtime behavior should remain plugin-owned after the hard cutover"
+    );
+    assert!(
+        runtime_root.join("src/animation").exists(),
+        "Runtime 14 keeps animation as a runtime-owned module family"
+    );
+
     for domain in ["physics", "animation"] {
-        assert!(
-            !runtime_root.join("src").join(domain).exists(),
-            "runtime domain {domain} should not keep concrete runtime behavior under zircon_runtime/src/{domain}"
-        );
         assert!(
             !runtime_root.join(format!("src/{domain}.rs")).exists(),
             "runtime domain {domain} should be folder-backed, not a flat root file"

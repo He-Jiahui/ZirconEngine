@@ -1,7 +1,9 @@
 const PARENT_SOURCE: &str = include_str!("../naming_boundary.rs");
 const CLASSIFIERS_SOURCE: &str = include_str!("classifiers.rs");
 const LEXICAL_SCAN_SOURCE: &str = include_str!("lexical_scan.rs");
+const PRODUCTION_LINES_SOURCE: &str = include_str!("lexical_scan/production_lines.rs");
 const SUPPORT_SOURCE: &str = include_str!("support.rs");
+const STATUS_EVIDENCE_SOURCE: &str = include_str!("support/status_evidence.rs");
 const TOP_LEVEL_SOURCE: &str = include_str!("top_level.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 const RUNTIME_15_M2_SOURCE: &str = include_str!("runtime_15_m2.rs");
@@ -9,29 +11,29 @@ const ASSET_DYNAMIC_SOURCE: &str = include_str!("runtime_15_m2/asset_dynamic.rs"
 const GRAPHICS_HYBRID_GI_SOURCE: &str = include_str!("runtime_15_m2/graphics/hybrid_gi.rs");
 
 const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
 );
 const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
+    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
 const SESSION_NOTE: &str = include_str!(
     "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
 );
 const STATUS_ROW_DATA: &str = include_str!(
-    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/naming_graphics_misc.rs"
+    "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/naming_graphics_misc/root_route_rows.rs"
 );
 const STATUS_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/structure_route_maps/naming_boundary_rows.rs"
 );
 const DATE_MAP: &str = include_str!(
-    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps.rs"
+    "../plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/structure_route_maps/naming_boundary_rows.rs"
 );
 
 #[test]
@@ -105,12 +107,26 @@ fn assert_child_owners_are_focused() {
             "collect_naming_references",
             "collect_server_references",
             "token_has_server_component",
+            "lexical_scan/production_lines.rs",
         ],
     );
     assert_contains_all(
         "support",
         SUPPORT_SOURCE,
-        &["assert_contains_all", "read_text", "read_repo_text"],
+        &[
+            "assert_contains_all",
+            "read_text",
+            "read_repo_text",
+            "support/status_evidence.rs",
+        ],
+    );
+    assert_contains_all(
+        "status evidence support",
+        STATUS_EVIDENCE_SOURCE,
+        &[
+            "read_runtime_15_naming_status_rows",
+            "read_runtime_test_children",
+        ],
     );
 }
 
@@ -146,7 +162,9 @@ fn assert_line_budget() {
         ("top-level guards", TOP_LEVEL_SOURCE, 120),
         ("classifiers", CLASSIFIERS_SOURCE, 190),
         ("lexical scan", LEXICAL_SCAN_SOURCE, 120),
+        ("production-line scan", PRODUCTION_LINES_SOURCE, 80),
         ("support", SUPPORT_SOURCE, 50),
+        ("status evidence support", STATUS_EVIDENCE_SOURCE, 80),
         ("split layout", SPLIT_LAYOUT_SOURCE, 240),
     ] {
         let line_count = source.lines().count();

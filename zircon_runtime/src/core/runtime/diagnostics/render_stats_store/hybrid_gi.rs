@@ -191,9 +191,9 @@ fn record_payload_source(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_bool(
         store,
-        "render.hybrid_gi.payload.source.authored",
+        "render.hybrid_gi.payload.source.scene_representation",
         frame_index,
-        source == RenderHybridGiPayloadSource::Authored,
+        source == RenderHybridGiPayloadSource::SceneRepresentation,
         &["render", "hybrid_gi", "payload", "source"],
     );
 }

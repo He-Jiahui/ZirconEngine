@@ -4,7 +4,7 @@ use super::*;
 fn runtime_15_status_output_runtime_15_expected_slice_child_owner_guard_route_metadata_docs_are_synced(
 ) {
     let frameworks_02 = read_repo(
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     );
     for (label, source) in [
         (

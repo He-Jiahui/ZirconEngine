@@ -7,7 +7,7 @@ fn runtime_15_review_guard_typed_error_rows_split_layout_guard_is_folder_backed(
     let status_current = read_runtime_src(TYPED_ERROR_ROWS_SPLIT_LAYOUT_STATUS_CURRENT_CHILD_PATH);
     let budgets = read_runtime_src(TYPED_ERROR_ROWS_SPLIT_LAYOUT_BUDGETS_CHILD_PATH);
     let split_layout = read_runtime_src(TYPED_ERROR_ROWS_SPLIT_LAYOUT_SPLIT_LAYOUT_CHILD_PATH);
-    let status_rows = read_runtime_src(REVIEW_GUARD_STATUS_SUPPORT_ROWS_PATH);
+    let status_rows = review_guard_status_support_review_rows_source_blob();
     let status_map = read_runtime_src(REVIEW_GUARD_TYPED_ERROR_STATUS_MAP_PATH);
     let date_map = read_runtime_src(REVIEW_GUARD_TYPED_ERROR_DATE_MAP_PATH);
 
@@ -90,7 +90,7 @@ fn runtime_15_review_guard_typed_error_rows_split_layout_guard_is_folder_backed(
         ),
         (
             "Frameworks 02 plan",
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         (
             "review findings",

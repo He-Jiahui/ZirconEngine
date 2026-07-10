@@ -50,7 +50,7 @@ fn runtime_15_status_support_expected_slice_row_data_guard_is_folder_backed() {
         "Runtime 15 M3 status-support expected-slice row-data owner folder-backed split",
         "status-support expected-slice row-data parent mounts child owner",
         "Runtime 15 M3 aggregation exports expected-slice row-data children",
-        "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+        "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
     ] {
         assert!(
             !route.contains(moved_anchor),

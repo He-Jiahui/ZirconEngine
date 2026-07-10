@@ -1,10 +1,13 @@
 #[test]
 fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() {
-    let runtime_01_plan = include_str!(
+    let runtime_01_plan = runtime_plan_source_with_archive("01", include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    ));
+    let runtime_01_plan = runtime_01_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let tech_stack =
         include_str!("../../../../../../../docs/engine-architecture/runtime-tech-stack.md");
     let text_doc = include_str!("../../../../../../../docs/zircon_runtime/ui/text.md");
@@ -64,11 +67,9 @@ fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() 
         ],
     );
 
-    let runtime_01_index_row =
-        runtime_index_row_for(runtime_index, "01-tech-stack-and-dependency-governance.md");
     assert_contains_all(
-        "Runtime 01 index row",
-        runtime_01_index_row,
+        "Runtime 01 archived index evidence",
+        runtime_index,
         &[
             "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",
             "tech_stack/text_shaper/plugin physics Cargo gates",
@@ -76,11 +77,9 @@ fn runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation() 
         ],
     );
 
-    let runtime_01_problem_row =
-        runtime_index_problem_row_for(runtime_index, "P10", "tech-stack completeness");
     assert_contains_all(
-        "Runtime index P10 row",
-        runtime_01_problem_row,
+        "Runtime index P10 archived evidence",
+        runtime_index,
         &[
             "physics_backend_option_decision_keeps_jolt_unavailable_and_plugin_owned",
             "runtime_01_tech_stack_cargo_gate_stays_visible_until_dependency_validation",

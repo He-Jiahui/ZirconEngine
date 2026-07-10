@@ -10,4 +10,6 @@ pub(crate) struct DeferredSceneResources {
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer::deferred) shadow_atlas_fallback_globals_buffer:
         wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::deferred) reflection_probe_bindings:
+        crate::graphics::scene::scene_renderer::environment::ReflectionProbeGpuBindings,
 }

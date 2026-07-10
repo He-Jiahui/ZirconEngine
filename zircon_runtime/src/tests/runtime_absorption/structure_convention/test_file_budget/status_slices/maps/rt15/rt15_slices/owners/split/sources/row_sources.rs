@@ -1,7 +1,7 @@
 use super::*;
 
 const CHILD_OWNER_READ_ROOT: &str =
-    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/child_owners";
+    "tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/rt15_slices/owners";
 
 pub(in super::super) fn read_child_owner(relative_path: &str) -> String {
     read_runtime_src(&format!("{CHILD_OWNER_READ_ROOT}/{relative_path}"))

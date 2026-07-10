@@ -17,8 +17,8 @@ fn runtime_15_morph_payload_projection_is_wired() {
     let pending = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let gpu_scene_doc = read_repo("docs/zircon_runtime/graphics/scene/gpu_scene/mod.md");
     let mesh_cache_doc =

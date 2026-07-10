@@ -53,6 +53,12 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     bind_live_frame_target_texture(
         graph,
         resources,
+        PostProcessGraphResourceNames::GBUFFER_EMISSIVE,
+        &target.gbuffer_emissive_view,
+    );
+    bind_live_frame_target_texture(
+        graph,
+        resources,
         PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
         &target.ambient_occlusion_view,
     );

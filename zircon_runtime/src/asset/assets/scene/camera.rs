@@ -1,6 +1,6 @@
 use crate::asset::AssetReference;
 use crate::core::framework::render::{
-    ProjectionMode, RenderCameraClearColor, DEFAULT_CAMERA_EXPOSURE_EV100,
+    CorePipelineKind, ProjectionMode, RenderCameraClearColor, DEFAULT_CAMERA_EXPOSURE_EV100,
     DEFAULT_CAMERA_MSAA_SAMPLES,
 };
 use crate::core::math::Real;
@@ -15,6 +15,9 @@ use super::post_process::ScenePostProcessSettingsAsset;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneCameraAsset {
+    /// Authored render-pipeline identity; projection remains an independent matrix choice.
+    #[serde(default)]
+    pub core_pipeline: CorePipelineKind,
     #[serde(default)]
     pub projection_mode: ProjectionMode,
     #[serde(default = "default_camera_fov_y_radians")]
@@ -48,6 +51,7 @@ pub struct SceneCameraAsset {
 impl Default for SceneCameraAsset {
     fn default() -> Self {
         Self {
+            core_pipeline: CorePipelineKind::Core3d,
             projection_mode: ProjectionMode::Perspective,
             fov_y_radians: default_camera_fov_y_radians(),
             ortho_size: default_camera_ortho_size(),

@@ -561,6 +561,7 @@ mod tests {
     fn test_view(viewport_size: UVec2) -> LightGridViewInfo {
         let camera = ViewportCameraSnapshot {
             transform: Transform::from_translation(Vec3::ZERO).with_rotation(Quat::IDENTITY),
+            core_pipeline: Default::default(),
             projection_mode: ProjectionMode::Perspective,
             fov_y_radians: 60.0_f32.to_radians(),
             ortho_size: 10.0,

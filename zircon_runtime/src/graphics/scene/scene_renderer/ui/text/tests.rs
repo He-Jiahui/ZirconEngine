@@ -6,6 +6,23 @@ use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 #[path = "tests/native_bitmap_atlas.rs"]
 mod native_bitmap_atlas_tests;
 
+#[cfg(target_os = "windows")]
+#[test]
+fn screen_space_ui_font_initialization_discovers_system_faces_from_empty_snapshot() {
+    let mut font_system = FontSystem::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+
+    let discovered = initialize_screen_space_ui_font_system(&mut font_system, &mut font_database);
+
+    assert!(discovered > 0);
+    assert!(font_database
+        .match_face(&crate::core::framework::render::FontQuery::single_family(
+            "Segoe UI"
+        ))
+        .is_some());
+    assert!(font_system.db().faces().next().is_some());
+}
+
 #[test]
 fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches() {
     let native = text_batch("Normal", UiTextRenderMode::Native);
@@ -154,6 +171,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
                 submission: Default::default(),
             },
         },
+        MissingGlyphDiagnosticsReport::default(),
         GlyphAtlasBitmapRendererPrepareReport::default(),
         atlas_report.clone(),
         sdf_report.clone(),
@@ -169,6 +187,12 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             resolved_sdf_text_batch_count: 2,
             sdf_fallback: ScreenSpaceUiTextSdfFallbackReport::default(),
             native_font_ids: ScreenSpaceUiTextFontIdReport::default(),
+            missing_glyphs: MissingGlyphDiagnosticsReport::default(),
+            raster_upload: ScreenSpaceUiTextRasterUploadReport {
+                visible_raster_glyph_count: 2,
+                source_image_count: 1,
+                ..ScreenSpaceUiTextRasterUploadReport::default()
+            },
             native_bitmap_atlas: NativeBitmapAtlasPrepareReport {
                 frame_index: 0,
                 visible_raster_glyph_count: 2,
@@ -200,6 +224,79 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             bitmap_atlas_renderer: GlyphAtlasBitmapRendererPrepareReport::default(),
             sdf_atlas: atlas_report,
             sdf_renderer: sdf_report,
+        }
+    );
+}
+
+#[test]
+fn text_prepare_report_exposes_raster_upload_scroll_counters() {
+    let native = [text_batch("Native", UiTextRenderMode::Native)];
+    let resolved = ResolvedScreenSpaceUiTextBatches::from_explicit_batches(&native, &[]);
+    let native_bitmap_atlas = NativeBitmapAtlasPrepareReport {
+        frame_index: 7,
+        visible_raster_glyph_count: 5,
+        source_image_count: 4,
+        missing_raster_image_count: 1,
+        approximate_raster_image_count: 2,
+        source_cache: native_bitmap_atlas::NativeBitmapAtlasSourceCacheFrameReport {
+            hit_count: 6,
+            approximate_hit_count: 2,
+            miss_count: 3,
+            insert_count: 4,
+            worker_request_submitted_count: 2,
+            worker_request_pending_count: 1,
+            worker_request_unavailable_count: 1,
+            ..Default::default()
+        },
+        submission: crate::graphics::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
+            upload_command_count: 3,
+            upload_copy_count: 3,
+            upload_byte_len: 384,
+            ..Default::default()
+        },
+        ..NativeBitmapAtlasPrepareReport::default()
+    };
+    let bitmap_renderer = GlyphAtlasBitmapRendererPrepareReport::default()
+        .with_upload_counters_for_test(3, 384, 1, 1, false);
+
+    let report = text_prepare_report(
+        &[],
+        &native,
+        &[],
+        &resolved,
+        ScreenSpaceUiTextSdfFallbackReport::default(),
+        ScreenSpaceUiNativePrepareReport {
+            font_ids: ScreenSpaceUiTextFontIdReport::default(),
+            bitmap_atlas: native_bitmap_atlas,
+        },
+        MissingGlyphDiagnosticsReport::default(),
+        bitmap_renderer,
+        SdfAtlasCacheReport::default(),
+        ScreenSpaceUiSdfPrepareReport::default(),
+    );
+
+    assert_eq!(
+        report.raster_upload,
+        ScreenSpaceUiTextRasterUploadReport {
+            visible_raster_glyph_count: 5,
+            source_image_count: 4,
+            missing_raster_image_count: 1,
+            approximate_raster_image_count: 2,
+            source_cache_hit_count: 6,
+            source_cache_approximate_hit_count: 2,
+            source_cache_miss_count: 3,
+            source_cache_insert_count: 4,
+            worker_request_submitted_count: 2,
+            worker_request_pending_count: 1,
+            worker_request_unavailable_count: 1,
+            upload_command_count: 3,
+            upload_copy_count: 3,
+            upload_byte_len: 384,
+            renderer_upload_request_count: 3,
+            renderer_upload_byte_len: 384,
+            renderer_upload_requeued_count: 1,
+            renderer_upload_failure_count: 1,
+            renderer_upload_ready_to_write_texture: false,
         }
     );
 }
@@ -331,10 +428,12 @@ fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         clip_frame: None,
         source_range: None,
         glyph_advances: Vec::new(),
+        shaped_glyphs: Vec::new(),
         color: [1.0, 1.0, 1.0, 1.0],
         background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),
         font_family: Some("Zircon Sans".to_string()),
+        language: None,
         font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
         font_size: 16.0,
         line_height: 20.0,

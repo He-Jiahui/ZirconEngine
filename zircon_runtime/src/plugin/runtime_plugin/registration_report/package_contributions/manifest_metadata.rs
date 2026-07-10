@@ -10,8 +10,11 @@ pub(super) fn register_package_manifest_metadata_contributions(
     register_package_manifest_options(package_manifest, extensions, diagnostics);
     register_package_manifest_event_catalogs(package_manifest, extensions, diagnostics);
     register_package_manifest_components(package_manifest, extensions, diagnostics);
+    #[cfg(feature = "ui")]
     register_package_manifest_ui_components(package_manifest, extensions, diagnostics);
+    #[cfg(feature = "graphics")]
     register_package_manifest_geometry_sources(package_manifest, extensions, diagnostics);
+    #[cfg(feature = "graphics")]
     register_package_manifest_shading_models(package_manifest, extensions, diagnostics);
 }
 
@@ -54,6 +57,7 @@ fn register_package_manifest_components(
     }
 }
 
+#[cfg(feature = "ui")]
 fn register_package_manifest_ui_components(
     package_manifest: &PluginPackageManifest,
     extensions: &mut RuntimeExtensionRegistry,
@@ -67,6 +71,7 @@ fn register_package_manifest_ui_components(
     }
 }
 
+#[cfg(feature = "graphics")]
 fn register_package_manifest_geometry_sources(
     package_manifest: &PluginPackageManifest,
     extensions: &mut RuntimeExtensionRegistry,
@@ -80,6 +85,7 @@ fn register_package_manifest_geometry_sources(
     }
 }
 
+#[cfg(feature = "graphics")]
 fn register_package_manifest_shading_models(
     package_manifest: &PluginPackageManifest,
     extensions: &mut RuntimeExtensionRegistry,

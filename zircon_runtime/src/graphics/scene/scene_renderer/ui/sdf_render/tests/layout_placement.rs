@@ -64,6 +64,7 @@ fn sdf_draw_plan_applies_text_alignment_inside_frame() {
         'A',
         centered.font.as_deref(),
         centered.font_family.as_deref(),
+        centered.language.as_deref(),
         centered.font_weight,
         centered.font_size,
         &mut centered_database,
@@ -103,6 +104,7 @@ fn sdf_draw_plan_applies_text_alignment_inside_frame() {
         'A',
         right_aligned.font.as_deref(),
         right_aligned.font_family.as_deref(),
+        right_aligned.language.as_deref(),
         right_aligned.font_weight,
         right_aligned.font_size,
         &mut right_database,
@@ -149,6 +151,7 @@ fn sdf_draw_plan_maps_start_end_through_rtl_direction() {
         'A',
         start_aligned.font.as_deref(),
         start_aligned.font_family.as_deref(),
+        start_aligned.language.as_deref(),
         start_aligned.font_weight,
         start_aligned.font_size,
         &mut start_database,
@@ -181,6 +184,7 @@ fn sdf_draw_plan_maps_start_end_through_rtl_direction() {
         'A',
         end_aligned.font.as_deref(),
         end_aligned.font_family.as_deref(),
+        end_aligned.language.as_deref(),
         end_aligned.font_weight,
         end_aligned.font_size,
         &mut end_database,
@@ -212,6 +216,7 @@ fn sdf_draw_plan_justifies_word_gaps_inside_frame() {
         'A',
         justified.font.as_deref(),
         justified.font_family.as_deref(),
+        justified.language.as_deref(),
         justified.font_weight,
         justified.font_size,
         &mut justified_database,
@@ -221,6 +226,7 @@ fn sdf_draw_plan_justifies_word_gaps_inside_frame() {
         'B',
         justified.font.as_deref(),
         justified.font_family.as_deref(),
+        justified.language.as_deref(),
         justified.font_weight,
         justified.font_size,
         &mut justified_database,
@@ -270,6 +276,17 @@ fn sdf_draw_plan_maps_resolved_grapheme_advances_to_sdf_char_run() {
 }
 
 #[test]
+fn sdf_vertical_draw_plan_prefers_resolved_layout_advances() {
+    let mut text = text_batch("布局。", UiFrame::new(4.0, 8.0, 32.0, 96.0));
+    text.writing_mode = UiTextWritingMode::VerticalRl;
+    text.glyph_advances = vec![7.0, 19.0, 11.0];
+
+    let advances = resolve_vertical_sdf_glyph_advances(&text, vec![30.0, 30.0, 30.0]);
+
+    assert_eq!(advances, vec![7.0, 19.0, 11.0]);
+}
+
+#[test]
 fn sdf_draw_plan_preserves_subpixel_glyph_advance_spacing() {
     let line_frame = text_frame_device_origin(UiFrame::new(4.49, 8.51, 96.0, 20.0));
     let glyph = RunGlyph {
@@ -308,6 +325,7 @@ fn sdf_draw_plan_trims_edge_spaces_for_justify() {
         ' ',
         justified.font.as_deref(),
         justified.font_family.as_deref(),
+        justified.language.as_deref(),
         justified.font_weight,
         justified.font_size,
         &mut justified_database,
@@ -317,6 +335,7 @@ fn sdf_draw_plan_trims_edge_spaces_for_justify() {
         'A',
         justified.font.as_deref(),
         justified.font_family.as_deref(),
+        justified.language.as_deref(),
         justified.font_weight,
         justified.font_size,
         &mut justified_database,
@@ -326,6 +345,7 @@ fn sdf_draw_plan_trims_edge_spaces_for_justify() {
         'B',
         justified.font.as_deref(),
         justified.font_family.as_deref(),
+        justified.language.as_deref(),
         justified.font_weight,
         justified.font_size,
         &mut justified_database,
@@ -386,6 +406,7 @@ fn sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis() {
         'A',
         text.font.as_deref(),
         text.font_family.as_deref(),
+        text.language.as_deref(),
         text.font_weight,
         text.font_size,
         &mut font_database,
@@ -414,6 +435,7 @@ fn sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis() {
         },
         text.frame.y,
         a.advance.max(0.0),
+        ShapedGlyphRotation::Cw90,
     );
     assert_eq!(vertices.len(), 12);
     assert!((vertices[0].position[0] - pixel_to_ndc_x(first_frame.x, 128.0)).abs() < 0.0001);
@@ -428,4 +450,134 @@ fn sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis() {
         vertices[6].position[1] < vertices[0].position[1],
         "NDC y decreases as the second vertical glyph advances downward"
     );
+}
+
+#[test]
+fn sdf_vertical_mixed_rotation_uses_shared_orientation_and_clockwise_uvs() {
+    assert_eq!(
+        vertical_glyph_rotation(VerticalMode::Mixed, "本"),
+        ShapedGlyphRotation::None
+    );
+    assert_eq!(
+        vertical_glyph_rotation(VerticalMode::Mixed, "A"),
+        ShapedGlyphRotation::Cw90
+    );
+
+    let uv = SdfUvRect {
+        x0: 0.1,
+        y0: 0.2,
+        x1: 0.5,
+        y1: 0.8,
+    };
+    assert_eq!(
+        sdf_uv_at_destination(uv, 0.0, 0.0, ShapedGlyphRotation::Cw90),
+        [0.1, 0.8]
+    );
+    assert_eq!(
+        sdf_uv_at_destination(uv, 1.0, 0.0, ShapedGlyphRotation::Cw90),
+        [0.1, 0.2]
+    );
+    assert_eq!(
+        sdf_uv_at_destination(uv, 1.0, 1.0, ShapedGlyphRotation::Cw90),
+        [0.5, 0.2]
+    );
+}
+
+#[test]
+fn sdf_vertical_sideways_glyph_swaps_bitmap_frame_axes() {
+    let text = text_batch("A", UiFrame::new(24.0, 8.0, 32.0, 96.0));
+    let glyph = RunGlyph {
+        slot_index: Some(0),
+        metrics: SdfGlyphMetrics {
+            bitmap_width: 8,
+            bitmap_height: 12,
+            bitmap_left: 0.0,
+            bitmap_bottom: 0.0,
+            advance: 16.0,
+            ascent: 12.0,
+        },
+        atlas_bitmap_width: 8,
+        atlas_bitmap_height: 12,
+        visible: true,
+        screen_px_range: 4.0,
+    };
+
+    let frame = vertical_sdf_glyph_frame(&text, &glyph, 8.0, 16.0, ShapedGlyphRotation::Cw90);
+
+    assert_eq!(frame.width, 12.0);
+    assert_eq!(frame.height, 8.0);
+}
+
+#[test]
+fn sdf_vertical_shaped_frame_consumes_backend_origin_offsets() {
+    let mut text = text_batch("。", UiFrame::new(4.0, 8.0, 32.0, 48.0));
+    text.writing_mode = UiTextWritingMode::VerticalRl;
+    let glyph = RunGlyph {
+        slot_index: Some(0),
+        metrics: SdfGlyphMetrics {
+            bitmap_width: 20,
+            bitmap_height: 24,
+            bitmap_left: 1.0,
+            bitmap_bottom: 2.0,
+            advance: 30.0,
+            ascent: 28.0,
+        },
+        atlas_bitmap_width: 20,
+        atlas_bitmap_height: 24,
+        visible: true,
+        screen_px_range: 4.0,
+    };
+    let shaped = ScreenSpaceUiShapedGlyph {
+        glyph_id: 321,
+        font_id: None,
+        source_scalar: '。',
+        source_range: UiTextRange {
+            start: 0,
+            end: "。".len(),
+        },
+        advance: 30.0,
+        offset_x: -15.0,
+        offset_y: 28.0,
+        rotation: ShapedGlyphRotation::None,
+        requires_atlas_slot: true,
+    };
+
+    let frame = vertical_shaped_sdf_glyph_frame(&text, &glyph, 8.0, 30.0, &shaped);
+
+    assert_eq!(frame, UiFrame::new(6.0, 10.0, 20.0, 24.0));
+}
+
+#[test]
+#[cfg(target_os = "windows")]
+fn sdf_vertical_cjk_mixed_mode_keeps_upright_glyphs_on_y_axis() {
+    let mut text = text_batch("本字", UiFrame::new(24.0, 8.0, 32.0, 96.0));
+    text.writing_mode = UiTextWritingMode::VerticalRl;
+    text.font_family = Some("Microsoft YaHei UI".to_string());
+    text.language = Some("zh-Hans".to_string());
+    let plan = plan_sdf_atlas(std::slice::from_ref(&text));
+    let mut font_bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    assert!(font_database.apply_system_font_policy(SystemFontPolicy::Discover) > 0);
+    let asset_manager = ProjectAssetManager::default();
+    let atlas_bake = font_bake.build_atlas(&plan, &mut font_database, &asset_manager);
+
+    let vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &mut font_bake,
+        &mut font_database,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+
+    assert_eq!(
+        vertical_glyph_rotation(VerticalMode::Mixed, "本"),
+        ShapedGlyphRotation::None
+    );
+    assert_eq!(vertices.len(), 12, "two CJK glyphs must reach SDF quads");
+    let first_center_x = (vertices[0].position[0] + vertices[1].position[0]) * 0.5;
+    let second_center_x = (vertices[6].position[0] + vertices[7].position[0]) * 0.5;
+    assert!((second_center_x - first_center_x).abs() < 0.0001);
+    assert!(vertices[6].position[1] < vertices[0].position[1]);
 }

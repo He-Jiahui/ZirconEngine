@@ -13,6 +13,8 @@ pub(crate) struct OffscreenTarget {
     pub(crate) bloom_view: wgpu::TextureView,
     pub(crate) gbuffer_albedo: wgpu::Texture,
     pub(crate) gbuffer_albedo_view: wgpu::TextureView,
+    pub(crate) gbuffer_emissive: wgpu::Texture,
+    pub(crate) gbuffer_emissive_view: wgpu::TextureView,
     pub(crate) gbuffer_material: wgpu::Texture,
     pub(crate) gbuffer_material_view: wgpu::TextureView,
     pub(crate) normal: wgpu::Texture,
@@ -27,7 +29,7 @@ pub(crate) struct OffscreenTarget {
 }
 
 impl OffscreenTarget {
-    pub(crate) const RETAINED_FRAME_TEXTURE_COUNT: usize = 9;
+    pub(crate) const RETAINED_FRAME_TEXTURE_COUNT: usize = 10;
 
     pub(crate) fn retained_frame_texture_count(&self) -> usize {
         let retained_textures = [
@@ -36,6 +38,7 @@ impl OffscreenTarget {
             &self.scene_color,
             &self.bloom,
             &self.gbuffer_albedo,
+            &self.gbuffer_emissive,
             &self.gbuffer_material,
             &self.normal,
             &self.ambient_occlusion,

@@ -34,11 +34,17 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/pipeline/worker_pool.rs"),
         include_str!("../../../asset/tests/watcher.rs"),
         include_str!("../../../asset/tests/assets/artifact_store.rs"),
+        include_str!("../../../asset/tests/assets/artifact_store/scene_components.rs"),
+        include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
         include_str!("../../../core/resource/tests.rs"),
         include_str!("../asset_surface.rs"),
+        include_str!("../asset_surface/facade_query.rs"),
         include_str!("../asset_worker_policy.rs"),
+        include_str!("../asset_worker_policy/worker_pool.rs"),
         include_str!("mirror_docs.rs"),
         include_str!("../plan_status/cargo_gates/early.rs"),
+        include_str!("../plan_status/cargo_gates/early/runtime_04.rs"),
+        include_str!("../../../asset/facade/load_state.rs"),
     ]
     .join("\n");
     let behavior_sources = [

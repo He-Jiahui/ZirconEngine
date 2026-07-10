@@ -31,7 +31,7 @@ pub enum RenderQuery {
 pub enum RenderHybridGiPayloadSource {
     #[default]
     None,
-    Authored,
+    SceneRepresentation,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

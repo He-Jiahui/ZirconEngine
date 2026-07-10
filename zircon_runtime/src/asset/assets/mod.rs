@@ -2,6 +2,8 @@ mod animation;
 mod authoring;
 mod data;
 mod font;
+#[cfg(feature = "text")]
+mod font_source;
 mod imported;
 mod material;
 mod mesh;
@@ -33,11 +35,18 @@ pub use authoring::{
 };
 pub use data::{DataAsset, DataAssetFormat};
 pub use font::{
-    FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetError, FontAssetFaceStyle,
-    FontAssetFamilyMember, FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy,
-    FontAssetResult, FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
+    FontAsset, FontAssetCmapCoverage, FontAssetCodepointRange, FontAssetError,
+    FontAssetFaceMetrics, FontAssetFaceStyle, FontAssetFamilyMember, FontAssetLineMetrics,
+    FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy, FontAssetResult,
+    FontAssetSourceFormat, FontAssetVariableInstance, FontAssetVariationAxis,
     FontAssetVariationCoord,
 };
+#[cfg(feature = "text")]
+pub(crate) use font_source::{
+    decode_font_source, standalone_sfnt_face, DecodedFontSource, FontFaceExtractionError,
+};
+#[cfg(feature = "text")]
+pub use font_source::{FontMetadataParseError, FontSourceDecodeError};
 pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
 pub use material::{
     validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialAssetManagementRecord,
@@ -106,15 +115,20 @@ pub use sprite_atlas::{
     SpriteAtlasRect, SpriteAtlasUvRect, SpriteAtlasValidationError,
 };
 pub use texture::{
+    decode_external_source_cubemap, decode_ibl_pmrem_rgba16f_texture,
     decode_zcube_source_cubemap_texture, external_source_cubemap_container_info,
-    is_external_source_cubemap_container, is_zcube_source_cubemap_texture,
-    texture_asset_from_cube_lut, texture_asset_from_source_cubemap_zcube, CubeLutParseError,
-    ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
-    ExternalSourceCubemapContainerKind, TextureArrayLayout, TextureAsset, TextureAssetDescriptor,
-    TextureDescriptorError, TextureDescriptorResult, TexturePayload,
-    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, ZcubeSourceCubemap, ZcubeSourceCubemapError,
-    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
+    is_external_source_cubemap_container, is_ibl_pmrem_rgba16f_texture,
+    is_zcube_source_cubemap_texture, texture_asset_from_array_layers, texture_asset_from_cube_lut,
+    texture_asset_from_cubemap_faces, texture_asset_from_ibl_bake_artifact_pmrem,
+    texture_asset_from_source_cubemap_zcube, CubeLutParseError, CubemapAsset, CubemapAssetError,
+    CubemapSourceLayout, ExternalSourceCubemapContainerError, ExternalSourceCubemapContainerInfo,
+    ExternalSourceCubemapContainerKind, ExternalSourceCubemapDecodeError, IblPmremTextureError,
+    Texture2DArrayAsset, Texture2DArrayAssetError, TextureArrayLayerSource, TextureArrayLayout,
+    TextureAsset, TextureAssetDescriptor, TextureDescriptorError, TextureDescriptorResult,
+    TexturePayload, TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
+    TextureUploadSupport, ZcubeSourceCubemap, ZcubeSourceCubemapError, CUBEMAP_FACE_COUNT,
+    EXTERNAL_SOURCE_CUBEMAP_UPLOAD_UNSUPPORTED_REASON, IBL_PMREM_RGBA16F_FORMAT,
+    IBL_PMREM_RGBA16F_GPU_FORMAT, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
     ZCUBE_SOURCE_CUBEMAP_FORMAT, ZCUBE_SOURCE_CUBEMAP_GPU_FORMAT, ZCUBE_SOURCE_CUBEMAP_HEADER_SIZE,
 };
 pub use ui::{

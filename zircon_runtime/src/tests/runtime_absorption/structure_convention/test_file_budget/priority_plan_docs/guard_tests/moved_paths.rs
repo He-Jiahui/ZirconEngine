@@ -28,7 +28,7 @@ const MOVED_MIRROR_GUARD_PATH: &str =
 fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = runtime_index_with_output_archive_source();
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -57,12 +57,7 @@ fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
             ],
         );
 
-        for moved_path in MOVED_PRIORITY_PLAN_DOC_GUARD_PATHS {
-            assert!(
-                source.contains(moved_path),
-                "{label} should mirror moved priority-plan-doc guard path `{moved_path}`"
-            );
-        }
+        assert_contains_all(label, source, MOVED_PRIORITY_PLAN_DOC_GUARD_PATHS);
 
         assert!(
             !source.contains("priority_plan_docs.rs::runtime_15_priority_plan_docs"),
@@ -92,7 +87,7 @@ fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
 fn runtime_15_priority_plan_docs_moved_mirror_names_full_inventory() {
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = runtime_index_with_output_archive_source();
     let structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -123,8 +118,13 @@ fn runtime_15_priority_plan_docs_moved_mirror_names_full_inventory() {
                 "Cargo gate deferred",
             ],
         );
-        assert_moved_mirror_windows_name_full_inventory(label, source);
     }
+
+    let current_owner_archive = priority_plan_doc_current_owner_archive_source();
+    assert_moved_mirror_windows_name_full_inventory(
+        "priority-plan-doc current-owner archive",
+        &current_owner_archive,
+    );
 
     assert_contains_all(
         "status expected-slice map",

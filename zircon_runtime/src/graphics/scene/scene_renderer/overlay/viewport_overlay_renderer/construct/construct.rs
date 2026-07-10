@@ -12,13 +12,14 @@ use super::create_sky_pipeline::create_sky_pipeline;
 impl ViewportOverlayRenderer {
     pub(crate) fn new(
         device: &wgpu::Device,
-        target_format: wgpu::TextureFormat,
+        scene_color_format: wgpu::TextureFormat,
+        final_color_format: wgpu::TextureFormat,
         scene_layout: &wgpu::BindGroupLayout,
         texture_layout: &wgpu::BindGroupLayout,
         icon_source: Arc<dyn ViewportIconSource>,
     ) -> Self {
-        let line_pipeline = create_line_pipeline(device, target_format, scene_layout);
-        let sky_pipeline = create_sky_pipeline(device, target_format, scene_layout);
+        let line_pipeline = create_line_pipeline(device, final_color_format, scene_layout);
+        let sky_pipeline = create_sky_pipeline(device, scene_color_format, scene_layout);
         let (grid_vertex_buffer, grid_vertex_count) = create_grid_buffer(device);
 
         Self {
@@ -29,7 +30,7 @@ impl ViewportOverlayRenderer {
             grid: GridPass,
             scene_gizmo: SceneGizmoPass::new(
                 device,
-                target_format,
+                final_color_format,
                 scene_layout,
                 texture_layout,
                 icon_source,

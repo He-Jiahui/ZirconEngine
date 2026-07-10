@@ -25,8 +25,8 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
     );
     let product_test =
         read_runtime_src("graphics/tests/render_product_mesh_cache/virtual_geometry.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let render_product_doc = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

@@ -68,13 +68,13 @@ impl SubmitContextSources {
                 "../../../../graphics/types/viewport_render_frame_from_extract.rs"
             ),
             runtime_07_plan: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+                "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
             ),
             runtime_index: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+                "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
             ),
             review_findings: include_str!(
-                "../../../../../../docs/plans/engine-code-review-findings-2026-06.md"
+                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
             ),
         }
     }

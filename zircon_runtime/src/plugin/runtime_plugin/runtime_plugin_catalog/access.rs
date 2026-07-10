@@ -1,3 +1,4 @@
+use crate::core::CoreError;
 use crate::plugin::PluginPackageManifest;
 
 use super::bridge_dependencies::{
@@ -26,6 +27,10 @@ impl RuntimePluginCatalog {
 
     pub fn diagnostics(&self) -> &[String] {
         &self.diagnostics
+    }
+
+    pub fn module_order_error(&self) -> Option<&CoreError> {
+        self.module_order_error.as_deref()
     }
 
     pub fn strong_bridge_dependents(

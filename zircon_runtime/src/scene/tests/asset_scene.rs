@@ -6,10 +6,11 @@ use crate::asset::{
     SceneMobilityAsset, SceneScriptBindingAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::render::{
-    ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderViewportRect,
+    CorePipelineKind, ProjectionMode, RenderCameraClearColor, RenderCameraTarget,
+    RenderViewportRect,
 };
+use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::math::{UVec2, Vec2, Vec3};
 use crate::scene::components::{
     AmbientLight, CameraComponent, ColliderShape, JointKind, RectLight, RigidBodyType,

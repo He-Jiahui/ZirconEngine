@@ -140,6 +140,9 @@ fn create_validation_shadow_receiver_layout(device: &wgpu::Device) -> wgpu::Bind
     entries.extend(shadow_atlas_bind_group_layout_entries(
         wgpu::ShaderStages::FRAGMENT,
     ));
+    entries.extend(
+        crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries(),
+    );
     entries.extend([
         wgpu::BindGroupLayoutEntry {
             binding: 20,

@@ -197,7 +197,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
         "Runtime 10 Vampire W input real-backend gate",
         &[
             "dynamic_vampire_w_input_real_backend_gate_ignored_without_zr_vm_remaining_ui_input_pending",
-            "requires zr-vm-real-backend and ZR_VM_RUST_BINDING_LIB_DIR",
+            "requires backend-zr-vm and ZR_VM_RUST_BINDING_LIB_DIR",
             "vampire_project_session_w_key_moves_player_before_input_clear",
             "0 passed; 0 failed; 1 ignored",
         ],

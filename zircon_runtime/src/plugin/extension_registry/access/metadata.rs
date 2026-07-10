@@ -1,8 +1,10 @@
+#[cfg(feature = "graphics")]
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
-use crate::plugin::{
-    ComponentTypeDescriptor, PluginEventCatalogManifest, PluginModuleId, PluginOptionManifest,
-    UiComponentDescriptor,
-};
+#[cfg(feature = "graphics")]
+use crate::plugin::PluginModuleId;
+#[cfg(feature = "ui")]
+use crate::plugin::UiComponentDescriptor;
+use crate::plugin::{ComponentTypeDescriptor, PluginEventCatalogManifest, PluginOptionManifest};
 
 use super::super::RuntimeExtensionRegistry;
 
@@ -11,6 +13,7 @@ impl RuntimeExtensionRegistry {
         self.components.values()
     }
 
+    #[cfg(feature = "ui")]
     pub fn ui_components(&self) -> &[UiComponentDescriptor] {
         self.ui_components.values()
     }
@@ -23,10 +26,12 @@ impl RuntimeExtensionRegistry {
         self.plugin_event_catalogs.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub fn geometry_sources(&self) -> &[GeometrySourceDescriptor] {
         self.geometry_sources.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub(in crate::plugin) fn geometry_source_entries(
         &self,
     ) -> impl Iterator<Item = (PluginModuleId, &GeometrySourceDescriptor)> {
@@ -35,10 +40,12 @@ impl RuntimeExtensionRegistry {
             .map(|(owner, _, descriptor)| (owner, descriptor))
     }
 
+    #[cfg(feature = "graphics")]
     pub fn shading_models(&self) -> &[ShadingModelDescriptor] {
         self.shading_models.values()
     }
 
+    #[cfg(feature = "graphics")]
     pub(in crate::plugin) fn shading_model_entries(
         &self,
     ) -> impl Iterator<Item = (PluginModuleId, &ShadingModelDescriptor)> {

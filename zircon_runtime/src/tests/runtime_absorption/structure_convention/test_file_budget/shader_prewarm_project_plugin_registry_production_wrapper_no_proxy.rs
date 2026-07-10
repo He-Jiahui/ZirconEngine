@@ -8,8 +8,8 @@ fn runtime_15_shader_prewarm_project_plugin_registry_wrapper_no_proxy_is_wired()
     let build_tool = read_repo("tools/zircon_build.py");
     let wrapper_test =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_wrapper_orchestration.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let build_doc = read_repo("docs/cli-and-tooling/zircon-build-tool.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");

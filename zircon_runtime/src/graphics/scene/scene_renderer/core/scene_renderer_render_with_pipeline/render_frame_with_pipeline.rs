@@ -459,6 +459,12 @@ impl SceneRenderer {
         self.last_prepared_sprite_queue_stats
     }
 
+    pub(crate) fn last_ui_text_prepare_report(
+        &self,
+    ) -> crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiTextPrepareReport {
+        self.core.screen_space_ui_renderer.text_prepare_report()
+    }
+
     pub(crate) fn last_material_count(&self) -> usize {
         self.streamer.last_material_count()
     }

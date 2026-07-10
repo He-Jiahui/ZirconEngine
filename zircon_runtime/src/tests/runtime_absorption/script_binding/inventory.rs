@@ -59,6 +59,8 @@ pub(super) const SCRIPT_BINDING_MIRROR_DOC_ANCHORS: &[&str] = &[
     "script_binding_boundary",
     "expected_source_file_count = 19",
     "expected_test_file_count = 3",
+    "expected_guard_file_count = 9",
+    "missing_guard_files = []",
     "fixed_host_module_count = 6",
     "fixed_host_function_count = 52",
     "type_descriptor_count = 2",

@@ -248,7 +248,7 @@ fn activate_registered_modules_finishes_only_after_all_modules_are_ready() {
         .register_module(
             ModuleDescriptor::new("SceneModule", "scene")
                 .with_init_level(InitLevel::Scene)
-                .with_module_dependency(ModuleDependencySpec::named("ServersModule"))
+                .with_module_dependency(ModuleDependencySpec::named("ServicesModule"))
                 .with_lifecycle(Arc::new(RecordingLifecycle::new(Arc::clone(&calls)))),
         )
         .unwrap();
@@ -261,8 +261,8 @@ fn activate_registered_modules_finishes_only_after_all_modules_are_ready() {
         .unwrap();
     runtime
         .register_module(
-            ModuleDescriptor::new("ServersModule", "servers")
-                .with_init_level(InitLevel::Servers)
+            ModuleDescriptor::new("ServicesModule", "services")
+                .with_init_level(InitLevel::Services)
                 .with_lifecycle(Arc::new(RecordingLifecycle::new(Arc::clone(&calls)))),
         )
         .unwrap();
@@ -273,20 +273,20 @@ fn activate_registered_modules_finishes_only_after_all_modules_are_ready() {
         recorded_calls(&calls),
         expected_calls(&[
             "KernelModule:build",
-            "ServersModule:build",
+            "ServicesModule:build",
             "SceneModule:build",
             "KernelModule:ready",
-            "ServersModule:ready",
+            "ServicesModule:ready",
             "SceneModule:ready",
             "KernelModule:finish",
-            "ServersModule:finish",
+            "ServicesModule:finish",
             "SceneModule:finish",
         ])
     );
 
     let handle = runtime.handle();
     let modules = handle.inner.modules.lock().unwrap();
-    for module_name in ["KernelModule", "ServersModule", "SceneModule"] {
+    for module_name in ["KernelModule", "ServicesModule", "SceneModule"] {
         let module = modules
             .get(module_name)
             .expect("batch activation should keep every module registered");
@@ -319,7 +319,7 @@ fn activate_registered_modules_rolls_back_all_started_modules_on_finish_error() 
     runtime
         .register_module(
             ModuleDescriptor::new("SecondBatchModule", "second")
-                .with_init_level(InitLevel::Servers)
+                .with_init_level(InitLevel::Services)
                 .with_module_dependency(ModuleDependencySpec::named("FirstBatchModule"))
                 .with_lifecycle(Arc::new(
                     RecordingLifecycle::new(Arc::clone(&calls)).fail_finish(),

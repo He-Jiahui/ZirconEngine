@@ -10,6 +10,9 @@ pub(crate) struct SceneFrameHistoryTextures {
     pub(super) taa_scene_color: TemporalHistoryStore,
     pub(crate) global_illumination: wgpu::Texture,
     pub(crate) global_illumination_view: wgpu::TextureView,
+    pub(crate) global_illumination_temporal_metadata: wgpu::Texture,
+    pub(crate) global_illumination_temporal_metadata_view: wgpu::TextureView,
+    pub(super) global_illumination_history_valid: bool,
     pub(crate) ambient_occlusion: wgpu::Texture,
     pub(crate) ambient_occlusion_view: wgpu::TextureView,
     pub(crate) screen_space_reflection: wgpu::Texture,
@@ -21,6 +24,14 @@ pub(crate) struct SceneFrameHistoryTextures {
 }
 
 impl SceneFrameHistoryTextures {
+    pub(crate) fn global_illumination_history_valid(&self) -> bool {
+        self.global_illumination_history_valid
+    }
+
+    pub(crate) fn set_global_illumination_history_valid(&mut self, valid: bool) {
+        self.global_illumination_history_valid = valid;
+    }
+
     pub(crate) fn taa_scene_color_history_matches(&self, key: TemporalHistoryKey) -> bool {
         self.taa_scene_color.matches_key(key)
     }

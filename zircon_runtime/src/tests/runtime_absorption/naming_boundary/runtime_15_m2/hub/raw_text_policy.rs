@@ -22,33 +22,27 @@ fn runtime_15_hub_message_raw_text_policy_uses_current_names() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let status_rows = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-    );
-    let expected_status = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-    );
-    let expected_date = read_repo_text(
-        manifest_root,
-        "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let expected_status = read_runtime_15_naming_status_map(manifest_root);
+    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     let legacy_hits = hub_source_files(&repo_root.join("zircon_hub/src"))
         .into_iter()

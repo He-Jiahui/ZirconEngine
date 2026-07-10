@@ -289,6 +289,8 @@ impl ArtifactCacheSceneMeshInstanceAsset {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct ArtifactCacheSceneCameraAsset {
+    #[serde(default)]
+    core_pipeline: crate::core::framework::render::CorePipelineKind,
     projection_mode: crate::core::framework::render::ProjectionMode,
     fov_y_radians: crate::core::math::Real,
     ortho_size: crate::core::math::Real,
@@ -308,6 +310,7 @@ struct ArtifactCacheSceneCameraAsset {
 impl From<&crate::asset::SceneCameraAsset> for ArtifactCacheSceneCameraAsset {
     fn from(asset: &crate::asset::SceneCameraAsset) -> Self {
         Self {
+            core_pipeline: asset.core_pipeline,
             projection_mode: asset.projection_mode,
             fov_y_radians: asset.fov_y_radians,
             ortho_size: asset.ortho_size,
@@ -329,6 +332,7 @@ impl From<&crate::asset::SceneCameraAsset> for ArtifactCacheSceneCameraAsset {
 impl ArtifactCacheSceneCameraAsset {
     fn into_asset(self) -> crate::asset::SceneCameraAsset {
         crate::asset::SceneCameraAsset {
+            core_pipeline: self.core_pipeline,
             projection_mode: self.projection_mode,
             fov_y_radians: self.fov_y_radians,
             ortho_size: self.ortho_size,
@@ -386,7 +390,7 @@ struct ArtifactCacheSceneColliderAsset {
     collision_group: u32,
     collision_mask: u32,
     material: Option<AssetReference>,
-    material_override: Option<crate::core::framework::physics::PhysicsMaterialMetadata>,
+    material_override: Option<crate::core::framework::scene::physics::PhysicsMaterialMetadata>,
     local_transform: crate::asset::TransformAsset,
 }
 
@@ -481,7 +485,7 @@ struct ArtifactCacheSceneJointAsset {
     limits: Option<[crate::core::math::Real; 2]>,
     collide_connected: bool,
     constraint: ArtifactCachePhysicsJointConstraintMetadata,
-    skeleton_binding: Option<crate::core::framework::physics::PhysicsSkeletonJointBinding>,
+    skeleton_binding: Option<crate::core::framework::scene::physics::PhysicsSkeletonJointBinding>,
 }
 
 impl From<&crate::asset::SceneJointAsset> for ArtifactCacheSceneJointAsset {
@@ -518,18 +522,20 @@ impl ArtifactCacheSceneJointAsset {
 struct ArtifactCachePhysicsJointConstraintMetadata {
     linear_limits: [Option<[crate::core::math::Real; 2]>; 3],
     angular_limits: [Option<[crate::core::math::Real; 2]>; 3],
-    linear_drives: [crate::core::framework::physics::PhysicsJointDrive; 3],
-    angular_drives: [crate::core::framework::physics::PhysicsJointDrive; 3],
+    linear_drives: [crate::core::framework::scene::physics::PhysicsJointDrive; 3],
+    angular_drives: [crate::core::framework::scene::physics::PhysicsJointDrive; 3],
     break_force: Option<crate::core::math::Real>,
     break_torque: Option<crate::core::math::Real>,
     projection_linear_tolerance: Option<crate::core::math::Real>,
     projection_angular_tolerance: Option<crate::core::math::Real>,
 }
 
-impl From<&crate::core::framework::physics::PhysicsJointConstraintMetadata>
+impl From<&crate::core::framework::scene::physics::PhysicsJointConstraintMetadata>
     for ArtifactCachePhysicsJointConstraintMetadata
 {
-    fn from(metadata: &crate::core::framework::physics::PhysicsJointConstraintMetadata) -> Self {
+    fn from(
+        metadata: &crate::core::framework::scene::physics::PhysicsJointConstraintMetadata,
+    ) -> Self {
         Self {
             linear_limits: metadata.linear_limits,
             angular_limits: metadata.angular_limits,
@@ -544,7 +550,7 @@ impl From<&crate::core::framework::physics::PhysicsJointConstraintMetadata>
 }
 
 impl From<ArtifactCachePhysicsJointConstraintMetadata>
-    for crate::core::framework::physics::PhysicsJointConstraintMetadata
+    for crate::core::framework::scene::physics::PhysicsJointConstraintMetadata
 {
     fn from(metadata: ArtifactCachePhysicsJointConstraintMetadata) -> Self {
         Self {

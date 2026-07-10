@@ -2,6 +2,7 @@ use crate::graphics::resource_limits::{
     HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
     MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
     POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
+    REFLECTION_PROBE_REQUIRED_TEXTURE_ARRAY_LAYERS,
 };
 use crate::graphics::types::GraphicsError;
 
@@ -40,6 +41,7 @@ fn required_render_limits(adapter_limits: &wgpu::Limits) -> wgpu::Limits {
         max_bind_groups: REQUIRED_RENDER_BIND_GROUP_LIMIT,
         max_sampled_textures_per_shader_stage:
             POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
+        max_texture_array_layers: REFLECTION_PROBE_REQUIRED_TEXTURE_ARRAY_LAYERS,
         ..wgpu::Limits::default()
     };
     let required_storage_buffers_per_shader_stage =
@@ -64,6 +66,7 @@ mod tests {
         HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
         MESH_FORWARD_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
         POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE,
+        REFLECTION_PROBE_REQUIRED_TEXTURE_ARRAY_LAYERS,
     };
 
     use super::{
@@ -97,6 +100,7 @@ mod tests {
         });
 
         assert!(limits.max_bind_groups >= REQUIRED_RENDER_BIND_GROUP_LIMIT);
+        assert!(limits.max_texture_array_layers >= REFLECTION_PROBE_REQUIRED_TEXTURE_ARRAY_LAYERS);
         assert!(
             limits.max_sampled_textures_per_shader_stage
                 >= POST_PROCESS_REQUIRED_SAMPLED_TEXTURES_PER_SHADER_STAGE

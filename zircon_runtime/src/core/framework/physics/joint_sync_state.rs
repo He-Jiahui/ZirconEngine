@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::scene::physics::{
+    PhysicsJointConstraintMetadata, PhysicsSkeletonJointBinding,
+};
 use crate::core::framework::scene::EntityId;
 use crate::core::math::Real;
 
-use super::{PhysicsJointConstraintMetadata, PhysicsJointType, PhysicsSkeletonJointBinding};
+use super::PhysicsJointType;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PhysicsJointSyncState {

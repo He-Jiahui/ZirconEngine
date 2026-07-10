@@ -35,7 +35,7 @@ fn review_f5_sound_asset_uses_typed_error() {
         "Result<Self, String>",
         "Result<WavFormat, String>",
         "Result<Vec<f32>, String>",
-        "Result<SoundChannelLayout, String>",
+        "Result<AudioChannelLayout, String>",
         "Result<(), String>",
         "Err(format!(",
         ".to_string()",

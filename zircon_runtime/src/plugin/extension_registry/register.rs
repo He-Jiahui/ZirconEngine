@@ -2,6 +2,7 @@ use crate::asset::{
     AssetImporterDescriptor, AssetImporterHandler, DiagnosticOnlyAssetImporter,
     NativeAssetImporterHandler,
 };
+#[cfg(feature = "graphics")]
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -50,6 +51,7 @@ impl RuntimeExtensionRegistry {
             .map_err(|error| RuntimeExtensionRegistryError::InvalidPluginSystem(error.to_string()))
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_render_feature(
         &mut self,
         descriptor: RenderFeatureDescriptor,
@@ -66,6 +68,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_render_pass_executor(
         &mut self,
         registration: RenderPassExecutorRegistration,
@@ -83,6 +86,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_runtime_prepare_collector(
         &mut self,
         registration: RuntimePrepareCollectorRegistration,
@@ -100,6 +104,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_virtual_geometry_runtime_provider(
         &mut self,
         registration: VirtualGeometryRuntimeProviderRegistration,
@@ -120,6 +125,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_hybrid_gi_runtime_provider(
         &mut self,
         registration: HybridGiRuntimeProviderRegistration,
@@ -137,6 +143,7 @@ impl RuntimeExtensionRegistry {
         Ok(())
     }
 
+    #[cfg(feature = "graphics")]
     pub fn register_solari_runtime_provider(
         &mut self,
         registration: SolariRuntimeProviderRegistration,
@@ -156,9 +163,14 @@ impl RuntimeExtensionRegistry {
         &mut self,
         importer: impl AssetImporterHandler + 'static,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.asset_importers
+        let result = self
+            .asset_importers
             .register(importer)
-            .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
+            .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()));
+        if result.is_ok() {
+            self.asset_importers_finalized = false;
+        }
+        result
     }
 
     pub fn register_asset_importer_descriptor(
@@ -184,9 +196,14 @@ impl RuntimeExtensionRegistry {
         &mut self,
         importer: Arc<dyn AssetImporterHandler>,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.asset_importers
+        let result = self
+            .asset_importers
             .register_arc(importer)
-            .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
+            .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()));
+        if result.is_ok() {
+            self.asset_importers_finalized = false;
+        }
+        result
     }
 
     pub(super) fn intern_runtime_owner(

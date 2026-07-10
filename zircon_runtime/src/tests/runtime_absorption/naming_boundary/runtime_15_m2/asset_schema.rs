@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use super::super::support::{assert_contains_all, read_repo_text, read_text};
+use super::super::support::{
+    assert_contains_all, read_repo_text, read_runtime_15_naming_date_map,
+    read_runtime_15_naming_status_map, read_runtime_15_naming_status_rows, read_text,
+};
 
 #[path = "asset_schema/material_asset_schema_v1.rs"]
 mod material_asset_schema_v1;
@@ -12,51 +15,43 @@ fn runtime_15_font_ui_asset_schema_names_use_current_policy_terms() {
         &manifest_root.join("src/asset/assets/font.rs"),
         "font asset owner should be readable",
     );
-    let ui_v2_document_import = read_text(
-        &manifest_root.join("src/asset/importer/ingest/ui_v2_document_import.rs"),
-        "ui v2 document import owner should be readable",
+    let ui_document_loader = read_text(
+        &manifest_root.join("src/asset/assets/ui/document_loader.rs"),
+        "UI document codec owner should be readable",
     );
-    let import_ui_zui_asset = read_text(
-        &manifest_root.join("src/asset/importer/ingest/import_ui_zui_asset.rs"),
-        "ZUI importer should be readable",
+    let ui_document_importer = read_repo_text(
+        manifest_root,
+        "zircon_plugins/ui_document_importer/runtime/src/lib.rs",
     );
     let ui_assets_doc = read_repo_text(manifest_root, "docs/zircon_runtime/asset/assets/ui.md");
     let font_assets_doc = read_repo_text(manifest_root, "docs/zircon_runtime/asset/assets/font.md");
+    let frameworks_05_acceptance = read_repo_text(
+        manifest_root,
+        "tests/acceptance/frameworks-05-asset-ui-loader-hard-cutover.md",
+    );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m2.rs",
-        ),
-        "Runtime 15 M2 status rows should be readable",
-    );
-    let expected_status = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 expected status slice should be readable",
-    );
-    let expected_date = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 expected date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let expected_status = read_runtime_15_naming_status_map(manifest_root);
+    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "font asset schema-v1 render mode helper",
@@ -72,26 +67,29 @@ fn runtime_15_font_ui_asset_schema_names_use_current_policy_terms() {
     );
 
     assert_contains_all(
-        "ZUI document import owner",
-        &ui_v2_document_import,
+        "ZUI document codec owner",
+        &ui_document_loader,
         &[
-            "pub(crate) fn imported_asset_from_ui_v2_document(",
-            "UiV2AssetKind::Component => ImportedAsset::UiV2Component",
+            "pub(super) fn load_zui_document(",
+            "UiV2AssetKind::Component => validate_zui_component_profile(document)",
         ],
     );
     for retired in ["UiV2DocumentImportProfile", "LegacyToml"] {
         assert!(
-            !ui_v2_document_import.contains(retired),
+            !ui_document_loader.contains(retired),
             "ZUI document import owner should not keep retired profile branch {retired}"
         );
     }
     assert_contains_all(
-        "ZUI importer caller",
-        &import_ui_zui_asset,
-        &["imported_asset_from_ui_v2_document(parsed)"],
+        "ZUI plugin importer owner",
+        &ui_document_importer,
+        &[
+            "UiZuiAssetLoader::load_zui_str",
+            "ImportedAsset::UiV2Component",
+        ],
     );
     assert!(
-        !import_ui_zui_asset.contains("UiV2DocumentImportProfile::Zui"),
+        !ui_document_importer.contains("UiV2DocumentImportProfile::Zui"),
         "ZUI importer should call the current document conversion owner directly"
     );
 
@@ -114,12 +112,19 @@ fn runtime_15_font_ui_asset_schema_names_use_current_policy_terms() {
                 "Runtime 15 M2 font/UI asset schema naming hard cutover",
                 "runtime_15_font_ui_asset_schema_naming_hard_cutover_static_passed_cargo_deferred",
                 "asset/assets/font.rs",
-                "asset/importer/ingest/ui_v2_document_import.rs",
                 "schema_v1_render_mode",
                 "runtime_15_font_ui_asset_schema_names_use_current_policy_terms",
             ],
         );
     }
+    assert_contains_all(
+        "Frameworks 05 current ZUI importer ownership",
+        &frameworks_05_acceptance,
+        &[
+            "asset 内 built-in `.zui` importer、旧 importer owner 和转换 owner 已删除",
+            "zircon_plugins/ui_document_importer/runtime/src/plugin.rs",
+        ],
+    );
 }
 
 #[test]
@@ -131,40 +136,28 @@ fn runtime_15_font_render_mode_priority_fixture_uses_schema_v1_name() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
         "docs/zircon_runtime/structure/module-convention.md",
     );
     let font_assets_doc = read_repo_text(manifest_root, "docs/zircon_runtime/asset/assets/font.md");
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m2.rs",
-        ),
-        "Runtime 15 M2 status rows should be readable",
-    );
-    let expected_status = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 expected status slice should be readable",
-    );
-    let expected_date = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/naming_boundary.rs",
-        ),
-        "Runtime 15 expected date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let expected_status = read_runtime_15_naming_status_map(manifest_root);
+    let expected_date = read_runtime_15_naming_date_map(manifest_root);
 
     assert_contains_all(
         "renderer font asset schema-v1 priority fixture",

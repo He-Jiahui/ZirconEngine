@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::framework::render::builtin_geometry_source_descriptors;
+use crate::graphics::scene::scene_renderer::environment::SceneReflectionProbeResources;
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::forward_shadow_receiver::{
@@ -42,6 +43,7 @@ impl MeshPipelineCache {
         let forward_shadow_atlas_fallback_globals_buffer =
             create_forward_shadow_atlas_fallback_globals_buffer(device);
         let fallback_shadow_atlas_view = create_fallback_shadow_atlas_view(device);
+        let reflection_probes = SceneReflectionProbeResources::new(device);
         Self {
             target_format,
             mesh_pipeline_layout,
@@ -53,6 +55,7 @@ impl MeshPipelineCache {
             forward_shadow_atlas_fallback_slot_buffer,
             forward_shadow_atlas_fallback_globals_buffer,
             fallback_shadow_atlas_view,
+            reflection_probes,
             shader_modules: HashMap::new(),
             mesh_variant_pipelines: HashMap::new(),
             gbuffer_mesh_pipelines: HashMap::new(),

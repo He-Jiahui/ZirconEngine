@@ -6,6 +6,7 @@ mod lease;
 mod manager;
 mod registry;
 mod runtime;
+mod snapshot;
 
 pub use data::ResourceData;
 pub use io::{ResourceIo, ResourceIoError};
@@ -13,6 +14,7 @@ pub use lease::ResourceLease;
 pub use manager::ResourceManager;
 pub use registry::ResourceRegistry;
 pub use runtime::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
+pub use snapshot::ResourceSnapshot;
 pub use zircon_runtime_interface::resource::*;
 
 #[cfg(test)]

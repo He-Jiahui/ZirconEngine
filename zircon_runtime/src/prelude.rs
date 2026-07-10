@@ -45,6 +45,7 @@ pub use crate::core::{
     TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC,
     TIME_FRAME_TIME_DIAGNOSTIC,
 };
+#[cfg(feature = "diagnostic-log")]
 pub use crate::diagnostic_log::{
     format_diagnostic_store_snapshot, write_diagnostic_store_snapshot, DiagnosticLogFilter,
     DiagnosticLogFilterConfig, DiagnosticLogLevel, DiagnosticLogLevelParseError,
@@ -58,6 +59,7 @@ pub use crate::engine_module::{
     EngineModule, EnginePlugin, EngineService, ManagerContract, PluginContract,
 };
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
+#[cfg(feature = "graphics")]
 pub use crate::graphics::prelude::*;
 pub use crate::input::{
     ButtonInputState, CursorGrabMode, CursorHostRequest, CursorPosition, DefaultInputActionManager,
@@ -94,4 +96,5 @@ pub use crate::plugin::{
     RuntimeProfilePluginSelection,
 };
 pub use crate::scene::prelude::*;
+#[cfg(feature = "ui")]
 pub use crate::ui::prelude::*;

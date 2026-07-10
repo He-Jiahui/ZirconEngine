@@ -11,6 +11,8 @@ pub(crate) struct ScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer::post_process) hzb_msaa_bind_group_layout:
+        wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_histogram_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_resolve_bind_group_layout:
@@ -42,6 +44,8 @@ pub(crate) struct ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_pipeline:
+        wgpu::ComputePipeline,
+    pub(in crate::graphics::scene::scene_renderer::post_process) hzb_msaa_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) exposure_histogram_pipeline:
         wgpu::ComputePipeline,

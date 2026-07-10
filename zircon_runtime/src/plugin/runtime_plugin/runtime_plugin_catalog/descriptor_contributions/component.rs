@@ -15,6 +15,7 @@ pub(super) fn merge_component_descriptor_contributions(
             fatal_diagnostics,
         );
     }
+    #[cfg(feature = "ui")]
     for ui_component in extensions.ui_components() {
         push_runtime_extension_result(
             registry.register_ui_component(ui_component.clone()),

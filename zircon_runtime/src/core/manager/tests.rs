@@ -1,8 +1,15 @@
+#[cfg(feature = "ai-contracts")]
+use crate::core::manager::AI_MANAGER_NAME;
+#[cfg(feature = "net-contracts")]
+use crate::core::manager::NET_MANAGER_NAME;
+#[cfg(feature = "physics-contracts")]
+use crate::core::manager::PHYSICS_MANAGER_NAME;
+#[cfg(feature = "sound-contracts")]
+use crate::core::manager::SOUND_MANAGER_NAME;
 use crate::core::manager::{
-    AI_MANAGER_NAME, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NET_MANAGER_NAME,
-    PHYSICS_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
-    SOUND_MANAGER_NAME,
+    ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME,
+    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    RESOURCE_MANAGER_NAME,
 };
 
 #[test]
@@ -27,14 +34,21 @@ fn manager_service_names_cover_runtime_owned_modules() {
         "GraphicsModule.Manager.RenderFramework"
     );
     assert_eq!(LEVEL_MANAGER_NAME, "SceneModule.Manager.LevelManager");
-    assert_eq!(AI_MANAGER_NAME, "AiModule.Manager.AiManager");
-    assert_eq!(NET_MANAGER_NAME, "NetModule.Manager.NetManager");
-    assert_eq!(PHYSICS_MANAGER_NAME, "PhysicsModule.Manager.PhysicsManager");
+    #[cfg(feature = "ai-contracts")]
+    assert_eq!(AI_MANAGER_NAME, "ai.runtime.Manager.AiManager");
+    #[cfg(feature = "net-contracts")]
+    assert_eq!(NET_MANAGER_NAME, "net.runtime.Manager.NetManager");
+    #[cfg(feature = "physics-contracts")]
+    assert_eq!(
+        PHYSICS_MANAGER_NAME,
+        "physics.runtime.Manager.PhysicsManager"
+    );
     assert_eq!(
         ANIMATION_MANAGER_NAME,
-        "AnimationModule.Manager.AnimationManager"
+        "animation.runtime.Manager.AnimationManager"
     );
-    assert_eq!(SOUND_MANAGER_NAME, "SoundModule.Manager.SoundManager");
+    #[cfg(feature = "sound-contracts")]
+    assert_eq!(SOUND_MANAGER_NAME, "sound.runtime.Manager.SoundManager");
 }
 
 #[test]

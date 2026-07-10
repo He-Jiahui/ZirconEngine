@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    ShapedGlyphRun, TextOrientation, TextShapeRequest, VerticalMode,
+    OpenTypeFeature, ShapedGlyphRun, TextOrientation, TextShapeRequest, VerticalMode,
 };
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap,
@@ -320,6 +320,85 @@ fn shaped_run_cache_key_omits_wrap_alignment_and_overflow() {
 
     style.font_size = 14.0;
     assert_ne!(first, key_for("editor base.zui", &style));
+}
+
+#[test]
+fn shaped_run_cache_key_includes_normalized_language() {
+    let style = UiResolvedStyle::default();
+    let source_range = source_range_for("界");
+    let simplified = ShapedRunCacheKey::from_request(
+        &TextShapeRequest::horizontal("界", &style, UiTextDirection::LeftToRight, source_range)
+            .with_language(Some(" zh-Hans-CN ")),
+    );
+    let simplified_case_variant = ShapedRunCacheKey::from_request(
+        &TextShapeRequest::horizontal("界", &style, UiTextDirection::LeftToRight, source_range)
+            .with_language(Some("ZH-hans-cn")),
+    );
+    let japanese = ShapedRunCacheKey::from_request(
+        &TextShapeRequest::horizontal("界", &style, UiTextDirection::LeftToRight, source_range)
+            .with_language(Some("ja-JP")),
+    );
+
+    assert_eq!(simplified, simplified_case_variant);
+    assert_ne!(simplified, japanese);
+}
+
+#[test]
+fn shaped_run_cache_key_separates_resolved_style_languages() {
+    let source_range = source_range_for("界");
+    let simplified_style = UiResolvedStyle {
+        language: Some("zh-Hans".to_string()),
+        ..UiResolvedStyle::default()
+    };
+    let japanese_style = UiResolvedStyle {
+        language: Some("ja".to_string()),
+        ..UiResolvedStyle::default()
+    };
+
+    let simplified = ShapedRunCacheKey::from_request(&TextShapeRequest::horizontal(
+        "界",
+        &simplified_style,
+        UiTextDirection::LeftToRight,
+        source_range,
+    ));
+    let japanese = ShapedRunCacheKey::from_request(&TextShapeRequest::horizontal(
+        "界",
+        &japanese_style,
+        UiTextDirection::LeftToRight,
+        source_range,
+    ));
+
+    assert_ne!(simplified, japanese);
+}
+
+#[test]
+fn shaped_run_cache_key_normalizes_open_type_feature_order() {
+    let style = UiResolvedStyle::default();
+    let source_range = source_range_for("0123");
+    let first_features = [
+        OpenTypeFeature::new(*b"tnum", 1),
+        OpenTypeFeature::new(*b"liga", 0),
+    ];
+    let reordered_features = [
+        OpenTypeFeature::new(*b"liga", 0),
+        OpenTypeFeature::new(*b"tnum", 1),
+    ];
+    let changed_features = [OpenTypeFeature::new(*b"liga", 1)];
+    let first = ShapedRunCacheKey::from_request(
+        &TextShapeRequest::horizontal("0123", &style, UiTextDirection::LeftToRight, source_range)
+            .with_features(&first_features),
+    );
+    let reordered = ShapedRunCacheKey::from_request(
+        &TextShapeRequest::horizontal("0123", &style, UiTextDirection::LeftToRight, source_range)
+            .with_features(&reordered_features),
+    );
+    let changed = ShapedRunCacheKey::from_request(
+        &TextShapeRequest::horizontal("0123", &style, UiTextDirection::LeftToRight, source_range)
+            .with_features(&changed_features),
+    );
+
+    assert_eq!(first, reordered);
+    assert_ne!(first, changed);
 }
 
 #[test]

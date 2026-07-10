@@ -6,12 +6,15 @@ use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
     aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame, pixel_to_ndc_x,
-    pixel_to_ndc_y, resolve_sdf_glyph_advances, sdf_screen_px_range, vertical_sdf_glyph_frame,
-    RunGlyph,
+    pixel_to_ndc_y, resolve_sdf_glyph_advances, resolve_vertical_sdf_glyph_advances,
+    sdf_screen_px_range, sdf_uv_at_destination, vertical_sdf_glyph_frame,
+    vertical_shaped_sdf_glyph_frame, RunGlyph, SdfUvRect,
 };
 use super::*;
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::render::{ShapedGlyphRotation, VerticalMode};
 use crate::core::math::UVec2;
+use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
     plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasGlyphKey,
     SdfAtlasPlan, SdfAtlasRect, SdfAtlasRun, SdfAtlasSlot,
@@ -20,10 +23,11 @@ use crate::graphics::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphRasterPlacement,
     GlyphSmoothingMode,
 };
-use crate::graphics::text::font::FontDatabase;
+use crate::graphics::text::font::{FontDatabase, SystemFontPolicy};
+use crate::graphics::text::shaping::vertical_glyph_rotation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextWrap, UiTextWritingMode,
+    UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
 mod draw_plan;
@@ -46,8 +50,11 @@ fn synthetic_layered_plan(page_index: u32) -> SdfAtlasPlan {
         slots: vec![SdfAtlasSlot {
             key: SdfAtlasGlyphKey {
                 glyph: 'A',
+                glyph_id: None,
+                font_id: None,
                 font: Some("res://fonts/default.font.toml".to_string()),
                 font_family: Some("Zircon Sans".to_string()),
+                language: None,
                 font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
                 bake_params: SdfBakeParams::default(),
             },
@@ -75,8 +82,11 @@ fn allocation_failure(
     SdfAtlasAllocationFailure {
         key: SdfAtlasGlyphKey {
             glyph,
+            glyph_id: None,
+            font_id: None,
             font: Some("res://fonts/default.font.toml".to_string()),
             font_family: Some("Zircon Sans".to_string()),
+            language: None,
             font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
             bake_params: SdfBakeParams::default(),
         },
@@ -140,6 +150,7 @@ fn text_advance(
                     glyph,
                     text.font.as_deref(),
                     text.font_family.as_deref(),
+                    text.language.as_deref(),
                     text.font_weight,
                     text.font_size,
                     font_database,
@@ -175,10 +186,12 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         clip_frame: None,
         source_range: None,
         glyph_advances: Vec::new(),
+        shaped_glyphs: Vec::new(),
         color: [0.2, 0.3, 0.4, 0.5],
         background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),
         font_family: Some("Zircon Sans".to_string()),
+        language: None,
         font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
         font_size: 16.0,
         line_height: 20.0,

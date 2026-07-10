@@ -20,8 +20,8 @@ use crate::asset::assets::{
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::{AssetReference, AssetUri};
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::render::RenderMeshTopology;
+use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::EntityPath;
 use crate::core::resource::{

@@ -5,12 +5,12 @@ pub(super) const RUNTIME_03_MODULE_DOC_STATUS_INDEX_ANCHOR_SYNC: Slice = (
     &[
         "runtime_15_runtime_03_module_doc_status_index_anchor_sync_static_passed_cargo_deferred",
         "docs/plans/zircon_runtime/runtime/index.md",
-        "Runtime 03 Schedule/frame-loop module-doc 镜像元数据",
-        "Runtime 05 status-output Runtime 03 module-doc row",
+        "schedule_frame_loop_boundary",
+        "runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts",
         "frame schedule module-doc anchors 3/3",
-        "guard/test files 8/8",
+        "guard/test files 11/11",
         "Runtime 03 guard anchors 14/14",
-        "ecs_schedule/time/session/schedule_parallel Cargo gates",
+        "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates",
         "runtime_15_runtime_03_module_doc_status_index_anchors_are_locked",
     ],
 );

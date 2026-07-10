@@ -19,8 +19,8 @@ fn runtime_15_virtual_geometry_cluster_payload_upload_is_wired() {
     let resident_upload = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_resident_upload.rs",
     );
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let vg_snapshot_doc =
         read_repo("docs/zircon_runtime/core/framework/render/virtual_geometry_debug_snapshot.md");

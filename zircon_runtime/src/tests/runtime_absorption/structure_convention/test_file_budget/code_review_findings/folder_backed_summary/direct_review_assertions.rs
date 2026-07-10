@@ -46,9 +46,9 @@ pub(super) const REVIEW_GUARD_STATUS_MAP_PATH: &str =
 pub(super) const REVIEW_GUARD_DATE_MAP_PATH: &str =
     "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps.rs";
 pub(super) const REVIEW_GUARD_DIRECT_ASSERTION_STATUS_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review/code_review/direct_assertion_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs";
 pub(super) const REVIEW_GUARD_DIRECT_ASSERTION_DATE_MAP_PATH: &str =
-    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review/code_review/direct_assertion_rows.rs";
+    "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs";
 
 pub(super) const CODE_REVIEW_FINDINGS_LINE_BUDGET: usize = 800;
 pub(super) const DIRECT_REVIEW_ASSERTIONS_GUARD_SPLIT_NAME: &str =

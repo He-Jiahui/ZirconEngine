@@ -12,7 +12,7 @@ fn dds_cubemap_with_complete_source_mips_is_ibl_source_only() {
     let mip_count = source_cubemap_mip_count(face_size);
     let texture = source_cubemap_texture(
         "res://textures/source-lakes.dds",
-        "dds/DXT1",
+        "dds/D3DFMT-113",
         dds_classic_cubemap_mip_bytes(face_size, mip_count),
         face_size,
         mip_count,
@@ -23,7 +23,7 @@ fn dds_cubemap_with_complete_source_mips_is_ibl_source_only() {
         .expect("dds cubemap should be classified as an external source cubemap");
 
     assert_eq!(info.kind, ExternalSourceCubemapContainerKind::Dds);
-    assert_eq!(info.format, "dds/dxt1");
+    assert_eq!(info.format, "dds/d3dfmt-113");
     assert_eq!(info.face_size, face_size);
     assert_eq!(info.mip_count, mip_count);
     assert_source_only_upload_rejection(&texture);
@@ -35,7 +35,7 @@ fn ktx1_cubemap_with_complete_source_mips_is_ibl_source_only() {
     let mip_count = source_cubemap_mip_count(face_size);
     let texture = source_cubemap_texture(
         "res://textures/source-lakes.ktx",
-        "ktx/gl-internal-0x000083f1",
+        "ktx/gl-internal-0x0000881a",
         ktx1_bc1_cubemap_mip_bytes(face_size, mip_count),
         face_size,
         mip_count,
@@ -46,7 +46,7 @@ fn ktx1_cubemap_with_complete_source_mips_is_ibl_source_only() {
         .expect("ktx1 cubemap should be classified as an external source cubemap");
 
     assert_eq!(info.kind, ExternalSourceCubemapContainerKind::Ktx1);
-    assert_eq!(info.format, "ktx/gl-internal-0x000083f1");
+    assert_eq!(info.format, "ktx/gl-internal-0x0000881a");
     assert_eq!(info.face_size, face_size);
     assert_eq!(info.mip_count, mip_count);
     assert_source_only_upload_rejection(&texture);
@@ -58,7 +58,7 @@ fn ktx2_cubemap_with_complete_source_mips_is_ibl_source_only() {
     let mip_count = source_cubemap_mip_count(face_size);
     let texture = source_cubemap_texture(
         "res://textures/source-lakes.ktx2",
-        "ktx2/vk-133/supercompression-0",
+        "ktx2/vk-97/supercompression-0",
         ktx2_bc1_cubemap_mip_bytes(face_size, mip_count),
         face_size,
         mip_count,
@@ -69,7 +69,7 @@ fn ktx2_cubemap_with_complete_source_mips_is_ibl_source_only() {
         .expect("ktx2 cubemap should be classified as an external source cubemap");
 
     assert_eq!(info.kind, ExternalSourceCubemapContainerKind::Ktx2);
-    assert_eq!(info.format, "ktx2/vk-133/supercompression-0");
+    assert_eq!(info.format, "ktx2/vk-97/supercompression-0");
     assert_eq!(info.face_size, face_size);
     assert_eq!(info.mip_count, mip_count);
     assert_source_only_upload_rejection(&texture);
@@ -181,8 +181,8 @@ fn dds_classic_fourcc_bytes(
 }
 
 fn dds_classic_cubemap_mip_bytes(face_size: u32, mip_count: u32) -> Vec<u8> {
-    let payload_bytes = bc1_cubemap_mip_payload_bytes(face_size, mip_count);
-    let mut bytes = dds_classic_fourcc_bytes(face_size, face_size, "DXT1", payload_bytes);
+    let payload_bytes = rgba16f_cubemap_mip_payload_bytes(face_size, mip_count);
+    let mut bytes = dds_classic_fourcc_bytes(face_size, face_size, "q\0\0\0", payload_bytes);
     write_u32_le(
         &mut bytes,
         8,
@@ -202,9 +202,11 @@ fn ktx1_bc1_cubemap_mip_bytes(face_size: u32, mip_count: u32) -> Vec<u8> {
     let mut bytes = vec![0_u8; 64];
     bytes[0..12].copy_from_slice(b"\xABKTX 11\xBB\r\n\x1A\n");
     write_u32_le(&mut bytes, 12, 0x0403_0201);
-    write_u32_le(&mut bytes, 20, 1);
-    write_u32_le(&mut bytes, 28, 0x83f1);
-    write_u32_le(&mut bytes, 32, 0x1907);
+    write_u32_le(&mut bytes, 16, 0x140b);
+    write_u32_le(&mut bytes, 20, 2);
+    write_u32_le(&mut bytes, 24, 0x1908);
+    write_u32_le(&mut bytes, 28, 0x881a);
+    write_u32_le(&mut bytes, 32, 0x1908);
     write_u32_le(&mut bytes, 36, face_size);
     write_u32_le(&mut bytes, 40, face_size);
     write_u32_le(&mut bytes, 52, SOURCE_CUBEMAP_FACE_COUNT);
@@ -212,9 +214,9 @@ fn ktx1_bc1_cubemap_mip_bytes(face_size: u32, mip_count: u32) -> Vec<u8> {
     write_u32_le(&mut bytes, 60, 0);
     for level in 0..mip_count {
         let extent = mip_extent(face_size, level);
-        let image_bytes = bc1_level_bytes(extent, extent) * SOURCE_CUBEMAP_FACE_COUNT as usize;
-        write_u32_to_vec(&mut bytes, image_bytes as u32);
-        bytes.extend(vec![1_u8; image_bytes]);
+        let face_bytes = extent as usize * extent as usize * 8;
+        write_u32_to_vec(&mut bytes, face_bytes as u32);
+        bytes.extend(vec![1_u8; face_bytes * SOURCE_CUBEMAP_FACE_COUNT as usize]);
     }
     bytes
 }
@@ -230,13 +232,14 @@ fn ktx2_bc1_cubemap_mip_bytes(face_size: u32, mip_count: u32) -> Vec<u8> {
     let mut level_payloads = Vec::new();
     for level in 0..mip_count {
         let extent = mip_extent(face_size, level);
-        level_payloads.push(bc1_level_bytes(extent, extent) * SOURCE_CUBEMAP_FACE_COUNT as usize);
+        level_payloads
+            .push(extent as usize * extent as usize * 8 * SOURCE_CUBEMAP_FACE_COUNT as usize);
     }
 
     let mut bytes = vec![0_u8; data_offset];
     bytes[0..12].copy_from_slice(b"\xABKTX 20\xBB\r\n\x1A\n");
-    write_u32_le(&mut bytes, 12, 133);
-    write_u32_le(&mut bytes, 16, 1);
+    write_u32_le(&mut bytes, 12, 97);
+    write_u32_le(&mut bytes, 16, 8);
     write_u32_le(&mut bytes, 20, face_size);
     write_u32_le(&mut bytes, 24, face_size);
     write_u32_le(&mut bytes, 36, SOURCE_CUBEMAP_FACE_COUNT);
@@ -258,11 +261,11 @@ fn ktx2_bc1_cubemap_mip_bytes(face_size: u32, mip_count: u32) -> Vec<u8> {
     bytes
 }
 
-fn bc1_cubemap_mip_payload_bytes(face_size: u32, mip_count: u32) -> usize {
+fn rgba16f_cubemap_mip_payload_bytes(face_size: u32, mip_count: u32) -> usize {
     (0..mip_count)
         .map(|level| {
-            let extent = mip_extent(face_size, level);
-            bc1_level_bytes(extent, extent) * SOURCE_CUBEMAP_FACE_COUNT as usize
+            let extent = mip_extent(face_size, level) as usize;
+            extent * extent * 8 * SOURCE_CUBEMAP_FACE_COUNT as usize
         })
         .sum()
 }

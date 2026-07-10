@@ -23,7 +23,7 @@ impl RegistryName {
         let Some((module_end, kind_end)) = registry_separator_offsets(&value) else {
             return Err(CoreError::InvalidRegistryName(value));
         };
-        if !is_canonical_segment(&value[..module_end]) {
+        if !is_canonical_module_namespace(&value[..module_end]) {
             return Err(CoreError::InvalidRegistryName(value));
         }
 
@@ -49,8 +49,8 @@ impl RegistryName {
 
     pub fn from_parts(module: &str, kind: ServiceKind, service: &str) -> Self {
         assert!(
-            is_canonical_dot_free_segment(module),
-            "registry name module segments must be non-empty, trim-clean, and dot-free"
+            is_canonical_module_namespace(module),
+            "registry name module namespaces must contain non-empty, trim-clean segments"
         );
         assert!(
             is_canonical_dot_free_segment(service),
@@ -173,30 +173,33 @@ fn is_canonical_dot_free_segment(value: &str) -> bool {
     !last.is_whitespace()
 }
 
+fn is_canonical_module_namespace(value: &str) -> bool {
+    let mut segment_start = 0;
+    for (index, ch) in value.char_indices() {
+        if ch != '.' {
+            continue;
+        }
+        if !is_canonical_dot_free_segment(&value[segment_start..index]) {
+            return false;
+        }
+        segment_start = index + 1;
+    }
+    is_canonical_dot_free_segment(&value[segment_start..])
+}
+
 fn registry_separator_offsets(value: &str) -> Option<(usize, usize)> {
     let bytes = value.as_bytes();
-    let mut first_separator = 0;
-    let mut second_separator = 0;
-    let mut separator_count = 0;
-    let mut index = 0;
+    let mut kind_end = None;
+    let mut index = bytes.len();
 
-    while index < bytes.len() {
+    while index > 0 {
+        index -= 1;
         if bytes[index] == b'.' {
-            if separator_count == 0 {
-                first_separator = index;
-            } else if separator_count == 1 {
-                second_separator = index;
-            } else {
-                return None;
+            if let Some(kind_end) = kind_end {
+                return Some((index, kind_end));
             }
-            separator_count += 1;
+            kind_end = Some(index);
         }
-        index += 1;
     }
-
-    if separator_count == 2 {
-        Some((first_separator, second_separator))
-    } else {
-        None
-    }
+    None
 }

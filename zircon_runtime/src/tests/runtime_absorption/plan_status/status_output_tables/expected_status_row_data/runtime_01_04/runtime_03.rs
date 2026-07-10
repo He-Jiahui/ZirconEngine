@@ -7,16 +7,16 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "runtime_03_schedule_frame_loop_mirror_docs_match_structure_audit_counts",
             "schedule_frame_loop_boundary",
             "standalone rustc 1/1",
-            "ecs_schedule/time/session/schedule_parallel Cargo gates pending",
+            "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates pending",
         ],
     ),
     (
         "Runtime 03 Schedule/frame-loop module-doc 镜像元数据",
         &[
             "frame schedule module-doc anchors 3/3",
-            "guard/test files 8/8",
+            "guard/test files 11/11",
             "Runtime 03 guard anchors 14/14",
-            "ecs_schedule/time/session/schedule_parallel Cargo gates pending",
+            "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates pending",
         ],
     ),
     (
@@ -43,7 +43,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "schedule_frame_loop_current_audit_static_passed_cargo_pending",
             "source files 18/18",
             "standalone `schedule_frame_loop.rs` 1/1",
-            "ecs_schedule/time/session/schedule_parallel Cargo gates pending",
+            "ecs_schedule/tests::time::/session/schedule_parallel Cargo gates pending",
         ],
     ),
     (

@@ -27,8 +27,8 @@ fn runtime_15_shader_prewarm_wgpu_render_pipeline_validation_is_wired() {
         read_repo("tools/tests/test_zircon_build_shader_prewarm_wgpu_report_contract.py");
     let acceptance_tests =
         read_repo("tools/tests/test_zircon_build_shader_prewarm_acceptance_contract.py");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08-material-shader-permutation.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let render_index = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");
     let mesh_cache_doc =
         read_repo("docs/zircon_runtime/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache.md");

@@ -21,7 +21,7 @@ pub(super) use color_lut_bake::color_lut_bake;
 pub(super) use depth_of_field_prepare::depth_of_field_prepare;
 pub(super) use exposure_histogram::exposure_histogram;
 pub(super) use exposure_resolve::exposure_resolve;
-pub(super) use hzb::hzb;
+pub(super) use hzb::{hzb, hzb_msaa};
 pub(super) use motion_vector_neighbor_max::motion_vector_neighbor_max;
 pub(super) use motion_vector_tile_max::motion_vector_tile_max;
 pub(super) use output_transfer::output_transfer;

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::resource::{AssetReference, ResourceId};
 
-use super::RenderMaterialDiagnosticSource;
+use super::{RenderMaterialDiagnosticSource, RenderMaterialTextureDimension};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "error", rename_all = "snake_case")]
@@ -25,6 +25,12 @@ pub enum RenderMaterialValidationError {
         slot: String,
         reference: AssetReference,
         reason: String,
+    },
+    TextureDimensionMismatch {
+        slot: String,
+        reference: AssetReference,
+        expected: RenderMaterialTextureDimension,
+        actual: RenderMaterialTextureDimension,
     },
     InvalidLightingModel {
         path: String,

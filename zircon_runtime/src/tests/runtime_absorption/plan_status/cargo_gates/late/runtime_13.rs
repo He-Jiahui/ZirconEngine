@@ -1,10 +1,16 @@
 #[test]
 fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass() {
-    let runtime_13_plan = include_str!(
+    let runtime_13_plan = runtime_plan_source_with_archive(
+        "13",
+        include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
+    ),
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_13_plan = runtime_13_plan.as_str();
+    let runtime_index = runtime_index_with_numbered_archives(include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+    ));
+    let runtime_index = runtime_index.as_str();
     let function_ledger =
         include_str!("../../../../../../../docs/zircon_runtime/script/vm/host/function_ledger.md");
     let review = include_str!(

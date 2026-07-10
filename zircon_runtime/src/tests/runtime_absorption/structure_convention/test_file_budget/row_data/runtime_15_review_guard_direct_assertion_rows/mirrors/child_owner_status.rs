@@ -3,8 +3,20 @@ use super::*;
 #[test]
 fn runtime_15_review_guard_direct_assertion_child_owner_status_is_current() {
     let status_support_rows = read_runtime_src(STATUS_SUPPORT_ROWS_PATH);
-    let review_expected_status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
-    let review_expected_date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
+    let review_expected_status_map = format!(
+        "{}\n{}",
+        read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs",
+        )
+    );
+    let review_expected_date_map = format!(
+        "{}\n{}",
+        read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH),
+        read_runtime_src(
+            "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/review_guard_maps/code_review_guard_maps/direct_assertion_rows.rs",
+        )
+    );
     let status_support_expected_status_map = read_runtime_src(STATUS_SUPPORT_STATUS_MAP_PATH);
     let status_support_expected_date_map = read_runtime_src(STATUS_SUPPORT_DATE_MAP_PATH);
 

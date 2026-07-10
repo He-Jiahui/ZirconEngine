@@ -2,9 +2,11 @@ use thiserror::Error;
 
 use super::AssetImporterRegistryError;
 use crate::asset::assets::{
-    AnimationAssetError, UiAssetDocumentError, UiIconAssetDocumentError, UiThemeAssetDocumentError,
-    UiV2AssetDocumentError,
+    AnimationAssetError, FontAssetError, UiAssetDocumentError, UiIconAssetDocumentError,
+    UiThemeAssetDocumentError, UiV2AssetDocumentError,
 };
+#[cfg(feature = "text")]
+use crate::asset::assets::{FontMetadataParseError, FontSourceDecodeError};
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
 #[derive(Debug, Error)]
@@ -15,6 +17,33 @@ pub enum AssetImportError {
     Uri(#[from] ResourceLocatorError),
     #[error("asset parse failed: {0}")]
     Parse(String),
+    #[error("font asset document failed: {0}")]
+    FontDocument(#[source] FontAssetError),
+    #[error("font source {path} could not be read: {source}")]
+    FontSourceIo {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[cfg(feature = "text")]
+    #[error("font source {path} could not be decoded: {source}")]
+    FontSourceDecode {
+        path: std::path::PathBuf,
+        #[source]
+        source: FontSourceDecodeError,
+    },
+    #[cfg(feature = "text")]
+    #[error("font source {path} metadata is invalid: {source}")]
+    FontMetadata {
+        path: std::path::PathBuf,
+        #[source]
+        source: FontMetadataParseError,
+    },
+    #[error("font asset {manifest_path} has invalid source path: {reason}")]
+    FontSourcePath {
+        manifest_path: std::path::PathBuf,
+        reason: &'static str,
+    },
     #[error("unsupported asset format: {0}")]
     UnsupportedFormat(String),
     #[error("wgsl validation failed: {0}")]

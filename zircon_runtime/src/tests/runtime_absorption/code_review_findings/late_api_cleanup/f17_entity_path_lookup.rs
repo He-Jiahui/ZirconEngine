@@ -11,15 +11,18 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let property_paths_runtime_mutation =
         include_str!("../../../../scene/tests/property_paths/runtime_mutation.rs");
     let property_paths_read = include_str!("../../../../scene/tests/property_paths/read_paths.rs");
-    let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let runtime_08 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
+    let review_findings = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let convention = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+    );
+    let runtime_08 = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/08/2026-07-09-ecs-kernel-data-alignment-output-records.md"
+    );
+    let runtime_index = include_str!(
+        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    );
     let ecs_doc = include_str!("../../../../../../docs/zircon_runtime/scene/ecs.md");
     let animation_doc = include_str!(
         "../../../../../../docs/assets-and-rendering/runtime-physics-animation-assets.md"
@@ -33,10 +36,13 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
         .expect("F17 review findings top row");
 
     assert!(
-        f17_row
-            .contains("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred")
-            && f17_row.ends_with("| convention + Runtime 08 / review closed |"),
+        f17_row.ends_with("| convention + Runtime 08 / review closed |"),
         "F17 top row should record lookup review closed status"
+    );
+    assert!(
+        review_findings
+            .contains("f17_f18_lookup_manager_top_row_closed_status_static_passed_cargo_deferred"),
+        "F17 numbered review output should retain the closed-status evidence anchor"
     );
 
     let old_option_lookup = ["resolve", "entity", "path"].join("_");

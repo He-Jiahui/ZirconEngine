@@ -3,6 +3,8 @@ use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{SdfAtlasPlan, SdfAtlasSlot};
 use crate::graphics::text::atlas::{GlyphAtlasFormat, GlyphAtlasPageKey};
+#[cfg(target_os = "windows")]
+use crate::graphics::text::font::shared_font_database_snapshot;
 use std::path::PathBuf;
 
 #[test]
@@ -87,6 +89,7 @@ fn sdf_font_bake_measures_whitespace_without_atlas_bitmap() {
         ' ',
         Some(DEFAULT_FONT_ASSET),
         Some("Studio Mono"),
+        None,
         UiResolvedStyle::DEFAULT_FONT_WEIGHT,
         18.0,
         &mut font_database,
@@ -109,6 +112,7 @@ fn sdf_font_bake_handles_missing_glyph_with_stable_empty_fallback() {
         '\u{10ffff}',
         Some(DEFAULT_FONT_ASSET),
         Some("Studio Mono"),
+        None,
         UiResolvedStyle::DEFAULT_FONT_WEIGHT,
         18.0,
         &mut font_database,
@@ -132,8 +136,11 @@ fn sdf_font_bake_handles_missing_glyph_with_stable_empty_fallback() {
 fn sdf_font_query_for_key_preserves_font_weight() {
     let query = font_query_for_key(&SdfAtlasGlyphKey {
         glyph: 'A',
+        glyph_id: None,
+        font_id: None,
         font: Some(DEFAULT_FONT_ASSET.to_string()),
         font_family: Some("Studio Mono".to_string()),
+        language: None,
         font_weight: 650,
         bake_params: SdfBakeParams::default(),
     });
@@ -154,6 +161,59 @@ fn sdf_font_bake_falls_back_when_fontsdf_cannot_open_requested_face_index() {
     assert_eq!(atlas.report.slot_count, 1);
     assert_eq!(atlas.report.visible_glyph_count, 1);
     assert!(atlas.report.nonzero_pixel_count > 0);
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn sdf_font_bake_rasterizes_materialized_system_cjk_face() {
+    let mut bake = SdfFontBakeCache::new();
+    let (_, mut font_database) = shared_font_database_snapshot();
+    let asset_manager = ProjectAssetManager::default();
+    let face = font_database
+        .match_face(&FontQuery::single_family("Microsoft YaHei UI"))
+        .expect("Windows CJK system font")
+        .face;
+    assert!(bake.ensure_sdf_font(face, &font_database));
+
+    let mut plan = atlas_plan_for_glyphs(&['本']);
+    plan.slots[0].key.font_family = Some("Microsoft YaHei UI".to_string());
+    plan.slots[0].key.language = Some("zh-Hans".to_string());
+    let atlas = bake.build_atlas(&plan, &mut font_database, &asset_manager);
+
+    assert_eq!(atlas.report.slot_count, 1);
+    assert_eq!(atlas.report.visible_glyph_count, 1);
+    assert_eq!(atlas.report.empty_glyph_count, 0);
+    assert!(atlas.report.nonzero_pixel_count > 0);
+    assert_eq!(atlas.report.loaded_font_count, 1);
+}
+
+#[cfg(target_os = "windows")]
+#[test]
+fn sdf_font_bake_prefers_shaped_glyph_id_on_authoritative_face() {
+    let mut bake = SdfFontBakeCache::new();
+    let (_, font_database) = shared_font_database_snapshot();
+    let face = font_database
+        .match_face(&FontQuery::single_family("Microsoft YaHei UI"))
+        .expect("Windows CJK system font")
+        .face;
+    assert!(bake.ensure_sdf_font(face, &font_database));
+    let font = bake.fonts.get(&face).expect("materialized SDF font");
+    let shaped_id = font.lookup_glyph_index('布');
+    let scalar_id = font.lookup_glyph_index('。');
+    assert_ne!(shaped_id, 0);
+    assert_ne!(shaped_id, scalar_id);
+    let key = SdfAtlasGlyphKey {
+        glyph: '。',
+        glyph_id: Some(shaped_id as u32),
+        font_id: Some(face.0),
+        font: Some(DEFAULT_FONT_ASSET.to_string()),
+        font_family: Some("Microsoft YaHei UI".to_string()),
+        language: Some("zh-hans".to_string()),
+        font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
+        bake_params: SdfBakeParams::default(),
+    };
+
+    assert_eq!(glyph_index(font, &key), shaped_id);
 }
 
 #[test]
@@ -193,8 +253,11 @@ fn atlas_plan_for_glyphs(glyphs: &[char]) -> SdfAtlasPlan {
         .map(|(index, glyph)| SdfAtlasSlot {
             key: SdfAtlasGlyphKey {
                 glyph: *glyph,
+                glyph_id: None,
+                font_id: None,
                 font: Some(DEFAULT_FONT_ASSET.to_string()),
                 font_family: Some("Studio Mono".to_string()),
+                language: None,
                 font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
                 bake_params: SdfBakeParams::default(),
             },
@@ -223,8 +286,11 @@ fn atlas_plan_for_page_glyphs(glyphs: &[(char, u32)]) -> SdfAtlasPlan {
         .map(|(glyph, page_index)| SdfAtlasSlot {
             key: SdfAtlasGlyphKey {
                 glyph: *glyph,
+                glyph_id: None,
+                font_id: None,
                 font: Some(DEFAULT_FONT_ASSET.to_string()),
                 font_family: Some("Studio Mono".to_string()),
+                language: None,
                 font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
                 bake_params: SdfBakeParams::default(),
             },
@@ -254,8 +320,11 @@ fn atlas_plan_for_asset(glyph: char, asset_ref: &str) -> SdfAtlasPlan {
         slots: vec![SdfAtlasSlot {
             key: SdfAtlasGlyphKey {
                 glyph,
+                glyph_id: None,
+                font_id: None,
                 font: Some(asset_ref.to_string()),
                 font_family: Some("Fira Unsupported Face".to_string()),
+                language: None,
                 font_weight: UiResolvedStyle::DEFAULT_FONT_WEIGHT,
                 bake_params: SdfBakeParams::default(),
             },

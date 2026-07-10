@@ -71,7 +71,7 @@ fn runtime_15_structure_support_expected_slice_budgets_status_is_synced() {
     assert_contains_all(
         "Frameworks 02 structure-support budget mirror",
         &read_repo(
-            "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md",
+            "docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
         ),
         &[
             STRUCTURE_SUPPORT_BUDGETS_SLICE,

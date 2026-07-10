@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 use crate::core::resource::{AssetReference, ResourceId};
 
 // Compact inspection data for authored material texture slots after resolution.
@@ -15,6 +16,10 @@ pub struct RenderMaterialTextureSlotSummary {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderMaterialTextureSlotState {
     pub slot: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_dimension: Option<RenderMaterialTextureDimension>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actual_dimension: Option<RenderMaterialTextureDimension>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub texture_id: Option<ResourceId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -31,7 +36,46 @@ pub struct RenderMaterialTextureSlotFallback {
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum RenderMaterialTextureSlotFallbackReason {
     UnresolvedReference,
-    NotUploadReady { detail: String },
+    NotUploadReady {
+        detail: String,
+    },
+    DimensionMismatch {
+        expected: RenderMaterialTextureDimension,
+        actual: RenderMaterialTextureDimension,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RenderMaterialTextureDimension {
+    D1,
+    #[default]
+    D2,
+    D2Array,
+    Cube,
+    D3,
+}
+
+impl RenderMaterialTextureDimension {
+    pub fn from_shader_kind(kind: &str) -> Self {
+        match kind.trim().to_ascii_lowercase().as_str() {
+            "texture_2d_array" | "texture2darray" | "2d_array" => Self::D2Array,
+            "texture_cube" | "texturecube" | "cubemap" | "cube" => Self::Cube,
+            "texture_3d" | "texture3d" | "3d" => Self::D3,
+            "texture_1d" | "texture1d" | "1d" => Self::D1,
+            _ => Self::D2,
+        }
+    }
+
+    pub fn from_image_descriptor(descriptor: &RenderImageDescriptor) -> Self {
+        match descriptor.dimension {
+            RenderImageDimension::D1 => Self::D1,
+            RenderImageDimension::D2 if descriptor.array_layer_count > 1 => Self::D2Array,
+            RenderImageDimension::D2 => Self::D2,
+            RenderImageDimension::D3 => Self::D3,
+            RenderImageDimension::Cube => Self::Cube,
+        }
+    }
 }
 
 impl RenderMaterialTextureSlotFallback {
@@ -48,6 +92,17 @@ impl RenderMaterialTextureSlotFallback {
             reason: RenderMaterialTextureSlotFallbackReason::NotUploadReady {
                 detail: detail.into(),
             },
+        }
+    }
+
+    pub fn dimension_mismatch(
+        reference: AssetReference,
+        expected: RenderMaterialTextureDimension,
+        actual: RenderMaterialTextureDimension,
+    ) -> Self {
+        Self {
+            reference,
+            reason: RenderMaterialTextureSlotFallbackReason::DimensionMismatch { expected, actual },
         }
     }
 }
@@ -104,9 +159,38 @@ impl RenderMaterialTextureSlotState {
             .into_iter()
             .map(|(slot, texture_id, fallback)| Self {
                 slot: slot.into(),
+                expected_dimension: None,
+                actual_dimension: None,
                 texture_id,
                 fallback,
             })
+            .collect()
+    }
+
+    pub fn from_dimensioned_slots<I, S>(texture_ids: I) -> Vec<Self>
+    where
+        I: IntoIterator<
+            Item = (
+                S,
+                Option<ResourceId>,
+                Option<RenderMaterialTextureDimension>,
+                Option<RenderMaterialTextureDimension>,
+                Option<RenderMaterialTextureSlotFallback>,
+            ),
+        >,
+        S: Into<String>,
+    {
+        texture_ids
+            .into_iter()
+            .map(
+                |(slot, texture_id, expected_dimension, actual_dimension, fallback)| Self {
+                    slot: slot.into(),
+                    expected_dimension,
+                    actual_dimension,
+                    texture_id,
+                    fallback,
+                },
+            )
             .collect()
     }
 
@@ -168,11 +252,15 @@ mod tests {
             vec![
                 RenderMaterialTextureSlotState {
                     slot: "detail_map".to_string(),
+                    expected_dimension: None,
+                    actual_dimension: None,
                     texture_id: Some(detail_id),
                     fallback: None,
                 },
                 RenderMaterialTextureSlotState {
                     slot: "mask_map".to_string(),
+                    expected_dimension: None,
+                    actual_dimension: None,
                     texture_id: None,
                     fallback: None,
                 },

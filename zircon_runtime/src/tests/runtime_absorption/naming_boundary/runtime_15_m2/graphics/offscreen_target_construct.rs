@@ -20,16 +20,19 @@ fn runtime_15_offscreen_target_construct_uses_owner_name() {
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
-    let runtime_index = read_repo_text(manifest_root, "docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = read_repo_text(
+        manifest_root,
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -39,24 +42,9 @@ fn runtime_15_offscreen_target_construct_uses_owner_name() {
         manifest_root,
         "docs/zircon_runtime/graphics/render-product-submit.md",
     );
-    let status_rows = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/foundation.rs",
-        ),
-        "Runtime 15 status rows should be readable",
-    );
-    let status_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15.rs",
-        ),
-        "Runtime 15 expected status slice should be readable",
-    );
-    let date_slice = read_text(
-        &manifest_root.join(
-            "src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15.rs",
-        ),
-        "Runtime 15 expected date slice should be readable",
-    );
+    let status_rows = read_runtime_15_naming_status_rows(manifest_root);
+    let status_slice = read_runtime_15_naming_status_map(manifest_root);
+    let date_slice = read_runtime_15_naming_date_map(manifest_root);
 
     assert!(
         !retired_offscreen_target_new.exists(),
@@ -98,25 +86,35 @@ fn runtime_15_offscreen_target_construct_uses_owner_name() {
     );
 
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan),
-        ("runtime index", runtime_index),
-        ("review findings", review_findings),
-        ("structure convention", structure_convention),
-        ("module convention doc", module_doc),
-        ("graphics render-product doc", graphics_doc),
-        ("status row data", status_rows),
-        ("status slice", status_slice),
-        ("date slice", date_slice),
+        ("Runtime 15 plan", runtime_15_plan.as_str()),
+        ("runtime index", runtime_index.as_str()),
+        ("review findings", review_findings.as_str()),
+        ("structure convention", structure_convention.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("graphics render-product doc", graphics_doc.as_str()),
+        ("status row data", status_rows.as_str()),
+        ("status slice", status_slice.as_str()),
+        ("date slice", date_slice.as_str()),
     ] {
         assert_contains_all(
             label,
-            &source,
+            source,
             &[
                 "Runtime 15 M2 offscreen target construct directory naming hard cutover",
                 "runtime_15_offscreen_target_construct_naming_hard_cutover_static_passed_cargo_timeout_no_result",
-                "graphics/backend/render_backend/offscreen_target_construct/construct.rs",
                 "runtime_15_offscreen_target_construct_uses_owner_name",
             ],
+        );
+    }
+    for (label, source) in [
+        ("runtime index", runtime_index.as_str()),
+        ("module convention doc", module_doc.as_str()),
+        ("graphics render-product doc", graphics_doc.as_str()),
+    ] {
+        assert_contains_all(
+            label,
+            source,
+            &["graphics/backend/render_backend/offscreen_target_construct/construct.rs"],
         );
     }
 }

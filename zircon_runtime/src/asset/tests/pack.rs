@@ -5,13 +5,13 @@ use std::{
 };
 
 use crate::asset::pack::{
-    zrpack_content_hash, ZrPackAssetEntry, ZrPackDeltaDocumentManifest, ZrPackDeltaInstallError,
-    ZrPackDeltaInstaller, ZrPackDeltaReader, ZrPackDeltaWriter, ZrPackDocumentManifest,
-    ZrPackError, ZrPackInputAsset, ZrPackPromotionMethod, ZrPackReader, ZrPackTrimConfig,
-    ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReason, ZrPackWriter, ZRPACK_DELTA_MAGIC,
-    ZRPACK_FORMAT_VERSION, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION, ZRPACK_MAGIC,
+    zrpack_content_hash, ZrChunkEntry, ZrPackAssetEntry, ZrPackDeltaDocumentManifest,
+    ZrPackDeltaInstallError, ZrPackDeltaInstaller, ZrPackDeltaReader, ZrPackDeltaWriter,
+    ZrPackDocumentManifest, ZrPackError, ZrPackInputAsset, ZrPackManifest, ZrPackPromotionMethod,
+    ZrPackReader, ZrPackTrimConfig, ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReason,
+    ZrPackWriter, ZRPACK_DELTA_MAGIC, ZRPACK_FORMAT_VERSION, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
+    ZRPACK_MAGIC,
 };
-use crate::core::framework::net::{ZrChunkEntry, ZrPackManifest};
 
 mod basic;
 mod delta_installer;

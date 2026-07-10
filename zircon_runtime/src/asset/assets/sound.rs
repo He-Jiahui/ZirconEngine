@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::asset::AssetUri;
-use crate::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
+use crate::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 
 const PCM_FORMAT: u16 = 1;
 const IEEE_FLOAT_FORMAT: u16 = 3;
@@ -105,7 +105,7 @@ pub struct SoundAsset {
     pub sample_rate_hz: u32,
     pub channel_count: u16,
     /// Speaker layout for each interleaved frame in `samples`.
-    pub channel_layout: SoundChannelLayout,
+    pub channel_layout: AudioChannelLayout,
     pub samples: Vec<f32>,
 }
 
@@ -185,10 +185,10 @@ struct WavFormat {
 }
 
 impl WavFormat {
-    fn channel_layout(&self) -> SoundAssetResult<SoundChannelLayout> {
+    fn channel_layout(&self) -> SoundAssetResult<AudioChannelLayout> {
         match self.channel_mask {
             Some(mask) => channel_layout_from_wav_mask(mask, self.channel_count),
-            None => Ok(SoundChannelLayout::for_channel_count(self.channel_count)),
+            None => Ok(AudioChannelLayout::for_channel_count(self.channel_count)),
         }
     }
 }
@@ -302,7 +302,7 @@ fn decode_samples(format: &WavFormat, data: &[u8]) -> SoundAssetResult<Vec<f32>>
 fn channel_layout_from_wav_mask(
     channel_mask: u32,
     channel_count: u16,
-) -> SoundAssetResult<SoundChannelLayout> {
+) -> SoundAssetResult<AudioChannelLayout> {
     if channel_mask.count_ones() != channel_count as u32 {
         return Err(SoundAssetError::ChannelMaskCountMismatch {
             channel_mask,
@@ -319,14 +319,14 @@ fn channel_layout_from_wav_mask(
 
     let mut speakers = Vec::with_capacity(channel_count as usize);
     for (bit, speaker) in [
-        (SPEAKER_FRONT_LEFT, SoundSpeakerChannel::FrontLeft),
-        (SPEAKER_FRONT_RIGHT, SoundSpeakerChannel::FrontRight),
-        (SPEAKER_FRONT_CENTER, SoundSpeakerChannel::FrontCenter),
-        (SPEAKER_LOW_FREQUENCY, SoundSpeakerChannel::LowFrequency),
-        (SPEAKER_BACK_LEFT, SoundSpeakerChannel::BackLeft),
-        (SPEAKER_BACK_RIGHT, SoundSpeakerChannel::BackRight),
-        (SPEAKER_SIDE_LEFT, SoundSpeakerChannel::SideLeft),
-        (SPEAKER_SIDE_RIGHT, SoundSpeakerChannel::SideRight),
+        (SPEAKER_FRONT_LEFT, AudioSpeakerChannel::FrontLeft),
+        (SPEAKER_FRONT_RIGHT, AudioSpeakerChannel::FrontRight),
+        (SPEAKER_FRONT_CENTER, AudioSpeakerChannel::FrontCenter),
+        (SPEAKER_LOW_FREQUENCY, AudioSpeakerChannel::LowFrequency),
+        (SPEAKER_BACK_LEFT, AudioSpeakerChannel::BackLeft),
+        (SPEAKER_BACK_RIGHT, AudioSpeakerChannel::BackRight),
+        (SPEAKER_SIDE_LEFT, AudioSpeakerChannel::SideLeft),
+        (SPEAKER_SIDE_RIGHT, AudioSpeakerChannel::SideRight),
     ] {
         if channel_mask & bit != 0 {
             speakers.push(speaker);
@@ -341,22 +341,22 @@ fn channel_layout_from_wav_mask(
 
 fn layout_from_speakers(
     channel_count: u16,
-    speakers: Vec<SoundSpeakerChannel>,
+    speakers: Vec<AudioSpeakerChannel>,
     fallback_name: String,
-) -> SoundChannelLayout {
+) -> AudioChannelLayout {
     [
-        SoundChannelLayout::mono(),
-        SoundChannelLayout::stereo(),
-        SoundChannelLayout::quad(),
-        SoundChannelLayout::surround_5_0(),
-        SoundChannelLayout::surround_5_1(),
-        SoundChannelLayout::surround_5_1_side(),
-        SoundChannelLayout::surround_7_0(),
-        SoundChannelLayout::surround_7_1(),
+        AudioChannelLayout::mono(),
+        AudioChannelLayout::stereo(),
+        AudioChannelLayout::quad(),
+        AudioChannelLayout::surround_5_0(),
+        AudioChannelLayout::surround_5_1(),
+        AudioChannelLayout::surround_5_1_side(),
+        AudioChannelLayout::surround_7_0(),
+        AudioChannelLayout::surround_7_1(),
     ]
     .into_iter()
     .find(|layout| layout.channel_count == channel_count && layout.speakers == speakers)
-    .unwrap_or(SoundChannelLayout {
+    .unwrap_or(AudioChannelLayout {
         name: fallback_name,
         channel_count,
         speakers,

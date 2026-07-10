@@ -5,8 +5,15 @@ fn runtime_15_post_process_volume_component_is_folder_backed() {
     let parent = read_runtime_src("core/framework/render/post_process/volume_component.rs");
     let params = read_runtime_src("core/framework/render/post_process/volume_component/params.rs");
     let tests = read_runtime_src("core/framework/render/post_process/volume_component/tests.rs");
-    let plan_07 = read_repo("docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let plan_07 = format!(
+        "{}\n{}",
+        read_repo(
+            "docs/plans/zircon_runtime/render/07/2026-07-09-postprocess-color-pipeline-output-records.md",
+        ),
+        render_index,
+    );
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

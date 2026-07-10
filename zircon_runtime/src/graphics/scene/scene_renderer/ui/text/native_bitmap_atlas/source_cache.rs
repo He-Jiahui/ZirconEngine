@@ -16,25 +16,28 @@ const FIRST_NATIVE_BITMAP_ATLAS_WORK_ID: u64 = 1;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct NativeBitmapAtlasSourceCacheFrameReport {
-    pub(super) hit_count: usize,
-    pub(super) approximate_hit_count: usize,
-    pub(super) miss_count: usize,
-    pub(super) insert_count: usize,
-    pub(super) worker_request_submitted_count: usize,
-    pub(super) worker_request_pending_count: usize,
-    pub(super) worker_request_failed_count: usize,
-    pub(super) worker_request_font_missing_count: usize,
-    pub(super) worker_request_unavailable_count: usize,
-    pub(super) worker_completion_insert_count: usize,
-    pub(super) worker_completion_failed_count: usize,
-    pub(super) worker_completion_unknown_count: usize,
-    pub(super) worker_completion_invalid_bitmap_count: usize,
-    pub(super) worker_completion_stale_page_generation_count: usize,
-    pub(super) worker_completion_face_invalidated_count: usize,
-    pub(super) evicted_count: usize,
-    pub(super) invalidated_count: usize,
-    pub(super) entry_count: usize,
-    pub(super) pending_worker_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) hit_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) approximate_hit_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) miss_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) insert_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_request_submitted_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_request_pending_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_request_failed_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_request_font_missing_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_request_unavailable_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_completion_insert_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_completion_failed_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_completion_unknown_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_completion_invalid_bitmap_count:
+        usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_completion_stale_page_generation_count:
+        usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) worker_completion_face_invalidated_count:
+        usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) evicted_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) invalidated_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) entry_count: usize,
+    pub(in crate::graphics::scene::scene_renderer::ui) pending_worker_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq)]

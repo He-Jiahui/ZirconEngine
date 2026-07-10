@@ -5,10 +5,17 @@ fn runtime_15_scene_world_render_visibility_input_is_child_owner() {
     let parent = read_runtime_src("scene/world/render.rs");
     let world_mod = read_runtime_src("scene/world/mod.rs");
     let visibility_owner = read_runtime_src("scene/world/render_visibility.rs");
-    let plan_09 = read_repo("docs/plans/zircon_runtime/render/09-camera-render-ordering.md");
-    let render_index = read_repo("docs/plans/zircon_runtime/render/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let plan_09 = read_repo(
+        "docs/plans/zircon_runtime/render/09/2026-07-09-camera-render-ordering-output-records.md",
+    );
+    let render_index =
+        read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
+    let review_findings = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let render_extract_doc = read_repo("docs/zircon_runtime/scene/render_extract.md");
     let visibility_doc = read_repo("docs/zircon_runtime/graphics/visibility.md");

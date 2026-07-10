@@ -44,7 +44,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_ALBEDO)
             .write_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
-            .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL),
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_MATERIAL)
+            .write_texture(PostProcessGraphResourceNames::GBUFFER_EMISSIVE),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Transparent3d,
                 "transparent-mesh",
@@ -87,5 +88,20 @@ mod tests {
             atlas.external_binding,
             RenderGraphExternalResourceBinding::required_texture()
         );
+    }
+
+    #[test]
+    fn deferred_geometry_writes_hdr_emissive_gbuffer_resource() {
+        let descriptor = descriptor();
+        let pass = descriptor
+            .stage_passes
+            .iter()
+            .find(|pass| pass.pass_name == "gbuffer-mesh")
+            .expect("gbuffer mesh pass");
+
+        assert!(pass.resources.iter().any(|resource| {
+            resource.name == PostProcessGraphResourceNames::GBUFFER_EMISSIVE
+                && resource.access == RenderFeatureResourceAccess::Write
+        }));
     }
 }
