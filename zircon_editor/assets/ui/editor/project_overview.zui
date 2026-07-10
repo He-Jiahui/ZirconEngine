@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.project_overview.v2"
+id = "res://ui/editor/project_overview.zui"
 version = 2
 display_name = "Project Overview"
 

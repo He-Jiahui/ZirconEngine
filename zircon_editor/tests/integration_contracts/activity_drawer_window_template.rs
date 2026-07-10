@@ -5,7 +5,7 @@ use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn activity_drawer_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/host/activity_drawer_window.zui");
+        .join("assets/ui/editor/components/workbench/shell/activity_drawer_window.zui");
     fs::read_to_string(path).expect("activity_drawer_window.zui should be readable")
 }
 
@@ -14,6 +14,10 @@ fn activity_drawer_window_declares_neutral_drawer_slots() {
     let source = activity_drawer_window_source();
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("activity_drawer_window.zui should parse");
+    assert_eq!(
+        document.asset.id,
+        "res://ui/editor/components/workbench/shell/activity_drawer_window.zui"
+    );
 
     let component = document
         .components

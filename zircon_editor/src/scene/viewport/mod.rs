@@ -13,6 +13,7 @@ mod settings;
 pub(crate) use controller::SceneViewportController;
 #[cfg(test)]
 pub(crate) use edit_mode_projection::{SceneEditModeProjection, SceneInspectorFieldValue};
+pub(crate) use interaction::GizmoDragState;
 pub use interaction::{GizmoAxis, ViewportFeedback, ViewportInput, ViewportState};
 pub use settings::{
     GridMode, SceneViewportSettings, SceneViewportTool, TransformSpace, ViewOrientation,

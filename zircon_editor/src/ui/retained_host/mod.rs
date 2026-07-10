@@ -13,6 +13,7 @@ pub(crate) mod hierarchy_pointer;
 mod host_contract;
 pub(crate) mod host_page_pointer;
 pub(crate) mod menu_pointer;
+pub(crate) mod menu_popup_contract;
 pub(crate) mod popup_anchor_metrics;
 pub(crate) mod primitives;
 pub(crate) mod route_intent;

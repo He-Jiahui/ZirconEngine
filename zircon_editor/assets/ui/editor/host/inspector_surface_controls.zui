@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.inspector.surface_controls"
+id = "res://ui/editor/host/inspector_surface_controls.zui"
 version = 2
 display_name = "inspector surface controls"
 

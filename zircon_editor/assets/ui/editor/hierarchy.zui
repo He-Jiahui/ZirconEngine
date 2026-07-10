@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.hierarchy.v2"
+id = "res://ui/editor/hierarchy.zui"
 version = 2
 display_name = "Hierarchy"
 

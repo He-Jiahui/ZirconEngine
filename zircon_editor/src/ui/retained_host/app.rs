@@ -30,16 +30,16 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::core::editing::paths::canonical_model_source_path;
-use crate::core::editor_event::{
-    EditorEventRuntime, EditorViewportEvent, NativePluginEditorRuntimePlayModeBackend,
-};
+use crate::core::editor_event::EditorViewportEvent;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
+use crate::core::play::NativePluginEditorRuntimePlayModeBackend;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetChange, EditorAssetManager as EditorAssetManagerContract,
 };
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
 use crate::ui::host::SharedEditorRuntimeClient;
 use crate::ui::preferences::editor_startup_appearance_preferences;
@@ -221,7 +221,7 @@ pub fn run_editor_with_config(
 struct RetainedEditorHost {
     ui: UiHostWindow,
     self_handle: Option<Weak<RefCell<RetainedEditorHost>>>,
-    runtime: EditorEventRuntime,
+    runtime: EditorHostEventController,
     editor_manager: Arc<EditorManager>,
     #[cfg(feature = "profiling")]
     runtime_client: SharedEditorRuntimeClient,

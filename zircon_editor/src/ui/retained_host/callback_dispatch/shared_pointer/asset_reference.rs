@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     layout::UiPoint,
 };
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     asset_pointer::{
         AssetPointerReferenceRoute, AssetReferenceListPointerBridge,
@@ -21,7 +21,7 @@ pub(crate) struct SharedAssetReferencePointerClickDispatch {
 }
 
 pub(crate) fn dispatch_shared_asset_reference_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinAssetSurfaceTemplateBridge,
     pointer_bridge: &mut AssetReferenceListPointerBridge,
     point: UiPoint,

@@ -5,12 +5,11 @@ use crate::ui::binding::{
     DraftCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
 };
 use crate::ui::binding_dispatch::apply_draft_binding;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(super) fn execute_draft_event(
-    inner: &mut EditorEventRuntimeState,
+    shell: &mut WorkbenchShellStateData,
     event: &EditorDraftEvent,
 ) -> Result<ExecutionOutcome, String> {
     let binding = match event {
@@ -39,7 +38,7 @@ pub(super) fn execute_draft_event(
     };
 
     let changed =
-        apply_draft_binding(&mut inner.state, &binding).map_err(|error| error.to_string())?;
+        apply_draft_binding(&mut shell.state, &binding).map_err(|error| error.to_string())?;
     Ok(ExecutionOutcome {
         changed,
         effects: vec![

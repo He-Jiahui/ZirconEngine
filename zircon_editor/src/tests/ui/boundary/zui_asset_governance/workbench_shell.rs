@@ -9,6 +9,7 @@ const L4_SHELL_STRUCTURAL_COMPONENTS: &[&str] = &[
     "DocumentTabs",
     "HorizontalGroup",
     "Overlay",
+    "Slot",
     "Space",
     "VerticalGroup",
 ];

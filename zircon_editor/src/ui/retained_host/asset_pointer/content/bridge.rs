@@ -14,15 +14,15 @@ use zircon_runtime_interface::ui::{
 
 use super::dispatch::AssetContentListPointerDispatch;
 use super::layout::AssetContentListPointerLayout;
-use super::metrics::{
-    folder_height, item_height, list_height, row_width, viewport_frame, viewport_y, ROW_GAP, ROW_X,
-    ROW_Y,
-};
 use super::target::{hovered_row_from_target, to_public_route, AssetContentListPointerTarget};
 use crate::ui::retained_host::asset_pointer::asset_list_pointer_state::AssetListPointerState;
 use crate::ui::retained_host::asset_pointer::common::{
     base_state, item_node_id, register_handled_pointer_node, ROOT_NODE_ID, VIEWPORT_NODE_ID,
 };
+use crate::ui::workbench::asset_content_layout::AssetContentLayoutMetrics;
+
+const CONTENT_VIEWPORT_Z_INDEX: i32 = 10;
+const CONTENT_ROW_BASE_Z_INDEX: i32 = 20;
 
 #[derive(Default)]
 pub(crate) struct AssetContentListPointerBridge {
@@ -135,7 +135,11 @@ impl AssetContentListPointerBridge {
     }
 
     fn clamp_scroll_offset(&mut self) {
-        let max_offset = (list_height(&self.layout) - viewport_frame(&self.layout).height).max(0.0);
+        let metrics = self.metrics();
+        let max_offset = (metrics
+            .list_height(self.layout.folder_ids.len(), self.layout.item_ids.len())
+            - metrics.viewport_frame(self.layout.pane_size).height)
+            .max(0.0);
         self.state.scroll_offset = self.state.scroll_offset.clamp(0.0, max_offset);
     }
 
@@ -155,7 +159,8 @@ impl AssetContentListPointerBridge {
                 .with_state_flags(base_state(false)),
         );
 
-        let viewport = viewport_frame(&self.layout);
+        let metrics = self.metrics();
+        let viewport = metrics.viewport_frame(self.layout.pane_size);
         surface
             .tree
             .insert_child(
@@ -165,7 +170,7 @@ impl AssetContentListPointerBridge {
                     UiNodePath::new("editor.asset_content.viewport"),
                 )
                 .with_frame(viewport)
-                .with_z_index(10)
+                .with_z_index(CONTENT_VIEWPORT_Z_INDEX)
                 .with_input_policy(UiInputPolicy::Receive)
                 .with_clip_to_bounds(true)
                 .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
@@ -177,7 +182,8 @@ impl AssetContentListPointerBridge {
                 .with_scroll_state(UiScrollState {
                     offset: self.state.scroll_offset,
                     viewport_extent: viewport.height.max(0.0),
-                    content_extent: list_height(&self.layout),
+                    content_extent: metrics
+                        .list_height(self.layout.folder_ids.len(), self.layout.item_ids.len()),
                 })
                 .with_state_flags(base_state(true)),
             )
@@ -188,13 +194,13 @@ impl AssetContentListPointerBridge {
             AssetContentListPointerTarget::ContentSurface,
         );
 
-        let row_width = row_width(&self.layout);
-        let mut row_y = viewport_y() + ROW_Y - self.state.scroll_offset;
+        let row_width = metrics.row_width(self.layout.pane_size.width);
+        let mut row_y = metrics.first_row_y() - self.state.scroll_offset;
         let mut row_index = 0usize;
 
         for (folder_index, folder_id) in self.layout.folder_ids.iter().enumerate() {
             let node_id = item_node_id(row_index);
-            let row_height = folder_height(self.layout.view_mode);
+            let row_height = metrics.folder_height;
             surface
                 .tree
                 .insert_child(
@@ -203,8 +209,8 @@ impl AssetContentListPointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.asset_content/folder_{folder_index}")),
                     )
-                    .with_frame(UiFrame::new(ROW_X, row_y, row_width, row_height))
-                    .with_z_index(20 + row_index as i32)
+                    .with_frame(UiFrame::new(metrics.row_x, row_y, row_width, row_height))
+                    .with_z_index(CONTENT_ROW_BASE_Z_INDEX + row_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
                 )
@@ -219,12 +225,12 @@ impl AssetContentListPointerBridge {
                 },
             );
             row_index += 1;
-            row_y += row_height + ROW_GAP;
+            row_y += row_height + metrics.row_gap;
         }
 
         for (item_index, asset_uuid) in self.layout.item_ids.iter().enumerate() {
             let node_id = item_node_id(row_index);
-            let row_height = item_height(self.layout.view_mode);
+            let row_height = metrics.item_height;
             surface
                 .tree
                 .insert_child(
@@ -233,8 +239,8 @@ impl AssetContentListPointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.asset_content/item_{item_index}")),
                     )
-                    .with_frame(UiFrame::new(ROW_X, row_y, row_width, row_height))
-                    .with_z_index(20 + row_index as i32)
+                    .with_frame(UiFrame::new(metrics.row_x, row_y, row_width, row_height))
+                    .with_z_index(CONTENT_ROW_BASE_Z_INDEX + row_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
                 )
@@ -249,12 +255,16 @@ impl AssetContentListPointerBridge {
                 },
             );
             row_index += 1;
-            row_y += row_height + ROW_GAP;
+            row_y += row_height + metrics.row_gap;
         }
 
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
         self.targets = targets;
+    }
+
+    fn metrics(&self) -> AssetContentLayoutMetrics {
+        AssetContentLayoutMetrics::for_surface(self.layout.surface_profile, self.layout.view_mode)
     }
 }

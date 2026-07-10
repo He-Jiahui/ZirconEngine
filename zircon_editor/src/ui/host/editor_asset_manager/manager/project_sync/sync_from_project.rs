@@ -222,32 +222,20 @@ mod tests {
         fs::write(
             shader_dir.join("unlit.zshader"),
             r#"
-version = 1
+kind = "surface"
+version = 2
+shading_model = "unlit"
 wgsl_files = ["unlit.wgsl"]
-
-[[entry_points]]
-name = "vs_main"
-stage = "vertex"
-file = "unlit.wgsl"
-
-[[entry_points]]
-name = "fs_main"
-stage = "fragment"
-file = "unlit.wgsl"
 "#,
         )
         .unwrap();
         fs::write(
             shader_dir.join("unlit.wgsl"),
             r#"
-@vertex
-fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
-    return vec4f(f32(vertex_index), 0.0, 0.0, 1.0);
-}
-
-@fragment
-fn fs_main() -> @location(0) vec4f {
-    return vec4f(1.0, 1.0, 1.0, 1.0);
+fn zr_material_surface(input: ZrSurfaceInput) -> ZrSurfaceOutput {
+    var surface = zr_surface_default(input);
+    surface.base_color = vec4f(1.0, 1.0, 1.0, 1.0);
+    return surface;
 }
 "#,
         )
@@ -278,6 +266,11 @@ fn fs_main() -> @location(0) vec4f {
             .iter()
             .find(|asset| asset.locator == "res://shaders/unlit_shader")
             .expect("compound shader is visible in editor catalog");
+        assert!(
+            shader.diagnostics.is_empty(),
+            "compound shader fixture must import before editor detail projection: {:?}",
+            shader.diagnostics
+        );
         let details = manager
             .asset_details_record(&shader.uuid)
             .expect("shader details");
@@ -289,10 +282,14 @@ fn fs_main() -> @location(0) vec4f {
         assert!(details
             .included_files
             .contains(&"res://shaders/unlit_shader/unlit.wgsl".to_string()));
-        assert!(details
-            .subassets
-            .iter()
-            .any(|subasset| subasset.locator.ends_with("#zshader:unlit.zshader")));
+        assert!(
+            details
+                .subassets
+                .iter()
+                .any(|subasset| subasset.locator.ends_with("#zshader:unlit.zshader")),
+            "zshader subasset should be projected from .zmeta entries: {:?}",
+            details.subassets
+        );
         assert!(details
             .subassets
             .iter()

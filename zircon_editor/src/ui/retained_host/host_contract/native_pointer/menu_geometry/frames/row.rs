@@ -1,8 +1,8 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::menu_popup_metrics::{
-    menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_GAP,
-    MENU_POPUP_ROW_HEIGHT,
+    menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT,
 };
+use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
 
 pub(in crate::ui::retained_host::host_contract) fn scrolled_menu_frame(
     menu_frame: &FrameRect,
@@ -30,11 +30,5 @@ pub(in crate::ui::retained_host::host_contract) fn menu_popup_row_frame(
 }
 
 pub(in crate::ui::retained_host::host_contract) fn menu_popup_height(item_count: usize) -> f32 {
-    if item_count == 0 {
-        0.0
-    } else {
-        menu_popup_outer_padding()
-            + item_count as f32 * MENU_POPUP_ROW_HEIGHT
-            + (item_count as f32 - 1.0) * MENU_POPUP_ROW_GAP
-    }
+    menu_popup_content_height(item_count)
 }

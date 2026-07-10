@@ -154,8 +154,10 @@ fn shared_menu_pointer_bridge_scrolls_overwide_menu_bar_to_extension_button() {
 #[test]
 fn shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll() {
     let mut bridge = HostMenuPointerBridge::new();
+    let layout = window_menu_layout(20);
+    let window_popup_x = layout.button_frames[5].x + 18.0;
     bridge.sync(
-        window_menu_layout(20),
+        layout,
         HostMenuPointerState {
             open_menu_index: Some(5),
             hovered_menu_index: Some(5),
@@ -166,7 +168,7 @@ fn shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll(
     );
 
     let scrolled = bridge
-        .handle_scroll(UiPoint::new(280.0, 110.0), 420.0)
+        .handle_scroll(UiPoint::new(window_popup_x, 110.0), 420.0)
         .unwrap();
 
     assert_eq!(scrolled.state.hovered_menu_index, Some(5));

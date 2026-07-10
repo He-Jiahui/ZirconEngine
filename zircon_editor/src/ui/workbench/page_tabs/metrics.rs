@@ -1,6 +1,7 @@
 use crate::ui::workbench::autolayout::{
     workbench_layout_tier_for_logical_width, WorkbenchLayoutTier,
 };
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 
 pub(crate) const MAIN_PAGE_TAB_STRIP_X: f32 = 8.0;
 pub(crate) const MAIN_PAGE_TAB_STRIP_Y: f32 = 1.0;
@@ -11,7 +12,7 @@ pub(crate) const MAIN_PAGE_TAB_GAP: f32 = 4.0;
 pub(crate) const MAIN_PAGE_TAB_OVERFLOW_WIDTH: f32 = 36.0;
 pub(crate) const MAIN_PAGE_TAB_OVERFLOW_POPUP_WIDTH: f32 = 172.0;
 pub(crate) const MAIN_PAGE_TAB_CHROME_SIDE_INSET: f32 = 12.0;
-pub(crate) const MAIN_PAGE_TAB_TITLE_FONT_SIZE: f32 = 12.0;
+pub(crate) const MAIN_PAGE_TAB_TITLE_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
 
 const TITLE_CHROME_RESERVE: f32 = 38.0;
 const PROJECT_PATH_WIDTH_RATIO: f32 = 0.22;
@@ -51,6 +52,14 @@ pub(crate) fn main_page_tab_visible_cap_for_width(width: f32, page_count: usize)
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn main_page_tab_typography_uses_workbench_body_role() {
+        assert_eq!(
+            MAIN_PAGE_TAB_TITLE_FONT_SIZE,
+            EditorTypographyTokens::WORKBENCH_BODY_SIZE
+        );
+    }
 
     #[test]
     fn main_page_tab_width_clamps_measured_title_width() {

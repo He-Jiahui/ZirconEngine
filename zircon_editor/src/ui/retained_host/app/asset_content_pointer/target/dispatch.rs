@@ -3,6 +3,7 @@ use super::PreparedAssetContentPointerTarget;
 use crate::ui::retained_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerDispatch, AssetContentListPointerLayout,
 };
+use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn sync_prepared_asset_content_pointer_list(
@@ -11,6 +12,12 @@ impl RetainedEditorHost {
         target: &PreparedAssetContentPointerTarget,
         clear_drag_on_error: bool,
     ) -> bool {
+        let Some(surface_profile) = AssetContentSurfaceProfile::from_surface_mode(surface_mode)
+        else {
+            self.clear_asset_content_drag_on_error(clear_drag_on_error);
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return false;
+        };
         let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
             self.clear_asset_content_drag_on_error(clear_drag_on_error);
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
@@ -18,7 +25,11 @@ impl RetainedEditorHost {
         };
         surface.content_size = target.content_size;
         surface.content_bridge.sync(
-            AssetContentListPointerLayout::from_snapshot(&target.snapshot, surface.content_size),
+            AssetContentListPointerLayout::from_snapshot(
+                &target.snapshot,
+                surface.content_size,
+                surface_profile,
+            ),
             surface.content_state.clone(),
         );
         true
@@ -33,6 +44,12 @@ impl RetainedEditorHost {
             &mut AssetContentListPointerBridge,
         ) -> Result<AssetContentListPointerDispatch, String>,
     ) -> Option<Result<AssetContentListPointerDispatch, String>> {
+        let Some(surface_profile) = AssetContentSurfaceProfile::from_surface_mode(surface_mode)
+        else {
+            self.clear_asset_content_drag_on_error(clear_drag_on_error);
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return None;
+        };
         let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
             self.clear_asset_content_drag_on_error(clear_drag_on_error);
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
@@ -40,7 +57,11 @@ impl RetainedEditorHost {
         };
         surface.content_size = target.content_size;
         surface.content_bridge.sync(
-            AssetContentListPointerLayout::from_snapshot(&target.snapshot, surface.content_size),
+            AssetContentListPointerLayout::from_snapshot(
+                &target.snapshot,
+                surface.content_size,
+                surface_profile,
+            ),
             surface.content_state.clone(),
         );
         Some(dispatch(&mut surface.content_bridge))

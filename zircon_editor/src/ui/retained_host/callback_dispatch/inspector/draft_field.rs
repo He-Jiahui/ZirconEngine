@@ -3,14 +3,14 @@ use crate::ui::binding::{
 };
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::common::dispatch_editor_binding;
 
 #[cfg(test)]
 pub(crate) fn dispatch_inspector_draft_field(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     subject_path: impl Into<String>,
     field_id: impl Into<String>,
     value: impl Into<String>,

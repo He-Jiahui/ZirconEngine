@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.module_plugins.body"
+id = "res://ui/editor/host/module_plugins_body.zui"
 version = 2
 display_name = "module plugins pane body"
 

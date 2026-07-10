@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.animation_editor.v2"
+id = "res://ui/editor/animation_editor.zui"
 version = 2
 display_name = "Animation Editor"
 

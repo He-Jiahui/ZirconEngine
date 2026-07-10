@@ -1,7 +1,6 @@
 mod bridge;
 mod dispatch;
 mod layout;
-mod metrics;
 mod route;
 mod target;
 

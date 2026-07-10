@@ -11,6 +11,24 @@ pub(crate) mod preview;
 mod promote_widget;
 mod replay_workspace;
 mod session;
+
+pub(crate) fn project_authoring_document_to_v2(
+    document: &zircon_runtime_interface::ui::template::UiAssetDocument,
+) -> Result<zircon_runtime_interface::ui::v2::UiV2AssetDocument, UiAssetEditorSessionError> {
+    session::lifecycle::v2_projection::legacy_projection_document_to_v2_document(document, None)
+}
+
+pub(crate) fn project_v2_document_to_authoring(
+    document: &zircon_runtime_interface::ui::v2::UiV2AssetDocument,
+) -> Result<zircon_runtime_interface::ui::template::UiAssetDocument, UiAssetEditorSessionError> {
+    session::lifecycle::v2_projection::v2_document_to_legacy_projection_document(document)
+}
+
+pub(crate) fn serialize_authoring_document_as_v2(
+    document: &zircon_runtime_interface::ui::template::UiAssetDocument,
+) -> Result<String, UiAssetEditorSessionError> {
+    session::lifecycle::v2_projection::serialize_v2_projection_document(document, None)
+}
 mod source;
 pub(crate) mod style;
 pub(crate) mod tree;

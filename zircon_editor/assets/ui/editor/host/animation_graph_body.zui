@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.animation.graph.body"
+id = "res://ui/editor/host/animation_graph_body.zui"
 version = 2
 display_name = "animation graph pane body"
 

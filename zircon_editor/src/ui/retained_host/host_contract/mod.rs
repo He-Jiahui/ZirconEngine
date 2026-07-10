@@ -36,6 +36,7 @@ mod workbench_context_menu;
 pub(crate) use data::*;
 pub(crate) use diagnostics::{HostInvalidationDiagnostics, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY};
 pub(crate) use globals::{PaneSurfaceHostContext, UiHostContext};
+pub(crate) use menu_popup_metrics::menu_popup_text_width;
 pub(crate) use paint_text::measure_runtime_text_width;
 pub(crate) use paint_theme::{
     apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,

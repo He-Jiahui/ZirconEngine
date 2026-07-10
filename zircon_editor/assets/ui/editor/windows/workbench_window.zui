@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.window.workbench"
+id = "res://ui/editor/windows/workbench_window.zui"
 version = 2
 display_name = "Workbench Window"
 

@@ -1,11 +1,13 @@
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use crate::ui::retained_host::asset_pointer::AssetListViewMode;
+use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
+use crate::ui::workbench::snapshot::AssetViewMode;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AssetContentListPointerLayout {
     pub pane_size: UiSize,
-    pub view_mode: AssetListViewMode,
+    pub surface_profile: AssetContentSurfaceProfile,
+    pub view_mode: AssetViewMode,
     pub folder_ids: Vec<String>,
     pub item_ids: Vec<String>,
 }
@@ -14,7 +16,8 @@ impl Default for AssetContentListPointerLayout {
     fn default() -> Self {
         Self {
             pane_size: UiSize::new(0.0, 0.0),
-            view_mode: AssetListViewMode::List,
+            surface_profile: AssetContentSurfaceProfile::Browser,
+            view_mode: AssetViewMode::List,
             folder_ids: Vec::new(),
             item_ids: Vec::new(),
         }
@@ -25,10 +28,12 @@ impl AssetContentListPointerLayout {
     pub(crate) fn from_snapshot(
         snapshot: &crate::ui::workbench::snapshot::AssetWorkspaceSnapshot,
         pane_size: UiSize,
+        surface_profile: AssetContentSurfaceProfile,
     ) -> Self {
         Self {
             pane_size,
-            view_mode: snapshot.view_mode.into(),
+            surface_profile,
+            view_mode: snapshot.view_mode,
             folder_ids: snapshot
                 .visible_folders
                 .iter()

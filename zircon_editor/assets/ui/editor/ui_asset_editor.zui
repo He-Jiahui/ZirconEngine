@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.ui_asset_editor.projection.v2"
+id = "res://ui/editor/ui_asset_editor.zui"
 version = 2
 display_name = "UI Asset Editor Projection"
 

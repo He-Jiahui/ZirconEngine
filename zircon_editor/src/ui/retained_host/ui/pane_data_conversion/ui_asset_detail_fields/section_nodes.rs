@@ -1,9 +1,10 @@
+use zircon_runtime_interface::ui::design_tokens::{EditorDensityTokens, EditorTypographyTokens};
+
 use crate::ui::retained_host as host_contract;
 
 use super::row_model::UiAssetDetailFieldSection;
 
 const UI_ASSET_DETAIL_BINDING_PREFIX: &str = "ui_asset_detail";
-const DETAIL_ROW_HEIGHT: f32 = 22.0;
 const DETAIL_ROW_TOP_INSET: f32 = 18.0;
 const DETAIL_ROW_X_INSET: f32 = 8.0;
 const DETAIL_LABEL_GAP: f32 = 6.0;
@@ -27,8 +28,9 @@ pub(super) fn append_detail_section_nodes(
         return;
     }
 
-    let required_section_height =
-        DETAIL_ROW_TOP_INSET + section.rows.len() as f32 * DETAIL_ROW_HEIGHT + 4.0;
+    let required_section_height = DETAIL_ROW_TOP_INSET
+        + section.rows.len() as f32 * EditorDensityTokens::WORKBENCH_ROW_HEIGHT
+        + 4.0;
     let section_growth = (required_section_height - source_section.frame.height).max(0.0);
     if section_growth > 0.0 {
         let original_section_bottom = source_section.frame.y + source_section.frame.height;
@@ -48,8 +50,9 @@ pub(super) fn append_detail_section_nodes(
     let value_width = (content_width - label_width - DETAIL_LABEL_GAP).max(48.0);
 
     for (row_index, row) in section.rows.iter().enumerate() {
-        let y =
-            source_section.frame.y + DETAIL_ROW_TOP_INSET + row_index as f32 * DETAIL_ROW_HEIGHT;
+        let y = source_section.frame.y
+            + DETAIL_ROW_TOP_INSET
+            + row_index as f32 * EditorDensityTokens::WORKBENCH_ROW_HEIGHT;
         nodes.push(host_contract::TemplatePaneNodeData {
             node_id: format!("{}/detail/{row_index}/label", section.detail_id).into(),
             control_id: row.label_control_id.clone().into(),
@@ -57,13 +60,13 @@ pub(super) fn append_detail_section_nodes(
             text: row.label.clone().into(),
             surface_variant: "transparent".into(),
             text_tone: if row.disabled { "disabled" } else { "muted" }.into(),
-            font_size: 11.0,
+            font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
             text_align: "left".into(),
             frame: host_contract::TemplateNodeFrameData {
                 x: content_x,
                 y,
                 width: label_width,
-                height: DETAIL_ROW_HEIGHT,
+                height: EditorDensityTokens::WORKBENCH_ROW_HEIGHT,
             },
             ..host_contract::TemplatePaneNodeData::default()
         });
@@ -76,7 +79,7 @@ pub(super) fn append_detail_section_nodes(
             value_text: row.value.clone().into(),
             surface_variant: "inset".into(),
             text_tone: if row.disabled { "disabled" } else { "default" }.into(),
-            font_size: 11.0,
+            font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
             text_align: "left".into(),
             corner_radius: 4.0,
             border_width: 1.0,
@@ -107,7 +110,7 @@ pub(super) fn append_detail_section_nodes(
                 x: value_x,
                 y,
                 width: value_width,
-                height: DETAIL_ROW_HEIGHT,
+                height: EditorDensityTokens::WORKBENCH_ROW_HEIGHT,
             },
             ..host_contract::TemplatePaneNodeData::default()
         });
@@ -130,4 +133,49 @@ fn ui_asset_detail_draft_binding_id(
     item_index: i32,
 ) -> String {
     format!("ui_asset_detail_draft|{instance_id}|{detail_id}|{action_id}|{item_index}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::ui::pane_data_conversion::ui_asset_detail_fields::row_model::UiAssetDetailFieldRow;
+    use zircon_runtime_interface::ui::design_tokens::EditorDensityTokens;
+
+    #[test]
+    fn detail_rows_use_workbench_body_typography_with_sufficient_height() {
+        let mut nodes = vec![host_contract::TemplatePaneNodeData {
+            control_id: "InspectorSection".into(),
+            frame: host_contract::TemplateNodeFrameData {
+                x: 0.0,
+                y: 0.0,
+                width: 320.0,
+                height: 20.0,
+            },
+            ..host_contract::TemplatePaneNodeData::default()
+        }];
+        let section = UiAssetDetailFieldSection {
+            section_control_id: "InspectorSection",
+            detail_id: "inspector",
+            rows: vec![UiAssetDetailFieldRow {
+                label: "Name".to_string(),
+                value: "Player".to_string(),
+                action_id: "rename".to_string(),
+                label_control_id: "InspectorNameLabel".to_string(),
+                value_control_id: "InspectorNameValue".to_string(),
+                disabled: false,
+            }],
+        };
+
+        append_detail_section_nodes(&mut nodes, &section, "asset-1");
+
+        let projected = &nodes[1..];
+        let minimum_line_height = EditorTypographyTokens::WORKBENCH_BODY_SIZE
+            * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
+        assert_eq!(projected.len(), 2);
+        assert!(projected.iter().all(|node| {
+            node.font_size == EditorTypographyTokens::WORKBENCH_BODY_SIZE
+                && node.frame.height >= minimum_line_height
+                && node.frame.height == EditorDensityTokens::WORKBENCH_ROW_HEIGHT
+        }));
+    }
 }

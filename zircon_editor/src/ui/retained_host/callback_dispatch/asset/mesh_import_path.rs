@@ -1,12 +1,12 @@
 use crate::ui::binding::{DraftCommand, EditorUiBinding, EditorUiBindingPayload};
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::common::dispatch_editor_binding;
 
 pub(crate) fn dispatch_mesh_import_path_edit(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     value: impl Into<String>,
 ) -> Result<UiHostEventEffects, String> {
     dispatch_editor_binding(

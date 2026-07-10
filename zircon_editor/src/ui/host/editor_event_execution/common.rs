@@ -3,16 +3,15 @@ use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::EditorEventEffect;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(super) fn scene_intent_event(
-    inner: &mut EditorEventRuntimeState,
+    shell: &mut WorkbenchShellStateData,
     intent: EditorIntent,
 ) -> Result<ExecutionOutcome, String> {
-    let changed = inner.state.apply_intent(intent)?;
+    let changed = shell.state.apply_intent(intent)?;
     Ok(ExecutionOutcome {
         changed,
         effects: scene_effects(),
@@ -46,19 +45,19 @@ pub(super) fn asset_effects(
 }
 
 pub(super) fn open_view(
-    inner: &mut EditorEventRuntimeState,
+    shell: &mut WorkbenchShellStateData,
     descriptor_id: &str,
     status_line: &str,
 ) -> Result<ExecutionOutcome, String> {
-    let instance_id = inner
+    let instance_id = shell
         .manager
         .open_view(ViewDescriptorId::new(descriptor_id), None)
         .map_err(|error| error.to_string())?;
-    let focused = inner
+    let focused = shell
         .manager
         .focus_view(&instance_id)
         .map_err(|error| error.to_string())?;
-    inner.state.set_status_line(status_line);
+    shell.state.set_status_line(status_line);
     Ok(ExecutionOutcome {
         changed: focused || !instance_id.0.is_empty(),
         effects: vec![

@@ -1,4 +1,4 @@
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
     tab_drag::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget},
@@ -10,7 +10,7 @@ use super::super::common::merge_effects;
 use super::dispatch_layout_command;
 
 pub(crate) fn dispatch_tab_drop(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     instance_id: &str,
     route: &ResolvedHostTabDropRoute,
 ) -> Result<UiHostEventEffects, String> {

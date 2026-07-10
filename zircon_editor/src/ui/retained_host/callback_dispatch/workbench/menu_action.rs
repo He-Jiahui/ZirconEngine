@@ -1,10 +1,11 @@
 use crate::core::editor_event::{
-    EditorEvent, EditorEventEnvelope, EditorEventRuntime, EditorEventSource, LayoutCommand,
+    EditorEvent, EditorEventEnvelope, EditorEventSource, LayoutCommand,
 };
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 use crate::ui::workbench::model::operation_path_for_menu_action;
@@ -13,7 +14,7 @@ use super::super::common::dispatch_envelope;
 use super::control::dispatch_builtin_host_menu_action;
 
 pub(crate) fn dispatch_menu_action(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     action: &str,
 ) -> Result<UiHostEventEffects, String> {
     let envelope = retained_menu_action(action)?;
@@ -32,7 +33,7 @@ pub(crate) fn dispatch_menu_action(
 }
 
 pub(crate) fn dispatch_host_menu_action_with_template_fallback(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &super::super::BuiltinHostWindowTemplateBridge,
     action: &str,
 ) -> Result<UiHostEventEffects, String> {

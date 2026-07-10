@@ -1,4 +1,5 @@
 use super::super::super::*;
+use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn sync_asset_pointer_layouts(
@@ -14,6 +15,11 @@ impl RetainedEditorHost {
         surface_mode: &str,
         snapshot: &crate::ui::workbench::snapshot::AssetWorkspaceSnapshot,
     ) {
+        let Some(surface_profile) = AssetContentSurfaceProfile::from_surface_mode(surface_mode)
+        else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
         let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return;
@@ -24,7 +30,11 @@ impl RetainedEditorHost {
             surface.tree_state.clone(),
         );
         surface.content_bridge.sync(
-            AssetContentListPointerLayout::from_snapshot(snapshot, surface.content_size),
+            AssetContentListPointerLayout::from_snapshot(
+                snapshot,
+                surface.content_size,
+                surface_profile,
+            ),
             surface.content_state.clone(),
         );
         surface.references.bridge.sync(

@@ -749,6 +749,7 @@ fn shaped_glyphs_from_host_layout(
                 offset_x: 0.0,
                 offset_y: 0.0,
                 direction: UiTextDirection::LeftToRight,
+                bidi_level: 0,
                 cluster_flags: ShapedGlyphClusterFlags {
                     cluster_start: true,
                     ..ShapedGlyphClusterFlags::default()

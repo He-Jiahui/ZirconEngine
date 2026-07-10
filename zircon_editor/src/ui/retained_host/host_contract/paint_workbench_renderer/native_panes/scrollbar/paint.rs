@@ -9,7 +9,7 @@ use super::super::super::super::paint_theme::current_host_palette;
 use super::geometry::vertical_scrollbar_geometry;
 use super::style::{workbench_scrollbar_metrics, workbench_scrollbar_palette};
 
-pub(super) fn draw_vertical_scrollbar(
+pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer) fn draw_vertical_scrollbar(
     frame: &mut HostRgbaFrame,
     viewport: &FrameRect,
     clip: &FrameRect,

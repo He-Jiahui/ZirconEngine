@@ -1,4 +1,5 @@
 mod active_viewport;
+mod editor_viewport_render_defaults;
 mod import_frame_image;
 mod new;
 #[cfg(test)]

@@ -6,6 +6,7 @@ pub(super) struct RootMenuPopupSource {
     pub(super) menu_frame: FrameRect,
     pub(super) popup_width_px: f32,
     pub(super) popup_height_px: f32,
+    pub(super) menu_index: usize,
     pub(super) items: ModelRc<HostMenuChromeItemData>,
 }
 
@@ -31,6 +32,7 @@ pub(super) fn opened_root_menu_popup_source(
         menu_frame: menu_frame.frame.clone(),
         popup_width_px: menu.popup_width_px,
         popup_height_px: menu.popup_height_px,
+        menu_index,
         items: menu.items.clone(),
     })
 }

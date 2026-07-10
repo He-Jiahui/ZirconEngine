@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.demo.layout_shell"
+id = "res://ui/editor/layout_demo_window.zui"
 version = 2
 display_name = "Layout and Shell Demo"
 

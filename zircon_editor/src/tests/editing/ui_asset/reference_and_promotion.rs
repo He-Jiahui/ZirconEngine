@@ -718,8 +718,8 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         session.next_redo_external_effect(),
         Some(UiAssetEditorExternalEffect::UpsertAssetSource {
             asset_id: "res://ui/widgets/save_button.zui".to_string(),
-            source: toml::to_string_pretty(&promoted_widget)
-                .expect("serialize promoted widget document"),
+            source: crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_widget)
+                .expect("serialize promoted widget document as v2"),
         })
     );
     let undone = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
@@ -799,8 +799,8 @@ fn ui_asset_editor_session_promotes_local_theme_to_external_style_asset_and_link
         session.next_redo_external_effect(),
         Some(UiAssetEditorExternalEffect::UpsertAssetSource {
             asset_id: "res://ui/themes/editor_base.zui".to_string(),
-            source: toml::to_string_pretty(&promoted_theme)
-                .expect("serialize promoted style asset document"),
+            source: crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_theme)
+                .expect("serialize promoted style asset document as v2"),
         })
     );
 }

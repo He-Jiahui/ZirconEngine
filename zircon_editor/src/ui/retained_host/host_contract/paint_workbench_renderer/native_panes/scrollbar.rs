@@ -10,8 +10,10 @@ use super::super::super::data::{
 };
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::hierarchy::hierarchy_viewport_frame;
-use asset::{asset_tree_row_count, asset_tree_viewport_frame};
-use paint::draw_vertical_scrollbar;
+use asset::{
+    activity_asset_content_viewport_and_extent, asset_tree_row_count, asset_tree_viewport_frame,
+};
+pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer) use paint::draw_vertical_scrollbar;
 
 const ACTIVITY_ASSET_TREE_ROW_CONTROL: &str = "AssetsActivityTreeRowPanel";
 const BROWSER_ASSET_TREE_ROW_CONTROL: &str = "AssetBrowserSourcesRowPanel";
@@ -71,6 +73,28 @@ pub(super) fn draw_browser_asset_tree_scrollbar(
         BROWSER_ASSET_TREE_ROW_CONTROL,
         interaction.browser_asset_tree_scroll_px,
         interaction.browser_asset_tree_hovered_index >= 0,
+    )
+}
+
+pub(super) fn draw_activity_asset_content_scrollbar(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    let Some((viewport, content_extent)) =
+        activity_asset_content_viewport_and_extent(&pane.assets_activity.nodes, body)
+    else {
+        return false;
+    };
+    draw_vertical_scrollbar(
+        frame,
+        &viewport,
+        clip,
+        interaction.activity_asset_content_scroll_px,
+        content_extent,
+        interaction.activity_asset_content_hovered_index >= 0,
     )
 }
 

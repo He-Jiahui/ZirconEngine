@@ -49,7 +49,14 @@ pub(super) fn draw_open_submenu_popups(
         }
         draw_rect(frame, popup.clone(), TOP_BAR);
         draw_border(frame, popup.clone(), SEPARATOR);
-        draw_menu_popup_rows(frame, &branch.children, &popup, level + 1, presentation);
+        draw_menu_popup_rows(
+            frame,
+            &branch.children,
+            &popup,
+            level + 1,
+            0.0,
+            presentation,
+        );
 
         items = branch.children.clone();
         parent_popup = popup;

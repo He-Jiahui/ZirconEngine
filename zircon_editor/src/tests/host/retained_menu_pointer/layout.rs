@@ -199,3 +199,37 @@ fn shared_menu_pointer_layout_measures_menu_labels_with_runtime_font_width() {
         "same character count should not collapse to the same menu hitbox width"
     );
 }
+
+#[test]
+fn shared_menu_pointer_layout_content_measures_root_popup_widths() {
+    let menu_bar = MenuBarModel {
+        menus: vec![MenuModel {
+            label: "Tools".to_string(),
+            items: vec![MenuItemModel::leaf(
+                "Open UI Component Showcase With Extended Context",
+                None,
+                EditorUiBinding::new(
+                    "WorkbenchMenuBar",
+                    "tools.showcase.open",
+                    EditorUiEventKind::Click,
+                    EditorUiBindingPayload::menu_action("tools.showcase.open"),
+                ),
+                None,
+                Some("Ctrl+Shift+Alt+U".to_string()),
+                true,
+            )],
+        }],
+    };
+    let harness = EventRuntimeHarness::new("zircon_retained_menu_popup_runtime_text_width");
+    let layout = build_host_menu_pointer_layout(
+        &menu_bar,
+        &harness.runtime.chrome_snapshot(),
+        UiSize::new(720.0, 240.0),
+        &[],
+        None,
+        None,
+    );
+
+    assert!(layout.popup_widths[0] > 208.0);
+    assert!(layout.popup_widths[0] <= layout.shell_frame.width);
+}

@@ -16,5 +16,5 @@ default_classes = ["workbench-tree-item", "workbench-tree-row", "workbench-primi
 component = "TreeRow"
 control_id = "WorkbenchTreeRowRoot"
 classes = ["workbench-tree-item", "workbench-tree-row"]
-props = { text = "Tree item", expanded = true, tree_depth = 0, tree_indent_px = 18.0, selected = false, focused = false, hovered = false, pressed = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 28.0, max = 32.0, stretch = "Fixed" } }
+props = { text = "Tree item", expanded = true, tree_depth = 0, tree_indent_px = 18.0, selected = false, focused = false, hovered = false, pressed = false, layout_padding_left = 8.0, layout_padding_right = 8.0, layout_spacing = 4.0, layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }

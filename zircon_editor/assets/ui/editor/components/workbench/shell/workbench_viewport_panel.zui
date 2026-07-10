@@ -705,7 +705,6 @@ component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoY"
 classes = ["workbench-viewport-gizmo-axis"]
 props = { text = "Y", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
-style = { self = { text_tone = "success", foreground_color = "#58d05e" } }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -66.0, y = 46.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_z]
@@ -713,7 +712,6 @@ component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoZ"
 classes = ["workbench-viewport-gizmo-axis"]
 props = { text = "Z", text_tone = "success", background_color = "#00000000", foreground_color = "#58d05e", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
-style = { self = { text_tone = "success", foreground_color = "#58d05e" } }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -94.0, y = 81.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_x]
@@ -721,7 +719,6 @@ component = "WorkbenchLabel"
 control_id = "WorkbenchViewportGizmoX"
 classes = ["workbench-viewport-gizmo-axis"]
 props = { text = "X", text_tone = "error", background_color = "#00000000", foreground_color = "#ef493f", border_width = 0.0, corner_radius = 3.0, font_size = 12.0, font_weight = 700 }
-style = { self = { text_tone = "error", foreground_color = "#ef493f" } }
 layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 0.5, y = 0.5 }, position = { x = -34.0, y = 81.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
 
 [nodes.viewport_gizmo_center]

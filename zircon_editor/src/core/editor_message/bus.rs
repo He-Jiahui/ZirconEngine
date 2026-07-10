@@ -7,7 +7,7 @@ use super::{
 };
 
 #[derive(Clone, Debug, Default)]
-pub struct EditorMessageBus {
+pub(crate) struct EditorMessageBus {
     next_subscriber_id: u64,
     subscribers: BTreeMap<EditorSubscriberId, BTreeSet<EditorTopic>>,
     subscriptions: BTreeMap<EditorTopic, BTreeSet<EditorSubscriberId>>,
@@ -30,6 +30,25 @@ impl EditorMessageBus {
         }
         self.subscribers.insert(subscriber, topics);
         subscriber
+    }
+
+    pub fn unregister_subscriber(&mut self, subscriber: EditorSubscriberId) -> bool {
+        let Some(topics) = self.subscribers.remove(&subscriber) else {
+            return false;
+        };
+        for topic in topics {
+            let remove_topic = if let Some(subscribers) = self.subscriptions.get_mut(&topic) {
+                subscribers.remove(&subscriber);
+                subscribers.is_empty()
+            } else {
+                false
+            };
+            if remove_topic {
+                self.subscriptions.remove(&topic);
+            }
+        }
+        self.inboxes.remove(&subscriber);
+        true
     }
 
     pub fn publish(
@@ -75,10 +94,19 @@ impl EditorMessageBus {
         message: EditorMessage,
         handler: &mut impl EditorRequestHandler,
     ) -> Result<EditorMessageResponse, EditorMessageBusError> {
-        if !self.subscribers.contains_key(&target) {
-            return Err(EditorMessageBusError::UnknownSubscriber { subscriber: target });
-        }
+        let request = self.begin_request(target, topic, message)?;
+        let response = handler.handle_editor_request(&request);
+        self.complete_request(target, &response)?;
+        Ok(response)
+    }
 
+    pub(super) fn begin_request(
+        &mut self,
+        target: EditorSubscriberId,
+        topic: EditorTopic,
+        message: EditorMessage,
+    ) -> Result<EditorMessageRequest, EditorMessageBusError> {
+        self.ensure_subscriber(target)?;
         self.mark_message_dirty(&message);
         let request = EditorMessageRequest::new(target, topic.clone(), message.clone());
         self.enqueue_deliveries(
@@ -87,9 +115,17 @@ impl EditorMessageBus {
             &message,
             std::iter::once(target),
         );
-        let response = handler.handle_editor_request(&request);
+        Ok(request)
+    }
+
+    pub(super) fn complete_request(
+        &mut self,
+        target: EditorSubscriberId,
+        response: &EditorMessageResponse,
+    ) -> Result<(), EditorMessageBusError> {
+        self.ensure_subscriber(target)?;
         self.mark_message_dirty(response.message());
-        Ok(response)
+        Ok(())
     }
 
     pub fn deliveries_for(&self, subscriber: EditorSubscriberId) -> &[EditorMessageDelivery] {
@@ -131,6 +167,16 @@ impl EditorMessageBus {
     fn allocate_subscriber_id(&mut self) -> EditorSubscriberId {
         self.next_subscriber_id = self.next_subscriber_id.saturating_add(1);
         EditorSubscriberId::new(self.next_subscriber_id)
+    }
+
+    fn ensure_subscriber(
+        &self,
+        subscriber: EditorSubscriberId,
+    ) -> Result<(), EditorMessageBusError> {
+        self.subscribers
+            .contains_key(&subscriber)
+            .then_some(())
+            .ok_or(EditorMessageBusError::UnknownSubscriber { subscriber })
     }
 
     fn enqueue_deliveries(

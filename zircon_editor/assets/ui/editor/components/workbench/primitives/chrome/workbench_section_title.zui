@@ -16,5 +16,5 @@ default_classes = ["workbench-section-title", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchSectionTitleRoot"
 classes = ["workbench-section-title"]
-props = { text = "Section", font_size = 13.0, font_weight = 700, text_tone = "primary" }
+props = { text = "Section", font_size = 13.333333, font_weight = 700, text_tone = "primary" }
 layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 26.0, max = 32.0, stretch = "Fixed" } }

@@ -5,10 +5,7 @@ use std::path::{Path, PathBuf};
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetKind};
 
-pub(super) const BUILTIN_ZUI_ASSET_ID_ALIASES: &[(&str, &str)] = &[(
-    "res://ui/editor/host/activity_drawer_window.zui",
-    "editor.host.activity_drawer_window",
-)];
+pub(super) const BUILTIN_ZUI_ASSET_ID_ALIASES: &[(&str, &str)] = &[];
 
 pub(super) fn editor_asset_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("assets")

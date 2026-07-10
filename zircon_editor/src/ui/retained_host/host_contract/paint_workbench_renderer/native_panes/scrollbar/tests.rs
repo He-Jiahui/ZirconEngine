@@ -1,8 +1,16 @@
 use super::geometry::vertical_scrollbar_geometry;
 use super::style::{workbench_scrollbar_metrics_from_host, WorkbenchScrollbarMetrics};
-use super::{asset::asset_tree_viewport_frame, hierarchy_content_extent};
+use super::{
+    asset::{activity_asset_content_viewport_and_extent, asset_tree_viewport_frame},
+    draw_activity_asset_content_scrollbar, hierarchy_content_extent,
+};
+use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::hierarchy_pointer::constants::{ROW_GAP, ROW_HEIGHT, ROW_Y};
-use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::data::{
+    AssetsActivityPaneData, FrameRect, HostPaneInteractionStateData, PaneData,
+    TemplateNodeFrameData, TemplatePaneNodeData,
+};
+use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 
 #[test]
@@ -65,6 +73,60 @@ fn asset_tree_viewport_tracks_pointer_tree_header_formula() {
     assert_eq!(viewport.height, 211.0);
 }
 
+#[test]
+fn activity_asset_content_scrollbar_uses_projected_panel_viewport_and_extent() {
+    let pane = activity_content_pane(240.0);
+    let body = frame(20.0, 30.0, 140.0, 120.0);
+    let (viewport, extent) =
+        activity_asset_content_viewport_and_extent(&pane.assets_activity.nodes, &body)
+            .expect("activity content viewport");
+
+    assert_eq!(viewport, frame(30.0, 50.0, 100.0, 80.0));
+    assert_eq!(extent, 240.0);
+
+    let metrics = workbench_scrollbar_metrics_from_host(METRICS);
+    let top_geometry = vertical_scrollbar_geometry(&viewport, 0.0, extent, metrics)
+        .expect("overflowing Activity content should have a top thumb");
+    let scrolled_geometry = vertical_scrollbar_geometry(&viewport, 60.0, extent, metrics)
+        .expect("overflowing Activity content should have a scrolled thumb");
+    assert_eq!(scrolled_geometry.track, top_geometry.track);
+    assert_eq!(scrolled_geometry.thumb.height, top_geometry.thumb.height);
+    assert!(
+        scrolled_geometry.thumb.y > top_geometry.thumb.y,
+        "stored Activity content scroll must move the shared thumb down the track"
+    );
+
+    let mut pixels = HostRgbaFrame::filled(180, 180, [0, 0, 0, 255]);
+    assert!(draw_activity_asset_content_scrollbar(
+        &mut pixels,
+        &pane,
+        &body,
+        &frame(0.0, 0.0, 180.0, 180.0),
+        &HostPaneInteractionStateData {
+            activity_asset_content_scroll_px: 60.0,
+            activity_asset_content_hovered_index: 2,
+            ..HostPaneInteractionStateData::default()
+        },
+    ));
+}
+
+#[test]
+fn activity_asset_content_scrollbar_is_absent_for_empty_and_fitting_content() {
+    let body = frame(20.0, 30.0, 140.0, 120.0);
+    let clip = frame(0.0, 0.0, 180.0, 180.0);
+    for extent in [0.0, 80.0] {
+        let pane = activity_content_pane(extent);
+        let mut pixels = HostRgbaFrame::filled(180, 180, [0, 0, 0, 255]);
+        assert!(!draw_activity_asset_content_scrollbar(
+            &mut pixels,
+            &pane,
+            &body,
+            &clip,
+            &HostPaneInteractionStateData::default(),
+        ));
+    }
+}
+
 fn test_metrics() -> WorkbenchScrollbarMetrics {
     WorkbenchScrollbarMetrics {
         thickness: 8.0,
@@ -80,5 +142,25 @@ fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
         y,
         width,
         height,
+    }
+}
+
+fn activity_content_pane(content_extent: f32) -> PaneData {
+    PaneData {
+        kind: "Assets".into(),
+        assets_activity: AssetsActivityPaneData {
+            nodes: model_rc(vec![TemplatePaneNodeData {
+                control_id: "AssetsActivityContentPanel".into(),
+                value_number: content_extent,
+                frame: TemplateNodeFrameData {
+                    x: 10.0,
+                    y: 20.0,
+                    width: 100.0,
+                    height: 80.0,
+                },
+                ..TemplatePaneNodeData::default()
+            }]),
+        },
+        ..PaneData::default()
     }
 }

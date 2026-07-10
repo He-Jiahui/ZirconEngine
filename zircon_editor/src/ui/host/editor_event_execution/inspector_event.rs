@@ -1,13 +1,12 @@
 use crate::core::editor_event::EditorInspectorEvent;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::binding_dispatch::apply_inspector_binding;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::common::scene_effects;
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(super) fn execute_inspector_event(
-    inner: &mut EditorEventRuntimeState,
+    shell: &mut WorkbenchShellStateData,
     event: &EditorInspectorEvent,
 ) -> Result<ExecutionOutcome, String> {
     let binding = EditorUiBinding::new(
@@ -20,7 +19,7 @@ pub(super) fn execute_inspector_event(
         ),
     );
     let changed =
-        apply_inspector_binding(&mut inner.state, &binding).map_err(|error| error.to_string())?;
+        apply_inspector_binding(&mut shell.state, &binding).map_err(|error| error.to_string())?;
     Ok(ExecutionOutcome {
         changed,
         effects: scene_effects(),

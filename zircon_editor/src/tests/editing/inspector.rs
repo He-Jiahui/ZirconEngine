@@ -53,7 +53,10 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
         .apply_intent(EditorIntent::ApplyInspectorChanges)
         .unwrap_err();
 
-    assert!(error.contains("missing parent node"));
+    assert!(
+        error.contains("missing parent 999999"),
+        "unexpected invalid-parent error: {error}"
+    );
     state.world.with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         assert_eq!(node.name, original.name);

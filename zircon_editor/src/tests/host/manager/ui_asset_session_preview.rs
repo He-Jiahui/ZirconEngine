@@ -42,7 +42,9 @@ fn editor_manager_opens_and_saves_ui_asset_editor_sessions() {
         .iter()
         .any(|item| item.contains("root [VerticalBox]")));
 
-    let edited = SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Edited");
+    let edited = fs::read_to_string(&ui_asset_path)
+        .expect("canonical v2 ui asset source")
+        .replace("Ready", "Edited");
     manager
         .update_ui_asset_editor_source(&instance_id, edited.clone())
         .expect("source update");

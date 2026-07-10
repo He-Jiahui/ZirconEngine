@@ -1,10 +1,12 @@
 use std::collections::BTreeMap;
 
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+use zircon_runtime_interface::ui::layout::UiSize;
+
 use crate::ui::retained_host::{
     measure_runtime_text_width,
     primitives::{ModelRc, SharedString},
 };
-use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
@@ -69,7 +71,6 @@ const RAIL_WIDTH_PX: f32 = 34.0;
 const MENU_TOP_BAR_HEIGHT_PX: f32 = 24.0;
 const PAGE_BAR_HEIGHT_PX: f32 = 32.0;
 const DOCK_HEADER_HEIGHT_PX: f32 = 31.0;
-const CHROME_TEXT_FONT_SIZE_PX: f32 = 12.0;
 const CHROME_TAB_HEIGHT_INSET_PX: f32 = 4.0;
 const FAST_PROCEDURAL_CHROME_NODES: bool = true;
 
@@ -449,7 +450,7 @@ fn fallback_page_chrome_nodes(
             role: "IconButton".into(),
             text: "".into(),
             text_tone: "subtle".into(),
-            font_size: CHROME_TEXT_FONT_SIZE_PX,
+            font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
             font_weight: 600,
             button_variant: "ghost".into(),
             frame: ViewTemplateFrameData {
@@ -477,7 +478,7 @@ fn fallback_page_chrome_nodes(
             project_path.clone()
         },
         text_tone: "muted".into(),
-        font_size: 11.0,
+        font_size: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
         frame: ViewTemplateFrameData {
             x: (width - right_label_width - MAIN_PAGE_TAB_CHROME_SIDE_INSET)
                 .max(MAIN_PAGE_TAB_CHROME_SIDE_INSET),

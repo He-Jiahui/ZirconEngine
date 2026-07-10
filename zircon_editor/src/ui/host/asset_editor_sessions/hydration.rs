@@ -1,9 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::workbench::view::ViewInstanceId;
-use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
+use zircon_runtime_interface::ui::template::UiAssetKind;
+
+use super::imports::UiAssetImportDocuments;
 
 impl EditorUiHost {
     pub(super) fn hydrate_ui_asset_editor_imports(
@@ -17,15 +19,13 @@ impl EditorUiHost {
             })?;
             entry.session.import_references()
         };
-        let mut widget_docs = BTreeMap::<String, UiAssetDocument>::new();
-        let mut style_docs = BTreeMap::<String, UiAssetDocument>::new();
+        let mut documents = UiAssetImportDocuments::default();
         let mut visited = BTreeSet::new();
         for reference in widget_refs {
             self.collect_ui_asset_import_document(
                 &reference,
                 UiAssetKind::Widget,
-                &mut widget_docs,
-                &mut style_docs,
+                &mut documents,
                 &mut visited,
             )?;
         }
@@ -33,8 +33,7 @@ impl EditorUiHost {
             self.collect_ui_asset_import_document(
                 &reference,
                 UiAssetKind::Style,
-                &mut widget_docs,
-                &mut style_docs,
+                &mut documents,
                 &mut visited,
             )?;
         }
@@ -45,7 +44,12 @@ impl EditorUiHost {
         })?;
         entry
             .session
-            .replace_imports(widget_docs, style_docs)
+            .replace_resolved_imports(
+                documents.widgets,
+                documents.styles,
+                documents.v2_widgets,
+                documents.v2_styles,
+            )
             .map_err(|error| EditorError::UiAsset(error.to_string()))
     }
 }

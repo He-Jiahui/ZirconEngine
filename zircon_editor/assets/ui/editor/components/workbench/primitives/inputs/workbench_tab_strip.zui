@@ -17,8 +17,8 @@ slots = { default = { multiple = true } }
 component = "Tabs"
 control_id = "WorkbenchTabStripRoot"
 classes = ["workbench-tabs", "workbench-tab-strip"]
-props = { value = "overview", selected_index = 0.0, options = ["overview", "details", "stats"], orientation = "horizontal", selection_state = "single", selection_follows_focus = true, background_color = "#1c2226", layout_gap = 0.0, layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 34.0, stretch = "Fixed" } }
+props = { value = "overview", selected_index = 0.0, options = ["overview", "details", "stats"], orientation = "horizontal", selection_state = "single", selection_follows_focus = true, layout_gap = 0.0, layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 children = [{ node = "default_slot" }]
 
 [nodes.default_slot]

@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects, viewport_toolbar_pointer::ViewportToolbarPointerRoute,
 };
@@ -13,7 +13,7 @@ use super::snap_cycle::{
 };
 
 pub(crate) fn dispatch_viewport_toolbar_pointer_route(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     route: &ViewportToolbarPointerRoute,
 ) -> Result<UiHostEventEffects, String> {

@@ -1,16 +1,15 @@
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::EditorEventEffect;
 use crate::core::editor_event::SelectionHostEvent;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(super) fn execute_selection(
-    inner: &mut EditorEventRuntimeState,
+    shell: &mut WorkbenchShellStateData,
     event: &SelectionHostEvent,
 ) -> Result<ExecutionOutcome, String> {
     let changed = match event {
-        SelectionHostEvent::SelectSceneNode { node_id } => inner
+        SelectionHostEvent::SelectSceneNode { node_id } => shell
             .state
             .apply_intent(EditorIntent::SelectNode(*node_id))?,
     };

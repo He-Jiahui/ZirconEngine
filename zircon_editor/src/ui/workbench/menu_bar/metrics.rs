@@ -1,4 +1,6 @@
-pub(crate) const WORKBENCH_MENU_SLOT_FONT_SIZE: f32 = 12.0;
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+
+pub(crate) const WORKBENCH_MENU_SLOT_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
 pub(crate) const WORKBENCH_MENU_SLOT_MIN_WIDTH: f32 = 40.0;
 pub(crate) const WORKBENCH_MENU_SLOT_MAX_WIDTH: f32 = 128.0;
 
@@ -18,6 +20,14 @@ pub(crate) fn workbench_menu_slot_width_from_label_width(label_width: f32) -> f3
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn menu_slot_typography_uses_workbench_body_role() {
+        assert_eq!(
+            WORKBENCH_MENU_SLOT_FONT_SIZE,
+            EditorTypographyTokens::WORKBENCH_BODY_SIZE
+        );
+    }
 
     #[test]
     fn workbench_menu_slot_width_clamps_measured_label_width() {

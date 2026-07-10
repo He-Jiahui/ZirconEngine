@@ -1,10 +1,10 @@
-use super::{EditorEventRecord, EditorEventRuntime, EditorEventSource};
+use super::{EditorEventDispatcher, EditorEventRecord, EditorEventSource};
 
 pub struct EditorEventReplay;
 
 impl EditorEventReplay {
     pub fn replay(
-        runtime: &EditorEventRuntime,
+        runtime: &impl EditorEventDispatcher,
         records: &[EditorEventRecord],
     ) -> Result<(), String> {
         for record in records {

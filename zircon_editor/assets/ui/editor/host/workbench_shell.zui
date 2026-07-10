@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.workbench_shell"
+id = "res://ui/editor/host/workbench_shell.zui"
 version = 2
 display_name = "workbench shell"
 

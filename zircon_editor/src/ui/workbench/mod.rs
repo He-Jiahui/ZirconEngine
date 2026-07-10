@@ -1,5 +1,6 @@
 //! Workbench model, snapshot projection, and view registry.
 
+pub(crate) mod asset_content_layout;
 pub mod autolayout;
 pub mod debug_reflector;
 pub(crate) mod document_tabs;
@@ -16,6 +17,7 @@ pub mod preset;
 pub mod project;
 pub mod reference;
 pub mod reflection;
+pub(crate) mod shell_state;
 pub mod snapshot;
 pub mod startup;
 pub mod state;

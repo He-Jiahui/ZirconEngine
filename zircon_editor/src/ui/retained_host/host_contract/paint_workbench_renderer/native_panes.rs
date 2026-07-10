@@ -10,6 +10,7 @@ use super::super::data::{
 };
 use super::super::paint_frame::HostRgbaFrame;
 
+pub(super) use scrollbar::draw_vertical_scrollbar;
 #[cfg(test)]
 pub(crate) use scrollbar::paint_scrollbar_component_for_test;
 

@@ -78,8 +78,9 @@ impl EditorUiHost {
         if let Some(parent) = target_source_path.parent() {
             fs::create_dir_all(parent).map_err(|error| EditorError::UiAsset(error.to_string()))?;
         }
-        let widget_source = toml::to_string_pretty(&widget_asset)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let widget_source =
+            crate::ui::asset_editor::serialize_authoring_document_as_v2(&widget_asset)
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         fs::write(&target_source_path, widget_source)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
@@ -131,8 +132,9 @@ impl EditorUiHost {
         if let Some(parent) = target_source_path.parent() {
             fs::create_dir_all(parent).map_err(|error| EditorError::UiAsset(error.to_string()))?;
         }
-        let style_source = toml::to_string_pretty(&style_asset)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let style_source =
+            crate::ui::asset_editor::serialize_authoring_document_as_v2(&style_asset)
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         fs::write(&target_source_path, style_source)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();

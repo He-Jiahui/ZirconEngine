@@ -394,7 +394,13 @@ fn render_frame_submission_hud_text_renders_through_runtime_glyph_capture() {
     );
     assert!(
         changed_pixels > 48,
-        "expected editor-owned viewport HUD text to add visible glyph pixels through the shared runtime text backend; changed_pixels={changed_pixels}"
+        "expected editor-owned viewport HUD text to add visible glyph pixels through the shared runtime text backend; changed_pixels={changed_pixels}; glyphs={}; unmapped_glyphs={}; visible_raster_glyphs={}; raster_sources={}; worker_pending={}; worker_failed={}",
+        with_text_stats.last_ui_text_glyph_count,
+        with_text_stats.last_ui_text_unmapped_glyph_count,
+        with_text_stats.last_ui_text_visible_raster_glyph_count,
+        with_text_stats.last_ui_text_raster_source_image_count,
+        with_text_stats.last_ui_text_raster_worker_pending_count,
+        with_text_stats.last_ui_text_raster_worker_failed_count,
     );
 }
 
@@ -539,6 +545,11 @@ fn capture_editor_submission(
     ui: Option<UiRenderExtract>,
     viewport_size: UVec2,
 ) -> (CapturedFrame, RenderStats) {
+    // Match the runtime multilingual product gate so asynchronous glyph
+    // discovery, rasterization, and atlas upload get the same bounded settle
+    // window before framebuffer comparison.
+    const ASYNC_TEXT_SETTLE_FRAME_COUNT: usize = 24;
+
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let framework = WgpuRenderFramework::new(asset_manager).expect("render framework");
     let viewport = framework
@@ -553,9 +564,11 @@ fn capture_editor_submission(
                 .with_temporal_history(false),
         )
         .expect("quality profile");
-    framework
-        .submit_frame_extract_with_ui(viewport, extract, ui)
-        .expect("frame submission");
+    for _ in 0..ASYNC_TEXT_SETTLE_FRAME_COUNT {
+        framework
+            .submit_frame_extract_with_ui(viewport, extract.clone(), ui.clone())
+            .expect("frame submission");
+    }
     let stats = framework.query_stats().expect("render stats");
     let capture = framework
         .capture_frame(viewport)

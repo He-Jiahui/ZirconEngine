@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.editor_main_frame"
+id = "res://ui/editor/host/editor_main_frame.zui"
 version = 2
 display_name = "editor main frame"
 

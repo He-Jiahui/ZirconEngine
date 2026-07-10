@@ -1,14 +1,15 @@
 use crate::ui::binding::ViewportCommand;
 
 use crate::core::editor_event::{
-    EditorEvent, EditorEventEnvelope, EditorEventRuntime, EditorEventSource, EditorViewportEvent,
+    EditorEvent, EditorEventEnvelope, EditorEventSource, EditorViewportEvent,
 };
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::common::dispatch_envelope;
 
 pub(crate) fn dispatch_viewport_event(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     event: EditorViewportEvent,
 ) -> Result<UiHostEventEffects, String> {
     dispatch_envelope(
@@ -23,7 +24,7 @@ pub(crate) fn dispatch_viewport_event(
 #[cfg(test)]
 #[cfg(test)]
 pub(crate) fn dispatch_viewport_command(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     command: ViewportCommand,
 ) -> Result<UiHostEventEffects, String> {
     dispatch_viewport_event(runtime, viewport_event_from_command(command))

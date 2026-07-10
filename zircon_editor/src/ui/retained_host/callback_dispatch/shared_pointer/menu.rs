@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
     menu_pointer::{HostMenuPointerBridge, HostMenuPointerDispatch},
@@ -17,7 +17,7 @@ pub(crate) struct SharedMenuPointerClickDispatch {
 }
 
 pub(crate) fn dispatch_shared_menu_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     template_bridge: &BuiltinHostWindowTemplateBridge,
     pointer_bridge: &mut HostMenuPointerBridge,
     point: UiPoint,

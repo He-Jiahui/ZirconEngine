@@ -1,5 +1,13 @@
 use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
+pub(in crate::ui::retained_host::menu_pointer) use crate::ui::retained_host::menu_popup_contract::WINDOW_MENU_INDEX;
+pub(in crate::ui::retained_host::menu_pointer) use crate::ui::retained_host::menu_popup_contract::{
+    MENU_POPUP_ANCHOR_GAP as POPUP_ANCHOR_GAP,
+    MENU_POPUP_EDGE_MARGIN as POPUP_EDGE_MARGIN, MENU_POPUP_MIN_HEIGHT as POPUP_MIN_HEIGHT,
+    MENU_POPUP_PADDING as POPUP_PADDING, MENU_POPUP_ROW_GAP as POPUP_ROW_GAP,
+    MENU_POPUP_ROW_HEIGHT as POPUP_ROW_HEIGHT,
+};
+
 pub(in crate::ui::retained_host::menu_pointer) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
 pub(in crate::ui::retained_host::menu_pointer) const DISMISS_NODE_ID: UiNodeId = UiNodeId::new(2);
 pub(in crate::ui::retained_host::menu_pointer) const POPUP_NODE_ID: UiNodeId = UiNodeId::new(3);
@@ -12,10 +20,3 @@ pub(in crate::ui::retained_host::menu_pointer) const MENU_ITEM_ROUTE_ID_LEVEL_ST
 
 pub(in crate::ui::retained_host::menu_pointer) const POPUP_WIDTHS: [f32; 7] =
     [208.0, 186.0, 218.0, 172.0, 198.0, 224.0, 194.0];
-pub(in crate::ui::retained_host::menu_pointer) const POPUP_PADDING: f32 = 6.0;
-pub(in crate::ui::retained_host::menu_pointer) const POPUP_ROW_HEIGHT: f32 = 28.0;
-pub(in crate::ui::retained_host::menu_pointer) const POPUP_ROW_GAP: f32 = 2.0;
-pub(in crate::ui::retained_host::menu_pointer) const POPUP_ANCHOR_GAP: f32 = 3.0;
-pub(in crate::ui::retained_host::menu_pointer) const POPUP_EDGE_MARGIN: f32 = 8.0;
-pub(in crate::ui::retained_host::menu_pointer) const POPUP_MIN_HEIGHT: f32 = 72.0;
-pub(in crate::ui::retained_host::menu_pointer) const WINDOW_MENU_INDEX: usize = 5;

@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.workbench_status_bar.v2"
+id = "res://ui/editor/workbench_status_bar.zui"
 version = 2
 display_name = "workbench status bar"
 
@@ -41,17 +41,17 @@ layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, hei
 [nodes.status_primary_label]
 component = "Label"
 control_id = "StatusPrimaryLabel"
-props = { text = "Ready", text_tone = "subtle", font_size = 10.0, text_align = "left", overflow = "elide" }
-layout = { position = { x = 12.0, y = 4.0 }, width = { min = 240.0, preferred = 560.0, max = 960.0, stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+props = { text = "Ready", text_tone = "subtle", font_size = 13.333333, text_align = "left", overflow = "elide" }
+layout = { position = { x = 12.0, y = 3.0 }, width = { min = 240.0, preferred = 560.0, max = 960.0, stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.status_secondary_label]
 component = "Label"
 control_id = "StatusSecondaryLabel"
-props = { text = "", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
-layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -128.0, y = 4.0 }, width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+props = { text = "", text_tone = "muted", font_size = 13.333333, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -128.0, y = 3.0 }, width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.status_viewport_label]
 component = "Label"
 control_id = "StatusViewportLabel"
-props = { text = "1280 x 720", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
-layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -14.0, y = 4.0 }, width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+props = { text = "1280 x 720", text_tone = "muted", font_size = 13.333333, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -14.0, y = 3.0 }, width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }

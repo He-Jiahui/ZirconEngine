@@ -43,6 +43,7 @@ pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
         shell_frame: UiFrame::new(0.0, 0.0, 1280.0, 720.0),
         button_frames,
         menu_bar_content_width,
+        popup_widths: Vec::new(),
         save_project_enabled: true,
         undo_enabled: true,
         redo_enabled: true,

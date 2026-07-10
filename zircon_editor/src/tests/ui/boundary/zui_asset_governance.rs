@@ -22,6 +22,8 @@ mod props;
 mod slot;
 mod slot_schema;
 mod style;
+mod workbench_atomic_density;
+mod workbench_overlay_density;
 mod workbench_primitives;
 mod workbench_shell;
 

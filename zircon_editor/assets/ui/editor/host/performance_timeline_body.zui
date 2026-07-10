@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.performance_timeline.body"
+id = "res://ui/editor/host/performance_timeline_body.zui"
 version = 2
 display_name = "performance timeline pane body"
 

@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.workbench_menu_popup.v2"
+id = "res://ui/editor/workbench_menu_popup.zui"
 version = 2
 display_name = "workbench menu popup"
 

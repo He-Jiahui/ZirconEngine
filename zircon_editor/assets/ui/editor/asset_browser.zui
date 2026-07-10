@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.asset_browser"
+id = "res://ui/editor/asset_browser.zui"
 version = 2
 display_name = "Asset Browser"
 

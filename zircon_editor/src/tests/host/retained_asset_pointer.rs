@@ -5,16 +5,17 @@ use crate::ui::host::editor_asset_manager::{
 };
 use crate::ui::retained_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetFolderTreePointerBridge,
-    AssetFolderTreePointerLayout, AssetListPointerState, AssetListViewMode,
-    AssetPointerContentRoute, AssetPointerReferenceRoute, AssetPointerTreeRoute,
-    AssetReferenceListPointerBridge, AssetReferenceListPointerEntry,
-    AssetReferenceListPointerLayout,
+    AssetFolderTreePointerLayout, AssetListPointerState, AssetPointerContentRoute,
+    AssetPointerReferenceRoute, AssetPointerTreeRoute, AssetReferenceListPointerBridge,
+    AssetReferenceListPointerEntry, AssetReferenceListPointerLayout,
 };
 use crate::ui::retained_host::callback_dispatch::{
     dispatch_builtin_asset_surface_control, dispatch_shared_asset_content_pointer_click,
     dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
     BuiltinAssetSurfaceTemplateBridge,
 };
+use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
+use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::{
@@ -35,7 +36,8 @@ fn shared_asset_pointer_bridges_skip_rebuild_for_unchanged_layout_and_state() {
 
     let content_layout = AssetContentListPointerLayout {
         pane_size: UiSize::new(420.0, 220.0),
-        view_mode: AssetListViewMode::List,
+        surface_profile: AssetContentSurfaceProfile::Browser,
+        view_mode: AssetViewMode::List,
         folder_ids: vec!["res://materials".to_string()],
         item_ids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
     };
@@ -159,7 +161,8 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
     pointer_bridge.sync(
         AssetContentListPointerLayout {
             pane_size: UiSize::new(420.0, 220.0),
-            view_mode: AssetListViewMode::List,
+            surface_profile: AssetContentSurfaceProfile::Browser,
+            view_mode: AssetViewMode::List,
             folder_ids: Vec::new(),
             item_ids: asset_ids.clone(),
         },
@@ -174,7 +177,8 @@ fn shared_asset_content_pointer_bridge_scrolls_and_dispatches_item_selection() {
     pointer_bridge.sync(
         AssetContentListPointerLayout {
             pane_size: UiSize::new(420.0, 220.0),
-            view_mode: AssetListViewMode::List,
+            surface_profile: AssetContentSurfaceProfile::Browser,
+            view_mode: AssetViewMode::List,
             folder_ids: Vec::new(),
             item_ids: asset_ids.clone(),
         },

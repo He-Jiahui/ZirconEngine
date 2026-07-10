@@ -4,7 +4,7 @@ use crate::ui::layouts::windows::workbench_host_window::HostMenuChromeItemData;
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::document_tabs::{
     document_tab_preferred_width_from_title_width, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH,
-    DOCUMENT_TAB_CLOSE_EXTENT, DOCUMENT_TAB_TITLE_FONT_SIZE,
+    DOCUMENT_TAB_CLOSE_EXTENT, DOCUMENT_TAB_STRIP_X, DOCUMENT_TAB_TITLE_FONT_SIZE,
 };
 use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
@@ -12,6 +12,39 @@ use crate::ui::workbench::menu_bar::{
 use crate::ui::workbench::page_tabs::{
     main_page_tab_preferred_width_from_title_width, MAIN_PAGE_TAB_TITLE_FONT_SIZE,
 };
+use zircon_runtime_interface::ui::design_tokens::{
+    EditorControlTokens, EditorDensityTokens, EditorTypographyTokens,
+};
+
+#[test]
+fn authored_chrome_assets_use_workbench_typography_baseline() {
+    const BODY: &str = "font_size = 13.333333";
+    const CAPTION: &str = "font_size = 10.666667";
+    let menu = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/ui/editor/workbench_menu_chrome.zui"
+    ));
+    let page = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/ui/editor/workbench_page_chrome.zui"
+    ));
+    let dock = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/ui/editor/workbench_dock_header.zui"
+    ));
+    let status = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/ui/editor/workbench_status_bar.zui"
+    ));
+
+    assert_eq!(menu.matches(BODY).count(), 7);
+    assert_eq!(page.matches(BODY).count(), 3);
+    assert_eq!(page.matches(CAPTION).count(), 1);
+    assert_eq!(dock.matches(BODY).count(), 3);
+    assert_eq!(dock.matches(CAPTION).count(), 1);
+    assert_eq!(status.matches(BODY).count(), 3);
+    assert!(status.contains("height = { min = 16.0, preferred = 16.0, max = 16.0"));
+}
 
 #[test]
 fn dock_header_nodes_hide_close_controls_for_non_closeable_tabs() {
@@ -97,6 +130,37 @@ fn dock_header_nodes_measure_file_name_tabs_with_runtime_font_width() {
     assert!(
         folder_close.frame.x + folder_close.frame.width <= folder.frame.x + folder.frame.width,
         "close hitbox should stay inside the runtime-measured file-name tab"
+    );
+}
+
+#[test]
+fn side_dock_header_nodes_compact_inactive_tabs_inside_narrow_panel() {
+    let tabs = model_rc(vec![
+        test_tab_with_icon("Project", "project", false, false),
+        test_tab_with_icon("Assets", "assets", false, false),
+        test_tab_with_icon("Asset Browser", "asset-browser", true, false),
+        test_tab_with_icon("Hierarchy", "hierarchy", false, false),
+        test_tab_with_icon("Components", "components", false, false),
+    ]);
+
+    let nodes = side_dock_header_nodes(&tabs, &"fyrox_panel".into(), 226.0, 31.0);
+    let project = node(&nodes, "DockTab0");
+    let assets = node(&nodes, "DockTab1");
+    let asset_browser = node(&nodes, "DockTab2");
+
+    assert_eq!(project.text.as_str(), "");
+    assert_eq!(assets.text.as_str(), "");
+    assert_eq!(asset_browser.text.as_str(), "Asset Browser");
+    assert!(maybe_node(&nodes, "DockTab3").is_none());
+    assert!(maybe_node(&nodes, "DockTab4").is_none());
+    let controls = EditorControlTokens::workbench_dense();
+    let density = EditorDensityTokens::workbench_dense();
+    assert!(asset_browser.frame.width >= controls.default_height * 3.0 + density.gap_medium * 2.0);
+    assert!(project.frame.x + project.frame.width <= assets.frame.x);
+    assert!(assets.frame.x + assets.frame.width <= asset_browser.frame.x);
+    assert!(
+        asset_browser.frame.x + asset_browser.frame.width <= 226.0 - DOCUMENT_TAB_STRIP_X,
+        "active side-dock tab should stay readable inside its panel: {asset_browser:?}"
     );
 }
 
@@ -346,6 +410,10 @@ fn status_bar_nodes_project_text_overrides_from_flat_asset() {
     );
     assert_eq!(node(&nodes, STATUS_SECONDARY_CONTROL_ID).text, "2 warnings");
     assert_eq!(node(&nodes, STATUS_VIEWPORT_CONTROL_ID).text, "1920 x 1080");
+    assert_eq!(
+        node(&nodes, STATUS_PRIMARY_CONTROL_ID).font_size,
+        EditorTypographyTokens::WORKBENCH_BODY_SIZE
+    );
     assert!(node(&nodes, "StatusBarPanel").frame.width > 0.0);
 }
 
@@ -381,6 +449,10 @@ fn fallback_page_chrome_preserves_clickable_tab_and_project_path_frames() {
     assert_eq!(first_tab.surface_variant.as_str(), "inset");
     assert_eq!(second_tab.text_tone.as_str(), "subtle");
     assert_eq!(project_path.text.as_str(), "ZirconProject4");
+    assert_eq!(
+        project_path.font_size,
+        EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    );
     assert!(project_path.frame.width > 0.0);
 }
 
@@ -553,6 +625,10 @@ fn fallback_dock_header_preserves_tab_drag_and_close_hit_frames() {
     assert!(maybe_node(&nodes, "DockTabClose1").is_none());
     assert_eq!(game.text_tone.as_str(), "subtle");
     assert_eq!(subtitle.text.as_str(), "Preview");
+    assert_eq!(
+        subtitle.font_size,
+        EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
+    );
 }
 
 #[test]

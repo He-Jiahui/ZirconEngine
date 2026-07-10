@@ -4,14 +4,15 @@ use zircon_runtime_interface::ui::{
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 
-use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
+use crate::core::editor_event::EditorViewportEvent;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::constants::VIEWPORT_SURFACE_NODE_ID;
 use super::{dispatch_viewport_event, SharedViewportPointerBridge};
 
 pub(crate) fn dispatch_viewport_pointer_event(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &mut SharedViewportPointerBridge,
     event: UiPointerEvent,
 ) -> Result<UiHostEventEffects, String> {

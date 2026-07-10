@@ -1,4 +1,3 @@
-use crate::core::editor_event::EditorEventRuntime;
 use crate::core::editor_extension::{
     EditorExtensionRegistration, EditorExtensionRegistry, EditorExtensionRegistryError,
 };
@@ -6,8 +5,9 @@ use crate::core::editor_operation::{
     EditorOperationDescriptor, EditorOperationPath, EditorOperationRegistryError,
 };
 use crate::core::editor_plugin::EditorPluginRegistrationReport;
+use crate::ui::host::EditorHostEventController;
 
-impl EditorEventRuntime {
+impl EditorHostEventController {
     pub fn register_editor_extension(
         &self,
         extension: EditorExtensionRegistry,
@@ -30,9 +30,9 @@ impl EditorEventRuntime {
         extension: EditorExtensionRegistry,
         required_capabilities: Vec<String>,
     ) -> Result<(), EditorExtensionRegistryError> {
-        let mut inner = self.lock_inner();
+        let mut shell = self.shell().lock();
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
-        let mut operation_registry = inner.operation_registry.clone();
+        let mut operation_registry = self.operations().lock().registry.clone();
         for operation in extension.operations().descriptors().cloned() {
             operation_registry
                 .register(
@@ -62,20 +62,21 @@ impl EditorEventRuntime {
         validate_component_drawer_operation_bindings(&extension, &available_operations)?;
         validate_asset_importer_operation_bindings(&extension, &available_operations)?;
         validate_asset_editor_operation_bindings(&extension, &available_operations)?;
-        validate_extension_contribution_conflicts(&inner.editor_extensions, &extension)?;
-        inner
+        validate_extension_contribution_conflicts(&shell.editor_extensions, &extension)?;
+        shell
             .manager
             .validate_extension_views(&views)
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
-        inner
+        shell
             .manager
             .register_extension_views_with_required_capabilities(&views, &required_capabilities)
             .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
-        inner.operation_registry = operation_registry;
-        inner.editor_extensions.push(
+        shell.editor_extensions.push(
             EditorExtensionRegistration::new(extension)
                 .with_required_capabilities(required_capabilities),
         );
+        drop(shell);
+        self.operations().lock().registry = operation_registry;
         Ok(())
     }
 }

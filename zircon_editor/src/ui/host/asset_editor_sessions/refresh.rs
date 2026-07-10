@@ -1,10 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use super::super::project_access::normalize_ui_asset_asset_id;
+use super::imports::UiAssetImportDocuments;
 use super::UiAssetDiffSnapshot;
 use super::{
     build_ui_asset_editor_session_from_source, preview_size_for_preset, ui_asset_source_hash,
@@ -12,7 +13,7 @@ use super::{
 };
 use crate::ui::asset_editor::{UiAssetEditorRoute, UiAssetEditorSession};
 use crate::ui::workbench::view::ViewInstanceId;
-use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
+use zircon_runtime_interface::ui::template::UiAssetKind;
 
 impl EditorUiHost {
     pub fn refresh_ui_asset_workspace_for_changes(
@@ -246,14 +247,19 @@ impl EditorUiHost {
                 entry.session.import_references()
             };
             match self.collect_ui_asset_imports_lossy(&widget_refs, &style_refs) {
-                Ok((widget_docs, style_docs)) => {
+                Ok(documents) => {
                     let mut sessions = self.lock_ui_asset_sessions();
                     let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                         EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                     })?;
                     entry
                         .session
-                        .replace_imports(widget_docs, style_docs)
+                        .replace_resolved_imports(
+                            documents.widgets,
+                            documents.styles,
+                            documents.v2_widgets,
+                            documents.v2_styles,
+                        )
                         .map_err(|error| EditorError::UiAsset(error.to_string()))?;
                     for (reference, _) in &matching {
                         entry
@@ -280,15 +286,8 @@ impl EditorUiHost {
         &self,
         widget_refs: &[String],
         style_refs: &[String],
-    ) -> Result<
-        (
-            BTreeMap<String, UiAssetDocument>,
-            BTreeMap<String, UiAssetDocument>,
-        ),
-        Vec<UiAssetStaleImportDiagnostic>,
-    > {
-        let mut widget_docs = BTreeMap::<String, UiAssetDocument>::new();
-        let mut style_docs = BTreeMap::<String, UiAssetDocument>::new();
+    ) -> Result<UiAssetImportDocuments, Vec<UiAssetStaleImportDiagnostic>> {
+        let mut documents = UiAssetImportDocuments::default();
         let mut visited = BTreeSet::new();
         let mut errors = Vec::new();
 
@@ -296,8 +295,7 @@ impl EditorUiHost {
             if let Err(message) = self.try_collect_ui_asset_import_document(
                 reference,
                 UiAssetKind::Widget,
-                &mut widget_docs,
-                &mut style_docs,
+                &mut documents,
                 &mut visited,
             ) {
                 errors.push(UiAssetStaleImportDiagnostic {
@@ -310,8 +308,7 @@ impl EditorUiHost {
             if let Err(message) = self.try_collect_ui_asset_import_document(
                 reference,
                 UiAssetKind::Style,
-                &mut widget_docs,
-                &mut style_docs,
+                &mut documents,
                 &mut visited,
             ) {
                 errors.push(UiAssetStaleImportDiagnostic {
@@ -322,7 +319,7 @@ impl EditorUiHost {
         }
 
         if errors.is_empty() {
-            Ok((widget_docs, style_docs))
+            Ok(documents)
         } else {
             Err(errors)
         }

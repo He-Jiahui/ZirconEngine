@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
@@ -39,7 +38,7 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("{prefix}_{unique}"))
 }
 
-fn env_lock() -> &'static Mutex<()> {
+fn env_lock() -> &'static crate::tests::support::TestEnvironmentLock {
     crate::tests::support::env_lock()
 }
 

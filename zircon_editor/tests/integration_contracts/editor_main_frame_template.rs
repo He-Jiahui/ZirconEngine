@@ -15,7 +15,10 @@ fn editor_main_frame_asset_is_minimal_window_host() {
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("editor_main_frame.zui should parse");
 
-    assert_eq!(document.asset.id, "editor.host.editor_main_frame");
+    assert_eq!(
+        document.asset.id,
+        "res://ui/editor/host/editor_main_frame.zui"
+    );
     assert!(source.contains("name = \"task_bar\""));
     assert!(source.contains("name = \"window_tab_strip\""));
     assert!(source.contains("name = \"active_window_host\""));

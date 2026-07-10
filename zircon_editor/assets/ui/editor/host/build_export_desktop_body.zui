@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.build_export_desktop.body"
+id = "res://ui/editor/host/build_export_desktop_body.zui"
 version = 2
 display_name = "desktop build export pane body"
 

@@ -3,7 +3,6 @@ use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord,
 };
 
-use crate::core::editor_event::EditorEventRuntime;
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEnvelope, EditorEventJournal, EditorEventRecord,
     EditorEventSource,
@@ -19,6 +18,7 @@ use crate::ui::activity::ActivityViewDescriptor;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
 };
+use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::snapshot::{
     EditorChromeSnapshot, EditorDataSnapshot, StatusTaskProgressSnapshot,
@@ -33,71 +33,73 @@ use zircon_runtime_interface::ui::dispatch::{
     UiDispatchDisposition, UiInputDispatchResult, UiInputEvent, UiKeyboardInputEvent,
 };
 
-impl EditorEventRuntime {
+impl EditorHostEventController {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
-        let inner = self.lock_inner();
-        let component_drawers = Self::active_component_drawers_locked(&inner);
+        let inner = self.shell().lock();
+        let component_drawers = Self::active_component_drawers_for_shell(&inner);
         inner
             .state
             .snapshot_with_component_drawers(&component_drawers)
     }
 
     pub fn current_layout(&self) -> WorkbenchLayout {
-        self.lock_inner().manager.current_layout()
+        self.shell().lock().manager.current_layout()
     }
 
     pub fn descriptors(&self) -> Vec<ViewDescriptor> {
-        self.lock_inner().manager.descriptors()
+        self.shell().lock().manager.descriptors()
     }
 
     pub fn current_view_instances(&self) -> Vec<ViewInstance> {
-        self.lock_inner().manager.current_view_instances()
+        self.shell().lock().manager.current_view_instances()
     }
 
     pub fn chrome_snapshot(&self) -> EditorChromeSnapshot {
-        let inner = self.lock_inner();
+        let inner = self.shell().lock();
         let descriptors = inner.manager.descriptors();
-        Self::build_chrome_locked(&inner, descriptors)
+        Self::build_chrome_for_shell(&inner, descriptors)
     }
 
     pub fn preset_names(&self) -> Vec<String> {
-        self.lock_inner().manager.preset_names().unwrap_or_default()
+        self.shell()
+            .lock()
+            .manager
+            .preset_names()
+            .unwrap_or_default()
     }
 
     pub fn render_snapshot(&self) -> Option<RenderSceneSnapshot> {
-        self.lock_inner().state.render_snapshot()
+        self.shell().lock().state.render_snapshot()
     }
 
     pub fn render_frame_extract(&self) -> Option<RenderFrameExtract> {
-        self.lock_inner().state.render_frame_extract()
+        self.shell().lock().state.render_frame_extract()
     }
 
     pub(crate) fn render_frame_submission(&self) -> Option<EditorRenderFrameSubmission> {
-        self.lock_inner().state.render_frame_submission()
+        self.shell().lock().state.render_frame_submission()
     }
 
     pub fn viewport_state(&self) -> crate::scene::viewport::ViewportState {
-        self.lock_inner().state.viewport_state()
+        self.shell().lock().state.viewport_state()
     }
 
     pub fn set_status_line(&self, message: impl Into<String>) {
-        let mut inner = self.lock_inner();
-        inner.state.set_status_line(message);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.set_status_line(message);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn status_line(&self) -> String {
-        self.lock_inner().state.status_line.clone()
+        self.shell().lock().state.status_line.clone()
     }
 
     pub fn set_status_task_progress(&self, progress: Option<StatusTaskProgressSnapshot>) {
-        let mut inner = self.lock_inner();
-        inner.state.set_status_task_progress(progress);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.set_status_task_progress(progress);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn status_task_progress(&self) -> Option<StatusTaskProgressSnapshot> {
-        self.lock_inner().state.status_task_progress.clone()
+        self.shell().lock().state.status_task_progress.clone()
     }
 
     pub(crate) fn dispatch_ui_component_adapter_event(
@@ -112,19 +114,17 @@ impl EditorEventRuntime {
         {
             return self.dispatch_command_component_adapter_event(envelope);
         }
-        let mut inner = self.lock_inner();
-        let manager = inner.manager.clone();
-        let result =
+        let result = {
+            let mut inner = self.shell().lock();
+            let manager = inner.manager.clone();
             crate::ui::template_runtime::component_adapter::registry::EditorUiComponentAdapterRegistry::apply_envelope(
-                &mut inner.state,
-                manager.as_ref(),
-                envelope,
-            )?;
+                    &mut inner.state,
+                    manager.as_ref(),
+                    envelope,
+                )?
+        };
         if result.refresh_projection {
-            Self::refresh_workbench_locked(
-                &mut inner,
-                EditorViewInvalidationMask::PRESENTATION_DATA,
-            );
+            self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
         }
         Ok(result)
     }
@@ -238,41 +238,34 @@ impl EditorEventRuntime {
     }
 
     pub fn set_session_mode(&self, session_mode: EditorSessionMode) {
-        let mut inner = self.lock_inner();
-        inner.state.set_session_mode(session_mode);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.set_session_mode(session_mode);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn set_welcome_snapshot(&self, welcome: WelcomePaneSnapshot) {
-        let mut inner = self.lock_inner();
-        inner.state.set_welcome_snapshot(welcome);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.set_welcome_snapshot(welcome);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn sync_asset_catalog(&self, catalog: EditorAssetCatalogSnapshotRecord) {
-        let mut inner = self.lock_inner();
-        inner.state.sync_asset_catalog(catalog);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.sync_asset_catalog(catalog);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn sync_asset_resources(&self, resources: Vec<ResourceRecord>) {
-        let mut inner = self.lock_inner();
-        inner.state.sync_asset_resources(resources);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.sync_asset_resources(resources);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn sync_asset_details(&self, details: Option<EditorAssetDetailsRecord>) {
-        let mut inner = self.lock_inner();
-        inner.state.sync_asset_details(details);
-        Self::refresh_workbench_locked(&mut inner, EditorViewInvalidationMask::PRESENTATION_DATA);
+        self.shell().lock().state.sync_asset_details(details);
+        self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
     }
 
     pub fn replace_world(&self, world: LevelSystem, project_path: impl Into<String>) {
-        let mut inner = self.lock_inner();
-        inner.state.replace_world(world, project_path);
-        inner.dragging_gizmo = false;
-        Self::refresh_workbench_locked(
-            &mut inner,
+        self.shell().lock().state.replace_world(world, project_path);
+        self.gizmo_drag().clear();
+        self.refresh_workbench(
             EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
         );
     }
@@ -283,27 +276,28 @@ impl EditorEventRuntime {
         material: ResourceHandle<MaterialMarker>,
         display_path: impl Into<String>,
     ) -> Result<bool, String> {
-        let mut inner = self.lock_inner();
-        let changed = inner
+        let changed = self
+            .shell()
+            .lock()
             .state
             .import_mesh_asset(model, material, display_path)?;
-        Self::refresh_workbench_locked(
-            &mut inner,
+        self.refresh_workbench(
             EditorViewInvalidationMask::RENDER.union(EditorViewInvalidationMask::PRESENTATION_DATA),
         );
         Ok(changed)
     }
 
     pub fn journal(&self) -> EditorEventJournal {
-        self.lock_inner().journal.clone()
+        self.context().events().journal()
     }
 
     pub fn operation_stack(&self) -> EditorOperationStack {
-        self.lock_inner().operation_stack.clone()
+        self.operations().stack()
     }
 
     pub fn activity_view_descriptor(&self, view_id: &str) -> Option<ActivityViewDescriptor> {
-        self.lock_inner()
+        self.shell()
+            .lock()
             .control_service
             .activity_view(view_id)
             .cloned()
@@ -313,7 +307,7 @@ impl EditorEventRuntime {
         &self,
         component_type: &str,
     ) -> Option<ComponentDrawerDescriptor> {
-        let inner = self.lock_inner();
+        let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
@@ -329,7 +323,7 @@ impl EditorEventRuntime {
     }
 
     pub fn ui_template_descriptor(&self, id: &str) -> Option<EditorUiTemplateDescriptor> {
-        let inner = self.lock_inner();
+        let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
@@ -349,7 +343,7 @@ impl EditorEventRuntime {
             .trim()
             .trim_start_matches('.')
             .to_ascii_lowercase();
-        let inner = self.lock_inner();
+        let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()
@@ -371,7 +365,7 @@ impl EditorEventRuntime {
     }
 
     pub fn asset_editor_descriptor(&self, asset_kind: &str) -> Option<AssetEditorDescriptor> {
-        let inner = self.lock_inner();
+        let inner = self.shell().lock();
         let enabled_capabilities = inner
             .manager
             .capability_snapshot()

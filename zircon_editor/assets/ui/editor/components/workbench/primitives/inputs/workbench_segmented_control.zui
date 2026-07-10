@@ -16,5 +16,5 @@ default_classes = ["workbench-segmented-control", "workbench-primitive"]
 component = "SegmentedControl"
 control_id = "WorkbenchSegmentedControlRoot"
 classes = ["workbench-segmented-control"]
-props = { value = "center", options = ["left", "center", "right"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { value = "center", options = ["left", "center", "right"], selection_state = "single", layout_min_height = 28.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }

@@ -6,12 +6,13 @@ pub(super) use std::time::{SystemTime, UNIX_EPOCH};
 
 pub(super) use crate::core::editor_event::{
     ActivityDrawerMode as EventActivityDrawerMode, ActivityDrawerSlot as EventActivityDrawerSlot,
-    EditorAssetEvent, EditorEvent, EditorEventRuntime, EditorEventTransient, EditorViewportEvent,
+    EditorAssetEvent, EditorEvent, EditorEventTransient, EditorViewportEvent,
     LayoutCommand as EventLayoutCommand, MainPageId as EventMainPageId, MenuAction,
     ViewInstanceId as EventViewInstanceId,
 };
 pub(super) use crate::scene::viewport::{DisplayMode, ViewOrientation};
 pub(super) use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
+use crate::ui::host::EditorHostEventController;
 pub(super) use crate::ui::host::EditorManager;
 pub(super) use crate::ui::retained_host::primitives::PhysicalSize;
 pub(super) use crate::ui::retained_host::{PaneSurfaceHostContext, UiHostContext};
@@ -84,7 +85,7 @@ impl ChildWindowHostHarness {
         let host = Rc::new(RefCell::new(
             RetainedEditorHost::new_for_test(core.handle(), root_ui.clone_strong())
                 .map(|mut host| {
-                    host.runtime = EditorEventRuntime::new(state, manager);
+                    host.runtime = EditorHostEventController::new(state, manager);
                     host.sync_asset_workspace();
                     host
                 })

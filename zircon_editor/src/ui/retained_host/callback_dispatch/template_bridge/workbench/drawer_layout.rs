@@ -8,8 +8,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::workbench::autolayout::{
-    compact_bottom_height_limit, compact_side_width_limit,
-    right_drawer_should_collapse_for_physical_width, ShellRegionId, WorkbenchChromeMetrics,
+    balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
+    minimum_document_width_fraction, right_drawer_should_collapse_for_physical_width,
+    ShellRegionId, WorkbenchChromeMetrics,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -173,6 +174,7 @@ fn apply_workbench_drawer_layout(
         rail_width,
     );
     let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics, anchors);
+    let (left, right) = reserve_document_width(left, right, shell_size, metrics);
 
     mark_roots_layout_dirty(surface)?;
 
@@ -192,6 +194,48 @@ fn apply_workbench_drawer_layout(
         resolved_drawer_shell_extent(bottom),
     )?;
     Ok(())
+}
+
+fn reserve_document_width(
+    left: WorkbenchDrawerRegionInput,
+    right: WorkbenchDrawerRegionInput,
+    shell_size: UiSize,
+    metrics: WorkbenchChromeMetrics,
+) -> (WorkbenchDrawerRegionInput, WorkbenchDrawerRegionInput) {
+    let rail_width = metrics.rail_width.max(0.0);
+    let visible_panel_count = [left, right]
+        .into_iter()
+        .filter(|region| resolved_side_panel_extent(*region, rail_width) > f32::EPSILON)
+        .count() as f32;
+    let fixed_side_chrome =
+        visible_panel_count * (rail_width + metrics.separator_thickness.max(0.0) * 2.0);
+    let panel_budget = (shell_size.width.max(0.0) * (1.0 - minimum_document_width_fraction())
+        - fixed_side_chrome)
+        .max(0.0);
+    let widths = balanced_side_widths_for_budget(
+        resolved_side_panel_extent(left, rail_width),
+        resolved_side_panel_extent(right, rail_width),
+        panel_budget,
+    );
+
+    (
+        region_with_panel_width(left, widths.left, rail_width),
+        region_with_panel_width(right, widths.right, rail_width),
+    )
+}
+
+fn region_with_panel_width(
+    region: WorkbenchDrawerRegionInput,
+    panel_width: f32,
+    rail_width: f32,
+) -> WorkbenchDrawerRegionInput {
+    if !region.visible || resolved_side_panel_extent(region, rail_width) <= f32::EPSILON {
+        return region;
+    }
+    WorkbenchDrawerRegionInput {
+        extent: panel_width.max(0.0) + rail_width,
+        ..region
+    }
 }
 
 fn mark_roots_layout_dirty(

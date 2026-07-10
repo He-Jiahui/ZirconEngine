@@ -15,8 +15,13 @@ fn asset_window_uses_activity_drawer_window_with_asset_browser_content() {
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("asset window .zui asset should parse");
 
-    assert_eq!(document.asset.id, "editor.window.asset");
-    assert!(source.contains("editor.host.activity_drawer_window#ActivityDrawerWindow"));
+    assert_eq!(
+        document.asset.id,
+        "res://ui/editor/windows/asset_window.zui"
+    );
+    assert!(source.contains(
+        "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
+    ));
     assert!(source.contains("shell_preset = \"jetbrains_shell\""));
     assert!(source.contains("panel_preset = \"fyrox_panel\""));
     assert!(source.contains("window_model = \"unreal_window_model\""));

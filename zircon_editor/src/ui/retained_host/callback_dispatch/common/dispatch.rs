@@ -3,7 +3,8 @@ use crate::core::editor_operation::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
-use crate::core::editor_event::{EditorEventEnvelope, EditorEventRuntime, EditorEventSource};
+use crate::core::editor_event::{EditorEventEnvelope, EditorEventSource};
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
@@ -12,7 +13,7 @@ use serde_json::{Number, Value};
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 pub(crate) fn dispatch_envelope(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     envelope: EditorEventEnvelope,
 ) -> Result<UiHostEventEffects, String> {
     let record = runtime.dispatch_envelope(envelope)?;
@@ -22,7 +23,7 @@ pub(crate) fn dispatch_envelope(
 }
 
 pub(crate) fn dispatch_editor_binding(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     binding: EditorUiBinding,
 ) -> Result<UiHostEventEffects, String> {
     if is_reference_preview_action(&binding) {

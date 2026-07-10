@@ -393,6 +393,23 @@ fn material_validation_diagnostic_row(
                 reference.locator
             ),
         },
+        RenderMaterialValidationError::TextureDimensionMismatch {
+            slot,
+            reference,
+            expected,
+            actual,
+        } => RendererDataDiagnosticRow {
+            feature: feature.to_string(),
+            material_reference: None,
+            shader_references: Vec::new(),
+            source: Some(RenderMaterialDiagnosticSource::DependencyResolution),
+            severity: RendererFeatureContractDiagnosticSeverity::Error,
+            path: format!("textures.{slot}"),
+            message: format!(
+                "texture `{}` has an incompatible dimension: expected {expected:?}, resolved {actual:?}",
+                reference.locator
+            ),
+        },
         RenderMaterialValidationError::InvalidLightingModel { path, value } => {
             RendererDataDiagnosticRow {
                 feature: feature.to_string(),

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::core::CoreRuntime;
@@ -337,7 +336,7 @@ props = { text = "Save" }
 bindings = [{ id = "SaveButton/onClick", event = "Click", route = "route.form.value_changed" }]
 "##;
 
-pub(super) fn env_lock() -> &'static Mutex<()> {
+pub(super) fn env_lock() -> &'static crate::tests::support::TestEnvironmentLock {
     crate::tests::support::env_lock()
 }
 

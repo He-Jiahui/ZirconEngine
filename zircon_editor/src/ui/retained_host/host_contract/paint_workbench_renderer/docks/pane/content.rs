@@ -23,7 +23,7 @@ pub(super) fn draw_pane_content_layers(
     };
     let painted_nodes = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_template_nodes");
-        draw_pane_template_nodes(frame, pane, body, clip, text_input_focus)
+        draw_pane_template_nodes(frame, pane, body, clip, interaction, text_input_focus)
     };
     let painted_native = {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_native_content");

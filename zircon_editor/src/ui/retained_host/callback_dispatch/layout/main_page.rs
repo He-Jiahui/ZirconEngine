@@ -1,10 +1,10 @@
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::{common::dispatch_editor_binding, BuiltinHostWindowTemplateBridge};
 
 pub(crate) fn dispatch_builtin_host_page_activation(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinHostWindowTemplateBridge,
     page_id: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {

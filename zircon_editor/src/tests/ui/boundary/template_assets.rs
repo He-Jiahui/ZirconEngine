@@ -223,7 +223,7 @@ fn production_zui_component_assets_are_single_component_documents() {
 fn host_template_assets_are_toml_authority_for_editor_shells() {
     let assets: &[(&str, &[&str])] = &[
         (
-            "assets/ui/editor/host/activity_drawer_window.zui",
+            "assets/ui/editor/components/workbench/shell/activity_drawer_window.zui",
             &[
                 "ActivityDrawerWindowRoot",
                 "ActivityDrawerWindowContentSlot",
@@ -694,7 +694,7 @@ fn welcome_startup_demo_routes_to_component_showcase_window() {
 fn imported_zui_components_are_single_component_assets() {
     for (relative, component) in [
         (
-            "assets/ui/editor/host/activity_drawer_window.zui",
+            "assets/ui/editor/components/workbench/shell/activity_drawer_window.zui",
             "ActivityDrawerWindow",
         ),
         (

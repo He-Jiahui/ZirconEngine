@@ -1,11 +1,11 @@
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use zircon_runtime_interface::ui::dispatch::UiPointerEvent;
 
 use super::super::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 
 pub(crate) fn dispatch_componentized_workbench_pointer_event(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     event: UiPointerEvent,
 ) -> Option<Result<UiHostEventEffects, String>> {

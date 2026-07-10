@@ -11,12 +11,11 @@ mod editor_error;
 mod editor_event_control_requests;
 mod editor_event_dispatch;
 mod editor_event_execution;
-mod editor_event_listener_control;
 mod editor_event_runtime_access;
-mod editor_event_runtime_bootstrap;
 mod editor_event_runtime_reflection;
 mod editor_extension_registration;
 mod editor_extension_views;
+mod editor_host_event_controller;
 mod editor_manager;
 mod editor_manager_animation_editor;
 mod editor_manager_asset_editor;
@@ -58,6 +57,7 @@ pub use commands::{
 };
 pub use editor_capabilities::EditorCapabilitySnapshot;
 pub use editor_error::EditorError;
+pub use editor_host_event_controller::EditorHostEventController;
 pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,

@@ -1,16 +1,15 @@
 use crate::core::editor_event::{EditorAnimationEvent, EditorEventEffect};
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(super) fn execute_animation_event(
-    inner: &mut EditorEventRuntimeState,
+    shell: &mut WorkbenchShellStateData,
     event: &EditorAnimationEvent,
 ) -> Result<ExecutionOutcome, String> {
-    let changed = match inner.manager.apply_animation_event(event) {
+    let changed = match shell.manager.apply_animation_event(event) {
         Ok(changed) => changed,
         Err(error) if should_tolerate_missing_animation_target(&error.to_string()) => {
-            inner
+            shell
                 .state
                 .set_status_line(ignored_status_line_for_error(&error.to_string()));
             return Ok(ExecutionOutcome {
@@ -23,7 +22,7 @@ pub(super) fn execute_animation_event(
         }
         Err(error) => return Err(error.to_string()),
     };
-    inner.state.set_status_line(if changed {
+    shell.state.set_status_line(if changed {
         status_line_for_event(event)
     } else {
         ignored_status_line_for_no_change()

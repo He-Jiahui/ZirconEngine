@@ -1,4 +1,4 @@
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 use zircon_runtime_interface::ui::binding::UiEventKind;
@@ -9,7 +9,7 @@ use super::super::{
 };
 
 pub(crate) fn dispatch_builtin_host_control(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinHostWindowTemplateBridge,
     control_id: &str,
     event_kind: UiEventKind,
@@ -19,7 +19,7 @@ pub(crate) fn dispatch_builtin_host_control(
 }
 
 pub(crate) fn dispatch_builtin_host_menu_action(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinHostWindowTemplateBridge,
     action: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
@@ -27,7 +27,7 @@ pub(crate) fn dispatch_builtin_host_menu_action(
 }
 
 pub(crate) fn dispatch_componentized_workbench_control(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     event_kind: UiEventKind,
@@ -41,7 +41,7 @@ pub(crate) fn dispatch_componentized_workbench_control(
 }
 
 pub(crate) fn dispatch_componentized_workbench_binding(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     binding_id: &str,
@@ -55,7 +55,7 @@ pub(crate) fn dispatch_componentized_workbench_binding(
 }
 
 pub(crate) fn dispatch_componentized_workbench_option_selected(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     option_id: &str,
@@ -106,7 +106,7 @@ pub(crate) fn dispatch_componentized_workbench_surface_control_edited(
 }
 
 pub(crate) fn dispatch_componentized_workbench_menu_item_selected(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     action_id: &str,

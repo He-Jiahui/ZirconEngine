@@ -1,3 +1,5 @@
+use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+
 pub(crate) const DOCUMENT_TAB_STRIP_X: f32 = 8.0;
 pub(crate) const DOCUMENT_TAB_STRIP_Y: f32 = 1.0;
 pub(crate) const DOCUMENT_TAB_MIN_WIDTH: f32 = 124.0;
@@ -8,7 +10,7 @@ pub(crate) const DOCUMENT_TAB_GAP: f32 = 4.0;
 pub(crate) const DOCUMENT_TAB_CLOSE_EXTENT: f32 = 20.0;
 pub(crate) const DOCUMENT_TAB_CLOSE_RIGHT_INSET: f32 = 8.0;
 pub(crate) const DOCUMENT_TAB_CLOSE_TOP_INSET: f32 = 6.0;
-pub(crate) const DOCUMENT_TAB_TITLE_FONT_SIZE: f32 = 12.0;
+pub(crate) const DOCUMENT_TAB_TITLE_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_BODY_SIZE;
 
 const TITLE_CHROME_RESERVE: f32 = 42.0;
 const CLOSEABLE_TITLE_CHROME_RESERVE: f32 = 70.0;
@@ -43,6 +45,14 @@ pub(crate) fn document_tab_close_x(tab_x: f32, tab_width: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn document_tab_typography_uses_workbench_body_role() {
+        assert_eq!(
+            DOCUMENT_TAB_TITLE_FONT_SIZE,
+            EditorTypographyTokens::WORKBENCH_BODY_SIZE
+        );
+    }
 
     #[test]
     fn closeable_document_tab_width_keeps_asset_browser_title_readable() {

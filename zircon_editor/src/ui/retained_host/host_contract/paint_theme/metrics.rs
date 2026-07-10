@@ -1,6 +1,6 @@
 use std::sync::{OnceLock, RwLock};
 
-use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
+use zircon_runtime_interface::ui::design_tokens::{EditorDesignTokens, EditorTypographyTokens};
 
 // Shared retained-host control metrics keep Slate-like primitive controls on one
 // spacing, radius, and text scale before higher-level composites consume them.
@@ -40,9 +40,9 @@ pub(in crate::ui::retained_host::host_contract) const METRICS: HostControlMetric
     HostControlMetrics {
         radius_control: 4.0,
         border_width: 1.0,
-        font_small: 8.0,
-        font_body: 10.0,
-        font_large: 14.0,
+        font_small: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
+        font_body: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
+        font_large: EditorTypographyTokens::WORKBENCH_TITLE_SIZE,
         line_height_ratio: 1.2,
         button_pad_x: 12.0,
         button_icon_gap: 7.0,
@@ -127,11 +127,12 @@ mod tests {
 
     #[test]
     fn host_control_metrics_match_unreal_slate_baseline() {
+        let slate_points_to_logical_pixels = 96.0 / 72.0;
         assert_eq!(METRICS.radius_control, 4.0);
         assert_eq!(METRICS.border_width, 1.0);
-        assert_eq!(METRICS.font_small, 8.0);
-        assert_eq!(METRICS.font_body, 10.0);
-        assert_eq!(METRICS.font_large, 14.0);
+        assert!((METRICS.font_small - 8.0 * slate_points_to_logical_pixels).abs() < 0.001);
+        assert!((METRICS.font_body - 10.0 * slate_points_to_logical_pixels).abs() < 0.001);
+        assert!((METRICS.font_large - 14.0 * slate_points_to_logical_pixels).abs() < 0.001);
         assert_eq!(METRICS.button_pad_x, 12.0);
         assert_eq!(METRICS.text_clip_guard, 6.0);
         assert_eq!(METRICS.button_pressed_offset_y, 1.0);
@@ -139,7 +140,7 @@ mod tests {
         assert_eq!(METRICS.selection_indicator_width, 2.0);
         assert_eq!(METRICS.scrollbar_thickness, 8.0);
         assert_eq!(METRICS.scrollbar_min_thumb_length, 24.0);
-        assert_eq!(METRICS.line_height(METRICS.font_body), 12.0);
+        assert!((METRICS.line_height(METRICS.font_body) - 16.0).abs() < 0.001);
     }
 
     #[test]

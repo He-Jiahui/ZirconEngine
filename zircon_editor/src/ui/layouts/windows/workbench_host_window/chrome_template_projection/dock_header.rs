@@ -6,13 +6,15 @@ use crate::ui::workbench::document_tabs::{
     DOCUMENT_TAB_STRIP_Y, DOCUMENT_TAB_TITLE_FONT_SIZE,
 };
 
+mod side;
+
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
     _panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    dock_header_nodes(tabs, &"".into(), width, height)
+    side::side_dock_header_nodes(tabs, width, height)
 }
 
 pub(super) fn document_dock_header_nodes(
@@ -155,7 +157,7 @@ pub(super) fn fallback_dock_header_nodes(
                 control_id: format!("{DOCK_TAB_CLOSE_PREFIX}{row}").into(),
                 role: "IconButton".into(),
                 text_tone: "muted".into(),
-                font_size: CHROME_TEXT_FONT_SIZE_PX,
+                font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
                 button_variant: "ghost".into(),
                 value_number: 14.0,
                 frame: ViewTemplateFrameData {
@@ -179,7 +181,7 @@ pub(super) fn fallback_dock_header_nodes(
             role: "Text".into(),
             text: subtitle.clone(),
             text_tone: "muted".into(),
-            font_size: 10.0,
+            font_size: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
             frame: ViewTemplateFrameData {
                 x: (x + 8.0).min(width.max(1.0)),
                 y: 7.0,

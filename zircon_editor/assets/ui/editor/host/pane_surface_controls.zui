@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.surface_controls"
+id = "res://ui/editor/host/pane_surface_controls.zui"
 version = 2
 display_name = "pane surface controls"
 

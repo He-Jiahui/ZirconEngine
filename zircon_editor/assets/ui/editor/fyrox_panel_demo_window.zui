@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.demo.fyrox_panel_components"
+id = "res://ui/editor/fyrox_panel_demo_window.zui"
 version = 2
 display_name = "Fyrox Panel Component Demo"
 

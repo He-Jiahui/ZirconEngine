@@ -28,7 +28,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_native_pane_content(
             );
             let scrollbar =
                 scrollbar::draw_activity_asset_tree_scrollbar(frame, pane, body, clip, interaction);
-            hover || scrollbar
+            let content_scrollbar = scrollbar::draw_activity_asset_content_scrollbar(
+                frame,
+                pane,
+                body,
+                clip,
+                interaction,
+            );
+            hover || scrollbar || content_scrollbar
         }
         "AssetBrowser" => {
             let hover =

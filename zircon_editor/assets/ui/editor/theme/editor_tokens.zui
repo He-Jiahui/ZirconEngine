@@ -1,6 +1,6 @@
 [asset]
 kind = "theme_tokens"
-id = "zircon.editor.workbench"
+id = "res://ui/editor/theme/editor_tokens.zui"
 version = 2
 display_name = "Zircon Editor Workbench Tokens"
 
@@ -37,9 +37,9 @@ ui_family = "system-ui"
 ui_strong_family = "system-ui"
 code_family = "monospace"
 utility_tab_text_role = "ui"
-body_size = 10.0
-caption_size = 8.5
-title_size = 14.0
+body_size = 13.333333
+caption_size = 10.666667
+title_size = 18.666667
 body_weight = 400
 strong_weight = 600
 code_weight = 400
@@ -73,6 +73,7 @@ ultra_compact_side_width = 760.0
 compact_left_drawer_max_width = 340.0
 compact_right_drawer_max_width = 220.0
 compact_side_min_width = 196.0
+minimum_document_width_fraction = 0.5
 ultra_compact_left_drawer_max_width = 220.0
 ultra_compact_right_drawer_max_width = 160.0
 compact_bottom_available_height = 900.0
@@ -156,6 +157,7 @@ ultra_compact_side_width = "--ultra-compact-side-width"
 compact_left_drawer_max_width = "--compact-left-drawer-max-width"
 compact_right_drawer_max_width = "--compact-right-drawer-max-width"
 compact_side_min_width = "--compact-side-min-width"
+minimum_document_width_fraction = "--minimum-document-width-fraction"
 ultra_compact_left_drawer_max_width = "--ultra-compact-left-drawer-max-width"
 ultra_compact_right_drawer_max_width = "--ultra-compact-right-drawer-max-width"
 compact_bottom_available_height = "--compact-bottom-available-height"

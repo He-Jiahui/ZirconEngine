@@ -1,6 +1,7 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventTransient, EditorOperationEvent,
 };
+use crate::ui::host::EditorHostEventController;
 
 use super::execution_outcome::ExecutionOutcome;
 use super::{
@@ -9,26 +10,25 @@ use super::{
     layout_command::execute_layout_command, menu_action::execute_menu_action,
     selection_event::execute_selection, viewport_event::execute_viewport_event,
 };
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(crate) fn execute_event(
-    inner: &mut EditorEventRuntimeState,
+    controller: &EditorHostEventController,
     event: &EditorEvent,
 ) -> Result<ExecutionOutcome, String> {
+    let mut shell = controller.shell().lock();
     match event {
-        EditorEvent::WorkbenchMenu(action) => execute_menu_action(inner, action),
-        EditorEvent::Layout(command) => execute_layout_command(inner, command),
-        EditorEvent::Selection(event) => execute_selection(inner, event),
-        EditorEvent::Asset(event) => execute_asset_event(inner, event),
-        EditorEvent::Draft(event) => execute_draft_event(inner, event),
-        EditorEvent::Animation(event) => execute_animation_event(inner, event),
-        EditorEvent::Inspector(event) => execute_inspector_event(inner, event),
-        EditorEvent::Viewport(event) => execute_viewport_event(inner, event),
+        EditorEvent::WorkbenchMenu(action) => execute_menu_action(controller, &mut shell, action),
+        EditorEvent::Layout(command) => execute_layout_command(&mut shell, command),
+        EditorEvent::Selection(event) => execute_selection(&mut shell, event),
+        EditorEvent::Asset(event) => execute_asset_event(&mut shell, event),
+        EditorEvent::Draft(event) => execute_draft_event(&mut shell, event),
+        EditorEvent::Animation(event) => execute_animation_event(&mut shell, event),
+        EditorEvent::Inspector(event) => execute_inspector_event(&mut shell, event),
+        EditorEvent::Viewport(event) => execute_viewport_event(controller, &mut shell, event),
         EditorEvent::Operation(event) => match event {
             EditorOperationEvent::ControlFailure { error, .. } => Err(error.clone()),
         },
         EditorEvent::Transient(update) => {
-            inner.transient.apply(update);
+            shell.transient.apply(update);
             let effects = match update {
                 EditorEventTransient::OpenCommandPalette => {
                     vec![EditorEventEffect::CommandPaletteOpenRequested]

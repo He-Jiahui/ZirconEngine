@@ -1,5 +1,5 @@
-use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::binding::EditorUiEventKind;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::template_runtime::component_adapter::command::{
     editor_command_binding_for_envelope, COMMAND_DOMAIN,
@@ -18,7 +18,7 @@ const COMMAND_PALETTE_COMPONENT_ID: &str = "CommandPalette";
 const COMMITTED_COMMAND_ID: &str = "committed_command_id";
 
 pub(crate) fn dispatch_componentized_workbench_command_palette_committed(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
     control_id: &str,
     binding_id: &str,

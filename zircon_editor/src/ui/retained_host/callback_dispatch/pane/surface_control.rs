@@ -1,12 +1,12 @@
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::{common::dispatch_editor_binding, BuiltinPaneSurfaceTemplateBridge};
 
 pub(crate) fn dispatch_builtin_pane_surface_control(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinPaneSurfaceTemplateBridge,
     control_id: &str,
     event_kind: UiEventKind,

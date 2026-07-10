@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.inspector.v2"
+id = "res://ui/editor/inspector.zui"
 version = 2
 display_name = "Inspector"
 

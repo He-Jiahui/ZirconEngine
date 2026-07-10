@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.startup.welcome_controls"
+id = "res://ui/editor/host/startup_welcome_controls.zui"
 version = 2
 display_name = "startup welcome controls"
 

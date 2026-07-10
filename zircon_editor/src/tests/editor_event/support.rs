@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::core::CoreRuntime;
@@ -10,8 +9,8 @@ use zircon_runtime::foundation::{
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime_interface::math::UVec2;
 
-use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
+use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
 use crate::ui::host::{
     EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
@@ -20,7 +19,7 @@ use crate::ui::host::{
 };
 use crate::ui::workbench::state::EditorState;
 
-pub(crate) fn env_lock() -> &'static Mutex<()> {
+pub(crate) fn env_lock() -> &'static crate::tests::support::TestEnvironmentLock {
     crate::tests::support::env_lock()
 }
 
@@ -35,7 +34,7 @@ fn unique_temp_path(prefix: &str) -> PathBuf {
 pub(crate) struct EventRuntimeHarness {
     #[allow(dead_code)]
     pub core: CoreRuntime,
-    pub runtime: EditorEventRuntime,
+    pub runtime: EditorHostEventController,
     config_path: PathBuf,
 }
 
@@ -81,7 +80,7 @@ impl EventRuntimeHarness {
         let manager = core
             .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
-        let runtime = EditorEventRuntime::new(state, manager);
+        let runtime = EditorHostEventController::new(state, manager);
 
         Self {
             core,

@@ -6,6 +6,14 @@ use crate::ui::layouts::windows::workbench_host_window::AssetsActivityPaneViewDa
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::ui::layout::UiSize;
 
+mod content_layout;
+mod content_nodes;
+mod responsive_layout;
+
+use content_layout::apply_assets_activity_content_layout;
+use content_nodes::append_assets_activity_content_nodes;
+use responsive_layout::apply_assets_activity_responsive_layout;
+
 const ASSETS_ACTIVITY_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/assets_activity.zui";
 const ASSETS_ACTIVITY_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
 const ASSETS_ACTIVITY_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
@@ -25,7 +33,6 @@ pub(crate) fn assets_activity_pane_data(
     } else {
         snapshot.selection.display_name.clone()
     };
-    let kind_filter = snapshot.kind_filter;
     let selection_locator = if snapshot.selection.locator.is_empty() {
         "No project locator".to_string()
     } else {
@@ -125,79 +132,37 @@ pub(crate) fn assets_activity_pane_data(
     );
     text_overrides.insert(
         "AssetsActivityViewModeListButton".to_string(),
-        if snapshot.view_mode == AssetViewMode::List {
-            "List • Active".to_string()
-        } else {
-            "List".to_string()
-        },
+        "List".to_string(),
     );
     text_overrides.insert(
         "AssetsActivityViewModeThumbButton".to_string(),
-        if snapshot.view_mode == AssetViewMode::Thumbnail {
-            "Thumb • Active".to_string()
-        } else {
-            "Thumb".to_string()
-        },
+        "Thumb".to_string(),
     );
-    text_overrides.insert(
-        "AssetsActivityKindAllChip".to_string(),
-        if kind_filter.is_none() {
-            "All • Active".to_string()
-        } else {
-            "All".to_string()
-        },
-    );
+    text_overrides.insert("AssetsActivityKindAllChip".to_string(), "All".to_string());
     text_overrides.insert(
         "AssetsActivityKindTextureChip".to_string(),
-        kind_filter_label(
-            kind_filter,
-            "Tex",
-            zircon_runtime_interface::resource::ResourceKind::Texture,
-        ),
+        "Tex".to_string(),
     );
     text_overrides.insert(
         "AssetsActivityKindMaterialChip".to_string(),
-        kind_filter_label(
-            kind_filter,
-            "Mat",
-            zircon_runtime_interface::resource::ResourceKind::Material,
-        ),
+        "Mat".to_string(),
     );
-    text_overrides.insert(
-        "AssetsActivityKindSceneChip".to_string(),
-        kind_filter_label(
-            kind_filter,
-            "Scn",
-            zircon_runtime_interface::resource::ResourceKind::Scene,
-        ),
-    );
+    text_overrides.insert("AssetsActivityKindSceneChip".to_string(), "Scn".to_string());
     text_overrides.insert(
         "AssetsActivityKindModelChip".to_string(),
-        kind_filter_label(
-            kind_filter,
-            "Mesh",
-            zircon_runtime_interface::resource::ResourceKind::Model,
-        ),
+        "Mesh".to_string(),
     );
     text_overrides.insert(
         "AssetsActivityKindShaderChip".to_string(),
-        kind_filter_label(
-            kind_filter,
-            "Shd",
-            zircon_runtime_interface::resource::ResourceKind::Shader,
-        ),
+        "Shd".to_string(),
     );
     text_overrides.insert(
-        "AssetsActivityPreviewButton".to_string(),
-        utility_tab_label(snapshot.utility_tab, AssetUtilityTab::Preview, "Preview"),
+        "AssetsActivityPreviewTabButton".to_string(),
+        "Preview".to_string(),
     );
     text_overrides.insert(
         "AssetsActivityReferencesTabButton".to_string(),
-        utility_tab_label(
-            snapshot.utility_tab,
-            AssetUtilityTab::References,
-            "References",
-        ),
+        "References".to_string(),
     );
     text_overrides.insert(
         "SearchEdited".to_string(),
@@ -219,30 +184,13 @@ pub(crate) fn assets_activity_pane_data(
         &text_overrides,
     )
     .unwrap_or_default();
+    append_assets_activity_content_nodes(&mut nodes, snapshot);
     apply_assets_activity_visual_state(&mut nodes, snapshot);
+    apply_assets_activity_responsive_layout(&mut nodes, snapshot, size);
+    apply_assets_activity_content_layout(&mut nodes, snapshot);
 
     AssetsActivityPaneViewData {
         nodes: model_rc(nodes),
-    }
-}
-
-fn utility_tab_label(active: AssetUtilityTab, expected: AssetUtilityTab, label: &str) -> String {
-    if active == expected {
-        format!("{label} • Active")
-    } else {
-        label.to_string()
-    }
-}
-
-fn kind_filter_label(
-    active: Option<zircon_runtime_interface::resource::ResourceKind>,
-    label: &str,
-    expected: zircon_runtime_interface::resource::ResourceKind,
-) -> String {
-    if active == Some(expected) {
-        format!("{label} • Active")
-    } else {
-        label.to_string()
     }
 }
 
@@ -294,7 +242,7 @@ fn apply_assets_activity_visual_state(
     );
     mark_toggle_state(
         nodes,
-        "AssetsActivityPreviewButton",
+        "AssetsActivityPreviewTabButton",
         snapshot.utility_tab == AssetUtilityTab::Preview,
     );
     mark_toggle_state(

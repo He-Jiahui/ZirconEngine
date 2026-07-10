@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.hierarchy.body"
+id = "res://ui/editor/host/hierarchy_body.zui"
 version = 2
 display_name = "hierarchy pane body"
 

@@ -15,7 +15,10 @@ fn workbench_window_uses_componentized_workbench_layout() {
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("workbench_window.zui should parse");
 
-    assert_eq!(document.asset.id, "editor.window.workbench");
+    assert_eq!(
+        document.asset.id,
+        "res://ui/editor/windows/workbench_window.zui"
+    );
 
     for marker in [
         "editor_workbench_strict.zui",

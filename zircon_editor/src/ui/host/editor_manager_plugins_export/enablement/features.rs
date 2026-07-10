@@ -239,6 +239,28 @@ fn enable_feature_dependency_tree(
             catalog_label,
         )?;
     }
+    enable_external_feature_provider(manifest, feature, enabled_dependency_plugins, catalog_label)?;
+    Ok(())
+}
+
+fn enable_external_feature_provider(
+    manifest: &mut ProjectPluginManifest,
+    feature: &PluginFeatureBundleManifest,
+    enabled_dependency_plugins: &mut Vec<String>,
+    catalog_label: &str,
+) -> Result<(), String> {
+    let Some(provider_package_id) = feature
+        .provider_package_id
+        .as_deref()
+        .filter(|provider| *provider != feature.owner_plugin_id)
+    else {
+        return Ok(());
+    };
+    let provider_selection = project_selection_mut(manifest, provider_package_id, catalog_label)?;
+    if !provider_selection.enabled {
+        provider_selection.enabled = true;
+        push_unique(enabled_dependency_plugins, provider_package_id.to_string());
+    }
     Ok(())
 }
 

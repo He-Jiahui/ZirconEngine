@@ -2,6 +2,7 @@ use super::super::data::FrameRect;
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::is_visible_frame;
 use super::super::paint_text::{draw_text, measure_runtime_text_width};
+use super::super::paint_theme::current_host_metrics;
 
 const TEXT_BAR_FONT_SIZE: f32 = 12.0;
 const TEXT_BAR_LINE_HEIGHT: f32 = 16.0;
@@ -31,14 +32,21 @@ fn text_bars_frame(x: f32, y: f32, text: &str) -> FrameRect {
     FrameRect {
         x,
         y,
-        width: measure_runtime_text_width(text, TEXT_BAR_FONT_SIZE).max(1.0),
+        width: text_bar_frame_width(
+            measure_runtime_text_width(text, TEXT_BAR_FONT_SIZE),
+            current_host_metrics().text_clip_guard,
+        ),
         height: TEXT_BAR_LINE_HEIGHT,
     }
 }
 
+fn text_bar_frame_width(measured_width: f32, clip_guard: f32) -> f32 {
+    (measured_width + clip_guard.max(0.0)).max(1.0)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::text_bars_frame;
+    use super::{text_bar_frame_width, text_bars_frame};
 
     #[test]
     fn text_bars_frame_uses_runtime_text_measurement() {
@@ -49,6 +57,12 @@ mod tests {
             wide.width > narrow.width + 8.0,
             "same-character-count text bars should follow runtime glyph width, narrow={narrow:?}, wide={wide:?}"
         );
+    }
+
+    #[test]
+    fn text_bars_frame_reserves_trailing_glyph_clip_guard() {
+        assert_eq!(text_bar_frame_width(80.0, 6.0), 86.0);
+        assert_eq!(text_bar_frame_width(0.0, -4.0), 1.0);
     }
 }
 

@@ -6,6 +6,7 @@ use super::constants::{
 };
 use super::host_menu_pointer_layout::HostMenuPointerLayout;
 use super::menu_items_for_layout::menu_items_for_layout;
+use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
 use crate::ui::workbench::window_registry::MenuOverflowMode;
 
 /// Resolved popup geometry used by both the shared hit surface and scroll metrics.
@@ -33,11 +34,7 @@ pub(in crate::ui::retained_host::menu_pointer) fn popup_content_frame(
 }
 
 pub(in crate::ui::retained_host::menu_pointer) fn popup_content_height(item_count: usize) -> f32 {
-    if item_count == 0 {
-        0.0
-    } else {
-        item_count as f32 * POPUP_ROW_HEIGHT + (item_count as f32 - 1.0) * POPUP_ROW_GAP
-    }
+    (menu_popup_content_height(item_count) - POPUP_PADDING * 2.0).max(0.0)
 }
 
 pub(in crate::ui::retained_host::menu_pointer) fn popup_viewport_extent(
@@ -194,7 +191,7 @@ pub(in crate::ui::retained_host::menu_pointer) fn popup_grid_layout(
     let shell_right = layout.shell_frame.x + layout.shell_frame.width;
     let shell_bottom = layout.shell_frame.y + layout.shell_frame.height;
     let popup_y = button_frame.y + button_frame.height + POPUP_ANCHOR_GAP;
-    let base_width = popup_width_for_menu(menu_index);
+    let base_width = popup_width_for_menu(layout, menu_index);
     let single_column_requested_height = if menu_index == WINDOW_MENU_INDEX {
         layout.window_popup_height.max(POPUP_MIN_HEIGHT)
     } else {
@@ -276,8 +273,13 @@ fn rows_per_column(item_count: usize, column_count: usize) -> usize {
     }
 }
 
-fn popup_width_for_menu(menu_index: usize) -> f32 {
-    POPUP_WIDTHS.get(menu_index).copied().unwrap_or(224.0)
+fn popup_width_for_menu(layout: &HostMenuPointerLayout, menu_index: usize) -> f32 {
+    layout
+        .popup_widths
+        .get(menu_index)
+        .copied()
+        .or_else(|| POPUP_WIDTHS.get(menu_index).copied())
+        .unwrap_or(224.0)
 }
 
 fn intersect_frame(frame: UiFrame, clip: UiFrame) -> Option<UiFrame> {

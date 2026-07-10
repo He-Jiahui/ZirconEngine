@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.generated_bottom.body"
+id = "res://ui/editor/host/generated_bottom_body.zui"
 version = 2
 display_name = "generated bottom pane body"
 

@@ -38,6 +38,7 @@ pub(super) fn build_hierarchy_items(
             .widget_type
             .clone()
             .or_else(|| node.component_ref.clone())
+            .or_else(|| node.component.clone())
             .unwrap_or_else(|| "Node".to_string());
         output.push(format!("{prefix}{}{node_id} [{label}]", "  ".repeat(depth)));
         for child in &node.children {

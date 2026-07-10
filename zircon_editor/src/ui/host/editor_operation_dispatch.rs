@@ -1,16 +1,17 @@
 use std::collections::BTreeSet;
 
 use crate::core::editor_event::{
-    EditorEvent, EditorEventRecord, EditorEventRuntime, EditorEventSource, EditorOperationEvent,
+    EditorEvent, EditorEventRecord, EditorEventSource, EditorOperationEvent,
 };
 use crate::core::editor_operation::{
     EditorOperationControlRequest, EditorOperationControlResponse, EditorOperationDescriptor,
     EditorOperationInvocation, EditorOperationPath, EditorOperationRegistryError,
     EditorOperationSource,
 };
+use crate::ui::host::EditorHostEventController;
 use serde_json::json;
 
-impl EditorEventRuntime {
+impl EditorHostEventController {
     pub fn invoke_operation(
         &self,
         source: EditorOperationSource,
@@ -18,9 +19,9 @@ impl EditorEventRuntime {
     ) -> Result<EditorEventRecord, String> {
         let event_source = editor_event_source(source.clone());
         let descriptor = {
-            let inner = self.lock_inner();
-            let descriptor = match inner
-                .operation_registry
+            let operations = self.operations().lock();
+            let descriptor = match operations
+                .registry
                 .descriptor(&invocation.operation_id)
                 .cloned()
             {
@@ -30,7 +31,7 @@ impl EditorEventRuntime {
                         invocation.operation_id.clone(),
                     )
                     .to_string();
-                    drop(inner);
+                    drop(operations);
                     return self.record_operation_control_failure(
                         event_source,
                         invocation.operation_id,
@@ -47,7 +48,7 @@ impl EditorEventRuntime {
                     invocation.operation_id.clone(),
                 )
                 .to_string();
-                drop(inner);
+                drop(operations);
                 return self.record_operation_control_failure(
                     event_source,
                     invocation.operation_id,
@@ -56,11 +57,15 @@ impl EditorEventRuntime {
                     invocation.operation_group,
                 );
             }
-            if let Some(error) = operation_capability_error(
-                &descriptor,
-                inner.manager.capability_snapshot().enabled_capabilities(),
-            ) {
-                drop(inner);
+            drop(operations);
+            let enabled_capabilities = self
+                .shell()
+                .lock()
+                .manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            if let Some(error) = operation_capability_error(&descriptor, &enabled_capabilities) {
                 return self.record_operation_control_failure(
                     event_source,
                     invocation.operation_id,
@@ -149,14 +154,16 @@ impl EditorEventRuntime {
             }
             EditorOperationControlRequest::ListOperations => {
                 let operations = {
-                    let inner = self.lock_inner();
-                    let enabled_capabilities = inner
+                    let enabled_capabilities = self
+                        .shell()
+                        .lock()
                         .manager
                         .capability_snapshot()
                         .enabled_capabilities()
                         .to_vec();
-                    inner
-                        .operation_registry
+                    let operation_state = self.operations().lock();
+                    operation_state
+                        .registry
                         .descriptors()
                         .filter(|descriptor| {
                             operation_capability_error(descriptor, &enabled_capabilities).is_none()

@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.inspector.body"
+id = "res://ui/editor/host/inspector_body.zui"
 version = 2
 display_name = "inspector pane body"
 

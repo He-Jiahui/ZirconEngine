@@ -15,8 +15,13 @@ fn ui_layout_editor_window_uses_activity_drawer_window_with_editor_content() {
     let document =
         UiV2AssetLoader::load_toml_str(&source).expect("ui_layout_editor_window.zui should parse");
 
-    assert_eq!(document.asset.id, "editor.window.ui_layout_editor");
-    assert!(source.contains("editor.host.activity_drawer_window#ActivityDrawerWindow"));
+    assert_eq!(
+        document.asset.id,
+        "res://ui/editor/windows/ui_layout_editor_window.zui"
+    );
+    assert!(source.contains(
+        "res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"
+    ));
     assert!(source.contains("shell_preset = \"jetbrains_shell\""));
     assert!(source.contains("panel_preset = \"fyrox_panel\""));
     assert!(source.contains("window_model = \"unreal_window_model\""));

@@ -568,6 +568,10 @@ fn workbench_breakpoint_defaults_are_sourced_from_design_tokens() {
         defaults.window_minimums.min_width,
         tokens.density.minimum_window_width
     );
+    assert_eq!(
+        defaults.minimum_document_width_fraction,
+        tokens.density.minimum_document_width_fraction
+    );
 }
 
 #[test]
@@ -643,6 +647,34 @@ fn narrow_workbench_geometry_collapses_right_drawer_to_rail() {
     assert!(
         narrow.region_frame(ShellRegionId::Document).width
             > regular.region_frame(ShellRegionId::Document).width - 260.0
+    );
+}
+
+#[test]
+fn regular_workbench_geometry_reserves_token_backed_document_width() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let shell_size = ShellSizePx::new(900.0, 620.0);
+    let geometry = compute_workbench_shell_geometry(
+        &model,
+        &chrome,
+        &fixture.layout,
+        &fixture.descriptors,
+        shell_size,
+        1.0,
+        &metrics,
+        None,
+    );
+    let document = geometry.region_frame(ShellRegionId::Document);
+
+    assert!(geometry.region_frame(ShellRegionId::Left).width > metrics.rail_width);
+    assert!(geometry.region_frame(ShellRegionId::Right).width > metrics.rail_width);
+    assert!(
+        document.width
+            >= shell_size.width * workbench_layout_defaults().minimum_document_width_fraction,
+        "regular shell geometry should reserve token-backed document width: {document:?}"
     );
 }
 

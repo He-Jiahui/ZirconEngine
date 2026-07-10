@@ -152,7 +152,7 @@ children = [{ node = "primary_button" }, { node = "secondary_button" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchPrimaryButton"
 classes = ["workbench-primary-button"]
-props = { text = "Primary", button_variant = "filled", button_color = "primary", button_size = "small", background_color = "#1f3035", border_color = "#2aa6b8", foreground_color = "#e6f1f4", layout_offset_x = 3.0, layout_offset_y = -1.0, font_size = 12.22, visual_brightness = 1.0 }
+props = { text = "Primary", button_variant = "filled", button_color = "primary", button_size = "small", background_color = "#1f3035", border_color = "#2aa6b8", foreground_color = "#e6f1f4", layout_offset_x = 3.0, layout_offset_y = -1.0, visual_brightness = 1.0 }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Primary", event = "Click", route = "component_lab.primary" }]
 
@@ -160,7 +160,7 @@ events = [{ id = "ComponentLab/Primary", event = "Click", route = "component_lab
 component = "WorkbenchButton"
 control_id = "WorkbenchSecondaryButton"
 classes = ["workbench-control-button"]
-props = { text = "Secondary", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", layout_offset_x = 1.0, layout_offset_y = -1.0, font_size = 12.22, visual_brightness = 1.01 }
+props = { text = "Secondary", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", layout_offset_x = 1.0, layout_offset_y = -1.0, visual_brightness = 1.01 }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Secondary", event = "Click", route = "component_lab.secondary" }]
 
@@ -175,7 +175,7 @@ children = [{ node = "tertiary_button" }, { node = "outline_button" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchTertiaryButton"
 classes = ["workbench-control-button", "workbench-tertiary-button"]
-props = { text = "Tertiary", button_variant = "text", button_color = "secondary", button_size = "small", background_color = "#171c20", border_color = "#252e35", foreground_color = "#879299", corner_radius = 5.0, layout_offset_x = 1.0 }
+props = { text = "Tertiary", button_variant = "text", button_color = "secondary", button_size = "small", background_color = "#171c20", border_color = "#252e35", foreground_color = "#879299", corner_radius = 4.0, layout_offset_x = 1.0 }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Tertiary", event = "Click", route = "component_lab.tertiary" }]
 
@@ -183,7 +183,7 @@ events = [{ id = "ComponentLab/Tertiary", event = "Click", route = "component_la
 component = "WorkbenchButton"
 control_id = "WorkbenchOutlineButton"
 classes = ["workbench-control-button", "workbench-outline-button"]
-props = { text = "Outline", button_variant = "outlined", button_color = "secondary", button_size = "small", border_color = "#252e35", foreground_color = "#879299", corner_radius = 5.0, layout_offset_x = 1.0 }
+props = { text = "Outline", button_variant = "outlined", button_color = "secondary", button_size = "small", border_color = "#252e35", foreground_color = "#879299", corner_radius = 4.0, layout_offset_x = 1.0 }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/Outline", event = "Click", route = "component_lab.outline" }]
 
@@ -198,7 +198,7 @@ children = [{ node = "button_icon" }, { node = "button_delete" }]
 component = "WorkbenchButton"
 control_id = "WorkbenchButtonIcon"
 classes = ["workbench-control-button", "workbench-button-icon"]
-props = { text = "Icon", icon = "zircon_editor_shell/controls/add.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#20262a", border_color = "#303840", foreground_color = "#7f8a91", corner_radius = 5.0, layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
+props = { text = "Icon", icon = "zircon_editor_shell/controls/add.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#20262a", border_color = "#303840", foreground_color = "#7f8a91", corner_radius = 4.0, layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
 layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/IconButton", event = "Click", route = "component_lab.icon_button" }]
 
@@ -206,7 +206,7 @@ events = [{ id = "ComponentLab/IconButton", event = "Click", route = "component_
 component = "WorkbenchButton"
 control_id = "WorkbenchButtonDelete"
 classes = ["workbench-control-button", "workbench-danger"]
-props = { text = "", icon = "zircon_editor_shell/controls/delete.svg", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger", foreground_color = "#d05a50", corner_radius = 5.0, layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
+props = { text = "", icon = "zircon_editor_shell/controls/delete.svg", button_variant = "outlined", button_color = "danger", button_size = "small", validation_level = "danger", foreground_color = "#d05a50", corner_radius = 4.0, layout_offset_x = 3.0, layout_offset_y = 1.0, visual_brightness = 1.02 }
 layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "ComponentLab/DeleteButton", event = "Click", route = "component_lab.delete_button" }]
 
@@ -258,28 +258,28 @@ children = [{ node = "mini_add" }, { node = "mini_folder" }, { node = "mini_save
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniAdd"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/controls/add.svg", label = "Add", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_folder]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniFolder"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Open", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/toolbar/folder-open.svg", label = "Open", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_save]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniSave"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/toolbar/save.svg", label = "Save", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_delete]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniDelete"
 classes = ["workbench-icon-button", "workbench-danger"]
-props = { icon = "zircon_editor_shell/controls/delete.svg", label = "Delete", button_color = "danger", validation_level = "danger", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/controls/delete.svg", label = "Delete", button_color = "danger", validation_level = "danger", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.icon_grid_row_bottom]
@@ -293,28 +293,28 @@ children = [{ node = "mini_eye" }, { node = "mini_eye_off" }, { node = "mini_loc
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniEye"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/scene/eye.svg", label = "Visible", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/scene/eye.svg", label = "Visible", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_eye_off]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniEyeOff"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/scene/eye-off.svg", label = "Hidden", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/scene/eye-off.svg", label = "Hidden", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_lock]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniLock"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/scene/lock.svg", label = "Locked", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/scene/lock.svg", label = "Locked", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.mini_more]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchMiniMore"
 classes = ["workbench-icon-button"]
-props = { icon = "zircon_editor_shell/toolbar/more-vertical.svg", label = "More", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 5.0 }
+props = { icon = "zircon_editor_shell/toolbar/more-vertical.svg", label = "More", layout_icon_size = 18.0, icon_size = 18.0, layout_offset_y = 1.35, icon_color = "#98a3a8", background_color = "#272d31", border_color = "#171f26", corner_radius = 4.0 }
 layout = { width = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
 
 [nodes.icon_toggle_title]

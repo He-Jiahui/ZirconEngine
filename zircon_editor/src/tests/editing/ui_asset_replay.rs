@@ -249,7 +249,8 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_applied_external_effects(
         .expect("promote local theme")
         .expect("promoted style document");
     let promoted_style_source =
-        toml::to_string_pretty(&promoted_style).expect("serialize promoted style document");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_style)
+            .expect("serialize promoted style document as v2");
 
     let undone = session.undo_replay().expect("undo replay");
     assert!(undone.changed);
@@ -682,7 +683,8 @@ fn ui_asset_editor_session_replay_effects_can_rebuild_cross_file_asset_sources()
         .expect("promote local theme")
         .expect("promoted style document");
     let promoted_style_source =
-        toml::to_string_pretty(&promoted_style).expect("serialize promoted style document");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_style)
+            .expect("serialize promoted style document as v2");
     let mut asset_sources: BTreeMap<String, String> = [(
         "res://ui/themes/replay_theme.zui".to_string(),
         promoted_style_source.clone(),
@@ -731,7 +733,8 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
         .expect("promote local theme")
         .expect("promoted style document");
     let promoted_style_source =
-        toml::to_string_pretty(&promoted_style).expect("serialize promoted style document");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_style)
+            .expect("serialize promoted style document as v2");
 
     let artifact = session.export_bug_report_replay_artifact();
     assert_eq!(
@@ -952,7 +955,8 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
         crate::tests::support::load_test_ui_asset(EXISTING_EXTERNAL_STYLE_ASSET_TOML)
             .expect("existing external style");
     let existing_source =
-        toml::to_string_pretty(&existing_document).expect("serialize existing external style");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&existing_document)
+            .expect("serialize existing external style as v2");
     session
         .register_style_import("res://ui/themes/replay_theme.zui", existing_document)
         .expect("register existing external style import");
@@ -966,7 +970,8 @@ fn ui_asset_editor_session_theme_promotion_restore_effects_reinstate_existing_ex
         .expect("promote local theme over existing style")
         .expect("promoted style document");
     let promoted_style_source =
-        toml::to_string_pretty(&promoted_style).expect("serialize promoted style document");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_style)
+            .expect("serialize promoted style document as v2");
 
     assert_eq!(
         session.next_undo_external_effects(),
@@ -1528,7 +1533,8 @@ fn ui_asset_editor_session_undo_and_redo_replay_return_widget_promotion_external
         .expect("promote selected component")
         .expect("promoted widget");
     let promoted_widget_source =
-        toml::to_string_pretty(&promoted_widget).expect("serialize promoted widget");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_widget)
+            .expect("serialize promoted widget as v2");
 
     let undone = session.undo_replay().expect("undo replay");
     assert!(undone.changed);
@@ -1575,7 +1581,8 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         crate::tests::support::load_test_ui_asset(EXISTING_EXTERNAL_WIDGET_ASSET_TOML)
             .expect("existing external widget");
     let existing_source =
-        toml::to_string_pretty(&existing_document).expect("serialize existing external widget");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&existing_document)
+            .expect("serialize existing external widget as v2");
     session
         .register_widget_import(
             "res://ui/widgets/save_button.zui#SaveButton",
@@ -1592,7 +1599,8 @@ fn ui_asset_editor_session_widget_promotion_restore_effects_reinstate_existing_e
         .expect("promote selected component over existing widget")
         .expect("promoted widget");
     let promoted_widget_source =
-        toml::to_string_pretty(&promoted_widget).expect("serialize promoted widget");
+        crate::ui::asset_editor::serialize_authoring_document_as_v2(&promoted_widget)
+            .expect("serialize promoted widget as v2");
 
     assert_eq!(
         session.next_undo_external_effects(),

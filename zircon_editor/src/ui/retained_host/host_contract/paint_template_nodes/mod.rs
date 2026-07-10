@@ -78,7 +78,10 @@ mod template_viewport_scene_structure;
 mod template_viewport_scene_surfaces;
 mod visual_assets;
 
-pub(super) use template_node_pipeline::{draw_template_nodes, has_template_nodes};
+pub(super) use template_node_pipeline::{
+    draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
+    TemplateNodePaintTransform,
+};
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;

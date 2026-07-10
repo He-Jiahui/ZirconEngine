@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.demo.material_primitives"
+id = "res://ui/editor/material_demo_window.zui"
 version = 2
 display_name = "Material Primitive Demo"
 

@@ -33,7 +33,6 @@ use super::{
     preview_compile::{compile_preview, current_preview_size, preview_size_for_preset},
     preview_host::UiAssetPreviewHost,
     preview_mock::{apply_preview_mock_overrides, reconcile_preview_mock_state},
-    promotion_state::reference_asset_id,
     runtime_report_state::DEFAULT_LOCALE_PREVIEW,
     session_state::{
         default_selection, ensure_asset_kind, reconcile_selection, UiAssetCompilerImports,
@@ -56,7 +55,8 @@ use super::{
 };
 use crate::ui::asset_editor::palette::build_palette_entries;
 
-mod v2_projection;
+mod external_source;
+pub(crate) mod v2_projection;
 
 pub(super) use v2_projection::*;
 
@@ -502,40 +502,6 @@ impl UiAssetEditorSession {
         Ok(())
     }
 
-    pub(super) fn existing_external_widget_source(
-        &self,
-        asset_id: &str,
-    ) -> Result<Option<String>, UiAssetEditorSessionError> {
-        self.existing_external_asset_source(
-            asset_id,
-            self.compiler_imports
-                .widgets
-                .iter()
-                .find_map(|(reference, document)| {
-                    (reference_asset_id(reference) == asset_id).then_some(document)
-                }),
-        )
-    }
-
-    pub(super) fn existing_external_style_source(
-        &self,
-        asset_id: &str,
-    ) -> Result<Option<String>, UiAssetEditorSessionError> {
-        self.existing_external_asset_source(asset_id, self.compiler_imports.styles.get(asset_id))
-    }
-
-    pub(super) fn existing_external_asset_source(
-        &self,
-        asset_id: &str,
-        imported_document: Option<&UiAssetDocument>,
-    ) -> Result<Option<String>, UiAssetEditorSessionError> {
-        if self.route.asset_id == asset_id {
-            return Ok(Some(self.last_valid_source_text.clone()));
-        }
-
-        imported_document.map(serialize_document).transpose()
-    }
-
     pub fn register_widget_import(
         &mut self,
         reference: impl Into<String>,
@@ -596,13 +562,17 @@ impl UiAssetEditorSession {
         Ok(())
     }
 
-    pub fn replace_imports(
+    pub fn replace_resolved_imports(
         &mut self,
         widgets: BTreeMap<String, UiAssetDocument>,
         styles: BTreeMap<String, UiAssetDocument>,
+        v2_widgets: BTreeMap<String, UiV2AssetDocument>,
+        v2_styles: BTreeMap<String, UiV2AssetDocument>,
     ) -> Result<(), UiAssetEditorSessionError> {
         self.compiler_imports.widgets = widgets;
         self.compiler_imports.styles = styles;
+        self.v2_compiler_imports.widgets = v2_widgets;
+        self.v2_compiler_imports.styles = v2_styles;
         self.revalidate()
     }
 
@@ -793,12 +763,7 @@ impl UiAssetEditorSession {
         match self.source_schema {
             UiAssetSourceSchema::LayoutDocument => serialize_document(document),
             UiAssetSourceSchema::V2 => {
-                let document = legacy_projection_document_to_v2_document(
-                    document,
-                    self.last_valid_v2_document.as_ref(),
-                )?;
-                toml::to_string_pretty(&document)
-                    .map_err(|error| UiAssetError::ParseToml(error.to_string()).into())
+                serialize_v2_projection_document(document, self.last_valid_v2_document.as_ref())
             }
         }
     }

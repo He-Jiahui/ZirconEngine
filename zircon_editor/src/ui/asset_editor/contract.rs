@@ -12,7 +12,7 @@ use crate::ui::activity::ActivityWindowDescriptor;
 pub const UI_ASSET_EDITOR_WINDOW_ID: &str = "editor.ui_asset";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID: &str = "res://ui/editor/ui_asset_editor.zui";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID: &str =
-    "editor.ui_asset_editor.projection.v2";
+    "res://ui/editor/ui_asset_editor.zui";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

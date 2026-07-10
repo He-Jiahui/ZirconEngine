@@ -52,6 +52,7 @@ pub(crate) struct WorkbenchLayoutDefaults {
     pub compact_side: WorkbenchCompactSideDefaults,
     pub compact_bottom: WorkbenchCompactBottomDefaults,
     pub window_minimums: WorkbenchWindowMinimumDefaults,
+    pub minimum_document_width_fraction: f32,
 }
 
 impl WorkbenchLayoutDefaults {
@@ -87,6 +88,7 @@ impl WorkbenchLayoutDefaults {
                 ultra_min_width: tokens.ultra_minimum_window_width,
                 ultra_min_height: tokens.ultra_minimum_window_height,
             },
+            minimum_document_width_fraction: tokens.minimum_document_width_fraction,
         }
     }
 }
@@ -154,6 +156,10 @@ pub(crate) fn compact_side_defaults() -> WorkbenchCompactSideDefaults {
 
 pub(crate) fn compact_bottom_defaults() -> WorkbenchCompactBottomDefaults {
     workbench_layout_defaults().compact_bottom
+}
+
+pub(crate) fn minimum_document_width_fraction() -> f32 {
+    workbench_layout_defaults().minimum_document_width_fraction
 }
 
 pub(crate) fn window_min_width_limit_for_logical_width(logical_width: f32) -> f32 {

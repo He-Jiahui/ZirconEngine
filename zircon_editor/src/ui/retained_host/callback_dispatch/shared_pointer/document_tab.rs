@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     document_tab_pointer::{
         HostDocumentTabPointerBridge, HostDocumentTabPointerDispatch, HostDocumentTabPointerRoute,
@@ -22,7 +22,7 @@ pub(crate) struct SharedDocumentTabPointerClickDispatch {
 }
 
 pub(crate) fn dispatch_shared_document_tab_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     template_bridge: &BuiltinHostWindowTemplateBridge,
     pointer_bridge: &mut HostDocumentTabPointerBridge,
     surface_key: &str,
@@ -55,7 +55,7 @@ pub(crate) fn dispatch_shared_document_tab_pointer_click(
 }
 
 pub(crate) fn dispatch_shared_document_tab_close_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     template_bridge: &BuiltinHostWindowTemplateBridge,
     pointer_bridge: &mut HostDocumentTabPointerBridge,
     surface_key: &str,

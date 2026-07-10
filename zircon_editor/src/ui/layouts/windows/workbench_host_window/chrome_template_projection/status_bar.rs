@@ -138,7 +138,7 @@ fn status_text_node(
         role: "Text".into(),
         text: text.clone(),
         text_tone,
-        font_size: 11.0,
+        font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
         frame: ViewTemplateFrameData {
             x,
             y,

@@ -2,9 +2,13 @@ use std::collections::BTreeMap;
 
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
-use super::super::{compact_bottom_defaults, compact_side_defaults, WorkbenchChromeMetrics};
+use super::super::{
+    compact_bottom_defaults, compact_side_defaults, minimum_document_width_fraction,
+    WorkbenchChromeMetrics,
+};
 use super::super::{solve_axis_constraints, ShellFrame, ShellRegionId, ShellSizePx};
 use super::resolved_region_frames::ResolvedRegionFrames;
+use super::side_width_allocation::balanced_side_widths_for_budget;
 
 pub(super) fn build_region_frames(
     size: ShellSizePx,
@@ -70,6 +74,7 @@ pub(super) fn build_region_frames(
     }
     let solved_widths = compact_side_widths(
         size.width,
+        available_row_width,
         horizontal_regions
             .iter()
             .copied()
@@ -168,17 +173,40 @@ pub(crate) fn compact_side_width_limit(region: ShellRegionId, available_width: f
 }
 
 fn compact_side_widths(
-    available_width: f32,
+    shell_width: f32,
+    available_row_width: f32,
     mut widths: Vec<(ShellRegionId, f32)>,
 ) -> Vec<(ShellRegionId, f32)> {
     let mut released_width = 0.0;
     for (region, width) in &mut widths {
-        let Some(limit) = compact_side_width_limit(*region, available_width) else {
+        let Some(limit) = compact_side_width_limit(*region, shell_width) else {
             continue;
         };
         if matches!(region, ShellRegionId::Left | ShellRegionId::Right) && *width > limit {
             released_width += *width - limit;
             *width = limit;
+        }
+    }
+    let left_width = widths
+        .iter()
+        .find_map(|(region, width)| (*region == ShellRegionId::Left).then_some(*width))
+        .unwrap_or(0.0);
+    let right_width = widths
+        .iter()
+        .find_map(|(region, width)| (*region == ShellRegionId::Right).then_some(*width))
+        .unwrap_or(0.0);
+    let side_budget =
+        (available_row_width - shell_width.max(0.0) * minimum_document_width_fraction()).max(0.0);
+    let balanced = balanced_side_widths_for_budget(left_width, right_width, side_budget);
+    for (region, width) in &mut widths {
+        let next_width = match region {
+            ShellRegionId::Left => balanced.left,
+            ShellRegionId::Right => balanced.right,
+            ShellRegionId::Bottom | ShellRegionId::Document => continue,
+        };
+        if *width > next_width {
+            released_width += *width - next_width;
+            *width = next_width;
         }
     }
     if released_width > 0.0 {

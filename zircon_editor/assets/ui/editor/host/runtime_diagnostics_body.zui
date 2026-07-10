@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.runtime.diagnostics.body"
+id = "res://ui/editor/host/runtime_diagnostics_body.zui"
 version = 2
 display_name = "runtime diagnostics pane body"
 

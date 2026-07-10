@@ -1,8 +1,9 @@
-use crate::core::editor_event::{EditorEventRuntime, EditorEventSource};
+use crate::core::editor_event::EditorEventSource;
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::host::EditorHostEventController;
 use serde_json::{Number, Value};
 use zircon_runtime_interface::ui::{
     binding::{UiBindingValue, UiEventBinding},
@@ -12,7 +13,7 @@ use zircon_runtime_interface::ui::{
     },
 };
 
-impl EditorEventRuntime {
+impl EditorHostEventController {
     pub fn handle_control_request(&self, request: UiControlRequest) -> UiControlResponse {
         match request {
             UiControlRequest::InvokeBinding { binding } => {
@@ -28,7 +29,7 @@ impl EditorEventRuntime {
                 arguments,
             } => UiControlResponse::Invocation(self.call_action(node_path, action_id, arguments)),
             other => {
-                let mut inner = self.lock_inner();
+                let mut inner = self.shell().lock();
                 inner.control_service.handle_request(other)
             }
         }
@@ -36,7 +37,7 @@ impl EditorEventRuntime {
 
     fn invoke_binding(&self, binding: UiEventBinding) -> UiInvocationResult {
         let route_id = {
-            let inner = self.lock_inner();
+            let inner = self.shell().lock();
             inner.control_service.route_id_for_binding(&binding)
         };
         let editor_binding = match EditorUiBinding::from_ui_binding(binding.clone()) {
@@ -59,7 +60,7 @@ impl EditorEventRuntime {
         arguments: Vec<UiBindingValue>,
     ) -> UiInvocationResult {
         let binding = {
-            let inner = self.lock_inner();
+            let inner = self.shell().lock();
             inner.control_service.route_binding(route_id)
         };
         let Some(binding) = binding else {
@@ -105,7 +106,7 @@ impl EditorEventRuntime {
         arguments: Vec<UiBindingValue>,
     ) -> UiInvocationResult {
         let route_id = {
-            let inner = self.lock_inner();
+            let inner = self.shell().lock();
             let Some(node) = inner.control_service.query_node(&node_path) else {
                 return UiInvocationResult::failure(
                     None,

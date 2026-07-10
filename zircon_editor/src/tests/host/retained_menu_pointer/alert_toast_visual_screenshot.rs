@@ -101,9 +101,28 @@ fn alert_toast_component_visual_paints_tones_actions_focus_and_disabled() {
         exact_pixel_count(&bytes, 326, 198, 20, 20, DECLARED_TOAST_MARK) > 0,
         "declared toast should paint its declared status mark color"
     );
+    let declared_toast_surface = pixel_at(&bytes, 430, 206);
+    let declared_action_tint = declared_text_tint_pixel_count(
+        &bytes,
+        490,
+        198,
+        44,
+        18,
+        declared_toast_surface,
+        DECLARED_TOAST_ACTION,
+    );
+    let default_action_tint = declared_text_tint_pixel_count(
+        &bytes,
+        490,
+        136,
+        44,
+        18,
+        toast_surface,
+        DECLARED_TOAST_ACTION,
+    );
     assert!(
-        exact_pixel_count(&bytes, 508, 196, 44, 22, DECLARED_TOAST_ACTION) > 0,
-        "declared toast should paint its declared action color"
+        declared_action_tint > default_action_tint + 32,
+        "declared toast should paint action text with its declared tint: declared={declared_action_tint}, default={default_action_tint}"
     );
 
     let state_panel = pixel_at(&bytes, 598, 92);
@@ -484,6 +503,34 @@ fn exact_pixel_count(
                 bytes[index + 3],
             ];
             if color == expected {
+                matches += 1;
+            }
+        }
+    }
+    matches
+}
+
+fn declared_text_tint_pixel_count(
+    bytes: &[u8],
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
+    surface: [u8; 4],
+    declared: [u8; 4],
+) -> usize {
+    let mut matches = 0;
+    for py in y..(y + height) {
+        for px in x..(x + width) {
+            let color = pixel_at(bytes, px, py);
+            if color[3] == 255
+                && color[0] >= surface[0]
+                && color[0] <= declared[0]
+                && color[1] > surface[1].saturating_add(16)
+                && color[1] <= declared[1]
+                && color[2] > surface[2].saturating_add(16)
+                && color[2] <= declared[2]
+            {
                 matches += 1;
             }
         }

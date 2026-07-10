@@ -1,6 +1,6 @@
 use crate::ui::binding::{DockCommand, EditorUiBindingPayload};
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::layout::ActivityDrawerMode;
 use crate::ui::workbench::layout::LayoutCommand;
@@ -13,7 +13,7 @@ use super::super::{
 use super::dispatch_layout_command;
 
 pub(crate) fn dispatch_builtin_host_drawer_toggle(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinHostWindowTemplateBridge,
     slot: &str,
     instance_id: &str,

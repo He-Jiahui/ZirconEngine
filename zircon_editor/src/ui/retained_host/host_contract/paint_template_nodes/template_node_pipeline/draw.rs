@@ -5,6 +5,7 @@ use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::render_commands::{draw_host_paint_commands, HostPaintCommand};
 use super::super::template_nodes::push_template_node_commands;
 use super::clip::effective_template_clip;
+use super::transform::TemplateNodePaintTransform;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes(
     frame: &mut HostRgbaFrame,
@@ -12,6 +13,17 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes(
     origin: &FrameRect,
     clip: &FrameRect,
     text_input_focus: Option<&HostTextInputFocusData>,
+) -> bool {
+    draw_template_nodes_with_transform(frame, nodes, origin, clip, text_input_focus, None)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_transform(
+    frame: &mut HostRgbaFrame,
+    nodes: &ModelRc<TemplatePaneNodeData>,
+    origin: &FrameRect,
+    clip: &FrameRect,
+    text_input_focus: Option<&HostTextInputFocusData>,
+    transform: Option<&dyn TemplateNodePaintTransform>,
 ) -> bool {
     let Some(effective_clip) = effective_template_clip(frame, clip) else {
         return false;
@@ -22,7 +34,13 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes(
         zircon_runtime::profile_scope!("editor", "host_painter", "template_nodes_collect_commands");
         zircon_runtime::profile_counter!("editor", "template_node_count", nodes.row_count());
         for row in 0..nodes.row_count() {
-            let Some(node) = nodes.row_data(row) else {
+            let Some(source_node) = nodes.row_data(row) else {
+                continue;
+            };
+            let Some((node, node_clip)) = transform
+                .map(|transform| transform.transform(source_node.clone(), effective_clip.clone()))
+                .unwrap_or_else(|| Some((source_node, effective_clip.clone())))
+            else {
                 continue;
             };
             // Region repaint must avoid generating commands for off-damage nodes:
@@ -31,7 +49,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes(
                 &mut commands,
                 &node,
                 origin,
-                &effective_clip,
+                &node_clip,
                 text_input_focus,
                 row as i32,
             );

@@ -1,7 +1,7 @@
 use crate::core::editor_event::{
-    EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope, EditorEventId,
-    EditorEventRecord, EditorEventResult, EditorEventRuntime, EditorEventSequence,
-    EditorEventSource, EditorEventTransient, MenuAction,
+    EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope,
+    EditorEventListenerControlRequest, EditorEventListenerControlResponse, EditorEventRecord,
+    EditorEventResult, EditorEventSource, EditorEventTransient, MenuAction,
 };
 use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::core::editor_operation::{
@@ -10,6 +10,7 @@ use crate::core::editor_operation::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::host::{EditorCommandAction, EditorCommandDispatchError, EditorCommandRegistry};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::model::operation_path_for_menu_action;
@@ -18,7 +19,16 @@ use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
 use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
 
-impl EditorEventRuntime {
+impl EditorHostEventController {
+    pub fn handle_event_listener_control_request(
+        &self,
+        request: EditorEventListenerControlRequest,
+    ) -> EditorEventListenerControlResponse {
+        self.context()
+            .events()
+            .handle_listener_control_request(request)
+    }
+
     fn dispatch_normalized_event(
         &self,
         source: EditorEventSource,
@@ -33,23 +43,15 @@ impl EditorEventRuntime {
         event: EditorEvent,
         operation: Option<(EditorOperationPath, String, bool, Value, Option<String>)>,
     ) -> Result<EditorEventRecord, String> {
-        let mut inner = self.lock_inner();
-        inner.next_event_id += 1;
-        inner.next_sequence += 1;
-
-        let before_revision = inner.revision;
-        let after_revision = before_revision + 1;
-        inner.revision = after_revision;
-
-        let event_id = EditorEventId::new(inner.next_event_id);
-        let sequence = EditorEventSequence::new(inner.next_sequence);
+        let stamp = self.context().events().begin_event();
         let undo_policy = undo_policy_for_event(&event);
         let registry_operation = if operation.is_none() {
-            inner
-                .operation_registry
+            let operations = self.operations().lock();
+            operations
+                .registry
                 .descriptor_for_event(&event)
                 .cloned()
-                .or_else(|| dynamic_operation_for_event(&inner, &event))
+                .or_else(|| dynamic_operation_for_event(&operations.registry, &event))
         } else {
             None
         };
@@ -89,13 +91,13 @@ impl EditorEventRuntime {
             ),
         };
 
-        let execution = match execute_event(&mut inner, &event) {
+        let execution = match execute_event(self, &event) {
             Ok(outcome) => outcome,
             Err(error) => {
-                inner.state.set_status_line(error.clone());
+                self.shell().lock().state.set_status_line(error.clone());
                 let record = EditorEventRecord {
-                    event_id,
-                    sequence,
+                    event_id: stamp.event_id,
+                    sequence: stamp.sequence,
                     source,
                     event,
                     operation_id: operation_id.clone(),
@@ -107,23 +109,19 @@ impl EditorEventRuntime {
                         EditorEventEffect::ReflectionChanged,
                     ],
                     undo_policy,
-                    before_revision,
-                    after_revision,
+                    before_revision: stamp.before_revision,
+                    after_revision: stamp.after_revision,
                     result: EditorEventResult::failure(error.clone()),
                 };
-                Self::refresh_workbench_locked(
-                    &mut inner,
-                    EditorViewInvalidationMask::PRESENTATION_DATA,
-                );
-                inner.journal.push(record.clone());
-                inner.event_listeners.notify(&record);
+                self.refresh_workbench(EditorViewInvalidationMask::PRESENTATION_DATA);
+                self.context().events().record(record);
                 return Err(error);
             }
         };
 
         let record = EditorEventRecord {
-            event_id,
-            sequence,
+            event_id: stamp.event_id,
+            sequence: stamp.sequence,
             source,
             event,
             operation_id,
@@ -132,15 +130,16 @@ impl EditorEventRuntime {
             operation_group,
             effects: execution.effects().to_vec(),
             undo_policy,
-            before_revision,
-            after_revision,
+            before_revision: stamp.before_revision,
+            after_revision: stamp.after_revision,
             result: EditorEventResult::success(event_result_value(
-                after_revision,
+                stamp.after_revision,
                 execution.changed(),
             )),
         };
+        let mut operations = self.operations().lock();
         if let Some((operation_id, display_name, operation_group)) = explicit_stack_entry {
-            inner.operation_stack.record(
+            operations.stack.record(
                 EditorOperationStackEntry::new(
                     operation_id,
                     display_name,
@@ -152,14 +151,14 @@ impl EditorEventRuntime {
         } else if execution.changed()
             && matches!(record.event, EditorEvent::WorkbenchMenu(MenuAction::Undo))
         {
-            inner.operation_stack.move_undo_to_redo();
+            operations.stack.move_undo_to_redo();
         } else if execution.changed()
             && matches!(record.event, EditorEvent::WorkbenchMenu(MenuAction::Redo))
         {
-            inner.operation_stack.move_redo_to_undo();
+            operations.stack.move_redo_to_undo();
         } else if let Some(descriptor) = registry_operation.as_ref() {
             if descriptor.undoable().is_some() && record.result.error.is_none() {
-                inner.operation_stack.record(EditorOperationStackEntry::new(
+                operations.stack.record(EditorOperationStackEntry::new(
                     descriptor.path().clone(),
                     descriptor.display_name().to_string(),
                     record.source.clone(),
@@ -167,15 +166,15 @@ impl EditorEventRuntime {
                 ));
             }
         }
-        Self::refresh_workbench_for_effects_locked(&mut inner, execution.effects());
-        inner.journal.push(record.clone());
-        inner.event_listeners.notify(&record);
+        drop(operations);
+        self.refresh_workbench_for_effects(execution.effects());
+        self.context().events().record(record.clone());
         Ok(record)
     }
 }
 
 fn dynamic_operation_for_event(
-    inner: &crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState,
+    registry: &crate::core::editor_operation::EditorOperationRegistry,
     event: &EditorEvent,
 ) -> Option<EditorOperationDescriptor> {
     let path = match event {
@@ -183,7 +182,7 @@ fn dynamic_operation_for_event(
         _ => return None,
     };
     let path = EditorOperationPath::parse(path).ok()?;
-    inner.operation_registry.descriptor(&path).cloned()
+    registry.descriptor(&path).cloned()
 }
 
 fn operation_arguments_for_record(arguments: Value) -> Option<Value> {
@@ -194,7 +193,7 @@ fn operation_arguments_for_record(arguments: Value) -> Option<Value> {
     }
 }
 
-impl EditorEventDispatcher for EditorEventRuntime {
+impl EditorEventDispatcher for EditorHostEventController {
     fn dispatch_envelope(
         &self,
         envelope: EditorEventEnvelope,
@@ -250,7 +249,7 @@ fn component_lab_preview_action_id(binding: &EditorUiBinding) -> Option<&str> {
     }
 }
 
-impl EditorEventRuntime {
+impl EditorHostEventController {
     fn dispatch_operation_binding(
         &self,
         binding: &EditorUiBinding,
@@ -308,11 +307,7 @@ impl EditorEventRuntime {
         source: EditorEventSource,
         binding: &EditorUiBinding,
     ) -> EditorEventRecord {
-        let mut inner = self.lock_inner();
-        inner.next_event_id += 1;
-        inner.next_sequence += 1;
-
-        let revision = inner.revision;
+        let stamp = self.context().events().begin_observation();
         let node_path = binding_node_path(binding);
         let event = EditorEvent::Transient(EditorEventTransient::PressNode {
             node_path,
@@ -320,8 +315,8 @@ impl EditorEventRuntime {
         });
         let undo_policy = undo_policy_for_event(&event);
         let record = EditorEventRecord {
-            event_id: EditorEventId::new(inner.next_event_id),
-            sequence: EditorEventSequence::new(inner.next_sequence),
+            event_id: stamp.event_id,
+            sequence: stamp.sequence,
             source,
             event,
             operation_id: None,
@@ -330,12 +325,11 @@ impl EditorEventRuntime {
             operation_group: Some("MaterialComponentLab".to_string()),
             effects: Vec::new(),
             undo_policy,
-            before_revision: revision,
-            after_revision: revision,
-            result: EditorEventResult::success(event_result_value(revision, false)),
+            before_revision: stamp.before_revision,
+            after_revision: stamp.after_revision,
+            result: EditorEventResult::success(event_result_value(stamp.after_revision, false)),
         };
-        inner.journal.push(record.clone());
-        inner.event_listeners.notify(&record);
+        self.context().events().record(record.clone());
         record
     }
 
@@ -345,11 +339,7 @@ impl EditorEventRuntime {
         binding: &EditorUiBinding,
         action_id: &str,
     ) -> EditorEventRecord {
-        let mut inner = self.lock_inner();
-        inner.next_event_id += 1;
-        inner.next_sequence += 1;
-
-        let revision = inner.revision;
+        let stamp = self.context().events().begin_observation();
         let node_path = component_lab_preview_node_path(binding, action_id);
         let event = EditorEvent::Transient(EditorEventTransient::PressNode {
             node_path: node_path.clone(),
@@ -357,8 +347,8 @@ impl EditorEventRuntime {
         });
         let undo_policy = undo_policy_for_event(&event);
         let record = EditorEventRecord {
-            event_id: EditorEventId::new(inner.next_event_id),
-            sequence: EditorEventSequence::new(inner.next_sequence),
+            event_id: stamp.event_id,
+            sequence: stamp.sequence,
             source,
             event,
             operation_id: None,
@@ -371,12 +361,11 @@ impl EditorEventRuntime {
             operation_group: Some("ComponentLabPreview".to_string()),
             effects: Vec::new(),
             undo_policy,
-            before_revision: revision,
-            after_revision: revision,
-            result: EditorEventResult::success(event_result_value(revision, false)),
+            before_revision: stamp.before_revision,
+            after_revision: stamp.after_revision,
+            result: EditorEventResult::success(event_result_value(stamp.after_revision, false)),
         };
-        inner.journal.push(record.clone());
-        inner.event_listeners.notify(&record);
+        self.context().events().record(record.clone());
         record
     }
 }

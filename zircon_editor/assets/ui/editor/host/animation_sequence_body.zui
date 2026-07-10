@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.animation.sequence.body"
+id = "res://ui/editor/host/animation_sequence_body.zui"
 version = 2
 display_name = "animation sequence pane body"
 

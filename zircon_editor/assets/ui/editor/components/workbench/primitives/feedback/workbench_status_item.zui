@@ -16,5 +16,5 @@ default_classes = ["workbench-status-item", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchStatusItemRoot"
 classes = ["workbench-status-item"]
-props = { text = "Status", font_size = 12.0, text_tone = "primary" }
+props = { text = "Status", font_size = 13.333333, text_tone = "primary" }
 layout = { width = { min = 80.0, preferred = 112.0, max = 160.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }

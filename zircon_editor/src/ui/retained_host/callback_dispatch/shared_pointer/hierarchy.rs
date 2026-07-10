@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
     hierarchy_pointer::{HierarchyPointerBridge, HierarchyPointerDispatch, HierarchyPointerRoute},
@@ -15,7 +15,7 @@ pub(crate) struct SharedHierarchyPointerClickDispatch {
 }
 
 pub(crate) fn dispatch_shared_hierarchy_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     pointer_bridge: &mut HierarchyPointerBridge,
     point: UiPoint,
 ) -> Result<SharedHierarchyPointerClickDispatch, String> {

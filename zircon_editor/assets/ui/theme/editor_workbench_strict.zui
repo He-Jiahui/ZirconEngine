@@ -1,6 +1,6 @@
 [asset]
 kind = "style"
-id = "ui.theme.editor_workbench_strict"
+id = "res://ui/theme/editor_workbench_strict.zui"
 version = 2
 display_name = "Editor Workbench Strict"
 

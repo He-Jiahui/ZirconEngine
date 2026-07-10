@@ -1,5 +1,5 @@
 use super::super::support::*;
-use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::autolayout::{minimum_document_width_fraction, WorkbenchChromeMetrics};
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
@@ -44,6 +44,40 @@ fn componentized_workbench_layout_collapses_right_drawer_shell_at_narrow_width()
     };
     assert!(right_shell_frame.width > 0.0);
     assert!(right_content_frame.width > 0.0);
+}
+
+#[test]
+fn componentized_regular_workbench_reserves_half_width_for_the_document() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(&chrome);
+    let metrics = WorkbenchChromeMetrics::default();
+    let shell_size = UiSize::new(900.0, 620.0);
+    let mut bridge = match BuiltinWorkbenchWindowTemplateSurfaceBridge::new(shell_size) {
+        Ok(bridge) => bridge,
+        Err(error) => panic!("workbench bridge should build: {error:?}"),
+    };
+    if let Err(error) = bridge.recompute_layout_with_workbench_model(shell_size, &model, &metrics) {
+        panic!("regular workbench layout should recompute: {error:?}");
+    }
+
+    let frames = bridge.layout_frames();
+    let Some(document) = frames.document_region_frame else {
+        panic!("regular workbench should expose its document region");
+    };
+    assert!(
+        frames.left_region_frame.is_some() && frames.right_region_frame.is_some(),
+        "regular width should retain both side regions"
+    );
+    assert!(
+        document.width >= shell_size.width * minimum_document_width_fraction(),
+        "regular workbench should reserve half of the shell for the document: {document:?}"
+    );
 }
 
 #[test]

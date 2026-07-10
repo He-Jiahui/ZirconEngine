@@ -6,7 +6,8 @@ use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::views::build_view_template_nodes;
 use crate::ui::retained_host::app::compute_window_menu_popup_height;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
-use crate::ui::retained_host::measure_runtime_text_width;
+use crate::ui::retained_host::menu_popup_contract::content_measured_menu_popup_width;
+use crate::ui::retained_host::{measure_runtime_text_width, menu_popup_text_width};
 use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
 };
@@ -51,19 +52,32 @@ pub(crate) fn build_host_menu_pointer_layout(
     } else {
         active_preset_name.clone()
     };
+    let menus = pointer_menus(menu_bar, preset_names, active_layout_preset);
+    let window_item_count = menus
+        .get(WINDOW_MENU_INDEX)
+        .map(Vec::len)
+        .unwrap_or_default();
     let window_popup_height = compute_window_menu_popup_height(
         shell_frame.height,
         button_frames
             .get(WINDOW_MENU_INDEX)
             .copied()
             .unwrap_or(shell_frame),
-        preset_names.len(),
+        window_item_count,
+    );
+    let popup_widths = measured_root_popup_widths(
+        menu_bar,
+        preset_names,
+        active_layout_preset,
+        &resolved_preset_name,
+        shell_frame.width,
     );
 
     HostMenuPointerLayout {
         shell_frame,
         button_frames,
         menu_bar_content_width,
+        popup_widths,
         save_project_enabled: chrome.project_open,
         undo_enabled: chrome.can_undo,
         redo_enabled: chrome.can_redo,
@@ -73,8 +87,79 @@ pub(crate) fn build_host_menu_pointer_layout(
         resolved_preset_name,
         window_popup_height,
         menu_overflow_mode: chrome.menu_overflow_mode,
-        menus: pointer_menus(menu_bar, preset_names, active_layout_preset),
+        menus,
     }
+}
+
+fn measured_root_popup_widths(
+    menu_bar: &MenuBarModel,
+    preset_names: &[String],
+    active_layout_preset: Option<&str>,
+    resolved_preset_name: &str,
+    available_width: f32,
+) -> Vec<f32> {
+    menu_bar
+        .menus
+        .iter()
+        .enumerate()
+        .map(|(menu_index, menu)| {
+            let rows = popup_measurement_rows(
+                menu,
+                preset_names,
+                active_layout_preset,
+                resolved_preset_name,
+            );
+            let fallback_width = super::constants::POPUP_WIDTHS
+                .get(menu_index)
+                .copied()
+                .unwrap_or(224.0);
+            content_measured_menu_popup_width(
+                fallback_width,
+                available_width,
+                rows.iter()
+                    .map(|(label, shortcut)| (label.as_str(), shortcut.as_str())),
+                menu_popup_text_width,
+            )
+        })
+        .collect()
+}
+
+fn popup_measurement_rows(
+    menu: &MenuModel,
+    preset_names: &[String],
+    active_layout_preset: Option<&str>,
+    resolved_preset_name: &str,
+) -> Vec<(String, String)> {
+    let mut rows = Vec::new();
+    if menu.label.eq_ignore_ascii_case("Window") {
+        rows.push((
+            "Save Preset Asset".to_string(),
+            resolved_preset_name.to_string(),
+        ));
+    }
+    rows.extend(menu.items.iter().map(|item| {
+        (
+            item.label.clone(),
+            if item.has_children() {
+                ">".to_string()
+            } else {
+                item.shortcut.clone().unwrap_or_default()
+            },
+        )
+    }));
+    if menu.label.eq_ignore_ascii_case("Window") {
+        rows.extend(preset_names.iter().map(|preset| {
+            (
+                preset.clone(),
+                if Some(preset.as_str()) == active_layout_preset {
+                    "active".to_string()
+                } else {
+                    String::new()
+                },
+            )
+        }));
+    }
+    rows
 }
 
 fn pointer_menus(

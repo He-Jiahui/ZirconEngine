@@ -24,6 +24,9 @@ pub(super) struct FakeRenderFrameworkState {
     pub(super) submitted_aspect_ratios: Vec<f32>,
     pub(super) submitted_ui_command_counts: Vec<usize>,
     pub(super) submitted_ui_texts: Vec<Vec<String>>,
+    pub(super) quality_profiles: Vec<(RenderViewportHandle, RenderQualityProfile)>,
+    pub(super) submitted_hybrid_gi_settings:
+        Vec<Option<crate::scene::viewport::RenderHybridGiExtract>>,
     pub(super) capture_requests: usize,
     pub(super) captures: HashMap<RenderViewportHandle, CapturedFrame>,
 }
@@ -53,10 +56,13 @@ impl RenderFramework for FakeRenderFramework {
     fn submit_frame_extract(
         &self,
         viewport: RenderViewportHandle,
-        _extract: RenderFrameExtract,
+        extract: RenderFrameExtract,
     ) -> Result<(), RenderFrameworkError> {
         let mut state = self.state.lock().unwrap();
         state.submitted_viewports.push(viewport);
+        state
+            .submitted_hybrid_gi_settings
+            .push(extract.lighting.hybrid_global_illumination.clone());
         let size = state
             .viewport_sizes
             .get(&viewport)
@@ -75,11 +81,14 @@ impl RenderFramework for FakeRenderFramework {
     fn submit_frame_extract_with_ui(
         &self,
         viewport: RenderViewportHandle,
-        _extract: RenderFrameExtract,
+        extract: RenderFrameExtract,
         ui: Option<UiRenderExtract>,
     ) -> Result<(), RenderFrameworkError> {
         let mut state = self.state.lock().unwrap();
         state.submitted_viewports.push(viewport);
+        state
+            .submitted_hybrid_gi_settings
+            .push(extract.lighting.hybrid_global_illumination.clone());
         let size = state
             .viewport_sizes
             .get(&viewport)
@@ -155,9 +164,14 @@ impl RenderFramework for FakeRenderFramework {
 
     fn set_quality_profile(
         &self,
-        _viewport: RenderViewportHandle,
-        _profile: RenderQualityProfile,
+        viewport: RenderViewportHandle,
+        profile: RenderQualityProfile,
     ) -> Result<(), RenderFrameworkError> {
+        self.state
+            .lock()
+            .unwrap()
+            .quality_profiles
+            .push((viewport, profile));
         Ok(())
     }
 }

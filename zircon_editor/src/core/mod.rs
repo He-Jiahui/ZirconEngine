@@ -1,5 +1,6 @@
-//! Editor core state, commands, and event runtime.
+//! Headless-safe editor contracts, state owners, and services.
 
+pub mod context;
 pub mod editing;
 pub mod editor_authoring_extension;
 pub mod editor_event;
@@ -10,3 +11,4 @@ pub mod editor_plugin;
 pub(crate) mod editor_plugin_catalog_gen;
 pub mod editor_plugin_sdk;
 pub mod gui_startup_request;
+pub mod play;

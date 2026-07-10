@@ -1,6 +1,6 @@
 [asset]
 kind = "style"
-id = "ui.theme.editor_unreal_dark"
+id = "res://ui/theme/editor_unreal_dark.zui"
 version = 2
 display_name = "Editor Unreal Dark"
 

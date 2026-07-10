@@ -1,4 +1,7 @@
 use super::super::*;
+use crate::ui::retained_host::menu_popup_contract::{
+    menu_popup_content_height, MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_MARGIN, MENU_POPUP_MIN_HEIGHT,
+};
 use crate::ui::workbench::autolayout::ShellFrame;
 
 pub(crate) fn viewport_size_from_frame(frame: ShellFrame) -> Option<UVec2> {
@@ -14,11 +17,13 @@ pub(crate) fn viewport_size_from_frame(frame: ShellFrame) -> Option<UVec2> {
 pub(crate) fn compute_window_menu_popup_height(
     shell_height: f32,
     button_frame: UiFrame,
-    preset_count: usize,
+    item_count: usize,
 ) -> f32 {
-    let popup_y = button_frame.y + button_frame.height + 3.0;
-    let content_height = 72.0 + preset_count as f32 * 30.0;
-    let available_height = (shell_height - popup_y - 12.0).max(72.0);
+    let popup_y = button_frame.y + button_frame.height + MENU_POPUP_ANCHOR_GAP;
+    let content_height = menu_popup_content_height(item_count).max(MENU_POPUP_MIN_HEIGHT);
+    let available_height = (shell_height - popup_y - MENU_POPUP_EDGE_MARGIN)
+        .max(MENU_POPUP_MIN_HEIGHT)
+        .min(shell_height.max(1.0));
     content_height.min(available_height)
 }
 

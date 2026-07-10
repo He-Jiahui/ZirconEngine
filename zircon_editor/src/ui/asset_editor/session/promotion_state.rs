@@ -1,7 +1,10 @@
+use std::collections::BTreeMap;
+
 use super::{
     command::{UiAssetEditorCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind},
     command_entry::tree_document_replay_bundle,
     hierarchy_projection::selection_for_node,
+    lifecycle::v2_projection::serialize_v2_projection_document,
     palette::{
         build_palette_entries,
         convert_selected_node_to_reference as tree_convert_selected_node_to_reference,
@@ -23,7 +26,8 @@ use super::{
     undo_stack::{UiAssetEditorExternalEffect, UiAssetEditorUndoExternalEffects},
 };
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
-use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiNodeDefinitionKind};
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinitionKind};
 
 impl UiAssetEditorSession {
     pub fn selected_reference_asset_id(&self) -> Option<String> {
@@ -266,32 +270,37 @@ impl UiAssetEditorSession {
         ) else {
             return Ok(None);
         };
-        let widget_source = toml::to_string_pretty(&widget_document)
-            .map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+        let widget_source = serialize_v2_projection_document(&widget_document, None)?;
+        let v2_widget_document = UiZuiAssetLoader::load_zui_str(&widget_source)?;
         let widget_reference = if widget_asset_id.contains('#') {
             widget_asset_id.to_string()
         } else {
             format!("{widget_asset_id}#{widget_component_name}")
         };
-        let _ = self
-            .compiler_imports
-            .widgets
-            .insert(widget_reference, widget_document.clone());
         let selection = selection_for_node(&document, &node_id);
         let replay = tree_document_replay_bundle(&self.last_valid_document, &document);
-        self.apply_command_with_effects(
-            UiAssetEditorCommand::tree_edit_structured_with_selection(
-                UiAssetEditorTreeEdit::PromoteToExternalWidget {
-                    source_component_name,
-                    asset_id: widget_asset_id.to_string(),
-                    component_name: widget_component_name.to_string(),
-                    document_id: widget_document_id.to_string(),
-                },
-                "Promote To External Widget",
-                self.serialize_document_for_current_schema(&document)?,
-                selection,
-            )
-            .with_document_replay(replay),
+        let command = UiAssetEditorCommand::tree_edit_structured_with_selection(
+            UiAssetEditorTreeEdit::PromoteToExternalWidget {
+                source_component_name,
+                asset_id: widget_asset_id.to_string(),
+                component_name: widget_component_name.to_string(),
+                document_id: widget_document_id.to_string(),
+            },
+            "Promote To External Widget",
+            self.serialize_document_for_current_schema(&document)?,
+            selection,
+        )
+        .with_document_replay(replay);
+        let previous_authoring_import = self
+            .compiler_imports
+            .widgets
+            .insert(widget_reference.clone(), widget_document.clone());
+        let previous_v2_import = self
+            .v2_compiler_imports
+            .widgets
+            .insert(widget_reference.clone(), v2_widget_document);
+        let apply_result = self.apply_command_with_effects(
+            command,
             UiAssetEditorUndoExternalEffects {
                 undo: restore_or_remove_external_asset_source(
                     widget_asset_id,
@@ -302,7 +311,20 @@ impl UiAssetEditorSession {
                     source: widget_source,
                 }],
             },
-        )?;
+        );
+        if let Err(error) = apply_result {
+            restore_import_entry(
+                &mut self.compiler_imports.widgets,
+                &widget_reference,
+                previous_authoring_import,
+            );
+            restore_import_entry(
+                &mut self.v2_compiler_imports.widgets,
+                &widget_reference,
+                previous_v2_import,
+            );
+            return Err(error);
+        }
         Ok(Some(widget_document))
     }
 
@@ -323,20 +345,25 @@ impl UiAssetEditorSession {
         ) else {
             return Ok(None);
         };
-        let style_source = toml::to_string_pretty(&style_document)
-            .map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
-        let _ = self
+        let style_source = serialize_v2_projection_document(&style_document, None)?;
+        let v2_style_document = UiZuiAssetLoader::load_zui_str(&style_source)?;
+        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
+        let command = UiAssetEditorCommand::tree_edit(
+            UiAssetEditorTreeEditKind::DocumentEdit,
+            "Promote Local Theme",
+            self.serialize_document_for_current_schema(&document)?,
+        )
+        .with_document_replay(replay);
+        let previous_authoring_import = self
             .compiler_imports
             .styles
             .insert(style_asset_id.to_string(), style_document.clone());
-        let replay = theme_document_replay_bundle(&self.last_valid_document, &document);
-        self.apply_command_with_effects(
-            UiAssetEditorCommand::tree_edit(
-                UiAssetEditorTreeEditKind::DocumentEdit,
-                "Promote Local Theme",
-                self.serialize_document_for_current_schema(&document)?,
-            )
-            .with_document_replay(replay),
+        let previous_v2_import = self
+            .v2_compiler_imports
+            .styles
+            .insert(style_asset_id.to_string(), v2_style_document);
+        let apply_result = self.apply_command_with_effects(
+            command,
             UiAssetEditorUndoExternalEffects {
                 undo: restore_or_remove_external_asset_source(
                     style_asset_id,
@@ -347,7 +374,20 @@ impl UiAssetEditorSession {
                     source: style_source,
                 }],
             },
-        )?;
+        );
+        if let Err(error) = apply_result {
+            restore_import_entry(
+                &mut self.compiler_imports.styles,
+                style_asset_id,
+                previous_authoring_import,
+            );
+            restore_import_entry(
+                &mut self.v2_compiler_imports.styles,
+                style_asset_id,
+                previous_v2_import,
+            );
+            return Err(error);
+        }
         Ok(Some(style_document))
     }
 
@@ -408,6 +448,18 @@ impl UiAssetEditorSession {
         if self.selected_promote_theme_display_name.is_none() {
             self.selected_promote_theme_display_name = Some(draft.display_name);
         }
+    }
+}
+
+fn restore_import_entry<T>(
+    imports: &mut BTreeMap<String, T>,
+    reference: &str,
+    previous: Option<T>,
+) {
+    if let Some(previous) = previous {
+        let _ = imports.insert(reference.to_string(), previous);
+    } else {
+        let _ = imports.remove(reference);
     }
 }
 

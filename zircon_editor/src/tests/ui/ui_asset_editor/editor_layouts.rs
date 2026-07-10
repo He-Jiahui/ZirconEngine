@@ -39,7 +39,7 @@ fn assert_editor_layout_compiles_and_opens(
 fn ui_asset_editor_additional_editor_asset_browser_layout_compiles_and_opens() {
     assert_editor_layout_compiles_and_opens(
         UI_ASSET_EDITOR_ASSET_BROWSER_TOML,
-        "editor.asset_browser",
+        "res://ui/editor/asset_browser.zui",
         "res://ui/editor/asset_browser.zui",
         "asset_browser_root [VerticalBox]",
         "AssetBrowserRoot",

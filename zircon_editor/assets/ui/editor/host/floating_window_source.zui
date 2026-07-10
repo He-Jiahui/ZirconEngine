@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.floating_window.source"
+id = "res://ui/editor/host/floating_window_source.zui"
 version = 2
 display_name = "floating window source"
 

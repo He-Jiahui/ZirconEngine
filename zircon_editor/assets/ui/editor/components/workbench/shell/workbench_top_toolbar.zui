@@ -191,7 +191,7 @@ events = [{ id = "WorkbenchModule/More", event = "Click", route = "workbench.mod
 component = "HorizontalGroup"
 control_id = "WorkbenchModuleCommands"
 classes = ["workbench-toolbar-group", "workbench-module-commands"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 350.0, preferred = 350.0, max = 350.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 388.0, preferred = 388.0, max = 388.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "module_save" }, { node = "module_browse" }, { node = "module_compile" }, { node = "module_diff" }, { node = "module_simulate" }]
 
 [nodes.module_save]
@@ -223,7 +223,7 @@ component = "WorkbenchButton"
 control_id = "WorkbenchModuleDiff"
 classes = ["workbench-control-button", "workbench-module-command"]
 props = { text = "Diff", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", border_color = "#303840" }
-layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Diff", event = "Click", route = "workbench.module.diff" }]
 
 [nodes.module_simulate]
@@ -231,7 +231,7 @@ component = "WorkbenchButton"
 control_id = "WorkbenchModuleSimulate"
 classes = ["workbench-control-button", "workbench-module-command"]
 props = { text = "Sim", button_variant = "outlined", button_color = "secondary", button_size = "small", background_color = "#1a1f23", border_color = "#303840" }
-layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+layout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Simulate", event = "Click", route = "workbench.module.simulate" }]
 
 [nodes.toolbar_tool_group]

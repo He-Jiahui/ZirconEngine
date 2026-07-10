@@ -1,6 +1,6 @@
 [asset]
 kind = "style"
-id = "ui.theme.editor_material"
+id = "res://ui/theme/editor_material.zui"
 version = 2
 display_name = "Editor Material"
 

@@ -16,5 +16,5 @@ default_classes = ["workbench-tab", "workbench-primitive"]
 component = "ToggleButton"
 control_id = "WorkbenchTabRoot"
 classes = ["workbench-tab"]
-props = { text = "Tab", value = false, checked = false, selected = false, focused = false, hovered = false, pressed = false, disabled = false, button_variant = "text", button_color = "secondary", button_size = "small", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 72.0, layout_min_height = 34.0, layout_icon_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+props = { text = "Tab", value = false, checked = false, selected = false, focused = false, hovered = false, pressed = false, disabled = false, button_variant = "text", button_color = "secondary", button_size = "small", layout_padding_left = 4.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 4.0, layout_spacing = 4.0, layout_min_width = 72.0, layout_min_height = 28.0, layout_icon_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { min = 88.0, preferred = 96.0, max = 140.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }

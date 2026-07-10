@@ -104,21 +104,29 @@ fn runtime_v2_fixture_assets_parse_from_runtime_crate_assets() {
         .join("zircon_runtime/assets/ui/runtime/fixtures");
 
     for (file_name, asset_id, root_node) in [
-        ("hud_overlay.zui", "runtime.ui.hud_overlay", "hud_root"),
-        ("pause_menu.zui", "runtime.ui.pause_menu", "pause_root"),
+        (
+            "hud_overlay.zui",
+            "res://ui/runtime/fixtures/hud_overlay.zui",
+            "hud_root",
+        ),
+        (
+            "pause_menu.zui",
+            "res://ui/runtime/fixtures/pause_menu.zui",
+            "pause_root",
+        ),
         (
             "settings_dialog.zui",
-            "runtime.ui.settings_dialog",
+            "res://ui/runtime/fixtures/settings_dialog.zui",
             "settings_root",
         ),
         (
             "inventory_list.zui",
-            "runtime.ui.inventory_list",
+            "res://ui/runtime/fixtures/inventory_list.zui",
             "inventory_root",
         ),
         (
             "quest_log_dialog.zui",
-            "runtime.ui.quest_log_dialog",
+            "res://ui/runtime/fixtures/quest_log_dialog.zui",
             "quest_root",
         ),
     ] {

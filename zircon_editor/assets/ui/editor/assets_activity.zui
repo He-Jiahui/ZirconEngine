@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.assets_activity.v2"
+id = "res://ui/editor/assets_activity.zui"
 version = 2
 display_name = "Assets Activity"
 

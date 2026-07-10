@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.host.pane.console.body"
+id = "res://ui/editor/host/console_body.zui"
 version = 2
 display_name = "console pane body"
 

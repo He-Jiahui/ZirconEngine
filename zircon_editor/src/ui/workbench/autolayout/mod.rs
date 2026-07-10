@@ -26,11 +26,13 @@ pub use axis_constraint_override::AxisConstraintOverride;
 pub use constraints::{default_constraints_for_content, default_region_constraints};
 pub(crate) use floating_window::{clamp_floating_window_frame, default_floating_window_frame};
 pub use geometry::compute_workbench_shell_geometry;
-pub(crate) use geometry::{compact_bottom_height_limit, compact_side_width_limit};
+pub(crate) use geometry::{
+    balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
+};
 #[cfg(test)]
 pub(crate) use layout_tier::workbench_layout_defaults;
 pub(crate) use layout_tier::{
-    compact_bottom_defaults, compact_side_defaults,
+    compact_bottom_defaults, compact_side_defaults, minimum_document_width_fraction,
     right_drawer_should_collapse_for_physical_width, window_min_height_limit_for_height,
     window_min_width_limit_for_physical_width, workbench_layout_tier_for_logical_width,
     workbench_layout_tier_for_physical_width, workbench_logical_width_for_scale,

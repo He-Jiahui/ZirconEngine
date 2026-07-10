@@ -1,5 +1,5 @@
-use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{event_bridge::UiHostEventEffects, HostInvalidationMask};
 use crate::ui::template_runtime::builtin::builtin_template_bindings;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::binding::UiBindingValue;
 use super::common::dispatch_editor_binding;
 
 pub(crate) fn dispatch_builtin_template_binding(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     binding_id: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
     let binding = builtin_template_bindings().remove(binding_id)?;
@@ -15,7 +15,7 @@ pub(crate) fn dispatch_builtin_template_binding(
 }
 
 pub(crate) fn dispatch_builtin_template_binding_with_arguments(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     binding_id: &str,
     arguments: Vec<UiBindingValue>,
 ) -> Option<Result<UiHostEventEffects, String>> {
@@ -26,7 +26,7 @@ pub(crate) fn dispatch_builtin_template_binding_with_arguments(
 }
 
 pub(crate) fn dispatch_template_binding_with_arguments(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     binding: EditorUiBinding,
     arguments: Vec<UiBindingValue>,
 ) -> Result<UiHostEventEffects, String> {

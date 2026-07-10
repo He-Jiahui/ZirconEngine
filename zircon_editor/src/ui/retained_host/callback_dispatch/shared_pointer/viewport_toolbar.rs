@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
     viewport_toolbar_pointer::{ViewportToolbarPointerBridge, ViewportToolbarPointerDispatch},
@@ -20,7 +20,7 @@ pub(crate) struct SharedViewportToolbarPointerClickDispatch {
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     pointer_bridge: &mut ViewportToolbarPointerBridge,
     surface_key: &str,
@@ -68,7 +68,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click(
 }
 
 pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click_at_point(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     pointer_bridge: &mut ViewportToolbarPointerBridge,
     surface_key: &str,
@@ -86,7 +86,7 @@ pub(crate) fn dispatch_shared_viewport_toolbar_pointer_click_at_point(
 }
 
 fn dispatch_projection_control(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     control_id: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {

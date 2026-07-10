@@ -13,7 +13,9 @@ use zircon_runtime::asset::{
     SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset, SceneMobilityAsset,
     TransformAsset, ASSET_MODULE_NAME,
 };
-use zircon_runtime::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
+use zircon_runtime::core::framework::scene::physics::{
+    PhysicsCombineRule, PhysicsMaterialMetadata,
+};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,

@@ -63,6 +63,12 @@ const WORKBENCH_COMPONENT_ATLAS_SCREENSHOT: &str =
     "editor-components-workbench-slate-atlas-900x620.png";
 const REFERENCE_WORKBENCH_MIN_DOCUMENT_WIDTH_FRACTION: f32 = 0.55;
 
+mod assets_drawer;
+mod layout_assertions;
+
+use assets_drawer::assets_drawer_window;
+use layout_assertions::assert_assets_drawer_adaptive_layout;
+
 #[test]
 #[ignore = "writes visual screenshot artifact for manual popup closeout"]
 fn capture_scrolled_window_popup_visual_artifact() {
@@ -124,6 +130,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
             open_menu_index: 5,
             hovered_menu_index: -1,
             hovered_menu_item_index: 17,
+            hovered_menu_item_path: vec![17],
             window_menu_scroll_px: 360.0,
             window_menu_popup_height_px: 192.0,
             ..HostMenuStateData::default()
@@ -289,6 +296,7 @@ fn capture_m3_gui_acceptance_visual_artifacts() {
     save_window_snapshot(&asset_browser_list, M3_ASSET_BROWSER_LIST_SCREENSHOT);
 
     let drawer = assets_drawer_window(900, 620);
+    assert_assets_drawer_adaptive_layout(&drawer, 900);
     save_window_snapshot(&drawer, M3_DRAWER_SCREENSHOT);
 
     let preset_names = window_menu_preset_names();
@@ -1243,21 +1251,6 @@ fn workbench_fixture_window_with_presets(
 ) -> UiHostWindow {
     let fixture = default_preview_fixture();
     presented_window_from_fixture(&fixture, width, height, preset_names, active_preset_name)
-}
-
-fn assets_drawer_window(width: u32, height: u32) -> UiHostWindow {
-    let mut fixture = default_preview_fixture();
-    let active = ViewInstanceId::new("editor.assets#1");
-    if let Some(drawer) = fixture.layout.drawers.get_mut(&ActivityDrawerSlot::LeftTop) {
-        if !drawer.tab_stack.tabs.contains(&active) {
-            drawer.tab_stack.tabs.push(active.clone());
-        }
-        drawer.tab_stack.active_tab = Some(active.clone());
-        drawer.active_view = Some(active);
-        drawer.mode = ActivityDrawerMode::Pinned;
-        drawer.visible = true;
-    }
-    presented_window_from_fixture(&fixture, width, height, &[], None)
 }
 
 fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {

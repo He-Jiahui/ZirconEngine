@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
     host_page_pointer::{HostPagePointerBridge, HostPagePointerDispatch, HostPagePointerRoute},
@@ -18,7 +18,7 @@ pub(crate) struct SharedHostPagePointerClickDispatch {
 }
 
 pub(crate) fn dispatch_shared_host_page_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     template_bridge: &BuiltinHostWindowTemplateBridge,
     pointer_bridge: &mut HostPagePointerBridge,
     item_index: usize,

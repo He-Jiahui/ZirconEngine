@@ -1,4 +1,4 @@
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::callback_dispatch;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::autolayout::ShellRegionId;
@@ -87,7 +87,7 @@ pub(crate) fn apply_resize_to_group(
 }
 
 pub(crate) fn dispatch_resize_to_group(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     target_group: &str,
     extent: f32,
 ) -> Result<UiHostEventEffects, String> {

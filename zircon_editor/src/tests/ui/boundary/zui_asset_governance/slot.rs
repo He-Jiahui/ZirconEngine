@@ -6,7 +6,7 @@ use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use super::metadata::{string_metadata_offender, string_token_metadata_offender};
 use super::support::{collect_zui_files, editor_asset_root, runtime_asset_root};
 
-const CHILD_MOUNT_SLOT_KEYS: &[&str] = &["name", "slot_name"];
+const CHILD_MOUNT_SLOT_KEYS: &[&str] = &["name", "slot_name", "layout"];
 
 fn slot_alias_consistency_offender(
     attributes: &BTreeMap<String, toml::Value>,
@@ -58,6 +58,15 @@ fn production_zui_child_mount_slot_metadata_uses_known_keys() {
                                 node_id,
                                 child_index + 1
                             ));
+                        } else if slot_key == "layout"
+                            && !matches!(child.slot.get(slot_key), Some(toml::Value::Table(_)))
+                        {
+                            offenders.push(format!(
+                                "{} node `{}` child mount #{} declares non-table slot.layout metadata",
+                                path.display(),
+                                node_id,
+                                child_index + 1
+                            ));
                         }
                     }
                 }
@@ -75,7 +84,7 @@ fn production_zui_child_mount_slot_metadata_uses_known_keys() {
     );
     assert!(
         offenders.is_empty(),
-        "production .zui child mount slot metadata must stay inside the named-slot vocabulary so projection metadata is not confused with future parent-container layout slot fields: {offenders:#?}"
+        "production .zui child mount slot metadata must stay inside the named-slot and runtime layout vocabulary: {offenders:#?}"
     );
 }
 

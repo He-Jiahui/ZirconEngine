@@ -1,11 +1,12 @@
 use std::fs;
 use std::path::Path;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use std::collections::BTreeMap;
 
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetLoader;
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 use zircon_runtime_interface::ui::accessibility::UiAccessibilityContract;
 use zircon_runtime_interface::ui::focus::UiFocusContract;
 use zircon_runtime_interface::ui::navigation::UiNavigationContract;
@@ -17,13 +18,45 @@ use zircon_runtime_interface::ui::template::{
 };
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
-pub(crate) fn env_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
+/// Serializes process-global test configuration without cascading mutex poison.
+pub(crate) struct TestEnvironmentLock {
+    inner: Mutex<()>,
+}
+
+impl TestEnvironmentLock {
+    fn new() -> Self {
+        Self {
+            inner: Mutex::new(()),
+        }
+    }
+
+    pub(crate) fn lock(&self) -> std::sync::LockResult<MutexGuard<'_, ()>> {
+        Ok(match self.inner.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                self.inner.clear_poison();
+                poisoned.into_inner()
+            }
+        })
+    }
+}
+
+pub(crate) fn env_lock() -> &'static TestEnvironmentLock {
+    static LOCK: OnceLock<TestEnvironmentLock> = OnceLock::new();
+    LOCK.get_or_init(TestEnvironmentLock::new)
 }
 
 pub(crate) fn load_test_ui_asset(source: &str) -> Result<UiAssetDocument, UiAssetError> {
     UiAssetLoader::load_toml_str(source).or_else(|error| {
+        if let Ok(document) = UiZuiAssetLoader::load_zui_str(source) {
+            return crate::ui::asset_editor::project_v2_document_to_authoring(&document).map_err(
+                |projection_error| UiAssetError::InvalidDocument {
+                    asset_id: document.asset.id.clone(),
+                    detail: projection_error.to_string(),
+                },
+            );
+        }
+
         if looks_like_flat_ui_asset_source(source) {
             // Keep flat fixture migration isolated to editor tests.
             let migrated = migrate_flat_ui_asset_fixture_toml_str(source)?;
@@ -39,8 +72,18 @@ pub(crate) fn write_test_ui_asset(
     source: &str,
 ) -> Result<(), UiAssetError> {
     let document = load_test_ui_asset(source)?;
-    let tree_source = toml::to_string_pretty(&document)
-        .map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+    let path = path.as_ref();
+    let tree_source = if path.extension().and_then(|extension| extension.to_str()) == Some("zui") {
+        let v2_document = crate::ui::asset_editor::project_authoring_document_to_v2(&document)
+            .map_err(|error| UiAssetError::InvalidDocument {
+                asset_id: document.asset.id.clone(),
+                detail: error.to_string(),
+            })?;
+        toml::to_string_pretty(&v2_document)
+    } else {
+        toml::to_string_pretty(&document)
+    }
+    .map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
     fs::write(path, tree_source).map_err(|error| UiAssetError::Io(error.to_string()))
 }
 
@@ -50,6 +93,24 @@ fn looks_like_flat_ui_asset_source(source: &str) -> bool {
         || source.contains("\r\n[root]\r\nnode =")
         || source.contains("\n[components.")
             && (source.contains("\nroot = \"") || source.contains("\r\nroot = \""))
+}
+
+#[cfg(test)]
+mod env_lock_tests {
+    use super::env_lock;
+
+    #[test]
+    fn shared_test_environment_lock_recovers_after_poison() {
+        let lock = env_lock();
+        let poisoned = std::panic::catch_unwind(|| {
+            let _guard = lock.lock().expect("initial environment lock");
+            panic!("poison shared test environment lock");
+        });
+        assert!(poisoned.is_err());
+
+        let recovered = lock.lock();
+        assert!(recovered.is_ok(), "environment lock must recover poison");
+    }
 }
 
 fn migrate_flat_ui_asset_fixture_toml_str(input: &str) -> Result<String, UiAssetError> {

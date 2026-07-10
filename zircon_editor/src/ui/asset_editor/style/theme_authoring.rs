@@ -1,12 +1,16 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetKind, UiStyleSheet,
-};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleSheet};
 
 mod action_projection;
 mod merge;
+mod promotion;
+
+pub(crate) use promotion::{
+    can_promote_local_theme_to_external_style_asset, default_external_style_draft,
+    promote_local_theme_to_external_style_asset, UiAssetExternalStyleDraft,
+};
 
 use action_projection::{
     active_cascade_rules, active_cascade_tokens, build_active_cascade_rule_actions,
@@ -17,16 +21,8 @@ use action_projection::{
 };
 use merge::{
     append_imported_theme_merge_preview, imported_theme_rules, imported_theme_tokens,
-    merge_imported_theme_into_local_theme_layer, rule_signature, stylesheet_label, theme_base_name,
-    theme_display_name,
+    merge_imported_theme_into_local_theme_layer, rule_signature, stylesheet_label,
 };
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(crate) struct UiAssetExternalStyleDraft {
-    pub(crate) asset_id: String,
-    pub(crate) document_id: String,
-    pub(crate) display_name: String,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum UiAssetThemeRuleHelperAction {
@@ -201,56 +197,6 @@ impl UiAssetThemeRefactorAction {
             }
         }
     }
-}
-
-pub(crate) fn can_promote_local_theme_to_external_style_asset(document: &UiAssetDocument) -> bool {
-    !document.tokens.is_empty() || !document.stylesheets.is_empty()
-}
-
-pub(crate) fn default_external_style_draft(
-    source_asset_id: &str,
-    source_display_name: &str,
-) -> UiAssetExternalStyleDraft {
-    let base_name = theme_base_name(source_asset_id);
-    UiAssetExternalStyleDraft {
-        asset_id: format!("res://ui/themes/{base_name}_theme.zui"),
-        document_id: format!("ui.theme.{base_name}_theme"),
-        display_name: theme_display_name(source_display_name, &base_name),
-    }
-}
-
-pub(crate) fn promote_local_theme_to_external_style_asset(
-    document: &mut UiAssetDocument,
-    style_asset_id: &str,
-    style_document_id: &str,
-    display_name: &str,
-) -> Option<UiAssetDocument> {
-    if !can_promote_local_theme_to_external_style_asset(document) {
-        return None;
-    }
-
-    let promoted_theme = UiAssetDocument {
-        asset: UiAssetHeader {
-            kind: UiAssetKind::Style,
-            id: style_document_id.to_string(),
-            version: 1,
-            display_name: display_name.to_string(),
-        },
-        imports: UiAssetImports {
-            widgets: Vec::new(),
-            styles: document.imports.styles.clone(),
-            resources: Vec::new(),
-        },
-        tokens: std::mem::take(&mut document.tokens),
-        root: None,
-        components: Default::default(),
-        stylesheets: std::mem::take(&mut document.stylesheets),
-    };
-
-    document.imports.styles.clear();
-    document.imports.styles.push(style_asset_id.to_string());
-
-    Some(promoted_theme)
 }
 
 pub(crate) fn detach_imported_theme_to_local_theme_layer(

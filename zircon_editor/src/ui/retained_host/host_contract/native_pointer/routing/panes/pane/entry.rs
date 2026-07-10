@@ -1,11 +1,13 @@
+mod asset_content;
 mod template;
 mod viewport_body;
 
 use crate::ui::retained_host::host_contract::data::{FrameRect, PaneData};
 
+use self::asset_content::route_activity_asset_content_hit;
 use self::template::route_template_node_hit;
 use self::viewport_body::viewport_body_route;
-use super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
+use super::super::super::{geometry::contains, PanePointerRoute};
 use super::super::mode::PaneRouteMode;
 use super::super::target::pane_pointer_target_for_kind;
 
@@ -23,6 +25,9 @@ pub(in super::super) fn pane_route_from_pane(
     let body_route = viewport_body_route(pane, content, x, y, surface_key);
     if let Some(toolbar_route) = body_route.toolbar_route {
         return Some(toolbar_route);
+    }
+    if let Some(route) = route_activity_asset_content_hit(pane, &body_route.body, x, y) {
+        return Some(route);
     }
     if let Some(route) = route_template_node_hit(pane, &body_route.body, x, y, mode) {
         return Some(route);

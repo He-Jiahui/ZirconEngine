@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.window.material_component_lab.v2"
+id = "res://ui/editor/material_component_lab.zui"
 version = 2
 display_name = "Material Component Lab"
 

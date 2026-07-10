@@ -1,6 +1,6 @@
 [asset]
 kind = "view"
-id = "editor.window.ui_component_showcase.v2"
+id = "res://ui/editor/component_showcase.zui"
 version = 2
 display_name = "UI Component Showcase"
 

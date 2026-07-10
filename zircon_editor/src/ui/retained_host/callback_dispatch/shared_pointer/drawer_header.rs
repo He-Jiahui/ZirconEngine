@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::layout::UiPoint;
 
-use crate::core::editor_event::EditorEventRuntime;
+use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::{
     drawer_header_pointer::{
         HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerDispatch,
@@ -18,7 +18,7 @@ pub(crate) struct SharedDrawerHeaderPointerClickDispatch {
 }
 
 pub(crate) fn dispatch_shared_drawer_header_pointer_click(
-    runtime: &EditorEventRuntime,
+    runtime: &EditorHostEventController,
     template_bridge: &BuiltinHostWindowTemplateBridge,
     pointer_bridge: &mut HostDrawerHeaderPointerBridge,
     surface_key: &str,

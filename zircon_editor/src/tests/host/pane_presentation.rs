@@ -3,12 +3,10 @@ use std::collections::BTreeMap;
 use serde_json::json;
 use zircon_runtime::core::diagnostics::{
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
-    RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics, RuntimeRenderDiagnostics,
+    RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
+    RuntimeRenderDiagnostics,
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
-use zircon_runtime::core::framework::physics::{
-    PhysicsBackendState, PhysicsBackendStatus, PhysicsSimulationMode,
-};
 use zircon_runtime::core::framework::render::{RenderCapabilitySummary, RenderStats};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
@@ -265,13 +263,13 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
         physics: RuntimePhysicsDiagnostics {
             available: true,
             backend_name: Some("jolt".to_string()),
-            backend_status: Some(PhysicsBackendStatus {
+            backend_status: Some(RuntimePhysicsBackendDiagnostics {
                 requested_backend: "jolt".to_string(),
                 active_backend: Some("jolt".to_string()),
-                state: PhysicsBackendState::Ready,
+                state: "ready".to_string(),
                 detail: None,
-                simulation_mode: PhysicsSimulationMode::Simulate,
-                feature_gate: Some("jolt".to_string()),
+                simulation_mode: "simulate".to_string(),
+                feature_gate: Some("backend-jolt".to_string()),
             }),
             fixed_hz: Some(120),
             error: None,

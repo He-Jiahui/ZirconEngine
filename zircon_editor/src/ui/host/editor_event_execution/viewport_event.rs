@@ -1,104 +1,107 @@
 use crate::core::editor_event::{EditorEventEffect, EditorViewportEvent};
 use crate::scene::viewport::ViewportFeedback;
 use crate::ui::binding::ViewportCommand;
+use crate::ui::host::EditorHostEventController;
+use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::EditorIntent;
 
 use super::execution_outcome::ExecutionOutcome;
-use crate::core::editor_event::runtime::editor_event_runtime_state::EditorEventRuntimeState;
-
 pub(super) fn execute_viewport_event(
-    inner: &mut EditorEventRuntimeState,
+    controller: &EditorHostEventController,
+    shell: &mut WorkbenchShellStateData,
     event: &EditorViewportEvent,
 ) -> Result<ExecutionOutcome, String> {
     let feedback = match event {
         EditorViewportEvent::PointerMoved { x, y } => {
-            let feedback = inner
+            let feedback = shell
                 .state
                 .apply_viewport_command(&ViewportCommand::PointerMoved { x: *x, y: *y });
-            if inner.dragging_gizmo && feedback.transformed_node.is_some() {
-                inner.state.apply_intent(EditorIntent::DragGizmo)?;
+            if controller.gizmo_drag().is_active() && feedback.transformed_node.is_some() {
+                shell.state.apply_intent(EditorIntent::DragGizmo)?;
             }
             feedback
         }
         EditorViewportEvent::LeftPressed { x, y } => {
-            let feedback = inner
+            let feedback = shell
                 .state
                 .apply_viewport_command(&ViewportCommand::LeftPressed { x: *x, y: *y });
-            inner.dragging_gizmo = feedback.hovered_axis.is_some();
-            if inner.dragging_gizmo {
-                inner.state.apply_intent(EditorIntent::BeginGizmoDrag)?;
+            controller
+                .gizmo_drag()
+                .set_active(feedback.hovered_axis.is_some());
+            if controller.gizmo_drag().is_active() {
+                shell.state.apply_intent(EditorIntent::BeginGizmoDrag)?;
             }
             feedback
         }
         EditorViewportEvent::LeftReleased => {
-            if inner.dragging_gizmo {
-                inner.state.apply_intent(EditorIntent::EndGizmoDrag)?;
+            if controller.gizmo_drag().is_active() {
+                shell.state.apply_intent(EditorIntent::EndGizmoDrag)?;
             }
-            inner.dragging_gizmo = false;
-            inner
+            controller.gizmo_drag().clear();
+            shell
                 .state
                 .apply_viewport_command(&ViewportCommand::LeftReleased)
         }
-        EditorViewportEvent::RightPressed { x, y } => inner
+        EditorViewportEvent::RightPressed { x, y } => shell
             .state
             .apply_viewport_command(&ViewportCommand::RightPressed { x: *x, y: *y }),
-        EditorViewportEvent::RightReleased => inner
+        EditorViewportEvent::RightReleased => shell
             .state
             .apply_viewport_command(&ViewportCommand::RightReleased),
-        EditorViewportEvent::MiddlePressed { x, y } => inner
+        EditorViewportEvent::MiddlePressed { x, y } => shell
             .state
             .apply_viewport_command(&ViewportCommand::MiddlePressed { x: *x, y: *y }),
-        EditorViewportEvent::MiddleReleased => inner
+        EditorViewportEvent::MiddleReleased => shell
             .state
             .apply_viewport_command(&ViewportCommand::MiddleReleased),
-        EditorViewportEvent::Scrolled { delta } => inner
+        EditorViewportEvent::Scrolled { delta } => shell
             .state
             .apply_viewport_command(&ViewportCommand::Scrolled { delta: *delta }),
         EditorViewportEvent::Resized { width, height } => {
-            inner
+            shell
                 .state
                 .apply_viewport_command(&ViewportCommand::Resized {
                     width: *width,
                     height: *height,
                 })
         }
-        EditorViewportEvent::SetTool { tool } => inner
+        EditorViewportEvent::SetTool { tool } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetTool(*tool)),
-        EditorViewportEvent::SetTransformSpace { space } => inner
+        EditorViewportEvent::SetTransformSpace { space } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetTransformSpace(*space)),
-        EditorViewportEvent::SetProjectionMode { mode } => inner
+        EditorViewportEvent::SetProjectionMode { mode } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetProjectionMode(*mode)),
-        EditorViewportEvent::AlignView { orientation } => inner
+        EditorViewportEvent::AlignView { orientation } => shell
             .state
             .apply_viewport_command(&ViewportCommand::AlignView(*orientation)),
-        EditorViewportEvent::SetDisplayMode { mode } => inner
+        EditorViewportEvent::SetDisplayMode { mode } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetDisplayMode(*mode)),
-        EditorViewportEvent::SetGridMode { mode } => inner
+        EditorViewportEvent::SetGridMode { mode } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetGridMode(*mode)),
-        EditorViewportEvent::SetTranslateSnap { step } => inner
+        EditorViewportEvent::SetTranslateSnap { step } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetTranslateSnap(*step)),
-        EditorViewportEvent::SetRotateSnapDegrees { step } => inner
+        EditorViewportEvent::SetRotateSnapDegrees { step } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetRotateSnapDegrees(*step)),
-        EditorViewportEvent::SetScaleSnap { step } => inner
+        EditorViewportEvent::SetScaleSnap { step } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetScaleSnap(*step)),
-        EditorViewportEvent::SetPreviewLighting { enabled } => inner
+        EditorViewportEvent::SetPreviewLighting { enabled } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetPreviewLighting(*enabled)),
-        EditorViewportEvent::SetPreviewSkybox { enabled } => inner
+        EditorViewportEvent::SetPreviewSkybox { enabled } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetPreviewSkybox(*enabled)),
-        EditorViewportEvent::SetGizmosEnabled { enabled } => inner
+        EditorViewportEvent::SetGizmosEnabled { enabled } => shell
             .state
             .apply_viewport_command(&ViewportCommand::SetGizmosEnabled(*enabled)),
-        EditorViewportEvent::FrameSelection => inner
+        EditorViewportEvent::FrameSelection => shell
             .state
             .apply_viewport_command(&ViewportCommand::FrameSelection),
     };

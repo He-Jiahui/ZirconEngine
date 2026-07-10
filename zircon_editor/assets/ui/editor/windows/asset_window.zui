@@ -1,11 +1,11 @@
 [asset]
 kind = "view"
-id = "editor.window.asset"
+id = "res://ui/editor/windows/asset_window.zui"
 version = 2
 display_name = "Asset Window"
 
 [imports]
-widgets = ["editor.host.activity_drawer_window#ActivityDrawerWindow"]
+widgets = ["res://ui/editor/components/workbench/shell/activity_drawer_window.zui#ActivityDrawerWindow"]
 
 [root]
 node = "root"

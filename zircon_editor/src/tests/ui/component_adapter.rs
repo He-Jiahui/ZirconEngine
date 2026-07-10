@@ -5,7 +5,7 @@ use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterError, UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope,
@@ -754,7 +754,8 @@ fn asset_editor_component_adapter_updates_selected_widget_text() {
     let temp_dir = unique_asset_adapter_temp_dir("selected_widget_text");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
     let asset_path = temp_dir.join("asset-editor-adapter.zui");
-    write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
+    crate::tests::support::write_test_ui_asset(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT)
+        .expect("V2 ui asset adapter fixture should be written");
 
     let instance_id = manager
         .open_ui_asset_editor(&asset_path, None)
@@ -799,7 +800,8 @@ fn asset_editor_component_adapter_updates_selected_widget_props_and_state_litera
     let temp_dir = unique_asset_adapter_temp_dir("selected_widget_props_state");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
     let asset_path = temp_dir.join("asset-editor-props-state-adapter.zui");
-    write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
+    crate::tests::support::write_test_ui_asset(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT)
+        .expect("V2 ui asset adapter fixture should be written");
 
     let instance_id = manager
         .open_ui_asset_editor(&asset_path, None)
@@ -879,7 +881,8 @@ fn asset_editor_component_adapter_updates_selected_component_root_class_policy()
     let temp_dir = unique_asset_adapter_temp_dir("component_root_class_policy");
     fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
     let asset_path = temp_dir.join("asset-editor-component-adapter.zui");
-    write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
+    crate::tests::support::write_test_ui_asset(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT)
+        .expect("V2 ui asset adapter fixture should be written");
 
     let instance_id = manager
         .open_ui_asset_editor(&asset_path, None)
@@ -958,8 +961,4 @@ fn unique_asset_adapter_temp_dir(suffix: &str) -> PathBuf {
     std::env::temp_dir().join(format!(
         "zircon-ui-asset-component-adapter-{suffix}-{millis}"
     ))
-}
-
-fn write_text_file(path: &Path, contents: &str) {
-    fs::write(path, contents).expect("test file should be written");
 }

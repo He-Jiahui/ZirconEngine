@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::core::CoreRuntime;
@@ -17,7 +16,7 @@ pub(super) fn unique_temp_path(prefix: &str) -> PathBuf {
     std::env::temp_dir().join(format!("{prefix}_{unique}.json"))
 }
 
-pub(super) fn env_lock() -> &'static Mutex<()> {
+pub(super) fn env_lock() -> &'static crate::tests::support::TestEnvironmentLock {
     crate::tests::support::env_lock()
 }
 

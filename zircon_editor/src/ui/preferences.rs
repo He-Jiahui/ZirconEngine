@@ -9,7 +9,11 @@ use zircon_runtime_interface::ui::design_tokens::{
     EditorStateRoleTokens, EditorTypographyTokens, EDITOR_WORKBENCH_TOKENS_ID,
 };
 
-pub(crate) const APPEARANCE_PREFERENCES_VERSION: u32 = 1;
+mod typography_migration;
+
+use typography_migration::migrate_legacy_workbench_typography;
+
+pub(crate) const APPEARANCE_PREFERENCES_VERSION: u32 = 2;
 pub(crate) const APPEARANCE_PREFERENCES_PATH_ENV: &str = "ZIRCON_EDITOR_APPEARANCE_PREFERENCES";
 
 #[derive(Clone, Debug, PartialEq)]
@@ -72,10 +76,14 @@ impl EditorAppearancePreferences {
     }
 
     pub(crate) fn from_persistence_document(document: EditorAppearancePreferencesDocument) -> Self {
-        if document.version == APPEARANCE_PREFERENCES_VERSION {
-            Self::from_design_tokens(document.design_tokens)
-        } else {
-            Self::default()
+        match document.version {
+            APPEARANCE_PREFERENCES_VERSION => Self::from_design_tokens(document.design_tokens),
+            1 => {
+                let mut design_tokens = document.design_tokens;
+                migrate_legacy_workbench_typography(&mut design_tokens.typography);
+                Self::from_design_tokens(design_tokens)
+            }
+            _ => Self::default(),
         }
     }
 }
@@ -332,6 +340,24 @@ font_smoothing = "grayscale"
         assert_eq!(
             restored.design_tokens().typography.utility_tab_text_role,
             EditorUtilityTabTextRole::Code
+        );
+        assert!(
+            (restored.design_tokens().typography.body_size
+                - EditorTypographyTokens::WORKBENCH_BODY_SIZE)
+                .abs()
+                < 0.001
+        );
+        assert!(
+            (restored.design_tokens().typography.caption_size
+                - EditorTypographyTokens::WORKBENCH_CAPTION_SIZE)
+                .abs()
+                < 0.001
+        );
+        assert!(
+            (restored.design_tokens().typography.title_size
+                - EditorTypographyTokens::WORKBENCH_TITLE_SIZE)
+                .abs()
+                < 0.001
         );
     }
 

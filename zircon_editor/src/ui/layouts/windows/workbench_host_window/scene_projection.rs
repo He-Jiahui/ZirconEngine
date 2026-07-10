@@ -1,4 +1,8 @@
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
+use crate::ui::retained_host::{
+    menu_popup_contract::{content_measured_menu_popup_width, menu_popup_content_height},
+    menu_popup_text_width,
+};
 
 use super::chrome_template_projection::{
     activity_rail_active_control_id, activity_rail_button_frames, activity_rail_nodes,
@@ -26,9 +30,6 @@ const DEFAULT_PRESET_NAME: &str = "rider";
 const MIN_DROP_TARGET_PX: f32 = 92.0;
 const MENU_POPUP_WIDTHS_PX: [f32; 7] = [208.0, 186.0, 218.0, 172.0, 198.0, 224.0, 194.0];
 const DEFAULT_MENU_POPUP_WIDTH_PX: f32 = 224.0;
-const MENU_POPUP_PADDING_PX: f32 = 6.0;
-const MENU_POPUP_ROW_HEIGHT_PX: f32 = 28.0;
-const MENU_POPUP_ROW_GAP_PX: f32 = 2.0;
 
 pub(crate) fn build_host_scene_data(
     menu_bar: &MenuBarModel,
@@ -366,7 +367,13 @@ fn host_menu_chrome_data(
                 .iter()
                 .enumerate()
                 .map(|(index, menu)| {
-                    host_menu_chrome_menu_data(menu, index, host_shell, &resolved_preset_name)
+                    host_menu_chrome_menu_data(
+                        menu,
+                        index,
+                        host_shell,
+                        &resolved_preset_name,
+                        shell_width,
+                    )
                 })
                 .collect(),
         )
@@ -401,6 +408,7 @@ fn host_menu_chrome_menu_data(
     menu_index: usize,
     host_shell: &HostWindowShellData,
     resolved_preset_name: &SharedString,
+    shell_width: f32,
 ) -> HostMenuChromeMenuData {
     let mut items = {
         zircon_runtime::profile_scope!("editor", "retained_host", "scene_menu_item_models");
@@ -410,11 +418,19 @@ fn host_menu_chrome_menu_data(
             host_menu_items(&menu.items)
         }
     };
-    let popup_height_px = menu_popup_height(items.len());
-    let popup_width_px = MENU_POPUP_WIDTHS_PX
+    let popup_height_px = menu_popup_content_height(items.len());
+    let fallback_popup_width_px = MENU_POPUP_WIDTHS_PX
         .get(menu_index)
         .copied()
         .unwrap_or(DEFAULT_MENU_POPUP_WIDTH_PX);
+    let popup_width_px = content_measured_menu_popup_width(
+        fallback_popup_width_px,
+        shell_width,
+        items
+            .iter()
+            .map(|item| (item.label.as_str(), item.shortcut.as_str())),
+        menu_popup_text_width,
+    );
     let item_model = model_rc(std::mem::take(&mut items));
     let popup_nodes = {
         zircon_runtime::profile_scope!("editor", "retained_host", "scene_menu_popup_placeholders");
@@ -494,16 +510,6 @@ fn menu_item_action_id(item: &MenuItemModel) -> SharedString {
             operation_id.as_str().into()
         }
         _ => "".into(),
-    }
-}
-
-fn menu_popup_height(item_count: usize) -> f32 {
-    if item_count == 0 {
-        0.0
-    } else {
-        MENU_POPUP_PADDING_PX * 2.0
-            + item_count as f32 * MENU_POPUP_ROW_HEIGHT_PX
-            + (item_count as f32 - 1.0) * MENU_POPUP_ROW_GAP_PX
     }
 }
 

@@ -4,6 +4,7 @@ use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetHeader, UiAssetKind, UiNodeDefinition, UiNodeDefinitionKind,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -98,7 +99,7 @@ pub(crate) fn promote_selected_component_to_external_widget(
         asset: UiAssetHeader {
             kind: UiAssetKind::Widget,
             id: widget_document_id.to_string(),
-            version: 1,
+            version: UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
             display_name: widget_component_name.to_string(),
         },
         imports: document.imports.clone(),

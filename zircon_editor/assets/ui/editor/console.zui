@@ -2,7 +2,7 @@ stylesheets = []
 
 [asset]
 kind = "view"
-id = "editor.console.v2"
+id = "res://ui/editor/console.zui"
 version = 2
 display_name = "Console"
 
