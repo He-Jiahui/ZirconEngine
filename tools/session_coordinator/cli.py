@@ -1,0 +1,242 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+import uuid
+from pathlib import Path
+from typing import Any
+
+from .client import CoordinatorClient, CoordinatorClientError
+from .config import CoordinatorConfig
+from .models import CoordinatorError
+from .server import run_forever
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="zircon-session")
+    parser.add_argument("--repo-root", default=str(Path.cwd()))
+    parser.add_argument("--state-root")
+    parser.add_argument("--json", action="store_true", dest="json_output")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("serve")
+    commands.add_parser("status")
+    commands.add_parser("stop")
+
+    session = commands.add_parser("session")
+    session_commands = session.add_subparsers(dest="session_command", required=True)
+
+    register = session_commands.add_parser("register")
+    register.add_argument("--session-id")
+    register.add_argument("--display-name")
+    register.add_argument("--plan-path")
+    register.add_argument("--write-scope", action="append", default=[])
+
+    listing = session_commands.add_parser("list")
+    listing.add_argument("--include-archived", action="store_true")
+
+    show = session_commands.add_parser("show")
+    show.add_argument("--session-id")
+
+    heartbeat = session_commands.add_parser("heartbeat")
+    heartbeat.add_argument("--session-id")
+
+    set_status = session_commands.add_parser("set-status")
+    set_status.add_argument("status")
+    set_status.add_argument("--session-id")
+    set_status.add_argument("--reason")
+
+    baseline = commands.add_parser("baseline")
+    baseline_commands = baseline.add_subparsers(dest="baseline_command", required=True)
+    for name in ("init", "status", "diff", "scan"):
+        baseline_commands.add_parser(name)
+    baseline_accept = baseline_commands.add_parser("accept")
+    baseline_accept.add_argument("--reason", required=True)
+    baseline_attribute = baseline_commands.add_parser("attribute")
+    baseline_attribute.add_argument("paths", nargs="+")
+    baseline_attribute.add_argument("--session-id")
+
+    lease = commands.add_parser("lease")
+    lease_commands = lease.add_subparsers(dest="lease_command", required=True)
+    lease_claim = lease_commands.add_parser("claim")
+    lease_claim.add_argument("paths", nargs="+")
+    lease_claim.add_argument("--session-id")
+    lease_release = lease_commands.add_parser("release")
+    lease_release.add_argument("paths", nargs="*")
+    lease_release.add_argument("--session-id")
+    lease_heartbeat = lease_commands.add_parser("heartbeat")
+    lease_heartbeat.add_argument("--session-id")
+    lease_commands.add_parser("list")
+
+    snapshot = commands.add_parser("snapshot")
+    snapshot_commands = snapshot.add_subparsers(dest="snapshot_command", required=True)
+    snapshot_create = snapshot_commands.add_parser("create")
+    snapshot_create.add_argument("paths", nargs="+")
+    snapshot_create.add_argument("--session-id")
+    snapshot_create.add_argument("--baseline-epoch", type=int)
+    snapshot_create.add_argument("--purpose", required=True)
+    snapshot_preview = snapshot_commands.add_parser("preview")
+    snapshot_preview.add_argument("snapshot_id", type=int)
+
+    patch = commands.add_parser("patch")
+    patch_commands = patch.add_subparsers(dest="patch_command", required=True)
+    patch_enqueue = patch_commands.add_parser("enqueue")
+    patch_enqueue.add_argument("--file", required=True)
+    patch_enqueue.add_argument("--target", action="append", required=True)
+    patch_enqueue.add_argument("--session-id")
+    patch_status = patch_commands.add_parser("status")
+    patch_status.add_argument("patch_id", type=int)
+    patch_list = patch_commands.add_parser("list")
+    patch_list.add_argument("--status")
+    patch_commands.add_parser("process")
+
+    watch = commands.add_parser("watch")
+    watch_commands = watch.add_subparsers(dest="watch_command", required=True)
+    watch_commands.add_parser("scan")
+    return parser
+
+
+def _session_id(value: str | None) -> str:
+    return value or os.environ.get("CODEX_THREAD_ID") or f"manual-{uuid.uuid4()}"
+
+
+def _config(arguments: argparse.Namespace) -> CoordinatorConfig:
+    return CoordinatorConfig.for_repo(
+        arguments.repo_root,
+        state_root=arguments.state_root,
+    )
+
+
+def _run(arguments: argparse.Namespace) -> dict[str, Any]:
+    config = _config(arguments)
+    if arguments.command == "serve":
+        run_forever(config)
+        return {"status": "stopped"}
+    client = CoordinatorClient.from_runtime(config)
+    if arguments.command == "status":
+        return client.health()
+    if arguments.command == "stop":
+        result = client.shutdown()
+        for _ in range(50):
+            if not config.runtime_path.exists():
+                break
+            time.sleep(0.05)
+        return result
+    if arguments.command == "session" and arguments.session_command == "register":
+        return client.command(
+            "session.register",
+            {
+                "session_id": _session_id(arguments.session_id),
+                "display_name": arguments.display_name,
+                "plan_path": arguments.plan_path,
+                "write_scope": arguments.write_scope,
+            },
+        )
+    if arguments.command == "session" and arguments.session_command == "list":
+        return client.command(
+            "session.list", {"include_archived": arguments.include_archived}
+        )
+    if arguments.command == "session" and arguments.session_command == "show":
+        return client.command("session.show", {"session_id": _session_id(arguments.session_id)})
+    if arguments.command == "session" and arguments.session_command == "heartbeat":
+        return client.command(
+            "session.heartbeat", {"session_id": _session_id(arguments.session_id)}
+        )
+    if arguments.command == "session" and arguments.session_command == "set-status":
+        return client.command(
+            "session.set_status",
+            {
+                "session_id": _session_id(arguments.session_id),
+                "status": arguments.status,
+                "reason": arguments.reason,
+            },
+        )
+    if arguments.command == "baseline":
+        if arguments.baseline_command in {"init", "status", "diff", "scan"}:
+            return client.command(f"baseline.{arguments.baseline_command}")
+        if arguments.baseline_command == "accept":
+            return client.command("baseline.accept", {"reason": arguments.reason})
+        if arguments.baseline_command == "attribute":
+            return client.command(
+                "baseline.attribute",
+                {"session_id": _session_id(arguments.session_id), "paths": arguments.paths},
+            )
+    if arguments.command == "lease":
+        if arguments.lease_command == "claim":
+            return client.command(
+                "lease.claim",
+                {"session_id": _session_id(arguments.session_id), "paths": arguments.paths},
+            )
+        if arguments.lease_command == "release":
+            return client.command(
+                "lease.release",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "paths": arguments.paths or None,
+                },
+            )
+        if arguments.lease_command == "heartbeat":
+            return client.command(
+                "lease.heartbeat", {"session_id": _session_id(arguments.session_id)}
+            )
+        if arguments.lease_command == "list":
+            return client.command("lease.list")
+    if arguments.command == "snapshot":
+        if arguments.snapshot_command == "create":
+            return client.command(
+                "snapshot.create",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "paths": arguments.paths,
+                    "baseline_epoch": arguments.baseline_epoch,
+                    "purpose": arguments.purpose,
+                },
+            )
+        if arguments.snapshot_command == "preview":
+            return client.command("snapshot.preview", {"snapshot_id": arguments.snapshot_id})
+    if arguments.command == "patch":
+        if arguments.patch_command == "enqueue":
+            patch_text = Path(arguments.file).read_text(encoding="utf-8")
+            return client.command(
+                "patch.enqueue",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "patch_text": patch_text,
+                    "targets": arguments.target,
+                },
+            )
+        if arguments.patch_command == "status":
+            return client.command("patch.status", {"patch_id": arguments.patch_id})
+        if arguments.patch_command == "list":
+            return client.command("patch.list", {"status": arguments.status})
+        if arguments.patch_command == "process":
+            return client.command("patch.process")
+    if arguments.command == "watch" and arguments.watch_command == "scan":
+        return client.command("watch.scan")
+    raise CoordinatorClientError("invalid_command", f"Unsupported command {arguments.command}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = _parser().parse_args(argv)
+    try:
+        result = _run(arguments)
+    except (CoordinatorClientError, CoordinatorError, OSError, ValueError) as error:
+        if hasattr(error, "to_dict"):
+            issue = error.to_dict()
+        else:
+            issue = {"code": "invalid_request", "message": str(error), "details": {}}
+        payload = {"status": "offline" if issue["code"] == "offline" else "error", "error": issue}
+        print(json.dumps(payload, ensure_ascii=False) if arguments.json_output else issue["message"])
+        return 3 if issue["code"] == "offline" else 2
+    print(
+        json.dumps(result, ensure_ascii=False, sort_keys=True)
+        if arguments.json_output
+        else json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

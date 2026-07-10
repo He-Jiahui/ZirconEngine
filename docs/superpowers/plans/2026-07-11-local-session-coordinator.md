@@ -314,3 +314,17 @@ Expected: all coordinator and integration suites pass; existing handoff validato
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| M1 | M1.1 Define configuration and models | 完成（待 M1-T） | 2026-07-11 | `tools/session_coordinator/config.py`、`models.py`：固定 10 个 Session 状态、迁移表、UTC/错误/记录 DTO、本地状态与受管 target 根配置。 |
+| M1 | M1.2 Build database and migrations | 完成（待 M1-T） | 2026-07-11 | `database.py`、`migrations.py`：SQLite WAL、外键、busy timeout、显式事务、v1 内核表与 v2 基线/对象/租约/patch 表。 |
+| M1 | M1.3 Build daemon and client protocol | 完成（待 M1-T） | 2026-07-11 | `server.py`、`client.py`：单实例锁、原子 runtime descriptor、随机 token、认证回环 HTTP、health/command、stale/offline 错误与非 main 只读模式。 |
+| M1 | M1.4 Implement Session lifecycle | 完成（待 M1-T） | 2026-07-11 | `sessions.py`：注册/幂等刷新、HEAD/epoch 绑定、heartbeat、合法迁移、stale、事件日志；自由文本状态被拒绝。 |
+| M1 | M1.5 Add PowerShell entrypoint | 完成（待 M1-T） | 2026-07-11 | `cli.py`、`__main__.py`、`tools/zircon-session.ps1`：status/start/stop、Session 子命令、JSON/退出码、隐藏按需启动。 |
+| M1 | M1.6 Add focused unit tests | 完成（待 M1-T） | 2026-07-11 | `tests/test_database.py`、`test_sessions.py`、`test_server.py`；RED 证据：首次运行因缺少 `tools.session_coordinator.config` 按预期失败。 |
+| M1 | M1-T Kernel acceptance | 通过 | 2026-07-11 | 8/8 Python tests 通过（启用 ResourceWarning=error）；`session-coordinator-smoke.Tests.ps1 -KernelOnly` PASS；scoped `git diff --check` exit 0。 |
+| M2 | M2.1 Implement baseline epochs | 完成（待 M2-T） | 2026-07-11 | `baselines.py`：HEAD/index/manifest epoch、SHA-256、healthy/degraded、diff/scan、Session 归属、显式 accept 与 HEAD 变更刷新。 |
+| M2 | M2.2 Implement object storage | 完成（待 M2-T） | 2026-07-11 | `snapshots.py`：SHA-256/zlib 内容寻址对象、原子写入、读时校验、snapshot manifest 与不落盘的 restore preview。 |
+| M2 | M2.3 Implement path leases | 完成（待 M2-T） | 2026-07-11 | `leases.py`：仓库边界/保护路径、Windows casefold key、排序后的原子多文件 claim、重入/heartbeat/release、TTL+grace 回收。 |
+| M2 | M2.4 Implement delayed patch queue | 完成（待 M2-T） | 2026-07-11 | `patches.py`：显式 target/base hash/object、FIFO queued/applying/applied/needs_rebase、`git apply --check`、前后快照、归属记录与无覆盖释放。 |
+| M2 | M2.5 Implement watcher and reconciliation | 完成（待 M2-T） | 2026-07-11 | `watch.py` 及 server/CLI 命令：baseline init/status/diff/scan/attribute/accept、lease、snapshot preview、patch queue/status/process；外部编辑只降级并保留内容。 |
+| M2 | M2.6 Add concurrency tests | 完成（待 M2-T） | 2026-07-11 | 新增 baseline/snapshot/lease/patch/watch 与 20 轮双线程 claim tests；RED 证据：首次运行因缺少 `tools.session_coordinator.baselines` 按预期失败。 |
+| M2 | M2-T Write-conflict acceptance | 通过 | 2026-07-11 | `compileall` exit 0；完整 Python suite 21/21（含 20 轮竞争、后台 watcher、非 main 只读、单实例、即时 apply 竞态）通过；Kernel 与 LeaseAndPatch 两个 PowerShell smoke PASS；scoped diff check exit 0。 |
