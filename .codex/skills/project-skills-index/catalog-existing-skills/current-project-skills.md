@@ -78,8 +78,12 @@ Updated: 2026-07-11
   Layout: Focused child skill under `zircon-project-skills` with a short `SKILL.md`, `agents/openai.yaml`, and reusable PowerShell script in `scripts/capture-hub-window.ps1`.
 
 - `handle-plan-failure-handoffs`
-  Summary: Enforce durable cross-plan failure/fixed handoffs when a ZirconEngine failure belongs to another numbered child plan or a verified repair must return to its originating executor.
-  Layout: Focused child skill with a concise workflow, reusable Markdown schema, and a standard-library validator plus positive/negative fixture tests.
+  Summary: Enforce durable cross-plan failure/fixed handoffs when a ZirconEngine failure belongs to another numbered child plan or a verified repair must return to its originating executor; use the local coordinator for graph priority and transactional return while Markdown remains canonical.
+  Layout: Focused child skill with a concise workflow, reusable Markdown schema, a structured-record parser, and a standard-library validator plus positive/negative fixture tests.
+
+- `cross-session-coordination`
+  Summary: Coordinate shared-main ZirconEngine Sessions through the local service for enum state, plan ownership, Failure priority, baselines, file leases and delayed patches, with active Markdown notes retained as an offline compatibility view.
+  Layout: Focused child skill with service-first workflow guidance, a compact Session note template, and a PowerShell context reader that falls back to recursive plan/note scans.
 
 - `zr-module-boundary-discipline`
   Summary: Enforce strict single-responsibility source boundaries in `zirconEngine`. Use when Rust modules or directories start mixing multiple feature domains, root wiring files gather logic, or similar files need a folder-backed subtree instead of flat growth.

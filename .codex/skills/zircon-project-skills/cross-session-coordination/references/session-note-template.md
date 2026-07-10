@@ -5,6 +5,7 @@ Use one markdown file per active task under `.codex/sessions/`. Name it with a l
 ## Lifecycle
 
 - Scan recent `.codex/plans/` and `.codex/sessions/` activity before creating the note.
+- Start/query `tools/zircon-session.ps1`, register the Session with its numbered `docs/plans` owner, and keep enum status/heartbeat/write scope/leases in the service. This Markdown file is the offline compatibility summary.
 - Keep the note in `.codex/sessions/` only while the task is active or blocked.
 - Update the note whenever the current step, blocker set, touched modules, or related failing tests materially change.
 - Keep concrete plan output records out of the session note. Write them to the owning numbered child plan or archive according to `../../write-plan-output-records/SKILL.md`.
@@ -22,7 +23,11 @@ updated_at: 2026-04-08 03:15 +08:00
 owner: codex
 lookback_hours: 4
 related_plans:
-  - .codex/plans/example plan.md
+  - docs/plans/example/01-numbered-plan.md
+coordinator:
+  session_id: 20260408-0315-runtime-script-hot-reload
+  baseline_epoch: 1
+  claimed_paths: []
 touched_modules:
   - zircon_runtime::script
 related_tests:
@@ -49,6 +54,7 @@ related_tests:
 ## Coordination Notes
 - ...
 - State any module or test area other sessions should avoid touching blindly.
+- Record coordinator lease conflicts or queued patch IDs; do not claim a file is free based on this note alone.
 
 ## Blockers
 - None. A cross-plan `failure-*` handoff alone is not a session blocker.

@@ -14,6 +14,8 @@ related_code:
   - tools/session_coordinator/leases.py
   - tools/session_coordinator/patches.py
   - tools/session_coordinator/watch.py
+  - tools/session_coordinator/plans.py
+  - tools/session_coordinator/failures.py
   - tools/zircon-session.ps1
 implementation_files:
   - tools/session_coordinator/__main__.py
@@ -30,6 +32,8 @@ implementation_files:
   - tools/session_coordinator/leases.py
   - tools/session_coordinator/patches.py
   - tools/session_coordinator/watch.py
+  - tools/session_coordinator/plans.py
+  - tools/session_coordinator/failures.py
   - tools/zircon-session.ps1
 plan_sources:
   - user: 2026-07-11 implement local multi-Session coordination on shared main
@@ -45,6 +49,8 @@ tests:
   - tools/session_coordinator/tests/test_patches.py
   - tools/session_coordinator/tests/test_watch.py
   - tools/session_coordinator/tests/test_concurrent_writers.py
+  - tools/session_coordinator/tests/test_plans.py
+  - tools/session_coordinator/tests/test_failures.py
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -181,6 +187,40 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/session-coordina
 git diff --check -- tools/session_coordinator tools/zircon-session.ps1 tools/tests/session-coordinator-smoke.Tests.ps1
 ```
 
+## Plan Ownership and Write Guards
+
+M3 adds recursive plan discovery and write authorization:
+
+```powershell
+.\tools\zircon-session.ps1 plan audit -Json
+.\tools\zircon-session.ps1 plan owner docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
+.\tools\zircon-session.ps1 plan authorize docs/plans/zircon_runtime/frameworks/02/2026-07-11-output.md
+```
+
+`docs/plans` is the formal recursive root. `.codex/plans` remains a read-only legacy inventory. A Session registered to a numbered plan may write only below the matching numbered child directory. Ordinary business Sessions are denied for every `index.md`, `engine-code-*.md`, numbered plan-definition Markdown, sibling child directory, repository-external path and non-plan path.
+
+Maintenance is an explicit authorization flag, not an inferred role. It may update protected plan files but cannot escape `docs/plans` or the repository realpath boundary.
+
+## Failure Graph
+
+The existing handoff validator now exports structured `HandoffRecord` values. `failures.py` imports those records into SQLite schema v3 without replacing the Markdown artifacts as canonical truth.
+
+```powershell
+.\tools\zircon-session.ps1 failure import -Json
+.\tools\zircon-session.ps1 failure audit -Json
+.\tools\zircon-session.ps1 failure open docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
+```
+
+Graph diagnostics cover schema errors, duplicate lifecycles, self-edges, cycles and excessive dependency depth. Open failures sort before fixed records and then by creation date/slug. Registering a Session with a fixing plan imports current Markdown; applicable failures are returned in `open_failures` and the Session enters `resolving_failure` instead of an untyped blocked state.
+
+After architectural repair and upward validation, `failure return` requires the lifecycle key, accepted-fix date, root cause, architecture repair, validation and return summary. The service rewrites the artifact as `fixed-*`, moves it into the origin child directory, replaces both plan links with concise `fixed 已修复` relative summaries, reruns the validator, and rolls back all file changes if any write or import fails.
+
+## M3 Validation
+
+M3 tests use generated temporary plan trees. They never move or rewrite live business handoff artifacts. The real-repository M3 audit is read-only and reports concurrent invalid/in-progress artifacts as diagnostics rather than treating them as coordinator-owned fixes.
+
+The coordination context script now queries service health, indexed Session count and Failure graph first. Its offline fallback recursively scans both `docs/plans` and `.codex/plans`, correcting the previous formal-root omission.
+
 ## Follow-up Boundaries
 
-M3 will add plan owner guards and Failure graph governance. M4 will move Cargo and scheduled cleanup into managed lanes. M5 will add explicit Git finalize and stable validation copies. Until those milestones land, the M1-M2 service must not be described as enforcing plan writes, Cargo targets or final Git commits.
+M4 will move Cargo and scheduled cleanup into managed lanes. M5 will add explicit Git finalize and stable validation copies. M3 does not claim those later boundaries.

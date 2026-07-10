@@ -19,12 +19,16 @@ This policy has priority for `zirconEngine` planning, implementation, validation
 
 ## Implementation Cadence
 
+- Start or query `tools/zircon-session.ps1`, register the current Session with its numbered plan/write scope, and heartbeat while active. The coordinator status enum is canonical; free-form note status is compatibility text only.
 - Before advancing a numbered child plan, scan its `{id}/` directory for `failure-*.md`. Apply `handle-plan-failure-handoffs/SKILL.md` and resolve applicable handoffs before normal feature slices.
+- Query the Failure graph at Session start. If open failures target the registered plan, use `resolving_failure`; the source Session remains active on independent slices.
+- Claim concrete shared files before editing. If another Session owns a file, enqueue a delayed patch or advance another independent slice; never overwrite the current content.
 - During implementation slices, generate production code, unit-test code, comments, and docs as needed.
 - Unit-test code may be written during a milestone, but do not immediately compile or run it just because a slice was added.
 - For small tasks or pre-handoff confidence, use a lightweight Rust syntax/type check such as `cargo check` scoped to the affected crate or target when practical.
 - Avoid generating debug build artifacts until the milestone testing stage begins, unless a concrete blocker requires earlier debug evidence.
 - After each implementation slice is complete, immediately append exactly one row to the owning numbered child plan or its numbered output archive according to `write-plan-output-records/SKILL.md`. Do not batch-fill multiple slice records later.
+- Ask the coordinator to authorize every `docs/plans` target before the write. Global plan definitions and indexes are not business Session output targets.
 - Recount the owning child plan before every session write. If the new total exceeds 10 records, move all concrete records into `docs/plans/{plans_path}/{nn}/{date}-{summary}.md` in the same session.
 
 ## Cross-Plan Failures

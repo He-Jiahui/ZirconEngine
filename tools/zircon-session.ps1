@@ -34,14 +34,14 @@ function Start-Coordinator {
     $serveArguments = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "serve")
     Start-Process -FilePath $python -ArgumentList $serveArguments -WorkingDirectory $resolvedRepoRoot -WindowStyle Hidden | Out-Null
 
-    for ($attempt = 0; $attempt -lt 50; $attempt++) {
+    for ($attempt = 0; $attempt -lt 300; $attempt++) {
         Start-Sleep -Milliseconds 100
         & $python @((Get-BaseArguments) + @("status")) *> $null
         if ($LASTEXITCODE -eq 0) {
             return
         }
     }
-    throw "Zircon Session coordinator did not become healthy within 5 seconds."
+    throw "Zircon Session coordinator did not become healthy within 30 seconds."
 }
 
 if ($Command -eq "start") {

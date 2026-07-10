@@ -328,3 +328,11 @@ Expected: all coordinator and integration suites pass; existing handoff validato
 | M2 | M2.5 Implement watcher and reconciliation | 完成（待 M2-T） | 2026-07-11 | `watch.py` 及 server/CLI 命令：baseline init/status/diff/scan/attribute/accept、lease、snapshot preview、patch queue/status/process；外部编辑只降级并保留内容。 |
 | M2 | M2.6 Add concurrency tests | 完成（待 M2-T） | 2026-07-11 | 新增 baseline/snapshot/lease/patch/watch 与 20 轮双线程 claim tests；RED 证据：首次运行因缺少 `tools.session_coordinator.baselines` 按预期失败。 |
 | M2 | M2-T Write-conflict acceptance | 通过 | 2026-07-11 | `compileall` exit 0；完整 Python suite 21/21（含 20 轮竞争、后台 watcher、非 main 只读、单实例、即时 apply 竞态）通过；Kernel 与 LeaseAndPatch 两个 PowerShell smoke PASS；scoped diff check exit 0。 |
+| M3 | M3.1 Extract reusable handoff parser | 完成（待 M3-T） | 2026-07-11 | validator 导出 `HandoffRecord`/`parse_handoff_records` 与稳定 lifecycle key；新增结构化导入测试，原 14 项加新用例共 15/15 通过。 |
+| M3 | M3.2 Implement plan scanners and owner routing | 完成（待 M3-T） | 2026-07-11 | `plans.py`：递归正式 `docs/plans`、legacy `.codex/plans`、编号定义/子目录解析、显式 owner decision；3 项测试通过。 |
+| M3 | M3.3 Enforce protected plan paths | 完成（待 M3-T） | 2026-07-11 | 普通 Session 仅可写注册编号子目录；`index.md`、`engine-code-*`、编号定义拒绝；maintenance 显式放行但仍受仓库 realpath 边界。 |
+| M3 | M3.4 Build Failure graph | 完成（待 M3-T） | 2026-07-11 | schema v3 与 `failures.py`：Markdown 索引、稳定 lifecycle、open priority、schema diagnostics、重复/自边/环/深度治理；图测试通过。 |
+| M3 | M3.5 Implement fixed return transaction | 完成（待 M3-T） | 2026-07-11 | 临时仓库验证 failure→fixed 移动、frontmatter/result 重写、双计划相对链接/状态摘要、validator 复验；第二次原子写入注入失败时完整回滚。 |
+| M3 | M3.6 Integrate project skills | 完成（待 M3-T） | 2026-07-11 | 更新 cross-session、failure、plan-output、milestone policy、父索引/skill catalog 与递归 context reader；服务优先、Markdown canonical、离线兼容边界明确。 |
+| M3 | M3.7 Add fixtures and real-tree read-only audit | 完成（待 M3-T） | 2026-07-11 | 临时 plan/failure fixture 覆盖 protected/legacy/cycle/depth/return/rollback；真实树只读导入 130 个正式计划、126 个 legacy 文档、6 个 handoff 节点与 28 项并发 schema diagnostic，未改业务 artifact。 |
+| M3 | M3-T Plan and graph acceptance | 通过 | 2026-07-11 | `compileall` exit 0；handoff validator tests 15/15；coordinator suite 30/30；Kernel/LeaseAndPatch smoke PASS；skill quick validation PASS；scoped diff check exit 0。 |

@@ -9,6 +9,7 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
 
 - Read this parent file first instead of scanning every child skill under `zircon-project-skills`.
 - Read `milestone-first-workflow-policy.md` before planning, implementing, validating, or documenting `zirconEngine` work. It overrides generic workflows that would force per-slice compile/test loops.
+- Use `tools/zircon-session.ps1` as the local coordination entrypoint for Session enum state, numbered-plan ownership, Failure graph priority, file leases, delayed patches, baselines, and snapshots.
 - Read `architecture-overview.md` and `development-conventions.md` before starting to plan and develop.
 - Before advancing a numbered child plan, scan its `{id}/` directory for `failure-*.md`; if any exist, apply `handle-plan-failure-handoffs/SKILL.md` before normal feature work.
 - Choose the smallest child skill group that matches the task, then open only the referenced child `SKILL.md`.
@@ -43,6 +44,7 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
 - Keep this parent file short and navigational.
 - Treat this folder as a classified skill collection, not as a flat dump of unrelated repository skills.
 - Treat `milestone-first-workflow-policy.md` as the repository-level execution cadence for plans, implementation slices, validation, and docs.
+- Treat coordinator SQLite state as a local query/index layer only. Git history and canonical Markdown plans/failure artifacts remain repository truth.
 - Add new child skills only when their scope is specific enough to deserve a dedicated folder and `SKILL.md`.
 - Update this parent index whenever a child skill is added, renamed, split, merged, or materially repurposed.
 - If the child list becomes hard to scan from a shallow listing, split it into category subfolders with their own parent `SKILL.md` files instead of letting the root index bloat.

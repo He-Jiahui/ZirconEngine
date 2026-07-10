@@ -14,6 +14,7 @@ from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.server import RunningCoordinator
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.tests.helpers import init_repo
+from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 
 
 class ServerTests(unittest.TestCase):
@@ -99,6 +100,7 @@ class ServerTests(unittest.TestCase):
 
             with RunningCoordinator.start(config):
                 client = CoordinatorClient.from_runtime(config)
+                client.command("baseline.init")
                 (repo / "README.md").write_text("external\n", encoding="utf-8")
                 health = "healthy"
                 for _ in range(50):
@@ -107,6 +109,28 @@ class ServerTests(unittest.TestCase):
                         break
                     time.sleep(0.05)
             self.assertEqual("degraded", health)
+
+    def test_registration_prioritizes_open_failure_for_numbered_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            origin = fixture.add_plan("docs/plans/editor/01-editor.md")
+            fixing = fixture.add_plan("docs/plans/runtime/02-runtime.md")
+            fixture.add_handoff(origin, fixing, "provider")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+
+            with RunningCoordinator.start(config):
+                result = CoordinatorClient.from_runtime(config).command(
+                    "session.register",
+                    {
+                        "session_id": "session-a",
+                        "plan_path": fixing.path.relative_to(repo).as_posix(),
+                    },
+                )
+
+            self.assertEqual("resolving_failure", result["session"]["status"])
+            self.assertEqual(["provider"], [item["summary_slug"] for item in result["open_failures"]])
 
 
 if __name__ == "__main__":

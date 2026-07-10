@@ -41,10 +41,13 @@ Apply `../handle-plan-failure-handoffs/SKILL.md` whenever a record uses the `fai
 
 1. Identify the owning plan family under `docs/plans/{plans_path}`.
 2. Select the child plan whose numbered filename and topic own the work, such as `01-*.md` through `NN-*.md`.
-3. Append the record under that child plan's existing `## 状态与产出记录` heading or equivalent output-record heading. Preserve the local table or list schema.
-4. If no output-record heading exists, add `## 状态与产出记录` and use the repository-standard milestone/slice/status/date/evidence table.
-5. Never append a concrete record to any `index.md` or `engine-code-*.md`. Replace an existing concrete record there with the exact notice, a current-state overview, and a link to the new owner.
-6. Move records without dropping evidence, changing their status meaning, or leaving duplicate canonical copies.
+3. When the coordinator is available, register that numbered plan and run `tools/zircon-session.ps1 plan authorize <target>`. A denied decision is a routing error; do not bypass it with direct editing.
+4. Append the record under that child plan's existing `## 状态与产出记录` heading or equivalent output-record heading. Preserve the local table or list schema.
+5. If no output-record heading exists, add `## 状态与产出记录` and use the repository-standard milestone/slice/status/date/evidence table.
+6. Never append a concrete record to any `index.md` or `engine-code-*.md`. Replace an existing concrete record there with the exact notice, a current-state overview, and a link to the new owner.
+7. Move records without dropping evidence, changing their status meaning, or leaving duplicate canonical copies.
+
+The coordinator treats every `index.md`, `engine-code-*.md`, and numbered plan-definition Markdown as read-only for ordinary business Sessions. Only an explicit maintenance operation may update those files, and maintenance never relaxes the repository path boundary.
 
 Use this standard table when a child plan does not already define a compatible schema:
 

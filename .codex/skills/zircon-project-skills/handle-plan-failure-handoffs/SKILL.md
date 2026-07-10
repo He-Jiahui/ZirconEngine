@@ -15,6 +15,8 @@ Read `references/handoff-template.md` before creating or closing a handoff.
 
 Before normal feature work, scan the current numbered child-plan directory for `failure-*.md`.
 
+When the local coordinator is available, run `tools/zircon-session.ps1 failure import` followed by `failure open <fixing-plan>`. Markdown remains canonical; SQLite is only the queryable graph index.
+
 - Resolve every applicable open failure before advancing that child plan's normal features.
 - Apply `support-first-regression-testing` when an upper-layer symptom may come from shared support.
 - Fix the lowest broken shared layer and validate upward through the originating failure.
@@ -36,7 +38,7 @@ Use a handoff only for a repository failure owned by another numbered plan. Fix 
 1. Repair the architecture; do not add aliases, compatibility shims, silent fallback, test-only bypasses, duplicated truth, or one-call-site exceptions.
 2. Run focused lower-layer tests, the original reproduction, and the declared upward acceptance gate.
 3. Update the artifact to `handoff_kind: fixed`, `status: fixed`, and add `resolved_at`, root cause, changed owners, commands, and results.
-4. Move it to `docs/plans/{origin-family}/{origin-id}/fixed-{YYYY-MM-DD}-{summary}.md`. Use the accepted-fix date and preserve the summary slug.
+4. Use the coordinator `failure return` command with the stable lifecycle key and four non-empty resolution fields. It atomically moves the artifact to `docs/plans/{origin-family}/{origin-id}/fixed-{YYYY-MM-DD}-{summary}.md`, updates both relative links, and rolls back on a partial file failure.
 5. Replace the fixing plan's open entry with a concise fixed-status summary and a relative link to the moved artifact.
 6. Update the originating plan to link to the returned fixed artifact and resume its affected gate.
 
@@ -48,6 +50,7 @@ Run:
 
 ```powershell
 python .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/validate_plan_failure_handoffs.py --repo-root E:\Git\ZirconEngine
+.\tools\zircon-session.ps1 failure audit -Json
 ```
 
 Treat every reported naming, provenance, placement, duplicate, or link error as unfinished handoff work.

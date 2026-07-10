@@ -10,7 +10,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
-$planDir = Join-Path $resolvedRepoRoot '.codex\plans'
+$formalPlanDir = Join-Path $resolvedRepoRoot 'docs\plans'
+$legacyPlanDir = Join-Path $resolvedRepoRoot '.codex\plans'
 $sessionDir = Join-Path $resolvedRepoRoot '.codex\sessions'
 $cutoff = (Get-Date).AddHours(-$LookbackHours)
 $timestampFormat = 'yyyy-MM-dd HH:mm:ss zzz'
@@ -87,11 +88,34 @@ function Get-RecentPlanFiles {
     }
 
     return @(
-        Get-ChildItem -LiteralPath $DirectoryPath -File -Filter '*.md' |
+        Get-ChildItem -LiteralPath $DirectoryPath -Recurse -File -Filter '*.md' |
             Where-Object { $_.LastWriteTime -ge $CutoffTime } |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First $Limit
     )
+}
+
+function Invoke-CoordinatorJson {
+    param([string[]]$Arguments)
+
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    if ($null -eq $python) {
+        return $null
+    }
+    Push-Location $resolvedRepoRoot
+    try {
+        $raw = & $python.Source -m tools.session_coordinator --repo-root $resolvedRepoRoot --json @Arguments 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $raw) {
+            return $null
+        }
+        return ($raw -join [Environment]::NewLine) | ConvertFrom-Json
+    }
+    catch {
+        return $null
+    }
+    finally {
+        Pop-Location
+    }
 }
 
 function Get-RecentSessionFiles {
@@ -129,9 +153,35 @@ $output.Add("- Generated: $(Get-Date -Format $timestampFormat)")
 $output.Add("- Lookback window: last $LookbackHours hour(s)")
 $output.Add("- Cutoff: $($cutoff.ToString($timestampFormat))")
 $output.Add('')
+$output.Add('## Coordinator Service')
+
+$coordinatorHealth = Invoke-CoordinatorJson -Arguments @('status')
+if ($null -eq $coordinatorHealth) {
+    $output.Add('- Offline; using recursive Markdown compatibility scan.')
+}
+else {
+    $output.Add("- status=$($coordinatorHealth.status) | branch=$($coordinatorHealth.branch) | mode=$($coordinatorHealth.mode)")
+    $coordinatorSessions = Invoke-CoordinatorJson -Arguments @('session', 'list')
+    if ($null -ne $coordinatorSessions) {
+        $output.Add("- indexed Sessions: $(@($coordinatorSessions.sessions).Count)")
+    }
+    $failureAudit = Invoke-CoordinatorJson -Arguments @('failure', 'audit')
+    if ($null -ne $failureAudit) {
+        $output.Add("- Failure graph: $($failureAudit.audit.node_count) node(s), $(@($failureAudit.audit.diagnostics).Count) diagnostic(s)")
+    }
+}
+
+$output.Add('')
 $output.Add('## Recent Plans')
 
-$recentPlans = @(Get-RecentPlanFiles -DirectoryPath $planDir -CutoffTime $cutoff -Limit $MaxPlans)
+$recentPlans = @(
+    @(
+        Get-RecentPlanFiles -DirectoryPath $formalPlanDir -CutoffTime $cutoff -Limit ($MaxPlans * 2)
+        Get-RecentPlanFiles -DirectoryPath $legacyPlanDir -CutoffTime $cutoff -Limit $MaxPlans
+    ) |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First $MaxPlans
+)
 if ($recentPlans.Count -eq 0) {
     $output.Add('- No plan files updated within the lookback window.')
 }

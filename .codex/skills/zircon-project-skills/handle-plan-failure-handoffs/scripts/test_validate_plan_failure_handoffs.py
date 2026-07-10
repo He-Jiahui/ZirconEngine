@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from validate_plan_failure_handoffs import validate_repository
+from validate_plan_failure_handoffs import parse_handoff_records, validate_repository
 
 
 REQUIRED_BODY = """# Cross-plan handoff
@@ -174,6 +174,22 @@ class ValidatePlanFailureHandoffsTests(unittest.TestCase):
     def test_valid_open_failure(self) -> None:
         errors = self.validate_fixture(lambda fixture: fixture.seed())
         self.assertEqual([], errors)
+
+    def test_exports_structured_records_for_coordinator_import(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            artifact = HandoffFixture(root).seed()
+
+            records, errors = parse_handoff_records(root)
+
+            self.assertEqual([], errors)
+            self.assertEqual(1, len(records))
+            record = records[0]
+            self.assertEqual(artifact.resolve(), record.artifact_path)
+            self.assertEqual("failure", record.kind)
+            self.assertEqual("provider-lookup", record.summary_slug)
+            self.assertEqual("open", record.status)
+            self.assertTrue(record.lifecycle_key.endswith("|provider-lookup"))
 
     def test_valid_returned_fix(self) -> None:
         errors = self.validate_fixture(lambda fixture: fixture.seed(kind="fixed"))

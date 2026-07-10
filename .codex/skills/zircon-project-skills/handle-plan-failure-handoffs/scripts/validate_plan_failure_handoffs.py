@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path, PurePosixPath
 
@@ -36,6 +37,33 @@ BASE_KEYS = (
     "origin_child_dir",
     "fixing_child_dir",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class HandoffRecord:
+    artifact_path: Path
+    relative_path: str
+    kind: str
+    status: str
+    created_at: str
+    resolved_at: str | None
+    summary_slug: str
+    origin_plan: Path
+    fixing_plan: Path
+    origin_child_dir: Path
+    fixing_child_dir: Path
+    metadata: dict[str, str]
+    content: str
+
+    @property
+    def lifecycle_key(self) -> str:
+        return "|".join(
+            (
+                self.origin_plan.resolve().as_posix().casefold(),
+                self.fixing_plan.resolve().as_posix().casefold(),
+                self.summary_slug,
+            )
+        )
 
 
 def _relative(path: Path, root: Path) -> str:
@@ -178,10 +206,96 @@ def _candidate_files(root: Path) -> list[Path]:
     return sorted(candidates)
 
 
+def parse_handoff_records(root: Path) -> tuple[list[HandoffRecord], list[str]]:
+    """Return normalized handoff records for coordinator indexing.
+
+    Full schema validation remains in ``validate_repository``. This parser only
+    requires enough canonical provenance to build a stable lifecycle graph and
+    reports malformed records instead of inventing owners.
+    """
+
+    root = root.resolve()
+    records: list[HandoffRecord] = []
+    errors: list[str] = []
+    for artifact in _candidate_files(root):
+        artifact_name = _relative(artifact, root)
+        name_match = CANONICAL_NAME.match(artifact.name)
+        if not name_match:
+            errors.append(f"{artifact_name}: cannot index noncanonical handoff filename")
+            continue
+        content = artifact.read_text(encoding="utf-8")
+        metadata, metadata_errors = _parse_frontmatter(artifact, content)
+        errors.extend(_relative_error(error, root) for error in metadata_errors)
+        field_errors: list[str] = []
+        origin_plan = _repo_path(
+            metadata.get("origin_plan", ""),
+            field="origin_plan",
+            artifact=artifact,
+            root=root,
+            errors=field_errors,
+        )
+        fixing_plan = _repo_path(
+            metadata.get("fixing_plan", ""),
+            field="fixing_plan",
+            artifact=artifact,
+            root=root,
+            errors=field_errors,
+        )
+        origin_child = _repo_path(
+            metadata.get("origin_child_dir", ""),
+            field="origin_child_dir",
+            artifact=artifact,
+            root=root,
+            errors=field_errors,
+        )
+        fixing_child = _repo_path(
+            metadata.get("fixing_child_dir", ""),
+            field="fixing_child_dir",
+            artifact=artifact,
+            root=root,
+            errors=field_errors,
+        )
+        errors.extend(field_errors)
+        required_values = {
+            "status": metadata.get("status", ""),
+            "created_at": metadata.get("created_at", ""),
+            "summary_slug": metadata.get("summary_slug", ""),
+        }
+        for field, value in required_values.items():
+            if not value:
+                errors.append(f"{artifact_name}: cannot index missing field '{field}'")
+        if (
+            field_errors
+            or not all(required_values.values())
+            or origin_plan is None
+            or fixing_plan is None
+            or origin_child is None
+            or fixing_child is None
+        ):
+            continue
+        records.append(
+            HandoffRecord(
+                artifact_path=artifact.resolve(),
+                relative_path=artifact_name,
+                kind=name_match.group(1),
+                status=metadata["status"],
+                created_at=metadata["created_at"],
+                resolved_at=metadata.get("resolved_at") or None,
+                summary_slug=metadata["summary_slug"],
+                origin_plan=origin_plan.resolve(),
+                fixing_plan=fixing_plan.resolve(),
+                origin_child_dir=origin_child.resolve(),
+                fixing_child_dir=fixing_child.resolve(),
+                metadata=metadata,
+                content=content,
+            )
+        )
+    return records, errors
+
+
 def validate_repository(root: Path) -> list[str]:
     root = root.resolve()
     errors: list[str] = []
-    lifecycle_keys: dict[tuple[str, str, str], list[Path]] = {}
 
     for artifact in _candidate_files(root):
         artifact_name = _relative(artifact, root)
@@ -316,14 +430,10 @@ def validate_repository(root: Path) -> list[str]:
             fixing_plan, artifact, role="fixing", kind=kind, root=root, errors=errors
         )
 
-        if origin_plan and fixing_plan and metadata.get("summary_slug"):
-            key = (
-                origin_plan.resolve().as_posix().casefold(),
-                fixing_plan.resolve().as_posix().casefold(),
-                metadata["summary_slug"],
-            )
-            lifecycle_keys.setdefault(key, []).append(artifact)
-
+    lifecycle_keys: dict[str, list[Path]] = {}
+    records, _ = parse_handoff_records(root)
+    for record in records:
+        lifecycle_keys.setdefault(record.lifecycle_key, []).append(record.artifact_path)
     for key, artifacts in lifecycle_keys.items():
         if len(artifacts) > 1:
             paths = ", ".join(_relative(path, root) for path in artifacts)

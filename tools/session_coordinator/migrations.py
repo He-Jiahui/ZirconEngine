@@ -6,7 +6,7 @@ from sqlite3 import Connection
 from .database import Database
 
 
-LATEST_SCHEMA_VERSION = 2
+LATEST_SCHEMA_VERSION = 3
 
 
 def _migration_1(connection: Connection) -> None:
@@ -133,9 +133,45 @@ def _migration_2(connection: Connection) -> None:
     )
 
 
+def _migration_3(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE failure_nodes (
+            node_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lifecycle_key TEXT NOT NULL,
+            artifact_path TEXT NOT NULL UNIQUE,
+            kind TEXT NOT NULL CHECK (kind IN ('failure', 'fixed')),
+            status TEXT NOT NULL CHECK (status IN ('open', 'fixed')),
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            summary_slug TEXT NOT NULL,
+            origin_plan TEXT NOT NULL,
+            fixing_plan TEXT NOT NULL,
+            origin_child_dir TEXT NOT NULL,
+            fixing_child_dir TEXT NOT NULL,
+            priority INTEGER NOT NULL DEFAULT 100,
+            imported_at TEXT NOT NULL
+        );
+
+        CREATE INDEX failure_nodes_lifecycle ON failure_nodes(lifecycle_key);
+        CREATE INDEX failure_nodes_fixer_status
+            ON failure_nodes(fixing_plan, status, priority, created_at);
+
+        CREATE TABLE failure_diagnostics (
+            diagnostic_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT NOT NULL,
+            message TEXT NOT NULL,
+            paths_json TEXT NOT NULL DEFAULT '[]',
+            created_at TEXT NOT NULL
+        );
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
+    3: _migration_3,
 }
 
 

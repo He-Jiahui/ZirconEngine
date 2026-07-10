@@ -95,6 +95,30 @@ def _parser() -> argparse.ArgumentParser:
     watch = commands.add_parser("watch")
     watch_commands = watch.add_subparsers(dest="watch_command", required=True)
     watch_commands.add_parser("scan")
+
+    plan = commands.add_parser("plan")
+    plan_commands = plan.add_subparsers(dest="plan_command", required=True)
+    plan_commands.add_parser("audit")
+    plan_owner = plan_commands.add_parser("owner")
+    plan_owner.add_argument("plan_path")
+    plan_authorize = plan_commands.add_parser("authorize")
+    plan_authorize.add_argument("target_path")
+    plan_authorize.add_argument("--session-id")
+    plan_authorize.add_argument("--maintenance", action="store_true")
+
+    failure = commands.add_parser("failure")
+    failure_commands = failure.add_subparsers(dest="failure_command", required=True)
+    failure_commands.add_parser("import")
+    failure_commands.add_parser("audit")
+    failure_open = failure_commands.add_parser("open")
+    failure_open.add_argument("fixing_plan")
+    failure_return = failure_commands.add_parser("return")
+    failure_return.add_argument("lifecycle_key")
+    failure_return.add_argument("--resolved-at", required=True)
+    failure_return.add_argument("--root-cause", required=True)
+    failure_return.add_argument("--architecture-fix", required=True)
+    failure_return.add_argument("--validation", required=True)
+    failure_return.add_argument("--return-summary", required=True)
     return parser
 
 
@@ -215,6 +239,37 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             return client.command("patch.process")
     if arguments.command == "watch" and arguments.watch_command == "scan":
         return client.command("watch.scan")
+    if arguments.command == "plan":
+        if arguments.plan_command == "audit":
+            return client.command("plan.audit")
+        if arguments.plan_command == "owner":
+            return client.command("plan.owner", {"plan_path": arguments.plan_path})
+        if arguments.plan_command == "authorize":
+            return client.command(
+                "plan.authorize",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "target_path": arguments.target_path,
+                    "maintenance": arguments.maintenance,
+                },
+            )
+    if arguments.command == "failure":
+        if arguments.failure_command in {"import", "audit"}:
+            return client.command(f"failure.{arguments.failure_command}")
+        if arguments.failure_command == "open":
+            return client.command("failure.open", {"fixing_plan": arguments.fixing_plan})
+        if arguments.failure_command == "return":
+            return client.command(
+                "failure.return",
+                {
+                    "lifecycle_key": arguments.lifecycle_key,
+                    "resolved_at": arguments.resolved_at,
+                    "root_cause": arguments.root_cause,
+                    "architecture_fix": arguments.architecture_fix,
+                    "validation": arguments.validation,
+                    "return_summary": arguments.return_summary,
+                },
+            )
     raise CoordinatorClientError("invalid_command", f"Unsupported command {arguments.command}")
 
 

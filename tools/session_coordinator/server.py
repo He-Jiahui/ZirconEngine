@@ -6,8 +6,8 @@ import secrets
 import subprocess
 import threading
 import ctypes
-from dataclasses import asdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from datetime import date
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,6 +21,8 @@ from .migrations import migrate
 from .models import CoordinatorError, SessionStatus
 from .sessions import SessionService
 from .patches import PatchService, PatchStatus
+from .failures import FailureGraphService, FailureResolution
+from .plans import PlanRepository
 from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
 
@@ -63,7 +65,6 @@ class CoordinatorApplication:
         migrate(self.database)
         self.sessions = SessionService(self.database, config.repo_root)
         self.baselines = BaselineService(self.database, config.repo_root)
-        self.baselines.initialize()
         self.object_store = ObjectStore(self.database, config.object_root)
         self.snapshots = SnapshotService(
             self.database, config.repo_root, self.object_store
@@ -83,6 +84,8 @@ class CoordinatorApplication:
             self.sessions,
         )
         self.watcher = WorkspaceWatcher(self.baselines)
+        self.plans = PlanRepository(config.repo_root)
+        self.failures = FailureGraphService(self.database, config.repo_root)
         self.branch = self._branch()
 
     @property
@@ -90,16 +93,35 @@ class CoordinatorApplication:
         return self.branch != "main"
 
     def health(self) -> dict[str, Any]:
+        try:
+            baseline_health = self.baselines.current().health.value
+        except CoordinatorError as error:
+            if error.code != "baseline_missing":
+                raise
+            baseline_health = "uninitialized"
         return {
             "status": "ok",
             "branch": self.branch,
             "mode": "read_only" if self.read_only else "read_write",
             "repo_root": str(self.config.repo_root),
             "pid": os.getpid(),
+            "baseline": baseline_health,
         }
 
     def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        read_only_commands = {"session.list", "session.show"}
+        read_only_commands = {
+            "session.list",
+            "session.show",
+            "baseline.status",
+            "baseline.diff",
+            "lease.list",
+            "patch.status",
+            "patch.list",
+            "plan.audit",
+            "plan.owner",
+            "failure.audit",
+            "failure.open",
+        }
         if self.read_only and name not in read_only_commands:
             raise CoordinatorError(
                 "not_on_main",
@@ -112,7 +134,21 @@ class CoordinatorApplication:
                 plan_path=arguments.get("plan_path"),
                 write_scope=arguments.get("write_scope") or [],
             )
-            return {"session": session.to_dict()}
+            if session.plan_path:
+                self.failures.import_repository()
+                open_failures = self.failures.open_for_plan(session.plan_path)
+            else:
+                open_failures = []
+            if open_failures:
+                session = self.sessions.set_status(
+                    session.session_id,
+                    SessionStatus.RESOLVING_FAILURE,
+                    reason=f"{len(open_failures)} open failure handoff(s) require priority",
+                )
+            return {
+                "session": session.to_dict(),
+                "open_failures": [asdict(item) for item in open_failures],
+            }
         if name == "session.list":
             sessions = self.sessions.list(include_archived=bool(arguments.get("include_archived")))
             return {"sessions": [session.to_dict() for session in sessions]}
@@ -183,6 +219,45 @@ class CoordinatorApplication:
             return {"patches": [self._patch_dict(item) for item in self.patches.process_queue()]}
         if name == "watch.scan":
             return {"changes": [asdict(item) for item in self.watcher.scan_once()]}
+        if name == "plan.audit":
+            inventory = self.plans.scan()
+            return {
+                "formal_plans": [asdict(item) for item in inventory.formal_plans],
+                "legacy_documents": list(inventory.legacy_documents),
+            }
+        if name == "plan.owner":
+            return {"owner": asdict(self.plans.resolve_owner(str(arguments["plan_path"])))}
+        if name == "plan.authorize":
+            session = self.sessions.get(str(arguments["session_id"]))
+            if not session.plan_path:
+                raise CoordinatorError(
+                    "session_plan_missing", "Session must register a numbered plan before plan writes"
+                )
+            decision = self.plans.authorize_write(
+                session.plan_path,
+                str(arguments["target_path"]),
+                maintenance=bool(arguments.get("maintenance")),
+            )
+            return {"decision": asdict(decision)}
+        if name == "failure.import":
+            return {"audit": self._failure_audit_dict(self.failures.import_repository())}
+        if name == "failure.audit":
+            return {"audit": self._failure_audit_dict(self.failures.audit())}
+        if name == "failure.open":
+            nodes = self.failures.open_for_plan(str(arguments["fixing_plan"]))
+            return {"failures": [asdict(item) for item in nodes]}
+        if name == "failure.return":
+            destination = self.failures.return_fixed(
+                str(arguments["lifecycle_key"]),
+                FailureResolution(
+                    root_cause=str(arguments["root_cause"]),
+                    architecture_fix=str(arguments["architecture_fix"]),
+                    validation=str(arguments["validation"]),
+                    return_summary=str(arguments["return_summary"]),
+                ),
+                resolved_at=date.fromisoformat(str(arguments["resolved_at"])),
+            )
+            return {"fixed_artifact": destination.relative_to(self.config.repo_root).as_posix()}
         raise CoordinatorError("unknown_command", f"Unknown coordinator command {name}")
 
     @staticmethod
@@ -201,6 +276,14 @@ class CoordinatorApplication:
         result = asdict(patch)
         result["status"] = patch.status.value
         return result
+
+    @staticmethod
+    def _failure_audit_dict(audit) -> dict[str, Any]:
+        return {
+            "node_count": audit.node_count,
+            "nodes": [asdict(item) for item in audit.nodes],
+            "diagnostics": [asdict(item) for item in audit.diagnostics],
+        }
 
     def _branch(self) -> str:
         result = subprocess.run(

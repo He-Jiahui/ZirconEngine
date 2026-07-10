@@ -7,7 +7,7 @@ description: Use when working in `zirconEngine` and other recent Codex sessions 
 
 ## Overview
 
-Coordinate nearby `zirconEngine` sessions through recent plan intent, numbered child-plan failure handoffs, and live markdown state under `.codex/sessions/`.
+Coordinate nearby `zirconEngine` Sessions through the local coordinator service, numbered child-plan Failure graph, and live markdown state under `.codex/sessions/` as an offline compatibility view.
 
 ## When to Use
 
@@ -23,6 +23,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 ## Non-Negotiable Rules
 
 - Default lookback window: `4` hours unless the user says otherwise.
+- Start or query `tools/zircon-session.ps1`, register the current Session and numbered plan, and use the service as the first coordination source. Markdown notes are the offline fallback, not a competing state database.
 - Before overlap-sensitive edits or debugging, scan `.codex/plans/` and `.codex/sessions/` sorted by `LastWriteTime` descending. Freshness is mandatory.
 - Independently scan the active `docs/plans/{family}/{id}/` directory for `failure-*.md`; open handoffs do not expire with the four-hour lookback.
 - Read modification times before trusting a plan or session note. Stale notes are not active coordination signals.
@@ -38,6 +39,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 ## Workflow
 
 1. Scan recent coordination context.
+- Run `tools/zircon-session.ps1 status -Json`. When online, register the current Session with its numbered plan and declared write scope, then query `failure open <plan-path>` before ordinary work.
 - Run `scripts/Get-RecentCoordinationContext.ps1 -RepoRoot <repo> -LookbackHours 4`.
 - Review fresh plans first, then fresh session notes, then decide whether overlap exists.
 - Scan the active numbered child-plan directory for `failure-*.md`; resolve applicable handoffs before ordinary feature progress.
@@ -47,6 +49,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 - Open the recent session note when another session is actively editing or diagnosing the same area.
 
 3. Publish the current session state.
+- Keep enum status, heartbeat, plan owner, write scope and file leases in the coordinator. Use `lease claim` before editing concrete shared files; enqueue a delayed patch when another Session owns the path.
 - Create `.codex/sessions/` if it does not exist yet.
 - Copy `references/session-note-template.md` into a new note such as `.codex/sessions/20260408-0315-parser-import-cleanup.md`.
 - Record only live state: current goal, current step, touched modules, related plans/tests, blockers, and warnings for other sessions.
@@ -71,6 +74,9 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 ## Quick Commands
 
 ```powershell
+.\tools\zircon-session.ps1 start -Json
+.\tools\zircon-session.ps1 session register --plan-path docs/plans/<family>/<id>-<plan>.md --write-scope <path>
+.\tools\zircon-session.ps1 failure open docs/plans/<family>/<id>-<plan>.md
 .\.codex\skills\zircon-project-skills\cross-session-coordination\scripts\Get-RecentCoordinationContext.ps1 -RepoRoot E:\Git\ZirconEngine -LookbackHours 4
 New-Item -ItemType Directory -Force .\.codex\sessions
 ```
