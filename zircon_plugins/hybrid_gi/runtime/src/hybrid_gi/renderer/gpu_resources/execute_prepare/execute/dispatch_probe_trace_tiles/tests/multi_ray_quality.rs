@@ -6,6 +6,7 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 
 const MATRIX_SIDE: u32 = 128;
 const MATRIX_CELL_SIDE: u32 = MATRIX_SIDE / 4;
+const MATRIX_DISPLAY_EXPOSURE: u16 = 6;
 const MULTI_DIRECTION_TRACE_QUALITY_WGPU_PNG: &str =
     "plan18_hybrid_gi_multi_direction_trace_quality_wgpu_20260711.png";
 const MULTI_DIRECTION_TRACE_QUALITY_WGPU_REPORT: &str =
@@ -198,10 +199,11 @@ fn export_multi_direction_trace_quality_wgpu_png() {
     fs::write(
         output_dir.join(MULTI_DIRECTION_TRACE_QUALITY_WGPU_REPORT),
         format!(
-            "png={}\nleft=low_quality_4_direction_rays\nright=high_quality_16_direction_rays\nwidth={}\nheight={}\ngpu_output_grid=4x4_direction_target_matrix\nlow_hit_cells={}\nhigh_hit_cells={}\ndifferent_cells={}\nlow_quality_tracing_budget=8\nhigh_quality_tracing_budget=32\nlow_surface_cache_rays_per_trace_tile=4\nhigh_surface_cache_rays_per_trace_tile=16\ndirection_set=16_deterministic_axis_diagonal_and_intermediate_screen_directions\ndirectional_trace=per_direction_hzb_march_then_equal_weight_radiance_aggregation\ngpu_pipeline=trace_probe_tiles_compute+surface_cache_atlas_depth_texture_load\nvalidated_quality_expansion=high_quality_trace_tiles_sample_directions_outside_the_low_quality_quartet\nvalidated_shader_regression=9_trace_probe_tiles_shader_tests\nlumen_reference=GenerateRays_EquiAreaSphericalMapping_screen_probe_tracing_octahedron_plus_TraceScreen_ray_texel_trace\nlow_packed_rgb={:?}\nhigh_packed_rgb={:?}\n",
+            "png={}\nleft=low_quality_4_direction_rays\nright=high_quality_16_direction_rays\nwidth={}\nheight={}\ngpu_output_grid=4x4_direction_target_matrix\ndisplay_exposure={}x_uniform_rgb\nlow_hit_cells={}\nhigh_hit_cells={}\ndifferent_cells={}\nlow_quality_tracing_budget=8\nhigh_quality_tracing_budget=32\nlow_surface_cache_rays_per_trace_tile=4\nhigh_surface_cache_rays_per_trace_tile=16\ndirection_set=16_deterministic_axis_diagonal_and_intermediate_screen_directions\ndirectional_trace=per_direction_hzb_march_then_equal_weight_radiance_aggregation\ngpu_pipeline=trace_probe_tiles_compute+surface_cache_atlas_depth_texture_load\nvalidated_quality_expansion=high_quality_trace_tiles_sample_directions_outside_the_low_quality_quartet\nvalidated_shader_regression=9_trace_probe_tiles_shader_tests\nlumen_reference=GenerateRays_EquiAreaSphericalMapping_screen_probe_tracing_octahedron_plus_TraceScreen_ray_texel_trace\nlow_packed_rgb={:?}\nhigh_packed_rgb={:?}\n",
             MULTI_DIRECTION_TRACE_QUALITY_WGPU_PNG,
             MATRIX_SIDE * 2 + 1,
             MATRIX_SIDE,
+            MATRIX_DISPLAY_EXPOSURE,
             low_hit_cells,
             high_hit_cells,
             different_cells,
@@ -218,7 +220,7 @@ fn write_direction_matrix_png(path: PathBuf, low_samples: &[u32; 16], high_sampl
     for (panel_index, samples) in [low_samples, high_samples].into_iter().enumerate() {
         let panel_x = panel_index as u32 * (MATRIX_SIDE + 1);
         for (cell_index, sample) in samples.iter().enumerate() {
-            let [red, green, blue] = unpack_packed_rgb8(*sample);
+            let [red, green, blue] = unpack_packed_rgb8(*sample).map(apply_matrix_display_exposure);
             let cell_x = cell_index as u32 % 4;
             let cell_y = cell_index as u32 / 4;
             for y in 0..MATRIX_CELL_SIDE {
@@ -250,6 +252,10 @@ fn unpack_packed_rgb8(packed: u32) -> [u8; 3] {
         ((packed >> 8) & 0xff) as u8,
         ((packed >> 16) & 0xff) as u8,
     ]
+}
+
+fn apply_matrix_display_exposure(channel: u8) -> u8 {
+    (u16::from(channel) * MATRIX_DISPLAY_EXPOSURE).min(255) as u8
 }
 
 fn render_test_output_dir() -> PathBuf {
