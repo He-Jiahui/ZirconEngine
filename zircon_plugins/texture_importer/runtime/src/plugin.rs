@@ -13,9 +13,10 @@ use zircon_runtime::plugin::{
 };
 
 use crate::{
-    import_image, import_psd, import_texture_container, CONTAINER_IMPORTER_CAPABILITY,
-    IMAGE_IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID, PSD_IMPORTER_CAPABILITY, RUNTIME_CAPABILITY,
-    RUNTIME_CRATE_NAME,
+    import_cubemap_manifest, import_image, import_psd, import_texture_array_manifest,
+    import_texture_container, ARRAY_IMPORTER_CAPABILITY, CONTAINER_IMPORTER_CAPABILITY,
+    CUBEMAP_IMPORTER_CAPABILITY, IMAGE_IMPORTER_CAPABILITY, MODULE_NAME, PLUGIN_ID,
+    PSD_IMPORTER_CAPABILITY, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 
 pub const TEXTURE_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_texture_importer_dist";
@@ -54,7 +55,6 @@ impl RuntimePlugin for TextureImporterRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         for importer in asset_importer_descriptors() {
             match importer.id.as_str() {
                 "texture_importer.image" => registry
@@ -64,6 +64,12 @@ impl RuntimePlugin for TextureImporterRuntimePlugin {
                 )?,
                 "texture_importer.psd" => registry
                     .register_asset_importer(FunctionAssetImporter::new(importer, import_psd))?,
+                "texture_importer.cubemap" => registry.register_asset_importer(
+                    FunctionAssetImporter::new(importer, import_cubemap_manifest),
+                )?,
+                "texture_importer.array" => registry.register_asset_importer(
+                    FunctionAssetImporter::new(importer, import_texture_array_manifest),
+                )?,
                 "texture_importer.optional_native_container" => {
                     registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
                         importer,
@@ -86,12 +92,15 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::TextureImporter,
         RUNTIME_CRATE_NAME,
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("asset_importer")
     .with_target_modes(supported_targets())
     .with_capability(RUNTIME_CAPABILITY)
     .with_capability(IMAGE_IMPORTER_CAPABILITY)
     .with_capability(CONTAINER_IMPORTER_CAPABILITY)
     .with_capability(PSD_IMPORTER_CAPABILITY)
+    .with_capability(CUBEMAP_IMPORTER_CAPABILITY)
+    .with_capability(ARRAY_IMPORTER_CAPABILITY)
     .build()
 }
 
@@ -103,6 +112,8 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
         IMAGE_IMPORTER_CAPABILITY,
         CONTAINER_IMPORTER_CAPABILITY,
         PSD_IMPORTER_CAPABILITY,
+        CUBEMAP_IMPORTER_CAPABILITY,
+        ARRAY_IMPORTER_CAPABILITY,
     ]
 }
 
@@ -137,6 +148,10 @@ pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
         .with_required_capabilities([CONTAINER_IMPORTER_CAPABILITY]),
         descriptor("texture_importer.psd", 100, ["psd"])
             .with_required_capabilities([PSD_IMPORTER_CAPABILITY]),
+        descriptor("texture_importer.cubemap", 130, ["zcube"])
+            .with_required_capabilities([CUBEMAP_IMPORTER_CAPABILITY]),
+        descriptor("texture_importer.array", 130, ["zarray"])
+            .with_required_capabilities([ARRAY_IMPORTER_CAPABILITY]),
         descriptor(
             "texture_importer.optional_native_container",
             80,

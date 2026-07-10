@@ -1,3 +1,4 @@
+use zircon_runtime::core::framework::render::PostProcessGraphResourceNames;
 use zircon_runtime::graphics::RenderPassExecutionContext;
 use zircon_runtime::render_graph::{
     PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderGraphResourceAccessKind,
@@ -6,10 +7,13 @@ use zircon_runtime::render_graph::{
 
 mod resolve_trace_handoff;
 mod scene_depth_handoff;
+mod scene_hzb_camera_packet;
+mod scene_trace_input_packet;
 mod trace_schedule_handoff;
 
 use resolve_trace_handoff::record_resolve_trace_handoff;
 use scene_depth_handoff::record_scene_depth_handoff;
+use scene_trace_input_packet::SCENE_TRACE_INPUT_TOTAL_WORD_COUNT;
 use trace_schedule_handoff::record_trace_schedule_handoff;
 
 #[derive(Clone, Copy, Debug)]
@@ -83,15 +87,32 @@ const READ_ONLY_TEXTURE_INPUT_KINDS: &[RenderGraphResourceKind] = &[
     RenderGraphResourceKind::External,
     RenderGraphResourceKind::TransientTexture,
 ];
-const SCENE_DEPTH_RESOURCE: &str = "scene-depth";
-const HYBRID_GI_SCENE_RESOURCE: &str = "hybrid-gi-scene";
-const HYBRID_GI_TRACE_RESOURCE: &str = "hybrid-gi-trace";
-const HYBRID_GI_LIGHTING_RESOURCE: &str = "hybrid-gi-lighting";
+const SCENE_DEPTH_RESOURCE: &str = PostProcessGraphResourceNames::SCENE_DEPTH;
+const SCENE_HZB_RESOURCE: &str = PostProcessGraphResourceNames::HZB_FURTHEST;
+const SCENE_VELOCITY_RESOURCE: &str = PostProcessGraphResourceNames::SCENE_VELOCITY;
+pub(crate) const HYBRID_GI_SCENE_RESOURCE: &str = PostProcessGraphResourceNames::HYBRID_GI_SCENE;
+pub(crate) const HYBRID_GI_TRACE_RESOURCE: &str = PostProcessGraphResourceNames::HYBRID_GI_TRACE;
+const HYBRID_GI_LIGHTING_RESOURCE: &str = PostProcessGraphResourceNames::HYBRID_GI_LIGHTING;
+const HYBRID_GI_TEMPORAL_METADATA_RESOURCE: &str =
+    PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA;
+const HYBRID_GI_HISTORY_RESOURCE: &str = PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI;
+const HYBRID_GI_TEMPORAL_METADATA_HISTORY_RESOURCE: &str =
+    PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA;
+
+// Fixed packet headers and 8x8 tile records must fit even when the viewport is one pixel.
+pub(crate) const HYBRID_GI_SCENE_BUFFER_MINIMUM_SIZE_BYTES: u64 =
+    SCENE_TRACE_INPUT_TOTAL_WORD_COUNT as u64 * 4;
+pub(crate) const HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES: u64 = 512 * 4;
 
 const SCENE_PREPARE_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::any_of(
         SCENE_DEPTH_RESOURCE,
         READ_ONLY_TEXTURE_INPUT_KINDS,
+        RenderGraphResourceAccessKind::Read,
+    ),
+    ExpectedResource::new(
+        SCENE_HZB_RESOURCE,
+        RenderGraphResourceKind::TransientTexture,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
@@ -102,6 +123,11 @@ const SCENE_PREPARE_RESOURCES: &[ExpectedResource] = &[
 ];
 
 const TRACE_SCHEDULE_RESOURCES: &[ExpectedResource] = &[
+    ExpectedResource::new(
+        SCENE_HZB_RESOURCE,
+        RenderGraphResourceKind::TransientTexture,
+        RenderGraphResourceAccessKind::Read,
+    ),
     ExpectedResource::new(
         HYBRID_GI_SCENE_RESOURCE,
         RenderGraphResourceKind::TransientBuffer,
@@ -121,20 +147,50 @@ const RESOLVE_RESOURCES: &[ExpectedResource] = &[
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
+        SCENE_VELOCITY_RESOURCE,
+        RenderGraphResourceKind::TransientTexture,
+        RenderGraphResourceAccessKind::Read,
+    ),
+    ExpectedResource::new(
+        HYBRID_GI_HISTORY_RESOURCE,
+        RenderGraphResourceKind::External,
+        RenderGraphResourceAccessKind::Read,
+    ),
+    ExpectedResource::new(
+        HYBRID_GI_TEMPORAL_METADATA_HISTORY_RESOURCE,
+        RenderGraphResourceKind::External,
+        RenderGraphResourceAccessKind::Read,
+    ),
+    ExpectedResource::new(
         HYBRID_GI_LIGHTING_RESOURCE,
+        RenderGraphResourceKind::TransientTexture,
+        RenderGraphResourceAccessKind::Write,
+    ),
+    ExpectedResource::new(
+        HYBRID_GI_TEMPORAL_METADATA_RESOURCE,
         RenderGraphResourceKind::TransientTexture,
         RenderGraphResourceAccessKind::Write,
     ),
 ];
 
 const HISTORY_RESOURCES: &[ExpectedResource] = &[
-    ExpectedResource::new(
+    ExpectedResource::any_of(
         HYBRID_GI_LIGHTING_RESOURCE,
-        RenderGraphResourceKind::TransientTexture,
+        READ_ONLY_TEXTURE_INPUT_KINDS,
+        RenderGraphResourceAccessKind::Read,
+    ),
+    ExpectedResource::any_of(
+        HYBRID_GI_TEMPORAL_METADATA_RESOURCE,
+        READ_ONLY_TEXTURE_INPUT_KINDS,
         RenderGraphResourceAccessKind::Read,
     ),
     ExpectedResource::new(
-        "history-global-illumination",
+        HYBRID_GI_HISTORY_RESOURCE,
+        RenderGraphResourceKind::External,
+        RenderGraphResourceAccessKind::Write,
+    ),
+    ExpectedResource::new(
+        HYBRID_GI_TEMPORAL_METADATA_HISTORY_RESOURCE,
         RenderGraphResourceKind::External,
         RenderGraphResourceAccessKind::Write,
     ),
@@ -179,7 +235,7 @@ const HISTORY_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract 
     declared_queue: QueueLane::Graphics,
     flags: PassFlags {
         allow_culling: true,
-        has_side_effects: false,
+        has_side_effects: true,
     },
     resources: HISTORY_RESOURCES,
 };

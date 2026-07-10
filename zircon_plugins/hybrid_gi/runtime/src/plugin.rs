@@ -71,7 +71,6 @@ impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         registry.register_render_feature(render_feature_descriptor())?;
         registry.register_hybrid_gi_runtime_provider(hybrid_gi_runtime_provider_registration())?;
         for registration in render_pass_executor_registrations() {
@@ -89,6 +88,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimePluginId::HybridGi,
         "zircon_plugin_hybrid_gi_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("rendering")
     .with_target_modes([
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,

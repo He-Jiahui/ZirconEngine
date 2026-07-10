@@ -3,8 +3,7 @@ use crate::module::module_descriptor;
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::plugin::{
     ExportPackagingStrategy, PluginDistributionManifest, PluginMaturity, PluginModuleManifest,
-    PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    PluginPackageManifest, RuntimePlugin, RuntimePluginDescriptor,
 };
 
 pub const PLUGIN_ID: &str = "texture";
@@ -63,13 +62,6 @@ impl RuntimePlugin for TextureRuntimePlugin {
             ..PluginDistributionManifest::default()
         })
     }
-
-    fn register(
-        &self,
-        registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
-    }
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
@@ -79,6 +71,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Texture,
         "zircon_plugin_texture_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_target_modes([
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::EditorHost,

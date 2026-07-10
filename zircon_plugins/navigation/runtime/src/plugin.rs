@@ -80,7 +80,6 @@ impl RuntimePlugin for NavigationRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         for descriptor in navigation_component_descriptors() {
             registry.register_component(descriptor)?;
         }
@@ -99,6 +98,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Navigation,
         "zircon_plugin_navigation_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_target_modes([
         RuntimeTargetMode::ClientRuntime,
         RuntimeTargetMode::ServerRuntime,

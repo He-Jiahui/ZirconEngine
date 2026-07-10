@@ -10,7 +10,7 @@ fn surround_7_1_clip_downmixes_to_mono_without_lfe() {
             display_name: "Playback Mono Test Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 1,
-            channel_layout: SoundChannelLayout::mono(),
+            channel_layout: AudioChannelLayout::mono(),
             block_size_frames: 1,
             latency_blocks: 1,
         })
@@ -31,6 +31,6 @@ fn surround_7_1_clip_downmixes_to_mono_without_lfe() {
     let right = 0.04 + center + (0.14 * std::f32::consts::FRAC_1_SQRT_2) + (0.10 * 0.5);
 
     assert_eq!(mix.channel_count, 1);
-    assert_eq!(mix.channel_layout, SoundChannelLayout::mono());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::mono());
     assert_samples_near(&mix.samples, &[(left + right) * 0.5]);
 }

@@ -35,7 +35,7 @@ pub use provider::PluginVirtualGeometryRuntimeProvider;
 
 pub const PLUGIN_ID: &str = "virtual_geometry";
 pub const VIRTUAL_GEOMETRY_FEATURE_NAME: &str = "virtual_geometry";
-pub const VIRTUAL_GEOMETRY_MODULE_NAME: &str = "VirtualGeometryPluginModule";
+pub const VIRTUAL_GEOMETRY_MODULE_NAME: &str = "virtual_geometry.runtime";
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_PIPELINE_LABEL: &str =
     "zircon-virtual-geometry-node-cluster-cull";
 const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];

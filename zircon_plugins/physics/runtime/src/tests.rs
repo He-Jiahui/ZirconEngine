@@ -20,13 +20,24 @@ fn physics_registration_contributes_runtime_module() {
                 && system.id == PHYSICS_STEP_SYSTEM
                 && system.stage == zircon_runtime::scene::SystemStage::FixedUpdate
         }));
+    assert!(report
+        .extensions
+        .plugin_runtime_systems()
+        .any(|(owner, system)| {
+            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                && system.id == "physics.sync_to_scene"
+                && system.stage == zircon_runtime::scene::SystemStage::FixedPostUpdate
+        }));
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
-        vec![PHYSICS_SYSTEM_SET.to_string()]
+        vec!["physics.main".to_string()]
     );
     assert_eq!(
         report.package_manifest.modules[0].system_anchors,
-        vec![PHYSICS_STEP_SYSTEM.to_string()]
+        vec![
+            PHYSICS_STEP_SYSTEM.to_string(),
+            "physics.sync_to_scene".to_string(),
+        ]
     );
     assert_eq!(
         report.package_manifest.modules[0].target_modes,

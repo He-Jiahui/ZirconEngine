@@ -35,9 +35,10 @@ pub struct ParticlesRuntimePlugin {
 
 impl ParticlesRuntimePlugin {
     pub fn new() -> Self {
+        let manager = ParticlesManager::default();
         Self {
-            descriptor: runtime_plugin_descriptor(),
-            manager: ParticlesManager::default(),
+            descriptor: runtime_plugin_descriptor_with_manager(manager.clone()),
+            manager,
         }
     }
 
@@ -88,7 +89,6 @@ impl RuntimePlugin for ParticlesRuntimePlugin {
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         let runtime_owner = ParticleGpuRuntimeOwnerHandle::default();
-        registry.register_module(module_descriptor_with_manager(self.manager.clone()))?;
         registry.register_render_feature(render_feature_descriptor())?;
         for registration in
             particle_render_pass_executor_registrations_with_gpu_owner(runtime_owner.clone())
@@ -115,12 +115,17 @@ impl RuntimePlugin for ParticlesRuntimePlugin {
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
+    runtime_plugin_descriptor_with_manager(ParticlesManager::default())
+}
+
+fn runtime_plugin_descriptor_with_manager(manager: ParticlesManager) -> RuntimePluginDescriptor {
     RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Particles",
         RuntimePluginId::Particles,
         "zircon_plugin_particles_runtime",
     )
+    .with_module_descriptor(module_descriptor_with_manager(manager))
     .with_category("runtime")
     .with_maturity(PluginMaturity::Experimental)
     .with_target_modes([

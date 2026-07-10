@@ -1,6 +1,5 @@
 use crate::capability::{RUNTIME_CAPABILITIES, SOUND_RUNTIME_CAPABILITY};
 use crate::components::sound_component_descriptors;
-use crate::module::module_descriptor;
 use crate::package::attach::attach_sound_manifest_contributions;
 use crate::package::events::sound_event_catalogs;
 use crate::package::options::sound_options;
@@ -58,7 +57,6 @@ impl zircon_runtime::plugin::RuntimePlugin for SoundRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         for component in sound_component_descriptors() {
             registry.register_component(component)?;
         }

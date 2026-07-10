@@ -89,6 +89,7 @@ fn integrate_builtin_physics_steps_ignores_non_finite_body_velocity() {
 }
 
 #[test]
+#[cfg(not(feature = "backend-jolt"))]
 fn unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick() {
     let runtime = create_runtime_with_scene_and_physics();
     runtime
@@ -166,6 +167,174 @@ fn unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick() {
             },
         })
         .is_none());
+}
+
+#[test]
+#[cfg(feature = "backend-jolt")]
+fn linked_jolt_backend_ticks_scene_without_builtin_fallback() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "jolt".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    body_type: RigidBodyType::Dynamic,
+                    linear_velocity: Vec3::X,
+                    gravity_scale: 0.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        world
+            .set_collider(
+                body,
+                Some(ColliderComponent {
+                    shape: ColliderShape::Box {
+                        half_extents: Vec3::splat(0.5),
+                    },
+                    ..ColliderComponent::default()
+                }),
+            )
+            .unwrap();
+        body
+    });
+
+    tick_physics_level(&runtime, &level);
+
+    let first = level.with_world(|world| world.find_node(body).unwrap().transform);
+    assert_eq!(level.last_physics_step_plan().unwrap().steps, 1);
+    assert!(first.translation.x > 0.0);
+
+    tick_physics_level(&runtime, &level);
+    let second = level.with_world(|world| world.find_node(body).unwrap().transform);
+    assert_eq!(level.last_physics_step_plan().unwrap().steps, 1);
+    assert!(second.translation.x > first.translation.x);
+}
+
+#[test]
+fn force_applied_outside_fixed_update_lands_next_step() {
+    let runtime = create_runtime_with_scene_and_physics();
+    let manager = runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap();
+    manager
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    gravity_scale: 0.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        world
+            .set_collider(body, Some(ColliderComponent::default()))
+            .unwrap();
+        body
+    });
+
+    manager
+        .queue_body_command(PhysicsBodyCommand::ApplyForce {
+            world: level.handle(),
+            entity: body,
+            force: [60.0, 0.0, 0.0],
+        })
+        .unwrap();
+
+    let before_step = level.with_world(|world| {
+        (
+            world.find_node(body).unwrap().transform.translation,
+            world.rigid_body(body).unwrap().linear_velocity,
+        )
+    });
+    assert_eq!(before_step, (Vec3::ZERO, Vec3::ZERO));
+
+    tick_physics_level(&runtime, &level);
+
+    let after_step = level.with_world(|world| {
+        (
+            world.find_node(body).unwrap().transform.translation,
+            world.rigid_body(body).unwrap().linear_velocity,
+        )
+    });
+    assert!(after_step.0.x > 0.0);
+    assert!(after_step.1.x > 0.0);
+}
+
+#[test]
+#[cfg(feature = "backend-jolt")]
+fn jolt_queued_force_lands_on_next_fixed_step() {
+    let runtime = create_runtime_with_scene_and_physics();
+    let manager = runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap();
+    manager
+        .store_settings(PhysicsSettings {
+            backend: "jolt".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let body = level.with_world_mut(|world| {
+        let body = world.spawn_node(NodeKind::Cube);
+        world
+            .set_rigid_body(
+                body,
+                Some(RigidBodyComponent {
+                    gravity_scale: 0.0,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+        world
+            .set_collider(body, Some(ColliderComponent::default()))
+            .unwrap();
+        body
+    });
+    tick_physics_level(&runtime, &level);
+    let before_queue = level.with_world(|world| world.find_node(body).unwrap().transform);
+
+    manager
+        .queue_body_command(PhysicsBodyCommand::ApplyForce {
+            world: level.handle(),
+            entity: body,
+            force: [60.0, 0.0, 0.0],
+        })
+        .unwrap();
+    let before_step = level.with_world(|world| world.find_node(body).unwrap().transform);
+    assert_eq!(before_step, before_queue);
+
+    tick_physics_level(&runtime, &level);
+
+    let (after_step, velocity) = level.with_world(|world| {
+        (
+            world.find_node(body).unwrap().transform,
+            world.rigid_body(body).unwrap().linear_velocity,
+        )
+    });
+    assert!(after_step.translation.x > before_step.translation.x);
+    assert!(velocity.x > 0.0);
 }
 
 #[test]

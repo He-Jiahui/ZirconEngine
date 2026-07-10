@@ -1,11 +1,15 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 
-use zircon_runtime::core::framework::physics::{PhysicsMaterialMetadata, PhysicsSettings};
+use zircon_runtime::core::framework::{
+    physics::PhysicsSettings, scene::physics::PhysicsMaterialMetadata,
+};
 use zircon_runtime::core::{CoreError, CoreHandle};
 
 use crate::backend::{default_backend_name, default_simulation_mode};
 use crate::manager::DefaultPhysicsManager;
+
+use super::poison_recovery::recover_lock;
 
 impl Default for DefaultPhysicsManager {
     fn default() -> Self {
@@ -28,25 +32,32 @@ impl DefaultPhysicsManager {
             contacts: Arc::new(Mutex::new(HashMap::new())),
             trigger_pairs: Arc::new(Mutex::new(HashMap::new())),
             triggers: Arc::new(Mutex::new(HashMap::new())),
+            body_commands: Arc::new(Mutex::new(HashMap::new())),
+            last_backend_error: Arc::new(Mutex::new(None)),
+            #[cfg(feature = "backend-jolt")]
+            jolt_worlds: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     pub(crate) fn attach_core(&self, core: CoreHandle) {
         if let Ok(settings) = core.load_config(crate::PHYSICS_SETTINGS_CONFIG_KEY) {
-            *self
-                .settings
-                .lock()
-                .expect("physics settings mutex poisoned") = settings;
+            *recover_lock(&self.settings) = settings;
         }
-        *lock_core(&self.core) = Some(core);
+        *recover_lock(&self.core) = Some(core);
     }
 
     pub fn store_settings(&self, settings: PhysicsSettings) -> Result<(), CoreError> {
-        *self
-            .settings
-            .lock()
-            .expect("physics settings mutex poisoned") = settings.clone();
-        let core = lock_core(&self.core).clone();
+        let backend_changed = recover_lock(&self.settings).backend != settings.backend;
+        #[cfg(feature = "backend-jolt")]
+        if backend_changed {
+            recover_lock(&self.jolt_worlds).clear();
+        }
+        if backend_changed {
+            recover_lock(&self.body_commands).clear();
+        }
+        *recover_lock(&self.settings) = settings.clone();
+        *recover_lock(&self.last_backend_error) = None;
+        let core = recover_lock(&self.core).clone();
         if let Some(core) = core {
             core.store_config(crate::PHYSICS_SETTINGS_CONFIG_KEY, &settings)?;
         }
@@ -60,8 +71,4 @@ pub(super) fn default_settings() -> PhysicsSettings {
         simulation_mode: default_simulation_mode(),
         ..PhysicsSettings::default()
     }
-}
-
-fn lock_core(core: &Mutex<Option<CoreHandle>>) -> MutexGuard<'_, Option<CoreHandle>> {
-    core.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }

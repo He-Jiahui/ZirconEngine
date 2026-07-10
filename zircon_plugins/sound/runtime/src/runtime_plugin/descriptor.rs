@@ -12,6 +12,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimePluginId::Sound,
         "zircon_plugin_sound_runtime",
     )
+    .with_module_descriptor(crate::module::module_descriptor())
     .with_target_modes([
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,
         zircon_runtime::builtin::RuntimeTargetMode::EditorHost,

@@ -1,36 +1,26 @@
 use zircon_runtime::core::CoreError;
+use zircon_runtime::plugin::PluginEventManifest;
 use zircon_runtime::plugin::RuntimeExtensionRegistryError;
 use zircon_runtime::scene::ecs::{RuntimeSceneSystemContext, SystemRef};
 use zircon_runtime::scene::SystemStage;
-
-#[path = "scene_hook/events.rs"]
-mod events;
-#[path = "scene_hook/graph.rs"]
-mod graph;
-#[path = "scene_hook/node_pose.rs"]
-mod node_pose;
-#[path = "scene_hook/pending.rs"]
-mod pending;
-#[path = "scene_hook/pose.rs"]
-mod pose;
-#[path = "scene_hook/scan.rs"]
-mod scan;
-#[path = "scene_hook/sequences.rs"]
-mod sequences;
-#[path = "scene_hook/state_machine.rs"]
-mod state_machine;
-#[path = "scene_hook/tick.rs"]
-mod tick;
 
 #[derive(Clone, Debug, Default)]
 pub struct AnimationRuntimeSystem;
 
 pub const ANIMATION_SYSTEM_SET: &str = "animation.evaluation";
 pub const ANIMATION_EVALUATE_SYSTEM: &str = "animation.evaluate";
+pub const ANIMATION_EVALUATION_DIAGNOSTIC_EVENT: &str = "animation.events.evaluation_diagnostic";
+pub const ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA: &str = "animation.evaluation_diagnostic.v1";
 
 pub fn register_runtime_system(
     module: &mut zircon_plugin_sdk::RuntimePluginModuleRegistration<'_>,
 ) -> Result<(), RuntimeExtensionRegistryError> {
+    module.event::<crate::AnimationEvaluationDiagnostic>(PluginEventManifest {
+        id: ANIMATION_EVALUATION_DIAGNOSTIC_EVENT.to_string(),
+        display_name: "Animation Evaluation Diagnostic".to_string(),
+        payload_schema: ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA.to_string(),
+    })?;
+    module.resource(crate::AnimationEvaluationPipeline::default)?;
     module
         .runtime_scene_system(
             ANIMATION_EVALUATE_SYSTEM,
@@ -45,6 +35,6 @@ pub fn register_runtime_system(
 }
 
 fn run_animation_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
-    tick::tick_animation_world(context.core, context.level, context.delta_seconds);
+    crate::evaluation::tick_animation_world(context.core, context.level, context.delta_seconds);
     Ok(())
 }

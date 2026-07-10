@@ -10,6 +10,6 @@ fn sound_manager_projects_preserved_config_options() {
     let mix = sound.render_mix(1).unwrap();
     assert_eq!(mix.sample_rate_hz, 44_100);
     assert_eq!(mix.channel_count, 6);
-    assert_eq!(mix.channel_layout, SoundChannelLayout::surround_5_1());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::surround_5_1());
     assert_eq!(mix.samples, vec![0.0; 6]);
 }

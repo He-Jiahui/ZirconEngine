@@ -4,12 +4,15 @@ use wgpu::util::DeviceExt;
 
 use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 use super::scene_prepare_descriptors::persisted_surface_cache_page_has_present_sample;
+use super::surface_cache_depth_hierarchy::{
+    build_surface_cache_depth_hierarchy, surface_cache_depth_hierarchy_mip_level_count,
+    SURFACE_CACHE_DEPTH_HIERARCHY_FORMAT,
+};
 use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
 use zircon_runtime::core::math::Vec3;
 
 const SURFACE_CACHE_DEPTH_TILE_EXTENT: u32 = 64;
 const SURFACE_CACHE_DEPTH_ATLAS_COLUMNS: u32 = 8;
-const SURFACE_CACHE_DEPTH_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 const SURFACE_CACHE_DEPTH_BYTES_PER_PIXEL: u32 = 4;
 const SURFACE_CACHE_DEPTH_SAMPLE_READBACK_BYTES_PER_ROW: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
 
@@ -44,13 +47,22 @@ pub(super) fn scene_prepare_surface_cache_depth_resources(
 
     let atlas_extent = snapshot.atlas_texture_extent();
     let depth_rgba = surface_cache_depth_texture_rgba(snapshot);
-    let (depth_texture, depth_view) = create_surface_cache_depth_texture(device, atlas_extent);
+    let mip_level_count = surface_cache_depth_hierarchy_mip_level_count(atlas_extent);
+    let (depth_texture, depth_view) =
+        create_surface_cache_depth_texture(device, atlas_extent, mip_level_count);
     let depth_upload_buffer = create_depth_texture_upload_buffer(
         device,
         "zircon-hybrid-gi-scene-prepare-surface-cache-depth-upload",
         &depth_rgba,
     );
     upload_depth_texture_rgba(encoder, &depth_upload_buffer, atlas_extent, &depth_texture);
+    build_surface_cache_depth_hierarchy(
+        device,
+        encoder,
+        &depth_texture,
+        atlas_extent,
+        mip_level_count,
+    );
     let depth_slot_sample_buffers = snapshot
         .surface_cache_depth_rgba_samples()
         .iter()
@@ -163,6 +175,7 @@ fn surface_cache_depth_texture_rgba(snapshot: &HybridGiScenePrepareResourcesSnap
 fn create_surface_cache_depth_texture(
     device: &wgpu::Device,
     extent: (u32, u32),
+    mip_level_count: u32,
 ) -> (wgpu::Texture, wgpu::TextureView) {
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("zircon-hybrid-gi-scene-prepare-surface-cache-depth"),
@@ -171,14 +184,15 @@ fn create_surface_cache_depth_texture(
             height: extent.1,
             depth_or_array_layers: 1,
         },
-        mip_level_count: 1,
+        mip_level_count,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
-        format: SURFACE_CACHE_DEPTH_TEXTURE_FORMAT,
+        format: SURFACE_CACHE_DEPTH_HIERARCHY_FORMAT,
         usage: wgpu::TextureUsages::COPY_DST
             | wgpu::TextureUsages::COPY_SRC
             | wgpu::TextureUsages::TEXTURE_BINDING
-            | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            | wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::STORAGE_BINDING,
         view_formats: &[],
     });
     let view = texture.create_view(&wgpu::TextureViewDescriptor {

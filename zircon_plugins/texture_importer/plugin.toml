@@ -12,6 +12,8 @@ capabilities = [
     "runtime.asset.importer.texture.image",
     "runtime.asset.importer.texture.container",
     "runtime.asset.importer.texture.psd",
+    "runtime.asset.importer.texture.cubemap",
+    "runtime.asset.importer.texture.array",
 ]
 maturity = "stable"
 asset_roots = []
@@ -76,6 +78,24 @@ importer_version = 1
 required_capabilities = ["runtime.asset.importer.texture.psd"]
 
 [[asset_importers]]
+id = "texture_importer.cubemap"
+plugin_id = "texture_importer"
+priority = 130
+source_extensions = ["zcube"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.cubemap"]
+
+[[asset_importers]]
+id = "texture_importer.array"
+plugin_id = "texture_importer"
+priority = 130
+source_extensions = ["zarray"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.array"]
+
+[[asset_importers]]
 id = "texture_importer.optional_native_container"
 plugin_id = "texture_importer"
 priority = 80
@@ -94,6 +114,8 @@ capabilities = [
     "runtime.asset.importer.texture.image",
     "runtime.asset.importer.texture.container",
     "runtime.asset.importer.texture.psd",
+    "runtime.asset.importer.texture.cubemap",
+    "runtime.asset.importer.texture.array",
 ]
 
 [[modules]]
@@ -106,4 +128,6 @@ capabilities = [
     "runtime.asset.importer.texture.image",
     "runtime.asset.importer.texture.container",
     "runtime.asset.importer.texture.psd",
+    "runtime.asset.importer.texture.cubemap",
+    "runtime.asset.importer.texture.array",
 ]

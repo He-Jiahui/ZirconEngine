@@ -1,11 +1,11 @@
-use zircon_runtime::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
+use zircon_runtime::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 
 use super::stereo::stereo_downmix_sample;
 use super::weights::STEREO_TO_MONO_GAIN;
 
 pub(super) fn mono_source_sample_for_output(
     sample: f32,
-    output_layout: &SoundChannelLayout,
+    output_layout: &AudioChannelLayout,
     output_channel: usize,
 ) -> f32 {
     let Some(output_speaker) = output_layout.speakers.get(output_channel).copied() else {
@@ -13,22 +13,22 @@ pub(super) fn mono_source_sample_for_output(
     };
     let has_front_center = output_layout
         .speakers
-        .contains(&SoundSpeakerChannel::FrontCenter);
+        .contains(&AudioSpeakerChannel::FrontCenter);
     if has_front_center {
-        (output_speaker == SoundSpeakerChannel::FrontCenter)
+        (output_speaker == AudioSpeakerChannel::FrontCenter)
             .then_some(sample)
             .unwrap_or_default()
     } else {
         matches!(
             output_speaker,
-            SoundSpeakerChannel::FrontLeft | SoundSpeakerChannel::FrontRight
+            AudioSpeakerChannel::FrontLeft | AudioSpeakerChannel::FrontRight
         )
         .then_some(sample)
         .unwrap_or_default()
     }
 }
 
-pub(super) fn mono_downmix(source_frame: &[f32], source_layout: &SoundChannelLayout) -> f32 {
+pub(super) fn mono_downmix(source_frame: &[f32], source_layout: &AudioChannelLayout) -> f32 {
     if let [sample] = source_frame {
         return *sample;
     }
@@ -38,9 +38,9 @@ pub(super) fn mono_downmix(source_frame: &[f32], source_layout: &SoundChannelLay
     stereo_fold_down(source_frame, source_layout) * STEREO_TO_MONO_GAIN
 }
 
-fn stereo_fold_down(source_frame: &[f32], source_layout: &SoundChannelLayout) -> f32 {
-    stereo_downmix_sample(source_frame, source_layout, SoundSpeakerChannel::FrontLeft)
-        + stereo_downmix_sample(source_frame, source_layout, SoundSpeakerChannel::FrontRight)
+fn stereo_fold_down(source_frame: &[f32], source_layout: &AudioChannelLayout) -> f32 {
+    stereo_downmix_sample(source_frame, source_layout, AudioSpeakerChannel::FrontLeft)
+        + stereo_downmix_sample(source_frame, source_layout, AudioSpeakerChannel::FrontRight)
 }
 
 fn average(samples: &[f32]) -> f32 {

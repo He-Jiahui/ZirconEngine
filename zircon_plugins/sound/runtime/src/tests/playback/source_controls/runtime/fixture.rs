@@ -15,7 +15,7 @@ impl RuntimeSourceControlFixture {
                 display_name: "Source Controls Test Output".to_string(),
                 sample_rate_hz: 10,
                 channel_count: 2,
-                channel_layout: SoundChannelLayout::stereo(),
+                channel_layout: AudioChannelLayout::stereo(),
                 block_size_frames: 1,
                 latency_blocks: 1,
             })

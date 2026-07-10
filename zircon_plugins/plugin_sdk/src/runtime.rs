@@ -1,5 +1,5 @@
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
-use zircon_runtime::core::{InitLevel, ModuleDependencySpec};
+use zircon_runtime::core::{InitLevel, ModuleDependencySpec, ModuleDescriptor};
 use zircon_runtime::plugin::{
     CapabilityStatusManifest, ExportPackagingStrategy, PluginFeatureBundleManifest, PluginMaturity,
     PluginPackageManifest, RuntimePluginDescriptor, RuntimePluginDescriptorBuilder,
@@ -52,6 +52,11 @@ impl RuntimePluginDeclaration {
 
     pub fn with_init_level(mut self, init_level: InitLevel) -> Self {
         self.builder = self.builder.with_init_level(init_level);
+        self
+    }
+
+    pub fn with_module_descriptor(mut self, descriptor: ModuleDescriptor) -> Self {
+        self.builder = self.builder.with_module_descriptor(descriptor);
         self
     }
 

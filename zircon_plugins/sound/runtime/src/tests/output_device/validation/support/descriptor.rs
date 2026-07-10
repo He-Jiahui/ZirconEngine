@@ -3,7 +3,7 @@ use super::super::super::super::*;
 pub(super) fn software_test_descriptor(
     id: &str,
     display_name: &str,
-    channel_layout: SoundChannelLayout,
+    channel_layout: AudioChannelLayout,
     channel_count: u16,
     block_size_frames: usize,
 ) -> SoundOutputDeviceDescriptor {

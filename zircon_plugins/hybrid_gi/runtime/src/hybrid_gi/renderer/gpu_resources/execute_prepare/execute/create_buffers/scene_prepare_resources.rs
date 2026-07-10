@@ -23,6 +23,7 @@ pub(super) fn scene_prepare_resources(
     encoder: &mut wgpu::CommandEncoder,
     streamer: &impl HybridGiMaterialCaptureSource,
     inputs: &HybridGiPrepareExecutionInputs,
+    tracing_budget: Option<u32>,
 ) -> Option<HybridGiPrepareScenePrepareResources> {
     let has_present_surface_cache_page_content = inputs
         .scene_surface_cache_page_contents
@@ -66,7 +67,7 @@ pub(super) fn scene_prepare_resources(
     store_scene_prepare_voxel_resource_samples(&mut snapshot, streamer, inputs);
     store_scene_prepare_texture_samples(&mut snapshot, streamer, inputs);
     store_scene_prepare_surface_cache_depth_samples(&mut snapshot, inputs);
-    store_scene_prepare_probe_trace_tiles(&mut snapshot, inputs);
+    store_scene_prepare_probe_trace_tiles(&mut snapshot, inputs, tracing_budget);
     let ScenePrepareTextureResources {
         atlas_texture,
         atlas_view,

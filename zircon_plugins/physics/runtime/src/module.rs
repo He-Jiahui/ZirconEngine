@@ -9,9 +9,9 @@ use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, Engi
 
 use crate::DefaultPhysicsManager;
 
-pub const PHYSICS_MODULE_NAME: &str = "PhysicsModule";
-pub const PHYSICS_DRIVER_NAME: &str = "PhysicsModule.Driver.PhysicsDriver";
-pub const DEFAULT_PHYSICS_MANAGER_NAME: &str = "PhysicsModule.Manager.DefaultPhysicsManager";
+pub const PHYSICS_MODULE_NAME: &str = "physics.runtime";
+pub const PHYSICS_DRIVER_NAME: &str = "physics.runtime.Driver.PhysicsDriver";
+pub const DEFAULT_PHYSICS_MANAGER_NAME: &str = "physics.runtime.Manager.DefaultPhysicsManager";
 
 #[derive(Clone, Debug, Default)]
 pub struct PhysicsDriver;

@@ -1,13 +1,17 @@
-use zircon_runtime::graphics::{
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
-    RenderPassExecutorRegistration, RenderPassStage,
-};
-use zircon_runtime::render_graph::QueueLane;
+use zircon_runtime::graphics::RenderFeatureDescriptor;
 
 mod capability;
+mod capture;
 mod plugin;
 
 pub use capability::{EDITOR_CAPABILITY, RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY};
+pub use capture::{
+    capture_and_persist_reflection_probe, ReflectionProbeCaptureError, ReflectionProbeCaptureFace,
+    ReflectionProbeCaptureFaceView, ReflectionProbeCaptureQuality, ReflectionProbeCaptureReport,
+    ReflectionProbeCaptureRequest, ReflectionProbeCaptureRequestError,
+    ReflectionProbeCaptureStorageTransform, REFLECTION_PROBE_CAPTURE_FACE_VIEWS,
+    REFLECTION_PROBE_CAPTURE_REQUEST_SCHEMA_VERSION,
+};
 pub use plugin::{
     feature_manifest, plugin_feature_registration, runtime_plugin_feature,
     RenderingReflectionProbesRuntimeFeature,
@@ -15,8 +19,6 @@ pub use plugin::{
 
 pub const FEATURE_ID: &str = "rendering.reflection_probes";
 pub const FEATURE_NAME: &str = "reflection_probes";
-pub const EXECUTOR_ID: &str = "lighting.reflection-probes";
-
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         FEATURE_NAME,
@@ -26,23 +28,8 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             "post_process".to_string(),
         ],
         Vec::new(),
-        vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::PostProcess,
-            "reflection-probe-composite",
-            QueueLane::Graphics,
-        )
-        .with_executor_id(EXECUTOR_ID)
-        .read_texture("scene-color")
-        .write_texture("scene-color")],
+        Vec::new(),
     )
-}
-
-pub fn render_pass_executor_registration() -> RenderPassExecutorRegistration {
-    RenderPassExecutorRegistration::new(EXECUTOR_ID, noop_render_executor)
-}
-
-fn noop_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-    Ok(())
 }
 
 #[cfg(test)]
@@ -50,14 +37,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reflection_probes_feature_keeps_post_process_order_slot() {
+    fn reflection_probes_feature_has_no_unrequested_capture_or_composite_pass() {
         let report = plugin_feature_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
         assert!(report.manifest.enabled_by_default);
-        assert_eq!(
-            report.extensions.render_features()[0].stage_passes[0].pass_name,
-            "reflection-probe-composite"
-        );
+        assert!(report.extensions.render_features()[0]
+            .stage_passes
+            .is_empty());
+        assert!(report.extensions.render_pass_executors().is_empty());
     }
 }

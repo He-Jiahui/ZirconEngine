@@ -1,3 +1,0 @@
-mod encode_hybrid_gi_trace_region_screen_data;
-mod hybrid_gi_trace_region_intensity;
-mod hybrid_gi_trace_region_rt_lighting;

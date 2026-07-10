@@ -10,9 +10,9 @@ use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, Engi
 
 use super::{DefaultSoundManager, SoundDriver};
 
-pub const SOUND_MODULE_NAME: &str = "SoundModule";
-pub const SOUND_DRIVER_NAME: &str = "SoundModule.Driver.SoundDriver";
-pub(crate) const DEFAULT_SOUND_MANAGER_NAME: &str = "SoundModule.Manager.DefaultSoundManager";
+pub const SOUND_MODULE_NAME: &str = "sound.runtime";
+pub const SOUND_DRIVER_NAME: &str = "sound.runtime.Driver.SoundDriver";
+pub(crate) const DEFAULT_SOUND_MANAGER_NAME: &str = "sound.runtime.Manager.DefaultSoundManager";
 pub const SOUND_MANAGER_NAME: &str = zircon_runtime::core::manager::SOUND_MANAGER_NAME;
 
 #[derive(Clone, Copy, Debug, Default)]

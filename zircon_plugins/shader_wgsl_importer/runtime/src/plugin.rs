@@ -51,7 +51,6 @@ impl RuntimePlugin for ShaderWgslImporterRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         for importer in asset_importer_descriptors() {
             registry.register_asset_importer(FunctionAssetImporter::new(importer, import_wgsl))?;
         }
@@ -66,6 +65,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::ShaderWgslImporter,
         RUNTIME_CRATE_NAME,
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("asset_importer")
     .with_target_modes(supported_targets())
     .with_capability(RUNTIME_CAPABILITY)

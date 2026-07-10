@@ -1,8 +1,8 @@
 use super::common::*;
 use crate::container::support::{
     DDSCAPS2_CUBEMAP, DDSCAPS2_CUBEMAP_NEGATIVEX, DDSCAPS2_CUBEMAP_POSITIVEX, DDSCAPS_MIPMAP,
-    DDSCAPS_TEXTURE, DDSD_LINEARSIZE, DDSD_REQUIRED_FLAGS, DDS_DIMENSION_TEXTURE2D,
-    DDS_RESOURCE_MISC_TEXTURECUBE,
+    DDSCAPS_TEXTURE, DDSD_LINEARSIZE, DDSD_MIPMAPCOUNT, DDSD_REQUIRED_FLAGS,
+    DDS_DIMENSION_TEXTURE2D, DDS_RESOURCE_MISC_TEXTURECUBE,
 };
 use zircon_runtime::asset::{ImportedAsset, TexturePayload};
 use zircon_runtime::core::framework::render::RenderImageDimension;
@@ -34,6 +34,55 @@ fn dds_container_importer_preserves_compressed_payload() {
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
+}
+
+#[test]
+fn dds_container_importer_accepts_cmft_numeric_rgba16f_fourcc() {
+    let imported = import_container_fixture("cmft-environment.dds", cmft_rgba16f_cubemap_bytes());
+
+    match imported {
+        ImportedAsset::Texture(texture) => match texture.payload {
+            TexturePayload::Container {
+                format,
+                mip_count,
+                array_layers,
+                ..
+            } => {
+                assert_eq!(format, "dds/D3DFMT-113");
+                assert_eq!(mip_count, 3);
+                assert_eq!(array_layers, 6);
+            }
+            other => panic!("unexpected texture payload: {other:?}"),
+        },
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+}
+
+fn cmft_rgba16f_cubemap_bytes() -> Vec<u8> {
+    let mut bytes = vec![0_u8; 128];
+    bytes[0..4].copy_from_slice(b"DDS ");
+    write_u32(&mut bytes, 4, 124);
+    write_u32(
+        &mut bytes,
+        8,
+        DDSD_REQUIRED_FLAGS | DDSD_MIPMAPCOUNT | 0x0000_0008,
+    );
+    write_u32(&mut bytes, 12, 4);
+    write_u32(&mut bytes, 16, 4);
+    write_u32(&mut bytes, 20, 32);
+    write_u32(&mut bytes, 28, 3);
+    write_u32(&mut bytes, 76, 32);
+    write_u32(&mut bytes, 80, 0x0000_0004);
+    write_u32(&mut bytes, 84, 113);
+    write_u32(&mut bytes, 88, 64);
+    write_u32(
+        &mut bytes,
+        108,
+        DDSCAPS_TEXTURE | DDSCAPS_MIPMAP | 0x0000_0008,
+    );
+    write_u32(&mut bytes, 112, 0x0000_fe00);
+    bytes.resize(128 + 6 * (4 * 4 + 2 * 2 + 1) * 8, 0);
+    bytes
 }
 
 #[test]

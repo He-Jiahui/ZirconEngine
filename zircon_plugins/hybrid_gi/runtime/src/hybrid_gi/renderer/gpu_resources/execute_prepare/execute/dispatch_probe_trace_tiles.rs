@@ -1,12 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
-use zircon_runtime::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderPointLightSnapshot, RenderSpotLightSnapshot,
-};
 
 use crate::hybrid_gi::types::HybridGiPrepareFrame;
 
-use super::super::scene_light_seed::scene_light_seed;
 use super::hybrid_gi_prepare_execution_buffers::HybridGiPrepareExecutionBuffers;
 use super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 
@@ -27,8 +23,6 @@ struct ProbeTraceTileDispatchParams {
     surface_cache_atlas_columns: u32,
     surface_cache_tile_extent: u32,
     scene_prepare_descriptor_count: u32,
-    scene_light_seed_rgb: u32,
-    scene_light_strength_q: u32,
     _pad0: u32,
 }
 
@@ -66,9 +60,6 @@ pub(super) fn dispatch_probe_trace_tiles(
     buffers: &HybridGiPrepareExecutionBuffers,
     inputs: &HybridGiPrepareExecutionInputs,
     prepare: &HybridGiPrepareFrame,
-    directional_lights: &[RenderDirectionalLightSnapshot],
-    point_lights: &[RenderPointLightSnapshot],
-    spot_lights: &[RenderSpotLightSnapshot],
     probe_budget: Option<u32>,
 ) {
     let Some(scene_prepare_resources) = buffers.scene_prepare_resources.as_ref() else {
@@ -91,7 +82,6 @@ pub(super) fn dispatch_probe_trace_tiles(
     }
 
     let surface_cache_params = probe_trace_tile_surface_cache_params(scene_prepare_resources);
-    let scene_light_seed = scene_light_seed(directional_lights, point_lights, spot_lights);
     let fallback_surface_cache = if scene_prepare_resources.atlas_view.is_some()
         && scene_prepare_resources.surface_cache_depth_view.is_some()
     {
@@ -112,15 +102,13 @@ pub(super) fn dispatch_probe_trace_tiles(
         .as_ref()
         .or_else(|| fallback_surface_cache.map(|fallback| &fallback.depth_view))
         .expect("probe trace tile fallback depth view must exist");
-    let params_buffer = create_probe_trace_tile_dispatch_params_buffer_with_scene_light_seed(
+    let params_buffer = create_probe_trace_tile_dispatch_params_buffer(
         device,
         inputs.resident_probe_inputs.len() as u32,
         completed_probe_count,
         scene_prepare_resources.probe_trace_tile_record_count as u32,
         surface_cache_params,
         buffers.scene_prepare_descriptor_count as u32,
-        scene_light_seed.packed_rgb,
-        scene_light_seed.strength_q,
     );
     let bind_group_layout = create_probe_trace_tile_dispatch_bind_group_layout(device);
     let pipeline = create_probe_trace_tile_dispatch_pipeline(device, &bind_group_layout);
@@ -229,28 +217,6 @@ fn create_probe_trace_tile_dispatch_params_buffer(
     surface_cache_params: ProbeTraceTileSurfaceCacheParams,
     scene_prepare_descriptor_count: u32,
 ) -> wgpu::Buffer {
-    create_probe_trace_tile_dispatch_params_buffer_with_scene_light_seed(
-        device,
-        resident_probe_count,
-        completed_probe_count,
-        tile_count,
-        surface_cache_params,
-        scene_prepare_descriptor_count,
-        0x00ff_ffff,
-        255,
-    )
-}
-
-fn create_probe_trace_tile_dispatch_params_buffer_with_scene_light_seed(
-    device: &wgpu::Device,
-    resident_probe_count: u32,
-    completed_probe_count: u32,
-    tile_count: u32,
-    surface_cache_params: ProbeTraceTileSurfaceCacheParams,
-    scene_prepare_descriptor_count: u32,
-    scene_light_seed_rgb: u32,
-    scene_light_strength_q: u32,
-) -> wgpu::Buffer {
     device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-hybrid-gi-probe-trace-tile-dispatch-params"),
         contents: bytemuck::bytes_of(&ProbeTraceTileDispatchParams {
@@ -263,8 +229,6 @@ fn create_probe_trace_tile_dispatch_params_buffer_with_scene_light_seed(
             surface_cache_atlas_columns: surface_cache_params.atlas_columns,
             surface_cache_tile_extent: surface_cache_params.tile_extent,
             scene_prepare_descriptor_count,
-            scene_light_seed_rgb,
-            scene_light_strength_q,
             _pad0: 0,
         }),
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,

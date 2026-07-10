@@ -13,7 +13,7 @@ fn external_audio_source_clear_reports_unknown_and_clears_existing_blocks() {
     sound
         .submit_external_source_block(
             handle.clone(),
-            SoundExternalSourceBlock::new(48_000, SoundChannelLayout::mono(), vec![0.75]),
+            SoundExternalSourceBlock::new(48_000, AudioChannelLayout::mono(), vec![0.75]),
         )
         .unwrap();
     sound.clear_external_source(&handle).unwrap();

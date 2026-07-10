@@ -1,6 +1,6 @@
 use super::validation::assert_complete_frames;
 use zircon_runtime::asset::{AssetUri, SoundAsset};
-use zircon_runtime::core::framework::sound::SoundChannelLayout;
+use zircon_runtime::core::framework::audio::AudioChannelLayout;
 
 pub(in crate::tests) fn test_clip(uri: &str, mono_samples: &[f32]) -> SoundAsset {
     test_clip_with_rate(uri, 48_000, mono_samples)
@@ -14,7 +14,7 @@ pub(in crate::tests) fn test_clip_with_rate(
     test_clip_with_layout(
         uri,
         sample_rate_hz,
-        SoundChannelLayout::mono(),
+        AudioChannelLayout::mono(),
         mono_samples,
     )
 }
@@ -27,7 +27,7 @@ pub(in crate::tests) fn test_stereo_clip_with_rate(
     test_clip_with_layout(
         uri,
         sample_rate_hz,
-        SoundChannelLayout::stereo(),
+        AudioChannelLayout::stereo(),
         stereo_samples,
     )
 }
@@ -41,7 +41,7 @@ pub(in crate::tests) fn test_clip_with_channels(
     test_clip_with_layout(
         uri,
         sample_rate_hz,
-        SoundChannelLayout::for_channel_count(channel_count),
+        AudioChannelLayout::for_channel_count(channel_count),
         samples,
     )
 }
@@ -49,7 +49,7 @@ pub(in crate::tests) fn test_clip_with_channels(
 pub(in crate::tests) fn test_clip_with_layout(
     uri: &str,
     sample_rate_hz: u32,
-    channel_layout: SoundChannelLayout,
+    channel_layout: AudioChannelLayout,
     samples: &[f32],
 ) -> SoundAsset {
     let channel_count = channel_layout.channel_count;

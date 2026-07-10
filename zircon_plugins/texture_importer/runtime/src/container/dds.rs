@@ -562,6 +562,13 @@ fn fourcc_string(
     if bytes.iter().all(|byte| *byte == 0) {
         return Ok(None);
     }
+    let &[byte0, byte1, byte2, byte3] = bytes else {
+        return parse_error(context, "dds fourcc must contain exactly four bytes");
+    };
+    let numeric_format = u32::from_le_bytes([byte0, byte1, byte2, byte3]);
+    if matches!(numeric_format, 36 | 113 | 116) {
+        return Ok(Some(format!("D3DFMT-{numeric_format}")));
+    }
     if bytes.contains(&0) {
         return parse_error(context, "dds fourcc must not contain embedded NUL bytes");
     }
@@ -571,7 +578,5 @@ fn fourcc_string(
     {
         return parse_error(context, "dds fourcc must contain printable ASCII bytes");
     }
-    let fourcc =
-        std::str::from_utf8(bytes).expect("DDS FourCC bytes were checked as printable ASCII");
-    Ok(Some(fourcc.to_string()))
+    Ok(Some(bytes.iter().map(|byte| char::from(*byte)).collect()))
 }

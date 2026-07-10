@@ -15,6 +15,14 @@ fn package_declares_texture_importers() {
         .asset_importers
         .iter()
         .any(|importer| importer.source_extensions.contains(&"ktx2".to_string())));
+    assert!(manifest
+        .asset_importers
+        .iter()
+        .any(|importer| importer.id == "texture_importer.cubemap"));
+    assert!(manifest
+        .asset_importers
+        .iter()
+        .any(|importer| importer.id == "texture_importer.array"));
 }
 
 #[test]
@@ -67,5 +75,5 @@ fn registration_contributes_module_and_importers() {
         .modules()
         .iter()
         .any(|module| module.name == MODULE_NAME));
-    assert_eq!(report.extensions.asset_importers().descriptors().len(), 4);
+    assert_eq!(report.extensions.asset_importers().descriptors().len(), 6);
 }

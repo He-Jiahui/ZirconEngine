@@ -1,5 +1,5 @@
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
-use zircon_runtime::plugin::{ProjectPluginManifest, ProjectPluginSelection};
+use zircon_runtime::plugin::{PluginModuleKind, ProjectPluginManifest, ProjectPluginSelection};
 
 #[test]
 fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugins() {
@@ -111,6 +111,24 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
             "{} provider emitted diagnostics: {:?}",
             report.package_manifest.id,
             report.diagnostics
+        );
+        let runtime_module_names = report
+            .package_manifest
+            .modules
+            .iter()
+            .filter(|module| module.kind == PluginModuleKind::Runtime)
+            .map(|module| module.name.as_str())
+            .collect::<Vec<_>>();
+        let registered_module_names = report
+            .extensions
+            .modules()
+            .iter()
+            .map(|module| module.name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            registered_module_names, runtime_module_names,
+            "{} provider must register only its embedded runtime module descriptor",
+            report.package_manifest.id
         );
     }
 }

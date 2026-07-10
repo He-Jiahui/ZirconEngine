@@ -5,7 +5,12 @@ pub(in crate::hybrid_gi::renderer::gpu_resources::new) fn pipeline(
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-hybrid-gi-completion-shader"),
         source: wgpu::ShaderSource::Wgsl(
-            include_str!("../../../shaders/update_completion.wgsl").into(),
+            format!(
+                "{}\n{}",
+                include_str!("../../../shaders/update_completion.wgsl"),
+                include_str!("../../../shaders/update_completion_scene_radiance.wgsl"),
+            )
+            .into(),
         ),
     });
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

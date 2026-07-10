@@ -93,6 +93,16 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
             HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS
         )
     );
+    assert!(scene_prepare_pass.resources.iter().any(|resource| {
+        resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HZB_FURTHEST
+            && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read
+    }));
+    assert!(scene_prepare_pass.resources.iter().any(|resource| {
+        resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_SCENE
+            && resource.minimum_size_bytes == Some(HYBRID_GI_SCENE_BUFFER_MINIMUM_SIZE_BYTES)
+    }));
     let trace_schedule_pass = feature
         .stage_passes
         .iter()
@@ -115,6 +125,31 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
         trace_workload.dispatch_extent,
         zircon_runtime::render_graph::RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
     );
+    assert!(trace_schedule_pass.resources.iter().any(|resource| {
+        resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_TRACE
+            && resource.minimum_size_bytes == Some(HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES)
+    }));
+    let resolve_pass = feature
+        .stage_passes
+        .iter()
+        .find(|pass| pass.pass_name == "hybrid-gi-resolve")
+        .expect("hybrid GI temporal resolve pass");
+    for resource_name in [
+        zircon_runtime::core::framework::render::PostProcessGraphResourceNames::SCENE_VELOCITY,
+        zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
+        zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
+    ] {
+        assert!(resolve_pass.resources.iter().any(|resource| {
+            resource.name == resource_name
+                && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read
+        }));
+    }
+    assert!(resolve_pass.resources.iter().any(|resource| {
+        resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA
+            && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Write
+    }));
     let history_pass = feature
         .stage_passes
         .iter()
@@ -123,8 +158,14 @@ fn hybrid_gi_registration_contributes_render_feature_descriptor() {
     assert!(history_pass
         .resources
         .iter()
-        .any(|resource| resource.name == "hybrid-gi-lighting"
+        .any(|resource| resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
             && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Read));
+    assert!(history_pass.resources.iter().any(|resource| {
+        resource.name
+            == zircon_runtime::core::framework::render::PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA
+            && resource.access == zircon_runtime::graphics::RenderFeatureResourceAccess::Write
+    }));
     assert_eq!(report.extensions.render_pass_executors().len(), 4);
     assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
     assert_eq!(

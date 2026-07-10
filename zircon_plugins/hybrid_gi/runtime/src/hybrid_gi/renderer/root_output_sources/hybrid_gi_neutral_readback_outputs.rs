@@ -76,6 +76,8 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
             atlas_samples: scene_prepare_samples(atlas_samples),
             capture_samples: scene_prepare_samples(capture_samples),
             surface_cache_depth_samples,
+            surface_cache_pages: Vec::new(),
+            voxel_clipmaps: Vec::new(),
             voxel_clipmap_ids,
             voxel_samples,
             voxel_occupancy,

@@ -27,7 +27,7 @@ pub use plugin::{
 };
 
 pub const PLUGIN_ID: &str = "navigation";
-pub const NAVIGATION_MODULE_NAME: &str = "NavigationModule";
+pub const NAVIGATION_MODULE_NAME: &str = "navigation.runtime";
 pub use zircon_runtime::core::manager::NAVIGATION_MANAGER_NAME;
 pub const NAVIGATION_EVENT_NAMESPACE: &str = "navigation.runtime";
 

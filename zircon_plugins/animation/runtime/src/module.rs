@@ -9,9 +9,10 @@ use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, Engi
 
 use crate::DefaultAnimationManager;
 
-pub const ANIMATION_MODULE_NAME: &str = "AnimationModule";
-pub const ANIMATION_DRIVER_NAME: &str = "AnimationModule.Driver.AnimationDriver";
-pub const DEFAULT_ANIMATION_MANAGER_NAME: &str = "AnimationModule.Manager.DefaultAnimationManager";
+pub const ANIMATION_MODULE_NAME: &str = "animation.runtime";
+pub const ANIMATION_DRIVER_NAME: &str = "animation.runtime.Driver.AnimationDriver";
+pub const DEFAULT_ANIMATION_MANAGER_NAME: &str =
+    "animation.runtime.Manager.DefaultAnimationManager";
 
 #[derive(Clone, Debug, Default)]
 pub struct AnimationDriver;

@@ -24,9 +24,9 @@ advanced-render-runtime-plugins = [
 ]
 navigation-runtime-plugin = ["dep:zircon_plugin_navigation_runtime"]
 zr-vm-language-runtime-plugin = ["dep:zircon_plugin_zr_vm_language_runtime"]
-zr-vm-real-backend = [
+backend-zr-vm = [
     "zr-vm-language-runtime-plugin",
-    "zircon_plugin_zr_vm_language_runtime/real-zr-vm",
+    "zircon_plugin_zr_vm_language_runtime/backend-zr-vm",
 ]
 
 [dependencies]

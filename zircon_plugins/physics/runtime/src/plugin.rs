@@ -7,7 +7,9 @@ use crate::capability::{
 };
 use crate::manager::DefaultPhysicsManager;
 use crate::module::module_descriptor_with_manager;
-use crate::runtime_system::{register_runtime_system, PHYSICS_STEP_SYSTEM, PHYSICS_SYSTEM_SET};
+use crate::runtime_system::{
+    register_runtime_systems, PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET,
+};
 use crate::PLUGIN_ID;
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::framework::physics::{PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID};
@@ -28,12 +30,15 @@ const NATIVE_ABI_VERSION_V3: u32 = 3;
 #[derive(Clone, Debug)]
 pub struct PhysicsRuntimePlugin {
     descriptor: RuntimePluginDescriptor,
+    manager: Arc<DefaultPhysicsManager>,
 }
 
 impl PhysicsRuntimePlugin {
     pub fn new() -> Self {
+        let manager = Arc::new(DefaultPhysicsManager::new(None));
         Self {
-            descriptor: runtime_plugin_descriptor(),
+            descriptor: runtime_plugin_descriptor_with_manager(manager.clone()),
+            manager,
         }
     }
 }
@@ -79,25 +84,28 @@ impl RuntimePlugin for PhysicsRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        let shared_manager = Arc::new(DefaultPhysicsManager::new(None));
         let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
-            .module(
-                PLUGIN_RUNTIME_MODULE_NAME,
-                module_descriptor_with_manager(Some(shared_manager.clone())),
-            )?;
-        let manager: Arc<dyn PhysicsQueryInterface> = shared_manager;
+            .module(PLUGIN_RUNTIME_MODULE_NAME)?;
+        let manager: Arc<dyn PhysicsQueryInterface> = self.manager.clone();
         module.export_interface::<dyn PhysicsQueryInterface>(manager)?;
-        register_runtime_system(&mut module)
+        register_runtime_systems(&mut module)
     }
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
+    runtime_plugin_descriptor_with_manager(Arc::new(DefaultPhysicsManager::new(None)))
+}
+
+fn runtime_plugin_descriptor_with_manager(
+    manager: Arc<DefaultPhysicsManager>,
+) -> RuntimePluginDescriptor {
     RuntimePluginDescriptor::builder(
         PLUGIN_ID,
         "Physics",
         RuntimePluginId::Physics,
         "zircon_plugin_physics_runtime",
     )
+    .with_module_descriptor(module_descriptor_with_manager(Some(manager)))
     .with_category("runtime")
     .with_maturity(PluginMaturity::Experimental)
     .with_target_modes([
@@ -142,7 +150,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
     ))
     .with_provided_interface_id(PHYSICS_QUERY_INTERFACE_ID)
     .with_system_sets([PHYSICS_SYSTEM_SET])
-    .with_system_anchors([PHYSICS_STEP_SYSTEM])
+    .with_system_anchors([PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM])
     .build()
 }
 

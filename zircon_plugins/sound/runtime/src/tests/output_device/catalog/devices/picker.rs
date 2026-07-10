@@ -12,6 +12,6 @@ fn output_devices_list_software_null_picker_descriptor() {
     assert_eq!(software.descriptor.display_name, "Software Output");
     assert_eq!(
         software.descriptor.channel_layout,
-        SoundChannelLayout::stereo()
+        AudioChannelLayout::stereo()
     );
 }

@@ -7,9 +7,9 @@ use zircon_runtime::script::{SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME};
 
 use crate::register_zr_vm_backend;
 
-pub const ZR_VM_LANGUAGE_MODULE_NAME: &str = "ZrVmLanguageModule";
+pub const ZR_VM_LANGUAGE_MODULE_NAME: &str = "zr_vm_language.runtime";
 pub const ZR_VM_LANGUAGE_BACKEND_REGISTRATION_NAME: &str =
-    "ZrVmLanguageModule.Plugin.ZrVmBackendRegistration";
+    "zr_vm_language.runtime.Plugin.ZrVmBackendRegistration";
 
 #[derive(Debug)]
 pub struct ZrVmLanguageBackendRegistration {

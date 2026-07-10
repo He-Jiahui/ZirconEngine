@@ -8,7 +8,7 @@ fn sound_config_preserves_neutral_plugin_option_values() {
     assert_eq!(config.backend, "software-null");
     assert_eq!(config.sample_rate_hz, 44_100);
     assert_eq!(config.channel_count, 6);
-    assert_eq!(config.channel_layout, SoundChannelLayout::surround_5_1());
+    assert_eq!(config.channel_layout, AudioChannelLayout::surround_5_1());
     assert_eq!(config.master_gain, 0.25);
     assert_eq!(config.block_size_frames, 128);
     assert_eq!(config.max_voices, 32);

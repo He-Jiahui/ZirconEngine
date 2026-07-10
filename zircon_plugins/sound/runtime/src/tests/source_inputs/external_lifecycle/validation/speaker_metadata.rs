@@ -11,12 +11,12 @@ fn external_audio_source_block_rejects_non_canonical_speaker_metadata() {
             SoundExternalSourceBlock {
                 sample_rate_hz: 48_000,
                 channel_count: 2,
-                channel_layout: SoundChannelLayout {
+                channel_layout: AudioChannelLayout {
                     name: "stereo".to_string(),
                     channel_count: 2,
                     speakers: vec![
-                        SoundSpeakerChannel::FrontRight,
-                        SoundSpeakerChannel::FrontLeft,
+                        AudioSpeakerChannel::FrontRight,
+                        AudioSpeakerChannel::FrontLeft,
                     ],
                 },
                 samples: vec![0.0, 0.0],

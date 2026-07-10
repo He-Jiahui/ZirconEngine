@@ -7,6 +7,9 @@ use super::super::super::super::{
 };
 use super::*;
 
+mod multi_ray_quality;
+mod surface_cache_hzb;
+
 #[test]
 fn trace_probe_tiles_shader_writes_trace_lighting_buffer_from_tile_schedule() {
     let Some((device, queue)) = test_device() else {
@@ -168,94 +171,12 @@ fn trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures() {
 }
 
 #[test]
-fn trace_probe_tiles_shader_applies_scene_light_seed_to_surface_cache_sample() {
-    let Some((device, queue)) = test_device() else {
-        eprintln!(
-            "skipping trace_probe_tiles scene-light seed Wgpu test because no adapter is available"
-        );
-        return;
-    };
-    let params_buffer = create_probe_trace_tile_dispatch_params_buffer_with_scene_light_seed(
-        &device,
-        1,
-        0,
-        1,
-        ProbeTraceTileSurfaceCacheParams {
-            texture_available: 1,
-            atlas_width: 1,
-            atlas_height: 1,
-            atlas_columns: 1,
-            tile_extent: 1,
-        },
-        0,
-        pack_rgb8([255, 16, 8]),
-        255,
-    );
-    let resident_probe_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-light-seed-test-resident-probe",
-        &[resident_probe_input(7)],
-    );
-    let pending_probe_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-light-seed-test-pending-probe",
-        &[GpuPendingProbeInput::zeroed()],
-    );
-    let probe_trace_tile_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-light-seed-test-tile-schedule",
-        &[0_u32, 7, 0, 12],
-    );
-    let trace_lighting_buffer = create_trace_lighting_buffer(&device, 3);
-    let readback_buffer = create_readback_buffer(&device, 3);
-    let scene_prepare_descriptor_buffer = create_zeroed_scene_prepare_descriptor_buffer(&device);
-    let (_atlas_texture, atlas_view) = create_test_surface_cache_texture(
-        &device,
-        &queue,
-        "zircon-hybrid-gi-trace-probe-tiles-light-seed-test-atlas",
-        [200, 200, 200, 255],
-    );
-    let (_depth_texture, depth_view) = create_test_surface_cache_texture(
-        &device,
-        &queue,
-        "zircon-hybrid-gi-trace-probe-tiles-light-seed-test-depth",
-        [128, 128, 128, 255],
-    );
-    let bind_group_layout = create_probe_trace_tile_dispatch_bind_group_layout(&device);
-    let pipeline = create_probe_trace_tile_dispatch_pipeline(&device, &bind_group_layout);
-    let bind_group = create_probe_trace_tile_dispatch_bind_group(
-        &device,
-        &bind_group_layout,
-        &params_buffer,
-        &resident_probe_buffer,
-        &pending_probe_buffer,
-        &probe_trace_tile_buffer,
-        &trace_lighting_buffer,
-        &atlas_view,
-        &depth_view,
-        &scene_prepare_descriptor_buffer,
-    );
+fn trace_probe_tiles_shader_preserves_locally_lit_surface_cache_radiance() {
+    let shader = include_str!("../../../../shaders/trace_probe_tiles.wgsl");
 
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("zircon-hybrid-gi-trace-probe-tiles-light-seed-test-encoder"),
-    });
-    encode_probe_trace_tile_dispatch(&mut encoder, &pipeline, &bind_group, 1);
-    encoder.copy_buffer_to_buffer(
-        &trace_lighting_buffer,
-        0,
-        &readback_buffer,
-        0,
-        (3 * std::mem::size_of::<u32>()) as u64,
-    );
-    queue.submit(std::iter::once(encoder.finish()));
-
-    let words = readback_u32s(&device, &readback_buffer, 3);
-    assert_eq!(words[0], 1);
-    assert_eq!(words[1], 7);
-    assert_eq!(
-        words[2],
-        pack_rgb8([150, 9, 5]),
-        "expected trace_probe_tiles.wgsl to tint surface-cache trace RGB by scene light seed"
+    assert!(
+        !shader.contains("scene_light_seed"),
+        "trace_probe_tiles.wgsl must consume authoritative Surface Cache and Voxel radiance without scene-wide relighting"
     );
 }
 
@@ -352,8 +273,8 @@ fn trace_probe_tiles_shader_marches_surface_cache_depth_before_voxel_fallback() 
     assert_eq!(words[1], 7);
     assert_eq!(
         words[2],
-        pack_rgb8([111, 84, 21]),
-        "expected surface-cache trace to march through the near depth texel and reject the far depth texel before voxel fallback"
+        pack_rgb8([127, 74, 19]),
+        "expected multi-direction surface-cache traces to include the near depth texel and reject the far depth texel before voxel fallback"
     );
 }
 
@@ -466,8 +387,8 @@ fn trace_probe_tiles_shader_distributes_surface_cache_ray_steps_by_sample_id() {
     assert_eq!(words[1], 7);
     assert_eq!(
         words[2],
-        pack_rgb8([104, 42, 21]),
-        "expected surface-cache ray step distribution to use the diagonal sample-id direction instead of reusing the +X axis"
+        pack_rgb8([96, 38, 19]),
+        "expected the eight-ray surface-cache trace to rotate from the sample-id direction across the deterministic direction set"
     );
 }
 

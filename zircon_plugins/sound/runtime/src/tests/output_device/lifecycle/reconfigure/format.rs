@@ -10,10 +10,10 @@ fn reconfigure_updates_runtime_and_mixer_format() {
     assert_eq!(sound.backend_status().channel_count, 1);
     assert_eq!(
         sound.backend_status().channel_layout,
-        SoundChannelLayout::mono()
+        AudioChannelLayout::mono()
     );
     let snapshot = sound.mixer_snapshot().unwrap();
     assert_eq!(snapshot.graph.sample_rate_hz, 24_000);
     assert_eq!(snapshot.graph.channel_count, 1);
-    assert_eq!(snapshot.graph.channel_layout, SoundChannelLayout::mono());
+    assert_eq!(snapshot.graph.channel_layout, AudioChannelLayout::mono());
 }

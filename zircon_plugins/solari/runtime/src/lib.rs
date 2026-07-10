@@ -3,7 +3,7 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::render::SolariRuntimeStatus;
 
 pub const PLUGIN_ID: &str = "solari";
-pub const SOLARI_MODULE_NAME: &str = "SolariPluginModule";
+pub const SOLARI_MODULE_NAME: &str = "solari.runtime";
 pub const SOLARI_PROVIDER_ID: &str = "plugin.solari.runtime";
 pub const SOLARI_UNAVAILABLE_MESSAGE: &str =
     "Solari realtime raytraced lighting pass executor is not implemented yet";

@@ -10,7 +10,7 @@ default = []
 cpal-backend = ["dep:cpal"]
 
 [dependencies]
-zircon_runtime = { workspace = true }
+zircon_runtime = { workspace = true, features = ["sound-contracts"] }
 zircon_runtime_interface = { workspace = true }
 cpal = { version = "0.15", optional = true }
 

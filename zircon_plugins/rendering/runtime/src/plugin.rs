@@ -61,13 +61,6 @@ impl zircon_runtime::plugin::RuntimePlugin for RenderingRuntimePlugin {
             ..PluginDistributionManifest::default()
         })
     }
-
-    fn register(
-        &self,
-        registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
-    ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
-    }
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
@@ -77,6 +70,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimePluginId::Rendering,
         "zircon_plugin_rendering_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("rendering")
     .with_maturity(zircon_runtime::plugin::PluginMaturity::Stable)
     .with_target_modes([

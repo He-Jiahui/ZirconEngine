@@ -10,7 +10,7 @@ fn stereo_clip_feeds_front_pair_without_filling_surround_bed() {
             display_name: "Playback Surround Test Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 6,
-            channel_layout: SoundChannelLayout::surround_5_1(),
+            channel_layout: AudioChannelLayout::surround_5_1(),
             block_size_frames: 1,
             latency_blocks: 1,
         })
@@ -27,6 +27,6 @@ fn stereo_clip_feeds_front_pair_without_filling_surround_bed() {
     let mix = sound.render_mix(1).unwrap();
 
     assert_eq!(mix.channel_count, 6);
-    assert_eq!(mix.channel_layout, SoundChannelLayout::surround_5_1());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::surround_5_1());
     assert_samples_near(&mix.samples, &[0.25, 0.75, 0.0, 0.0, 0.0, 0.0]);
 }

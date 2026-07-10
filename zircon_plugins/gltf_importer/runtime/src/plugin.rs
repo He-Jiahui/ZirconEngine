@@ -51,7 +51,6 @@ impl RuntimePlugin for GltfImporterRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         for importer in asset_importer_descriptors() {
             registry.register_asset_importer(FunctionAssetImporter::new(importer, import_gltf))?;
         }
@@ -66,6 +65,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::GltfImporter,
         RUNTIME_CRATE_NAME,
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("asset_importer")
     .with_maturity(PluginMaturity::Stable)
     .with_target_modes(supported_targets())

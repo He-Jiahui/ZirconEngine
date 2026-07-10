@@ -9,8 +9,9 @@ use super::super::super::super::buffer_helpers::{
 use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
 
-const RAYS_PER_OCCUPIED_VOXEL_CELL: u32 = 8;
-const RAYS_PER_SURFACE_CACHE_TILE: u32 = 8;
+const DEFAULT_RAYS_PER_TRACE_TILE: u32 = 8;
+const MIN_RAYS_PER_TRACE_TILE: u32 = 4;
+const MAX_RAYS_PER_TRACE_TILE: u32 = 16;
 const PROBE_TRACE_TILE_WORDS_PER_RECORD: usize = 4;
 const PROBE_TRACE_TILE_GENERATION_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const PROBE_TRACE_TILE_INDIRECT_ARG_WORD_COUNT: usize = 4;
@@ -39,8 +40,9 @@ pub(super) struct ScenePrepareProbeTraceTileResources {
 pub(super) fn store_scene_prepare_probe_trace_tiles(
     snapshot: &mut HybridGiScenePrepareResourcesSnapshot,
     inputs: &HybridGiPrepareExecutionInputs,
+    tracing_budget: Option<u32>,
 ) {
-    let tiles = probe_trace_tiles(snapshot, inputs);
+    let tiles = probe_trace_tiles(snapshot, inputs, tracing_budget);
     let dispatch = probe_trace_dispatch(tiles.len());
     snapshot.store_probe_trace_tiles(tiles, dispatch);
 }
@@ -297,7 +299,9 @@ fn create_probe_trace_tile_generation_bind_group(
 fn probe_trace_tiles(
     snapshot: &HybridGiScenePrepareResourcesSnapshot,
     inputs: &HybridGiPrepareExecutionInputs,
+    tracing_budget: Option<u32>,
 ) -> Vec<(u32, u32, u32, u32)> {
+    let rays_per_trace_tile = rays_per_trace_tile(tracing_budget);
     let mut tiles = snapshot
         .voxel_clipmap_cell_occupancy_counts()
         .iter()
@@ -307,13 +311,13 @@ fn probe_trace_tiles(
                 0,
                 *clipmap_id,
                 *cell_id,
-                occupancy.saturating_mul(RAYS_PER_OCCUPIED_VOXEL_CELL),
+                occupancy.saturating_mul(rays_per_trace_tile),
             )
         })
         .collect::<Vec<_>>();
 
     if tiles.is_empty() {
-        tiles = surface_cache_trace_tiles(snapshot, inputs);
+        tiles = surface_cache_trace_tiles(snapshot, inputs, rays_per_trace_tile);
     }
 
     tiles
@@ -328,6 +332,7 @@ fn probe_trace_tiles(
 fn surface_cache_trace_tiles(
     snapshot: &HybridGiScenePrepareResourcesSnapshot,
     inputs: &HybridGiPrepareExecutionInputs,
+    rays_per_trace_tile: u32,
 ) -> Vec<(u32, u32, u32, u32)> {
     let known_slots = inputs
         .scene_card_capture_requests
@@ -349,10 +354,16 @@ fn surface_cache_trace_tiles(
                 .iter()
                 .find(|(known_slot_id, _, _)| known_slot_id == slot_id)
                 .map(|(atlas_slot_id, card_id, _)| {
-                    (0, *card_id, *atlas_slot_id, RAYS_PER_SURFACE_CACHE_TILE)
+                    (0, *card_id, *atlas_slot_id, rays_per_trace_tile)
                 })
         })
         .collect()
+}
+
+fn rays_per_trace_tile(tracing_budget: Option<u32>) -> u32 {
+    tracing_budget
+        .map(|budget| (budget / 2).clamp(MIN_RAYS_PER_TRACE_TILE, MAX_RAYS_PER_TRACE_TILE))
+        .unwrap_or(DEFAULT_RAYS_PER_TRACE_TILE)
 }
 
 fn probe_trace_dispatch(tile_count: usize) -> [u32; 3] {
@@ -370,4 +381,44 @@ fn probe_trace_tile_words(snapshot: &HybridGiScenePrepareResourcesSnapshot) -> V
         words.extend([tile_id, probe_id, trace_region_id, ray_count]);
     }
     words
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::hybrid_gi::types::HybridGiPrepareCardCaptureRequest;
+    use zircon_runtime::core::math::Vec3;
+
+    use super::*;
+
+    #[test]
+    fn surface_cache_trace_tile_ray_count_scales_with_hybrid_gi_quality_budget() {
+        let snapshot = HybridGiScenePrepareResourcesSnapshot::new(
+            1,
+            Vec::new(),
+            vec![3],
+            Vec::new(),
+            4,
+            0,
+            (32, 8),
+            (0, 0),
+            0,
+        );
+        let mut inputs = HybridGiPrepareExecutionInputs::default();
+        inputs.scene_card_capture_requests = vec![HybridGiPrepareCardCaptureRequest {
+            card_id: 11,
+            page_id: 22,
+            atlas_slot_id: 3,
+            capture_slot_id: 0,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+        }];
+
+        for (quality_tracing_budget, expected_ray_count) in
+            [(Some(8), 4), (Some(16), 8), (Some(32), 16), (None, 8)]
+        {
+            let tiles = probe_trace_tiles(&snapshot, &inputs, quality_tracing_budget);
+            assert_eq!(tiles.len(), 1);
+            assert_eq!(tiles[0].3, expected_ray_count);
+        }
+    }
 }

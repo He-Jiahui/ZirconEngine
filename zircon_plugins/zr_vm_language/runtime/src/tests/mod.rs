@@ -1,6 +1,6 @@
 mod registration;
 
-#[cfg(feature = "real-zr-vm")]
+#[cfg(feature = "backend-zr-vm")]
 mod real_backend;
-#[cfg(feature = "real-zr-vm")]
+#[cfg(feature = "backend-zr-vm")]
 mod support;

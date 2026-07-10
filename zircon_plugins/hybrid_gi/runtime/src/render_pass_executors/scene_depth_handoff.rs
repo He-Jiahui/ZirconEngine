@@ -6,7 +6,9 @@ use crate::{
     HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE,
 };
 
-use super::{HYBRID_GI_SCENE_RESOURCE, SCENE_DEPTH_RESOURCE};
+use super::scene_hzb_camera_packet::{scene_hzb_camera_packet, SCENE_HZB_CAMERA_WORD_OFFSET};
+use super::scene_trace_input_packet::{scene_trace_input_packet, SCENE_TRACE_INPUT_WORD_OFFSET};
+use super::{HYBRID_GI_SCENE_RESOURCE, SCENE_DEPTH_RESOURCE, SCENE_HZB_RESOURCE};
 
 enum SceneDepthHandoffShader {
     SingleSample,
@@ -57,14 +59,36 @@ pub(super) fn record_scene_depth_handoff(
     let scene_depth_view = gpu
         .require_texture_view(SCENE_DEPTH_RESOURCE, RenderGraphResourceAccessKind::Read)?
         .clone();
+    let scene_hzb_view = gpu.require_owned_texture_full_mip_view(
+        SCENE_HZB_RESOURCE,
+        RenderGraphResourceAccessKind::Read,
+    )?;
     let hybrid_gi_scene_buffer = gpu
         .require_buffer(
             HYBRID_GI_SCENE_RESOURCE,
             RenderGraphResourceAccessKind::Write,
         )?
         .clone();
+    let camera_packet = scene_hzb_camera_packet(gpu.frame_extract(), gpu.viewport_size());
+    gpu.queue.write_buffer(
+        &hybrid_gi_scene_buffer,
+        SCENE_HZB_CAMERA_WORD_OFFSET * std::mem::size_of::<u32>() as u64,
+        bytemuck::cast_slice(&camera_packet),
+    );
+    let scene_trace_packet = scene_trace_input_packet(&gpu.plugin_outputs.hybrid_gi.scene_prepare);
+    gpu.queue.write_buffer(
+        &hybrid_gi_scene_buffer,
+        (SCENE_TRACE_INPUT_WORD_OFFSET * std::mem::size_of::<u32>()) as u64,
+        bytemuck::cast_slice(&scene_trace_packet),
+    );
 
-    encode_scene_depth_handoff(gpu, &shader, &scene_depth_view, &hybrid_gi_scene_buffer);
+    encode_scene_depth_handoff(
+        gpu,
+        &shader,
+        &scene_depth_view,
+        &scene_hzb_view,
+        &hybrid_gi_scene_buffer,
+    );
     gpu.record_compute_dispatch(
         pass_name,
         executor_id,
@@ -80,6 +104,7 @@ fn encode_scene_depth_handoff(
     gpu: &mut RenderPassGpuExecutionContext<'_>,
     shader: &SceneDepthHandoffShader,
     scene_depth_view: &wgpu::TextureView,
+    scene_hzb_view: &wgpu::TextureView,
     hybrid_gi_scene_buffer: &wgpu::Buffer,
 ) {
     let bind_group_layout = create_scene_depth_handoff_bind_group_layout(gpu.device, shader);
@@ -88,6 +113,7 @@ fn encode_scene_depth_handoff(
         gpu.device,
         &bind_group_layout,
         scene_depth_view,
+        scene_hzb_view,
         hybrid_gi_scene_buffer,
     );
     let mut pass = gpu
@@ -124,6 +150,16 @@ fn create_scene_depth_handoff_bind_group_layout(
             },
             wgpu::BindGroupLayoutEntry {
                 binding: 1,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
                 visibility: wgpu::ShaderStages::COMPUTE,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: false },
@@ -168,6 +204,7 @@ fn create_scene_depth_handoff_bind_group(
     device: &wgpu::Device,
     bind_group_layout: &wgpu::BindGroupLayout,
     scene_depth_view: &wgpu::TextureView,
+    scene_hzb_view: &wgpu::TextureView,
     hybrid_gi_scene_buffer: &wgpu::Buffer,
 ) -> wgpu::BindGroup {
     device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -180,6 +217,10 @@ fn create_scene_depth_handoff_bind_group(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
+                resource: wgpu::BindingResource::TextureView(scene_hzb_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
                 resource: hybrid_gi_scene_buffer.as_entire_binding(),
             },
         ],
@@ -215,9 +256,11 @@ mod tests {
             view_formats: &[],
         });
         let depth_view = depth.create_view(&wgpu::TextureViewDescriptor::default());
+        let (_hzb, hzb_view) = test_hzb_range_texture(&device, &queue);
+        const STORAGE_WORD_COUNT: usize = 294;
         let storage = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("hybrid-gi-scene-depth-handoff-msaa-test-storage"),
-            size: 5 * std::mem::size_of::<u32>() as u64,
+            size: STORAGE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::COPY_DST,
@@ -225,7 +268,7 @@ mod tests {
         });
         let readback = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("hybrid-gi-scene-depth-handoff-msaa-test-readback"),
-            size: 5 * std::mem::size_of::<u32>() as u64,
+            size: STORAGE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -257,6 +300,7 @@ mod tests {
             &device,
             &bind_group_layout,
             &depth_view,
+            &hzb_view,
             &storage,
         );
         {
@@ -273,16 +317,35 @@ mod tests {
             0,
             &readback,
             0,
-            5 * std::mem::size_of::<u32>() as u64,
+            STORAGE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
         );
         queue.submit([encoder.finish()]);
 
-        let words = read_u32_words(&device, &readback, 5);
+        let words = read_u32_words(&device, &readback, STORAGE_WORD_COUNT);
         assert_eq!(words[0], HANDOFF_MAGIC);
         assert_eq!(words[1], 8);
         assert_eq!(words[2], 8);
         assert_eq!(words[3], ((0.25 * DEPTH_Q24_SCALE) + 0.5) as u32);
         assert_eq!(words[4], 4);
+        assert_eq!(words[5..8], [4, 4, 3]);
+        assert_eq!(words[8], ((0.75 * DEPTH_Q24_SCALE) + 0.5) as u32);
+        assert_eq!(words[9], ((0.25 * DEPTH_Q24_SCALE) + 0.5) as u32);
+        assert_eq!(words[14..16], [8, 64]);
+        assert_eq!(words[16], ((0.25 * DEPTH_Q24_SCALE) + 0.5) as u32);
+    }
+
+    #[test]
+    fn scene_depth_handoff_shaders_emit_hzb_tiles_and_camera_packet_contract() {
+        for source in [
+            include_str!("../hybrid_gi/renderer/shaders/scene_depth_handoff.wgsl"),
+            include_str!("../hybrid_gi/renderer/shaders/scene_depth_handoff_msaa.wgsl"),
+        ] {
+            assert!(source.contains("textureNumLevels(scene_hzb_tex)"));
+            assert!(source.contains("SCENE_HZB_TILE_WORD_OFFSET"));
+            assert!(source.contains("SCENE_HZB_TILE_GRID_EXTENT"));
+            assert!(source.contains("center_furthest_depth"));
+            assert!(source.contains("center_closest_depth"));
+        }
     }
 
     fn test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
@@ -304,6 +367,55 @@ mod tests {
             experimental_features: wgpu::ExperimentalFeatures::disabled(),
         }))
         .ok()
+    }
+
+    fn test_hzb_range_texture(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> (wgpu::Texture, wgpu::TextureView) {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("hybrid-gi-scene-depth-handoff-test-hzb"),
+            size: wgpu::Extent3d {
+                width: 4,
+                height: 4,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 3,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba32Float,
+            usage: wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
+        });
+        for (mip_level, extent) in [(0_u32, 4_u32), (1, 2), (2, 1)] {
+            let pixels = vec![[0.75_f32, 0.25, 0.5, 1.0]; (extent * extent) as usize];
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &texture,
+                    mip_level,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytemuck::cast_slice(&pixels),
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(extent * 16),
+                    rows_per_image: Some(extent),
+                },
+                wgpu::Extent3d {
+                    width: extent,
+                    height: extent,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
+        let view = texture.create_view(&wgpu::TextureViewDescriptor {
+            label: Some("hybrid-gi-scene-depth-handoff-test-hzb-view"),
+            base_mip_level: 0,
+            mip_level_count: Some(3),
+            ..Default::default()
+        });
+        (texture, view)
     }
 
     fn read_u32_words(device: &wgpu::Device, buffer: &wgpu::Buffer, word_count: usize) -> Vec<u32> {

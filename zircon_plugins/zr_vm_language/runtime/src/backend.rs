@@ -52,7 +52,7 @@ fn validate_zr_vm_project_package(package: &VmPluginPackage) -> Result<(), VmErr
     Ok(())
 }
 
-#[cfg(feature = "real-zr-vm")]
+#[cfg(feature = "backend-zr-vm")]
 fn load_project_package(
     package: &VmPluginPackage,
     host: &VmPluginHostContext,
@@ -60,12 +60,12 @@ fn load_project_package(
     crate::real_backend::load_project_package(package, host)
 }
 
-#[cfg(not(feature = "real-zr-vm"))]
+#[cfg(not(feature = "backend-zr-vm"))]
 fn load_project_package(
     _package: &VmPluginPackage,
     _host: &VmPluginHostContext,
 ) -> Result<Box<dyn VmPluginInstance>, VmError> {
     Err(VmError::BackendUnavailable(
-        "zr_vm runtime binding is disabled; build zircon_plugin_zr_vm_language_runtime with feature real-zr-vm and set ZR_VM_RUST_BINDING_LIB_DIR".to_string(),
+        "zr_vm runtime binding is disabled; build zircon_plugin_zr_vm_language_runtime with feature backend-zr-vm and set ZR_VM_RUST_BINDING_LIB_DIR".to_string(),
     ))
 }

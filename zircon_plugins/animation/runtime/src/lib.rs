@@ -1,10 +1,19 @@
 pub const PLUGIN_ID: &str = "animation";
 mod capability;
+mod evaluation;
 mod plugin;
 mod runtime_system;
 
 pub use capability::{
     ANIMATION_RUNTIME_CAPABILITY, ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY, RUNTIME_CAPABILITIES,
+};
+pub use evaluation::{
+    AnimationAssetRevision, AnimationChannelDataRole, AnimationClipCompileError,
+    AnimationClipEvaluator, AnimationClipEvaluatorStats, AnimationEvaluationDiagnostic,
+    AnimationEvaluationError, AnimationEvaluationPipeline, AnimationGraphCompileError,
+    AnimationTransformChannel, CompiledAnimationClip, CompiledAnimationGraph,
+    CompiledAnimationGraphEvaluation, CompiledClipTrack, CompiledGraphClipInstance, PoseBlendError,
+    PoseBuffer, PoseBufferError, PosePool, SkeletonTargetTable,
 };
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
@@ -13,6 +22,7 @@ pub use plugin::{
 };
 pub use runtime_system::{
     register_runtime_system, AnimationRuntimeSystem, ANIMATION_EVALUATE_SYSTEM,
+    ANIMATION_EVALUATION_DIAGNOSTIC_EVENT, ANIMATION_EVALUATION_DIAGNOSTIC_SCHEMA,
     ANIMATION_SYSTEM_SET,
 };
 pub use zircon_runtime::animation::{

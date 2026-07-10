@@ -1,5 +1,6 @@
+use zircon_runtime::core::framework::audio::AudioChannelLayout;
 use zircon_runtime::core::framework::sound::{
-    SoundBackendCapability, SoundChannelLayout, SoundOutputDeviceDescriptor, SoundOutputDeviceInfo,
+    SoundBackendCapability, SoundOutputDeviceDescriptor, SoundOutputDeviceInfo,
 };
 
 use crate::SoundConfig;
@@ -17,14 +18,14 @@ pub(crate) fn software_backend_capabilities() -> Vec<SoundBackendCapability> {
         min_channel_count: 1,
         max_channel_count: 64,
         supported_channel_layouts: vec![
-            SoundChannelLayout::mono(),
-            SoundChannelLayout::stereo(),
-            SoundChannelLayout::quad(),
-            SoundChannelLayout::surround_5_0(),
-            SoundChannelLayout::surround_5_1(),
-            SoundChannelLayout::surround_5_1_side(),
-            SoundChannelLayout::surround_7_0(),
-            SoundChannelLayout::surround_7_1(),
+            AudioChannelLayout::mono(),
+            AudioChannelLayout::stereo(),
+            AudioChannelLayout::quad(),
+            AudioChannelLayout::surround_5_0(),
+            AudioChannelLayout::surround_5_1(),
+            AudioChannelLayout::surround_5_1_side(),
+            AudioChannelLayout::surround_7_0(),
+            AudioChannelLayout::surround_7_1(),
         ],
         min_block_size_frames: 1,
         max_block_size_frames: 65_536,

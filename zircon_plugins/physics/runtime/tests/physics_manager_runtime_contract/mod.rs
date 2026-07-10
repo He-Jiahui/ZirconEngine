@@ -2,14 +2,18 @@ use std::time::Duration;
 
 use zircon_plugin_physics_runtime::{
     build_world_sync_state, integrate_builtin_physics_steps, module_descriptor,
-    register_runtime_system, DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME,
-    PHYSICS_MODULE_NAME, PLUGIN_RUNTIME_MODULE_NAME,
+    register_runtime_systems, DefaultPhysicsManager, PhysicsBodyCommand,
+    DEFAULT_PHYSICS_MANAGER_NAME, PHYSICS_MODULE_NAME, PLUGIN_RUNTIME_MODULE_NAME,
 };
-use zircon_runtime::core::framework::physics::{
-    PhysicsBackendState, PhysicsColliderShape, PhysicsJointConstraintMetadata, PhysicsJointDrive,
-    PhysicsJointType, PhysicsManager, PhysicsQueryFilter, PhysicsRayCastQuery, PhysicsSettings,
-    PhysicsShapeCastQuery, PhysicsShapeOverlapQuery, PhysicsSimulationMode,
-    PhysicsSkeletonJointBinding, PhysicsWorldStepPlan,
+use zircon_runtime::core::framework::{
+    physics::{
+        PhysicsBackendState, PhysicsColliderShape, PhysicsJointType, PhysicsManager,
+        PhysicsQueryFilter, PhysicsRayCastQuery, PhysicsSettings, PhysicsShapeCastQuery,
+        PhysicsShapeOverlapQuery, PhysicsSimulationMode, PhysicsWorldStepPlan,
+    },
+    scene::physics::{
+        PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsSkeletonJointBinding,
+    },
 };
 use zircon_runtime::core::manager::resolve_physics_manager;
 use zircon_runtime::core::math::{Quat, Transform, Vec3};
@@ -36,10 +40,11 @@ fn create_runtime_with_scene_and_physics() -> CoreRuntime {
         .unwrap();
     runtime.register_module(module_descriptor()).unwrap();
     let mut extensions = RuntimeExtensionRegistry::default();
+    extensions.register_module(module_descriptor()).unwrap();
     let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(&mut extensions)
-        .module(PLUGIN_RUNTIME_MODULE_NAME, module_descriptor())
+        .module(PLUGIN_RUNTIME_MODULE_NAME)
         .unwrap();
-    register_runtime_system(&mut module).unwrap();
+    register_runtime_systems(&mut module).unwrap();
     runtime
         .install_world_runtime_extensions(&extensions)
         .unwrap();
@@ -60,6 +65,7 @@ fn test_fixed_timestep() -> Duration {
 }
 
 #[test]
+#[cfg(not(feature = "backend-jolt"))]
 fn empty_jolt_feature_slot_reports_unavailable_not_ready() {
     let runtime = create_runtime_with_scene_and_physics();
     runtime
@@ -79,7 +85,31 @@ fn empty_jolt_feature_slot_reports_unavailable_not_ready() {
     assert_eq!(status.requested_backend, "jolt");
     assert_eq!(status.active_backend, None);
     assert_eq!(status.state, PhysicsBackendState::Unavailable);
-    assert_eq!(status.feature_gate.as_deref(), Some("jolt"));
+    assert_eq!(status.feature_gate.as_deref(), Some("backend-jolt"));
+}
+
+#[test]
+#[cfg(feature = "backend-jolt")]
+fn linked_jolt_backend_reports_ready() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "jolt".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+
+    let status = resolve_physics_manager(&runtime.handle())
+        .unwrap()
+        .backend_status();
+
+    assert_eq!(status.requested_backend, "jolt");
+    assert_eq!(status.active_backend.as_deref(), Some("jolt"));
+    assert_eq!(status.state, PhysicsBackendState::Ready);
+    assert_eq!(status.feature_gate.as_deref(), Some("backend-jolt"));
 }
 
 #[test]

@@ -1,9 +1,9 @@
-use zircon_runtime::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
+use zircon_runtime::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 
 pub(in crate::engine::render) fn speaker_sample(
     source_frame: &[f32],
-    source_layout: &SoundChannelLayout,
-    speaker: SoundSpeakerChannel,
+    source_layout: &AudioChannelLayout,
+    speaker: AudioSpeakerChannel,
 ) -> f32 {
     source_layout
         .speakers

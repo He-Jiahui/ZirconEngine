@@ -13,7 +13,7 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 ring = "0.17"
 tokio = { version = "1", features = ["io-util", "net", "rt", "time"] }
 zircon_plugin_net_runtime = { path = "../../../runtime" }
-zircon_runtime = { workspace = true }
+zircon_runtime = { workspace = true, features = ["net-contracts"] }
 
 [dev-dependencies]
 base64 = "0.22"

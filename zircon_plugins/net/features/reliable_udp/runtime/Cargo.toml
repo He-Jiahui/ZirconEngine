@@ -7,4 +7,4 @@ description = "Reliable UDP runtime feature package for Zircon."
 
 [dependencies]
 zircon_plugin_net_runtime = { path = "../../../runtime" }
-zircon_runtime = { workspace = true }
+zircon_runtime = { workspace = true, features = ["net-contracts"] }

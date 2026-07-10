@@ -4,12 +4,12 @@ use std::path::PathBuf;
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, CapturedFrame, DisplayMode,
-    EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderFramework, RenderHybridGiDebugView,
-    RenderHybridGiExtract, RenderHybridGiQuality, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderOverlayExtract, RenderQualityProfile, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderViewportDescriptor, RenderWorldSnapshotHandle,
-    ViewportCameraSnapshot,
+    EnvironmentExtract, FallbackSkyboxKind, FrameHistoryInvalidationReason,
+    PreviewEnvironmentExtract, ProjectionMode, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    RenderFramework, RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
+    RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
+    RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
@@ -18,7 +18,8 @@ use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle
 use crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_asset_manager;
 
 use super::hybrid_gi_scene_prepare_material_fixtures::{
-    material_capture_test_assets, material_surface_response_test_assets, model_handle,
+    material_capture_test_assets, material_surface_response_test_assets,
+    material_texture_capture_test_assets, model_handle,
 };
 
 const SCENE_REPRESENTATION_WGPU_PNG: &str =
@@ -29,10 +30,10 @@ const RUNTIME_TRACE_LIGHTING_PRODUCT_WGPU_PNG: &str =
     "plan18_hybrid_gi_runtime_trace_lighting_product_wgpu_20260707.png";
 const RUNTIME_TRACE_LIGHTING_PRODUCT_WGPU_REPORT: &str =
     "plan18_hybrid_gi_runtime_trace_lighting_product_wgpu_20260707.txt";
-const PRODUCT_COMPOSITE_SCENE_SEED_WGPU_PNG: &str =
-    "plan18_hybrid_gi_product_composite_scene_seed_wgpu_20260707.png";
-const PRODUCT_COMPOSITE_SCENE_SEED_WGPU_REPORT: &str =
-    "plan18_hybrid_gi_product_composite_scene_seed_wgpu_20260707.txt";
+const PRODUCT_COMPOSITE_SPATIAL_RADIANCE_WGPU_PNG: &str =
+    "plan18_hybrid_gi_product_composite_spatial_radiance_wgpu_20260710.png";
+const PRODUCT_COMPOSITE_SPATIAL_RADIANCE_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_product_composite_spatial_radiance_wgpu_20260710.txt";
 const CURRENT_FRAME_POST_UBER_WGPU_PNG: &str =
     "plan18_hybrid_gi_current_frame_post_uber_wgpu_20260708.png";
 const CURRENT_FRAME_POST_UBER_WGPU_REPORT: &str =
@@ -47,6 +48,30 @@ const SURFACE_CACHE_RAY_MARCH_WGPU_PNG: &str =
     "plan18_hybrid_gi_surface_cache_ray_march_wgpu_20260708.png";
 const SURFACE_CACHE_RAY_MARCH_WGPU_REPORT: &str =
     "plan18_hybrid_gi_surface_cache_ray_march_wgpu_20260708.txt";
+const SURFACE_CACHE_RAY_DIRECTION_DISTRIBUTION_WGPU_PNG: &str =
+    "plan18_hybrid_gi_quality_scaled_trace_rays_wgpu_20260711.png";
+const SURFACE_CACHE_RAY_DIRECTION_DISTRIBUTION_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_quality_scaled_trace_rays_wgpu_20260711.txt";
+const SURFACE_CACHE_HZB_TRACE_WGPU_PNG: &str =
+    "plan18_hybrid_gi_surface_cache_hzb_trace_wgpu_20260710.png";
+const SURFACE_CACHE_HZB_TRACE_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_surface_cache_hzb_trace_wgpu_20260710.txt";
+const MAIN_SCENE_HZB_SURFACE_CACHE_TRACE_WGPU_PNG: &str =
+    "plan18_hybrid_gi_main_scene_hzb_surface_cache_trace_wgpu_20260710.png";
+const MAIN_SCENE_HZB_SURFACE_CACHE_TRACE_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_main_scene_hzb_surface_cache_trace_wgpu_20260710.txt";
+const TEMPORAL_HISTORY_REJECTION_WGPU_PNG: &str =
+    "plan18_hybrid_gi_temporal_history_rejection_wgpu_20260710.png";
+const TEMPORAL_HISTORY_REJECTION_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_temporal_history_rejection_wgpu_20260710.txt";
+const LOCALIZED_SUPPORT_HISTORY_WGPU_PNG: &str =
+    "plan18_hybrid_gi_localized_support_history_wgpu_20260710.png";
+const LOCALIZED_SUPPORT_HISTORY_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_localized_support_history_wgpu_20260710.txt";
+const DYNAMIC_LIGHT_MATRIX_WGPU_PNG: &str =
+    "plan18_hybrid_gi_scene_representation_only_forward_deferred_wgpu_20260710.png";
+const DYNAMIC_LIGHT_MATRIX_WGPU_REPORT: &str =
+    "plan18_hybrid_gi_scene_representation_only_forward_deferred_wgpu_20260710.txt";
 const SCENE_DEPTH_SOURCE_SAMPLING_WGPU_PNG: &str =
     "plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png";
 const SCENE_DEPTH_SOURCE_SAMPLING_WGPU_REPORT: &str =
@@ -54,8 +79,20 @@ const SCENE_DEPTH_SOURCE_SAMPLING_WGPU_REPORT: &str =
 
 #[path = "hybrid_gi_render_framework_stats/current_frame_post_uber_msaa.rs"]
 mod current_frame_post_uber_msaa;
+#[path = "hybrid_gi_render_framework_stats/dynamic_light_matrix.rs"]
+mod dynamic_light_matrix;
+#[path = "hybrid_gi_render_framework_stats/localized_support_history.rs"]
+mod localized_support_history;
+#[path = "hybrid_gi_render_framework_stats/main_scene_hzb_trace.rs"]
+mod main_scene_hzb_trace;
+#[path = "hybrid_gi_render_framework_stats/surface_cache_hzb_trace.rs"]
+mod surface_cache_hzb_trace;
+#[path = "hybrid_gi_render_framework_stats/surface_cache_ray_direction_distribution.rs"]
+mod surface_cache_ray_direction_distribution;
 #[path = "hybrid_gi_render_framework_stats/surface_cache_ray_march.rs"]
 mod surface_cache_ray_march;
+#[path = "hybrid_gi_render_framework_stats/temporal_history.rs"]
+mod temporal_history;
 #[path = "hybrid_gi_render_framework_stats/voxel_cone_trace.rs"]
 mod voxel_cone_trace;
 
@@ -280,7 +317,7 @@ fn export_hybrid_gi_runtime_trace_lighting_product_resolve_wgpu_png() {
 
 #[test]
 #[ignore]
-fn export_hybrid_gi_product_composite_scene_seed_wgpu_png() {
+fn export_hybrid_gi_product_composite_spatial_radiance_wgpu_png() {
     let (asset_manager, root, smooth_white, rough_white, _, _) =
         material_surface_response_test_assets();
     let _cleanup = TempProjectCleanup(root);
@@ -384,15 +421,15 @@ fn export_hybrid_gi_product_composite_scene_seed_wgpu_png() {
     let output_dir = render_test_output_dir();
     fs::create_dir_all(&output_dir).unwrap();
     write_side_by_side_png(
-        output_dir.join(PRODUCT_COMPOSITE_SCENE_SEED_WGPU_PNG),
+        output_dir.join(PRODUCT_COMPOSITE_SPATIAL_RADIANCE_WGPU_PNG),
         &warm_frame,
         &cool_frame,
     );
     fs::write(
-        output_dir.join(PRODUCT_COMPOSITE_SCENE_SEED_WGPU_REPORT),
+        output_dir.join(PRODUCT_COMPOSITE_SPATIAL_RADIANCE_WGPU_REPORT),
         format!(
-            "png={}\nleft=warm_scene_seed\nright=cool_scene_seed\nwidth={}\nheight={}\nwarm_generation={}\ncool_generation={}\nwarm_visible_pixels={}\ncool_visible_pixels={}\nwarm_min_luma={:.2}\nwarm_max_luma={:.2}\ncool_min_luma={:.2}\ncool_max_luma={:.2}\nwarm_center_red={:.2}\ncool_center_red={:.2}\nwarm_minus_cool_red={:.2}\nwarm_center_blue={:.2}\ncool_center_blue={:.2}\ncool_minus_warm_blue={:.2}\nproduct_debug_view=none\nproduct_preview_direct_lighting=disabled_for_product_gi_seed_isolation\ngpu_probe_trace_tile_scene_light_seed=trace_probe_tiles_compute_surface_cache_sample_mul_scene_light_seed\nproduct_composite_source=scene_prepare_direct_light_seed_to_surface_cache_trace_to_global_illumination\nlumen_reference=CompositeTraces_ScreenProbeRadianceCurrentFrame_to_FinalCompose_DiffuseIndirect\nwarm_hybrid_gi_graph_executed_pass_count={}\ncool_hybrid_gi_graph_executed_pass_count={}\nwarm_hybrid_gi_cache_entry_count={}\ncool_hybrid_gi_cache_entry_count={}\nwarm_hybrid_gi_probe_trace_tile_count={}\ncool_hybrid_gi_probe_trace_tile_count={}\nwarm_hybrid_gi_scene_screen_probe_count={}\ncool_hybrid_gi_scene_screen_probe_count={}\nwarm_hybrid_gi_scene_radiance_cache_entry_count={}\ncool_hybrid_gi_scene_radiance_cache_entry_count={}\nwarm_hybrid_gi_surface_cache_resident_page_count={}\ncool_hybrid_gi_surface_cache_resident_page_count={}\nwarm_hybrid_gi_voxel_resident_clipmap_count={}\ncool_hybrid_gi_voxel_resident_clipmap_count={}\n",
-            PRODUCT_COMPOSITE_SCENE_SEED_WGPU_PNG,
+            "png={}\nleft=warm_spatial_radiance\nright=cool_spatial_radiance\nwidth={}\nheight={}\nwarm_generation={}\ncool_generation={}\nwarm_visible_pixels={}\ncool_visible_pixels={}\nwarm_min_luma={:.2}\nwarm_max_luma={:.2}\ncool_min_luma={:.2}\ncool_max_luma={:.2}\nwarm_center_red={:.2}\ncool_center_red={:.2}\nwarm_minus_cool_red={:.2}\nwarm_center_blue={:.2}\ncool_center_blue={:.2}\ncool_minus_warm_blue={:.2}\nproduct_debug_view=none\nproduct_preview_direct_lighting=disabled_for_product_gi_isolation\ngpu_probe_trace_tile_radiance=trace_probe_tiles_compute_preserves_spatially_lit_surface_cache_radiance\ncompletion_scene_light_seed_scope=synthetic_legacy_fallback_only\nproduct_composite_source=scene_prepare_spatial_direct_radiance_to_surface_cache_trace_to_global_illumination\nlumen_reference=CompositeTraces_ScreenProbeRadianceCurrentFrame_to_FinalCompose_DiffuseIndirect\nwarm_hybrid_gi_graph_executed_pass_count={}\ncool_hybrid_gi_graph_executed_pass_count={}\nwarm_hybrid_gi_cache_entry_count={}\ncool_hybrid_gi_cache_entry_count={}\nwarm_hybrid_gi_probe_trace_tile_count={}\ncool_hybrid_gi_probe_trace_tile_count={}\nwarm_hybrid_gi_scene_screen_probe_count={}\ncool_hybrid_gi_scene_screen_probe_count={}\nwarm_hybrid_gi_scene_radiance_cache_entry_count={}\ncool_hybrid_gi_scene_radiance_cache_entry_count={}\nwarm_hybrid_gi_surface_cache_resident_page_count={}\ncool_hybrid_gi_surface_cache_resident_page_count={}\nwarm_hybrid_gi_voxel_resident_clipmap_count={}\ncool_hybrid_gi_voxel_resident_clipmap_count={}\n",
+            PRODUCT_COMPOSITE_SPATIAL_RADIANCE_WGPU_PNG,
             warm_frame.width + 1 + cool_frame.width,
             warm_frame.height,
             warm_frame.generation,
@@ -719,10 +756,6 @@ fn scene_representation_extract_with_card_positions(
         card_budget: 1,
         voxel_budget: 1,
         debug_view,
-        probe_budget: 0,
-        tracing_budget: 0,
-        probes: Vec::new(),
-        trace_regions: Vec::new(),
     });
     extract
 }
@@ -770,7 +803,7 @@ fn hybrid_gi_only_quality_profile() -> RenderQualityProfile {
         .with_hybrid_global_illumination(true)
         .with_clustered_lighting(false)
         .with_screen_space_ambient_occlusion(false)
-        .with_temporal_history(false)
+        .with_temporal_history(true)
         .with_bloom(false)
         .with_color_grading(false)
         .with_reflection_probes(false)

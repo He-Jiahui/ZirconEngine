@@ -74,7 +74,7 @@ pub fn import_texture_container(
     ))
 }
 
-fn apply_texture_import_settings(
+pub(crate) fn apply_texture_import_settings(
     context: &AssetImportContext,
     texture: TextureAsset,
 ) -> Result<TextureAsset, AssetImportError> {

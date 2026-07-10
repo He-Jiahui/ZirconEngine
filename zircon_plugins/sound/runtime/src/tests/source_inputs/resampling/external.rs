@@ -7,7 +7,7 @@ fn external_input_resamples_to_mixer_rate() {
     sound
         .submit_external_source_block(
             handle.clone(),
-            SoundExternalSourceBlock::new(24_000, SoundChannelLayout::mono(), vec![0.5, 1.0]),
+            SoundExternalSourceBlock::new(24_000, AudioChannelLayout::mono(), vec![0.5, 1.0]),
         )
         .unwrap();
     sound

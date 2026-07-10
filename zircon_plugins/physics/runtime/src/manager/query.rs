@@ -5,8 +5,9 @@ use zircon_runtime::core::framework::physics::{
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
 
-use crate::query_contact::{collider_matches_query, ray_cast_collider, shape_overlap_query};
+use crate::backend::builtin::{collider_matches_query, ray_cast_collider, shape_overlap_query};
 
+use super::poison_recovery::recover_lock;
 use super::validation::{array3_is_finite, normalized_ray_direction, transform_is_finite};
 use super::DefaultPhysicsManager;
 
@@ -90,10 +91,5 @@ fn synchronized_world(
     manager: &DefaultPhysicsManager,
     world: WorldHandle,
 ) -> Option<PhysicsWorldSyncState> {
-    manager
-        .synced_worlds
-        .lock()
-        .expect("physics sync mutex poisoned")
-        .get(&world)
-        .cloned()
+    recover_lock(&manager.synced_worlds).get(&world).cloned()
 }

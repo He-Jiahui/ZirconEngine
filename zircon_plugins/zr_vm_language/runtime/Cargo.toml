@@ -7,7 +7,7 @@ description = "ZrVM language runtime backend plugin for Zircon."
 
 [features]
 default = []
-real-zr-vm = ["zircon_runtime/zr-vm-real-backend"]
+backend-zr-vm = ["zircon_runtime/backend-zr-vm"]
 
 [dependencies]
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }

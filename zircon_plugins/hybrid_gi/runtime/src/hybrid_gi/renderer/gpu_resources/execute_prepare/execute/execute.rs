@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
-    RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    RenderDirectionalLightSnapshot, RenderMeshSnapshot, RenderPointLightSnapshot,
+    RenderSpotLightSnapshot,
 };
 use zircon_runtime::graphics::GraphicsError;
 
@@ -30,7 +30,6 @@ impl HybridGiGpuResources {
         prepare: Option<&HybridGiPrepareFrame>,
         scene_prepare: Option<&HybridGiScenePrepareFrame>,
         resolve_runtime: Option<&HybridGiResolveRuntime>,
-        extract: Option<&RenderHybridGiExtract>,
         scene_meshes: &[RenderMeshSnapshot],
         directional_lights: &[RenderDirectionalLightSnapshot],
         point_lights: &[RenderPointLightSnapshot],
@@ -45,14 +44,13 @@ impl HybridGiGpuResources {
         let inputs = collect_inputs(
             prepare,
             resolve_runtime,
-            extract,
             scene_prepare,
             scene_meshes,
             directional_lights,
             point_lights,
             spot_lights,
         );
-        let buffers = create_buffers(device, encoder, streamer, &inputs);
+        let buffers = create_buffers(device, encoder, streamer, &inputs, tracing_budget);
         queue_params(
             self,
             queue,
@@ -66,17 +64,7 @@ impl HybridGiGpuResources {
         );
         let bind_group = create_bind_group(self, device, &buffers);
         dispatch(self, encoder, &bind_group, &inputs);
-        dispatch_probe_trace_tiles(
-            device,
-            encoder,
-            &buffers,
-            &inputs,
-            prepare,
-            directional_lights,
-            point_lights,
-            spot_lights,
-            probe_budget,
-        );
+        dispatch_probe_trace_tiles(device, encoder, &buffers, &inputs, prepare, probe_budget);
         copy_readbacks(encoder, &buffers, &inputs);
         let HybridGiPrepareExecutionBuffers {
             cache_readback,

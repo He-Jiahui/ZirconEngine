@@ -428,3 +428,99 @@ pub(super) fn scene_voxel_clipmap_rgba(
 
     rgba8_from_color_with_alpha(radiance, if has_sample { 255 } else { 0 })
 }
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::core::framework::render::{
+        RenderDirectionalLightSnapshot, RenderLayerSet, RenderPointLightSnapshot,
+        RenderSpotLightSnapshot,
+    };
+
+    use super::*;
+
+    fn directional_light(direction: Vec3) -> RenderDirectionalLightSnapshot {
+        RenderDirectionalLightSnapshot {
+            node_id: 1,
+            light_id: 1,
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            direction,
+            color: Vec3::new(1.0, 0.1, 0.05),
+            intensity: 2.0,
+            shadow: None,
+        }
+    }
+
+    fn point_light(position: Vec3, range: f32) -> RenderPointLightSnapshot {
+        RenderPointLightSnapshot {
+            node_id: 2,
+            light_id: 2,
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            position,
+            color: Vec3::new(0.05, 1.0, 0.1),
+            intensity: 4.0,
+            range,
+            shadow: None,
+        }
+    }
+
+    fn spot_light(direction: Vec3) -> RenderSpotLightSnapshot {
+        RenderSpotLightSnapshot {
+            node_id: 3,
+            light_id: 3,
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+            position: Vec3::new(0.0, 0.0, 2.0),
+            direction,
+            color: Vec3::new(0.05, 0.1, 1.0),
+            intensity: 5.0,
+            range: 5.0,
+            inner_angle_radians: 0.2,
+            outer_angle_radians: 0.7,
+            shadow: None,
+        }
+    }
+
+    #[test]
+    fn directional_capture_respects_surface_orientation() {
+        let front_lit =
+            directional_light_contribution(Vec3::Z, false, &directional_light(Vec3::NEG_Z));
+        let back_lit = directional_light_contribution(Vec3::Z, false, &directional_light(Vec3::Z));
+
+        assert!(front_lit.x > 0.0);
+        assert_eq!(back_lit, Vec3::ZERO);
+    }
+
+    #[test]
+    fn point_capture_respects_distance_and_range() {
+        let near = point_light_contribution(
+            Vec3::ZERO,
+            Vec3::Z,
+            false,
+            &point_light(Vec3::new(0.0, 0.0, 1.0), 5.0),
+        );
+        let far = point_light_contribution(
+            Vec3::ZERO,
+            Vec3::Z,
+            false,
+            &point_light(Vec3::new(0.0, 0.0, 4.0), 5.0),
+        );
+        let outside = point_light_contribution(
+            Vec3::ZERO,
+            Vec3::Z,
+            false,
+            &point_light(Vec3::new(0.0, 0.0, 5.0), 5.0),
+        );
+
+        assert!(near.y > far.y);
+        assert!(far.y > 0.0);
+        assert_eq!(outside, Vec3::ZERO);
+    }
+
+    #[test]
+    fn spot_capture_respects_cone_direction() {
+        let inside = spot_light_contribution(Vec3::ZERO, Vec3::Z, false, &spot_light(Vec3::NEG_Z));
+        let outside = spot_light_contribution(Vec3::ZERO, Vec3::Z, false, &spot_light(Vec3::X));
+
+        assert!(inside.z > 0.0);
+        assert_eq!(outside, Vec3::ZERO);
+    }
+}

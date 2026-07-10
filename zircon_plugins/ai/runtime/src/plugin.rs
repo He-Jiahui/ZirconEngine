@@ -2,8 +2,7 @@ use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, ExportPackagingStrategy,
     PluginDistributionManifest, PluginMaturity, PluginModuleManifest, PluginPackageManifest,
-    RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
-    RuntimePluginDescriptor,
+    RuntimePlugin, RuntimePluginDescriptor,
 };
 
 use crate::{
@@ -66,13 +65,6 @@ impl RuntimePlugin for AiRuntimePlugin {
             ..PluginDistributionManifest::default()
         })
     }
-
-    fn register(
-        &self,
-        registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
-    }
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
@@ -82,6 +74,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Ai,
         "zircon_plugin_ai_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("runtime")
     .with_maturity(PluginMaturity::Experimental)
     .with_target_modes([

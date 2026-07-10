@@ -1,6 +1,5 @@
 mod gpu_readback;
 mod gpu_resources;
-mod post_process_sources;
 mod root_output_sources;
 
 pub(in crate::hybrid_gi::renderer) use gpu_readback::HybridGiGpuPendingReadback;

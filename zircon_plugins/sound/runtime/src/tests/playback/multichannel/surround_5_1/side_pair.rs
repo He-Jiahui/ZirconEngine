@@ -10,7 +10,7 @@ fn surround_7_1_clip_folds_side_pair_into_5_1_rear_bed() {
             display_name: "Playback 5.1 Test Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 6,
-            channel_layout: SoundChannelLayout::surround_5_1(),
+            channel_layout: AudioChannelLayout::surround_5_1(),
             block_size_frames: 1,
             latency_blocks: 1,
         })
@@ -27,6 +27,6 @@ fn surround_7_1_clip_folds_side_pair_into_5_1_rear_bed() {
         .unwrap();
     let mix = sound.render_mix(1).unwrap();
 
-    assert_eq!(mix.channel_layout, SoundChannelLayout::surround_5_1());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::surround_5_1());
     assert_samples_near(&mix.samples, &[0.10, 0.20, 0.30, 9.0, 1.0, 1.20]);
 }

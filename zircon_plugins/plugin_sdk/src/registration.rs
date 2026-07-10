@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::bridge::PluginInterface;
-use zircon_runtime::core::{CoreError, ModuleDescriptor};
+use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, PluginModuleId, PluginOptionManifest,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use zircon_runtime::scene::ecs::{
-    Event, RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
+    Event, Resource, RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
 };
 
 pub struct RuntimePluginRegistrationBuilder<'registry> {
@@ -22,11 +22,9 @@ impl<'registry> RuntimePluginRegistrationBuilder<'registry> {
     pub fn module(
         self,
         module_name: impl Into<String>,
-        descriptor: ModuleDescriptor,
     ) -> Result<RuntimePluginModuleRegistration<'registry>, RuntimeExtensionRegistryError> {
         let module_name = module_name.into();
         let owner = self.registry.intern_plugin_module(module_name.clone())?;
-        self.registry.register_module(descriptor)?;
         Ok(RuntimePluginModuleRegistration {
             registry: self.registry,
             module_name,
@@ -65,6 +63,16 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
             constraints: Vec::new(),
             order: 0,
         }
+    }
+
+    pub fn resource<T>(
+        &mut self,
+        init: impl FnMut() -> T + Send + 'static,
+    ) -> Result<(), RuntimeExtensionRegistryError>
+    where
+        T: Resource,
+    {
+        self.registry.register_resource::<T>(self.owner, init)
     }
 
     pub fn event<E>(
@@ -184,18 +192,29 @@ mod tests {
     #[derive(Clone, Debug)]
     struct SdkRegistrationEvent;
 
+    #[derive(Clone, Debug, Default)]
+    struct SdkRegistrationResource;
+
+    impl Resource for SdkRegistrationResource {}
+
     #[test]
     fn runtime_registration_builder_hides_module_owner_sequence() {
         let mut registry = RuntimeExtensionRegistry::default();
+        registry
+            .register_module(zircon_runtime::core::ModuleDescriptor::new(
+                MODULE_NAME,
+                "SDK registration builder test module",
+            ))
+            .expect("descriptor registered by runtime plugin report");
         let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
-            .module(
-                MODULE_OWNER,
-                ModuleDescriptor::new(MODULE_NAME, "SDK registration builder test module"),
-            )
+            .module(MODULE_OWNER)
             .expect("module registered");
 
         assert_eq!(module.module_name(), MODULE_OWNER);
 
+        module
+            .resource(SdkRegistrationResource::default)
+            .expect("runtime resource registered");
         module
             .runtime_scene_system(SYSTEM_ID, SystemStage::PostUpdate, |_context| {
                 Ok::<_, CoreError>(())
@@ -257,6 +276,17 @@ mod tests {
         let (event_owner, event) = events[0];
         assert_eq!(registry.plugin_module_name(event_owner), Some(MODULE_OWNER));
         assert_eq!(event.manifest().id, EVENT_ID);
+
+        let resources = registry.plugin_resources().collect::<Vec<_>>();
+        assert_eq!(resources.len(), 1);
+        assert_eq!(
+            registry.plugin_module_name(resources[0].0),
+            Some(MODULE_OWNER)
+        );
+        assert_eq!(
+            resources[0].1.type_name(),
+            std::any::type_name::<SdkRegistrationResource>()
+        );
 
         assert!(registry
             .plugin_options()

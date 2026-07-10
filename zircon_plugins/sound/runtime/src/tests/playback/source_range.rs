@@ -10,7 +10,7 @@ fn source_start_and_duration_limit_clip_playback_range() {
             display_name: "Source Range Test Output".to_string(),
             sample_rate_hz: 10,
             channel_count: 2,
-            channel_layout: SoundChannelLayout::stereo(),
+            channel_layout: AudioChannelLayout::stereo(),
             block_size_frames: 3,
             latency_blocks: 1,
         })

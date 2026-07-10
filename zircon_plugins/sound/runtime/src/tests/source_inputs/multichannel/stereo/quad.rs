@@ -10,7 +10,7 @@ fn external_quad_block_downmixes_rear_pair_into_stereo_front_pair() {
             SoundExternalSourceBlock {
                 sample_rate_hz: 48_000,
                 channel_count: 4,
-                channel_layout: SoundChannelLayout::quad(),
+                channel_layout: AudioChannelLayout::quad(),
                 samples: vec![0.10, 0.20, 0.40, 0.50],
             },
         )
@@ -24,6 +24,6 @@ fn external_quad_block_downmixes_rear_pair_into_stereo_front_pair() {
 
     let mix = sound.render_mix(1).unwrap();
 
-    assert_eq!(mix.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::stereo());
     assert_samples_near(&mix.samples, &[0.30, 0.45]);
 }

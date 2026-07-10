@@ -4,14 +4,14 @@ const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
 
 const PLUGIN_ID: &[u8] = b"texture_importer\0";
 const RUNTIME_ENTRY: &[u8] = b"zircon_plugin_texture_importer_runtime_entry_v3\0";
-const REQUESTED_CAPABILITIES: &[u8] = b"runtime.plugin.texture_importer\nruntime.asset.importer.texture.image\nruntime.asset.importer.texture.container\nruntime.asset.importer.texture.psd\0";
+const REQUESTED_CAPABILITIES: &[u8] = b"runtime.plugin.texture_importer\nruntime.asset.importer.texture.image\nruntime.asset.importer.texture.container\nruntime.asset.importer.texture.psd\nruntime.asset.importer.texture.cubemap\nruntime.asset.importer.texture.array\0";
 const NEGOTIATED_CAPABILITIES: &[u8] = REQUESTED_CAPABILITIES;
 const RUNTIME_DIAGNOSTICS: &[u8] =
     b"texture_importer dist entry ready; importers remain hosted by the runtime module\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] =
     b"texture_importer dist entry requires runtime.plugin.texture_importer host capability\0";
 const EMPTY_MANIFEST: &[u8] = b"\0";
-const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.texture_importer\", \"runtime.asset.importer.texture.image\", \"runtime.asset.importer.texture.container\", \"runtime.asset.importer.texture.psd\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[extensions]]\npoint = \"runtime.asset.importer.texture\"\ncontribution = \"plugin.texture_importer.runtime\"\nschema = \"zircon.runtime.asset-importer.texture/1\"\n\0";
+const RUNTIME_REGISTRATION_MANIFEST: &[u8] = b"schema = \"zircon.native.registration-manifest/3\"\ncapabilities = [\"runtime.plugin.texture_importer\", \"runtime.asset.importer.texture.image\", \"runtime.asset.importer.texture.container\", \"runtime.asset.importer.texture.psd\", \"runtime.asset.importer.texture.cubemap\", \"runtime.asset.importer.texture.array\"]\n[[modules]]\nname = \"runtime\"\nkind = \"runtime\"\n[[extensions]]\npoint = \"runtime.asset.importer.texture\"\ncontribution = \"plugin.texture_importer.runtime\"\nschema = \"zircon.runtime.asset-importer.texture/1\"\n\0";
 
 zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
     plugin_id: PLUGIN_ID,

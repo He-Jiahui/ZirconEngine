@@ -10,7 +10,7 @@ fn external_5_1_block_folds_center_into_quad_front_pair_without_lfe() {
             display_name: "External Quad Test Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 4,
-            channel_layout: SoundChannelLayout::quad(),
+            channel_layout: AudioChannelLayout::quad(),
             block_size_frames: 1,
             latency_blocks: 1,
         })
@@ -21,7 +21,7 @@ fn external_5_1_block_folds_center_into_quad_front_pair_without_lfe() {
             handle.clone(),
             SoundExternalSourceBlock::new(
                 48_000,
-                SoundChannelLayout::surround_5_1(),
+                AudioChannelLayout::surround_5_1(),
                 vec![0.10, 0.20, 0.30, 9.0, 0.40, 0.50],
             ),
         )
@@ -36,6 +36,6 @@ fn external_5_1_block_folds_center_into_quad_front_pair_without_lfe() {
     let mix = sound.render_mix(1).unwrap();
     let center = 0.30 * std::f32::consts::FRAC_1_SQRT_2;
 
-    assert_eq!(mix.channel_layout, SoundChannelLayout::quad());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::quad());
     assert_samples_near(&mix.samples, &[0.10 + center, 0.20 + center, 0.40, 0.50]);
 }

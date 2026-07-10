@@ -60,7 +60,7 @@ fn output_device_info(
     config: &SoundConfig,
 ) -> SoundOutputDeviceInfo {
     use cpal::traits::DeviceTrait;
-    use zircon_runtime::core::framework::sound::SoundChannelLayout;
+    use zircon_runtime::core::framework::audio::AudioChannelLayout;
 
     let display_name = device
         .name()
@@ -79,7 +79,7 @@ fn output_device_info(
         descriptor.sample_rate_hz = default_config.sample_rate().0;
         descriptor.channel_count = default_config.channels();
         descriptor.channel_layout =
-            SoundChannelLayout::for_channel_count(default_config.channels());
+            AudioChannelLayout::for_channel_count(default_config.channels());
     }
     let diagnostic = select_stream_config(device, &descriptor)
         .err()

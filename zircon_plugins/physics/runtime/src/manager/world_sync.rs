@@ -1,23 +1,26 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
 
-use zircon_runtime::core::framework::physics::{
-    PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape, PhysicsColliderSyncState,
-    PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType, PhysicsMaterialMetadata,
-    PhysicsMaterialSyncState, PhysicsTriggerEvent, PhysicsWorldSyncState,
-};
 use zircon_runtime::core::framework::scene::WorldHandle;
-use zircon_runtime::core::math::Transform;
+use zircon_runtime::core::framework::{
+    physics::{
+        PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape, PhysicsColliderSyncState,
+        PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType, PhysicsMaterialSyncState,
+        PhysicsTriggerEvent, PhysicsWorldSyncState,
+    },
+    scene::physics::PhysicsMaterialMetadata,
+};
+use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
-use crate::trigger::PhysicsTriggerPairMap;
+use crate::backend::builtin::PhysicsTriggerPairMap;
 
+use super::poison_recovery::recover_lock;
 use super::validation::{
     collider_layer_sync_input_is_valid, collider_shape_sync_input_is_valid,
-    joint_sync_input_is_finite, material_locator_sync_input_is_valid,
-    material_metadata_sync_input_is_finite, physics_body_sync_state_is_valid,
-    physics_collider_shape_is_valid, physics_collider_sync_state_is_valid,
+    joint_sync_input_is_finite, material_metadata_sync_input_is_finite,
+    physics_body_sync_state_is_valid, physics_collider_sync_state_is_valid,
     physics_joint_sync_state_is_valid, physics_material_sync_state_is_valid,
     rigid_body_sync_input_is_finite, transform_is_finite,
 };
@@ -131,6 +134,33 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
     sync
 }
 
+pub(crate) fn apply_synchronized_bodies_to_scene(scene: &mut World, sync: &PhysicsWorldSyncState) {
+    for body in &sync.bodies {
+        if !physics_body_sync_state_is_valid(body) {
+            continue;
+        }
+        let Some(mut rigid_body) = scene.rigid_body(body.entity).cloned() else {
+            continue;
+        };
+        rigid_body.body_type = match body.body_type {
+            PhysicsBodyType::Static => RigidBodyType::Static,
+            PhysicsBodyType::Dynamic => RigidBodyType::Dynamic,
+            PhysicsBodyType::Kinematic => RigidBodyType::Kinematic,
+        };
+        rigid_body.mass = body.mass;
+        rigid_body.linear_velocity = Vec3::from_array(body.linear_velocity);
+        rigid_body.angular_velocity = Vec3::from_array(body.angular_velocity);
+        rigid_body.linear_damping = body.linear_damping;
+        rigid_body.angular_damping = body.angular_damping;
+        rigid_body.gravity_scale = body.gravity_scale;
+        rigid_body.can_sleep = body.can_sleep;
+        rigid_body.lock_translation = body.lock_translation;
+        rigid_body.lock_rotation = body.lock_rotation;
+        let _ = scene.update_transform(body.entity, body.transform);
+        let _ = scene.set_rigid_body(body.entity, Some(rigid_body));
+    }
+}
+
 pub(super) fn clear_world_state(
     world: WorldHandle,
     synced_worlds: &Mutex<HashMap<WorldHandle, PhysicsWorldSyncState>>,
@@ -138,22 +168,10 @@ pub(super) fn clear_world_state(
     trigger_pairs: &Mutex<HashMap<WorldHandle, PhysicsTriggerPairMap>>,
     triggers: &Mutex<HashMap<WorldHandle, Vec<PhysicsTriggerEvent>>>,
 ) {
-    synced_worlds
-        .lock()
-        .expect("physics sync mutex poisoned")
-        .remove(&world);
-    contacts
-        .lock()
-        .expect("physics contact mutex poisoned")
-        .remove(&world);
-    trigger_pairs
-        .lock()
-        .expect("physics trigger pair mutex poisoned")
-        .remove(&world);
-    triggers
-        .lock()
-        .expect("physics trigger mutex poisoned")
-        .remove(&world);
+    recover_lock(synced_worlds).remove(&world);
+    recover_lock(contacts).remove(&world);
+    recover_lock(trigger_pairs).remove(&world);
+    recover_lock(triggers).remove(&world);
 }
 
 pub(super) fn sanitize_world_sync_state(mut sync: PhysicsWorldSyncState) -> PhysicsWorldSyncState {

@@ -10,7 +10,7 @@ fn preview_hrtf_fallback_clears_non_binaural_surround_output() {
             display_name: "Preview HRTF Surround Test Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 6,
-            channel_layout: SoundChannelLayout::surround_5_1(),
+            channel_layout: AudioChannelLayout::surround_5_1(),
             block_size_frames: 1,
             latency_blocks: 1,
         })
@@ -38,6 +38,6 @@ fn preview_hrtf_fallback_clears_non_binaural_surround_output() {
 
     let mix = sound.render_mix(1).unwrap();
 
-    assert_eq!(mix.channel_layout, SoundChannelLayout::surround_5_1());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::surround_5_1());
     assert_samples_near(&mix.samples, &[1.0, 2.0, 0.0, 0.0, 0.0, 0.0]);
 }

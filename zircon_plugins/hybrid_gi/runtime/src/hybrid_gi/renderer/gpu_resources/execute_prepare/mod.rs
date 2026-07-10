@@ -1,5 +1,4 @@
 mod execute;
-mod extract_scene_sources;
 mod pending_probe_inputs;
 mod probe_quantization;
 mod resident_probe_inputs;

@@ -9,7 +9,7 @@ fn external_discrete_4_block_folds_overflow_pair_into_stereo_output() {
             handle.clone(),
             SoundExternalSourceBlock::new(
                 48_000,
-                SoundChannelLayout::discrete(4),
+                AudioChannelLayout::discrete(4),
                 vec![0.10, 0.20, 0.40, 0.50],
             ),
         )
@@ -23,6 +23,6 @@ fn external_discrete_4_block_folds_overflow_pair_into_stereo_output() {
 
     let mix = sound.render_mix(1).unwrap();
 
-    assert_eq!(mix.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::stereo());
     assert_samples_near(&mix.samples, &[0.30, 0.45]);
 }

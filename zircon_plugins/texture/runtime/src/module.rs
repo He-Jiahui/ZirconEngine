@@ -6,8 +6,8 @@ use zircon_runtime::engine_module::{factory, qualified_name};
 
 use crate::manager::DefaultTextureManager;
 
-pub const TEXTURE_MODULE_NAME: &str = "TextureModule";
-pub const TEXTURE_MANAGER_NAME: &str = "TextureModule.Manager.TextureManager";
+pub const TEXTURE_MODULE_NAME: &str = "texture.runtime";
+pub const TEXTURE_MANAGER_NAME: &str = "texture.runtime.Manager.TextureManager";
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(

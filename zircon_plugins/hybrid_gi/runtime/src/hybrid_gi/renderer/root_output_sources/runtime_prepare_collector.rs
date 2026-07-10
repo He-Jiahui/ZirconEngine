@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use zircon_runtime::core::framework::render::{
-    RenderHybridGiPreparedFrame, RenderMeshSnapshot, RenderPluginRendererOutputs,
+    RenderHybridGiPreparedFrame, RenderHybridGiQuality, RenderMeshSnapshot,
+    RenderPluginRendererOutputs,
 };
 use zircon_runtime::core::math::{Vec3, Vec4};
 use zircon_runtime::core::resource::ResourceId;
@@ -69,10 +70,15 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         if let Some(prepared_frame) = prepared_frame.filter(|frame| !frame.is_empty()) {
             let prepare = prepare_frame_from_neutral(&prepared_frame);
             let resolve_runtime = resolve_runtime_from_neutral(&prepared_frame);
-            let probe_budget = extract.as_ref().map(|extract| extract.probe_budget);
-            let tracing_budget = extract
-                .as_ref()
-                .map(|extract| extract.tracing_budget.max(extract.trace_budget));
+            let probe_budget = Some(
+                (prepared_frame.resident_probes.len() + prepared_frame.pending_updates.len())
+                    as u32,
+            );
+            let tracing_budget = extract.as_ref().map(|extract| match extract.quality {
+                RenderHybridGiQuality::Low => 8,
+                RenderHybridGiQuality::Medium => 16,
+                RenderHybridGiQuality::High => 32,
+            });
             let gpu_resources = state
                 .gpu_resources
                 .get_or_insert_with(|| HybridGiGpuResources::new(context.device));
@@ -84,7 +90,6 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 Some(&prepare),
                 None,
                 Some(&resolve_runtime),
-                extract.as_ref(),
                 &scene_meshes,
                 &directional_lights,
                 &point_lights,

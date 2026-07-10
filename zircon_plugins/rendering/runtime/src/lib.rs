@@ -1,5 +1,5 @@
 pub const PLUGIN_ID: &str = "rendering";
-pub const RENDERING_MODULE_NAME: &str = "RenderingPluginModule";
+pub const RENDERING_MODULE_NAME: &str = "rendering.runtime";
 
 mod capability;
 mod plugin;

@@ -9,9 +9,9 @@ use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, Engi
 
 use crate::DefaultAiManager;
 
-pub const AI_MODULE_NAME: &str = "AiModule";
-pub const AI_DRIVER_NAME: &str = "AiModule.Driver.AiDriver";
-pub(crate) const DEFAULT_AI_MANAGER_NAME: &str = "AiModule.Manager.DefaultAiManager";
+pub const AI_MODULE_NAME: &str = "ai.runtime";
+pub const AI_DRIVER_NAME: &str = "ai.runtime.Driver.AiDriver";
+pub(crate) const DEFAULT_AI_MANAGER_NAME: &str = "ai.runtime.Manager.DefaultAiManager";
 pub const AI_MANAGER_NAME: &str = zircon_runtime::core::manager::AI_MANAGER_NAME;
 
 #[derive(Clone, Debug, Default)]

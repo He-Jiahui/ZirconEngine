@@ -9,9 +9,9 @@ use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, Engi
 
 use super::{DefaultNetManager, NetDriver};
 
-pub const NET_MODULE_NAME: &str = "NetModule";
-pub const NET_DRIVER_NAME: &str = "NetModule.Driver.NetDriver";
-pub(crate) const DEFAULT_NET_MANAGER_NAME: &str = "NetModule.Manager.DefaultNetManager";
+pub const NET_MODULE_NAME: &str = "net.runtime";
+pub const NET_DRIVER_NAME: &str = "net.runtime.Driver.NetDriver";
+pub(crate) const DEFAULT_NET_MANAGER_NAME: &str = "net.runtime.Manager.DefaultNetManager";
 pub const NET_MANAGER_NAME: &str = zircon_runtime::core::manager::NET_MANAGER_NAME;
 
 #[derive(Clone, Copy, Debug, Default)]

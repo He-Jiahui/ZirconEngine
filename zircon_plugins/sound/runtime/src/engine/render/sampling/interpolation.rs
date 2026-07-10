@@ -1,17 +1,17 @@
-use zircon_runtime::core::framework::sound::SoundChannelLayout;
+use zircon_runtime::core::framework::audio::AudioChannelLayout;
 
 use super::frame::source_frame_sample;
 
 pub(in crate::engine::render) fn interpolated_source_sample(
     samples: &[f32],
     source_channels: usize,
-    source_layout: &SoundChannelLayout,
+    source_layout: &AudioChannelLayout,
     frame_count: usize,
     range_start_frame: usize,
     range_end_frame: Option<usize>,
     frame_position: f64,
     output_channel: usize,
-    output_layout: &SoundChannelLayout,
+    output_layout: &AudioChannelLayout,
     looped: bool,
 ) -> f32 {
     if source_channels == 0 || frame_count == 0 {

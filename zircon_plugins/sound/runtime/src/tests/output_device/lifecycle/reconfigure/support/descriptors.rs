@@ -7,7 +7,7 @@ pub(super) fn preview_output_descriptor() -> SoundOutputDeviceDescriptor {
         display_name: "Preview Output".to_string(),
         sample_rate_hz: 24_000,
         channel_count: 1,
-        channel_layout: SoundChannelLayout::mono(),
+        channel_layout: AudioChannelLayout::mono(),
         block_size_frames: 3,
         latency_blocks: 1,
     }

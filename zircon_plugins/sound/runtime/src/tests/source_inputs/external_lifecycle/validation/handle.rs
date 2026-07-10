@@ -8,7 +8,7 @@ fn external_audio_source_block_rejects_blank_handle() {
     assert!(sound
         .submit_external_source_block(
             empty_handle,
-            SoundExternalSourceBlock::new(48_000, SoundChannelLayout::mono(), vec![0.0]),
+            SoundExternalSourceBlock::new(48_000, AudioChannelLayout::mono(), vec![0.0]),
         )
         .unwrap_err()
         .to_string()

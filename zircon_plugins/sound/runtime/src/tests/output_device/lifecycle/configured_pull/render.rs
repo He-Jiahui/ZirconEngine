@@ -8,6 +8,6 @@ fn configured_output_device_renders_block_samples() {
     play_output_test_clip(&sound);
 
     let block = sound.render_output_device_block().unwrap();
-    assert_eq!(block.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(block.channel_layout, AudioChannelLayout::stereo());
     assert_samples_near(&block.samples, &[0.25, 0.25, 0.5, 0.5]);
 }

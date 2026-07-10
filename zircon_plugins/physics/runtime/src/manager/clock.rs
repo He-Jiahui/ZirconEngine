@@ -5,15 +5,13 @@ use zircon_runtime::core::math::Real;
 use crate::backend::select_runtime_backend;
 use crate::manager::{DefaultPhysicsManager, PhysicsTickPlan};
 
+use super::poison_recovery::recover_lock;
+
 impl DefaultPhysicsManager {
     pub fn advance_clock(&self, world: WorldHandle, delta_seconds: f32) -> PhysicsTickPlan {
         const STEP_EPSILON_SCALE: f32 = 1.0e-4;
 
-        let settings = self
-            .settings
-            .lock()
-            .expect("physics settings mutex poisoned")
-            .clone();
+        let settings = recover_lock(&self.settings).clone();
         let step_seconds = configured_step_seconds(&settings);
         if !select_runtime_backend(&settings).allows_step(settings.simulation_mode)
             || step_seconds <= 0.0
@@ -26,10 +24,7 @@ impl DefaultPhysicsManager {
             };
         }
 
-        let mut accumulators = self
-            .accumulators
-            .lock()
-            .expect("physics accumulator mutex poisoned");
+        let mut accumulators = recover_lock(&self.accumulators);
         let accumulator = accumulators.entry(world).or_insert(0.0);
         let delta_seconds = if delta_seconds.is_finite() {
             delta_seconds.max(0.0)

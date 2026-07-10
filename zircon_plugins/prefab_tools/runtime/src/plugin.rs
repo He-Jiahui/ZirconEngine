@@ -49,10 +49,6 @@ impl RuntimePlugin for PrefabToolsRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(zircon_runtime::core::ModuleDescriptor::new(
-            "PrefabToolsPlugin",
-            "Prefab tools runtime plugin",
-        ))?;
         registry.register_component(prefab_instance_component_descriptor())?;
         for importer in prefab_importer_descriptors() {
             registry.register_asset_importer(
@@ -73,6 +69,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::PrefabTools,
         "zircon_plugin_prefab_tools_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("authoring")
     .with_maturity(PluginMaturity::Beta)
     .with_target_modes([
@@ -85,6 +82,13 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         CapabilityStatus::Partial,
     ))
     .build()
+}
+
+pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
+    zircon_runtime::core::ModuleDescriptor::new(
+        "prefab_tools.runtime",
+        "Prefab tools runtime plugin",
+    )
 }
 
 pub fn prefab_instance_component_descriptor() -> ComponentTypeDescriptor {

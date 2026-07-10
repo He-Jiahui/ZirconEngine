@@ -11,7 +11,7 @@ fn external_audio_source_block_rejects_channel_count_and_layout_mismatches() {
             SoundExternalSourceBlock {
                 sample_rate_hz: 48_000,
                 channel_count: 0,
-                channel_layout: SoundChannelLayout::mono(),
+                channel_layout: AudioChannelLayout::mono(),
                 samples: vec![0.0],
             },
         )
@@ -24,7 +24,7 @@ fn external_audio_source_block_rejects_channel_count_and_layout_mismatches() {
             SoundExternalSourceBlock {
                 sample_rate_hz: 48_000,
                 channel_count: 2,
-                channel_layout: SoundChannelLayout::mono(),
+                channel_layout: AudioChannelLayout::mono(),
                 samples: vec![0.0, 0.0],
             },
         )

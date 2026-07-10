@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use zircon_runtime::core::framework::render::PostProcessGraphResourceNames;
 use zircon_runtime::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
@@ -30,15 +31,16 @@ pub(crate) use hybrid_gi::{
 };
 use render_pass_executors::{
     hybrid_gi_history_executor, hybrid_gi_resolve_executor, hybrid_gi_scene_prepare_executor,
-    hybrid_gi_trace_schedule_executor,
+    hybrid_gi_trace_schedule_executor, HYBRID_GI_SCENE_BUFFER_MINIMUM_SIZE_BYTES,
+    HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES,
 };
 
 pub const PLUGIN_ID: &str = "hybrid_gi";
 pub const HYBRID_GI_FEATURE_NAME: &str = "hybrid_gi";
-pub const HYBRID_GI_MODULE_NAME: &str = "HybridGiPluginModule";
+pub const HYBRID_GI_MODULE_NAME: &str = "hybrid_gi.runtime";
 pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL: &str =
     "zircon-hybrid-gi-scene-depth-handoff";
-pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE: [u32; 3] = [1, 1, 1];
+pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 pub(crate) const HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 const HYBRID_GI_TRACE_SCHEDULE_PIPELINE_LABEL: &str = "zircon-hybrid-gi-trace-schedule";
 const HYBRID_GI_TRACE_SCHEDULE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
@@ -74,8 +76,12 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE,
                 HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS,
             ))
-            .read_texture("scene-depth")
-            .write_buffer("hybrid-gi-scene"),
+            .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .write_buffer_with_minimum_size(
+                PostProcessGraphResourceNames::HYBRID_GI_SCENE,
+                HYBRID_GI_SCENE_BUFFER_MINIMUM_SIZE_BYTES,
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-trace-schedule",
@@ -87,24 +93,39 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
                 HYBRID_GI_TRACE_SCHEDULE_WORKGROUP_SIZE,
                 HYBRID_GI_TRACE_SCHEDULE_DISPATCH_GROUPS,
             ))
-            .read_buffer("hybrid-gi-scene")
-            .write_buffer("hybrid-gi-trace"),
+            .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+            .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_SCENE)
+            .write_buffer_with_minimum_size(
+                PostProcessGraphResourceNames::HYBRID_GI_TRACE,
+                HYBRID_GI_TRACE_BUFFER_MINIMUM_SIZE_BYTES,
+            ),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::Lighting,
                 "hybrid-gi-resolve",
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.resolve")
-            .read_buffer("hybrid-gi-trace")
-            .write_texture("hybrid-gi-lighting"),
+            .read_buffer(PostProcessGraphResourceNames::HYBRID_GI_TRACE)
+            .read_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
+            .read_external_texture(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
+            .read_external_texture(
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
+            )
+            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
+            .write_texture(PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 "hybrid-gi-history",
                 QueueLane::Graphics,
             )
             .with_executor_id("hybrid-gi.history")
-            .read_texture("hybrid-gi-lighting")
-            .write_external_texture("history-global-illumination"),
+            .with_side_effects()
+            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
+            .read_texture(PostProcessGraphResourceNames::HYBRID_GI_TEMPORAL_METADATA)
+            .write_external_texture(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
+            .write_external_texture(
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI_TEMPORAL_METADATA,
+            ),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)

@@ -6,8 +6,8 @@ use zircon_runtime::engine_module::{factory, qualified_name, EngineModule};
 
 use crate::ParticlesManager;
 
-pub const PARTICLES_MODULE_NAME: &str = "ParticlesModule";
-pub const PARTICLES_MANAGER_NAME: &str = "ParticlesModule.Manager.ParticlesManager";
+pub const PARTICLES_MODULE_NAME: &str = "particles.runtime";
+pub const PARTICLES_MANAGER_NAME: &str = "particles.runtime.Manager.ParticlesManager";
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ParticlesModule;

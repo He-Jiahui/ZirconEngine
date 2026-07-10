@@ -49,10 +49,6 @@ impl RuntimePlugin for Tilemap2dRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(zircon_runtime::core::ModuleDescriptor::new(
-            "Tilemap2dPlugin",
-            "Tilemap 2D runtime plugin",
-        ))?;
         registry.register_component(tilemap_component_descriptor())?;
         for importer in tilemap_importer_descriptors() {
             registry.register_asset_importer(
@@ -73,6 +69,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Tilemap2d,
         "zircon_plugin_tilemap_2d_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("authoring")
     .with_maturity(PluginMaturity::Beta)
     .with_target_modes([
@@ -85,6 +82,10 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         CapabilityStatus::Partial,
     ))
     .build()
+}
+
+pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
+    zircon_runtime::core::ModuleDescriptor::new("tilemap_2d.runtime", "Tilemap 2D runtime plugin")
 }
 
 pub fn tilemap_component_descriptor() -> ComponentTypeDescriptor {

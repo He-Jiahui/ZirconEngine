@@ -129,10 +129,6 @@ mod tests {
             card_budget,
             voxel_budget: 0,
             debug_view: Default::default(),
-            probe_budget: 0,
-            tracing_budget: 0,
-            probes: Vec::new(),
-            trace_regions: Vec::new(),
         }
     }
 

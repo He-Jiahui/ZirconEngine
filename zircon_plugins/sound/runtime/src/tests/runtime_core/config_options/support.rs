@@ -6,7 +6,7 @@ pub(super) fn cinematic_options() -> SoundPluginOptions {
         backend: "software-null".to_string(),
         sample_rate_hz: 44_100,
         channel_count: 6,
-        channel_layout: SoundChannelLayout::surround_5_1(),
+        channel_layout: AudioChannelLayout::surround_5_1(),
         global_volume_gain: 0.25,
         block_size_frames: 128,
         max_voices: 32,

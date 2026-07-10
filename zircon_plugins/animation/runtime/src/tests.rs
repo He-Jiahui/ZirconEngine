@@ -21,6 +21,13 @@ fn animation_registration_contributes_runtime_module() {
                 && system.id == ANIMATION_EVALUATE_SYSTEM
                 && system.stage == zircon_runtime::scene::SystemStage::PostUpdate
         }));
+    assert!(report
+        .extensions
+        .plugin_resources()
+        .any(|(owner, resource)| {
+            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                && resource.type_name() == std::any::type_name::<AnimationEvaluationPipeline>()
+        }));
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
         vec![ANIMATION_SYSTEM_SET.to_string()]

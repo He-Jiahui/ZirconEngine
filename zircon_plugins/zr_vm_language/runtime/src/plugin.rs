@@ -71,7 +71,6 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         registry.register_scene_hook(
             zircon_runtime::script::script_scene_fixed_update_hook_registration(),
         )?;
@@ -87,6 +86,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::ZrVmLanguage,
         "zircon_plugin_zr_vm_language_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("runtime")
     .with_maturity(PluginMaturity::Experimental)
     .with_target_modes([

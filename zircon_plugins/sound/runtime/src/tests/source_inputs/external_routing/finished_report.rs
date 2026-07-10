@@ -7,7 +7,7 @@ fn external_audio_source_block_reports_completed_external_source() {
     sound
         .submit_external_source_block(
             handle.clone(),
-            SoundExternalSourceBlock::new(48_000, SoundChannelLayout::mono(), vec![0.25, 0.5]),
+            SoundExternalSourceBlock::new(48_000, AudioChannelLayout::mono(), vec![0.25, 0.5]),
         )
         .unwrap();
     let source_id = sound

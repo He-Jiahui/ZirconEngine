@@ -111,8 +111,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use zircon_runtime::core::framework::sound::{
-        SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendState, SoundBackendStatus,
-        SoundChannelLayout, SoundMixBlock, SoundOutputDeviceDescriptor, SoundOutputDeviceId,
+        AudioChannelLayout, SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendState,
+        SoundBackendStatus, SoundMixBlock, SoundOutputDeviceDescriptor, SoundOutputDeviceId,
         SoundOutputDeviceInfo, SoundOutputDeviceState, SoundOutputDeviceStatus,
         SoundOutputLatencyStatus,
     };
@@ -320,7 +320,7 @@ mod tests {
             display_name: "Software Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
-            channel_layout: SoundChannelLayout::stereo(),
+            channel_layout: AudioChannelLayout::stereo(),
             block_size_frames: 256,
             latency_blocks: 2,
         }
@@ -333,7 +333,7 @@ mod tests {
             display_name: "CPAL Default Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
-            channel_layout: SoundChannelLayout::stereo(),
+            channel_layout: AudioChannelLayout::stereo(),
             block_size_frames: 256,
             latency_blocks: 2,
         }

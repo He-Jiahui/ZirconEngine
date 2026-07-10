@@ -9,9 +9,6 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
-use zircon_runtime::graphics::hybrid_gi_extract_sources::{
-    hybrid_gi_extract_probe_records, hybrid_gi_extract_trace_region_records,
-};
 
 use super::input_set::HybridGiInputSet;
 use super::radiance_cache_state::HybridGiRadianceCacheState;
@@ -181,8 +178,6 @@ pub(crate) struct HybridGiSceneRepresentation {
     directional_lights: Vec<RenderDirectionalLightSnapshot>,
     point_lights: Vec<RenderPointLightSnapshot>,
     spot_lights: Vec<RenderSpotLightSnapshot>,
-    fixture_probe_count: usize,
-    fixture_trace_region_count: usize,
 }
 
 impl Default for HybridGiSceneRepresentation {
@@ -199,8 +194,6 @@ impl Default for HybridGiSceneRepresentation {
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
-            fixture_probe_count: 0,
-            fixture_trace_region_count: 0,
         }
     }
 }
@@ -292,13 +285,6 @@ impl HybridGiSceneRepresentation {
             debug_view: extract.debug_view,
         };
         self.inputs = HybridGiInputSet::deferred();
-        if !extract.enabled {
-            self.fixture_probe_count = 0;
-            self.fixture_trace_region_count = 0;
-            return;
-        }
-        self.fixture_probe_count = hybrid_gi_extract_probe_records(extract).len();
-        self.fixture_trace_region_count = hybrid_gi_extract_trace_region_records(extract).len();
     }
 
     pub(crate) fn synchronize_scene(
@@ -364,16 +350,6 @@ impl HybridGiSceneRepresentation {
             .map(placeholder_mesh)
             .collect::<Vec<_>>();
         self.synchronize_scene(&meshes, &[], &[], &[]);
-    }
-
-    #[cfg(test)]
-    pub(crate) fn fixture_probe_count(&self) -> usize {
-        self.fixture_probe_count
-    }
-
-    #[cfg(test)]
-    pub(crate) fn fixture_trace_region_count(&self) -> usize {
-        self.fixture_trace_region_count
     }
 
     #[cfg(test)]

@@ -8,14 +8,14 @@ fn software_null_backend_lists_supported_channel_layouts() {
 
     assert!(backend
         .supported_channel_layouts
-        .contains(&SoundChannelLayout::stereo()));
+        .contains(&AudioChannelLayout::stereo()));
     assert!(backend
         .supported_channel_layouts
-        .contains(&SoundChannelLayout::quad()));
+        .contains(&AudioChannelLayout::quad()));
     assert!(backend
         .supported_channel_layouts
-        .contains(&SoundChannelLayout::surround_5_1()));
+        .contains(&AudioChannelLayout::surround_5_1()));
     assert!(backend
         .supported_channel_layouts
-        .contains(&SoundChannelLayout::surround_5_1_side()));
+        .contains(&AudioChannelLayout::surround_5_1_side()));
 }

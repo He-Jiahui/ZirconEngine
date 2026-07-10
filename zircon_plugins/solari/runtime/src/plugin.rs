@@ -64,7 +64,6 @@ impl RuntimePlugin for SolariRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         registry.register_solari_runtime_provider(solari_runtime_provider_registration())
     }
 }
@@ -76,6 +75,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Solari,
         "zircon_plugin_solari_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("rendering")
     .with_target_modes([
         RuntimeTargetMode::ClientRuntime,

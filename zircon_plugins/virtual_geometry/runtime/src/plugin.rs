@@ -88,7 +88,6 @@ impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())?;
         registry.register_render_feature(render_feature_descriptor())?;
         for registration in render_pass_executor_registrations() {
             registry.register_render_pass_executor(registration)?;
@@ -107,6 +106,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::builtin::RuntimePluginId::VirtualGeometry,
         "zircon_plugin_virtual_geometry_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("rendering")
     .with_target_modes([
         zircon_runtime::builtin::RuntimeTargetMode::ClientRuntime,

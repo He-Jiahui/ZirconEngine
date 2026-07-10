@@ -1,7 +1,7 @@
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, RenderHybridGiDebugView,
-    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiQuality, RenderHybridGiTraceRegion,
-    RenderLayerSet, RenderMeshSnapshot, RenderMeshStaticState,
+    RenderHybridGiExtract, RenderHybridGiQuality, RenderLayerSet, RenderMeshSnapshot,
+    RenderMeshStaticState,
 };
 use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
@@ -21,7 +21,7 @@ fn hybrid_gi_input_contract_stays_complete_for_deferred_and_forward_plus() {
 }
 
 #[test]
-fn hybrid_gi_scene_representation_separates_public_settings_from_internal_fixture_bridge() {
+fn hybrid_gi_scene_representation_uses_public_settings_without_authored_scene_payloads() {
     let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
         enabled: true,
         quality: RenderHybridGiQuality::High,
@@ -29,107 +29,14 @@ fn hybrid_gi_scene_representation_separates_public_settings_from_internal_fixtur
         card_budget: 48,
         voxel_budget: 12,
         debug_view: RenderHybridGiDebugView::SurfaceCache,
-        probe_budget: 1,
-        tracing_budget: 1,
-        probes: vec![RenderHybridGiProbe {
-            entity: 7,
-            probe_id: 10,
-            position: Vec3::new(1.0, 2.0, 3.0),
-            radius: 1.5,
-            parent_probe_id: None,
-            resident: true,
-            ray_budget: 96,
-        }],
-        trace_regions: vec![RenderHybridGiTraceRegion {
-            entity: 8,
-            region_id: 11,
-            bounds_center: Vec3::new(2.0, 1.0, -1.0),
-            bounds_radius: 2.5,
-            screen_coverage: 0.75,
-            rt_lighting_rgb: [32, 64, 96],
-        }],
     });
 
     assert_eq!(representation.settings().trace_budget(), 24);
     assert_eq!(representation.settings().card_budget(), 48);
     assert_eq!(representation.settings().voxel_budget(), 12);
-    assert_eq!(representation.fixture_probe_count(), 1);
-    assert_eq!(representation.fixture_trace_region_count(), 1);
     assert!(representation.inputs().is_complete());
     assert_eq!(representation.surface_cache().resident_page_count(), 0);
     assert_eq!(representation.voxel_scene().resident_clipmap_count(), 0);
-}
-
-#[test]
-fn hybrid_gi_scene_representation_counts_duplicate_extract_fixture_payloads_once() {
-    let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
-        enabled: true,
-        quality: RenderHybridGiQuality::High,
-        trace_budget: 24,
-        card_budget: 48,
-        voxel_budget: 12,
-        debug_view: RenderHybridGiDebugView::SurfaceCache,
-        probe_budget: 1,
-        tracing_budget: 1,
-        probes: vec![
-            RenderHybridGiProbe {
-                probe_id: 10,
-                ..Default::default()
-            },
-            RenderHybridGiProbe {
-                probe_id: 10,
-                position: Vec3::new(9.0, 0.0, 0.0),
-                ..Default::default()
-            },
-        ],
-        trace_regions: vec![
-            RenderHybridGiTraceRegion {
-                region_id: 11,
-                ..Default::default()
-            },
-            RenderHybridGiTraceRegion {
-                region_id: 11,
-                bounds_center: Vec3::new(9.0, 0.0, 0.0),
-                ..Default::default()
-            },
-        ],
-    });
-
-    assert_eq!(
-        representation.fixture_probe_count(),
-        1,
-        "expected extract fixture probe stats to count unique ids after the old authored probe path is demoted"
-    );
-    assert_eq!(
-        representation.fixture_trace_region_count(),
-        1,
-        "expected extract fixture trace-region stats to count unique ids after the old authored trace path is demoted"
-    );
-}
-
-#[test]
-fn hybrid_gi_scene_representation_ignores_disabled_extract_fixture_payloads() {
-    let representation = HybridGiSceneRepresentation::from_extract(&RenderHybridGiExtract {
-        enabled: false,
-        quality: RenderHybridGiQuality::High,
-        trace_budget: 24,
-        card_budget: 48,
-        voxel_budget: 12,
-        debug_view: RenderHybridGiDebugView::SurfaceCache,
-        probe_budget: 1,
-        tracing_budget: 1,
-        probes: vec![RenderHybridGiProbe {
-            probe_id: 10,
-            ..Default::default()
-        }],
-        trace_regions: vec![RenderHybridGiTraceRegion {
-            region_id: 11,
-            ..Default::default()
-        }],
-    });
-
-    assert_eq!(representation.fixture_probe_count(), 0);
-    assert_eq!(representation.fixture_trace_region_count(), 0);
 }
 
 #[test]
@@ -532,10 +439,6 @@ fn extract_with_trace_and_budgets(
         card_budget,
         voxel_budget,
         debug_view: RenderHybridGiDebugView::SurfaceCache,
-        probe_budget: 0,
-        tracing_budget: 0,
-        probes: Vec::new(),
-        trace_regions: Vec::new(),
     }
 }
 

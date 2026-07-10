@@ -49,10 +49,6 @@ impl RuntimePlugin for TerrainRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(zircon_runtime::core::ModuleDescriptor::new(
-            "TerrainPlugin",
-            "Terrain runtime plugin",
-        ))?;
         registry.register_component(terrain_component_descriptor())?;
         for importer in terrain_importer_descriptors() {
             registry.register_asset_importer(
@@ -73,6 +69,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Terrain,
         "zircon_plugin_terrain_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("authoring")
     .with_maturity(PluginMaturity::Beta)
     .with_target_modes([
@@ -85,6 +82,10 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         CapabilityStatus::Partial,
     ))
     .build()
+}
+
+pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
+    zircon_runtime::core::ModuleDescriptor::new("terrain.runtime", "Terrain runtime plugin")
 }
 
 pub fn terrain_component_descriptor() -> ComponentTypeDescriptor {

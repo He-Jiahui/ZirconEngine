@@ -10,7 +10,7 @@ fn external_7_1_block_downmixes_to_mono_without_lfe() {
             display_name: "External Mono Test Output".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 1,
-            channel_layout: SoundChannelLayout::mono(),
+            channel_layout: AudioChannelLayout::mono(),
             block_size_frames: 1,
             latency_blocks: 1,
         })
@@ -22,7 +22,7 @@ fn external_7_1_block_downmixes_to_mono_without_lfe() {
             SoundExternalSourceBlock {
                 sample_rate_hz: 48_000,
                 channel_count: 8,
-                channel_layout: SoundChannelLayout::surround_7_1(),
+                channel_layout: AudioChannelLayout::surround_7_1(),
                 samples: vec![0.02, 0.04, 0.06, 9.0, 0.08, 0.10, 0.12, 0.14],
             },
         )
@@ -40,6 +40,6 @@ fn external_7_1_block_downmixes_to_mono_without_lfe() {
     let right = 0.04 + center + (0.14 * std::f32::consts::FRAC_1_SQRT_2) + (0.10 * 0.5);
 
     assert_eq!(mix.channel_count, 1);
-    assert_eq!(mix.channel_layout, SoundChannelLayout::mono());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::mono());
     assert_samples_near(&mix.samples, &[(left + right) * 0.5]);
 }

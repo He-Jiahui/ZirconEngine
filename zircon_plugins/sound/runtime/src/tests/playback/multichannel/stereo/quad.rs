@@ -15,6 +15,6 @@ fn quad_clip_downmixes_rear_pair_into_stereo_front_pair() {
         .unwrap();
     let mix = sound.render_mix(1).unwrap();
 
-    assert_eq!(mix.channel_layout, SoundChannelLayout::stereo());
+    assert_eq!(mix.channel_layout, AudioChannelLayout::stereo());
     assert_samples_near(&mix.samples, &[0.30, 0.45]);
 }

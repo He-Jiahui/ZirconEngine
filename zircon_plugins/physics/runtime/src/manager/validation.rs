@@ -1,12 +1,17 @@
-use zircon_runtime::core::framework::physics::{
-    PhysicsBodySyncState, PhysicsColliderShape, PhysicsColliderSyncState,
-    PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsJointSyncState,
-    PhysicsMaterialMetadata, PhysicsMaterialSyncState, PhysicsSkeletonJointBinding,
+use zircon_runtime::core::framework::{
+    physics::{
+        PhysicsBodySyncState, PhysicsColliderShape, PhysicsColliderSyncState,
+        PhysicsJointSyncState, PhysicsMaterialSyncState,
+    },
+    scene::physics::{
+        PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsMaterialMetadata,
+        PhysicsSkeletonJointBinding,
+    },
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::components::{ColliderShape, JointComponent, RigidBodyComponent};
 
-pub(super) fn rigid_body_step_input_is_finite(rigid_body: &RigidBodyComponent) -> bool {
+pub(crate) fn rigid_body_step_input_is_finite(rigid_body: &RigidBodyComponent) -> bool {
     vec3_is_finite(rigid_body.linear_velocity)
         && vec3_is_finite(rigid_body.angular_velocity)
         && rigid_body.linear_damping.is_finite()
@@ -59,7 +64,7 @@ pub(super) fn material_metadata_sync_input_is_finite(material: &PhysicsMaterialM
         && material.restitution.is_finite()
 }
 
-pub(super) fn transform_is_finite(transform: Transform) -> bool {
+pub(crate) fn transform_is_finite(transform: Transform) -> bool {
     vec3_is_finite(transform.translation)
         && quat_is_finite(transform.rotation)
         && vec3_is_finite(transform.scale)

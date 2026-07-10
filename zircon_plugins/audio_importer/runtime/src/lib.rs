@@ -12,7 +12,7 @@ use symphonia::default::{get_codecs, get_probe};
 use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, SoundAsset,
 };
-use zircon_runtime::core::framework::sound::{SoundChannelLayout, SoundSpeakerChannel};
+use zircon_runtime::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
 
 mod capability;
 mod plugin;
@@ -179,10 +179,10 @@ fn decode_symphonia_audio(
     })
 }
 
-fn sound_channel_layout_from_symphonia_channels(channels: Channels) -> SoundChannelLayout {
+fn sound_channel_layout_from_symphonia_channels(channels: Channels) -> AudioChannelLayout {
     let channel_count = channels.count() as u16;
     if channel_count == 1 {
-        return SoundChannelLayout::mono();
+        return AudioChannelLayout::mono();
     }
     let supported_mask = Channels::FRONT_LEFT
         | Channels::FRONT_RIGHT
@@ -193,19 +193,19 @@ fn sound_channel_layout_from_symphonia_channels(channels: Channels) -> SoundChan
         | Channels::SIDE_LEFT
         | Channels::SIDE_RIGHT;
     if !supported_mask.contains(channels) {
-        return SoundChannelLayout::discrete(channel_count);
+        return AudioChannelLayout::discrete(channel_count);
     }
 
     let mut speakers = Vec::with_capacity(channel_count as usize);
     for (channel, speaker) in [
-        (Channels::FRONT_LEFT, SoundSpeakerChannel::FrontLeft),
-        (Channels::FRONT_RIGHT, SoundSpeakerChannel::FrontRight),
-        (Channels::FRONT_CENTRE, SoundSpeakerChannel::FrontCenter),
-        (Channels::LFE1, SoundSpeakerChannel::LowFrequency),
-        (Channels::REAR_LEFT, SoundSpeakerChannel::BackLeft),
-        (Channels::REAR_RIGHT, SoundSpeakerChannel::BackRight),
-        (Channels::SIDE_LEFT, SoundSpeakerChannel::SideLeft),
-        (Channels::SIDE_RIGHT, SoundSpeakerChannel::SideRight),
+        (Channels::FRONT_LEFT, AudioSpeakerChannel::FrontLeft),
+        (Channels::FRONT_RIGHT, AudioSpeakerChannel::FrontRight),
+        (Channels::FRONT_CENTRE, AudioSpeakerChannel::FrontCenter),
+        (Channels::LFE1, AudioSpeakerChannel::LowFrequency),
+        (Channels::REAR_LEFT, AudioSpeakerChannel::BackLeft),
+        (Channels::REAR_RIGHT, AudioSpeakerChannel::BackRight),
+        (Channels::SIDE_LEFT, AudioSpeakerChannel::SideLeft),
+        (Channels::SIDE_RIGHT, AudioSpeakerChannel::SideRight),
     ] {
         if channels.contains(channel) {
             speakers.push(speaker);
@@ -216,21 +216,21 @@ fn sound_channel_layout_from_symphonia_channels(channels: Channels) -> SoundChan
 
 fn sound_channel_layout_from_speakers(
     channel_count: u16,
-    speakers: Vec<SoundSpeakerChannel>,
-) -> SoundChannelLayout {
+    speakers: Vec<AudioSpeakerChannel>,
+) -> AudioChannelLayout {
     [
-        SoundChannelLayout::mono(),
-        SoundChannelLayout::stereo(),
-        SoundChannelLayout::quad(),
-        SoundChannelLayout::surround_5_0(),
-        SoundChannelLayout::surround_5_1(),
-        SoundChannelLayout::surround_5_1_side(),
-        SoundChannelLayout::surround_7_0(),
-        SoundChannelLayout::surround_7_1(),
+        AudioChannelLayout::mono(),
+        AudioChannelLayout::stereo(),
+        AudioChannelLayout::quad(),
+        AudioChannelLayout::surround_5_0(),
+        AudioChannelLayout::surround_5_1(),
+        AudioChannelLayout::surround_5_1_side(),
+        AudioChannelLayout::surround_7_0(),
+        AudioChannelLayout::surround_7_1(),
     ]
     .into_iter()
     .find(|layout| layout.channel_count == channel_count && layout.speakers == speakers)
-    .unwrap_or(SoundChannelLayout {
+    .unwrap_or(AudioChannelLayout {
         name: format!("codec_channels_{channel_count}"),
         channel_count,
         speakers,
@@ -330,13 +330,13 @@ mod tests {
                     | Channels::SIDE_LEFT
                     | Channels::SIDE_RIGHT
             ),
-            SoundChannelLayout::surround_5_1_side()
+            AudioChannelLayout::surround_5_1_side()
         );
         assert_eq!(
             sound_channel_layout_from_symphonia_channels(
                 Channels::FRONT_LEFT | Channels::FRONT_RIGHT | Channels::TOP_CENTRE
             ),
-            SoundChannelLayout::discrete(3)
+            AudioChannelLayout::discrete(3)
         );
     }
 
@@ -362,7 +362,7 @@ mod tests {
             zircon_runtime::asset::ImportedAsset::Sound(sound) => {
                 assert_eq!(sound.sample_rate_hz, 8_000);
                 assert_eq!(sound.channel_count, 1);
-                assert_eq!(sound.channel_layout, SoundChannelLayout::mono());
+                assert_eq!(sound.channel_layout, AudioChannelLayout::mono());
                 assert_eq!(sound.frame_count(), 2);
                 assert_eq!(sound.duration_seconds(), 2.0 / 8_000.0);
             }

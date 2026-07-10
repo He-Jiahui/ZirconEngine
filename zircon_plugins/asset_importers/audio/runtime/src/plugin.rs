@@ -6,8 +6,8 @@ use zircon_runtime::asset::{AssetImporterDescriptor, AssetKind};
 use zircon_runtime::builtin::{RuntimePluginId, RuntimeTargetMode};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
-    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, RuntimeExtensionRegistry,
-    RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
+    ExportTargetPlatform, PluginModuleManifest, PluginPackageManifest, RuntimePlugin,
+    RuntimePluginDescriptor,
 };
 
 use crate::{
@@ -46,13 +46,6 @@ impl RuntimePlugin for AudioAssetImporterRuntimePlugin {
     fn package_manifest(&self) -> PluginPackageManifest {
         package_manifest_from_descriptor(self.descriptor())
     }
-
-    fn register(
-        &self,
-        registry: &mut RuntimeExtensionRegistry,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
-    }
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
@@ -62,6 +55,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::new(PLUGIN_ID),
         RUNTIME_CRATE_NAME,
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("asset_importer")
     .with_target_modes(supported_targets())
     .with_capability(RUNTIME_CAPABILITY)

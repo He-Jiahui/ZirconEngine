@@ -5,12 +5,12 @@ pub(crate) fn invalid_speaker_metadata_descriptor() -> SoundOutputDeviceDescript
     software_test_descriptor(
         "sound.output.bad-speakers",
         "Bad Speaker Metadata Output",
-        SoundChannelLayout {
+        AudioChannelLayout {
             name: "stereo".to_string(),
             channel_count: 2,
             speakers: vec![
-                SoundSpeakerChannel::FrontRight,
-                SoundSpeakerChannel::FrontLeft,
+                AudioSpeakerChannel::FrontRight,
+                AudioSpeakerChannel::FrontLeft,
             ],
         },
         2,

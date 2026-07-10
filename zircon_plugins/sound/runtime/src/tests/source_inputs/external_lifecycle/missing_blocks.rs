@@ -8,7 +8,7 @@ fn cleared_external_audio_source_renders_silence_for_missing_blocks() {
     sound
         .submit_external_source_block(
             handle.clone(),
-            SoundExternalSourceBlock::new(48_000, SoundChannelLayout::mono(), vec![0.75]),
+            SoundExternalSourceBlock::new(48_000, AudioChannelLayout::mono(), vec![0.75]),
         )
         .unwrap();
     sound.clear_external_source(&handle).unwrap();

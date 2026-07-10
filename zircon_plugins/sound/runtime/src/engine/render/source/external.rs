@@ -1,4 +1,5 @@
-use zircon_runtime::core::framework::sound::{SoundChannelLayout, SoundExternalSourceBlock};
+use zircon_runtime::core::framework::audio::AudioChannelLayout;
+use zircon_runtime::core::framework::sound::SoundExternalSourceBlock;
 
 use super::super::sampling::{
     interpolated_source_sample, next_source_frame_position, resample_step,
@@ -12,7 +13,7 @@ pub(super) fn mix_external_source_block(
     gain: f32,
     looped: bool,
     output_sample_rate_hz: u32,
-    output_layout: &SoundChannelLayout,
+    output_layout: &AudioChannelLayout,
     cursor_frame: &mut usize,
     cursor_position: &mut f64,
 ) -> bool {

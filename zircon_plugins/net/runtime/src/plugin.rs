@@ -53,7 +53,7 @@ impl RuntimePlugin for NetRuntimePlugin {
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         let mut module = zircon_plugin_sdk::RuntimePluginRegistrationBuilder::new(registry)
-            .module(PLUGIN_RUNTIME_MODULE_NAME, module_descriptor())?;
+            .module(PLUGIN_RUNTIME_MODULE_NAME)?;
         for option in net_options() {
             module.plugin_option(option)?;
         }
@@ -71,6 +71,7 @@ pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {
         RuntimePluginId::Net,
         "zircon_plugin_net_runtime",
     )
+    .with_module_descriptor(module_descriptor())
     .with_category("runtime")
     .with_target_modes([
         RuntimeTargetMode::ServerRuntime,

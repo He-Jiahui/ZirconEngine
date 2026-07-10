@@ -7,7 +7,7 @@ mod positional;
 mod stereo;
 mod weights;
 
-use zircon_runtime::core::framework::sound::SoundChannelLayout;
+use zircon_runtime::core::framework::audio::AudioChannelLayout;
 
 use discrete::discrete_source_sample_for_output;
 use downmix::named_source_sample_for_output;
@@ -15,8 +15,8 @@ use mono::{mono_downmix, mono_source_sample_for_output};
 
 pub(in crate::engine::render) fn source_frame_sample_for_output(
     source_frame: &[f32],
-    source_layout: &SoundChannelLayout,
-    output_layout: &SoundChannelLayout,
+    source_layout: &AudioChannelLayout,
+    output_layout: &AudioChannelLayout,
     output_channel: usize,
 ) -> f32 {
     if source_frame.is_empty() {

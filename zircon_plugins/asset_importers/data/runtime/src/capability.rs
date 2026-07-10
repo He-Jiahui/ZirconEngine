@@ -1,7 +1,7 @@
 pub const PLUGIN_ID: &str = "asset_importer.data";
 pub const IMPORTER_FAMILY: &str = "data";
 pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_asset_importer_data_runtime";
-pub const MODULE_NAME: &str = "DataImporterModule";
+pub const MODULE_NAME: &str = "asset_importer.data.runtime";
 pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.asset_importer.data";
 pub const TOML_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.toml";
 pub const JSON_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.data.json";

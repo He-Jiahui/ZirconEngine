@@ -4,6 +4,7 @@ mod scene_prepare_resources;
 mod scene_prepare_textures;
 mod scene_prepare_trace_tiles;
 mod scene_prepare_voxel_samples;
+mod surface_cache_depth_hierarchy;
 
 use super::super::super::buffer_helpers::{
     buffer_size_for_words, create_pod_storage_buffer, create_readback_buffer,
@@ -24,6 +25,7 @@ pub(super) fn create_buffers(
     encoder: &mut wgpu::CommandEncoder,
     streamer: &impl HybridGiMaterialCaptureSource,
     inputs: &HybridGiPrepareExecutionInputs,
+    tracing_budget: Option<u32>,
 ) -> HybridGiPrepareExecutionBuffers {
     let scene_card_capture_seed_rgb =
         gpu_scene_card_capture_seed_rgb(&inputs.scene_card_capture_requests, streamer, inputs);
@@ -39,7 +41,8 @@ pub(super) fn create_buffers(
         &inputs.scene_voxel_clipmaps,
         &inputs.scene_voxel_cells,
     );
-    let scene_prepare_resources = scene_prepare_resources(device, encoder, streamer, inputs);
+    let scene_prepare_resources =
+        scene_prepare_resources(device, encoder, streamer, inputs, tracing_budget);
     let cache_buffer = create_u32_storage_buffer(
         device,
         "zircon-hybrid-gi-cache-buffer",

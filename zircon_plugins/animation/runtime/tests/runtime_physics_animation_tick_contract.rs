@@ -1,9 +1,17 @@
 use std::collections::BTreeMap;
 
+#[path = "runtime_physics_animation_tick_contract/additive_reference_pose.rs"]
+mod additive_reference_pose;
 #[path = "runtime_physics_animation_tick_contract/animation_assets.rs"]
 mod animation_assets;
+#[path = "runtime_physics_animation_tick_contract/cache_invalidation.rs"]
+mod cache_invalidation;
+#[path = "runtime_physics_animation_tick_contract/evaluation_diagnostics.rs"]
+mod evaluation_diagnostics;
 #[path = "runtime_physics_animation_tick_contract/runtime_helpers.rs"]
 mod runtime_helpers;
+#[path = "runtime_physics_animation_tick_contract/state_machine_boundaries.rs"]
+mod state_machine_boundaries;
 #[path = "runtime_physics_animation_tick_contract/target_resolution.rs"]
 mod target_resolution;
 
