@@ -1,5 +1,6 @@
 use crate::ui::design_tokens::{
-    EditorDesignTokens, EditorStateColorRole, EditorUtilityTabTextRole, EDITOR_WORKBENCH_TOKENS_ID,
+    EditorDensityTokens, EditorDesignTokens, EditorStateColorRole, EditorTypographyTokens,
+    EditorUtilityTabTextRole, EDITOR_WORKBENCH_TOKENS_ID,
 };
 use crate::ui::style::{UiPainterFamily, UiPainterResolvedState, UiPainterState, UiRgbaColor};
 
@@ -47,9 +48,20 @@ fn editor_design_tokens_encode_workbench_style_notes_palette_and_density() {
         tokens.typography.utility_tab_text_role,
         EditorUtilityTabTextRole::Ui
     );
-    assert_eq!(tokens.typography.body_size, 10.0);
+    let slate_points_to_logical_pixels = 96.0 / 72.0;
+    assert!((tokens.typography.body_size - 10.0 * slate_points_to_logical_pixels).abs() < 0.001);
+    assert!((tokens.typography.caption_size - 8.0 * slate_points_to_logical_pixels).abs() < 0.001);
+    assert!((tokens.typography.title_size - 14.0 * slate_points_to_logical_pixels).abs() < 0.001);
+    assert_eq!(
+        tokens.typography.line_height,
+        EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO
+    );
     assert_eq!(tokens.density.gap_small, 4.0);
     assert_eq!(tokens.density.drawer_padding, 12.0);
+    assert_eq!(
+        tokens.density.row_height,
+        EditorDensityTokens::WORKBENCH_ROW_HEIGHT
+    );
 }
 
 #[test]
@@ -75,6 +87,10 @@ fn editor_design_tokens_resolve_named_density_constraint_tokens() {
     assert_eq!(
         tokens.density_value_for_token_name("--compact-side-width"),
         Some(tokens.density.compact_side_width)
+    );
+    assert_eq!(
+        tokens.density_value_for_token_name("--minimum-document-width-fraction"),
+        Some(tokens.density.minimum_document_width_fraction)
     );
     assert_eq!(
         tokens.density_value_for_token_name("--compact-bottom-max-height"),

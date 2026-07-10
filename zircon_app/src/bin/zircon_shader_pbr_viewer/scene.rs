@@ -42,8 +42,11 @@ impl PbrMirrorScene {
         project.scan_and_import()?;
         let world = zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri)?;
         let renderer = SceneRenderer::new(asset_manager)?;
-        let environment =
-            EnvironmentExtract::source_cubemap(source_cubemap_environment(hdri_path, face_size)?);
+        let environment = EnvironmentExtract::source_cubemap(source_cubemap_environment(
+            hdri_path,
+            face_size,
+            paths.library_root(),
+        )?);
 
         Ok(Self {
             project_root,

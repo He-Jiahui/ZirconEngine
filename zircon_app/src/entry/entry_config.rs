@@ -1,7 +1,10 @@
 use super::entry_profile::EntryProfile;
 use zircon_runtime::{
     builtin::{RuntimePluginId, RuntimeTargetMode},
-    core::framework::{render::RenderProfileBundle, window::WindowDescriptor},
+    core::framework::{
+        render::{RenderProductFeature, RenderProfileBundle},
+        window::WindowDescriptor,
+    },
     plugin::ExportProfile,
     plugin::ProjectPluginManifest,
     plugin::ProjectPluginSelection,
@@ -202,7 +205,9 @@ const fn default_target_mode_for_profile(profile: EntryProfile) -> RuntimeTarget
 
 fn default_render_profile_for_profile(profile: EntryProfile) -> RenderProfileBundle {
     match profile {
-        EntryProfile::Editor | EntryProfile::Runtime => RenderProfileBundle::default_render(),
+        EntryProfile::Editor => RenderProfileBundle::default_render()
+            .with_features([RenderProductFeature::HybridGlobalIllumination]),
+        EntryProfile::Runtime => RenderProfileBundle::default_render(),
         EntryProfile::Headless => RenderProfileBundle::headless(),
     }
 }

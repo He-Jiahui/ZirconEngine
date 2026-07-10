@@ -5,7 +5,8 @@ use thiserror::Error;
 use toml::Value;
 
 use crate::ui::template::{
-    UiAssetImports, UiBindingRef, UiComponentParamSchema, UiNamedSlotSchema, UiStyleScope,
+    UiAssetImports, UiBindingRef, UiComponentParamSchema, UiComponentPublicContract,
+    UiNamedSlotSchema, UiStyleScope,
 };
 
 use super::{UiV2Repeat, UiV2StyleDeclarationBlock, UiV2StyleSheet};
@@ -97,12 +98,18 @@ pub struct UiV2ComponentDefinition {
     pub root: String,
     #[serde(default)]
     pub style_scope: UiStyleScope,
+    #[serde(default, skip_serializing_if = "is_default_component_contract")]
+    pub contract: UiComponentPublicContract,
     #[serde(default)]
     pub params: BTreeMap<String, UiComponentParamSchema>,
     #[serde(default)]
     pub slots: BTreeMap<String, UiNamedSlotSchema>,
     #[serde(default)]
     pub default_classes: Vec<String>,
+}
+
+fn is_default_component_contract(contract: &UiComponentPublicContract) -> bool {
+    contract == &UiComponentPublicContract::default()
 }
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]

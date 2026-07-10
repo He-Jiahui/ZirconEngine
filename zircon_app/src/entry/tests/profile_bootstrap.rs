@@ -52,7 +52,7 @@ use zircon_runtime::{
 };
 
 #[cfg(any(
-    all(feature = "first-party-runtime-plugins", feature = "plugin-ui"),
+    all(feature = "first-party-runtime-plugins", feature = "ui"),
     feature = "first-party-advanced-render-runtime-plugins"
 ))]
 use super::super::first_party_runtime_plugin_registrations_for_config;
@@ -142,7 +142,7 @@ fn entry_config_projects_runtime_profile_to_entry_target_and_manifest() {
         .all(|selection| selection.id != RuntimePluginId::Ui.key()));
 }
 
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
 #[test]
 fn runtime_profile_bootstrap_uses_linked_first_party_provider_registrations() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
@@ -164,16 +164,16 @@ fn runtime_profile_bootstrap_uses_linked_first_party_provider_registrations() {
 
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "SoundModule"));
+        .any(|descriptor| descriptor.name == "sound.runtime"));
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "RenderingPluginModule"));
+        .any(|descriptor| descriptor.name == "rendering.runtime"));
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "TextureModule"));
+        .any(|descriptor| descriptor.name == "texture.runtime"));
 }
 
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
 #[test]
 fn first_party_sound_provider_preserves_manifest_maturity_and_capability_status() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
@@ -196,7 +196,7 @@ fn first_party_sound_provider_preserves_manifest_maturity_and_capability_status(
         .extensions
         .modules()
         .iter()
-        .any(|module| { module.name == "SoundModule" }));
+        .any(|module| { module.name == "sound.runtime" }));
     assert!(sound
         .extensions
         .plugin_options()
@@ -209,7 +209,7 @@ fn first_party_sound_provider_preserves_manifest_maturity_and_capability_status(
         .any(|catalog| catalog.namespace == "sound.dynamic_events"));
 }
 
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
 #[test]
 fn runtime_profile_feature_bootstrap_uses_profile_level_provider_availability() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d);
@@ -225,16 +225,16 @@ fn runtime_profile_feature_bootstrap_uses_profile_level_provider_availability() 
     let descriptors = entry.module_descriptors();
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "SoundModule"));
+        .any(|descriptor| descriptor.name == "sound.runtime"));
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "RenderingPluginModule"));
+        .any(|descriptor| descriptor.name == "rendering.runtime"));
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "TextureModule"));
+        .any(|descriptor| descriptor.name == "texture.runtime"));
 }
 
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[cfg(all(feature = "first-party-runtime-plugins", feature = "ui"))]
 #[test]
 fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
@@ -270,13 +270,13 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
 
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "AnimationModule"));
+        .any(|descriptor| descriptor.name == "animation.runtime"));
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "NetModule"));
+        .any(|descriptor| descriptor.name == "net.runtime"));
     assert!(descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "ParticlesModule"));
+        .any(|descriptor| descriptor.name == "particles.runtime"));
 
     let feature_aware_entry =
         BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
@@ -290,13 +290,13 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
 
     assert!(feature_aware_descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "AnimationModule"));
+        .any(|descriptor| descriptor.name == "animation.runtime"));
     assert!(feature_aware_descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "NetModule"));
+        .any(|descriptor| descriptor.name == "net.runtime"));
     assert!(feature_aware_descriptors
         .iter()
-        .any(|descriptor| descriptor.name == "ParticlesModule"));
+        .any(|descriptor| descriptor.name == "particles.runtime"));
     for expected in [
         RuntimePluginId::Animation,
         RuntimePluginId::Net,
@@ -325,6 +325,46 @@ fn render_profile_runtime_plugins_do_not_link_advanced_providers_for_default_ren
     assert!(registrations
         .iter()
         .all(|registration| registration.package_manifest.id != "hybrid_gi"));
+}
+
+#[test]
+fn entry_defaults_enable_hybrid_gi_only_for_editor_rendering() {
+    let editor = EntryConfig::new(EntryProfile::Editor);
+    let runtime = EntryConfig::new(EntryProfile::Runtime);
+
+    assert!(
+        editor
+            .render_profile
+            .has_feature(RenderProductFeature::HybridGlobalIllumination),
+        "editor rendering should request Hybrid GI by default"
+    );
+    assert!(
+        !editor
+            .render_profile
+            .has_feature(RenderProductFeature::VirtualGeometry),
+        "editor Hybrid GI defaults should not implicitly opt into virtual geometry"
+    );
+    assert!(
+        !runtime
+            .render_profile
+            .has_feature(RenderProductFeature::HybridGlobalIllumination),
+        "client runtime rendering must keep Hybrid GI project opt-in"
+    );
+}
+
+#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
+#[test]
+fn editor_default_render_profile_links_hybrid_gi_without_virtual_geometry() {
+    let registrations = first_party_runtime_plugin_registrations_for_config(&EntryConfig::new(
+        EntryProfile::Editor,
+    ));
+    let ids = registrations
+        .iter()
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<Vec<_>>();
+
+    assert!(ids.contains(&"hybrid_gi"));
+    assert!(!ids.contains(&"virtual_geometry"));
 }
 
 #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
@@ -363,8 +403,8 @@ fn render_profile_runtime_plugins_link_advanced_providers_when_advanced_render_i
         )
         .expect("advanced render provider registrations should satisfy diagnostics");
 
-    assert!(diagnostics.contains("module=VirtualGeometryPluginModule"));
-    assert!(diagnostics.contains("module=HybridGiPluginModule"));
+    assert!(diagnostics.contains("module=virtual_geometry.runtime"));
+    assert!(diagnostics.contains("module=hybrid_gi.runtime"));
 }
 
 #[cfg(feature = "first-party-advanced-render-runtime-plugins")]
@@ -393,15 +433,15 @@ fn render_profile_runtime_plugins_link_solari_provider_when_solari_experimental_
         )
         .expect("solari experimental provider registrations should satisfy diagnostics");
 
-    assert!(diagnostics.contains("module=VirtualGeometryPluginModule"));
-    assert!(diagnostics.contains("module=HybridGiPluginModule"));
-    assert!(diagnostics.contains("module=SolariPluginModule"));
+    assert!(diagnostics.contains("module=virtual_geometry.runtime"));
+    assert!(diagnostics.contains("module=hybrid_gi.runtime"));
+    assert!(diagnostics.contains("module=solari.runtime"));
 }
 
 #[cfg(all(
     feature = "first-party-runtime-plugins",
     feature = "first-party-advanced-render-runtime-plugins",
-    feature = "plugin-ui"
+    feature = "ui"
 ))]
 #[test]
 fn render_profile_runtime_plugins_merge_runtime_profile_baseline_with_advanced_providers() {
@@ -430,7 +470,7 @@ fn render_profile_runtime_plugins_merge_runtime_profile_baseline_with_advanced_p
 #[cfg(all(
     feature = "first-party-runtime-plugins",
     feature = "first-party-navigation-runtime-plugin",
-    feature = "plugin-ui"
+    feature = "ui"
 ))]
 #[test]
 fn runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled() {
@@ -449,13 +489,10 @@ fn runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is
     assert!(entry
         .module_descriptors()
         .iter()
-        .any(|descriptor| descriptor.name == "NavigationModule"));
+        .any(|descriptor| descriptor.name == "navigation.runtime"));
 }
 
-#[cfg(all(
-    feature = "first-party-zr-vm-language-runtime-plugin",
-    feature = "plugin-ui"
-))]
+#[cfg(all(feature = "first-party-zr-vm-language-runtime-plugin", feature = "ui"))]
 #[test]
 fn runtime_profile_bootstrap_can_link_zr_vm_language_when_provider_feature_is_enabled() {
     let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
@@ -473,7 +510,7 @@ fn runtime_profile_bootstrap_can_link_zr_vm_language_when_provider_feature_is_en
     assert!(entry
         .module_descriptors()
         .iter()
-        .any(|descriptor| descriptor.name == "ZrVmLanguageModule"));
+        .any(|descriptor| descriptor.name == "zr_vm_language.runtime"));
 }
 
 #[test]

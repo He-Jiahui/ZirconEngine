@@ -1,15 +1,17 @@
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Instant;
 
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize, Size};
 use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
-use winit::event_loop::ActiveEventLoop;
+use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::{Window, WindowAttributes};
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
 
 use crate::args::ViewerConfig;
+use crate::background_load::{BackgroundTask, BackgroundTaskPoll};
 use crate::camera::OrbitCamera;
 use crate::presenter::{window_size, SoftbufferViewportPresenter};
 use crate::scene::PbrMirrorScene;
@@ -26,7 +28,10 @@ pub(crate) struct PbrMirrorViewerApp {
     exit_after_capture: bool,
     renderdoc_capture_finished: bool,
     scene: Option<PbrMirrorScene>,
+    scene_loader: Option<BackgroundTask<PbrMirrorScene>>,
+    scene_load_started_at: Option<Instant>,
     load_error: Option<String>,
+    event_loop_proxy: EventLoopProxy,
     camera: OrbitCamera,
     window: Option<Arc<dyn Window>>,
     presenter: Option<SoftbufferViewportPresenter>,
@@ -37,7 +42,7 @@ pub(crate) struct PbrMirrorViewerApp {
 }
 
 impl PbrMirrorViewerApp {
-    pub(crate) fn new(config: ViewerConfig) -> Self {
+    pub(crate) fn new(config: ViewerConfig, event_loop_proxy: EventLoopProxy) -> Self {
         Self {
             hdri_path: config.hdri_path,
             face_size: config.face_size,
@@ -45,7 +50,10 @@ impl PbrMirrorViewerApp {
             exit_after_capture: config.exit_after_capture,
             renderdoc_capture_finished: false,
             scene: None,
+            scene_loader: None,
+            scene_load_started_at: None,
             load_error: None,
+            event_loop_proxy,
             camera: OrbitCamera::default(),
             window: None,
             presenter: None,
@@ -62,7 +70,7 @@ impl PbrMirrorViewerApp {
         }
 
         let attributes = WindowAttributes::default()
-            .with_title("Zircon PBR HDRI Mirror Viewer")
+            .with_title("Zircon PBR HDRI Mirror Viewer - loading HDRI/PMREM")
             .with_surface_size(Size::Physical(PhysicalSize::new(
                 DEFAULT_WINDOW_WIDTH,
                 DEFAULT_WINDOW_HEIGHT,
@@ -92,30 +100,71 @@ impl PbrMirrorViewerApp {
         };
         self.window = Some(window.clone());
         self.present_startup_frame(event_loop);
-        self.load_scene(event_loop);
+        self.start_scene_load(event_loop);
         self.request_redraw();
         window.request_redraw();
     }
 
-    fn load_scene(&mut self, event_loop: &dyn ActiveEventLoop) {
-        if self.scene.is_some() || self.load_error.is_some() {
+    fn start_scene_load(&mut self, event_loop: &dyn ActiveEventLoop) {
+        if self.scene.is_some() || self.scene_loader.is_some() || self.load_error.is_some() {
             return;
         }
 
-        match PbrMirrorScene::new(&self.hdri_path, self.face_size) {
-            Ok(scene) => {
-                self.scene = Some(scene);
+        let hdri_path = self.hdri_path.clone();
+        let face_size = self.face_size;
+        let event_loop_proxy = self.event_loop_proxy.clone();
+        match BackgroundTask::spawn(
+            "zircon-pbr-scene-loader",
+            move || PbrMirrorScene::new(&hdri_path, face_size).map_err(|error| error.to_string()),
+            move || event_loop_proxy.wake_up(),
+        ) {
+            Ok(loader) => {
+                self.scene_load_started_at = Some(Instant::now());
+                self.scene_loader = Some(loader);
             }
             Err(error) => {
                 let message = error.to_string();
-                eprintln!("failed to load PBR HDRI viewer scene: {message}");
-                self.load_error = Some(message);
-                if let Some(window) = self.window.as_ref() {
-                    window.set_title("Zircon PBR HDRI Mirror Viewer - load failed");
-                }
-                self.present_error_frame(event_loop);
+                self.handle_scene_load_failure(event_loop, message);
             }
         }
+    }
+
+    fn finish_scene_load(&mut self, event_loop: &dyn ActiveEventLoop) {
+        let Some(loader) = self.scene_loader.as_ref() else {
+            return;
+        };
+        let result = match loader.try_take() {
+            BackgroundTaskPoll::Pending => return,
+            BackgroundTaskPoll::Completed(result) => result,
+        };
+        self.scene_loader = None;
+
+        match result {
+            Ok(scene) => {
+                self.scene = Some(scene);
+                let elapsed = self
+                    .scene_load_started_at
+                    .take()
+                    .map(|started| started.elapsed());
+                if let Some(window) = self.window.as_ref() {
+                    window.set_title("Zircon PBR HDRI Mirror Viewer - Ready");
+                }
+                if let Some(elapsed) = elapsed {
+                    println!("HDRI/PMREM scene ready after {:.2?}", elapsed);
+                }
+                self.request_redraw();
+            }
+            Err(message) => self.handle_scene_load_failure(event_loop, message),
+        }
+    }
+
+    fn handle_scene_load_failure(&mut self, event_loop: &dyn ActiveEventLoop, message: String) {
+        eprintln!("failed to load PBR HDRI viewer scene: {message}");
+        self.load_error = Some(message);
+        if let Some(window) = self.window.as_ref() {
+            window.set_title("Zircon PBR HDRI Mirror Viewer - load failed");
+        }
+        self.present_error_frame(event_loop);
     }
 
     fn request_redraw(&mut self) {
@@ -287,6 +336,10 @@ fn lerp_u8(a: u8, b: u8, t: f32) -> u8 {
 }
 
 impl ApplicationHandler for PbrMirrorViewerApp {
+    fn proxy_wake_up(&mut self, event_loop: &dyn ActiveEventLoop) {
+        self.finish_scene_load(event_loop);
+    }
+
     fn resumed(&mut self, event_loop: &dyn ActiveEventLoop) {
         self.ensure_window(event_loop);
     }
@@ -317,7 +370,8 @@ impl ApplicationHandler for PbrMirrorViewerApp {
         }
     }
 
-    fn about_to_wait(&mut self, _event_loop: &dyn ActiveEventLoop) {
+    fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
+        self.finish_scene_load(event_loop);
         if self.redraw_requested {
             if let Some(window) = self.window.as_ref() {
                 window.request_redraw();

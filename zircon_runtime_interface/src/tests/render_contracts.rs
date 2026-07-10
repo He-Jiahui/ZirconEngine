@@ -1726,3 +1726,18 @@ fn ui_text_paint_contract_carries_editing_and_overflow_decorations() {
         .unwrap()
         .contains("composition_underline"));
 }
+
+#[test]
+fn ui_resolved_style_language_round_trips_and_defaults_to_none() {
+    assert_eq!(UiResolvedStyle::default().language, None);
+
+    let style = UiResolvedStyle {
+        language: Some("zh-Hans-CN".to_string()),
+        ..UiResolvedStyle::default()
+    };
+    let json = serde_json::to_string(&style).expect("serialize language-bearing text style");
+    let decoded: UiResolvedStyle =
+        serde_json::from_str(&json).expect("deserialize language-bearing text style");
+
+    assert_eq!(decoded.language.as_deref(), Some("zh-Hans-CN"));
+}

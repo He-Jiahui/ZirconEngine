@@ -16,6 +16,8 @@ pub struct UiResolvedStyle {
     pub corner_radius: f32,
     pub font: Option<String>,
     pub font_family: Option<String>,
+    /// BCP 47 language tag used by shaping and locale-sensitive font fallback.
+    pub language: Option<String>,
     pub font_weight: u16,
     pub font_size: f32,
     pub line_height: f32,
@@ -74,6 +76,7 @@ impl Default for UiResolvedStyle {
             corner_radius: 0.0,
             font: None,
             font_family: None,
+            language: None,
             font_weight: Self::DEFAULT_FONT_WEIGHT,
             font_size: Self::DEFAULT_FONT_SIZE,
             line_height: Self::default_line_height(Self::DEFAULT_FONT_SIZE),

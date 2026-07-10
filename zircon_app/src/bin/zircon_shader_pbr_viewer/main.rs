@@ -1,5 +1,6 @@
 mod app;
 mod args;
+mod background_load;
 mod camera;
 mod hdri;
 mod presenter;
@@ -20,6 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let event_loop = EventLoop::new()?;
-    event_loop.run_app(PbrMirrorViewerApp::new(config))?;
+    let event_loop_proxy = event_loop.create_proxy();
+    event_loop.run_app(PbrMirrorViewerApp::new(config, event_loop_proxy))?;
     Ok(())
 }

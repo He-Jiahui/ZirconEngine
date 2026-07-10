@@ -25,7 +25,26 @@ required-features = ["target-client"]
 [features]
 default = ["target-client"]
 core-min = ["zircon_runtime/core-min"]
-plugin-ui = ["zircon_runtime/plugin-ui"]
+ai-contracts = ["zircon_runtime/ai-contracts"]
+net-contracts = ["zircon_runtime/net-contracts"]
+physics-contracts = ["zircon_runtime/physics-contracts"]
+sound-contracts = ["zircon_runtime/sound-contracts"]
+animation = ["zircon_runtime/animation"]
+diagnostic-log = ["zircon_runtime/diagnostic-log"]
+dynamic-api = [
+    "animation",
+    "diagnostic-log",
+    "graphics",
+    "navigation",
+    "script",
+    "ui",
+    "zircon_runtime/dynamic-api",
+]
+graphics = ["text", "zircon_runtime/graphics"]
+navigation = ["zircon_runtime/navigation"]
+script = ["diagnostic-log", "zircon_runtime/script"]
+text = ["zircon_runtime/text"]
+ui = ["graphics", "zircon_runtime/ui"]
 first-party-runtime-plugins = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/base-runtime-plugins",
@@ -42,10 +61,10 @@ first-party-zr-vm-language-runtime-plugin = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/zr-vm-language-runtime-plugin",
 ]
-first-party-zr-vm-real-backend = [
+backend-zr-vm = [
     "first-party-zr-vm-language-runtime-plugin",
-    "zircon_first_party_runtime_catalog/zr-vm-real-backend",
-    "zircon_runtime/zr-vm-real-backend",
+    "zircon_first_party_runtime_catalog/backend-zr-vm",
+    "zircon_runtime/backend-zr-vm",
 ]
 default-platform = [
     "zircon_runtime/default-platform",
@@ -78,9 +97,44 @@ profiling = ["zircon_runtime/profiling", "zircon_editor?/profiling"]
 profiling-chrome = ["profiling", "zircon_runtime/profiling-chrome", "zircon_editor?/profiling-chrome"]
 profiling-tracy = ["profiling", "zircon_runtime/profiling-tracy", "zircon_editor?/profiling-tracy"]
 profiling-memory = ["profiling", "zircon_runtime/profiling-memory", "zircon_editor?/profiling-memory"]
-target-client = ["zircon_runtime/target-client", "default-platform", "plugin-ui"]
-target-server = ["zircon_runtime/target-server", "platform-headless"]
-target-editor-host = ["zircon_runtime/target-editor-host", "dep:zircon_editor", "default-platform"]
+target-client = [
+    "zircon_runtime/target-client",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "default-platform",
+]
+target-server = [
+    "zircon_runtime/target-server",
+    "diagnostic-log",
+    "platform-headless",
+]
+target-editor-host = [
+    "zircon_runtime/target-editor-host",
+    "ai-contracts",
+    "net-contracts",
+    "physics-contracts",
+    "sound-contracts",
+    "animation",
+    "diagnostic-log",
+    "dynamic-api",
+    "graphics",
+    "navigation",
+    "script",
+    "text",
+    "ui",
+    "dep:zircon_editor",
+    "default-platform",
+]
 
 [dependencies]
 libloading = "0.9.0"

@@ -68,11 +68,13 @@ fn default_modules(
         Arc::new(zircon_runtime::asset::AssetModule::default()),
         Arc::new(zircon_runtime::scene::SceneModule),
     ];
+    #[cfg(feature = "graphics")]
     if include_graphics {
         modules.push(Arc::new(zircon_runtime::graphics::GraphicsModule::default()));
     }
+    #[cfg(feature = "script")]
     modules.push(Arc::new(zircon_runtime::script::ScriptModule));
-    #[cfg(feature = "plugin-ui")]
+    #[cfg(feature = "ui")]
     if include_graphics {
         modules.push(Arc::new(zircon_runtime::ui::UiModule));
     }

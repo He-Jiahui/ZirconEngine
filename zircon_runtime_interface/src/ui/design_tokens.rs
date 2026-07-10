@@ -62,6 +62,9 @@ impl EditorDesignTokens {
             "--compact-left-drawer-max-width" => Some(self.density.compact_left_drawer_max_width),
             "--compact-right-drawer-max-width" => Some(self.density.compact_right_drawer_max_width),
             "--compact-side-min-width" => Some(self.density.compact_side_min_width),
+            "--minimum-document-width-fraction" => {
+                Some(self.density.minimum_document_width_fraction)
+            }
             "--ultra-compact-left-drawer-max-width" => {
                 Some(self.density.ultra_compact_left_drawer_max_width)
             }
@@ -268,8 +271,11 @@ pub struct EditorTypographyTokens {
     pub code_family: String,
     pub utility_tab_text_role: EditorUtilityTabTextRole,
     pub font_smoothing: EditorFontSmoothing,
+    /// Body font size in 96-DPI logical pixels, after converting authored points.
     pub body_size: f32,
+    /// Caption font size in 96-DPI logical pixels, after converting authored points.
     pub caption_size: f32,
+    /// Title font size in 96-DPI logical pixels, after converting authored points.
     pub title_size: f32,
     pub body_weight: u16,
     pub strong_weight: u16,
@@ -302,6 +308,15 @@ pub enum EditorUtilityTabTextRole {
 impl EditorTypographyTokens {
     pub const DEFAULT_UI_FAMILY: &'static str = "system-ui";
     pub const DEFAULT_CODE_FAMILY: &'static str = "monospace";
+    pub const WORKBENCH_BODY_SIZE: f32 = Self::points_to_logical_pixels(10.0);
+    pub const WORKBENCH_CAPTION_SIZE: f32 = Self::points_to_logical_pixels(8.0);
+    pub const WORKBENCH_TITLE_SIZE: f32 = Self::points_to_logical_pixels(14.0);
+    pub const WORKBENCH_LINE_HEIGHT_RATIO: f32 = 1.2;
+
+    /// Matches Slate's point-to-unit conversion at its 96-DPI render baseline.
+    pub const fn points_to_logical_pixels(point_size: f32) -> f32 {
+        point_size * (96.0 / 72.0)
+    }
 
     pub fn workbench_default() -> Self {
         Self {
@@ -310,13 +325,13 @@ impl EditorTypographyTokens {
             code_family: Self::DEFAULT_CODE_FAMILY.to_string(),
             utility_tab_text_role: EditorUtilityTabTextRole::Ui,
             font_smoothing: EditorFontSmoothing::Grayscale,
-            body_size: 10.0,
-            caption_size: 8.5,
-            title_size: 14.0,
+            body_size: Self::WORKBENCH_BODY_SIZE,
+            caption_size: Self::WORKBENCH_CAPTION_SIZE,
+            title_size: Self::WORKBENCH_TITLE_SIZE,
             body_weight: 400,
             strong_weight: 600,
             code_weight: 400,
-            line_height: 1.2,
+            line_height: Self::WORKBENCH_LINE_HEIGHT_RATIO,
         }
     }
 
@@ -594,6 +609,7 @@ pub struct EditorDensityTokens {
     pub compact_left_drawer_max_width: f32,
     pub compact_right_drawer_max_width: f32,
     pub compact_side_min_width: f32,
+    pub minimum_document_width_fraction: f32,
     pub ultra_compact_left_drawer_max_width: f32,
     pub ultra_compact_right_drawer_max_width: f32,
     pub compact_bottom_available_height: f32,
@@ -617,6 +633,8 @@ impl Default for EditorDensityTokens {
 }
 
 impl EditorDensityTokens {
+    pub const WORKBENCH_ROW_HEIGHT: f32 = 28.0;
+
     pub fn workbench_dense() -> Self {
         Self {
             gap_small: 4.0,
@@ -624,7 +642,7 @@ impl EditorDensityTokens {
             gap_large: 12.0,
             drawer_padding: 12.0,
             panel_padding: 16.0,
-            row_height: 28.0,
+            row_height: Self::WORKBENCH_ROW_HEIGHT,
             left_drawer_width: 332.0,
             right_drawer_width: 404.0,
             bottom_output_height: 228.0,
@@ -636,6 +654,7 @@ impl EditorDensityTokens {
             compact_left_drawer_max_width: 340.0,
             compact_right_drawer_max_width: 220.0,
             compact_side_min_width: 196.0,
+            minimum_document_width_fraction: 0.5,
             ultra_compact_left_drawer_max_width: 220.0,
             ultra_compact_right_drawer_max_width: 160.0,
             compact_bottom_available_height: 900.0,

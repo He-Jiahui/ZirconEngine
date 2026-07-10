@@ -274,8 +274,8 @@ fn runtime_api_drain_host_requests_is_optional_after_tick_frame() {
 
 #[test]
 #[cfg_attr(
-    not(feature = "first-party-zr-vm-real-backend"),
-    ignore = "requires first-party-zr-vm-real-backend, ZIRCON_RUNTIME_LIBRARY, and ZR_VM_RUST_BINDING_LIB_DIR"
+    not(feature = "backend-zr-vm"),
+    ignore = "requires backend-zr-vm, ZIRCON_RUNTIME_LIBRARY, and ZR_VM_RUST_BINDING_LIB_DIR"
 )]
 fn runtime_library_project_capture_frame_draws_vampire_hud() {
     let runtime = LoadedRuntime::load_default().unwrap();

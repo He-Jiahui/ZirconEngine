@@ -11,6 +11,7 @@ mod paint;
 mod parity;
 mod resolved_style;
 mod text_geometry;
+mod text_language;
 mod text_layout;
 mod text_shape;
 mod typography;
@@ -48,6 +49,7 @@ pub use parity::{
     UiRendererParitySnapshot, UiRendererParityStats,
 };
 pub use resolved_style::UiResolvedStyle;
+pub use text_language::normalize_ui_text_language_tag;
 pub use text_layout::{UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextRange};
 pub use text_shape::{
     UiShapedGlyph, UiShapedGlyphClusterFlags, UiShapedGlyphRotation, UiShapedText,
