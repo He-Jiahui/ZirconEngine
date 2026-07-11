@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +11,7 @@ from tools.session_coordinator.baselines import BaselineService
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.git_finalize import GitFinalizeService
+from tools.session_coordinator.leases import LeaseService, PathPolicy
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import CoordinatorError, SessionStatus
 from tools.session_coordinator.sessions import SessionService
@@ -29,6 +31,12 @@ class GitFinalizeTests(unittest.TestCase):
         self.sessions.set_status("session-a", SessionStatus.ACTIVE)
         self.baselines = BaselineService(self.database, self.repo)
         self.baselines.initialize()
+        self.leases = LeaseService(
+            self.database,
+            PathPolicy(self.repo),
+            ttl_seconds=config.lease_ttl_seconds,
+            grace_seconds=config.lease_grace_seconds,
+        )
         self.service = GitFinalizeService(
             self.database, self.repo, self.baselines, self.sessions
         )
@@ -65,6 +73,89 @@ class GitFinalizeTests(unittest.TestCase):
         self._complete_with_changes()
 
         self.assertEqual(before, self._head())
+
+    def test_milestone_commit_is_scoped_atomic_and_keeps_session_active(self) -> None:
+        paths = ["src/milestone.py", "tests/test_milestone.py"]
+        acquisition = self.leases.acquire("session-a", paths)
+        self.assertTrue(acquisition.acquired)
+        for path in paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"content for {path}\n", encoding="utf-8")
+        self.baselines.attribute("session-a", paths)
+        subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
+
+        result = self.service.commit_milestone(
+            "session-a", paths=paths, message="feat(runtime): complete M2 milestone"
+        )
+
+        committed = subprocess.run(
+            ["git", "show", "--pretty=", "--name-only", result.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(sorted(paths), sorted(item for item in committed if item))
+        self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
+        self.assertEqual(result.commit_sha, self._head())
+
+    def test_milestone_commit_requires_live_owned_leases(self) -> None:
+        path = "src/milestone.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("content\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [path])
+        subprocess.run(["git", "add", "--", path], cwd=self.repo, check=True)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.commit_milestone(
+                "session-a", paths=[path], message="feat(runtime): complete M2 milestone"
+            )
+
+        self.assertEqual("milestone_lease_missing", rejected.exception.code)
+
+    def test_milestone_commit_runs_acceptance_inside_git_mutex(self) -> None:
+        path = "src/milestone.py"
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("content\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [path])
+        subprocess.run(["git", "add", "--", path], cwd=self.repo, check=True)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.commit_milestone(
+                "session-a",
+                paths=[path],
+                message="feat(runtime): complete M2 milestone",
+                validation_commands=((sys.executable, "-c", "raise SystemExit(7)"),),
+            )
+
+        self.assertEqual("milestone_validation_failed", rejected.exception.code)
+        self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
+        self.assertNotEqual("", self._staged_names())
+
+    def test_milestone_commit_accepts_deletion_attributed_after_delete_with_lease_base(self) -> None:
+        path = "src/delete_me.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("tracked\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", path], cwd=self.repo, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "test: add deletion target"], cwd=self.repo, check=True)
+        self.baselines.accept(reason="test deletion baseline")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        target.unlink()
+        self.baselines.attribute("session-a", [path])
+        subprocess.run(["git", "add", "-u", "--", path], cwd=self.repo, check=True)
+
+        result = self.service.commit_milestone(
+            "session-a", paths=[path], message="fix(runtime): remove obsolete milestone file"
+        )
+
+        self.assertFalse(target.exists())
+        self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
+        self.assertEqual(result.commit_sha, self._head())
 
     def test_preview_records_code_docs_tests_scripts_and_untracked_separately(self) -> None:
         paths = self._complete_with_changes()

@@ -13,7 +13,7 @@ from typing import Iterator
 
 from .baselines import BaselineHealth, BaselineService, hash_file
 from .database import Database
-from .models import CoordinatorError, SessionStatus, utc_text
+from .models import CoordinatorError, SessionStatus, parse_utc, utc_now, utc_text
 from .plans import PlanRepository
 from .sessions import SessionService
 
@@ -284,6 +284,130 @@ class GitFinalizeService:
             preview.untracked_paths,
         )
 
+    def commit_milestone(
+        self,
+        session_id: str,
+        *,
+        paths: list[str] | tuple[str, ...],
+        message: str,
+        validation_commands: tuple[tuple[str, ...], ...] = (),
+    ) -> FinalizeResult:
+        """Commit one accepted milestone while keeping its Session active.
+
+        The coordinator Git mutex closes the checker-to-commit race. The index
+        is revalidated under that mutex, and ``update-ref`` uses the baseline
+        HEAD as a compare-and-swap guard.
+        """
+        self._validate_message(message)
+        normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
+        if not normalized:
+            raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
+        untracked_paths = tuple(path for path in normalized if not self._is_tracked_in_head(path))
+        request_id = uuid.uuid4().hex
+        session = self.sessions.get(session_id)
+        if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
+            raise CoordinatorError(
+                "milestone_session_not_active",
+                f"Session {session_id} cannot commit a milestone while {session.status.value}",
+            )
+        with self.git_mutex(session_id):
+            session = self.sessions.get(session_id)
+            if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
+                raise CoordinatorError(
+                    "milestone_session_not_active",
+                    f"Session {session_id} changed status before commit",
+                )
+            baseline = self.baselines.current()
+            expected_head = baseline.head_commit
+            if expected_head != self._git("rev-parse", "HEAD"):
+                raise CoordinatorError(
+                    "milestone_baseline_head_changed",
+                    "HEAD changed after the coordinator baseline was captured",
+                )
+            self._require_attribution(session_id, normalized, maintenance=False)
+            self._require_owned_scope(session_id, normalized, maintenance=False)
+            self._require_plan_outputs(session, normalized, maintenance=False)
+            self._require_failure_acceptance(session, maintenance=False)
+            self._require_live_owned_leases(session_id, normalized)
+            self._require_no_pending_patches(session_id)
+            self._require_index_scope(normalized)
+            expected_blobs = self._expected_staged_blobs(normalized, maintenance=False)
+            self._require_staged_attribution(expected_blobs, maintenance=False)
+            self._require_no_staged_secrets()
+            for command in validation_commands:
+                result = subprocess.run(command, cwd=self.repo_root, check=False)
+                if result.returncode != 0:
+                    raise CoordinatorError(
+                        "milestone_validation_failed",
+                        f"Milestone validation failed with exit code {result.returncode}",
+                        details={"command": list(command), "exit_code": result.returncode},
+                    )
+            self._require_index_scope(normalized)
+            self._require_staged_attribution(expected_blobs, maintenance=False)
+            self._require_no_staged_secrets()
+            self._require_live_owned_leases(session_id, normalized)
+            self._require_failure_acceptance(session, maintenance=False)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO finalize_requests(
+                        request_id, session_id, message, paths_json, categories_json,
+                        untracked_json, validation_json, maintenance, status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'finalizing', ?)
+                    """,
+                    (
+                        request_id,
+                        session_id,
+                        message,
+                        json.dumps(normalized),
+                        json.dumps({key: list(value) for key, value in self._categorize(normalized).items()}),
+                        json.dumps(untracked_paths),
+                        json.dumps(validation_commands),
+                        utc_text(),
+                    ),
+                )
+            index_path = self._index_path()
+            index_existed = index_path.exists()
+            index_content = index_path.read_bytes() if index_existed else b""
+            self._persist_finalize_start(
+                request_id,
+                start_head=expected_head,
+                index_existed=index_existed,
+                index_content=index_content,
+            )
+            commit_sha = self._create_scoped_commit(message, expected_head=expected_head)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    UPDATE finalize_requests
+                    SET ref_updated_sha = ?
+                    WHERE request_id = ?
+                    """,
+                    (commit_sha, request_id),
+                )
+            self.baselines.accept_commit(
+                normalized,
+                commit_sha=commit_sha,
+                reason=f"milestone commit {commit_sha}",
+            )
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    UPDATE finalize_requests
+                    SET status = 'committed', commit_sha = ?, ref_updated_sha = ?, completed_at = ?
+                    WHERE request_id = ?
+                    """,
+                    (commit_sha, commit_sha, utc_text(), request_id),
+                )
+        categories = self._categorize(normalized)
+        return FinalizeResult(
+            request_id,
+            commit_sha,
+            message,
+            categories,
+            untracked_paths,
+        )
+
     @contextmanager
     def git_mutex(self, owner_id: str) -> Iterator[None]:
         try:
@@ -476,7 +600,15 @@ class GitFinalizeService:
     def _require_failure_acceptance(self, session, *, maintenance: bool) -> None:
         if maintenance or self.failures is None or not session.plan_path:
             return
-        open_failures = self.failures.open_for_plan(session.plan_path)
+        self.failures.import_repository()
+        diagnostics = self.failures.validator_errors_for_plan(session.plan_path)
+        if diagnostics:
+            raise CoordinatorError(
+                "finalize_failure_graph_invalid",
+                "Failure handoff graph has canonical Markdown diagnostics",
+                details={"diagnostics": diagnostics},
+            )
+        open_failures = self.failures.open_related_to_plan(session.plan_path)
         if open_failures:
             raise CoordinatorError(
                 "finalize_open_failure",
@@ -500,6 +632,29 @@ class GitFinalizeService:
                 "finalize_foreign_lease",
                 "Finalize paths are leased by another Session",
                 details={"paths": conflicts},
+            )
+
+    def _require_live_owned_leases(self, session_id: str, paths: tuple[str, ...]) -> None:
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                "SELECT path_key, session_id, expires_at FROM leases"
+            ).fetchall()
+        leases = {row["path_key"]: row for row in rows}
+        now = utc_now()
+        missing = []
+        for path in paths:
+            row = leases.get(path.casefold())
+            if (
+                row is None
+                or row["session_id"] != session_id
+                or parse_utc(row["expires_at"]) <= now
+            ):
+                missing.append(path)
+        if missing:
+            raise CoordinatorError(
+                "milestone_lease_missing",
+                "Milestone paths require live leases owned by the committing Session",
+                details={"paths": missing},
             )
 
     def _require_no_pending_patches(self, session_id: str) -> None:
@@ -653,6 +808,15 @@ class GitFinalizeService:
     def _is_tracked(self, path: str) -> bool:
         return subprocess.run(
             ["git", "ls-files", "--error-unmatch", "--", path],
+            cwd=self.repo_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        ).returncode == 0
+
+    def _is_tracked_in_head(self, path: str) -> bool:
+        return subprocess.run(
+            ["git", "cat-file", "-e", f"HEAD:{path}"],
             cwd=self.repo_root,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,

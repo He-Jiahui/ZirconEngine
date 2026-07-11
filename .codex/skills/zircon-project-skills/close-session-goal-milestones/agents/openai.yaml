@@ -1,0 +1,4 @@
+interface:
+  display_name: "Close Session Goal Milestones"
+  short_description: "Close accepted milestones and terminal Goals safely"
+  default_prompt: "Use $close-session-goal-milestones to close an accepted ZirconEngine milestone or completed Goal safely."

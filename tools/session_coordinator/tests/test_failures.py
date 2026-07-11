@@ -81,6 +81,20 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual("open", audit.nodes[0].status)
         self.assertIn("schema_validation", {item.code for item in audit.diagnostics})
 
+    def test_validator_errors_for_plan_excludes_unrelated_handoff_diagnostics(self) -> None:
+        current = self.fixture.add_plan("docs/plans/current/03-current.md")
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        failure = self.fixture.add_handoff(origin, fixing, "foreign-status")
+        failure.write_text(
+            failure.read_text(encoding="utf-8").replace("status: open", "status: resolved"),
+            encoding="utf-8",
+        )
+
+        self.assertEqual([], self.service.validator_errors_for_plan(current.path))
+        self.assertNotEqual([], self.service.validator_errors_for_plan(origin.path))
+        self.assertNotEqual([], self.service.validator_errors_for_plan(fixing.path))
+
     def test_verified_fix_moves_back_and_updates_both_relative_links(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
         fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")

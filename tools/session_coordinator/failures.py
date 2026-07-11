@@ -203,8 +203,43 @@ class FailureGraphService:
             ).fetchall()
         return [self._node_from_row(row) for row in rows]
 
+    def open_related_to_plan(self, plan_path: str | Path) -> list[FailureNode]:
+        relative = self._relative(self._resolve_repo_path(plan_path))
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM failure_nodes
+                WHERE (fixing_plan = ? OR origin_plan = ?)
+                  AND kind = 'failure' AND status = 'open'
+                ORDER BY priority, created_at, summary_slug, artifact_path
+                """,
+                (relative, relative),
+            ).fetchall()
+        return [self._node_from_row(row) for row in rows]
+
     def validator_errors(self) -> list[str]:
         return list(self._validator_module().validate_repository(self.repo_root))
+
+    def validator_errors_for_plan(self, plan_path: str | Path) -> list[str]:
+        validator = self._validator_module()
+        plan = self._resolve_repo_path(plan_path)
+        plan_relative = self._relative(plan)
+        match = re.match(r"^(\d+)-", plan.name)
+        child_relative = self._relative(plan.parent / match.group(1)) if match else ""
+        records, _parse_errors = validator.parse_handoff_records(self.repo_root)
+        related_artifacts = {
+            record.relative_path.casefold()
+            for record in records
+            if plan.resolve() in {record.origin_plan.resolve(), record.fixing_plan.resolve()}
+        }
+        markers = {plan_relative.casefold(), *related_artifacts}
+        if child_relative:
+            markers.add(child_relative.casefold() + "/")
+        return [
+            error
+            for error in validator.validate_repository(self.repo_root)
+            if any(marker in error.replace("\\", "/").casefold() for marker in markers)
+        ]
 
     def return_fixed(
         self,

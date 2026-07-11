@@ -163,6 +163,7 @@ def _parser() -> argparse.ArgumentParser:
         "--validation-command", dest="direct_validation_commands", action="append", default=[]
     )
     finalize.add_argument("--maintenance", dest="direct_maintenance", action="store_true")
+    finalize.add_argument("--milestone", dest="direct_milestone", action="store_true")
     finalize_commands = finalize.add_subparsers(dest="finalize_command", required=False)
     for finalize_name in ("preview", "commit"):
         finalize_parser = finalize_commands.add_parser(finalize_name)
@@ -171,6 +172,7 @@ def _parser() -> argparse.ArgumentParser:
         finalize_parser.add_argument("--path", action="append", required=True)
         finalize_parser.add_argument("--validation-command", action="append", default=[])
         finalize_parser.add_argument("--maintenance", action="store_true")
+        finalize_parser.add_argument("--milestone", action="store_true")
 
     validation_copy = commands.add_parser("validation-copy")
     validation_copy_commands = validation_copy.add_subparsers(
@@ -475,14 +477,29 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             else arguments.validation_command
         )
         maintenance = arguments.direct_maintenance if direct else arguments.maintenance
+        milestone = arguments.direct_milestone if direct else arguments.milestone
+        if milestone and not (
+            (direct and arguments.finalize_commit)
+            or (not direct and arguments.finalize_command == "commit")
+            or arguments.finalize_commit
+        ):
+            raise CoordinatorError(
+                "milestone_commit_required",
+                "Milestone mode is mutating and requires finalize commit or finalize --commit",
+            )
         if not message or not paths:
             raise CoordinatorError(
                 "finalize_arguments_missing", "Finalize requires --message and at least one --path"
             )
-        return client.command(
-            "finalize.preview"
+        command = (
+            "finalize.milestone"
+            if milestone
+            else "finalize.preview"
             if not direct and arguments.finalize_command == "preview" and not arguments.finalize_commit
-            else "finalize.commit",
+            else "finalize.commit"
+        )
+        return client.command(
+            command,
             {
                 "session_id": _session_id(session_id),
                 "message": message,

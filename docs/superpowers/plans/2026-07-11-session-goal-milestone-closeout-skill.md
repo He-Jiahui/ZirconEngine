@@ -19,7 +19,13 @@
 - Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/SKILL.md`: concise trigger and Milestone/Goal closeout workflow.
 - Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/agents/openai.yaml`: UI metadata and explicit `$close-session-goal-milestones` default prompt.
 - Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.ps1`: read-only manifest, Git index, status, message, and secret checks.
+- Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/read-closeout-evidence.py`: read coordinator Session/attribution evidence through a read-only SQLite connection.
+- Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/test_read_closeout_evidence.py`: prove live evidence is independently derived and the coordinator database remains byte-identical.
+- Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/seed-closeout-test-state.py`: seed isolated temporary repositories with real coordinator state for tests without a production fixture bypass.
 - Create `.codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.Tests.ps1`: temporary-repository positive and negative tests.
+- Modify `tools/session_coordinator/{git_finalize.py,server.py,cli.py,failures.py}`: add the service-owned atomic Milestone commit path, live-lease guard, and origin/fixer Failure acceptance.
+- Modify `tools/session_coordinator/tests/test_git_finalize.py`: prove atomic Milestone commit, active-Session preservation, validation-under-mutex, lease enforcement, and deletion ownership.
+- Modify `docs/cli-and-tooling/local-session-coordinator.md`: document milestone commit architecture and commands.
 - Modify `.codex/skills/zircon-project-skills/SKILL.md`: route completion/closeout work to the new child skill.
 - Modify `.codex/skills/project-skills-index/catalog-existing-skills/current-project-skills.md`: add the skill to the shallow tree and summary catalog.
 
@@ -48,13 +54,13 @@ Provide one tested, discoverable project skill that creates normal milestone com
 
 ### Implementation slices
 
-- [ ] **M1.1 Capture RED pressure evidence:** ask a fresh agent without the new skill to close a milestone in a dirty shared-main scenario containing foreign untracked files, a missing test script, pressure to use a Session-tag commit, and a failed WeCom notification. Record which required boundaries are omitted or violated; do not let the scenario mutate the real repository.
-- [ ] **M1.2 Scaffold the focused skill:** run `skill-creator/scripts/init_skill.py close-session-goal-milestones --path .codex/skills/zircon-project-skills --resources scripts --interface ...`, remove generated placeholders, and keep the root `SKILL.md` below 500 words unless a concrete workflow requirement needs more.
-- [ ] **M1.3 Write checker tests before implementation:** create Pester cases using a generated temporary repository and fixture JSON. The tests must expect failure for a missing manifest path, a foreign staged path, omitted untracked file, non-`main`, invalid Session/checkpoint commit message, staged webhook/maintenance token, and incomplete Goal evidence; they must expect success for isolated Milestone and Goal manifests.
-- [ ] **M1.4 Implement the read-only checker:** accept `-RepoRoot`, `-Mode Milestone|Goal`, `-SessionId`, `-CommitMessage`, `-ManifestPath`, and optional fixture inputs for tests. Resolve every path under the repository, require the manifest categories `code`, `docs`, `tests`, `scripts`, and `untracked`, compare the exact staged set, scan only staged added lines, and emit JSON without calling `git add`, `git commit`, status mutation, lease mutation, or WeCom.
-- [ ] **M1.5 Write the skill workflow:** define the shared preflight, Milestone path, Goal path, failure behavior, no-empty-commit rule, ordinary Conventional Commit rule, four-line WeCom format, no-retry rule, coordinator attribution/lease rules, and foreign-work preservation rule. Require `verification-before-completion`, `cross-session-coordination`, `write-plan-output-records`, and `handle-plan-failure-handoffs` only at their actual decision points.
-- [ ] **M1.6 Refresh project discovery:** add the child route to the `zircon-project-skills` parent, regenerate or update the cached project skill catalog from the shallow tree, and confirm `agents/openai.yaml` quotes all strings and names `$close-session-goal-milestones` in `default_prompt`.
-- [ ] **M1.7 Forward-test the deployed skill:** give a fresh agent the skill and the same pressure scenario with raw fixture facts, without revealing the expected solution. Confirm it separates file categories, refuses foreign scope and Session tags, commits at an accepted milestone, keeps Session active for Milestone mode, completes only in Goal mode, and reports a failed WeCom send without retrying.
+- [x] **M1.1 Capture RED pressure evidence:** ask a fresh agent without the new skill to close a milestone in a dirty shared-main scenario containing foreign untracked files, a missing test script, pressure to use a Session-tag commit, and a failed WeCom notification. Record which required boundaries are omitted or violated; do not let the scenario mutate the real repository.
+- [x] **M1.2 Scaffold the focused skill:** run `skill-creator/scripts/init_skill.py close-session-goal-milestones --path .codex/skills/zircon-project-skills --resources scripts --interface ...`, remove generated placeholders, and keep the root `SKILL.md` below 500 words unless a concrete workflow requirement needs more.
+- [x] **M1.3 Write checker tests before implementation:** create Pester cases using generated temporary repositories and real seeded coordinator state. The tests must expect failure for a missing manifest path, a foreign staged path, omitted untracked file, non-`main`, invalid Session/checkpoint commit message, staged webhook/maintenance token, and incomplete Goal evidence; they must expect success for isolated Milestone and Goal manifests.
+- [x] **M1.4 Implement the read-only checker:** accept `-RepoRoot`, `-Mode Milestone|Goal`, `-SessionId`, `-CommitMessage`, and `-ManifestPath`. Resolve every path under the repository, require the manifest categories `code`, `docs`, `tests`, `scripts`, and `untracked`, compare the exact staged set against live coordinator attribution and registered-plan evidence, scan only staged added lines, and emit JSON without calling `git add`, `git commit`, status mutation, lease mutation, or WeCom.
+- [x] **M1.5 Write the skill workflow:** define the shared preflight, Milestone path, Goal path, failure behavior, no-empty-commit rule, ordinary Conventional Commit rule, four-line WeCom format, no-retry rule, coordinator attribution/lease rules, and foreign-work preservation rule. Require `verification-before-completion`, `cross-session-coordination`, `write-plan-output-records`, and `handle-plan-failure-handoffs` only at their actual decision points.
+- [x] **M1.6 Refresh project discovery:** add the child route to the `zircon-project-skills` parent, regenerate or update the cached project skill catalog from the shallow tree, and confirm `agents/openai.yaml` quotes all strings and names `$close-session-goal-milestones` in `default_prompt`.
+- [x] **M1.7 Forward-test the deployed skill:** give a fresh agent the skill and the same pressure scenario with raw fixture facts, without revealing the expected solution. Confirm it separates file categories, refuses foreign scope and Session tags, commits at an accepted milestone, keeps Session active for Milestone mode, completes only in Goal mode, and reports a failed WeCom send without retrying.
 
 ### Lightweight checks
 
@@ -64,7 +70,7 @@ Provide one tested, discoverable project skill that creates normal milestone com
 
 ### Testing stage M1-T: Skill and checker acceptance
 
-- [ ] Run the checker suite:
+- [x] Run the checker suite:
 
   ```powershell
   Import-Module Pester -ErrorAction Stop
@@ -74,16 +80,16 @@ Provide one tested, discoverable project skill that creates normal milestone com
 
   Expected: every positive and negative closeout case passes with zero failures.
 
-- [ ] Run both skill validators:
+- [x] Run both skill validators:
 
   ```powershell
-  python "$HOME\.codex\skills\.system\skill-creator\scripts\quick_validate.py" .codex\skills\zircon-project-skills\close-session-goal-milestones
+  python -X utf8 "$HOME\.codex\skills\.system\skill-creator\scripts\quick_validate.py" .codex\skills\zircon-project-skills\close-session-goal-milestones
   .\.codex\skills\project-skills-index\scripts\list-skill-tree.ps1
   ```
 
   Expected: `Skill is valid!`; the shallow tree contains `close-session-goal-milestones/`.
 
-- [ ] Run catalog, placeholder, scope, and secret checks:
+- [x] Run catalog, placeholder, scope, and secret checks:
 
   ```powershell
   git diff --check -- .codex/skills/zircon-project-skills .codex/skills/project-skills-index/catalog-existing-skills/current-project-skills.md
@@ -92,8 +98,8 @@ Provide one tested, discoverable project skill that creates normal milestone com
 
   Expected: no whitespace errors, no generated placeholder markers, no literal webhook URL/key, and no unrelated staged path.
 
-- [ ] Debug/correction loop: on any checker, parser, quick-validation, forward-test, or review failure, fix the lowest shared skill/checker rule and rerun the focused failing case before repeating M1-T upward.
-- [ ] Request independent review of trigger quality, Milestone/Goal distinction, read-only guarantees, shared-main isolation, credential handling, catalog consistency, and test coverage. Require no Critical or Important findings.
+- [x] Debug/correction loop: on any checker, parser, quick-validation, forward-test, or review failure, fix the lowest shared skill/checker rule and rerun the focused failing case before repeating M1-T upward.
+- [x] Request independent review of trigger quality, Milestone/Goal distinction, read-only guarantees, shared-main isolation, credential handling, catalog consistency, and test coverage. Require no Critical or Important findings.
 - [ ] Commit exactly the skill, checker, tests, parent route, catalog, and this plan's final navigation status. Use a normal subject such as `feat(workflow): add Session goal milestone closeout skill`; never use `[zircon-session:*]`.
 - [ ] Immediately push the successful commit to WeCom in exactly four newline-separated lines and do not retry automatically if sending fails.
 
@@ -119,3 +125,11 @@ Provide one tested, discoverable project skill that creates normal milestone com
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| M1 | M1.1 RED pressure evidence | 完成 | 2026-07-11 | Fresh no-skill scenario omitted the milestone's untracked test, accepted `[zircon-session:*]`, completed a nonterminal Session, and retried failed WeCom delivery. |
+| M1 | M1.2 Skill scaffold | 完成 | 2026-07-11 | `init_skill.py` created `close-session-goal-milestones/` with `SKILL.md`, quoted `agents/openai.yaml`, and an empty `scripts/` resource directory. |
+| M1 | M1.3 Checker tests | 完成 | 2026-07-11 | `check-closeout.Tests.ps1` covers 26 Milestone/Goal, real-service health, lease, deletion, staged/worktree divergence, current-vs-historical child-plan scope, untracked, branch, message, credential, related/foreign Failure diagnostics, and aggregate-completion cases; initial RED run failed 0/9 because the checker did not exist. |
+| M1 | M1.4 Read-only checker | 完成 | 2026-07-11 | `check-closeout.ps1` validates manifest categories, exact staged scope, live coordinator health/lease/current-hash attribution, current staged numbered-child plan evidence, related canonical Failure state, Conventional Commit policy, staged secrets, and mode semantics without mutation; Pester 26/26 and Python reader 1/1 passed. |
+| M1 | M1.5 Skill workflow | 完成 | 2026-07-11 | `SKILL.md` defines real-service preflight, pre-write leases, immediate atomic milestone commit, terminal Goal completion, five category inventory, exact scope, no Session tag, and single-attempt four-line WeCom handling; its 670-word size retains the concrete service command and both closeout modes. |
+| M1 | M1.6 Discovery refresh | 完成 | 2026-07-11 | Parent `zircon-project-skills/SKILL.md`, cached project catalog, and quoted `agents/openai.yaml` now route and describe `close-session-goal-milestones`. |
+| M1 | M1.7 Forward test | 完成 | 2026-07-11 | Fresh skill-guided scenario included the omitted untracked test in both categories, stopped on foreign staged scope, rejected Session tags, kept Milestone Session/Goal active, and refused automatic WeCom retry. |
+| M1 | M1-T Acceptance | 完成（待本次提交） | 2026-07-11 | Pester 26/26, coordinator Python suite 121/121 plus focused Failure/finalize additions, read-only coordinator evidence test 1/1, skill validator, scoped static checks, and two independent no-Critical/no-Important reviews pass. |

@@ -37,6 +37,7 @@ Updated: 2026-07-11
   zircon-project-skills/
     SKILL.md
     capture-hub-window-screenshot/
+    close-session-goal-milestones/
     code-module-docs-maintenance/
     continuous-milestone-execution/
     cross-session-coordination/
@@ -84,6 +85,10 @@ Updated: 2026-07-11
 - `cross-session-coordination`
   Summary: Coordinate shared-main ZirconEngine Sessions through the local service for enum state, plan ownership, Failure priority, baselines, file leases and delayed patches, with active Markdown notes retained as an offline compatibility view.
   Layout: Focused child skill with service-first workflow guidance, a compact Session note template, and a PowerShell context reader that falls back to recursive plan/note scans.
+
+- `close-session-goal-milestones`
+  Summary: Close an accepted ZirconEngine milestone or terminal Session Goal with exact shared-main scope, normal milestone commits, category-complete manifests, and one-shot WeCom reporting.
+  Layout: Focused child skill with a concise Milestone/Goal workflow, UI metadata, and a read-only PowerShell checker plus temporary-repository Pester coverage.
 
 - `zr-module-boundary-discipline`
   Summary: Enforce strict single-responsibility source boundaries in `zirconEngine`. Use when Rust modules or directories start mixing multiple feature domains, root wiring files gather logic, or similar files need a folder-backed subtree instead of flat growth.

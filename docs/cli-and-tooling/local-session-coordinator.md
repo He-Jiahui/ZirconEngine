@@ -21,6 +21,7 @@ related_code:
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
+  - tools/session_coordinator/git_finalize.py
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
@@ -47,6 +48,7 @@ implementation_files:
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
+  - tools/session_coordinator/git_finalize.py
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
@@ -55,6 +57,8 @@ plan_sources:
   - user: 2026-07-11 implement local multi-Session coordination on shared main
   - docs/superpowers/specs/2026-07-11-local-session-coordinator-design.md
   - docs/superpowers/plans/2026-07-11-local-session-coordinator.md
+  - docs/superpowers/specs/2026-07-11-session-goal-milestone-closeout-design.md
+  - docs/superpowers/plans/2026-07-11-session-goal-milestone-closeout-skill.md
 tests:
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_server.py
@@ -72,6 +76,7 @@ tests:
   - tools/session_coordinator/tests/test_legacy_migration.py
   - tools/session_coordinator/tests/test_retention.py
   - tools/session_coordinator/tests/test_rollout_audit.py
+  - tools/session_coordinator/tests/test_git_finalize.py
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -82,7 +87,7 @@ doc_type: workflow-detail
 
 The local Session coordinator is the shared-`main` control plane for ZirconEngine development. It gives each Session a typed lifecycle, records a hash-based workspace baseline, stores intermediate file contents outside Git, serializes concrete file writes, governs plan/failure records, and owns isolated Cargo validation lanes.
 
-Business Session intermediate versions remain service-managed rather than Git commits. Git finalization stays explicit. The service protects unrelated active Sessions and their dirty files without creating branches or worktrees.
+Business Session work remains service-managed between accepted milestones. Every accepted milestone is an explicit service-owned Git commit; arbitrary checkpoints and hidden intermediate commits remain forbidden. The service protects unrelated active Sessions and their dirty files without creating branches or worktrees.
 
 ## Runtime and State
 
@@ -296,6 +301,18 @@ Completing a business Session records lifecycle state only; it never creates a G
   --message "feat(runtime): converge lifecycle" `
   --path zircon_runtime/src/lifecycle.rs
 ```
+
+An accepted milestone uses the same service-owned mutex while keeping the Session `active`:
+
+```powershell
+.\tools\zircon-session.ps1 finalize --commit --milestone `
+  --session-id <session-id> `
+  --message "feat(runtime): complete M2 milestone" `
+  --path zircon_runtime/src/lifecycle.rs `
+  --path docs/plans/zircon_runtime/frameworks/02/2026-07-11-m2.md
+```
+
+Milestone commit paths must have live leases owned by the Session and current-hash attribution. The service re-imports canonical Failure Markdown, rejects validator diagnostics or open Failure nodes where the Session plan is either origin or fixer, takes `git_mutex`, rechecks the exact index and staged blob identities, and advances `HEAD` with compare-and-swap. The Session remains active after success. This command is the only business-Session commit path; a plain `git commit` is outside the workflow.
 
 Every requested path must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
 

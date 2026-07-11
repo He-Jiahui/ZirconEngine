@@ -389,6 +389,22 @@ class CoordinatorApplication:
                 maintenance=maintenance,
             )
             return {"result": result.to_dict()}
+        if name == "finalize.milestone":
+            if bool(arguments.get("maintenance")):
+                raise CoordinatorError(
+                    "milestone_maintenance_forbidden",
+                    "Milestone commits require ordinary Session ownership",
+                )
+            result = self.finalize.commit_milestone(
+                str(arguments["session_id"]),
+                paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                message=str(arguments["message"]),
+                validation_commands=tuple(
+                    tuple(str(part) for part in command)
+                    for command in arguments.get("validation_commands") or ()
+                ),
+            )
+            return {"result": result.to_dict()}
         if name == "validation_copy.plan":
             record = self._require_workspace_copy().plan(
                 str(arguments["session_id"]),
