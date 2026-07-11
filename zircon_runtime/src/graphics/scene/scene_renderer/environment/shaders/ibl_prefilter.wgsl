@@ -9,7 +9,7 @@ struct IblPrefilterParams {
     mip_level: u32,
     mip_count: u32,
     sample_count: u32,
-    _pad0: u32,
+    first_face: u32,
     roughness: f32,
     _pad1: f32,
 };
@@ -94,20 +94,28 @@ fn distribution_ggx(no_h: f32, roughness: f32) -> f32 {
     return alpha2 / max(PI * denominator * denominator, 0.000001);
 }
 
+fn source_footprint_lod() -> f32 {
+    let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));
+    let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);
+    let destination_face_size = f32(max(params.mip_face_size, 1u));
+    return clamp(log2(source_face_size / destination_face_size), 0.0, source_max_mip);
+}
+
 fn source_lod_for_pdf(pdf: f32, sample_count: u32) -> f32 {
-    let source_face_size = f32(max(params.face_size, 1u));
+    let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));
+    let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);
     let texel_solid_angle = 4.0 * PI / (6.0 * source_face_size * source_face_size)
         * FIS_SOLID_ANGLE_TEXEL_SCALE;
     let sample_solid_angle = 1.0 / (f32(max(sample_count, 1u)) * pdf);
     let lod = 0.5 * log2(max(sample_solid_angle / texel_solid_angle, 1.0));
-    return clamp(lod, 0.0, f32(max(params.mip_count, 1u) - 1u));
+    return clamp(max(lod, source_footprint_lod()), 0.0, source_max_mip);
 }
 
 fn source_lod_for_ggx_sample(no_h: f32, roughness: f32, sample_count: u32) -> f32 {
     if (roughness <= 0.0001) {
         return 0.0;
     }
-    let pdf = max(distribution_ggx(no_h, roughness) * 0.25, 0.000001);
+    let pdf = max(distribution_ggx(no_h, roughness) * no_h * 0.25, 0.000001);
     return source_lod_for_pdf(pdf, sample_count);
 }
 
@@ -148,14 +156,19 @@ fn final_pmrem_face_average(sample_count: u32) -> vec3<f32> {
 @compute @workgroup_size(8, 8, 1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let mip_size = max(params.mip_face_size, 1u);
-    let face = global_id.z;
+    let face = params.first_face + global_id.z;
     if (global_id.x >= mip_size || global_id.y >= mip_size || face >= 6u) {
         return;
     }
 
     let normal = texel_direction(face, global_id.xy, mip_size);
     if (params.mip_level == 0u || params.roughness <= 0.0001) {
-        let source = textureSampleLevel(source_cubemap, source_sampler, normal, 0.0).rgb;
+        let source = textureSampleLevel(
+            source_cubemap,
+            source_sampler,
+            normal,
+            source_footprint_lod(),
+        ).rgb;
         textureStore(pmrem_output, vec2<i32>(global_id.xy), i32(face), vec4<f32>(source, 1.0));
         return;
     }

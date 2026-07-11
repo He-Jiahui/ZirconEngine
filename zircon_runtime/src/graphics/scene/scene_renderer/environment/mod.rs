@@ -9,6 +9,7 @@ pub(in crate::graphics::scene::scene_renderer) mod ibl_bake_wgpu_pipeline_cache;
 pub(in crate::graphics::scene::scene_renderer) mod ibl_bake_wgpu_readback;
 mod probe_buffer;
 pub(crate) mod procedural_environment;
+pub(in crate::graphics) mod realtime_ibl_time_slice;
 mod scene_bind_group_layout;
 
 pub(in crate::graphics::scene::scene_renderer) use ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;

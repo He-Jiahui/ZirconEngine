@@ -11,6 +11,9 @@ use super::ibl_bake_graph_plan::{
 use super::ibl_bake_shader_plan::{
     ibl_bake_compute_kernel_plans_for_request, IblBakeComputeKernelKind, IblBakeComputeKernelPlan,
 };
+mod realtime_slice;
+
+pub(in crate::graphics::scene::scene_renderer) use realtime_slice::ibl_bake_wgpu_prefilter_command_for_slice;
 
 pub(in crate::graphics::scene::scene_renderer) const IBL_BAKE_BINDING_PARAMS: u32 = 0;
 pub(in crate::graphics::scene::scene_renderer) const IBL_BAKE_BINDING_SOURCE_CUBEMAP: u32 = 1;
@@ -139,8 +142,8 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_command_plan_for
 ) -> IblBakeWgpuCommandPlanSet {
     let descriptor = IblBakeArtifactDescriptor::current(
         request.bake_key(),
-        request.face_size(),
-        request.mip_count(),
+        request.pmrem_face_size(),
+        request.pmrem_mip_count(),
         request.required_contents(),
     );
     let commands = ibl_bake_compute_kernel_plans_for_request(request)
@@ -285,13 +288,13 @@ fn pmrem_readback_copies(
     let Some(section_base) = pmrem_section_base_byte_offset(descriptor) else {
         return Vec::new();
     };
-    let mip_size = source_cubemap_mip_size(request.face_size(), mip_level);
+    let mip_size = source_cubemap_mip_size(request.pmrem_face_size(), mip_level);
     CubemapFace::ALL
         .into_iter()
         .map(|face| {
             let artifact_texel_offset = source_cubemap_face_mip_offset(
-                request.face_size(),
-                request.mip_count(),
+                request.pmrem_face_size(),
+                request.pmrem_mip_count(),
                 face,
                 mip_level,
             );
@@ -562,7 +565,7 @@ mod tests {
             IBL_BAKE_PMREM_RESOURCE,
             0,
             0,
-            [4, 4, 1],
+            [128, 128, 1],
             0,
         );
         assert_texture_copy(
@@ -571,8 +574,8 @@ mod tests {
             IBL_BAKE_PMREM_RESOURCE,
             1,
             0,
-            [2, 2, 1],
-            source_cubemap_face_mip_offset(4, 3, CubemapFace::PositiveX, 1) as u64 * 8,
+            [64, 64, 1],
+            source_cubemap_face_mip_offset(128, 8, CubemapFace::PositiveX, 1) as u64 * 8,
         );
         assert_texture_copy(
             &pmrem_mip0.readback_copies[1],
@@ -580,11 +583,11 @@ mod tests {
             IBL_BAKE_PMREM_RESOURCE,
             0,
             1,
-            [4, 4, 1],
-            source_cubemap_face_mip_offset(4, 3, CubemapFace::NegativeX, 0) as u64 * 8,
+            [128, 128, 1],
+            source_cubemap_face_mip_offset(128, 8, CubemapFace::NegativeX, 0) as u64 * 8,
         );
 
-        let pmrem_bytes = source_cubemap_sample_count(4, 3) as u64 * 8;
+        let pmrem_bytes = source_cubemap_sample_count(128, 8) as u64 * 8;
         let sh9 = plan
             .commands
             .iter()
