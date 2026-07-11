@@ -33,6 +33,13 @@ from .git_finalize import GitFinalizeService
 from .workspace_copy import WorkspaceCopyService
 from .legacy import LegacyMigrationService
 from .audit import RolloutAuditService
+from .control_plane.auth import WebControlAuth
+from .control_plane.events import EventStreamService
+from .control_plane.http import ControlPlaneHttp
+from .control_plane.router import ControlPlaneRouter
+from .control_plane.snapshot import ControlSnapshotService
+from .workflows.projections import WorkflowProjectionService
+from .workflows.store import WorkflowStore
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -47,11 +54,24 @@ def _pid_is_alive(pid: int) -> bool:
 
 
 class CoordinatorApplication:
-    def __init__(self, config: CoordinatorConfig):
+    def __init__(
+        self,
+        config: CoordinatorConfig,
+        *,
+        instance_id: str | None = None,
+        started_at: str | None = None,
+    ):
         self.config = config
+        self.instance_id = instance_id or uuid.uuid4().hex
+        self.started_at = started_at or utc_text()
         self.database = Database(config.database_path)
         migrate(self.database)
-        self.sessions = SessionService(self.database, config.repo_root)
+        self.workflows = WorkflowStore(self.database)
+        self.sessions = SessionService(
+            self.database,
+            config.repo_root,
+            session_change_hook=self.workflows.synchronize_session_in_connection,
+        )
         self._maintenance_lock = threading.Lock()
         self.baselines = BaselineService(self.database, config.repo_root)
         self.object_store = ObjectStore(self.database, config.object_root)
@@ -121,6 +141,15 @@ class CoordinatorApplication:
             target_roots=config.enabled_target_roots,
         )
         self.branch = self._branch()
+        self.workflow_projections = WorkflowProjectionService()
+        self.workflows.synchronize_sessions(self.sessions.list(include_archived=True))
+        self.web_auth = WebControlAuth(self.database)
+        self.control_events = EventStreamService(self.database)
+        self.control_snapshot = ControlSnapshotService(
+            self.database,
+            self.workflow_projections,
+            self.control_service_state,
+        )
 
     @property
     def read_only(self) -> bool:
@@ -140,6 +169,24 @@ class CoordinatorApplication:
             "repo_root": str(self.config.repo_root),
             "pid": os.getpid(),
             "baseline": baseline_health,
+            "instance_id": self.instance_id,
+            "started_at": self.started_at,
+            "control_api_versions": [1],
+        }
+
+    def control_service_state(self, connection) -> dict[str, object]:
+        baseline = connection.execute(
+            "SELECT * FROM baseline_epochs ORDER BY epoch_id DESC LIMIT 1"
+        ).fetchone()
+        baseline_state = "uninitialized" if baseline is None else baseline["health"]
+        return {
+            "status": "ok",
+            "branch": self.branch,
+            "mode": "read_only" if self.read_only else "read_write",
+            "baseline": baseline_state,
+            "instanceId": self.instance_id,
+            "startedAt": self.started_at,
+            "controlApiVersions": [1],
         }
 
     def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -194,7 +241,8 @@ class CoordinatorApplication:
         if name == "session.show":
             return {"session": self.sessions.get(str(arguments["session_id"])).to_dict()}
         if name == "session.heartbeat":
-            return {"session": self.sessions.heartbeat(str(arguments["session_id"])).to_dict()}
+            session = self.sessions.heartbeat(str(arguments["session_id"]))
+            return {"session": session.to_dict()}
         if name == "session.set_status":
             status = SessionStatus(str(arguments["status"]))
             session = self.sessions.set_status(
@@ -680,12 +728,25 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
         super().__init__(address, handler)
         self.application = application
         self.token = token
+        router = ControlPlaneRouter(
+            instance_id=application.instance_id,
+            auth=application.web_auth,
+            snapshot=application.control_snapshot,
+            workflows=application.workflow_projections,
+            database=application.database,
+        )
+        self.control_http = ControlPlaneHttp(
+            router, application.control_events, runtime_token=token
+        )
 
 
 class CoordinatorRequestHandler(BaseHTTPRequestHandler):
     server: _CoordinatorHttpServer
 
     def do_GET(self) -> None:
+        if self.server.control_http.handles(self.path):
+            self.server.control_http.handle(self)
+            return
         if not self._authorized():
             return
         if self.path == "/health":
@@ -694,6 +755,9 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         self._write_error(HTTPStatus.NOT_FOUND, "not_found", "Unknown endpoint")
 
     def do_POST(self) -> None:
+        if self.server.control_http.handles(self.path):
+            self.server.control_http.handle(self)
+            return
         if not self._authorized():
             return
         if self.path == "/shutdown":
@@ -718,6 +782,27 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
             self._write_error(HTTPStatus.BAD_REQUEST, "invalid_request", str(error))
         except Exception as error:  # pragma: no cover - defensive service boundary
             self._write_error(HTTPStatus.INTERNAL_SERVER_ERROR, "internal_error", str(error))
+
+    def do_PUT(self) -> None:
+        self._delegate_control_method()
+
+    def do_PATCH(self) -> None:
+        self._delegate_control_method()
+
+    def do_DELETE(self) -> None:
+        self._delegate_control_method()
+
+    def do_HEAD(self) -> None:
+        self._delegate_control_method()
+
+    def do_OPTIONS(self) -> None:
+        self._delegate_control_method()
+
+    def _delegate_control_method(self) -> None:
+        if self.server.control_http.handles(self.path):
+            self.server.control_http.handle(self)
+            return
+        self._write_error(HTTPStatus.NOT_FOUND, "not_found", "Unknown endpoint")
 
     def log_message(self, _format: str, *_args: object) -> None:
         return
@@ -748,14 +833,25 @@ class RunningCoordinator:
     maintenance_thread: threading.Thread
     maintenance_stop: threading.Event
     token: str
+    instance_id: str
+    started_at: str
 
     @classmethod
     def start(cls, config: CoordinatorConfig) -> "RunningCoordinator":
+        if config.host != "127.0.0.1":
+            raise CoordinatorError(
+                "invalid_bind_host",
+                "Session coordinator must bind to the 127.0.0.1 loopback address",
+            )
         config.state_root.mkdir(parents=True, exist_ok=True)
         cls._acquire_lock(config)
         token = secrets.token_urlsafe(32)
+        instance_id = uuid.uuid4().hex
+        started_at = utc_text()
         try:
-            application = CoordinatorApplication(config)
+            application = CoordinatorApplication(
+                config, instance_id=instance_id, started_at=started_at
+            )
             httpd = _CoordinatorHttpServer(
                 (config.host, config.port),
                 CoordinatorRequestHandler,
@@ -780,7 +876,16 @@ class RunningCoordinator:
             host, port = httpd.server_address[:2]
             _atomic_json_write(
                 config.runtime_path,
-                {"host": host, "port": port, "token": token, "pid": os.getpid(), "repo_root": str(config.repo_root)},
+                {
+                    "host": host,
+                    "port": port,
+                    "token": token,
+                    "pid": os.getpid(),
+                    "repo_root": str(config.repo_root),
+                    "instance_id": instance_id,
+                    "started_at": started_at,
+                    "control_api_versions": [1],
+                },
             )
             return cls(
                 config=config,
@@ -789,6 +894,8 @@ class RunningCoordinator:
                 maintenance_thread=maintenance_thread,
                 maintenance_stop=maintenance_stop,
                 token=token,
+                instance_id=instance_id,
+                started_at=started_at,
             )
         except BaseException:
             cls._remove_owned_file(config.lock_path, os.getpid())

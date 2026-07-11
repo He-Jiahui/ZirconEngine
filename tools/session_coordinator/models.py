@@ -32,6 +32,76 @@ class SessionStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class WorkflowState(StrEnum):
+    REGISTERED = "registered"
+    ACTIVE = "active"
+    WAITING_DEPENDENCY = "waiting_dependency"
+    WAITING_LEASE = "waiting_lease"
+    RESOLVING_FAILURE = "resolving_failure"
+    WAITING_VALIDATION = "waiting_validation"
+    WAITING_REVIEW = "waiting_review"
+    FINALIZING = "finalizing"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    STALE = "stale"
+    ARCHIVED = "archived"
+
+
+class WorkflowNodeState(StrEnum):
+    PENDING = "pending"
+    READY = "ready"
+    RUNNING = "running"
+    WAITING_EXTERNAL = "waiting_external"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    SKIPPED = "skipped"
+
+
+class WorkflowNodeKind(StrEnum):
+    GOAL = "goal"
+    MILESTONE = "milestone"
+    SLICE = "slice"
+    VALIDATION = "validation"
+    REVIEW = "review"
+    COMMIT = "commit"
+    NOTIFICATION = "notification"
+    CLOSEOUT = "closeout"
+
+
+class WorkflowArtifactKind(StrEnum):
+    LOG = "log"
+    REPORT = "report"
+    SCREENSHOT = "screenshot"
+    MANIFEST = "manifest"
+    PLAN_RECORD = "plan_record"
+    FAILURE_HANDOFF = "failure_handoff"
+    FIXED_HANDOFF = "fixed_handoff"
+    COMMIT = "commit"
+    OTHER = "other"
+
+
+class WebControlRole(StrEnum):
+    OBSERVER = "observer"
+    OPERATOR = "operator"
+    COMMITTER = "committer"
+    MAINTAINER = "maintainer"
+
+
+class SupervisionState(StrEnum):
+    STARTING = "starting"
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    DRAINING = "draining"
+    STOPPING = "stopping"
+    OFFLINE = "offline"
+    RECOVERING = "recovering"
+    READ_ONLY = "read_only"
+    IDENTITY_MISMATCH = "identity_mismatch"
+    FATAL_INTEGRITY_ERROR = "fatal_integrity_error"
+
+
 ALLOWED_STATUS_TRANSITIONS: dict[SessionStatus, frozenset[SessionStatus]] = {
     SessionStatus.REGISTERED: frozenset(
         {

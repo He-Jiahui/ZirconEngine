@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import subprocess
+from collections.abc import Callable
 from datetime import timedelta
 from pathlib import Path
-from sqlite3 import Row
+from sqlite3 import Connection, Row
 
 from .database import Database
 from .models import (
@@ -20,9 +21,16 @@ from .models import (
 
 
 class SessionService:
-    def __init__(self, database: Database, repo_root: str | Path):
+    def __init__(
+        self,
+        database: Database,
+        repo_root: str | Path,
+        *,
+        session_change_hook: Callable[[Connection, SessionRecord], None] | None = None,
+    ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
+        self.session_change_hook = session_change_hook
 
     def register(
         self,
@@ -88,7 +96,8 @@ class SessionService:
                         session_id,
                     ),
                 )
-        return self.get(session_id)
+            session = self._changed_session(connection, session_id)
+        return session
 
     def get(self, session_id: str) -> SessionRecord:
         with self.database.connect() as connection:
@@ -119,7 +128,8 @@ class SessionService:
             )
             if cursor.rowcount != 1:
                 raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
-        return self.get(session_id)
+            session = self._changed_session(connection, session_id)
+        return session
 
     def set_status(
         self,
@@ -158,7 +168,8 @@ class SessionService:
                 "session.status_changed",
                 {"from": current.value, "to": status.value, "reason": reason},
             )
-        return self.get(session_id)
+            session = self._changed_session(connection, session_id)
+        return session
 
     def mark_stale(
         self, *, older_than_seconds: int, excluded_session_ids: set[str] | None = None
@@ -219,6 +230,7 @@ class SessionService:
                         "reason": "heartbeat expired",
                     },
                 )
+                self._changed_session(connection, session_id)
                 marked.append(session_id)
         return marked
 
@@ -276,8 +288,22 @@ class SessionService:
                         "reason": "stale retention elapsed",
                     },
                 )
+                self._changed_session(connection, session_id)
                 archived.append(session_id)
         return archived
+
+    def _changed_session(
+        self, connection: Connection, session_id: str
+    ) -> SessionRecord:
+        row = connection.execute(
+            "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
+        ).fetchone()
+        if row is None:
+            raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
+        session = self._from_row(row)
+        if self.session_change_hook is not None:
+            self.session_change_hook(connection, session)
+        return session
 
     def _head_commit(self) -> str:
         result = subprocess.run(

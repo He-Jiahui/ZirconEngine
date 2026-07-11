@@ -22,6 +22,16 @@ related_code:
   - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
   - tools/session_coordinator/git_finalize.py
+  - tools/session_coordinator/control_plane/auth.py
+  - tools/session_coordinator/control_plane/contracts.py
+  - tools/session_coordinator/control_plane/events.py
+  - tools/session_coordinator/control_plane/http.py
+  - tools/session_coordinator/control_plane/http_security.py
+  - tools/session_coordinator/control_plane/router.py
+  - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/workflows/models.py
+  - tools/session_coordinator/workflows/store.py
+  - tools/session_coordinator/workflows/projections.py
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
@@ -49,6 +59,16 @@ implementation_files:
   - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
   - tools/session_coordinator/git_finalize.py
+  - tools/session_coordinator/control_plane/auth.py
+  - tools/session_coordinator/control_plane/contracts.py
+  - tools/session_coordinator/control_plane/events.py
+  - tools/session_coordinator/control_plane/http.py
+  - tools/session_coordinator/control_plane/http_security.py
+  - tools/session_coordinator/control_plane/router.py
+  - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/workflows/models.py
+  - tools/session_coordinator/workflows/store.py
+  - tools/session_coordinator/workflows/projections.py
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
@@ -59,6 +79,8 @@ plan_sources:
   - docs/superpowers/plans/2026-07-11-local-session-coordinator.md
   - docs/superpowers/specs/2026-07-11-session-goal-milestone-closeout-design.md
   - docs/superpowers/plans/2026-07-11-session-goal-milestone-closeout-skill.md
+  - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
+  - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_server.py
@@ -77,6 +99,14 @@ tests:
   - tools/session_coordinator/tests/test_retention.py
   - tools/session_coordinator/tests/test_rollout_audit.py
   - tools/session_coordinator/tests/test_git_finalize.py
+  - tools/session_coordinator/tests/test_workflow_schema.py
+  - tools/session_coordinator/tests/test_workflow_store.py
+  - tools/session_coordinator/tests/test_workflow_projections.py
+  - tools/session_coordinator/tests/test_control_auth.py
+  - tools/session_coordinator/tests/test_control_events.py
+  - tools/session_coordinator/tests/test_control_http.py
+  - tools/session_coordinator/tests/test_control_security.py
+  - tools/session_coordinator/tests/test_control_snapshot.py
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -99,6 +129,18 @@ Run the Windows entrypoint from the repository root:
 ```
 
 The wrapper starts Python in a hidden window only when the health endpoint is unavailable. The daemon binds an operating-system-assigned port on `127.0.0.1` and writes its port, PID and random bearer token to `.codex/state/session-coordinator/runtime.json`.
+
+Schema version 14 adds the read-only workflow control facade. The runtime descriptor also records the daemon `instance_id`, `started_at`, and supported `control_api_versions`, allowing local clients to reject credentials created by a previous daemon instance. Detailed operator guidance lives in [Workflow Control Center](workflow-control-center.md); module contracts live in [Control Plane](../tools/session_coordinator/control-plane.md) and [Workflow Read Model](../tools/session_coordinator/workflows.md).
+
+Open the current Observer surface or inspect the same coherent snapshot from the terminal:
+
+```powershell
+.\tools\zircon-session.ps1 ui ticket --role observer -Json
+.\tools\zircon-session.ps1 ui open
+.\tools\zircon-session.ps1 control snapshot -Json
+```
+
+Observer tickets are opaque, single-use and valid for 30 seconds. Consumption creates an eight-hour `HttpOnly`, `SameSite=Strict` cookie bound to the current daemon instance and scoped to `/control`. M1 exposes no browser mutation route; elevated roles, CSRF enforcement and serialized operator actions are introduced only in later milestones.
 
 All mutable coordinator data remains under `.codex/state/session-coordinator/`:
 

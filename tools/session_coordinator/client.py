@@ -52,6 +52,29 @@ class CoordinatorClient:
     def shutdown(self) -> dict[str, Any]:
         return self._request("POST", "/shutdown", {})
 
+    def issue_ui_ticket(self, *, actor: str, role: str = "observer") -> dict[str, Any]:
+        return self.control_request(
+            "POST",
+            "/control/v1/bootstrap-tickets",
+            {"actor": actor, "role": role},
+        )
+
+    def control_snapshot(self) -> dict[str, Any]:
+        return self.control_request("GET", "/control/v1/snapshot")
+
+    def control_request(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        envelope = self._request(method, path, payload)
+        if envelope.get("ok") is not True or not isinstance(envelope.get("data"), dict):
+            raise CoordinatorClientError(
+                "invalid_response", "Coordinator returned an invalid control envelope"
+            )
+        return envelope["data"]
+
     def _request(
         self,
         method: str,

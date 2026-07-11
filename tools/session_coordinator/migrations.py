@@ -4,9 +4,10 @@ from collections.abc import Callable
 from sqlite3 import Connection
 
 from .database import Database
+from .models import CoordinatorError
 
 
-LATEST_SCHEMA_VERSION = 13
+LATEST_SCHEMA_VERSION = 14
 
 
 def _migration_1(connection: Connection) -> None:
@@ -430,6 +431,172 @@ def _migration_13(connection: Connection) -> None:
     )
 
 
+def _migration_14(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE workflow_runs (
+            run_id TEXT PRIMARY KEY,
+            session_id TEXT REFERENCES sessions(session_id),
+            workflow_key TEXT NOT NULL,
+            plan_path TEXT,
+            topology_hash TEXT,
+            state TEXT NOT NULL CHECK (state IN (
+                'registered', 'active', 'waiting_dependency', 'waiting_lease',
+                'resolving_failure', 'waiting_validation', 'waiting_review',
+                'finalizing', 'succeeded', 'failed', 'cancelled', 'stale', 'archived'
+            )),
+            status_reason TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT,
+            UNIQUE(session_id, workflow_key)
+        );
+        CREATE INDEX workflow_runs_state_updated
+            ON workflow_runs(state, updated_at);
+
+        CREATE TABLE workflow_nodes (
+            node_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            node_key TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN (
+                'goal', 'milestone', 'slice', 'validation', 'review',
+                'commit', 'notification', 'closeout'
+            )),
+            title TEXT NOT NULL,
+            stage TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN (
+                'pending', 'ready', 'running', 'waiting_external',
+                'succeeded', 'failed', 'cancelled', 'skipped'
+            )),
+            owner_session_id TEXT REFERENCES sessions(session_id),
+            status_reason TEXT,
+            attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(run_id, node_key),
+            UNIQUE(run_id, node_id)
+        );
+        CREATE INDEX workflow_nodes_run_stage
+            ON workflow_nodes(run_id, stage, node_key);
+
+        CREATE TABLE workflow_edges (
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            from_node_id TEXT NOT NULL,
+            to_node_id TEXT NOT NULL,
+            edge_kind TEXT NOT NULL CHECK (edge_kind IN ('depends_on', 'failure_dependency')),
+            PRIMARY KEY(run_id, from_node_id, to_node_id, edge_kind),
+            CHECK(from_node_id <> to_node_id),
+            FOREIGN KEY(run_id, from_node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE CASCADE,
+            FOREIGN KEY(run_id, to_node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE workflow_attempts (
+            attempt_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            node_id TEXT NOT NULL,
+            attempt_number INTEGER NOT NULL CHECK (attempt_number > 0),
+            state TEXT NOT NULL CHECK (state IN (
+                'pending', 'ready', 'running', 'waiting_external',
+                'succeeded', 'failed', 'cancelled', 'skipped'
+            )),
+            accepted INTEGER NOT NULL DEFAULT 1 CHECK (accepted IN (0, 1)),
+            evidence_json TEXT NOT NULL DEFAULT '{}',
+            started_at TEXT NOT NULL,
+            completed_at TEXT,
+            UNIQUE(node_id, attempt_number),
+            UNIQUE(run_id, node_id, attempt_id),
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_attempts_node_number
+            ON workflow_attempts(node_id, attempt_number DESC);
+        CREATE TRIGGER workflow_attempts_immutable_update
+        BEFORE UPDATE ON workflow_attempts
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow attempts are immutable');
+        END;
+        CREATE TRIGGER workflow_attempts_immutable_delete
+        BEFORE DELETE ON workflow_attempts
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow attempts are immutable');
+        END;
+
+        CREATE TABLE workflow_artifacts (
+            artifact_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            node_id TEXT,
+            attempt_id TEXT,
+            artifact_kind TEXT NOT NULL CHECK (artifact_kind IN (
+                'log', 'report', 'screenshot', 'manifest', 'plan_record',
+                'failure_handoff', 'fixed_handoff', 'commit', 'other'
+            )),
+            display_name TEXT NOT NULL,
+            storage_path TEXT,
+            content_hash TEXT,
+            byte_count INTEGER,
+            metadata_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            CHECK(attempt_id IS NULL OR node_id IS NOT NULL),
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, node_id, attempt_id)
+                REFERENCES workflow_attempts(run_id, node_id, attempt_id) ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_artifacts_run_created
+            ON workflow_artifacts(run_id, created_at);
+
+        CREATE TABLE workflow_diagnostics (
+            diagnostic_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            node_id TEXT REFERENCES workflow_nodes(node_id) ON DELETE CASCADE,
+            code TEXT NOT NULL,
+            severity TEXT NOT NULL CHECK (severity IN ('info', 'warning', 'error')),
+            message TEXT NOT NULL,
+            applicable INTEGER NOT NULL DEFAULT 1 CHECK (applicable IN (0, 1)),
+            details_json TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_diagnostics_run_applicable
+            ON workflow_diagnostics(run_id, applicable, resolved_at);
+
+        CREATE TABLE web_control_sessions (
+            session_token_hash TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL UNIQUE,
+            role TEXT NOT NULL CHECK (role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            actor TEXT NOT NULL,
+            daemon_instance_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            revoked_at TEXT
+        );
+        CREATE INDEX web_control_sessions_instance_expiry
+            ON web_control_sessions(daemon_instance_id, expires_at);
+
+        CREATE TABLE web_bootstrap_tickets (
+            ticket_hash TEXT PRIMARY KEY,
+            role TEXT NOT NULL CHECK (role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            actor TEXT NOT NULL,
+            daemon_instance_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            consumed_at TEXT
+        );
+        CREATE INDEX web_bootstrap_tickets_instance_expiry
+            ON web_bootstrap_tickets(daemon_instance_id, expires_at);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -444,6 +611,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     11: _migration_11,
     12: _migration_12,
     13: _migration_13,
+    14: _migration_14,
 }
 
 
@@ -455,6 +623,15 @@ def migrate(database: Database) -> int:
         applied = {
             int(row[0]) for row in connection.execute("SELECT version FROM schema_version")
         }
+        newer_versions = sorted(
+            version for version in applied if version > LATEST_SCHEMA_VERSION
+        )
+        if newer_versions:
+            raise CoordinatorError(
+                "schema_version_newer",
+                "Coordinator database was created by a newer service version",
+                details={"versions": newer_versions, "supported": LATEST_SCHEMA_VERSION},
+            )
         for version in range(1, LATEST_SCHEMA_VERSION + 1):
             if version in applied:
                 continue

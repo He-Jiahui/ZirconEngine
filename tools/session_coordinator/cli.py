@@ -7,6 +7,7 @@ import shlex
 import sys
 import time
 import uuid
+import webbrowser
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,18 @@ def _parser() -> argparse.ArgumentParser:
     commands.add_parser("serve")
     commands.add_parser("status")
     commands.add_parser("stop")
+
+    ui = commands.add_parser("ui")
+    ui_commands = ui.add_subparsers(dest="ui_command", required=True)
+    ui_ticket = ui_commands.add_parser("ticket")
+    ui_ticket.add_argument("--role", choices=("observer",), default="observer")
+    ui_ticket.add_argument("--actor", default="local-cli")
+    ui_open = ui_commands.add_parser("open")
+    ui_open.add_argument("--actor", default="local-cli")
+
+    control = commands.add_parser("control")
+    control_commands = control.add_subparsers(dest="control_command", required=True)
+    control_commands.add_parser("snapshot")
 
     session = commands.add_parser("session")
     session_commands = session.add_subparsers(dest="session_command", required=True)
@@ -278,6 +291,21 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 break
             time.sleep(0.05)
         return result
+    if arguments.command == "ui":
+        ticket = client.issue_ui_ticket(
+            actor=arguments.actor,
+            role=getattr(arguments, "role", "observer"),
+        )
+        if arguments.ui_command == "ticket":
+            return ticket
+        bootstrap_url = f"{client.base_url}{ticket['bootstrapPath']}"
+        if not webbrowser.open(bootstrap_url, new=2):
+            raise CoordinatorClientError(
+                "browser_open_failed", "The system browser could not be opened"
+            )
+        return {"status": "opened", "url": f"{client.base_url}/ui/"}
+    if arguments.command == "control" and arguments.control_command == "snapshot":
+        return client.control_snapshot()
     if arguments.command == "session" and arguments.session_command == "register":
         return client.command(
             "session.register",
