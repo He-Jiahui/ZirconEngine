@@ -68,28 +68,28 @@ fn accumulate_sh(dir: vec3<f32>, radiance: vec3<f32>, weight: f32, coeff_index: 
             return radiance * (0.282095 * weight);
         }
         case 1u: {
-            return radiance * (0.488603 * y * weight);
+            return radiance * (0.488603 * z * weight);
         }
         case 2u: {
-            return radiance * (0.488603 * z * weight);
+            return radiance * (0.488603 * y * weight);
         }
         case 3u: {
             return radiance * (0.488603 * x * weight);
         }
         case 4u: {
-            return radiance * (1.092548 * x * y * weight);
+            return radiance * (1.092548 * x * z * weight);
         }
         case 5u: {
             return radiance * (1.092548 * y * z * weight);
         }
         case 6u: {
-            return radiance * (0.315392 * (3.0 * z * z - 1.0) * weight);
+            return radiance * (0.315392 * (3.0 * y * y - 1.0) * weight);
         }
         case 7u: {
-            return radiance * (1.092548 * x * z * weight);
+            return radiance * (1.092548 * x * y * weight);
         }
         default: {
-            return radiance * (0.546274 * (x * x - y * y) * weight);
+            return radiance * (0.546274 * (x * x - z * z) * weight);
         }
     }
 }

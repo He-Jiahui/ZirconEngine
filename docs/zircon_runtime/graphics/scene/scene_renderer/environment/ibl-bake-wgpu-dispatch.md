@@ -8,6 +8,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/irradiance_parity.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
 implementation_files:
@@ -16,6 +19,9 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_readback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/irradiance_parity.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
 plan_sources:
@@ -77,9 +83,19 @@ The graph-context tests attach an `IblBakeWgpuPipelineCache` to the test GPU con
 
 The final PMREM mip test builds an asymmetric 16x16x6 source cubemap with five mip levels, dispatches PMREM mip4 into an `Rgba16Float` 1x1x6 storage output, reads the output back, and asserts every face receives the same nonzero value. This locks the WGPU shader's cmft-style final 1x1 six-face average instead of allowing the roughest mip to preserve per-face direction noise.
 
+The reference-parity child tests exercise the production compute kernels rather than a test-only approximation:
+
+- `render_env_prefilter_cpu_gpu_match_16` compares every RGB texel of all six faces and every fixed PMREM mip against the CPU FIS reference, with RGBA16F quantization applied to the common source.
+- `render_env_sh9_matches_cpu_reference` compares all nine RGB coefficients against the CPU exact-solid-angle projection and verifies that a constant environment populates only band zero.
+- `render_env_iem_matches_sh9_low_frequency` samples 64 Fibonacci-sphere directions and compares the cosine-convolved IEM against SH9 evaluation.
+
+These tests exposed two production shader defects. The SH kernel used a Z-up coefficient ordering while the CPU/environment consumer contract is Y-up, and the IEM kernel multiplied its normalized cosine-weighted average by an additional `PI`. The shader now uses the CPU coefficient basis exactly and returns the normalized weighted average without the extra energy factor.
+
+Current-source verification on 2026-07-11 passed `render_env_` 4/4, the complete `ibl_bake_` group 58/58, `source_cubemap::tests::` 16/16, `environment_brdf_lut::tests::` 4/4, and `ibl_bake_runtime_writeback::tests::` 4/4. The build used an isolated validation root because the shared root lock temporarily resolved `gpu-allocator` and `wgpu-hal` to incompatible `windows` crate versions; the isolated lock selected WGPU 29.0.4 with a consistent Windows ABI and did not modify the shared lock file.
+
 ## Open Issues
 
-This helper closes shader-module creation, compute-pipeline creation, command-encoder dispatch, renderer-lifetime IBL pipeline cache use, focused PMREM/SH9/IEM graph-context dispatch/audit coverage, and final PMREM 1x1 six-face average readback proof. `ibl_bake_wgpu_readback.rs` closes graph resource acquisition for the eventual artifact readback. Production work still needs full scheduler integration, async readback draining before transient release, runtime cache writeback from GPU outputs, product second-launch dispatch=0 proof, RenderDoc/product capture, optimized SH9 reduction, strict roughness/SSIM/seam validation, 4K/16K offline bake coverage, and full CI.
+This helper closes shader-module creation, compute-pipeline creation, command-encoder dispatch, renderer-lifetime IBL pipeline cache use, focused PMREM/SH9/IEM graph-context dispatch/audit coverage, final PMREM 1x1 six-face average readback, CPU/GPU PMREM texel parity, SH9 coefficient parity, IEM/SH9 low-frequency parity, and runtime cache writeback coverage. Product second-launch dispatch=0, strict roughness/SSIM/seam evidence, multi-view captures, and RenderDoc evidence are recorded by Shader Plan 06. Remaining work outside this helper is optimized/two-stage SH9 reduction, 4K/16K offline bake coverage, editor-facing capture controls, and full shared-workspace CI after dependency-lock convergence.
 
 ## 2026-07-07 Test Owner Split
 

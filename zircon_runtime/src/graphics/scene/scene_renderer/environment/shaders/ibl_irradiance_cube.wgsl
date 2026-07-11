@@ -93,7 +93,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         color = color + textureSampleLevel(source_cubemap, source_sampler, sample_dir, 0.0).rgb;
     }
 
-    let irradiance = color * (PI / f32(sample_count));
+    let irradiance = color / f32(sample_count);
     textureStore(
         irradiance_output,
         vec2<i32>(global_id.xy),

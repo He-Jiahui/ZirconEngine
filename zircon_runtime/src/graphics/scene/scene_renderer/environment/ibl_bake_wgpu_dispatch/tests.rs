@@ -4,6 +4,7 @@ use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
     IblBakeArtifactContents, IblBakeArtifactRequest, ProceduralSkyParams, RenderFrameExtract,
     RenderPluginRendererOutputs, RenderWorldSnapshotHandle, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 use crate::core::math::UVec2;
 use crate::graphics::backend::RenderBackend;
@@ -27,6 +28,11 @@ use super::super::ibl_bake_wgpu_command_plan::{
 use super::super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
 use super::*;
 
+#[path = "tests/irradiance_parity.rs"]
+mod irradiance_parity;
+#[path = "tests/reference_parity.rs"]
+mod reference_parity;
+
 #[test]
 fn compute_pipeline_encodes_storage_texture_and_storage_buffer_dispatches() {
     let Ok(backend) = RenderBackend::new_offscreen() else {
@@ -45,7 +51,11 @@ fn compute_pipeline_encodes_storage_texture_and_storage_buffer_dispatches() {
         &plan.commands,
         IblBakeComputeKernelKind::Pmrem { mip_level: 0 },
     );
-    let pmrem_output = create_storage_output_texture(device, 16, 5);
+    let pmrem_output = create_storage_output_texture(
+        device,
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+        SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    );
     let pmrem_output_view = pmrem_output.create_view(&storage_texture_descriptor(pmrem));
     let pmrem_params = create_ibl_bake_wgpu_params_buffer(device, pmrem);
     let pmrem_bind_group = create_ibl_bake_wgpu_bind_group(
@@ -97,7 +107,12 @@ fn compute_pipeline_encodes_storage_texture_and_storage_buffer_dispatches() {
         encode_ibl_bake_wgpu_compute_dispatch(&mut encoder, sh9, &sh9_pipeline, &sh9_bind_group)
             .expect("SH9 dispatch should encode");
 
-    assert_eq!(pmrem_record.dispatch_groups, [2, 2, 6]);
+    let pmrem_base_dispatch = [
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE.div_ceil(IBL_BAKE_WORKGROUP_SIZE[0]),
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE.div_ceil(IBL_BAKE_WORKGROUP_SIZE[1]),
+        6,
+    ];
+    assert_eq!(pmrem_record.dispatch_groups, pmrem_base_dispatch);
     assert_eq!(sh9_record.dispatch_groups, [4, 4, 6]);
     queue.submit(std::iter::once(encoder.finish()));
     device
@@ -116,13 +131,20 @@ fn final_pmrem_mip_writes_common_six_face_average() {
     let sampler = create_ibl_bake_wgpu_source_sampler(device);
     let request = request(16, 5, IblBakeArtifactContents::PMREM);
     let plan = ibl_bake_wgpu_command_plan_for_request(&request);
+    let final_mip_level = SOURCE_CUBEMAP_PMREM_MIP_COUNT - 1;
     let final_mip = command_for_kind(
         &plan.commands,
-        IblBakeComputeKernelKind::Pmrem { mip_level: 4 },
+        IblBakeComputeKernelKind::Pmrem {
+            mip_level: final_mip_level,
+        },
     );
     let source_texture = create_asymmetric_source_cubemap_texture(device, queue, 16, 5);
     let source_view = source_texture.create_view(&source_cubemap_mip_view_descriptor(5));
-    let pmrem_output = create_storage_output_texture(device, 16, 5);
+    let pmrem_output = create_storage_output_texture(
+        device,
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+        SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    );
     let pmrem_output_view = pmrem_output.create_view(&storage_texture_descriptor(final_mip));
     let params = create_ibl_bake_wgpu_params_buffer(device, final_mip);
     let bind_group = create_ibl_bake_wgpu_bind_group(
@@ -153,7 +175,7 @@ fn final_pmrem_mip_writes_common_six_face_average() {
         .poll(wgpu::PollType::wait_indefinitely())
         .expect("final PMREM dispatch should finish");
 
-    let bytes = read_rgba16float_mip_faces(device, queue, &pmrem_output, 4, 1, 6);
+    let bytes = read_rgba16float_mip_faces(device, queue, &pmrem_output, final_mip_level, 1, 6);
     let first = rgba16float_face_color(&bytes, 0);
     assert!(
         first[0] + first[1] + first[2] > 0.05,
@@ -196,10 +218,15 @@ fn graph_context_records_pmrem_wgpu_dispatch_from_materialized_resources() {
         return;
     };
 
-    assert_eq!(encoded.dispatch_groups, [2, 2, 6]);
+    let pmrem_base_dispatch = [
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE.div_ceil(IBL_BAKE_WORKGROUP_SIZE[0]),
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE.div_ceil(IBL_BAKE_WORKGROUP_SIZE[1]),
+        6,
+    ];
+    assert_eq!(encoded.dispatch_groups, pmrem_base_dispatch);
     assert_eq!(records.len(), 1);
     assert_eq!(records[0].pass_name, executed_pass_name);
-    assert_eq!(records[0].dispatch_groups, [2, 2, 6]);
+    assert_eq!(records[0].dispatch_groups, pmrem_base_dispatch);
     assert_eq!(
         records[0].storage_write_resources,
         [super::super::ibl_bake_graph_plan::IBL_BAKE_PMREM_RESOURCE.to_string()]

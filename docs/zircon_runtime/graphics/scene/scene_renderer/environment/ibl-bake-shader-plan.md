@@ -10,6 +10,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_cube.wgsl
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
+  - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/irradiance_parity.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
@@ -55,7 +58,11 @@ The CPU PMREM bridge performs its final six-face average after per-face filterin
 
 ## Other Kernels
 
-`ibl_irradiance_sh.wgsl` and `ibl_irradiance_cube.wgsl` establish the SH9 and optional IEM storage ABI. They are intentionally kept behind the renderer-local IBL bake modules until real command encoding, async readback, and artifact cache writeback are connected. The current SH9 kernel is a deterministic starter contract, not the final optimized two-stage reduction.
+`ibl_irradiance_sh.wgsl` and `ibl_irradiance_cube.wgsl` implement the SH9 and optional IEM storage ABI used by real graph dispatch, readback, and artifact cache writeback.
+
+The SH basis is the engine's Y-up ordering from `source_cubemap.rs`: `[L00, L1z, L1y, L1x, L2xz, L2zy, L2(3y^2-1), L2xy, L2(x^2-z^2)]`. GPU coefficient order must remain byte-for-byte compatible with CPU SH evaluation and scene-uniform consumption. The IEM kernel performs cosine-weighted hemisphere sampling and divides by the accumulated cosine weight; it does not apply a second `PI`, because the CPU reference and consumer contract store normalized diffuse irradiance radiance rather than the unnormalized hemisphere integral.
+
+The current SH9 kernel remains a deterministic single-dispatch implementation rather than the final optimized two-stage reduction, but its output is now numerically checked against the CPU exact-solid-angle reference.
 
 ## Verification
 
@@ -76,3 +83,13 @@ E:\cargo-targets\zircon-ibl-final-mip-average-0706\debug\deps\zircon_runtime-9b5
 Result: 7/7 passed, 6995 filtered, including `final_pmrem_mip_writes_common_six_face_average`. That test writes an asymmetric source cubemap, dispatches final PMREM mip4, reads back `Rgba16Float` 1x1x6, and asserts all six faces match and contain nonzero radiance.
 
 This verification does not claim production scheduling, async readback dequeue, runtime cache writeback, product second-launch dispatch=0, RenderDoc capture, screenshot SSIM/seam gates, or full workspace CI. The output-view bridge is covered separately by `materialization_exposes_owned_cube_storage_texture_array_views`, the live bind-group helper is covered by `ibl_bake_wgpu_binding`, and the live pipeline/command-encoding plus graph-context helper is covered by `ibl_bake_wgpu_dispatch`.
+
+## 2026-07-11 CPU/GPU Reference Parity
+
+Current-source WGPU verification added three non-ignored reference tests under the dispatch test owner:
+
+- `render_env_prefilter_cpu_gpu_match_16`: all PMREM RGB texels, faces, and mips match the CPU FIS reference within `0.006` after common RGBA16F source quantization.
+- `render_env_sh9_matches_cpu_reference`: all SH9 RGB coefficients match within `0.004`; constant input leaves coefficients 1 through 8 below `0.0005`.
+- `render_env_iem_matches_sh9_low_frequency`: 64 sphere directions match within `0.055`.
+
+The final run passed `render_env_` 4/4 and the full `ibl_bake_` group 58/58. This closes the Shader Plan 06 small-size GPU/offline PMREM, SH constant-band, and IEM/SH9 low-frequency gates. The existing product records separately own the 8x8 matrix, roughness monotonicity, seam, multi-view, and RenderDoc evidence.
