@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import sqlite3
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -16,6 +18,7 @@ from .cargo_jobs import (
 )
 from .database import Database
 from .models import CoordinatorError, utc_text
+from .snapshots import ObjectStore
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +43,328 @@ class CleanupPlan:
 class CleanupResult:
     deleted: tuple[str, ...]
     denied: tuple[CleanupDenial, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RetentionPlan:
+    plan_id: str
+    snapshot_ids: tuple[int, ...]
+    object_hashes: tuple[str, ...]
+    created_at: datetime
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "plan_id": self.plan_id,
+            "snapshot_ids": list(self.snapshot_ids),
+            "object_hashes": list(self.object_hashes),
+            "created_at": self.created_at.isoformat(),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class RetentionResult:
+    plan_id: str
+    deleted_snapshot_ids: tuple[int, ...]
+    deleted_object_hashes: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "plan_id": self.plan_id,
+            "deleted_snapshot_ids": list(self.deleted_snapshot_ids),
+            "deleted_object_hashes": list(self.deleted_object_hashes),
+        }
+
+
+class RetentionService:
+    """Plan and atomically retire expired snapshot/object references."""
+
+    def __init__(
+        self,
+        database: Database,
+        object_store: ObjectStore,
+        *,
+        completed_days: int = 14,
+        archived_days: int = 30,
+    ):
+        self.database = database
+        self.object_store = object_store
+        self.completed_days = completed_days
+        self.archived_days = archived_days
+
+    def plan(self, *, now: datetime | None = None) -> RetentionPlan:
+        current_time = now or datetime.now(UTC)
+        snapshot_ids, object_hashes = self._candidates(current_time)
+        identity = json.dumps(
+            {"snapshot_ids": snapshot_ids, "object_hashes": object_hashes},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        import hashlib
+
+        plan_id = f"object-gc-{hashlib.sha256(identity.encode('utf-8')).hexdigest()[:24]}"
+        plan = RetentionPlan(plan_id, snapshot_ids, object_hashes, current_time)
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO object_gc_plans(
+                    plan_id, snapshot_ids_json, object_hashes_json, status, created_at
+                ) VALUES (?, ?, ?, 'planned', ?)
+                ON CONFLICT(plan_id) DO UPDATE SET
+                    snapshot_ids_json = excluded.snapshot_ids_json,
+                    object_hashes_json = excluded.object_hashes_json,
+                    status = CASE
+                        WHEN object_gc_plans.status = 'failed' THEN 'planned'
+                        ELSE object_gc_plans.status
+                    END,
+                    created_at = CASE
+                        WHEN object_gc_plans.status IN ('planned', 'failed') THEN excluded.created_at
+                        ELSE object_gc_plans.created_at
+                    END,
+                    error_text = CASE
+                        WHEN object_gc_plans.status = 'failed' THEN NULL
+                        ELSE object_gc_plans.error_text
+                    END
+                """,
+                (
+                    plan.plan_id,
+                    json.dumps(plan.snapshot_ids),
+                    json.dumps(plan.object_hashes),
+                    plan.created_at.isoformat(),
+                ),
+            )
+        return plan
+
+    def get_plan(self, plan_id: str) -> RetentionPlan:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM object_gc_plans WHERE plan_id = ?", (plan_id,)
+            ).fetchone()
+        if row is None:
+            raise CoordinatorError("object_gc_plan_not_found", f"Unknown object GC plan {plan_id}")
+        return RetentionPlan(
+            row["plan_id"],
+            tuple(int(item) for item in json.loads(row["snapshot_ids_json"])),
+            tuple(str(item) for item in json.loads(row["object_hashes_json"])),
+            datetime.fromisoformat(row["created_at"]),
+        )
+
+    def apply(self, plan: RetentionPlan, *, now: datetime | None = None) -> RetentionResult:
+        current_time = now or datetime.now(UTC)
+        trash_root = self.object_store.root.parent / "gc-trash" / plan.plan_id
+        moved: list[tuple[Path, Path]] = []
+        try:
+            # One SQLite writer transaction serializes candidate revalidation,
+            # object moves, snapshot/object deletion, and concurrent snapshot put.
+            # A creator either commits before this recheck and keeps the object,
+            # or waits and recreates the object after collection completes.
+            with self.database.transaction() as connection:
+                current_snapshots, current_objects = self._candidates_with_connection(
+                    connection, current_time
+                )
+                if (
+                    current_snapshots != plan.snapshot_ids
+                    or current_objects != plan.object_hashes
+                ):
+                    raise CoordinatorError(
+                        "object_gc_plan_stale",
+                        "Object GC candidates changed after planning",
+                    )
+                row = connection.execute(
+                    "SELECT * FROM object_gc_plans WHERE plan_id = ?", (plan.plan_id,)
+                ).fetchone()
+                if row is None:
+                    raise CoordinatorError(
+                        "object_gc_plan_not_found", f"Unknown object GC plan {plan.plan_id}"
+                    )
+                if row["status"] != "planned":
+                    raise CoordinatorError(
+                        "object_gc_plan_not_pending",
+                        f"Object GC plan {plan.plan_id} is {row['status']}",
+                    )
+                if (
+                    tuple(json.loads(row["snapshot_ids_json"])) != plan.snapshot_ids
+                    or tuple(json.loads(row["object_hashes_json"])) != plan.object_hashes
+                ):
+                    raise CoordinatorError(
+                        "object_gc_plan_tampered", "Object GC plan was modified"
+                    )
+                connection.execute(
+                    "UPDATE object_gc_plans SET status = 'applying' WHERE plan_id = ?",
+                    (plan.plan_id,),
+                )
+                for object_hash in plan.object_hashes:
+                    source = self.object_store.path_for_hash(object_hash)
+                    if not source.is_file():
+                        raise CoordinatorError(
+                            "object_gc_source_missing",
+                            f"Object file disappeared: {object_hash}",
+                        )
+                    destination = trash_root / object_hash
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    os.replace(source, destination)
+                    moved.append((source, destination))
+                if plan.snapshot_ids:
+                    placeholders = ",".join("?" for _ in plan.snapshot_ids)
+                    connection.execute(
+                        f"DELETE FROM snapshots WHERE snapshot_id IN ({placeholders})",
+                        plan.snapshot_ids,
+                    )
+                if plan.object_hashes:
+                    placeholders = ",".join("?" for _ in plan.object_hashes)
+                    connection.execute(
+                        f"DELETE FROM objects WHERE object_hash IN ({placeholders})",
+                        plan.object_hashes,
+                    )
+                connection.execute(
+                    """
+                    UPDATE object_gc_plans
+                    SET status = 'applied', applied_at = ?, error_text = NULL
+                    WHERE plan_id = ?
+                    """,
+                    (utc_text(current_time), plan.plan_id),
+                )
+                connection.execute(
+                    "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                    (
+                        "retention.objects_collected",
+                        json.dumps(
+                            {
+                                "plan_id": plan.plan_id,
+                                "snapshot_count": len(plan.snapshot_ids),
+                                "object_count": len(plan.object_hashes),
+                            },
+                            sort_keys=True,
+                        ),
+                        utc_text(current_time),
+                    ),
+                )
+            shutil.rmtree(trash_root, ignore_errors=True)
+        except BaseException as error:
+            for source, destination in reversed(moved):
+                if destination.exists() and not source.exists():
+                    source.parent.mkdir(parents=True, exist_ok=True)
+                    os.replace(destination, source)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    UPDATE object_gc_plans SET status = 'failed', error_text = ?
+                    WHERE plan_id = ? AND status IN ('planned', 'applying')
+                    """,
+                    (str(error), plan.plan_id),
+                )
+            raise
+        return RetentionResult(plan.plan_id, plan.snapshot_ids, plan.object_hashes)
+
+    def recover_interrupted(self) -> tuple[str, ...]:
+        """Restore pre-commit GC quarantine and discard post-commit residue."""
+        trash_parent = self.object_store.root.parent / "gc-trash"
+        if not trash_parent.is_dir():
+            return ()
+        recovered: list[str] = []
+        for plan_root in sorted(trash_parent.iterdir(), key=lambda item: item.name):
+            if not plan_root.is_dir():
+                continue
+            with self.database.connect() as connection:
+                row = connection.execute(
+                    "SELECT status FROM object_gc_plans WHERE plan_id = ?",
+                    (plan_root.name,),
+                ).fetchone()
+            if row is None:
+                continue
+            if row["status"] == "applied":
+                shutil.rmtree(plan_root, ignore_errors=True)
+                continue
+            if row["status"] not in {"planned", "applying", "failed"}:
+                continue
+            for quarantined in sorted(plan_root.iterdir(), key=lambda item: item.name):
+                if not quarantined.is_file():
+                    continue
+                target = self.object_store.path_for_hash(quarantined.name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.exists():
+                    if target.read_bytes() != quarantined.read_bytes():
+                        raise CoordinatorError(
+                            "object_gc_recovery_conflict",
+                            f"Object recovery target differs: {quarantined.name}",
+                        )
+                    quarantined.unlink()
+                else:
+                    os.replace(quarantined, target)
+            shutil.rmtree(plan_root, ignore_errors=True)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    UPDATE object_gc_plans
+                    SET status = 'failed', error_text = ?
+                    WHERE plan_id = ? AND status IN ('planned', 'applying')
+                    """,
+                    ("recovered interrupted object GC quarantine", plan_root.name),
+                )
+            recovered.append(plan_root.name)
+        return tuple(recovered)
+
+    def _candidates(self, now: datetime) -> tuple[tuple[int, ...], tuple[str, ...]]:
+        with self.database.connect() as connection:
+            return self._candidates_with_connection(connection, now)
+
+    def _candidates_with_connection(
+        self, connection: sqlite3.Connection, now: datetime
+    ) -> tuple[tuple[int, ...], tuple[str, ...]]:
+        completed_cutoff = now - timedelta(days=self.completed_days)
+        archived_cutoff = now - timedelta(days=self.archived_days)
+        rows = connection.execute(
+                """
+                SELECT snapshots.snapshot_id, snapshots.manifest_json,
+                       snapshots.created_at AS snapshot_created_at,
+                       sessions.status, sessions.completed_at, sessions.archived_at
+                FROM snapshots
+                JOIN sessions ON sessions.session_id = snapshots.session_id
+                ORDER BY snapshots.snapshot_id
+                """
+        ).fetchall()
+        candidate_ids: list[int] = []
+        retained_hashes: set[str] = set()
+        for row in rows:
+            manifest = json.loads(row["manifest_json"])
+            hashes = {value for value in manifest.values() if value}
+            status = row["status"]
+            snapshot_created_at = datetime.fromisoformat(row["snapshot_created_at"])
+            expired = False
+            if status == "archived" and row["archived_at"]:
+                expired = (
+                    datetime.fromisoformat(row["archived_at"]) <= archived_cutoff
+                    and snapshot_created_at <= archived_cutoff
+                )
+            elif status in {"completed", "cancelled"} and row["completed_at"]:
+                expired = (
+                    datetime.fromisoformat(row["completed_at"]) <= completed_cutoff
+                    and snapshot_created_at <= completed_cutoff
+                )
+            if expired:
+                candidate_ids.append(int(row["snapshot_id"]))
+            else:
+                retained_hashes.update(hashes)
+        patch_rows = connection.execute(
+                """
+                SELECT patch_object_hash, base_objects_json, current_objects_json
+                FROM patches
+                """
+        ).fetchall()
+        for row in patch_rows:
+            retained_hashes.add(row["patch_object_hash"])
+            for column in ("base_objects_json", "current_objects_json"):
+                if row[column]:
+                    retained_hashes.update(
+                        value for value in json.loads(row[column]).values() if value
+                    )
+        object_hashes = [
+            row["object_hash"]
+            for row in connection.execute(
+                "SELECT object_hash FROM objects ORDER BY object_hash"
+            ).fetchall()
+            if row["object_hash"] not in retained_hashes
+        ]
+        return tuple(candidate_ids), tuple(object_hashes)
 
 
 class CleanupService:

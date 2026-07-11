@@ -73,10 +73,22 @@ class LeaseService:
         if not normalized:
             raise ValueError("at least one lease path is required")
         with self.database.transaction() as connection:
-            if connection.execute(
-                "SELECT 1 FROM sessions WHERE session_id = ?", (session_id,)
-            ).fetchone() is None:
+            session = connection.execute(
+                "SELECT status FROM sessions WHERE session_id = ?", (session_id,)
+            ).fetchone()
+            if session is None:
                 raise CoordinatorError("session_not_found", f"Unknown Session {session_id}")
+            if session["status"] in {
+                "finalizing",
+                "completed",
+                "stale",
+                "archived",
+                "cancelled",
+            }:
+                raise CoordinatorError(
+                    "session_not_writable",
+                    f"Session {session_id} cannot acquire leases while {session['status']}",
+                )
             self._remove_expired(connection, current_time)
             placeholders = ",".join("?" for _ in normalized)
             rows = connection.execute(

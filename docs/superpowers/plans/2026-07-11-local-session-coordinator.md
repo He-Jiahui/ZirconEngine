@@ -80,12 +80,12 @@
 
 **Implementation slices:**
 
-- [ ] **M1.1 Define configuration and models:** add exact enums from the design (`registered`, `active`, `waiting_lease`, `resolving_failure`, `waiting_validation`, `finalizing`, `completed`, `stale`, `archived`, `cancelled`), typed IDs, TTL defaults, repo-root normalization, `.codex/state/session-coordinator` layout and drive-root target configuration.
-- [ ] **M1.2 Build database and migrations:** create `schema_version`, `sessions`, `events`, `runtime_locks` and configuration tables; enable WAL, foreign keys and busy timeout; make every migration idempotent and covered by upgrade/rollback tests.
-- [ ] **M1.3 Build daemon and client protocol:** implement single-instance startup, atomic `runtime.json`, random token, `127.0.0.1` binding, `/health`, authenticated command dispatch, graceful shutdown and stale-runtime recovery.
-- [ ] **M1.4 Implement Session lifecycle:** register from `CODEX_THREAD_ID` or generated UUID, persist base metadata, enforce transition table, heartbeat timestamps, reason text and read-only archived records.
-- [ ] **M1.5 Add PowerShell entrypoint:** implement `status`, `start`, `stop`, `session register/list/show/heartbeat/set-status`, hidden auto-start and `-Json` without duplicating service rules in PowerShell.
-- [ ] **M1.6 Add focused unit tests:** cover first startup, second-instance rejection, bad token, schema re-open, every legal transition, illegal transitions, heartbeat update, stale runtime descriptor and non-main read-only diagnostics.
+- [x] **M1.1 Define configuration and models:** add exact enums from the design (`registered`, `active`, `waiting_lease`, `resolving_failure`, `waiting_validation`, `finalizing`, `completed`, `stale`, `archived`, `cancelled`), typed IDs, TTL defaults, repo-root normalization, `.codex/state/session-coordinator` layout and drive-root target configuration.
+- [x] **M1.2 Build database and migrations:** create `schema_version`, `sessions`, `events`, `runtime_locks` and configuration tables; enable WAL, foreign keys and busy timeout; make every migration idempotent and covered by upgrade/rollback tests.
+- [x] **M1.3 Build daemon and client protocol:** implement single-instance startup, atomic `runtime.json`, random token, `127.0.0.1` binding, `/health`, authenticated command dispatch, graceful shutdown and stale-runtime recovery.
+- [x] **M1.4 Implement Session lifecycle:** register from `CODEX_THREAD_ID` or generated UUID, persist base metadata, enforce transition table, heartbeat timestamps, reason text and read-only archived records.
+- [x] **M1.5 Add PowerShell entrypoint:** implement `status`, `start`, `stop`, `session register/list/show/heartbeat/set-status`, hidden auto-start and `-Json` without duplicating service rules in PowerShell.
+- [x] **M1.6 Add focused unit tests:** cover first startup, second-instance rejection, bad token, schema re-open, every legal transition, illegal transitions, heartbeat update, stale runtime descriptor and non-main read-only diagnostics.
 
 **Lightweight checks:**
 
@@ -116,12 +116,12 @@ Expected: all unit tests pass; smoke test starts exactly one daemon in a tempora
 
 **Implementation slices:**
 
-- [ ] **M2.1 Implement baseline epochs:** record HEAD, index tree and Git-visible file hashes; bind Session registration to an epoch; open a new epoch after HEAD changes; classify service-attributed and external changes.
-- [ ] **M2.2 Implement object storage:** write deduplicated compressed objects atomically, store manifests in SQLite, verify object hash on read, and refuse restore outside the repository or without a matching lease/current hash.
-- [ ] **M2.3 Implement path leases:** normalize case and separators, reject paths outside the repo, sort and acquire multi-file claims in one transaction, support re-entry/renewal, and reclaim only after TTL plus grace.
-- [ ] **M2.4 Implement delayed patch queue:** accept a patch file and explicit target list, run `git apply --check`, save patch/base hashes, queue on conflict, apply after release only when hashes still match, otherwise emit `needs_rebase` with base/current/patch references.
-- [ ] **M2.5 Implement watcher and reconciliation:** detect unregistered file changes and HEAD/index changes, snapshot evidence, mark baseline `degraded`, and provide `baseline diff`, `attribute`, `accept`, and lease-protected `restore-preview` commands.
-- [ ] **M2.6 Add concurrency tests:** use separate client processes against one temp repo to prove atomic claims, FIFO order, lease expiry, no blind apply after foreign edits, object deduplication, degraded finalize guard stub and restart recovery.
+- [x] **M2.1 Implement baseline epochs:** record HEAD, index tree and Git-visible file hashes; bind Session registration to an epoch; open a new epoch after HEAD changes; classify service-attributed and external changes.
+- [x] **M2.2 Implement object storage:** write deduplicated compressed objects atomically, store manifests in SQLite, verify object hash on read, and refuse restore outside the repository or without a matching lease/current hash.
+- [x] **M2.3 Implement path leases:** normalize case and separators, reject paths outside the repo, sort and acquire multi-file claims in one transaction, support re-entry/renewal, and reclaim only after TTL plus grace.
+- [x] **M2.4 Implement delayed patch queue:** accept a patch file and explicit target list, run `git apply --check`, save patch/base hashes, queue on conflict, apply after release only when hashes still match, otherwise emit `needs_rebase` with base/current/patch references.
+- [x] **M2.5 Implement watcher and reconciliation:** detect unregistered file changes and HEAD/index changes, snapshot evidence, mark baseline `degraded`, and provide `baseline diff`, `attribute`, `accept`, and lease-protected `restore-preview` commands.
+- [x] **M2.6 Add concurrency tests:** use separate client processes against one temp repo to prove atomic claims, FIFO order, lease expiry, no blind apply after foreign edits, object deduplication, degraded finalize guard stub and restart recovery.
 
 **Lightweight checks:**
 
@@ -152,13 +152,13 @@ Expected: two-writer fixture produces one lease owner and one queued patch; rele
 
 **Implementation slices:**
 
-- [ ] **M3.1 Extract reusable handoff parser:** refactor `validate_plan_failure_handoffs.py` so the CLI behavior and current 14 validator cases stay unchanged while coordinator import receives structured artifact records.
-- [ ] **M3.2 Implement plan scanners and owner routing:** recursively scan `docs/plans`, scan `.codex/plans` as legacy, map plan definitions to `{id}/`, reject ambiguous ownership, and return the allowed output directory to Session registration.
-- [ ] **M3.3 Enforce protected plan paths:** deny ordinary Session writes to any `index.md`, `engine-code-*.md` and numbered plan-definition Markdown; allow only the registered child directory; expose explicit maintenance mode as a separate authenticated command.
-- [ ] **M3.4 Build Failure graph:** persist lifecycle nodes/edges from Markdown, detect duplicate lifecycle keys, self-edges, cycles, excessive depth, wrong placement and unresolved return states; order open failures for each fixing plan.
-- [ ] **M3.5 Implement fixed return transaction:** after architectural acceptance and upward validation are recorded, move/rename the canonical artifact into the origin child directory, update origin references, write a concise fixer summary with relative link, update graph state, and roll back on any filesystem error.
-- [ ] **M3.6 Integrate project skills:** update cross-session, failure-handoff, plan-output and milestone policies so startup queries open failures, source work continues, fixer work is prioritized, and all records use the coordinator-derived child owner.
-- [ ] **M3.7 Add fixtures and real-tree read-only audit:** cover protected paths, ambiguous plans, all four current open failures, cycle/duplicate fixtures, successful return and injected rollback; audit the real `docs/plans` tree without modifying it.
+- [x] **M3.1 Extract reusable handoff parser:** refactor `validate_plan_failure_handoffs.py` so the CLI behavior and current 14 validator cases stay unchanged while coordinator import receives structured artifact records.
+- [x] **M3.2 Implement plan scanners and owner routing:** recursively scan `docs/plans`, scan `.codex/plans` as legacy, map plan definitions to `{id}/`, reject ambiguous ownership, and return the allowed output directory to Session registration.
+- [x] **M3.3 Enforce protected plan paths:** deny ordinary Session writes to any `index.md`, `engine-code-*.md` and numbered plan-definition Markdown; allow only the registered child directory; expose explicit maintenance mode as a separate authenticated command.
+- [x] **M3.4 Build Failure graph:** persist lifecycle nodes/edges from Markdown, detect duplicate lifecycle keys, self-edges, cycles, excessive depth, wrong placement and unresolved return states; order open failures for each fixing plan.
+- [x] **M3.5 Implement fixed return transaction:** after architectural acceptance and upward validation are recorded, move/rename the canonical artifact into the origin child directory, update origin references, write a concise fixer summary with relative link, update graph state, and roll back on any filesystem error.
+- [x] **M3.6 Integrate project skills:** update cross-session, failure-handoff, plan-output and milestone policies so startup queries open failures, source work continues, fixer work is prioritized, and all records use the coordinator-derived child owner.
+- [x] **M3.7 Add fixtures and real-tree read-only audit:** cover protected paths, ambiguous plans, all four current open failures, cycle/duplicate fixtures, successful return and injected rollback; audit the real `docs/plans` tree without modifying it.
 
 **Lightweight checks:**
 
@@ -191,13 +191,13 @@ Expected: validator unit suite passes; real handoff validator reports no new coo
 
 **Implementation slices:**
 
-- [ ] **M4.1 Implement target allowlist and lane records:** accept only `D:\targets\zircon-engine`, `E:\targets\zircon-engine`, `F:\targets\zircon-engine` roots that exist/configure successfully; allocate unique `lanes/{lane-id}` paths and reject repo-local or arbitrary explicit targets.
-- [ ] **M4.2 Implement Cargo job lifecycle:** add acquire/start/heartbeat/finish/release, lane kinds (`check`, `test`, `workspace`, `gpu`), PID command-line evidence, orphan detection and queueing for incompatible writers.
-- [ ] **M4.3 Integrate `validate-matrix.ps1`:** replace repo-local JSON slots; normalize explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` through the service; always pass the granted target; release in `finally`; update dry-run output and tests.
-- [ ] **M4.4 Implement cleanup planning:** compute eligibility from lane state, process liveness, last activity, retention and free disk; require resolved allowlisted paths; separate read-only `cleanup plan` from explicit/scheduled `cleanup apply`.
-- [ ] **M4.5 Replace stale-target script behavior:** make `tools/cleanup-stale-targets.ps1` call the service and never enumerate fuzzy root names or directly remove an unknown target; retain `-WhatIf` and useful offline diagnostics.
-- [ ] **M4.6 Install user-level scheduled task:** add hidden at-logon daemon start plus 15-minute maintenance trigger, dry-run XML/command output, idempotent update and uninstall; only disable the old hourly task after new health checks succeed.
-- [ ] **M4.7 Add fake-Cargo and cleanup tests:** simulate long-running jobs, abrupt exit, explicit/env target bypass, active-PID cleanup denial, stale lane cleanup, symlink/junction escape and unavailable drive.
+- [x] **M4.1 Implement target allowlist and lane records:** accept only `D:\targets\zircon-engine`, `E:\targets\zircon-engine`, `F:\targets\zircon-engine` roots that exist/configure successfully; allocate unique `lanes/{lane-id}` paths and reject repo-local or arbitrary explicit targets.
+- [x] **M4.2 Implement Cargo job lifecycle:** add acquire/start/heartbeat/finish/release, lane kinds (`check`, `test`, `workspace`, `gpu`), PID command-line evidence, orphan detection and queueing for incompatible writers.
+- [x] **M4.3 Integrate `validate-matrix.ps1`:** replace repo-local JSON slots; normalize explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` through the service; always pass the granted target; release in `finally`; update dry-run output and tests.
+- [x] **M4.4 Implement cleanup planning:** compute eligibility from lane state, process liveness, last activity, retention and free disk; require resolved allowlisted paths; separate read-only `cleanup plan` from explicit/scheduled `cleanup apply`.
+- [x] **M4.5 Replace stale-target script behavior:** make `tools/cleanup-stale-targets.ps1` call the service and never enumerate fuzzy root names or directly remove an unknown target; retain `-WhatIf` and useful offline diagnostics.
+- [x] **M4.6 Install user-level scheduled task:** add hidden at-logon daemon start plus 15-minute maintenance trigger, dry-run XML/command output, idempotent update and uninstall; only disable the old hourly task after new health checks succeed.
+- [x] **M4.7 Add fake-Cargo and cleanup tests:** simulate long-running jobs, abrupt exit, explicit/env target bypass, active-PID cleanup denial, stale lane cleanup, symlink/junction escape and unavailable drive.
 
 **Lightweight checks:**
 
@@ -269,13 +269,13 @@ Expected: temp-repo finalize tests pass; completion never commits implicitly; st
 
 **Implementation slices:**
 
-- [ ] **M6.1 Implement idempotent legacy importer:** parse existing `.codex/sessions` notes, map known status strings to enums, preserve unknown text in `status_reason`, import plan links and timestamps, and never delete source files during import.
-- [ ] **M6.2 Classify and archive Session roots:** keep notes with live process/recent heartbeat/active reference as active, mark expired notes stale, archive only after the 24-hour/no-reference rule, and emit a before/after manifest with hashes.
-- [ ] **M6.3 Import plans, failures and Cargo diagnostics:** recursively index both plan roots, build the real Failure graph, report legacy `.codex/plans`, identify old repo-local Cargo leases/targets and leave them untouched until the cleanup plan is reviewed.
-- [ ] **M6.4 Perform scheduled-task cutover:** install the new task, verify two consecutive health/maintenance ticks, then disable the old direct cleanup task; retain rollback instructions and do not delete the old task definition immediately.
-- [ ] **M6.5 Complete workflow and operator docs:** document startup, Session commands, claim/patch/rebase, plan owner routing, Failure priority/return, Cargo lanes, explicit finalize, baseline recovery, archive restore and emergency offline mode.
-- [ ] **M6.6 Run recovery and retention drills:** restart during a queued patch, restart during an intent event, simulate stale Session/archive, run object GC with live references, simulate active Cargo cleanup and restore an archived snapshot preview.
-- [ ] **M6.7 Run real-repository rollout audit:** start the service against `E:/Git/ZirconEngine`, import in report-only mode, compare counts/hashes, resolve only deterministic status mappings, install tasks after dry-run review, and record acceptance without creating a business Git commit.
+- [x] **M6.1 Implement idempotent legacy importer:** parse existing `.codex/sessions` notes, map known status strings to enums, preserve unknown text in `status_reason`, import plan links and timestamps, and never delete source files during import.
+- [x] **M6.2 Classify and archive Session roots:** keep notes with live process/recent heartbeat/active reference as active, mark expired notes stale, archive only after the 24-hour/no-reference rule, and emit a before/after manifest with hashes.
+- [x] **M6.3 Import plans, failures and Cargo diagnostics:** recursively index both plan roots, build the real Failure graph, report legacy `.codex/plans`, identify old repo-local Cargo leases/targets and leave them untouched until the cleanup plan is reviewed.
+- [x] **M6.4 Perform scheduled-task cutover:** install the new task, verify two consecutive health/maintenance ticks, then disable the old direct cleanup task; retain rollback instructions and do not delete the old task definition immediately.
+- [x] **M6.5 Complete workflow and operator docs:** document startup, Session commands, claim/patch/rebase, plan owner routing, Failure priority/return, Cargo lanes, explicit finalize, baseline recovery, archive restore and emergency offline mode.
+- [x] **M6.6 Run recovery and retention drills:** restart during a queued patch, restart during an intent event, simulate stale Session/archive, run object GC with live references, simulate active Cargo cleanup and restore an archived snapshot preview.
+- [x] **M6.7 Run real-repository rollout audit:** start the service against `E:/Git/ZirconEngine`, import in report-only mode, compare counts/hashes, resolve only deterministic status mappings, install tasks after dry-run review, and record acceptance without creating a business Git commit.
 
 **Lightweight checks:**
 
@@ -346,3 +346,18 @@ Expected: all coordinator and integration suites pass; existing handoff validato
 | M4 | M4.6 Install user-level scheduled task | 完成（待 M4-T） | 2026-07-11 | 新增 repo-hash 隔离的 at-logon 隐藏 daemon 与 15 分钟 maintenance 两任务，Install/Update/Query/Remove 幂等入口和 DryRun 输出；验收阶段未实际安装。 |
 | M4 | M4.7 Add fake-Cargo and cleanup tests | 完成（待 M4-T） | 2026-07-11 | Cargo/cleanup smoke 27/27：junction/symlink、unavailable root、nested overlap、case identity、显式复用、foreign owner、pre-start orphan、persisted plan、untracked拒绝、reservation/acquire 并发与事务外删除。 |
 | M4 | M4-T Cargo and maintenance acceptance | 通过 | 2026-07-11 | Python full 57/57；Windows PowerShell 5 Pester 68/68；CargoAndCleanup smoke 27/27；installer DryRun/cleanup plan/compile/diff/secret scan exit 0；最终 reviewer 无 Critical/Important。 |
+| M5 | M5.1 Explicit finalize request | 完成 | 2026-07-11 | schema v8-v11 与 `git_finalize.py`：`completed` 不提交，只有显式 `finalize --commit` 创建请求并进入 `finalizing`。 |
+| M5 | M5.2 Finalize guards | 完成 | 2026-07-11 | baseline/HEAD、完整归属范围、foreign lease/index、pending patch、plan output、Failure、secret 与 mutex 全部 fail-closed，并在 validation 后复验。 |
+| M5 | M5.3 Scoped Git transaction | 完成 | 2026-07-11 | 持久化 index/ref intent、Git-clean blob 校验、write-tree/commit-tree/CAS update-ref、commit-derived partial baseline 与启动对账。 |
+| M5 | M5.4 Workflow maintenance finalize | 完成 | 2026-07-11 | 独立 `ZIRCON_COORDINATOR_MAINTENANCE_TOKEN` capability；共享 bearer/客户端布尔值不能获得 maintenance 权限。 |
+| M5 | M5.5 Stable validation copies | 完成 | 2026-07-11 | 固定 HEAD source copy、owned overlay hash、verify junction/realpath、真实 child PID、相邻 target、run/cleanup reservation 与周期恢复。 |
+| M5 | M5.6 Temporary-repository Git tests | 完成 | 2026-07-11 | finalize/copy/concurrency 临时仓库覆盖隐式提交拒绝、范围扩张、失败回滚、post-validation dirty、重启恢复和删除逃逸。 |
+| M5 | M5-T Git boundary acceptance | 通过 | 2026-07-11 | coordinator full 85/85；FinalizeInTempRepo PASS；scoped diff/secret/Session-tag scan exit 0；独立复审无 Critical/Important；提交 `c1d25c9d`、更正文档 `e8256fbc`。 |
+| M6 | M6.1 Legacy importer | 完成 | 2026-07-11 | 新增 `legacy.py`、schema v13 与 `test_legacy_migration.py`：frontmatter/loose-field parser、enum aliases、unknown reason、mtime/plan import、hash-keyed idempotence、source-preserving dry-run/apply。 |
+| M6 | M6.2 Session classification/archive | 完成 | 2026-07-11 | live PID/recent note/lease/patch/Failure activity signals；24h/no-reference archive；collision-safe move、before/after SHA-256 manifest、filesystem rollback；stale 判定使用单写事务且不重写 heartbeat。 |
+| M6 | M6.3 Plan/Failure/Cargo diagnostics | 完成 | 2026-07-11 | 新增 `audit.py` 与 `audit all`：双计划根、handoff validator、enum/target diagnostics；legacy import apply 同步 Failure graph，repo-local Cargo target 只报告不删除。 |
+| M6 | M6.4 Startup cutover | 完成 | 2026-07-11 | ScheduledTask dry-run 精确识别 repo cleanup action；本机策略拒绝新 task 后切换 repo-hash HKCU UserStartup；daemon 独占 15 分钟 maintenance；preparing/逐项 journal、双后端精确命令校验、幂等重跑、可逆旧任务禁用及 maintenance 恢复均 fail-closed。 |
+| M6 | M6.5 Operator and acceptance docs | 完成 | 2026-07-11 | 更新 `docs/cli-and-tooling/local-session-coordinator.md`，新增 `tests/acceptance/local-session-coordinator.md`，覆盖 migrate/archive/GC/audit/cutover/rollback/recovery/offline。 |
+| M6 | M6.6 Recovery and retention drills | 完成 | 2026-07-11 | focused 10/10：queued patch 重建、两类 finalize intent 重启、stale/archive hash、live patch object、GC apply、active Cargo、cleanup reservation 重启、archived snapshot preview、object restore preview。 |
+| M6 | M6.7 Real-repository rollout audit | 完成 | 2026-07-11 | `main` 实跑：131 notes 导入、121 archive/0 hash mismatch、10 retained/0 eligible；双 report SHA-256 同为 `D24AC45...A65FC9`；140 enum Sessions、130 formal/126 legacy plans、10 handoffs、0 unsafe targets、4 ticks；64 unattributed paths 保持 fail-closed degraded。 |
+| M6 | M6-T Full system acceptance | 通过 | 2026-07-11 | coordinator 118/118；PowerShell 五模式及内嵌 Cargo/cleanup 27/27 PASS；验证矩阵按 Session owner 隔离并发 job；独立复审无 Critical/Important/Minor；scoped diff、webhook/credential 扫描通过；真实树并发 handoff/plan-output findings 只报告、不越权修改。 |

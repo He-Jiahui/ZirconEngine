@@ -160,15 +160,124 @@ class SessionService:
             )
         return self.get(session_id)
 
-    def mark_stale(self, *, older_than_seconds: int) -> list[str]:
-        cutoff = utc_now() - timedelta(seconds=older_than_seconds)
+    def mark_stale(
+        self, *, older_than_seconds: int, excluded_session_ids: set[str] | None = None
+    ) -> list[str]:
+        cutoff = utc_text(utc_now() - timedelta(seconds=older_than_seconds))
+        excluded = excluded_session_ids or set()
+        eligible_statuses = (
+            SessionStatus.REGISTERED.value,
+            SessionStatus.ACTIVE.value,
+            SessionStatus.WAITING_LEASE.value,
+            SessionStatus.RESOLVING_FAILURE.value,
+            SessionStatus.WAITING_VALIDATION.value,
+        )
+        now = utc_text()
         marked: list[str] = []
-        for session in self.list():
-            if session.status in {SessionStatus.ACTIVE, SessionStatus.WAITING_LEASE}:
-                if session.last_heartbeat_at < cutoff:
-                    self.set_status(session.session_id, SessionStatus.STALE, reason="heartbeat expired")
-                    marked.append(session.session_id)
+        with self.database.transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT session_id, status, last_heartbeat_at
+                FROM sessions
+                WHERE status IN (?, ?, ?, ?, ?)
+                  AND last_heartbeat_at < ?
+                ORDER BY session_id
+                """,
+                (*eligible_statuses, cutoff),
+            ).fetchall()
+            for row in rows:
+                session_id = row["session_id"]
+                if session_id in excluded:
+                    continue
+                cursor = connection.execute(
+                    """
+                    UPDATE sessions
+                    SET status = 'stale', status_reason = ?, updated_at = ?
+                    WHERE session_id = ?
+                      AND status = ?
+                      AND last_heartbeat_at = ?
+                      AND last_heartbeat_at < ?
+                    """,
+                    (
+                        "heartbeat expired",
+                        now,
+                        session_id,
+                        row["status"],
+                        row["last_heartbeat_at"],
+                        cutoff,
+                    ),
+                )
+                if cursor.rowcount != 1:
+                    continue
+                self._event(
+                    connection,
+                    session_id,
+                    "session.status_changed",
+                    {
+                        "from": row["status"],
+                        "to": SessionStatus.STALE.value,
+                        "reason": "heartbeat expired",
+                    },
+                )
+                marked.append(session_id)
         return marked
+
+    def archive_stale(
+        self,
+        *,
+        older_than_seconds: int = 86400,
+        excluded_session_ids: set[str] | None = None,
+    ) -> list[str]:
+        cutoff = utc_text(utc_now() - timedelta(seconds=older_than_seconds))
+        now = utc_text()
+        archived: list[str] = []
+        with self.database.transaction() as connection:
+            rows = connection.execute(
+                """
+                SELECT session_id FROM sessions
+                WHERE status = 'stale' AND updated_at < ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM leases WHERE leases.session_id = sessions.session_id
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM patches
+                      WHERE patches.session_id = sessions.session_id
+                        AND patches.status IN ('queued', 'applying', 'needs_rebase')
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM failure_nodes
+                      WHERE failure_nodes.fixing_plan = sessions.plan_path
+                        AND failure_nodes.kind = 'failure'
+                        AND failure_nodes.status = 'open'
+                  )
+                ORDER BY session_id
+                """,
+                (cutoff,),
+            ).fetchall()
+            for row in rows:
+                session_id = row["session_id"]
+                if session_id in (excluded_session_ids or set()):
+                    continue
+                connection.execute(
+                    """
+                    UPDATE sessions
+                    SET status = 'archived', status_reason = ?, updated_at = ?, archived_at = ?
+                    WHERE session_id = ? AND status = 'stale'
+                    """,
+                    ("stale retention elapsed", now, now, session_id),
+                )
+                self._event(
+                    connection,
+                    session_id,
+                    "session.status_changed",
+                    {
+                        "from": SessionStatus.STALE.value,
+                        "to": SessionStatus.ARCHIVED.value,
+                        "reason": "stale retention elapsed",
+                    },
+                )
+                archived.append(session_id)
+        return archived
 
     def _head_commit(self) -> str:
         result = subprocess.run(

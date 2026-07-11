@@ -73,43 +73,98 @@ class BaselineService:
 
     def refresh_for_head_change(self) -> BaselineEpoch:
         current = self.initialize()
-        if current.head_commit == self._git_output("rev-parse", "HEAD"):
+        new_head = self._git_output("rev-parse", "HEAD")
+        if current.head_commit == new_head:
             return current
-        return self._capture(BaselineHealth.HEALTHY, reason="HEAD changed")
+        old_tracked = self._tracked_paths(current.head_commit)
+        # Keep only prior untracked baseline entries; tracked paths come from the new
+        # commit through Git's worktree filters, never from another Session's dirty file.
+        manifest = {
+            path: content_hash
+            for path, content_hash in current.manifest.items()
+            if path not in old_tracked
+        }
+        manifest.update(self._commit_manifest(new_head))
+        return self._capture(
+            BaselineHealth.HEALTHY,
+            reason="HEAD changed",
+            manifest=dict(sorted(manifest.items(), key=lambda item: item[0].casefold())),
+            head_commit=new_head,
+        )
 
     def scan(self) -> list[WorkspaceChange]:
         baseline = self.initialize()
         current_manifest = self.build_manifest()
         changes = self._unattributed_changes(
-            self._compare(baseline.manifest, current_manifest)
+            self._compare(baseline.manifest, current_manifest),
+            baseline_epoch=baseline.epoch_id,
         )
         if changes:
-            with self.database.transaction() as connection:
-                connection.execute(
-                    """
-                    UPDATE baseline_epochs
-                    SET health = ?, degraded_at = ?, degraded_reason = ?
-                    WHERE epoch_id = ?
-                    """,
-                    (
-                        BaselineHealth.DEGRADED.value,
-                        utc_text(),
-                        f"{len(changes)} unaccepted workspace change(s)",
-                        baseline.epoch_id,
-                    ),
-                )
-                connection.execute(
-                    "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
-                    (
-                        "baseline.degraded",
-                        json.dumps({"epoch_id": baseline.epoch_id, "paths": [item.path for item in changes]}),
-                        utc_text(),
-                    ),
-                )
+            self._mark_degraded(baseline.epoch_id, changes)
         return changes
 
+    def reconcile_health(self) -> BaselineEpoch:
+        """Restore health only when every workspace difference is attributed.
+
+        Unlike ``accept``, reconciliation never captures the current worktree and
+        never creates a new epoch.  It only clears a stale degraded marker after
+        exact content-hash attribution has proved that all remaining differences
+        belong to registered Sessions.
+        """
+        baseline = self.initialize()
+        first_manifest = self.build_manifest()
+        changes = self._unattributed_changes(
+            self._compare(baseline.manifest, first_manifest),
+            baseline_epoch=baseline.epoch_id,
+        )
+        if changes:
+            raise CoordinatorError(
+                "baseline_unattributed_changes",
+                "Baseline cannot be reconciled while unattributed workspace changes remain",
+                details={"paths": [item.path for item in changes]},
+            )
+        second_manifest = self.build_manifest()
+        if second_manifest != first_manifest:
+            raise CoordinatorError(
+                "baseline_workspace_changing",
+                "Baseline cannot be reconciled while the workspace is changing",
+            )
+        if baseline.health is BaselineHealth.HEALTHY:
+            return baseline
+        now = utc_text()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE baseline_epochs
+                SET health = ?, degraded_at = NULL, degraded_reason = NULL
+                WHERE epoch_id = ?
+                """,
+                (BaselineHealth.HEALTHY.value, baseline.epoch_id),
+            )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "baseline.reconciled",
+                    json.dumps({"epoch_id": baseline.epoch_id}, sort_keys=True),
+                    now,
+                ),
+            )
+        reconciled = self.current()
+        post_changes = self._unattributed_changes(
+            self._compare(baseline.manifest, self.build_manifest()),
+            baseline_epoch=baseline.epoch_id,
+        )
+        if post_changes:
+            self._mark_degraded(baseline.epoch_id, post_changes)
+            raise CoordinatorError(
+                "baseline_unattributed_changes",
+                "Workspace changed while baseline health was being reconciled",
+                details={"paths": [item.path for item in post_changes]},
+            )
+        return reconciled
+
     def _unattributed_changes(
-        self, changes: list[WorkspaceChange]
+        self, changes: list[WorkspaceChange], *, baseline_epoch: int
     ) -> list[WorkspaceChange]:
         if not changes:
             return []
@@ -117,16 +172,57 @@ class BaselineService:
         placeholders = ",".join("?" for _ in path_keys)
         with self.database.connect() as connection:
             rows = connection.execute(
-                f"SELECT path_key, content_hash FROM attributions WHERE path_key IN ({placeholders})",
+                f"""
+                SELECT attributions.path_key, attributions.content_hash,
+                       attributions.baseline_epoch, sessions.status
+                FROM attributions
+                JOIN sessions ON sessions.session_id = attributions.session_id
+                WHERE attributions.path_key IN ({placeholders})
+                """,
                 tuple(path_keys),
             ).fetchall()
-        attributed_hashes = {row["path_key"]: row["content_hash"] for row in rows}
+        attributed_hashes = {
+            row["path_key"]: row["content_hash"]
+            for row in rows
+            if row["baseline_epoch"] is not None
+            and int(row["baseline_epoch"]) == baseline_epoch
+            and row["status"] not in {"stale", "archived", "cancelled"}
+        }
         return [
             change
             for change in changes
             if change.path.casefold() not in attributed_hashes
             or attributed_hashes[change.path.casefold()] != change.current_hash
         ]
+
+    def _mark_degraded(
+        self, epoch_id: int, changes: list[WorkspaceChange]
+    ) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE baseline_epochs
+                SET health = ?, degraded_at = ?, degraded_reason = ?
+                WHERE epoch_id = ?
+                """,
+                (
+                    BaselineHealth.DEGRADED.value,
+                    utc_text(),
+                    f"{len(changes)} unaccepted workspace change(s)",
+                    epoch_id,
+                ),
+            )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "baseline.degraded",
+                    json.dumps(
+                        {"epoch_id": epoch_id, "paths": [item.path for item in changes]},
+                        sort_keys=True,
+                    ),
+                    utc_text(),
+                ),
+            )
 
     def diff(self) -> list[WorkspaceChange]:
         baseline = self.initialize()
@@ -265,6 +361,31 @@ class BaselineService:
             text=True,
         )
         return result.stdout.strip()
+
+    def _tracked_paths(self, commit: str) -> set[str]:
+        result = subprocess.run(
+            ["git", "ls-tree", "-rz", "--name-only", commit],
+            cwd=self.repo_root,
+            check=True,
+            capture_output=True,
+        )
+        return {
+            raw.decode("utf-8", errors="surrogateescape").replace("\\", "/")
+            for raw in result.stdout.split(b"\0")
+            if raw
+        }
+
+    def _commit_manifest(self, commit: str) -> dict[str, str]:
+        manifest: dict[str, str] = {}
+        for path in sorted(self._tracked_paths(commit), key=str.casefold):
+            result = subprocess.run(
+                ["git", "cat-file", "--filters", f"--path={path}", f"{commit}:{path}"],
+                cwd=self.repo_root,
+                check=True,
+                capture_output=True,
+            )
+            manifest[path] = hash_bytes(result.stdout)
+        return manifest
 
     def _normalize_repo_path(self, value: str) -> str:
         candidate = (self.repo_root / value).resolve()

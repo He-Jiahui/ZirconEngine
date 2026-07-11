@@ -18,6 +18,8 @@ related_code:
   - tools/session_coordinator/failures.py
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cleanup.py
+  - tools/session_coordinator/legacy.py
+  - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
@@ -42,6 +44,8 @@ implementation_files:
   - tools/session_coordinator/failures.py
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cleanup.py
+  - tools/session_coordinator/legacy.py
+  - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
@@ -65,6 +69,9 @@ tests:
   - tools/session_coordinator/tests/test_failures.py
   - tools/session_coordinator/tests/test_cargo_jobs.py
   - tools/session_coordinator/tests/test_cleanup.py
+  - tools/session_coordinator/tests/test_legacy_migration.py
+  - tools/session_coordinator/tests/test_retention.py
+  - tools/session_coordinator/tests/test_rollout_audit.py
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -125,14 +132,14 @@ Initialize and inspect the workspace baseline:
 
 An epoch records HEAD, the Git index tree, and SHA-256 hashes for tracked and non-ignored files. Coordinator state is excluded. `baseline scan` compares current content to the epoch. A change does not get reverted; the baseline becomes `degraded` and the path remains on disk.
 
-Attribute a known change and explicitly establish the next epoch:
+Attribute a known change, then reconcile the existing epoch without absorbing any dirty file:
 
 ```powershell
 .\tools\zircon-session.ps1 baseline attribute README.md
-.\tools\zircon-session.ps1 baseline accept --reason "attribute current Session changes"
+.\tools\zircon-session.ps1 baseline reconcile
 ```
 
-Acceptance is an explicit reconciliation action. M1-M2 never convert it into a Git commit.
+`baseline reconcile` recalculates every difference, requires exact current-hash attribution, clears only the degraded marker, and keeps the epoch manifest unchanged. It fails with the remaining paths if even one change is unattributed. `baseline accept --reason ...` is a separate operator override that captures a new full-worktree epoch; do not use it to clear degradation in a shared dirty workspace. Neither action creates a Git commit.
 
 ## File Leases
 
@@ -225,7 +232,7 @@ The existing handoff validator now exports structured `HandoffRecord` values. `f
 .\tools\zircon-session.ps1 failure open docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
 ```
 
-Graph diagnostics cover schema errors, duplicate lifecycles, self-edges, cycles and excessive dependency depth. Open failures sort before fixed records and then by creation date/slug. Registering a Session with a fixing plan imports current Markdown; applicable failures are returned in `open_failures` and the Session enters `resolving_failure` instead of an untyped blocked state.
+Graph diagnostics cover schema errors, duplicate lifecycles, self-edges, cycles and excessive dependency depth. The filename prefix supplies the coordinator's canonical `open`/`fixed` state; a conflicting frontmatter status remains a validator diagnostic but cannot abort the graph transaction or unrelated Cargo/Session commands. Open failures sort before fixed records and then by creation date/slug. Registering a Session with a fixing plan imports current Markdown; applicable failures are returned in `open_failures` and the Session enters `resolving_failure` instead of an untyped blocked state.
 
 After architectural repair and upward validation, `failure return` requires the lifecycle key, accepted-fix date, root cause, architecture repair, validation and return summary. The service rewrites the artifact as `fixed-*`, moves it into the origin child directory, replaces both plan links with concise `fixed 已修复` relative summaries, reruns the validator, and rolls back all file changes if any write or import fails.
 
@@ -246,7 +253,7 @@ Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plan
 
 `validate-matrix.ps1` performs the lifecycle automatically: register the caller, acquire a unique lane with the wrapper PID, immediately enter `try/finally`, record the process command line at start, run validation, record the exit code, and owner-checked release. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy; released explicit lanes may be reused. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned`.
 
-## Cleanup and Scheduled Maintenance
+## Cleanup and Service-Owned Maintenance
 
 Cleanup is deliberately two-phase:
 
@@ -258,16 +265,19 @@ Cleanup is deliberately two-phase:
 
 Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, direct-child realpath, overlapping live PID, active lease and positive retention. An untracked directory is never deletable even if a plan row is corrupted. A short SQLite transaction writes a cleanup reservation; deletion runs outside the global writer lock; a final short transaction records success/failure and clears the reservation. New Cargo acquisition observes the reservation, and daemon restart recovers abandoned reservations. The script never enumerates fuzzy drive-root names and never deletes directly.
 
-The user-level scheduler definition is idempotent and repository-specific:
+The user-level startup definition is idempotent and repository-specific. The preferred backend uses Task Scheduler; systems that deny task creation can use the current-user Run key while the daemon owns the 15-minute maintenance cadence internally:
 
 ```powershell
 .\tools\install-session-coordinator-task.ps1 -Action Install -DryRun
 .\tools\install-session-coordinator-task.ps1 -Action Update -DryRun
 .\tools\install-session-coordinator-task.ps1 -Action Query -DryRun
 .\tools\install-session-coordinator-task.ps1 -Action Remove -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Cutover -Backend UserStartup -DryRun
 ```
 
-Installation creates a hidden at-logon daemon task and a 15-minute maintenance task with limited user privileges. Dry-run prints exact commands without changing Task Scheduler. No webhook address, credential or machine secret is part of this service configuration.
+The scheduled-task backend creates one hidden at-logon daemon task with limited user privileges. The `UserStartup` backend writes only a repo-hash-scoped `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value. In both cases the daemon itself runs legacy-note import/archive, stale Session archive, snapshot/object retention, and managed Cargo cleanup every 15 minutes under a non-blocking maintenance mutex; any older repo-scoped external maintenance task is disabled only after the daemon passes the health/tick gates.
+
+Cutover writes a durable `preparing` record before the first startup mutation, journals each legacy-task disable, and preserves the original enablement set across idempotent reruns. An interrupted `preparing` record must be rolled back explicitly before another cutover. Both backends verify the exact startup command, and rollback restores only tasks that were enabled before cutover. Task-not-found is distinguished from registry/task access failures, and automatic legacy discovery accepts only the canonical cleanup script or an exact `cd /d <repo-root>` action, so a similarly prefixed repository cannot be retired accidentally. Dry-run prints exact commands without changing either backend. No webhook address, credential or machine secret is part of this service configuration.
 
 ## M4 Validation
 
@@ -325,6 +335,81 @@ Validation runs persist the real validation child PID. Startup releases only dea
 
 M5 acceptance uses generated temporary Git repositories for all commit mutations. Coverage proves completion is non-committing, explicit finalization contains exactly the approved categorized files, foreign index state survives rejection, validation failure restores the index, webhook material is blocked, the Git mutex has one owner, validation overlays reject stale hashes, command evidence uses the adjacent target, and cleanup cannot escape its job root.
 
-## Follow-up Boundaries
+## Legacy Session Migration
 
-M6 will migrate and archive legacy Session notes, perform scheduled-task cutover, add retention/GC and complete the real-repository rollout audit. M5 does not import or delete legacy Session artifacts.
+Migration is report-first. The report parser reads only root-level `.codex/sessions/*.md`, accepts current YAML frontmatter and older loose `key: value` notes, computes a SHA-256 for every source, and never treats `.codex/sessions/archive/` as active input.
+
+```powershell
+.\tools\zircon-session.ps1 legacy report --report E:\temp\zircon-legacy-report.json -Json
+.\tools\zircon-session.ps1 legacy import --dry-run --report E:\temp\zircon-import-preview.json -Json
+.\tools\zircon-session.ps1 legacy import --apply --report E:\temp\zircon-import-applied.json -Json
+```
+
+Known status aliases map to the fixed enum. `working`, `in_progress`, and `implementing` become `active`; `done` and `complete` become `completed`; exact service statuses remain exact. Unknown or retired values such as `blocked` are preserved verbatim in `status_reason` and classified from evidence rather than persisted as a new status. A live PID, a note updated inside ten minutes, an active service heartbeat/lease, a pending/rebase patch, or an open Failure overrides even a terminal source label and keeps the note active. Without activity evidence, the note becomes `stale`. Import is hash-keyed and idempotent, preserves newer service state, imports a numbered plan link where available, uses the source mtime for legacy timestamps, clears obsolete terminal timestamps on reactivation, and never moves or deletes the source note.
+
+Archive is a separate explicit operation:
+
+```powershell
+.\tools\zircon-session.ps1 legacy archive --dry-run --report E:\temp\zircon-archive-preview.json -Json
+.\tools\zircon-session.ps1 legacy archive --apply --report E:\temp\zircon-archive-applied.json -Json
+```
+
+Only a `stale`, `completed`, or `cancelled` note older than 24 hours with no live reference is eligible. Apply first persists a full `planned` intent, rechecks activity while holding the same SQLite writer reservation used by heartbeat/lease changes, moves it to a new collision-safe path under `.codex/sessions/archive/`, verifies SHA-256, and then changes the service Session to `archived`. Startup restores every moved file from any intent that never committed. The daemon performs this journaled operation periodically; live/recent notes are excluded from both stale and archive transitions.
+
+## Snapshot Retention and Object GC
+
+Object collection is also two-phase:
+
+```powershell
+.\tools\zircon-session.ps1 retention plan --report E:\temp\zircon-retention-plan.json -Json
+.\tools\zircon-session.ps1 retention apply --plan-id <plan-id> --dry-run -Json
+.\tools\zircon-session.ps1 retention apply --plan-id <plan-id> -Json
+```
+
+Active Session snapshots are retained. Completed/cancelled snapshots remain for 14 days, archived snapshots for 30 days, and a snapshot created after an old terminal timestamp receives its own full retention window. Every object referenced by a retained snapshot or delayed-patch record remains live. Object producers write content plus the referencing row in one SQLite writer transaction. GC holds that same writer reservation from final candidate revalidation through quarantine moves and database deletion, so no concurrent producer can create an unrestorable reference. Startup restores pre-commit quarantine and discards only residue whose plan already committed; failed deterministic plans can be safely replanned and retried.
+
+## Maintenance and Rollout Audit
+
+One maintenance tick performs enum-only stale classification, Cargo orphan reconciliation, dead validation-child recovery, a WAL checkpoint, and retention/Cargo cleanup planning. The daemon-owned periodic tick also imports and journal-archives inactive root notes, archives service-native stale Sessions after 24 hours with no lease/patch/Failure, and applies revalidated retention/Cargo plans:
+
+```powershell
+.\tools\zircon-session.ps1 maintenance tick -Json
+.\tools\zircon-session.ps1 maintenance tick --apply-cleanup --apply-retention -Json
+.\tools\zircon-session.ps1 audit all --report E:\temp\zircon-rollout-audit.json -Json
+```
+
+All apply-style migration, retention, and cleanup commands require the separate local `ZIRCON_COORDINATOR_MAINTENANCE_TOKEN` in both daemon and operator-client environments. The shared runtime bearer can report, plan, and audit, but cannot import/archive Sessions or delete snapshots, objects, or Cargo lanes. The daemon's internal periodic path does not expose this capability through `runtime.json`.
+
+`audit all` is read-only and deterministic for unchanged inputs. It reports branch, baseline health, enum violations, Session count, recursive formal and legacy plan counts, Failure validator diagnostics, configured target roots, unsafe recorded Cargo targets, legacy Session/archive counts, legacy repo-local Cargo artifacts, and successful maintenance-tick count. Repo-local `target/codex-shared-*` paths are diagnostics only; rollout never imports or deletes them.
+
+## Startup Cutover and Rollback
+
+Review the exact task commands first:
+
+```powershell
+.\tools\install-session-coordinator-task.ps1 -Action Cutover -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Cutover
+.\tools\install-session-coordinator-task.ps1 -Action Cutover -Backend UserStartup -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Cutover -Backend UserStartup
+```
+
+Cutover creates/updates either the repo-hash-scoped at-logon task or the current-user startup value. It persists an atomic `preparing` rollback record, starts the daemon, requires health → plan-only maintenance → health → plan-only maintenance → health, verifies the exact repo-scoped legacy task is not running, and only then disables it. The daemon owns later destructive ticks, so old and new cleanup actors never overlap. Every disable is journaled immediately; any error removes/disables the new startup, stops the daemon, and re-enables only tasks changed by that run. It never deletes the legacy task. On the 2026-07-11 workstation, task creation was denied by local Windows policy, so the reviewed `UserStartup` backend completed the gate.
+
+```powershell
+.\tools\install-session-coordinator-task.ps1 -Action Rollback -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Rollback
+```
+
+Rollback disables/removes the new startup registration, verifies the coordinator is offline, and only then re-enables the exact recorded legacy tasks. Registry deletion errors fail closed. Webhook URLs, maintenance capabilities, runtime bearer tokens, and machine-specific task state never enter Git.
+
+## Recovery and Emergency Offline Mode
+
+- Queued patches, object manifests, cleanup plans, finalize intents, archive manifests, and maintenance ticks are durable SQLite records. Restart the daemon with `zircon-session.ps1 start`; startup reconciles stale locks before accepting mutations.
+- A finalize interrupted before ref update restores the persisted index. A ref-updated/baseline-pending finalize rebuilds the baseline from the exact commit before marking the request committed.
+- A validation copy records the real child PID. Startup and periodic maintenance release `running` only after that PID dies. `cleanup_pending` is recovered only at daemon startup, never while the live daemon may still be deleting.
+- If the daemon is unavailable, stop writes that require leases/finalize, preserve worktree files, and run `status -Json` for structured diagnostics. Session notes remain a compatibility view, but they do not grant file ownership.
+- For emergency read-only evidence, use ordinary Git read commands and the Failure/plan validators. Do not run direct target deletion, invent a free-form status, write global plan indexes, or create a checkpoint commit.
+
+## M6 Validation
+
+M6 temporary-repository tests cover deterministic legacy reports, unknown-status preservation, live PID/reference classification, idempotent import, hash-preserving archive, retention with live patch references, quarantine-backed GC rollback boundaries, archived restore preview, pinned plan-root audit, daemon-owned maintenance ticks, and both startup cutover dry-runs. The real rollout imported 131 root notes, archived 121 with identical hashes, retained 10 active/recent notes, recorded four successful ticks, and left one repo-local legacy Cargo root diagnostic-only. Baseline reconciliation remained fail-closed on 64 changes owned by concurrent business Sessions.

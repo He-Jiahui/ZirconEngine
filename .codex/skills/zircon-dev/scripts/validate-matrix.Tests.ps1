@@ -374,7 +374,10 @@ Describe "Coordinator Cargo target hard cutover" {
         $result.Output | Should Match "cargo"
         $raw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
         $jobs = (($raw -join "`n") | ConvertFrom-Json).jobs
-        $created = @($jobs | Where-Object { $beforeIds -notcontains $_.job_id })
+        $ownerId = Resolve-OwnerId -RepoRoot $script:ValidateMatrixTestRepoRoot
+        $created = @($jobs | Where-Object {
+            $beforeIds -notcontains $_.job_id -and $_.session_id -eq $ownerId
+        })
         $created.Count | Should Be 1
         $created[0].status | Should Be "released"
     }

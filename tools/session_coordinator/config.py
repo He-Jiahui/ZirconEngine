@@ -14,6 +14,7 @@ class CoordinatorConfig:
     lease_ttl_seconds: int = 300
     lease_grace_seconds: int = 120
     watch_interval_seconds: float = 30.0
+    maintenance_interval_seconds: float = 900.0
 
     @classmethod
     def for_repo(
@@ -24,6 +25,7 @@ class CoordinatorConfig:
         host: str = "127.0.0.1",
         port: int = 0,
         watch_interval_seconds: float = 30.0,
+        maintenance_interval_seconds: float = 900.0,
     ) -> "CoordinatorConfig":
         resolved_repo = Path(repo_root).resolve()
         resolved_state = (
@@ -37,6 +39,7 @@ class CoordinatorConfig:
             host=host,
             port=port,
             watch_interval_seconds=watch_interval_seconds,
+            maintenance_interval_seconds=maintenance_interval_seconds,
         )
 
     @property

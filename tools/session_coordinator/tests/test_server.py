@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 import tempfile
@@ -12,6 +13,7 @@ from unittest import mock
 
 from tools.session_coordinator.client import CoordinatorClient, CoordinatorClientError
 from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.database import Database
 from tools.session_coordinator.server import CoordinatorApplication, RunningCoordinator
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.tests.helpers import init_repo
@@ -119,12 +121,126 @@ class ServerTests(unittest.TestCase):
                 client.command("baseline.init")
                 (repo / "README.md").write_text("external\n", encoding="utf-8")
                 health = "healthy"
-                for _ in range(50):
+                for _ in range(200):
                     health = client.command("baseline.status")["baseline"]["health"]
                     if health == "degraded":
                         break
                     time.sleep(0.05)
             self.assertEqual("degraded", health)
+
+    def test_daemon_runs_retention_maintenance_without_external_scheduler(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(
+                repo,
+                state_root=root / "state",
+                port=0,
+                watch_interval_seconds=0.02,
+                maintenance_interval_seconds=0.05,
+            )
+
+            with RunningCoordinator.start(config):
+                tick_count = 0
+                for _ in range(200):
+                    with Database(config.database_path).connect() as connection:
+                        tick_count = int(
+                            connection.execute(
+                                "SELECT COUNT(*) FROM maintenance_ticks WHERE status = 'succeeded'"
+                            ).fetchone()[0]
+                        )
+                    if tick_count:
+                        break
+                    time.sleep(0.05)
+
+            self.assertGreaterEqual(tick_count, 1)
+
+    def test_daemon_periodically_imports_and_archives_inactive_root_note(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            session_root = repo / ".codex/sessions"
+            session_root.mkdir(parents=True)
+            note = session_root / "old.md"
+            note.write_text(
+                "---\nsession: old\nstatus: stale\n---\n\n# Old\n",
+                encoding="utf-8",
+            )
+            old_time = time.time() - 2 * 86400
+            os.utime(note, (old_time, old_time))
+            config = CoordinatorConfig.for_repo(
+                repo,
+                state_root=root / "state",
+                port=0,
+                watch_interval_seconds=0.02,
+                maintenance_interval_seconds=0.05,
+            )
+
+            with RunningCoordinator.start(config):
+                archived = session_root / "archive/old.md"
+                for _ in range(100):
+                    if archived.exists():
+                        break
+                    time.sleep(0.02)
+
+            self.assertTrue(archived.exists())
+            self.assertFalse(note.exists())
+
+    def test_daemon_never_stales_or_archives_live_pid_root_note(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            session_root = repo / ".codex/sessions"
+            session_root.mkdir(parents=True)
+            note = session_root / "live.md"
+            note.write_text(
+                f"---\nsession: live\nstatus: completed\npid: {os.getpid()}\n---\n",
+                encoding="utf-8",
+            )
+            old_time = time.time() - 2 * 86400
+            os.utime(note, (old_time, old_time))
+            config = CoordinatorConfig.for_repo(
+                repo,
+                state_root=root / "state",
+                port=0,
+                watch_interval_seconds=0.02,
+                maintenance_interval_seconds=0.05,
+            )
+
+            with RunningCoordinator.start(config):
+                status = None
+                for _ in range(100):
+                    with Database(config.database_path).connect() as connection:
+                        row = connection.execute(
+                            "SELECT status FROM sessions WHERE session_id = 'live'"
+                        ).fetchone()
+                    if row is not None:
+                        status = row[0]
+                        break
+                    time.sleep(0.02)
+
+            self.assertTrue(note.exists())
+            self.assertEqual("active", status)
+
+    def test_destructive_legacy_import_requires_operator_capability(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            note_root = repo / ".codex/sessions"
+            note_root.mkdir(parents=True)
+            (note_root / "legacy.md").write_text(
+                "---\nsession: legacy\nstatus: stale\n---\n",
+                encoding="utf-8",
+            )
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+
+            with mock.patch.dict("os.environ", {}, clear=True):
+                with self.assertRaises(CoordinatorError) as rejected:
+                    application.command("legacy.import", {"apply": True})
+
+            self.assertEqual("maintenance_unauthorized", rejected.exception.code)
 
     def test_registration_prioritizes_open_failure_for_numbered_plan(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

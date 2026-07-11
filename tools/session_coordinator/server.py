@@ -5,6 +5,8 @@ import os
 import secrets
 import subprocess
 import threading
+import time
+import uuid
 from dataclasses import asdict, dataclass
 from datetime import date
 from http import HTTPStatus
@@ -17,7 +19,7 @@ from .baselines import BaselineService
 from .database import Database
 from .leases import LeaseService, PathPolicy
 from .migrations import migrate
-from .models import CoordinatorError, SessionStatus
+from .models import CoordinatorError, SessionStatus, utc_text
 from .sessions import SessionService
 from .patches import PatchService, PatchStatus
 from .failures import FailureGraphService, FailureResolution
@@ -25,10 +27,12 @@ from .plans import PlanRepository
 from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
 from .cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
-from .cleanup import CleanupService
+from .cleanup import CleanupService, RetentionService
 from .processes import process_is_alive
 from .git_finalize import GitFinalizeService
 from .workspace_copy import WorkspaceCopyService
+from .legacy import LegacyMigrationService
+from .audit import RolloutAuditService
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -48,6 +52,7 @@ class CoordinatorApplication:
         self.database = Database(config.database_path)
         migrate(self.database)
         self.sessions = SessionService(self.database, config.repo_root)
+        self._maintenance_lock = threading.Lock()
         self.baselines = BaselineService(self.database, config.repo_root)
         self.object_store = ObjectStore(self.database, config.object_root)
         self.snapshots = SnapshotService(
@@ -70,6 +75,12 @@ class CoordinatorApplication:
         self.watcher = WorkspaceWatcher(self.baselines)
         self.plans = PlanRepository(config.repo_root)
         self.failures = FailureGraphService(self.database, config.repo_root)
+        self.legacy = LegacyMigrationService(
+            self.database, config.repo_root, self.sessions, process_alive=process_is_alive
+        )
+        self.legacy.recover_interrupted_archives()
+        self.retention = RetentionService(self.database, self.object_store)
+        self.retention.recover_interrupted()
         self.finalize = GitFinalizeService(
             self.database,
             config.repo_root,
@@ -99,6 +110,16 @@ class CoordinatorApplication:
             self.cargo_jobs = None
             self.cleanup = None
             self.workspace_copy = None
+        self.rollout_audit = RolloutAuditService(
+            self.database,
+            config.repo_root,
+            sessions=self.sessions,
+            baselines=self.baselines,
+            plans=self.plans,
+            failures=self.failures,
+            legacy=self.legacy,
+            target_roots=config.enabled_target_roots,
+        )
         self.branch = self._branch()
 
     @property
@@ -136,6 +157,9 @@ class CoordinatorApplication:
             "failure.open",
             "cargo.list",
             "cleanup.plan",
+            "legacy.report",
+            "retention.show",
+            "audit.all",
         }
         if self.read_only and name not in read_only_commands:
             raise CoordinatorError(
@@ -189,6 +213,9 @@ class CoordinatorApplication:
             return {"status": "attributed"}
         if name == "baseline.accept":
             baseline = self.baselines.accept(reason=str(arguments["reason"]))
+            return {"baseline": self._baseline_dict(baseline)}
+        if name == "baseline.reconcile":
+            baseline = self.baselines.reconcile_health()
             return {"baseline": self._baseline_dict(baseline)}
         if name == "lease.claim":
             result = self.leases.acquire(str(arguments["session_id"]), arguments.get("paths") or [])
@@ -319,6 +346,7 @@ class CoordinatorApplication:
             plan = self._require_cleanup().plan(older_than_hours=int(arguments.get("older_than_hours", 2)))
             return {"plan": self._cleanup_plan_dict(plan)}
         if name == "cleanup.apply":
+            self._require_maintenance_capability(arguments)
             cleanup = self._require_cleanup()
             older_than_hours = int(arguments.get("older_than_hours", 2))
             plan = cleanup.get_plan(str(arguments["plan_id"]))
@@ -385,6 +413,50 @@ class CoordinatorApplication:
                 command=tuple(str(part) for part in arguments.get("command") or ()),
             )
             return {"evidence": evidence.to_dict()}
+        if name == "legacy.report":
+            return {"migration": self.legacy.report().to_dict()}
+        if name == "legacy.import":
+            if not bool(arguments.get("apply")):
+                return {"migration": self.legacy.report().to_dict(), "applied": False}
+            self._require_maintenance_capability(arguments)
+            report = self.legacy.import_notes()
+            failure_audit = self.failures.import_repository()
+            inventory = self.plans.scan()
+            return {
+                "migration": report.to_dict(),
+                "applied": True,
+                "formal_plan_count": len(inventory.formal_plans),
+                "legacy_plan_count": len(inventory.legacy_documents),
+                "failure_node_count": failure_audit.node_count,
+                "failure_diagnostic_count": len(failure_audit.diagnostics),
+                "legacy_cargo_targets": list(self.legacy.legacy_cargo_diagnostics()),
+            }
+        if name == "legacy.archive":
+            apply = bool(arguments.get("apply"))
+            if apply:
+                self._require_maintenance_capability(arguments)
+            result = self.legacy.archive_notes(apply=apply)
+            return {"archive": result.to_dict()}
+        if name == "retention.plan":
+            return {"plan": self.retention.plan().to_dict()}
+        if name == "retention.show":
+            return {
+                "plan": self.retention.get_plan(str(arguments["plan_id"])).to_dict()
+            }
+        if name == "retention.apply":
+            self._require_maintenance_capability(arguments)
+            plan = self.retention.get_plan(str(arguments["plan_id"]))
+            return {"plan": plan.to_dict(), "result": self.retention.apply(plan).to_dict()}
+        if name == "maintenance.tick":
+            if bool(arguments.get("apply_cleanup")) or bool(
+                arguments.get("apply_retention")
+            ) or bool(arguments.get("apply_legacy_archive")):
+                self._require_maintenance_capability(arguments)
+            if bool(arguments.get("apply_lifecycle")):
+                self._require_maintenance_capability(arguments)
+            return {"maintenance": self._maintenance_tick(arguments)}
+        if name == "audit.all":
+            return {"audit": self.rollout_audit.audit_all().to_dict()}
         raise CoordinatorError("unknown_command", f"Unknown coordinator command {name}")
 
     @staticmethod
@@ -446,18 +518,133 @@ class CoordinatorApplication:
             )
         return self.workspace_copy
 
+    def _maintenance_tick(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        if not self._maintenance_lock.acquire(blocking=False):
+            raise CoordinatorError(
+                "maintenance_busy", "Another coordinator maintenance tick is already running"
+            )
+        try:
+            return self._maintenance_tick_unlocked(arguments)
+        finally:
+            self._maintenance_lock.release()
+
+    def _maintenance_tick_unlocked(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        tick_id = uuid.uuid4().hex
+        created_at = utc_text()
+        stale: list[str] = []
+        archived: list[str] = []
+        orphaned: list[str] = []
+        legacy_archive_run_id: str | None = None
+        retention_plan_id: str | None = None
+        cleanup_plan_id: str | None = None
+        try:
+            legacy_report = self.legacy.report()
+            legacy_active_sessions = {
+                note.session_id for note in legacy_report.notes if note.activity_reasons
+            }
+            if bool(arguments.get("apply_lifecycle")):
+                stale = self.sessions.mark_stale(
+                    older_than_seconds=self.config.session_ttl_seconds,
+                    excluded_session_ids=legacy_active_sessions,
+                )
+            if bool(arguments.get("apply_legacy_archive")):
+                self.legacy.import_notes()
+                legacy_archive = self.legacy.archive_notes(apply=True)
+                legacy_archive_run_id = legacy_archive.run_id
+            if bool(arguments.get("apply_lifecycle")):
+                archived = self.sessions.archive_stale(
+                    older_than_seconds=86400,
+                    excluded_session_ids=legacy_active_sessions,
+                )
+            if self.cargo_jobs is not None:
+                orphaned = [
+                    job.job_id for job in self.cargo_jobs.reconcile_orphans()
+                ]
+            if self.workspace_copy is not None:
+                self.workspace_copy.recover_interrupted_jobs(startup=False)
+            retention_plan = self.retention.plan()
+            retention_plan_id = retention_plan.plan_id
+            if bool(arguments.get("apply_retention")) and (
+                retention_plan.snapshot_ids or retention_plan.object_hashes
+            ):
+                self.retention.apply(retention_plan)
+            if self.cleanup is not None:
+                cleanup_plan = self.cleanup.plan()
+                cleanup_plan_id = cleanup_plan.plan_id
+                if bool(arguments.get("apply_cleanup")) and cleanup_plan.candidates:
+                    self.cleanup.apply(cleanup_plan)
+            with self.database.connect() as connection:
+                connection.execute("PRAGMA wal_checkpoint(PASSIVE)")
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO maintenance_ticks(
+                        tick_id, stale_sessions_json, archived_sessions_json,
+                        orphaned_cargo_json, legacy_archive_run_id,
+                        retention_plan_id, cleanup_plan_id, status, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'succeeded', ?)
+                    """,
+                    (
+                        tick_id,
+                        json.dumps(stale),
+                        json.dumps(archived),
+                        json.dumps(orphaned),
+                        legacy_archive_run_id,
+                        retention_plan_id,
+                        cleanup_plan_id,
+                        created_at,
+                    ),
+                )
+        except BaseException as error:
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO maintenance_ticks(
+                        tick_id, stale_sessions_json, archived_sessions_json,
+                        orphaned_cargo_json, legacy_archive_run_id,
+                        retention_plan_id, cleanup_plan_id, status, created_at, error_text
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'failed', ?, ?)
+                    """,
+                    (
+                        tick_id,
+                        json.dumps(stale),
+                        json.dumps(archived),
+                        json.dumps(orphaned),
+                        legacy_archive_run_id,
+                        retention_plan_id,
+                        cleanup_plan_id,
+                        created_at,
+                        str(error),
+                    ),
+                )
+            raise
+        return {
+            "tick_id": tick_id,
+            "status": "succeeded",
+            "stale_sessions": stale,
+            "archived_sessions": archived,
+            "orphaned_cargo_jobs": orphaned,
+            "legacy_archive_run_id": legacy_archive_run_id,
+            "retention_plan_id": retention_plan_id,
+            "cleanup_plan_id": cleanup_plan_id,
+        }
+
     @staticmethod
     def _authorize_maintenance(arguments: dict[str, Any]) -> bool:
         if not bool(arguments.get("maintenance")):
             return False
+        CoordinatorApplication._require_maintenance_capability(arguments)
+        return True
+
+    @staticmethod
+    def _require_maintenance_capability(arguments: dict[str, Any]) -> None:
         configured = os.environ.get("ZIRCON_COORDINATOR_MAINTENANCE_TOKEN")
         supplied = str(arguments.get("maintenance_capability") or "")
         if not configured or not secrets.compare_digest(configured, supplied):
             raise CoordinatorError(
                 "maintenance_unauthorized",
-                "Maintenance finalize requires the separate local maintenance capability",
+                "Destructive maintenance requires the separate local maintenance capability",
             )
-        return True
 
     def _branch(self) -> str:
         result = subprocess.run(
@@ -564,7 +751,12 @@ class RunningCoordinator:
             maintenance_stop = threading.Event()
             maintenance_thread = threading.Thread(
                 target=cls._maintenance_loop,
-                args=(application, config.watch_interval_seconds, maintenance_stop),
+                args=(
+                    application,
+                    config.watch_interval_seconds,
+                    config.maintenance_interval_seconds,
+                    maintenance_stop,
+                ),
                 name="zircon-session-coordinator-watch",
                 daemon=True,
             )
@@ -633,10 +825,14 @@ class RunningCoordinator:
     @staticmethod
     def _maintenance_loop(
         application: CoordinatorApplication,
-        interval_seconds: float,
+        watch_interval_seconds: float,
+        maintenance_interval_seconds: float,
         stop_event: threading.Event,
     ) -> None:
-        while not stop_event.wait(max(interval_seconds, 0.05)):
+        watch_interval = max(watch_interval_seconds, 0.05)
+        maintenance_interval = max(maintenance_interval_seconds, watch_interval)
+        next_maintenance = time.monotonic() + maintenance_interval
+        while not stop_event.wait(watch_interval):
             try:
                 application.watcher.scan_once()
             except Exception as error:  # pragma: no cover - defensive long-lived boundary
@@ -701,6 +897,27 @@ class RunningCoordinator:
                                 json.dumps({"error": str(error)}, sort_keys=True),
                             ),
                         )
+            if not application.read_only and time.monotonic() >= next_maintenance:
+                try:
+                    application._maintenance_tick(
+                        {
+                            "apply_cleanup": True,
+                            "apply_retention": True,
+                            "apply_legacy_archive": True,
+                            "apply_lifecycle": True,
+                        }
+                    )
+                except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    with application.database.transaction() as connection:
+                        connection.execute(
+                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                            (
+                                "maintenance.tick_failed",
+                                json.dumps({"error": str(error)}, sort_keys=True),
+                            ),
+                        )
+                finally:
+                    next_maintenance = time.monotonic() + maintenance_interval
 
 
 def run_forever(config: CoordinatorConfig) -> None:

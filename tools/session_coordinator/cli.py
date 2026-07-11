@@ -51,7 +51,7 @@ def _parser() -> argparse.ArgumentParser:
 
     baseline = commands.add_parser("baseline")
     baseline_commands = baseline.add_subparsers(dest="baseline_command", required=True)
-    for name in ("init", "status", "diff", "scan"):
+    for name in ("init", "status", "diff", "scan", "reconcile"):
         baseline_commands.add_parser(name)
     baseline_accept = baseline_commands.add_parser("accept")
     baseline_accept.add_argument("--reason", required=True)
@@ -187,6 +187,43 @@ def _parser() -> argparse.ArgumentParser:
     copy_run.add_argument("job_id")
     copy_run.add_argument("--session-id")
     copy_run.add_argument("command_args", nargs=argparse.REMAINDER)
+
+    legacy = commands.add_parser("legacy")
+    legacy_commands = legacy.add_subparsers(dest="legacy_command", required=True)
+    legacy_report = legacy_commands.add_parser("report")
+    legacy_report.add_argument("--report")
+    for legacy_name in ("import", "archive"):
+        legacy_action = legacy_commands.add_parser(legacy_name)
+        legacy_action.add_argument("--apply", action="store_true")
+        legacy_action.add_argument("--dry-run", action="store_true")
+        legacy_action.add_argument("--report")
+
+    retention = commands.add_parser("retention")
+    retention_commands = retention.add_subparsers(
+        dest="retention_command", required=True
+    )
+    retention_plan = retention_commands.add_parser("plan")
+    retention_plan.add_argument("--report")
+    retention_apply = retention_commands.add_parser("apply")
+    retention_apply.add_argument("--plan-id", required=True)
+    retention_apply.add_argument("--dry-run", action="store_true")
+    retention_apply.add_argument("--report")
+
+    maintenance = commands.add_parser("maintenance")
+    maintenance_commands = maintenance.add_subparsers(
+        dest="maintenance_command", required=True
+    )
+    maintenance_tick = maintenance_commands.add_parser("tick")
+    maintenance_tick.add_argument("--apply-cleanup", action="store_true")
+    maintenance_tick.add_argument("--apply-retention", action="store_true")
+    maintenance_tick.add_argument("--apply-legacy-archive", action="store_true")
+    maintenance_tick.add_argument("--apply-lifecycle", action="store_true")
+    maintenance_tick.add_argument("--report")
+
+    audit = commands.add_parser("audit")
+    audit_commands = audit.add_subparsers(dest="audit_command", required=True)
+    audit_all = audit_commands.add_parser("all")
+    audit_all.add_argument("--report")
     return parser
 
 
@@ -209,6 +246,19 @@ def _config(arguments: argparse.Namespace) -> CoordinatorConfig:
         arguments.repo_root,
         state_root=arguments.state_root,
     )
+
+
+def _write_report(path: str | None, payload: dict[str, Any]) -> None:
+    if not path:
+        return
+    destination = Path(path).resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    os.replace(temporary, destination)
 
 
 def _run(arguments: argparse.Namespace) -> dict[str, Any]:
@@ -256,7 +306,7 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             },
         )
     if arguments.command == "baseline":
-        if arguments.baseline_command in {"init", "status", "diff", "scan"}:
+        if arguments.baseline_command in {"init", "status", "diff", "scan", "reconcile"}:
             return client.command(f"baseline.{arguments.baseline_command}")
         if arguments.baseline_command == "accept":
             return client.command("baseline.accept", {"reason": arguments.reason})
@@ -400,7 +450,14 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     if arguments.command == "cleanup":
         payload = {"older_than_hours": arguments.older_than_hours}
         if arguments.cleanup_command == "apply":
-            payload.update({"plan_id": arguments.plan_id})
+            payload.update(
+                {
+                    "plan_id": arguments.plan_id,
+                    "maintenance_capability": os.environ.get(
+                        "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                    ),
+                }
+            )
         return client.command(f"cleanup.{arguments.cleanup_command}", payload)
     if arguments.command == "finalize":
         direct = arguments.finalize_command is None
@@ -470,6 +527,59 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "paths": arguments.path,
             },
         )
+    if arguments.command == "legacy":
+        if arguments.legacy_command == "report":
+            return client.command("legacy.report")
+        apply = bool(arguments.apply and not arguments.dry_run)
+        return client.command(
+            f"legacy.{arguments.legacy_command}",
+            {
+                "apply": apply,
+                "maintenance_capability": os.environ.get(
+                    "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                )
+                if apply
+                else None,
+            },
+        )
+    if arguments.command == "retention":
+        if arguments.retention_command == "plan":
+            return client.command("retention.plan")
+        if arguments.dry_run:
+            return client.command(
+                "retention.show", {"plan_id": arguments.plan_id}
+            )
+        return client.command(
+            "retention.apply",
+            {
+                "plan_id": arguments.plan_id,
+                "maintenance_capability": os.environ.get(
+                    "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                ),
+            },
+        )
+    if arguments.command == "maintenance" and arguments.maintenance_command == "tick":
+        return client.command(
+            "maintenance.tick",
+            {
+                "apply_cleanup": arguments.apply_cleanup,
+                "apply_retention": arguments.apply_retention,
+                "apply_legacy_archive": arguments.apply_legacy_archive,
+                "apply_lifecycle": arguments.apply_lifecycle,
+                "maintenance_capability": os.environ.get(
+                    "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                )
+                if (
+                    arguments.apply_cleanup
+                    or arguments.apply_retention
+                    or arguments.apply_legacy_archive
+                    or arguments.apply_lifecycle
+                )
+                else None,
+            },
+        )
+    if arguments.command == "audit" and arguments.audit_command == "all":
+        return client.command("audit.all")
     raise CoordinatorClientError("invalid_command", f"Unsupported command {arguments.command}")
 
 
@@ -485,6 +595,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = {"status": "offline" if issue["code"] == "offline" else "error", "error": issue}
         print(json.dumps(payload, ensure_ascii=False) if arguments.json_output else issue["message"])
         return 3 if issue["code"] == "offline" else 2
+    _write_report(getattr(arguments, "report", None), result)
     print(
         json.dumps(result, ensure_ascii=False, sort_keys=True)
         if arguments.json_output

@@ -9,6 +9,7 @@ from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.leases import LeaseService, PathPolicy
 from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.models import SessionStatus
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -23,9 +24,9 @@ class LeaseTests(unittest.TestCase):
         config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(config.database_path)
         migrate(self.database)
-        sessions = SessionService(self.database, self.repo)
-        sessions.register(session_id="session-a")
-        sessions.register(session_id="session-b")
+        self.sessions = SessionService(self.database, self.repo)
+        self.sessions.register(session_id="session-a")
+        self.sessions.register(session_id="session-b")
         self.service = LeaseService(self.database, PathPolicy(self.repo), ttl_seconds=5, grace_seconds=2)
 
     def tearDown(self) -> None:
@@ -50,6 +51,14 @@ class LeaseTests(unittest.TestCase):
 
         self.assertTrue(reclaimed.acquired)
         self.assertEqual(["a.txt"], self.service.owned_paths("session-b"))
+
+    def test_archived_session_cannot_reacquire_a_write_lease(self) -> None:
+        self.sessions.set_status("session-a", SessionStatus.ACTIVE)
+        self.sessions.set_status("session-a", SessionStatus.STALE)
+        self.sessions.set_status("session-a", SessionStatus.ARCHIVED)
+
+        with self.assertRaises(Exception):
+            self.service.acquire("session-a", ["a.txt"])
 
 
 if __name__ == "__main__":

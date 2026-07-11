@@ -34,7 +34,12 @@ class SessionStatus(StrEnum):
 
 ALLOWED_STATUS_TRANSITIONS: dict[SessionStatus, frozenset[SessionStatus]] = {
     SessionStatus.REGISTERED: frozenset(
-        {SessionStatus.ACTIVE, SessionStatus.RESOLVING_FAILURE, SessionStatus.CANCELLED}
+        {
+            SessionStatus.ACTIVE,
+            SessionStatus.RESOLVING_FAILURE,
+            SessionStatus.STALE,
+            SessionStatus.CANCELLED,
+        }
     ),
     SessionStatus.ACTIVE: frozenset(
         {

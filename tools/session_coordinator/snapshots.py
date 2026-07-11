@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import threading
 import zlib
 from dataclasses import dataclass
@@ -17,7 +18,15 @@ class ObjectStore:
         self.database = database
         self.root = Path(root)
 
-    def put(self, content: bytes) -> str:
+    def put(
+        self, content: bytes, *, connection: sqlite3.Connection | None = None
+    ) -> str:
+        if connection is None:
+            with self.database.transaction() as owned_connection:
+                return self._put(content, owned_connection)
+        return self._put(content, connection)
+
+    def _put(self, content: bytes, connection: sqlite3.Connection) -> str:
         object_hash = hash_bytes(content)
         target = self._path(object_hash)
         compressed = zlib.compress(content, level=6)
@@ -31,19 +40,18 @@ class ObjectStore:
                 os.replace(temporary, target)
             finally:
                 temporary.unlink(missing_ok=True)
-        with self.database.transaction() as connection:
-            connection.execute(
-                """
-                INSERT INTO objects(object_hash, byte_count, compressed_byte_count, created_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(object_hash) DO NOTHING
-                """,
-                (object_hash, len(content), len(compressed), utc_text()),
-            )
+        connection.execute(
+            """
+            INSERT INTO objects(object_hash, byte_count, compressed_byte_count, created_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(object_hash) DO NOTHING
+            """,
+            (object_hash, len(content), len(compressed), utc_text()),
+        )
         return object_hash
 
     def get(self, object_hash: str) -> bytes:
-        target = self._path(object_hash)
+        target = self.path_for_hash(object_hash)
         try:
             content = zlib.decompress(target.read_bytes())
         except (OSError, zlib.error) as error:
@@ -52,10 +60,13 @@ class ObjectStore:
             raise CoordinatorError("object_corrupt", f"Object {object_hash} failed hash verification")
         return content
 
-    def _path(self, object_hash: str) -> Path:
+    def path_for_hash(self, object_hash: str) -> Path:
+        """Return the validated on-disk path for retention and integrity tooling."""
         if len(object_hash) != 64 or any(character not in "0123456789abcdef" for character in object_hash):
             raise ValueError("object hash must be a lowercase SHA-256 value")
         return self.root / object_hash[:2] / object_hash[2:]
+
+    _path = path_for_hash
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,12 +102,19 @@ class SnapshotService:
     ) -> SnapshotRecord:
         if not purpose.strip():
             raise ValueError("snapshot purpose cannot be empty")
-        manifest: dict[str, str | None] = {}
+        contents: list[tuple[str, bytes | None]] = []
         for value in paths:
             display_path, absolute_path = self._resolve(value)
-            object_hash = self.object_store.put(absolute_path.read_bytes()) if absolute_path.is_file() else None
-            manifest[display_path] = object_hash
+            contents.append(
+                (display_path, absolute_path.read_bytes() if absolute_path.is_file() else None)
+            )
         with self.database.transaction() as connection:
+            manifest = {
+                display_path: self.object_store.put(content, connection=connection)
+                if content is not None
+                else None
+                for display_path, content in contents
+            }
             cursor = connection.execute(
                 """
                 INSERT INTO snapshots(session_id, baseline_epoch, manifest_json, purpose, created_at)

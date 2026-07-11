@@ -104,6 +104,36 @@ class PatchTests(unittest.TestCase):
         self.assertEqual(PatchStatus.NEEDS_REBASE, patch.status)
         self.assertEqual("external race\n", (self.repo / "README.md").read_text(encoding="utf-8"))
 
+    def test_queued_patch_survives_service_reconstruction(self) -> None:
+        self.assertTrue(self.leases.acquire("session-a", ["README.md"]).acquired)
+        queued = self.patches.submit(
+            "session-b", replacement_patch("baseline", "after restart"), ["README.md"]
+        )
+        self.leases.release("session-a", ["README.md"])
+        reconstructed_leases = LeaseService(
+            self.database, PathPolicy(self.repo), ttl_seconds=300, grace_seconds=120
+        )
+        reconstructed = PatchService(
+            self.database,
+            self.repo,
+            ObjectStore(self.database, self.config.object_root),
+            SnapshotService(
+                self.database,
+                self.repo,
+                ObjectStore(self.database, self.config.object_root),
+            ),
+            reconstructed_leases,
+            SessionService(self.database, self.repo),
+        )
+
+        processed = reconstructed.process_queue()
+
+        self.assertEqual(PatchStatus.QUEUED, queued.status)
+        self.assertEqual(PatchStatus.APPLIED, processed[0].status)
+        self.assertEqual(
+            "after restart\n", (self.repo / "README.md").read_text(encoding="utf-8")
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

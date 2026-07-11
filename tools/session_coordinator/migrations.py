@@ -6,7 +6,7 @@ from sqlite3 import Connection
 from .database import Database
 
 
-LATEST_SCHEMA_VERSION = 11
+LATEST_SCHEMA_VERSION = 13
 
 
 def _migration_1(connection: Connection) -> None:
@@ -370,6 +370,66 @@ def _migration_11(connection: Connection) -> None:
     )
 
 
+def _migration_12(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE legacy_note_imports (
+            note_path TEXT PRIMARY KEY,
+            content_hash TEXT NOT NULL,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            source_status TEXT,
+            mapped_status TEXT NOT NULL,
+            imported_at TEXT NOT NULL,
+            last_seen_at TEXT NOT NULL,
+            archived_path TEXT
+        );
+        CREATE INDEX legacy_note_imports_session
+            ON legacy_note_imports(session_id);
+
+        CREATE TABLE legacy_archive_runs (
+            run_id TEXT PRIMARY KEY,
+            candidates_json TEXT NOT NULL,
+            manifest_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('planned', 'applied', 'failed')),
+            created_at TEXT NOT NULL,
+            applied_at TEXT
+        );
+
+        CREATE TABLE object_gc_plans (
+            plan_id TEXT PRIMARY KEY,
+            snapshot_ids_json TEXT NOT NULL,
+            object_hashes_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('planned', 'applying', 'applied', 'failed')),
+            created_at TEXT NOT NULL,
+            applied_at TEXT,
+            error_text TEXT
+        );
+
+        CREATE TABLE maintenance_ticks (
+            tick_id TEXT PRIMARY KEY,
+            stale_sessions_json TEXT NOT NULL DEFAULT '[]',
+            orphaned_cargo_json TEXT NOT NULL DEFAULT '[]',
+            retention_plan_id TEXT,
+            cleanup_plan_id TEXT,
+            status TEXT NOT NULL CHECK (status IN ('succeeded', 'failed')),
+            created_at TEXT NOT NULL,
+            error_text TEXT
+        );
+        """
+    )
+
+
+def _migration_13(connection: Connection) -> None:
+    connection.executescript(
+        """
+        ALTER TABLE maintenance_ticks
+            ADD COLUMN archived_sessions_json TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE maintenance_ticks
+            ADD COLUMN legacy_archive_run_id TEXT;
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -382,6 +442,8 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     9: _migration_9,
     10: _migration_10,
     11: _migration_11,
+    12: _migration_12,
+    13: _migration_13,
 }
 
 

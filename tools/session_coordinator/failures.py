@@ -131,6 +131,7 @@ class FailureGraphService:
             connection.execute("DELETE FROM failure_nodes")
             connection.execute("DELETE FROM failure_diagnostics")
             for record in records:
+                canonical_status = "open" if record.kind == "failure" else "fixed"
                 connection.execute(
                     """
                     INSERT INTO failure_nodes(
@@ -143,7 +144,7 @@ class FailureGraphService:
                         record.lifecycle_key,
                         record.relative_path,
                         record.kind,
-                        record.status,
+                        canonical_status,
                         record.created_at,
                         record.resolved_at,
                         record.summary_slug,
@@ -151,7 +152,7 @@ class FailureGraphService:
                         self._relative(record.fixing_plan),
                         self._relative(record.origin_child_dir),
                         self._relative(record.fixing_child_dir),
-                        self._priority(record.kind, record.status),
+                        self._priority(record.kind, canonical_status),
                         now,
                     ),
                 )

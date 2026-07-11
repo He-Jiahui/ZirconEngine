@@ -3,7 +3,8 @@ param(
     [switch]$KernelOnly,
     [switch]$LeaseAndPatch,
     [switch]$CargoAndCleanup,
-    [switch]$FinalizeInTempRepo
+    [switch]$FinalizeInTempRepo,
+    [switch]$LegacyRollout
 )
 
 Set-StrictMode -Version Latest
@@ -37,6 +38,7 @@ function Test-Kernel {
     $repo = Join-Path $testRoot "repo"
     New-Item -ItemType Directory -Path $repo -Force | Out-Null
     $process = $null
+    $oldMaintenanceToken = $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN
     try {
         & git -C $repo init -q
         & git -C $repo config user.email "coordinator-smoke@example.invalid"
@@ -48,6 +50,7 @@ function Test-Kernel {
         & git -C $repo commit -q -m "test: baseline"
 
         $oldPythonPath = $env:PYTHONPATH
+        $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = [guid]::NewGuid().ToString("N")
         $env:PYTHONPATH = $sourceRoot
         $process = Start-Process -FilePath $python `
             -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
@@ -87,6 +90,7 @@ function Test-Kernel {
         Write-Host "PASS: coordinator kernel smoke"
     }
     finally {
+        $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = $oldMaintenanceToken
         if ($null -ne $process -and -not $process.HasExited) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
         }
@@ -209,7 +213,72 @@ function Test-CargoAndCleanup {
     $taskPlan = & $taskInstaller -Action Install -RepoRoot $sourceRoot -DryRun
     Assert-True ($LASTEXITCODE -eq 0) "Scheduled-task dry-run failed."
     Assert-True (($taskPlan -join "`n") -match "ONLOGON") "Daemon at-logon task was not planned."
-    Assert-True (($taskPlan -join "`n") -match "MINUTE") "Maintenance interval task was not planned."
+    Assert-True (($taskPlan -join "`n") -match "retire external scheduler") "External maintenance scheduler was not retired."
+    $cutoverPlan = & $taskInstaller -Action Cutover -RepoRoot $sourceRoot -DryRun `
+        -LegacyTaskName "LegacyZirconCleanup"
+    Assert-True ($LASTEXITCODE -eq 0) "Scheduled-task cutover dry-run failed."
+    Assert-True (($cutoverPlan -join "`n") -match "two consecutive plan-only maintenance") "Cutover health gate was not planned."
+    Assert-True (($cutoverPlan -join "`n") -match "preparing record before startup mutation") "Cutover journal was not planned before startup mutation."
+    Assert-True (($cutoverPlan -join "`n") -match "LegacyZirconCleanup.*DISABLE") "Legacy task disable was not delayed until cutover."
+    Assert-True (($cutoverPlan -join "`n") -match "retire external scheduler") "Scheduled-task cutover did not retire the external scheduler."
+    $startupPlan = & $taskInstaller -Action Cutover -RepoRoot $sourceRoot -DryRun `
+        -Backend UserStartup -LegacyTaskName "LegacyZirconCleanup"
+    Assert-True ($LASTEXITCODE -eq 0) "Current-user startup cutover dry-run failed."
+    Assert-True (($startupPlan -join "`n") -match "HKCU Run") "User startup backend was not planned."
+    Assert-True (($startupPlan -join "`n") -match "two consecutive plan-only maintenance") "User startup cutover omitted health gates."
+    Assert-True (($startupPlan -join "`n") -match "retire external scheduler") "User startup cutover did not retire the external scheduler."
+
+    $tokens = $null
+    $parseErrors = $null
+    $installerAst = [Management.Automation.Language.Parser]::ParseFile(
+        $taskInstaller,
+        [ref]$tokens,
+        [ref]$parseErrors
+    )
+    Assert-True ($parseErrors.Count -eq 0) "Task installer could not be parsed for path-scope tests."
+    $matcherAst = $installerAst.Find({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq "Test-LegacyCleanupActionForRepo"
+    }, $true)
+    Assert-True ($null -ne $matcherAst) "Legacy cleanup path matcher was not found."
+    Invoke-Expression $matcherAst.Extent.Text
+    $resolvedRepoRoot = [IO.Path]::GetFullPath($sourceRoot).TrimEnd('\', '/')
+    $cleanup = Join-Path $resolvedRepoRoot "tools\cleanup-stale-targets.ps1"
+    $exactLegacyAction = "cmd.exe /c cd /d `"$resolvedRepoRoot`" && powershell -File tools\cleanup-stale-targets.ps1"
+    $backupLegacyAction = "cmd.exe /c cd /d `"$resolvedRepoRoot-backup`" && powershell -File tools\cleanup-stale-targets.ps1"
+    Assert-True (Test-LegacyCleanupActionForRepo -ActionText $exactLegacyAction) "Exact repository cleanup action was not matched."
+    Assert-True (-not (Test-LegacyCleanupActionForRepo -ActionText $backupLegacyAction)) "Repository-prefix collision matched a foreign cleanup task."
+
+    $restoreAst = $installerAst.Find({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq "Restore-ExternalMaintenanceTaskIfRequired"
+    }, $true)
+    Assert-True ($null -ne $restoreAst) "Maintenance rollback helper was not found."
+    Invoke-Expression $restoreAst.Extent.Text
+    $maintenanceTask = "TestMaintenanceTask"
+    $script:restoredMaintenance = $false
+    function Get-ScheduledTaskOrNull { return [pscustomobject]@{ Settings = [pscustomobject]@{ Enabled = $false } } }
+    function Invoke-TaskCommand { $script:restoredMaintenance = $true }
+    Restore-ExternalMaintenanceTaskIfRequired -Record @{ maintenance_task_was_enabled = $true }
+    Assert-True $script:restoredMaintenance "Hashtable cutover record did not restore external maintenance."
+
+    $compatibilityAst = $installerAst.Find({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and
+            $node.Name -eq "Assert-CompatibleActiveCutover"
+    }, $true)
+    Assert-True ($null -ne $compatibilityAst) "Cutover compatibility guard was not found."
+    Invoke-Expression $compatibilityAst.Extent.Text
+    $preparingRejected = $false
+    try {
+        Assert-CompatibleActiveCutover -Record ([pscustomobject]@{ status = "preparing" })
+    }
+    catch {
+        $preparingRejected = $true
+    }
+    Assert-True $preparingRejected "Interrupted preparing cutover was allowed to overwrite its rollback journal."
     Write-Host "PASS: managed Cargo lanes and cleanup smoke"
 }
 
@@ -305,18 +374,121 @@ function Test-FinalizeInTempRepo {
     }
 }
 
-if ($KernelOnly -or (-not $LeaseAndPatch -and -not $CargoAndCleanup -and -not $FinalizeInTempRepo)) {
+function Test-LegacyRollout {
+    $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("zircon-coordinator-legacy-" + [guid]::NewGuid().ToString("N"))
+    $repo = Join-Path $testRoot "repo"
+    New-Item -ItemType Directory -Path $repo -Force | Out-Null
+    $process = $null
+    $oldMaintenanceToken = $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN
+    try {
+        & git -C $repo init -q
+        & git -C $repo config user.email "coordinator-smoke@example.invalid"
+        & git -C $repo config user.name "Coordinator Smoke"
+        & git -C $repo config core.autocrlf false
+        & git -C $repo branch -M main
+        [System.IO.File]::WriteAllText(
+            (Join-Path $repo "README.md"), "baseline`n", [System.Text.UTF8Encoding]::new($false)
+        )
+        & git -C $repo add README.md
+        & git -C $repo commit -q -m "test: baseline"
+        $sessionRoot = Join-Path $repo ".codex\sessions"
+        New-Item -ItemType Directory -Path $sessionRoot -Force | Out-Null
+        $legacyNote = Join-Path $sessionRoot "legacy-old.md"
+        [System.IO.File]::WriteAllText(
+            $legacyNote,
+            "---`nsession: legacy-old`nstatus: blocked`n---`n`n# Legacy`n",
+            [System.Text.UTF8Encoding]::new($false)
+        )
+        [System.IO.File]::SetLastWriteTimeUtc($legacyNote, [DateTime]::UtcNow.AddDays(-2))
+
+        $oldPythonPath = $env:PYTHONPATH
+        $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = [guid]::NewGuid().ToString("N")
+        $env:PYTHONPATH = $sourceRoot
+        $process = Start-Process -FilePath $python `
+            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
+            -WorkingDirectory $repo -WindowStyle Hidden -PassThru
+        $env:PYTHONPATH = $oldPythonPath
+        for ($attempt = 0; $attempt -lt 100; $attempt++) {
+            Start-Sleep -Milliseconds 100
+            $status = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("status")
+            if ($status.ExitCode -eq 0) { break }
+        }
+        Assert-True ($status.ExitCode -eq 0) "Legacy rollout service did not become healthy."
+        $baseline = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("baseline", "init")
+        Assert-True ($baseline.ExitCode -eq 0) "Legacy rollout baseline init failed."
+
+        $reportOne = Join-Path $testRoot "report-one.json"
+        $reportTwo = Join-Path $testRoot "report-two.json"
+        $first = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "legacy", "report", "--report", $reportOne
+        )
+        $second = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "legacy", "report", "--report", $reportTwo
+        )
+        Assert-True ($first.ExitCode -eq 0 -and $second.ExitCode -eq 0) "Legacy report failed."
+        Assert-True ((Get-FileHash $reportOne).Hash -eq (Get-FileHash $reportTwo).Hash) "Legacy report was not repeatable."
+
+        $imported = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "legacy", "import", "--apply"
+        )
+        Assert-True ($imported.ExitCode -eq 0) "Legacy import failed: $($imported.Output)"
+        $archived = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "legacy", "archive", "--apply"
+        )
+        Assert-True ($archived.ExitCode -eq 0) "Legacy archive failed: $($archived.Output)"
+        Assert-True (Test-Path (Join-Path $sessionRoot "archive\legacy-old.md")) "Legacy note was not hash-preservingly archived."
+
+        foreach ($tick in 1..2) {
+            $maintenance = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+                "maintenance", "tick"
+            )
+            Assert-True ($maintenance.ExitCode -eq 0) "Maintenance tick $tick failed: $($maintenance.Output)"
+        }
+        $auditPath = Join-Path $testRoot "audit.json"
+        $audit = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "audit", "all", "--report", $auditPath
+        )
+        Assert-True ($audit.ExitCode -eq 0) "Audit all failed: $($audit.Output)"
+        $auditJson = Get-Content -Raw -LiteralPath $auditPath | ConvertFrom-Json
+        Assert-True ($auditJson.audit.maintenance_tick_count -eq 2) "Audit did not observe two maintenance ticks."
+        Assert-True ($auditJson.audit.invalid_session_statuses.Count -eq 0) "Audit found a non-enum Session status."
+
+        $stopped = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("stop")
+        Assert-True ($stopped.ExitCode -eq 0) "Legacy rollout coordinator stop failed."
+        $process.WaitForExit(5000) | Out-Null
+        Assert-True $process.HasExited "Legacy rollout process remained alive."
+        Write-Host "PASS: legacy migration and rollout smoke"
+    }
+    finally {
+        $env:ZIRCON_COORDINATOR_MAINTENANCE_TOKEN = $oldMaintenanceToken
+        if ($null -ne $process -and -not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $testRoot) {
+            Remove-Item -LiteralPath $testRoot -Recurse -Force
+        }
+    }
+}
+
+$runAll = -not $KernelOnly -and -not $LeaseAndPatch -and -not $CargoAndCleanup -and `
+    -not $FinalizeInTempRepo -and -not $LegacyRollout
+
+if ($KernelOnly -or $runAll) {
     Test-Kernel
 }
 
-if ($LeaseAndPatch) {
+if ($LeaseAndPatch -or $runAll) {
     Test-LeaseAndPatch
 }
 
-if ($CargoAndCleanup) {
+if ($CargoAndCleanup -or $runAll) {
     Test-CargoAndCleanup
 }
 
-if ($FinalizeInTempRepo) {
+if ($FinalizeInTempRepo -or $runAll) {
     Test-FinalizeInTempRepo
+}
+
+if ($LegacyRollout -or $runAll) {
+    Test-LegacyRollout
 }

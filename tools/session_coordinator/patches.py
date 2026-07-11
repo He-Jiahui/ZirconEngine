@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from .baselines import hash_file
+from .baselines import hash_bytes, hash_file
 from .database import Database
 from .leases import LeaseService
 from .models import CoordinatorError, SessionStatus, utc_text
@@ -65,16 +65,27 @@ class PatchService:
         if not normalized:
             raise ValueError("patch requires at least one explicit target")
         display_paths = tuple(item.display for item in normalized)
-        base_hashes = {item.display: hash_file(item.absolute) for item in normalized}
-        base_objects = {
-            item.display: self.object_store.put(item.absolute.read_bytes()) if item.absolute.is_file() else None
+        base_contents = {
+            item.display: item.absolute.read_bytes() if item.absolute.is_file() else None
             for item in normalized
         }
-        patch_hash = self.object_store.put(patch_text.encode("utf-8"))
+        base_hashes = {
+            path: hash_bytes(content) if content is not None else None
+            for path, content in base_contents.items()
+        }
         acquisition = self.leases.acquire(session_id, display_paths)
         status = PatchStatus.APPLYING if acquisition.acquired else PatchStatus.QUEUED
         now = utc_text()
         with self.database.transaction() as connection:
+            base_objects = {
+                path: self.object_store.put(content, connection=connection)
+                if content is not None
+                else None
+                for path, content in base_contents.items()
+            }
+            patch_hash = self.object_store.put(
+                patch_text.encode("utf-8"), connection=connection
+            )
             cursor = connection.execute(
                 """
                 INSERT INTO patches(
@@ -134,11 +145,10 @@ class PatchService:
                 for target in patch.targets
             }
             if current_hashes != patch.base_hashes:
-                current_objects = self._capture_objects(patch.targets)
                 self._update(
                     patch.patch_id,
                     PatchStatus.NEEDS_REBASE,
-                    current_objects=current_objects,
+                    capture_targets=patch.targets,
                     error_text="target content changed after patch was queued",
                 )
                 self.leases.release(patch.session_id, patch.targets)
@@ -166,7 +176,7 @@ class PatchService:
                 self._update(
                     patch.patch_id,
                     PatchStatus.NEEDS_REBASE,
-                    current_objects=self._capture_objects(patch.targets),
+                    capture_targets=patch.targets,
                     error_text="target content changed before patch application",
                 )
                 self.sessions.set_status(
@@ -240,11 +250,17 @@ class PatchService:
             self.leases.release(patch.session_id, patch.targets)
         return self.get(patch.patch_id)
 
-    def _capture_objects(self, targets: tuple[str, ...]) -> dict[str, str | None]:
+    def _capture_objects(
+        self, targets: tuple[str, ...], *, connection
+    ) -> dict[str, str | None]:
         result: dict[str, str | None] = {}
         for target in targets:
             absolute = self.leases.path_policy.normalize(target).absolute
-            result[target] = self.object_store.put(absolute.read_bytes()) if absolute.is_file() else None
+            result[target] = (
+                self.object_store.put(absolute.read_bytes(), connection=connection)
+                if absolute.is_file()
+                else None
+            )
         return result
 
     def _current_epoch(self) -> int | None:
@@ -258,11 +274,16 @@ class PatchService:
         status: PatchStatus,
         *,
         current_objects: dict[str, str | None] | None = None,
+        capture_targets: tuple[str, ...] | None = None,
         error_text: str | None = None,
         applied: bool = False,
     ) -> None:
         now = utc_text()
         with self.database.transaction() as connection:
+            if capture_targets is not None:
+                current_objects = self._capture_objects(
+                    capture_targets, connection=connection
+                )
             connection.execute(
                 """
                 UPDATE patches
