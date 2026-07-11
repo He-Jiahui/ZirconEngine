@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import http.cookiejar
 import json
 import re
 import shutil
+import sqlite3
 import tempfile
 import urllib.error
 import urllib.request
@@ -20,9 +22,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--read-only-console", action="store_true")
+    parser.add_argument("--controlled-actions", action="store_true")
     args = parser.parse_args()
-    if not args.read_only_console:
-        parser.error("--read-only-console is required")
+    if args.read_only_console == args.controlled_actions:
+        parser.error("select exactly one smoke gate")
     source_dist = args.repo_root.resolve() / "tools/session_coordinator/web/dist"
     if not (source_dist / "index.html").is_file():
         raise SystemExit("control console production build is missing")
@@ -79,12 +82,76 @@ def main() -> int:
             except urllib.error.HTTPError as rejected:
                 body = json.loads(rejected.read())
                 rejected.close()
-                if rejected.code != 404 or body["error"]["code"] != "not_found":
+                rejection = (rejected.code, body["error"]["code"])
+                if rejection not in {(403, "csrf_invalid"), (404, "not_found")}:
                     raise
             else:
                 raise AssertionError("control mutation method was unexpectedly accepted")
-    print("read-only control-console smoke passed")
+            if args.controlled_actions:
+                _verify_controlled_actions(opener, client, running.base_url, config)
+    print(
+        "controlled-actions control-console smoke passed"
+        if args.controlled_actions
+        else "read-only control-console smoke passed"
+    )
     return 0
+
+
+def _verify_controlled_actions(opener, client, base_url: str, config) -> None:
+    grant = client.issue_elevation_grant(
+        actor="smoke", role="operator", session_id="smoke-session"
+    )
+    elevated = _browser_json(
+        opener,
+        base_url,
+        "POST",
+        "/control/v1/auth/elevate",
+        {"grant": grant["grant"]},
+    )["data"]
+    if elevated["role"] != "operator" or elevated["boundSessionId"] != "smoke-session":
+        raise AssertionError("one-use elevation did not bind the browser Session")
+    csrf = elevated["csrfToken"]
+    catalog = _browser_json(opener, base_url, "GET", "/control/v1/actions/catalog")["data"]
+    red = [item for item in catalog["actions"] if item["risk"] == "red"]
+    if not red or any(item["enabled"] for item in red):
+        raise AssertionError("M3 red actions must remain visible and disabled")
+    preview = _browser_json(
+        opener,
+        base_url,
+        "POST",
+        "/control/v1/actions/preview",
+        {"kind": "session.heartbeat", "parameters": {"sessionId": "smoke-session"}},
+        csrf=csrf,
+    )["data"]["action"]
+    confirmed = _browser_json(
+        opener,
+        base_url,
+        "POST",
+        f"/control/v1/actions/{preview['actionId']}/confirm",
+        {"phrase": preview["confirmationPhrase"], "reason": "M3 smoke acceptance"},
+        csrf=csrf,
+    )["data"]["action"]
+    if confirmed["status"] != "succeeded":
+        raise AssertionError("typed controlled action did not succeed")
+    with closing(sqlite3.connect(config.database_path)) as connection:
+        approval = connection.execute(
+            "SELECT reason FROM action_approvals WHERE action_id = ?",
+            (preview["actionId"],),
+        ).fetchone()
+    if approval != ("M3 smoke acceptance",):
+        raise AssertionError("controlled action approval audit was not persisted")
+
+
+def _browser_json(opener, base_url, method, path, payload=None, *, csrf=None):
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    headers = {"Origin": base_url, "Content-Type": "application/json"}
+    if csrf:
+        headers["X-CSRF-Token"] = csrf
+    request = urllib.request.Request(
+        f"{base_url}{path}", data=data, method=method, headers=headers
+    )
+    with opener.open(request, timeout=5) as response:
+        return json.loads(response.read())
 
 
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):

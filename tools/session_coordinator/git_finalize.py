@@ -22,6 +22,7 @@ if False:  # pragma: no cover - import only for static typing without a runtime 
 
 
 SEMANTIC_MESSAGE = re.compile(r"^[a-z]+(?:\([^)]+\))?!?: .+")
+MODULE_MESSAGE = re.compile(r"^【([^【】\r\n/\\]+)】(.+)$", re.DOTALL)
 _WECOM_ENDPOINT_MARKER = "qyapi" + ".weixin.qq.com/cgi-bin/" + "webhook/send?" + "key="
 FORBIDDEN_SECRET = re.compile(
     re.escape(_WECOM_ENDPOINT_MARKER) + r"|(?:WECOM|WECHAT).*WEBHOOK.*(?:URL|KEY)",
@@ -95,11 +96,11 @@ class GitFinalizeService:
         validation_commands: tuple[tuple[str, ...], ...] = (),
         maintenance: bool = False,
     ) -> FinalizePreview:
-        self._validate_message(message)
         normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
         if not normalized:
             raise CoordinatorError("finalize_paths_empty", "Finalize requires at least one path")
         session = self.sessions.get(session_id)
+        formatted_message = self._format_message(session.plan_path, message)
         if not maintenance and session.status is not SessionStatus.COMPLETED:
             raise CoordinatorError(
                 "finalize_session_not_completed",
@@ -140,7 +141,7 @@ class GitFinalizeService:
                 (
                     request_id,
                     session_id,
-                    message,
+                    formatted_message,
                     json.dumps(normalized),
                     json.dumps({key: list(value) for key, value in categories.items()}),
                     json.dumps(untracked),
@@ -152,7 +153,7 @@ class GitFinalizeService:
         return FinalizePreview(
             request_id,
             session_id,
-            message,
+            formatted_message,
             normalized,
             categories,
             untracked,
@@ -298,13 +299,13 @@ class GitFinalizeService:
         is revalidated under that mutex, and ``update-ref`` uses the baseline
         HEAD as a compare-and-swap guard.
         """
-        self._validate_message(message)
         normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
         if not normalized:
             raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
         untracked_paths = tuple(path for path in normalized if not self._is_tracked_in_head(path))
         request_id = uuid.uuid4().hex
         session = self.sessions.get(session_id)
+        formatted_message = self._format_message(session.plan_path, message)
         if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
             raise CoordinatorError(
                 "milestone_session_not_active",
@@ -358,7 +359,7 @@ class GitFinalizeService:
                     (
                         request_id,
                         session_id,
-                        message,
+                        formatted_message,
                         json.dumps(normalized),
                         json.dumps({key: list(value) for key, value in self._categorize(normalized).items()}),
                         json.dumps(untracked_paths),
@@ -375,7 +376,9 @@ class GitFinalizeService:
                 index_existed=index_existed,
                 index_content=index_content,
             )
-            commit_sha = self._create_scoped_commit(message, expected_head=expected_head)
+            commit_sha = self._create_scoped_commit(
+                formatted_message, expected_head=expected_head
+            )
             with self.database.transaction() as connection:
                 connection.execute(
                     """
@@ -403,7 +406,7 @@ class GitFinalizeService:
         return FinalizeResult(
             request_id,
             commit_sha,
-            message,
+            formatted_message,
             categories,
             untracked_paths,
         )
@@ -831,15 +834,37 @@ class GitFinalizeService:
             raise CoordinatorError("path_outside_repo", f"Path is outside repository: {value}") from error
 
     @staticmethod
-    def _validate_message(message: str) -> None:
-        if "[zircon-session:" in message.casefold():
+    def _format_message(plan_path: str | None, message: str) -> str:
+        value = message.strip()
+        if "[zircon-session:" in value.casefold():
             raise CoordinatorError(
                 "finalize_message_forbidden", "Session-tagged Git messages are forbidden"
             )
-        if not SEMANTIC_MESSAGE.fullmatch(message.strip()):
+        expected_module = Path(plan_path).parent.name if plan_path else None
+        prefixed = MODULE_MESSAGE.fullmatch(value)
+        if prefixed is None:
+            if expected_module is None:
+                raise CoordinatorError(
+                    "finalize_message_module_missing",
+                    "Finalize message requires a module prefix when the Session has no plan",
+                )
+            module = expected_module
+            semantic = value
+        else:
+            module, semantic = prefixed.groups()
+            if expected_module is not None and module.casefold() != expected_module.casefold():
+                raise CoordinatorError(
+                    "finalize_message_module_mismatch",
+                    f"Commit module {module} does not match plan folder {expected_module}",
+                    details={"expected_module": expected_module, "actual_module": module},
+                )
+            module = expected_module or module
+        if not SEMANTIC_MESSAGE.fullmatch(semantic):
             raise CoordinatorError(
-                "finalize_message_invalid", "Finalize message must be an ordinary semantic commit"
+                "finalize_message_invalid",
+                "Finalize message must contain a Conventional Commit after its module prefix",
             )
+        return f"【{module}】{semantic}"
 
     def _index_path(self) -> Path:
         value = self._git("rev-parse", "--git-path", "index")

@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+from ...models import CoordinatorError, WebControlRole
+from .models import (
+    ActionKind,
+    ActionParameters,
+    ActionRisk,
+    ActionSpec,
+    SessionParameters,
+    ValidationCancelParameters,
+    ValidationStartParameters,
+)
+
+
+def _spec(
+    kind: ActionKind,
+    title: str,
+    risk: ActionRisk,
+    role: WebControlRole,
+    parameters: type[ActionParameters] = SessionParameters,
+    *,
+    enabled: bool = True,
+    session_bound: bool = True,
+    preview_only: bool = False,
+    warnings: tuple[str, ...] = (),
+) -> ActionSpec:
+    return ActionSpec(
+        kind,
+        title,
+        risk,
+        role,
+        parameters,
+        enabled,
+        session_bound,
+        preview_only,
+        warnings,
+    )
+
+
+_SPECS = (
+    _spec(ActionKind.SESSION_HEARTBEAT, "刷新 Session 心跳", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(ActionKind.SESSION_ACTIVATE, "激活 Session", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(ActionKind.LEASE_CLAIM, "领取 Session 写入范围", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(ActionKind.LEASE_RELEASE, "释放自有租约", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(ActionKind.PATCH_PROCESS, "处理自有延迟补丁", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(
+        ActionKind.VALIDATION_START,
+        "启动托管验证",
+        ActionRisk.YELLOW,
+        WebControlRole.OPERATOR,
+        ValidationStartParameters,
+        warnings=("验证只使用服务端模板，并在盘符根 cargo-targets 下创建临时副本。",),
+    ),
+    _spec(
+        ActionKind.VALIDATION_CANCEL,
+        "取消托管验证",
+        ActionRisk.YELLOW,
+        WebControlRole.OPERATOR,
+        ValidationCancelParameters,
+    ),
+    _spec(ActionKind.FAILURE_REFRESH, "刷新 Failure 图", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(ActionKind.TOPOLOGY_REFRESH, "刷新计划拓扑", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(
+        ActionKind.DRAIN_PREVIEW,
+        "预览服务排空",
+        ActionRisk.YELLOW,
+        WebControlRole.OPERATOR,
+        preview_only=True,
+        warnings=("M5 前仅提供影响预览，不执行进程生命周期变更。",),
+    ),
+    _spec(ActionKind.MILESTONE_COMMIT, "提交里程碑", ActionRisk.RED, WebControlRole.COMMITTER, enabled=False),
+    _spec(ActionKind.SESSION_COMPLETE, "完成 Session", ActionRisk.RED, WebControlRole.COMMITTER, enabled=False),
+    _spec(ActionKind.SERVICE_RESTART, "重启服务", ActionRisk.RED, WebControlRole.MAINTAINER, enabled=False),
+    _spec(ActionKind.MAINTENANCE_CLEANUP, "执行维护清理", ActionRisk.RED, WebControlRole.MAINTAINER, enabled=False),
+)
+
+ACTION_CATALOG: dict[str, ActionSpec] = {spec.kind.value: spec for spec in _SPECS}
+
+
+def action_spec(kind: str) -> ActionSpec:
+    try:
+        return ACTION_CATALOG[kind]
+    except KeyError as error:
+        raise CoordinatorError("action_kind_unknown", "Action kind is not in the closed catalog") from error

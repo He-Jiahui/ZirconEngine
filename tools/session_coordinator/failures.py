@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import os
 import re
 import sys
+import tempfile
 from dataclasses import dataclass
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from types import ModuleType
@@ -16,6 +19,38 @@ from .models import CoordinatorError, utc_text
 
 
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+DATE_FIRST_HANDOFF = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$", re.IGNORECASE)
+
+
+def _is_failure_artifact(path: Path) -> bool:
+    name = path.name.casefold()
+    return (
+        name.startswith("failure-")
+        or name.startswith("fixed-")
+        or (bool(DATE_FIRST_HANDOFF.match(path.name)) and "failure" in name)
+        or "failure-handoff" in name
+    )
+
+
+def failure_artifact_snapshot(repo_root: str | Path) -> list[dict[str, str]]:
+    root = Path(repo_root).resolve()
+    plans_root = (root / "docs" / "plans").resolve()
+    if not plans_root.is_dir() or not plans_root.is_relative_to(root):
+        return []
+    paths = {path.resolve() for path in plans_root.rglob("*.md") if path.is_file() and _is_failure_artifact(path)}
+    artifacts: list[dict[str, str]] = []
+    for path in sorted(paths, key=lambda item: str(item).casefold()):
+        if not path.is_relative_to(plans_root):
+            raise CoordinatorError(
+                "failure_artifact_outside_plans", "Failure artifact escaped plans root"
+            )
+        artifacts.append(
+            {
+                "path": path.relative_to(root).as_posix(),
+                "hash": hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+        )
+    return artifacts
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,10 +124,17 @@ class FailureGraphService:
         )
         self._validator: ModuleType | None = None
 
-    def import_repository(self) -> FailureGraphAudit:
+    def import_repository(
+        self, *, expected_artifacts: list[dict[str, str]] | None = None
+    ) -> FailureGraphAudit:
         validator = self._validator_module()
-        records, parse_errors = validator.parse_handoff_records(self.repo_root)
-        validation_errors = validator.validate_repository(self.repo_root)
+        if expected_artifacts is None:
+            records, parse_errors = validator.parse_handoff_records(self.repo_root)
+            validation_errors = validator.validate_repository(self.repo_root)
+        else:
+            records, parse_errors, validation_errors = self._parse_immutable_snapshot(
+                validator, expected_artifacts
+            )
         diagnostics: list[GraphDiagnostic] = [
             GraphDiagnostic("parse_error", error) for error in parse_errors
         ]
@@ -170,6 +212,46 @@ class FailureGraphService:
                     ),
                 )
         return self.audit()
+
+    def _parse_immutable_snapshot(
+        self, validator: ModuleType, expected_artifacts: list[dict[str, str]]
+    ) -> tuple[list[Any], list[str], list[str]]:
+        """Read once, hash the same bytes, then parse only an immutable plan copy."""
+        plans_root = self.repo_root / "docs" / "plans"
+        captured: dict[str, bytes] = {}
+        for path in sorted(plans_root.rglob("*.md"), key=lambda item: str(item).casefold()):
+            if path.is_file():
+                captured[path.relative_to(self.repo_root).as_posix()] = path.read_bytes()
+        actual = [
+            {"path": path, "hash": hashlib.sha256(content).hexdigest()}
+            for path, content in captured.items()
+            if _is_failure_artifact(Path(path))
+        ]
+        if actual != expected_artifacts:
+            raise CoordinatorError(
+                "action_state_changed",
+                "Failure artifacts changed after controlled-action confirmation",
+            )
+        with tempfile.TemporaryDirectory(prefix="zircon-failure-snapshot-") as temporary:
+            snapshot_root = Path(temporary)
+            for relative, content in captured.items():
+                destination = snapshot_root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(content)
+            records, parse_errors = validator.parse_handoff_records(snapshot_root)
+            validation_errors = validator.validate_repository(snapshot_root)
+            normalized = [
+                replace(
+                    record,
+                    artifact_path=self.repo_root / record.artifact_path.relative_to(snapshot_root),
+                    origin_plan=self.repo_root / record.origin_plan.relative_to(snapshot_root),
+                    fixing_plan=self.repo_root / record.fixing_plan.relative_to(snapshot_root),
+                    origin_child_dir=self.repo_root / record.origin_child_dir.relative_to(snapshot_root),
+                    fixing_child_dir=self.repo_root / record.fixing_child_dir.relative_to(snapshot_root),
+                )
+                for record in records
+            ]
+        return normalized, parse_errors, validation_errors
 
     def audit(self) -> FailureGraphAudit:
         with self.database.connect() as connection:

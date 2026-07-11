@@ -40,7 +40,7 @@ function New-CloseoutFixture {
         [switch]$StageForeign,
         [switch]$AddUnownedManifestPath,
         [switch]$UseNonMain,
-        [string]$CommitMessage = "feat(runtime): complete M2 milestone",
+        [string]$CommitMessage = "【feature】feat(runtime): complete M2 milestone",
         [switch]$StageWebhook,
         [switch]$StageMaintenanceToken,
         [switch]$StageCredential,
@@ -366,6 +366,20 @@ Describe "Session Goal milestone closeout checker" {
             $result = Invoke-CloseoutCheck $script:fixture
             $result.ExitCode | Should Not Be 0
             Assert-ErrorCode $result "invalid_commit_message"
+            Remove-CloseoutFixture $script:fixture
+            $script:fixture = $null
+        }
+    }
+
+    It "rejects missing or mismatched plan-module commit prefixes" {
+        foreach ($message in @(
+            "feat(runtime): complete M2 milestone",
+            "【runtime】feat(runtime): complete M2 milestone"
+        )) {
+            $script:fixture = New-CloseoutFixture -CommitMessage $message
+            $result = Invoke-CloseoutCheck $script:fixture
+            $result.ExitCode | Should Not Be 0
+            Assert-ErrorCode $result "invalid_commit_module"
             Remove-CloseoutFixture $script:fixture
             $script:fixture = $null
         }

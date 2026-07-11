@@ -34,6 +34,9 @@ from .workspace_copy import WorkspaceCopyService
 from .legacy import LegacyMigrationService
 from .audit import RolloutAuditService
 from .control_plane.auth import WebControlAuth
+from .control_plane.actions.executor import ActionExecutor
+from .control_plane.actions.fingerprint import ActionFingerprinter
+from .control_plane.actions.service import ActionService
 from .control_plane.artifact_downloads import ArtifactDownloadService
 from .control_plane.assets import StaticAssetService
 from .control_plane.events import EventStreamService
@@ -56,6 +59,27 @@ def _pid_is_alive(pid: int) -> bool:
 
 
 class CoordinatorApplication:
+    READ_ONLY_COMMANDS = frozenset(
+        {
+            "session.list",
+            "session.show",
+            "baseline.status",
+            "baseline.diff",
+            "lease.list",
+            "patch.status",
+            "patch.list",
+            "plan.audit",
+            "plan.owner",
+            "failure.audit",
+            "failure.open",
+            "cargo.list",
+            "cleanup.plan",
+            "legacy.report",
+            "retention.show",
+            "audit.all",
+        }
+    )
+
     def __init__(
         self,
         config: CoordinatorConfig,
@@ -74,6 +98,7 @@ class CoordinatorApplication:
             config.repo_root,
             session_change_hook=self.workflows.synchronize_session_in_connection,
         )
+        self._mutation_lock = threading.RLock()
         self._maintenance_lock = threading.Lock()
         self.baselines = BaselineService(self.database, config.repo_root)
         self.object_store = ObjectStore(self.database, config.object_root)
@@ -125,7 +150,10 @@ class CoordinatorApplication:
             )
             self.cleanup.recover_reservations()
             self.workspace_copy: WorkspaceCopyService | None = WorkspaceCopyService(
-                self.database, config.repo_root, config.enabled_target_roots
+                self.database,
+                config.repo_root,
+                config.enabled_target_roots,
+                mutation_gate=lambda: self._mutation_lock,
             )
             self.workspace_copy.recover_interrupted_jobs()
         else:
@@ -146,6 +174,24 @@ class CoordinatorApplication:
         self.workflow_projections = WorkflowProjectionService()
         self.workflows.synchronize_sessions(self.sessions.list(include_archived=True))
         self.web_auth = WebControlAuth(self.database)
+        self.control_actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                config.repo_root,
+                daemon_instance_id=self.instance_id,
+            ),
+            ActionExecutor(
+                sessions=self.sessions,
+                leases=self.leases,
+                patches=self.patches,
+                failures=self.failures,
+                workspace_copy=self.workspace_copy,
+                workflows=self.workflows,
+            ),
+            daemon_instance_id=self.instance_id,
+            mutation_lock=self._mutation_lock,
+        )
         self.control_events = EventStreamService(self.database)
         self.control_snapshot = ControlSnapshotService(
             self.database,
@@ -192,25 +238,13 @@ class CoordinatorApplication:
         }
 
     def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        read_only_commands = {
-            "session.list",
-            "session.show",
-            "baseline.status",
-            "baseline.diff",
-            "lease.list",
-            "patch.status",
-            "patch.list",
-            "plan.audit",
-            "plan.owner",
-            "failure.audit",
-            "failure.open",
-            "cargo.list",
-            "cleanup.plan",
-            "legacy.report",
-            "retention.show",
-            "audit.all",
-        }
-        if self.read_only and name not in read_only_commands:
+        if name in self.READ_ONLY_COMMANDS:
+            return self._command_unlocked(name, arguments)
+        with self._mutation_lock:
+            return self._command_unlocked(name, arguments)
+
+    def _command_unlocked(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        if self.read_only and name not in self.READ_ONLY_COMMANDS:
             raise CoordinatorError(
                 "not_on_main",
                 f"Coordinator mutations require main; current branch is {self.branch}",
@@ -585,6 +619,10 @@ class CoordinatorApplication:
         return self.workspace_copy
 
     def _maintenance_tick(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        with self._mutation_lock:
+            return self._maintenance_tick_serialized(arguments)
+
+    def _maintenance_tick_serialized(self, arguments: dict[str, Any]) -> dict[str, Any]:
         if not self._maintenance_lock.acquire(blocking=False):
             raise CoordinatorError(
                 "maintenance_busy", "Another coordinator maintenance tick is already running"
@@ -736,6 +774,8 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
             snapshot=application.control_snapshot,
             workflows=application.workflow_projections,
             database=application.database,
+            actions=application.control_actions,
+            maintenance_authorizer=application._require_maintenance_capability,
         )
         self.control_http = ControlPlaneHttp(
             router,
@@ -965,7 +1005,8 @@ class RunningCoordinator:
         next_maintenance = time.monotonic() + maintenance_interval
         while not stop_event.wait(watch_interval):
             try:
-                application.watcher.scan_once()
+                with application._mutation_lock:
+                    application.watcher.scan_once()
             except Exception as error:  # pragma: no cover - defensive long-lived boundary
                 with application.database.transaction() as connection:
                     connection.execute(
@@ -977,7 +1018,8 @@ class RunningCoordinator:
                     )
             if application.cargo_jobs is not None:
                 try:
-                    orphaned = application.cargo_jobs.reconcile_orphans()
+                    with application._mutation_lock:
+                        orphaned = application.cargo_jobs.reconcile_orphans()
                     if orphaned:
                         with application.database.transaction() as connection:
                             connection.execute(
@@ -1001,9 +1043,10 @@ class RunningCoordinator:
                         )
             if application.workspace_copy is not None:
                 try:
-                    recovered_running, recovered_cleanup = (
-                        application.workspace_copy.recover_interrupted_jobs(startup=False)
-                    )
+                    with application._mutation_lock:
+                        recovered_running, recovered_cleanup = (
+                            application.workspace_copy.recover_interrupted_jobs(startup=False)
+                        )
                     if recovered_running or recovered_cleanup:
                         with application.database.transaction() as connection:
                             connection.execute(

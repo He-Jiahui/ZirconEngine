@@ -9,6 +9,12 @@ related_code:
   - tools/session_coordinator/control_plane/snapshot.py
   - tools/session_coordinator/control_plane/assets.py
   - tools/session_coordinator/control_plane/artifact_downloads.py
+  - tools/session_coordinator/control_plane/actions/catalog.py
+  - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/control_plane/actions/fingerprint.py
+  - tools/session_coordinator/control_plane/actions/models.py
+  - tools/session_coordinator/control_plane/actions/permissions.py
+  - tools/session_coordinator/control_plane/actions/service.py
   - tools/session_coordinator/web/src/App.tsx
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/client.py
@@ -23,6 +29,12 @@ implementation_files:
   - tools/session_coordinator/control_plane/snapshot.py
   - tools/session_coordinator/control_plane/assets.py
   - tools/session_coordinator/control_plane/artifact_downloads.py
+  - tools/session_coordinator/control_plane/actions/catalog.py
+  - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/control_plane/actions/fingerprint.py
+  - tools/session_coordinator/control_plane/actions/models.py
+  - tools/session_coordinator/control_plane/actions/permissions.py
+  - tools/session_coordinator/control_plane/actions/service.py
   - tools/session_coordinator/web/src/App.tsx
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/client.py
@@ -38,6 +50,11 @@ tests:
   - tools/session_coordinator/tests/test_control_snapshot.py
   - tools/session_coordinator/tests/test_control_assets.py
   - tools/session_coordinator/tests/test_artifact_downloads.py
+  - tools/session_coordinator/tests/test_action_catalog.py
+  - tools/session_coordinator/tests/test_action_auth.py
+  - tools/session_coordinator/tests/test_action_fingerprint.py
+  - tools/session_coordinator/tests/test_action_execution.py
+  - tools/session_coordinator/tests/test_action_concurrency.py
   - tools/session_coordinator/web/src/__tests__/components.test.tsx
   - tools/session_coordinator/web/src/__tests__/contracts.test.ts
   - tools/session_coordinator/web/src/__tests__/events.test.ts
@@ -50,9 +67,9 @@ doc_type: operator-guide
 
 # Workflow Control Center
 
-## Current M2 Surface
+## Current M3 Surface
 
-M1 adds the read-only, loopback-only control facade. M2 adds the production browser console that renders the coherent snapshot and ordered event stream. The console covers overview, workflow pipelines, Sessions, Failure graph, collaboration leases and delayed patches, Cargo/validation-copy activity, milestone Git evidence, audit, logs and service metadata. It contains no browser-side mutations; controlled actions and the tray process belong to later milestones.
+M1 adds the loopback-only control facade and M2 adds the production read console. M3 adds a closed Action Catalog, short-lived elevated roles, CSRF protection, state-bound preview/confirm, typed yellow executors and immutable approval evidence. The coordinator remains the only mutation authority; the browser cannot supply shell commands, Git/Cargo arguments, SQL, repository paths, webhook content or a generic command kind. Red commit and lifecycle actions are visible but disabled until M4/M5.
 
 The facade is versioned under `/control/v1`. Existing coordinator commands and authenticated legacy routes remain available and unchanged.
 
@@ -68,7 +85,7 @@ Start or verify the coordinator first, then request a short-lived Observer boots
 
 `ui open` asks the daemon for a one-time ticket and opens the loopback URL. The ticket expires after 30 seconds, is stored only as a digest, can be consumed once and is bound to the current daemon instance. Successful consumption creates an eight-hour `HttpOnly`, `SameSite=Strict` cookie scoped to `/control`; ordinary output does not print the ticket.
 
-After authentication the daemon serves the production console at `/ui/`. Deep links below `/ui/` use the console shell, while `/control/v1/*` never falls back to HTML. The page remains explicitly read-only even when the daemon itself runs on `main` in read-write mode.
+After authentication the daemon serves the production console at `/ui/`. Deep links below `/ui/` use the console shell, while `/control/v1/*` never falls back to HTML. The page starts as Observer even when the daemon runs on `main`; mutation controls remain disabled until a short-lived, Session-bound elevation is consumed.
 
 For terminal inspection without a browser:
 
@@ -86,14 +103,45 @@ For terminal inspection without a browser:
 - `GET /control/v1/logs?limit={count}&before={event-id}` returns a bounded audit range for virtualized log paging.
 - `GET /control/v1/events/stream` streams ordered Server-Sent Events from `Last-Event-ID` or the `cursor` query parameter and rejects capacity overflow instead of silently adding unbounded clients.
 - `GET /control/v1/artifacts/{opaque-id}` downloads coordinator-owned evidence. The database mapping, not a browser path, selects the file; resolved files must remain below the workflow artifact root. Single byte ranges are supported and bounded.
+- `POST /control/v1/elevation-grants` is runtime-authenticated and issues one-use elevated grants; Maintainer also requires the separate maintenance capability.
+- `POST /control/v1/auth/elevate` consumes a grant with the existing Observer cookie and returns the one in-memory CSRF token.
+- `GET /control/v1/actions/catalog` and `GET /control/v1/actions/{action-id}` expose the closed catalog and sanitized status.
+- `POST /control/v1/actions/preview`, `POST /control/v1/actions/{action-id}/confirm`, and `POST /control/v1/actions/{action-id}/cancel` implement the two-phase mutation protocol.
 
 Every JSON response uses the v1 envelope and carries a correlation identifier. Unexpected internal exceptions are logged server-side and returned as sanitized error contracts.
 
 ## Browser Trust Boundary
 
-The server listens only on `127.0.0.1`. Browser-facing requests must use an exact loopback `Host`; requests with a non-loopback Host fail closed. State-changing browser requests are not part of M1. Later milestones must additionally require an elevated role, CSRF token and serialized service command path before enabling actions.
+The server listens only on `127.0.0.1`. Browser-facing requests must use an exact loopback `Host`; requests with a non-loopback Host fail closed. Every M3 mutation requires an elevated role, the `HttpOnly` control cookie, an exact loopback Origin and the current `X-CSRF-Token`. Elevation rotates the CSRF token and expires after 15 minutes; daemon restart invalidates the cookie/grant instance binding.
 
 No bearer token, maintenance capability, ticket value, cookie value or Enterprise WeChat endpoint belongs in Git, API payloads, dashboard logs or screenshots.
+
+## Permission Issuance
+
+Observer is automatic. Operator and Committer grants are issued only through the bearer-authenticated local CLI/tray path; Maintainer additionally requires the separate process-local maintenance capability. A grant is stored as a digest, expires after 60 seconds and can be consumed once.
+
+```powershell
+.\tools\zircon-session.ps1 control elevate `
+  --role operator `
+  --session-id workflow-control-center-20260711-1915 `
+  --actor local-cli `
+  -Json
+```
+
+Paste only the returned one-time grant into the console's **受控操作** page. The browser cannot issue a grant. Committer must bind to a Session; Operator should normally bind as well. A grant whose actor, daemon instance or Session binding differs from the cookie is rejected. Do not persist grants or CSRF tokens in files, screenshots, logs or Git.
+
+## Action Lifecycle and Audit
+
+All mutations use `Preview -> Confirm -> Execute`:
+
+1. Preview validates the closed typed parameters, role and Session binding, then stores Action ID, risk, impact, warnings, confirmation-phrase hash, expiry and a state fingerprint.
+2. Confirm requires the exact phrase and a non-empty reason. Under the daemon's shared mutation gate it recomputes HEAD, index, baseline, target hashes, leases, Failure Markdown/graph, delayed patches, validation copies, plan hash, Cargo jobs, Session status and daemon identity.
+3. A mismatch records `state_changed` and performs no side effect. The UI creates a new preview, shows the added/removed impact and fingerprint change, and never retries the mutation automatically.
+4. A match writes an immutable approval row and keeps the shared mutation gate through the typed side effect. Patch, Failure and validation actions execute against the exact resource set pinned by preview; success or sanitized failure is recorded in both `action_requests` and the event audit.
+
+Yellow actions cover Session heartbeat/activation, Session-write-scope lease claim, own-lease release, own delayed-patch processing, allowlisted validation templates/cancel, Failure refresh, topology refresh and drain preview. Drain preview intentionally has no lifecycle executor before M5. Validation source and command are server-derived; browser paths and argv are not accepted. Validation start registers the child process while holding the mutation gate and completes asynchronously, so cancellation and other control operations remain available while the command runs.
+
+Useful stable denial codes include `action_kind_unknown`, `action_parameters_invalid`, `action_disabled`, `action_permission_denied`, `action_session_scope_mismatch`, `csrf_invalid`, `action_confirmation_mismatch`, `action_expired`, `action_state_changed` and `action_lease_conflict`. Use the Action ID to find the corresponding `action.*` event without copying credentials.
 
 ## Snapshot and Event Consistency
 
@@ -117,4 +165,4 @@ The web package lives at `tools/session_coordinator/web` and is independent from
 
 ## Validation State
 
-M1 and M2 unit and integration coverage is defined in the files listed in this document header. Accepted milestone evidence is recorded under the owning numbered plan directory.
+M1-M3 unit and integration coverage is defined in the files listed in this document header. Accepted milestone evidence is recorded under the owning numbered plan directory.

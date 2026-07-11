@@ -134,6 +134,23 @@ class PatchTests(unittest.TestCase):
             "after restart\n", (self.repo / "README.md").read_text(encoding="utf-8")
         )
 
+    def test_process_queue_can_pin_the_previewed_patch_set(self) -> None:
+        self.assertTrue(self.leases.acquire("session-a", ["README.md"]).acquired)
+        previewed = self.patches.submit(
+            "session-b", replacement_patch("baseline", "previewed"), ["README.md"]
+        )
+        later = self.patches.submit(
+            "session-b", replacement_patch("baseline", "later"), ["README.md"]
+        )
+        self.leases.release("session-a", ["README.md"])
+
+        processed = self.patches.process_queue(
+            session_id="session-b", patch_ids=(previewed.patch_id,)
+        )
+
+        self.assertEqual([previewed.patch_id], [item.patch_id for item in processed])
+        self.assertEqual(PatchStatus.QUEUED, self.patches.get(later.patch_id).status)
+
 
 if __name__ == "__main__":
     unittest.main()

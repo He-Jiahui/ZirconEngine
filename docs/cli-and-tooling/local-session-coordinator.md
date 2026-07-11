@@ -29,6 +29,10 @@ related_code:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/control_plane/actions/catalog.py
+  - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/control_plane/actions/fingerprint.py
+  - tools/session_coordinator/control_plane/actions/service.py
   - tools/session_coordinator/workflows/models.py
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
@@ -66,6 +70,10 @@ implementation_files:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/control_plane/actions/catalog.py
+  - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/control_plane/actions/fingerprint.py
+  - tools/session_coordinator/control_plane/actions/service.py
   - tools/session_coordinator/workflows/models.py
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
@@ -107,6 +115,11 @@ tests:
   - tools/session_coordinator/tests/test_control_http.py
   - tools/session_coordinator/tests/test_control_security.py
   - tools/session_coordinator/tests/test_control_snapshot.py
+  - tools/session_coordinator/tests/test_action_catalog.py
+  - tools/session_coordinator/tests/test_action_auth.py
+  - tools/session_coordinator/tests/test_action_fingerprint.py
+  - tools/session_coordinator/tests/test_action_execution.py
+  - tools/session_coordinator/tests/test_action_concurrency.py
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -130,7 +143,7 @@ Run the Windows entrypoint from the repository root:
 
 The wrapper starts Python in a hidden window only when the health endpoint is unavailable. The daemon binds an operating-system-assigned port on `127.0.0.1` and writes its port, PID and random bearer token to `.codex/state/session-coordinator/runtime.json`.
 
-Schema version 14 adds the read-only workflow control facade. The runtime descriptor also records the daemon `instance_id`, `started_at`, and supported `control_api_versions`, allowing local clients to reject credentials created by a previous daemon instance. Detailed operator guidance lives in [Workflow Control Center](workflow-control-center.md); module contracts live in [Control Plane](../tools/session_coordinator/control-plane.md) and [Workflow Read Model](../tools/session_coordinator/workflows.md).
+Schema version 16 completes the permissioned controlled-action protocol on top of the read-only workflow facade. It closes `action_kind` at the database boundary and installs compatibility triggers for databases that already applied the early v15 action tables. The runtime descriptor also records the daemon `instance_id`, `started_at`, and supported `control_api_versions`, allowing local clients to reject credentials created by a previous daemon instance. Detailed operator guidance lives in [Workflow Control Center](workflow-control-center.md); module contracts live in [Control Plane](../tools/session_coordinator/control-plane.md) and [Workflow Read Model](../tools/session_coordinator/workflows.md).
 
 Open the current Observer surface or inspect the same coherent snapshot from the terminal:
 
@@ -140,7 +153,7 @@ Open the current Observer surface or inspect the same coherent snapshot from the
 .\tools\zircon-session.ps1 control snapshot -Json
 ```
 
-Observer tickets are opaque, single-use and valid for 30 seconds. Consumption creates an eight-hour `HttpOnly`, `SameSite=Strict` cookie bound to the current daemon instance and scoped to `/control`. M1 exposes no browser mutation route; elevated roles, CSRF enforcement and serialized operator actions are introduced only in later milestones.
+Observer tickets are opaque, single-use and valid for 30 seconds. Consumption creates an eight-hour `HttpOnly`, `SameSite=Strict` cookie bound to the current daemon instance and scoped to `/control`. M3 mutations require a CLI/tray-issued one-use elevation grant, short-lived role, Session binding and rotated CSRF token; the browser cannot self-elevate or submit arbitrary commands or paths.
 
 All mutable coordinator data remains under `.codex/state/session-coordinator/`:
 
@@ -336,11 +349,11 @@ Completing a business Session records lifecycle state only; it never creates a G
 
 ```powershell
 .\tools\zircon-session.ps1 finalize preview `
-  --message "feat(runtime): converge lifecycle" `
+  --message "【frameworks】feat(runtime): converge lifecycle" `
   --path zircon_runtime/src/lifecycle.rs
 
 .\tools\zircon-session.ps1 finalize --commit `
-  --message "feat(runtime): converge lifecycle" `
+  --message "【frameworks】feat(runtime): converge lifecycle" `
   --path zircon_runtime/src/lifecycle.rs
 ```
 
@@ -349,10 +362,12 @@ An accepted milestone uses the same service-owned mutex while keeping the Sessio
 ```powershell
 .\tools\zircon-session.ps1 finalize --commit --milestone `
   --session-id <session-id> `
-  --message "feat(runtime): complete M2 milestone" `
+  --message "【frameworks】feat(runtime): complete M2 milestone" `
   --path zircon_runtime/src/lifecycle.rs `
   --path docs/plans/zircon_runtime/frameworks/02/2026-07-11-m2.md
 ```
+
+The full-width prefix is mandatory and comes from the directory containing the registered numbered plan definition. For the example plan under `docs/plans/zircon_runtime/frameworks/`, the module is `frameworks`; the service fills a missing prefix for direct callers and rejects a conflicting prefix, while closeout independently requires the explicit canonical subject.
 
 Milestone commit paths must have live leases owned by the Session and current-hash attribution. The service re-imports canonical Failure Markdown, rejects validator diagnostics or open Failure nodes where the Session plan is either origin or fixer, takes `git_mutex`, rechecks the exact index and staged blob identities, and advances `HEAD` with compare-and-swap. The Session remains active after success. This command is the only business-Session commit path; a plain `git commit` is outside the workflow.
 

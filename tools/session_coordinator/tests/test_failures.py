@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from types import SimpleNamespace
 from datetime import date
 from pathlib import Path
 from unittest import mock
 
 from tools.session_coordinator.database import Database
-from tools.session_coordinator.failures import FailureGraphService, FailureResolution
+from tools.session_coordinator.failures import (
+    FailureGraphService,
+    FailureResolution,
+    failure_artifact_snapshot,
+)
+from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 
@@ -36,6 +42,45 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual(2, audit.node_count)
         self.assertEqual([], [item for item in audit.diagnostics if item.code != "duplicate_plan_edge"])
         self.assertEqual(["first", "second"], [node.summary_slug for node in open_nodes])
+
+    def test_import_rejects_failure_files_changed_after_action_preview(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        handoff = self.fixture.add_handoff(origin, fixing, "previewed")
+        expected = failure_artifact_snapshot(self.root)
+        handoff.write_text(
+            handoff.read_text(encoding="utf-8") + "\nchanged after preview\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(CoordinatorError) as changed:
+            self.service.import_repository(expected_artifacts=expected)
+
+        self.assertEqual("action_state_changed", changed.exception.code)
+
+    def test_controlled_import_parses_the_same_bytes_that_were_hashed(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        handoff = self.fixture.add_handoff(origin, fixing, "approved")
+        expected = failure_artifact_snapshot(self.root)
+        validator = self.service._validator_module()
+
+        def mutate_then_parse(snapshot_root: Path):
+            handoff.write_text(
+                handoff.read_text(encoding="utf-8").replace(
+                    "summary_slug: approved", "summary_slug: unapproved"
+                ),
+                encoding="utf-8",
+            )
+            return validator.parse_handoff_records(snapshot_root)
+
+        self.service._validator = SimpleNamespace(
+            parse_handoff_records=mutate_then_parse,
+            validate_repository=validator.validate_repository,
+        )
+        audit = self.service.import_repository(expected_artifacts=expected)
+
+        self.assertEqual(["approved"], [node.summary_slug for node in audit.nodes])
 
     def test_cycle_self_edge_and_duplicate_lifecycle_are_reported(self) -> None:
         plan_a = self.fixture.add_plan("docs/plans/a/01-a.md")

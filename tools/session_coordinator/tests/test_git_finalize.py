@@ -26,8 +26,23 @@ class GitFinalizeTests(unittest.TestCase):
         config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(config.database_path)
         migrate(self.database)
+        plan_path = self.repo / "docs" / "plans" / "runtime" / "01-feature.md"
+        plan_path.parent.mkdir(parents=True, exist_ok=True)
+        plan_path.write_text("# Runtime feature plan\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "--", "docs/plans/runtime/01-feature.md"],
+            cwd=self.repo,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add runtime plan"],
+            cwd=self.repo,
+            check=True,
+        )
         self.sessions = SessionService(self.database, self.repo)
-        self.sessions.register(session_id="session-a")
+        self.sessions.register(
+            session_id="session-a", plan_path="docs/plans/runtime/01-feature.md"
+        )
         self.sessions.set_status("session-a", SessionStatus.ACTIVE)
         self.baselines = BaselineService(self.database, self.repo)
         self.baselines.initialize()
@@ -99,6 +114,30 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(sorted(paths), sorted(item for item in committed if item))
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
         self.assertEqual(result.commit_sha, self._head())
+        self.assertEqual(
+            "【runtime】feat(runtime): complete M2 milestone", result.message
+        )
+
+    def test_preview_uses_registered_plan_folder_as_commit_module(self) -> None:
+        paths = self._complete_with_changes()
+
+        preview = self.service.preview(
+            "session-a", paths=paths, message="feat(runtime): add feature"
+        )
+
+        self.assertEqual("【runtime】feat(runtime): add feature", preview.message)
+
+    def test_preview_rejects_a_module_prefix_that_disagrees_with_plan(self) -> None:
+        paths = self._complete_with_changes()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.preview(
+                "session-a",
+                paths=paths,
+                message="【editor_ui】feat(runtime): add feature",
+            )
+
+        self.assertEqual("finalize_message_module_mismatch", rejected.exception.code)
 
     def test_milestone_commit_requires_live_owned_leases(self) -> None:
         path = "src/milestone.py"

@@ -179,12 +179,22 @@ class ControlPlaneHttp:
 
     @staticmethod
     def _status_for(code: str) -> int:
-        if code in {"invalid_host", "invalid_origin", "origin_required"}:
+        if code in {
+            "invalid_host",
+            "invalid_origin",
+            "origin_required",
+            "csrf_invalid",
+            "action_permission_denied",
+            "action_session_scope_mismatch",
+            "web_session_scope_mismatch",
+        }:
             return HTTPStatus.FORBIDDEN
         if code.startswith("web_session") or code == "runtime_auth_required":
             return HTTPStatus.UNAUTHORIZED
         if code == "not_found" or code.endswith("_not_found"):
             return HTTPStatus.NOT_FOUND
+        if code in {"action_expired", "elevation_grant_expired"}:
+            return HTTPStatus.GONE
         if code in {"invalid_json", "invalid_request", "invalid_cursor", "request_too_large"}:
             return HTTPStatus.BAD_REQUEST
         if code == "invalid_range":

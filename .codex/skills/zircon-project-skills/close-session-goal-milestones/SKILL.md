@@ -26,6 +26,8 @@ Treat each accepted milestone as a normal Git commit boundary. Preserve foreign 
 
 ## Validate and commit
 
+Build every automatic commit subject as `【{module}】{conventional subject}`. Derive `module` from the directory that directly contains the registered numbered plan definition; for example, `docs/plans/zircon_tooling/session_coordinator/01-workflow.md` requires `【session_coordinator】feat(workflow): ...`. Use the exact full-width brackets and do not insert a space before the Conventional Commit. Never invent a broader crate label when it differs from the registered plan folder.
+
 Stage only the manifest paths. If a repository-owned skill path is intentionally covered by the blanket `.codex` ignore, use `git add -f -- <exact-path>` only for that attributed manifest entry. Then run:
 
 ```powershell

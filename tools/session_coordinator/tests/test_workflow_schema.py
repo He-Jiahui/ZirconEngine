@@ -24,8 +24,8 @@ class WorkflowSchemaTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE type = 'table'"
                     )
                 }
-            self.assertEqual(14, LATEST_SCHEMA_VERSION)
-            self.assertEqual(14, version)
+            self.assertEqual(16, LATEST_SCHEMA_VERSION)
+            self.assertEqual(16, version)
             self.assertTrue(
                 {
                     "workflow_runs",
@@ -61,7 +61,7 @@ class WorkflowSchemaTests(unittest.TestCase):
                     """
                 )
 
-            self.assertEqual(14, migrate(database))
+            self.assertEqual(16, migrate(database))
 
             with database.connect() as connection:
                 self.assertIsNotNone(
@@ -81,7 +81,7 @@ class WorkflowSchemaTests(unittest.TestCase):
             migrate(database)
             with database.transaction() as connection:
                 connection.execute(
-                    "INSERT INTO schema_version(version, applied_at) VALUES (15, 'future')"
+                    "INSERT INTO schema_version(version, applied_at) VALUES (17, 'future')"
                 )
                 connection.execute("CREATE TABLE future_marker(value TEXT)")
                 connection.execute("INSERT INTO future_marker VALUES ('preserved')")
@@ -109,6 +109,31 @@ class WorkflowSchemaTests(unittest.TestCase):
                             run_id, workflow_key, state, created_at, updated_at
                         ) VALUES ('run-a', 'goal-a', 'almost_done', 'now', 'now')
                         """
+                    )
+
+    def test_action_kind_is_a_closed_database_enum(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            with database.connect() as connection:
+                table_sql = connection.execute(
+                    "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'action_requests'"
+                ).fetchone()[0]
+            self.assertIn("action_kind TEXT NOT NULL CHECK", table_sql)
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                with database.transaction() as connection:
+                    connection.execute(
+                        """INSERT INTO action_requests(
+                               action_id, action_kind, risk, required_role, actor,
+                               daemon_instance_id, parameters_json, impact_json,
+                               warnings_json, state_fingerprint,
+                               confirmation_phrase_hash, status, created_at, expires_at
+                           ) VALUES (
+                               'invalid-action', 'shell.run', 'yellow', 'operator',
+                               'test', 'instance', '{}', '[]', '[]', 'fingerprint',
+                               'phrase', 'previewed', 'now', 'later'
+                           )"""
                     )
 
     def test_duplicate_workflow_edges_are_rejected(self) -> None:

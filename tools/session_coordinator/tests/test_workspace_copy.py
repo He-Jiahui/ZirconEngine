@@ -107,6 +107,64 @@ class WorkspaceCopyTests(unittest.TestCase):
         recorded = (result.source_root / "target-path.txt").read_text(encoding="utf-8")
         self.assertEqual(str(result.target_root), recorded)
 
+    def test_start_returns_running_job_that_can_be_cancelled(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        started = self.service.start(
+            "session-a",
+            result.job_id,
+            command=(sys.executable, "-c", "import time; time.sleep(30)"),
+        )
+
+        self.assertEqual("running", started["status"])
+        self.assertGreater(int(started["pid"]), 0)
+        cancelled = self.service.cancel("session-a", result.job_id)
+        self.assertEqual("cancelling", cancelled["status"])
+        for _ in range(100):
+            with self.database.connect() as connection:
+                status = connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id = ?",
+                    (result.job_id,),
+                ).fetchone()["status"]
+            if status != "running":
+                break
+            threading.Event().wait(0.05)
+        self.assertEqual("materialized", status)
+
+    def test_async_completion_uses_the_shared_mutation_gate(self) -> None:
+        gate = threading.Lock()
+        service = WorkspaceCopyService(
+            self.database,
+            self.repo,
+            (self.target_root,),
+            mutation_gate=lambda: gate,
+        )
+        result = service.materialize("session-a", include_paths=("README.md",))
+        gate.acquire()
+        try:
+            service.start(
+                "session-a", result.job_id, command=(sys.executable, "-c", "pass")
+            )
+            threading.Event().wait(0.2)
+            with self.database.connect() as connection:
+                status = connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id = ?",
+                    (result.job_id,),
+                ).fetchone()["status"]
+            self.assertEqual("running", status)
+        finally:
+            gate.release()
+        for _ in range(100):
+            with self.database.connect() as connection:
+                status = connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id = ?",
+                    (result.job_id,),
+                ).fetchone()["status"]
+            if status == "materialized":
+                break
+            threading.Event().wait(0.05)
+        self.assertEqual("materialized", status)
+
     def test_cleanup_rejects_paths_outside_managed_verify_job(self) -> None:
         with self.assertRaises(CoordinatorError):
             self.service.cleanup("session-a", self.repo)

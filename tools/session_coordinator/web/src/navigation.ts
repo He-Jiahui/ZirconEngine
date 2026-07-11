@@ -2,6 +2,7 @@ export const routes = [
   { path: "/ui/", label: "总览", key: "overview" },
   { path: "/ui/workflows", label: "工作流", key: "workflows" },
   { path: "/ui/sessions", label: "会话", key: "sessions" },
+  { path: "/ui/actions", label: "受控操作", key: "actions" },
   { path: "/ui/failures", label: "失败链", key: "failures" },
   { path: "/ui/collaboration", label: "协作", key: "collaboration" },
   { path: "/ui/validation", label: "验证", key: "validation" },

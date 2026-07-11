@@ -7,7 +7,7 @@ from .database import Database
 from .models import CoordinatorError
 
 
-LATEST_SCHEMA_VERSION = 14
+LATEST_SCHEMA_VERSION = 16
 
 
 def _migration_1(connection: Connection) -> None:
@@ -597,6 +597,120 @@ def _migration_14(connection: Connection) -> None:
     )
 
 
+def _migration_15(connection: Connection) -> None:
+    connection.executescript(
+        """
+        ALTER TABLE web_control_sessions ADD COLUMN bound_session_id TEXT;
+        ALTER TABLE web_control_sessions ADD COLUMN csrf_token_hash TEXT;
+        ALTER TABLE web_control_sessions ADD COLUMN elevated_until TEXT;
+
+        CREATE TABLE web_elevation_grants (
+            grant_hash TEXT PRIMARY KEY,
+            actor TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN (
+                'operator', 'committer', 'maintainer'
+            )),
+            bound_session_id TEXT,
+            daemon_instance_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            consumed_at TEXT
+        );
+        CREATE INDEX web_elevation_grants_instance_expiry
+            ON web_elevation_grants(daemon_instance_id, expires_at);
+
+        CREATE TABLE action_requests (
+            action_id TEXT PRIMARY KEY,
+            action_kind TEXT NOT NULL CHECK (action_kind IN (
+                'session.heartbeat', 'session.activate', 'lease.claim_own_scope',
+                'lease.release_own', 'patch.process_own', 'validation.start',
+                'validation.cancel', 'failure.refresh', 'topology.refresh',
+                'service.drain_preview', 'milestone.commit', 'session.complete',
+                'service.restart', 'maintenance.cleanup'
+            )),
+            risk TEXT NOT NULL CHECK (risk IN ('green', 'yellow', 'red')),
+            required_role TEXT NOT NULL CHECK (required_role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            actor TEXT NOT NULL,
+            web_session_id TEXT,
+            bound_session_id TEXT,
+            daemon_instance_id TEXT NOT NULL,
+            parameters_json TEXT NOT NULL,
+            impact_json TEXT NOT NULL,
+            warnings_json TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            confirmation_phrase_hash TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'previewed', 'executing', 'succeeded', 'failed', 'cancelled',
+                'expired', 'state_changed', 'denied'
+            )),
+            reason TEXT,
+            result_json TEXT,
+            error_code TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            confirmed_at TEXT,
+            completed_at TEXT
+        );
+        CREATE INDEX action_requests_actor_created
+            ON action_requests(actor, created_at);
+        CREATE INDEX action_requests_status_expiry
+            ON action_requests(status, expires_at);
+
+        CREATE TABLE action_approvals (
+            approval_id TEXT PRIMARY KEY,
+            action_id TEXT NOT NULL REFERENCES action_requests(action_id),
+            actor TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            reason TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX action_approvals_action ON action_approvals(action_id);
+        CREATE TRIGGER action_approvals_no_update
+        BEFORE UPDATE ON action_approvals
+        BEGIN
+            SELECT RAISE(ABORT, 'action approvals are immutable');
+        END;
+        CREATE TRIGGER action_approvals_no_delete
+        BEFORE DELETE ON action_approvals
+        BEGIN
+            SELECT RAISE(ABORT, 'action approvals are immutable');
+        END;
+        """
+    )
+
+
+def _migration_16(connection: Connection) -> None:
+    """Enforce the M3 action enum for databases that applied early schema 15."""
+    allowed = """
+        'session.heartbeat', 'session.activate', 'lease.claim_own_scope',
+        'lease.release_own', 'patch.process_own', 'validation.start',
+        'validation.cancel', 'failure.refresh', 'topology.refresh',
+        'service.drain_preview', 'milestone.commit', 'session.complete',
+        'service.restart', 'maintenance.cleanup'
+    """
+    connection.executescript(
+        f"""
+        CREATE TRIGGER action_requests_kind_insert
+        BEFORE INSERT ON action_requests
+        WHEN NEW.action_kind NOT IN ({allowed})
+        BEGIN
+            SELECT RAISE(ABORT, 'invalid controlled action kind');
+        END;
+        CREATE TRIGGER action_requests_kind_update
+        BEFORE UPDATE OF action_kind ON action_requests
+        WHEN NEW.action_kind NOT IN ({allowed})
+        BEGIN
+            SELECT RAISE(ABORT, 'invalid controlled action kind');
+        END;
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -612,6 +726,8 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     12: _migration_12,
     13: _migration_13,
     14: _migration_14,
+    15: _migration_15,
+    16: _migration_16,
 }
 
 

@@ -62,6 +62,21 @@ class CoordinatorClient:
     def control_snapshot(self) -> dict[str, Any]:
         return self.control_request("GET", "/control/v1/snapshot")
 
+    def issue_elevation_grant(
+        self,
+        *,
+        actor: str,
+        role: str,
+        session_id: str | None = None,
+        maintenance_capability: str | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"actor": actor, "role": role}
+        if session_id:
+            payload["sessionId"] = session_id
+        if maintenance_capability:
+            payload["maintenance_capability"] = maintenance_capability
+        return self.control_request("POST", "/control/v1/elevation-grants", payload)
+
     def control_request(
         self,
         method: str,

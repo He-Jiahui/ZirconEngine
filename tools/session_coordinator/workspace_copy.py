@@ -4,9 +4,12 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 import uuid
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable, ContextManager
 
 from .baselines import hash_file
 from .database import Database
@@ -62,6 +65,7 @@ class WorkspaceCopyService:
         database: Database,
         repo_root: str | Path,
         target_roots: tuple[str | Path, ...],
+        mutation_gate: Callable[[], ContextManager[None]] | None = None,
     ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
@@ -76,6 +80,30 @@ class WorkspaceCopyService:
                     "invalid_target_root", f"Invalid validation-copy target root: {root}"
                 )
         self.target_roots = roots
+        self._running_lock = threading.Lock()
+        self._running_processes: dict[str, subprocess.Popen[str]] = {}
+        self._mutation_gate = mutation_gate
+
+    def validation_manifest(self, session_id: str) -> tuple[str, ...]:
+        """Derive a validation copy from tracked files plus current Session ownership."""
+        self._require_session(session_id)
+        tracked = set(self._git_text("ls-files").splitlines())
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                "SELECT display_path, content_hash FROM attributions WHERE session_id = ?",
+                (session_id,),
+            ).fetchall()
+        for row in rows:
+            if row["content_hash"] is None:
+                tracked.discard(row["display_path"])
+            else:
+                tracked.add(row["display_path"])
+        manifest = tuple(sorted((path for path in tracked if path), key=str.casefold))
+        if not manifest:
+            raise CoordinatorError(
+                "validation_copy_manifest_empty", "Validation copy has no server-derived files"
+            )
+        return manifest
 
     def plan(
         self, session_id: str, *, include_paths: tuple[str, ...] | list[str]
@@ -159,13 +187,15 @@ class WorkspaceCopyService:
                         f"Untracked validation path is not owned by Session {session_id}: {path}",
                     )
                 destination.write_bytes(head_content)
-            with self.database.transaction() as connection:
+            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+            with gate, self.database.transaction() as connection:
                 connection.execute(
                     "UPDATE validation_copies SET status = 'materialized' WHERE job_id = ?",
                     (record.job_id,),
                 )
         except BaseException:
-            with self.database.transaction() as connection:
+            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+            with gate, self.database.transaction() as connection:
                 connection.execute(
                     "UPDATE validation_copies SET status = 'failed' WHERE job_id = ?",
                     (record.job_id,),
@@ -236,6 +266,8 @@ class WorkspaceCopyService:
                 stderr=subprocess.PIPE,
                 text=True,
             )
+            with self._running_lock:
+                self._running_processes[job_id] = process
             with self.database.transaction() as connection:
                 connection.execute(
                     "UPDATE validation_copies SET run_pid = ? WHERE job_id = ? AND status = 'running'",
@@ -279,8 +311,170 @@ class WorkspaceCopyService:
                     (job_id,),
                 )
             raise
+        finally:
+            with self._running_lock:
+                self._running_processes.pop(job_id, None)
         return ValidationRunEvidence(
             run_id, job_id, command_tuple, int(process.returncode), stdout, stderr
+        )
+
+    def start(
+        self, session_id: str, job_id: str, *, command: tuple[str, ...] | list[str]
+    ) -> dict[str, object]:
+        """Launch a managed validation and return after the process is registered."""
+        command_tuple = tuple(str(part) for part in command if str(part))
+        if not command_tuple:
+            raise CoordinatorError(
+                "validation_copy_command_empty", "Validation command cannot be empty"
+            )
+        with self.database.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+            if row is None:
+                raise CoordinatorError(
+                    "validation_copy_not_found", f"Unknown validation-copy job: {job_id}"
+                )
+            if row["session_id"] != session_id:
+                raise CoordinatorError(
+                    "validation_copy_foreign_session",
+                    "Validation copy belongs to another Session",
+                )
+            cursor = connection.execute(
+                """UPDATE validation_copies SET status = 'running', run_pid = NULL
+                   WHERE job_id = ? AND status = 'materialized'""",
+                (job_id,),
+            )
+            if cursor.rowcount != 1:
+                raise CoordinatorError(
+                    "validation_copy_not_materialized",
+                    "Validation copy is already running or unavailable",
+                )
+        run_id = uuid.uuid4().hex
+        started_at = utc_text()
+        process: subprocess.Popen[str] | None = None
+        try:
+            source_root = Path(row["source_root"]).resolve()
+            target_root = Path(row["target_root"]).resolve()
+            job_root = Path(row["job_root"]).resolve()
+            self._validate_job_root(job_root)
+            if source_root.parent != job_root or target_root.parent != job_root:
+                raise CoordinatorError(
+                    "validation_copy_path_not_managed",
+                    "Validation-copy run roots escaped the job root",
+                )
+            environment = os.environ.copy()
+            environment["CARGO_TARGET_DIR"] = str(target_root)
+            process = subprocess.Popen(
+                command_tuple,
+                cwd=source_root,
+                env=environment,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            with self._running_lock:
+                self._running_processes[job_id] = process
+            with self.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE validation_copies SET run_pid = ? WHERE job_id = ? AND status = 'running'",
+                    (process.pid, job_id),
+                )
+            threading.Thread(
+                target=self._finish_started_run,
+                args=(session_id, job_id, run_id, command_tuple, started_at, process),
+                name=f"zircon-validation-{job_id[:12]}",
+                daemon=True,
+            ).start()
+        except BaseException:
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            with self._running_lock:
+                self._running_processes.pop(job_id, None)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
+                    (job_id,),
+                )
+            raise
+        return {
+            "jobId": job_id,
+            "runId": run_id,
+            "pid": process.pid,
+            "status": "running",
+        }
+
+    def _finish_started_run(
+        self,
+        session_id: str,
+        job_id: str,
+        run_id: str,
+        command: tuple[str, ...],
+        started_at: str,
+        process: subprocess.Popen[str],
+    ) -> None:
+        try:
+            stdout_full, stderr_full = process.communicate()
+            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+            with gate, self.database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO validation_copy_runs(
+                           run_id, job_id, session_id, command_json, exit_code,
+                           stdout_text, stderr_text, started_at, completed_at
+                       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        run_id,
+                        job_id,
+                        session_id,
+                        json.dumps(command),
+                        int(process.returncode),
+                        stdout_full[-65536:],
+                        stderr_full[-65536:],
+                        started_at,
+                        utc_text(),
+                    ),
+                )
+                connection.execute(
+                    "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
+                    (job_id,),
+                )
+        except BaseException:
+            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+            with gate, self.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE validation_copies SET status = 'failed', run_pid = NULL WHERE job_id = ? AND status = 'running'",
+                    (job_id,),
+                )
+        finally:
+            with self._running_lock:
+                self._running_processes.pop(job_id, None)
+
+    def cancel(self, session_id: str, job_id: str) -> dict[str, object]:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        if row is None:
+            raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
+        if row["session_id"] != session_id:
+            raise CoordinatorError(
+                "validation_copy_foreign_session", "Validation copy belongs to another Session"
+            )
+        if row["status"] == "running":
+            with self._running_lock:
+                process = self._running_processes.get(job_id)
+            if process is None or process.poll() is not None:
+                raise CoordinatorError(
+                    "validation_copy_cancel_race", "Validation process already changed state"
+                )
+            process.terminate()
+            return {"jobId": job_id, "status": "cancelling"}
+        if row["status"] in {"planned", "materialized", "failed"}:
+            removed = self.cleanup(session_id, row["job_root"])
+            return {"jobId": job_id, "status": "removed", "jobRoot": str(removed)}
+        raise CoordinatorError(
+            "validation_copy_cancel_invalid", f"Validation job cannot be cancelled from {row['status']}"
         )
 
     def cleanup(self, session_id: str, job_root: str | Path) -> Path:

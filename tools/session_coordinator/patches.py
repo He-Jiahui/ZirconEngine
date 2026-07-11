@@ -123,20 +123,40 @@ class PatchService:
             raise CoordinatorError("patch_not_found", f"Unknown patch {patch_id}")
         return self._from_row(row)
 
-    def list(self, *, status: PatchStatus | None = None) -> list[PatchRecord]:
+    def list(
+        self,
+        *,
+        status: PatchStatus | None = None,
+        session_id: str | None = None,
+    ) -> list[PatchRecord]:
         query = "SELECT * FROM patches"
-        parameters: tuple[object, ...] = ()
+        clauses: list[str] = []
+        parameters: list[object] = []
         if status is not None:
-            query += " WHERE status = ?"
-            parameters = (status.value,)
+            clauses.append("status = ?")
+            parameters.append(status.value)
+        if session_id is not None:
+            clauses.append("session_id = ?")
+            parameters.append(session_id)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
         query += " ORDER BY created_at, patch_id"
         with self.database.connect() as connection:
-            rows = connection.execute(query, parameters).fetchall()
+            rows = connection.execute(query, tuple(parameters)).fetchall()
         return [self._from_row(row) for row in rows]
 
-    def process_queue(self) -> list[PatchRecord]:
+    def process_queue(
+        self,
+        *,
+        session_id: str | None = None,
+        patch_ids: tuple[int, ...] | None = None,
+    ) -> list[PatchRecord]:
         processed: list[PatchRecord] = []
-        for patch in self.list(status=PatchStatus.QUEUED):
+        queued = self.list(status=PatchStatus.QUEUED, session_id=session_id)
+        if patch_ids is not None:
+            allowed = set(patch_ids)
+            queued = [patch for patch in queued if patch.patch_id in allowed]
+        for patch in queued:
             acquisition = self.leases.acquire(patch.session_id, patch.targets)
             if not acquisition.acquired:
                 continue

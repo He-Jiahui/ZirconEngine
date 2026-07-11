@@ -244,3 +244,44 @@ export interface ApiEnvelope<T> {
   error?: { code: string; message: string; retryable: boolean; details: JsonObject };
   meta: { apiVersion: number; correlationId: string };
 }
+
+export interface ControlAuthSession {
+  actor: string;
+  role: "observer" | "operator" | "committer" | "maintainer";
+  boundSessionId: string | null;
+  mutationEnabled?: boolean;
+  elevatedUntil?: string | null;
+}
+
+export interface ActionSpecProjection {
+  kind: string;
+  title: string;
+  risk: "green" | "yellow" | "red";
+  requiredRole: ControlAuthSession["role"];
+  enabled: boolean;
+  sessionBound: boolean;
+  previewOnly: boolean;
+  warnings: string[];
+}
+
+export interface ActionCatalog { actions: ActionSpecProjection[] }
+
+export interface ActionRecord {
+  actionId: string;
+  kind: string;
+  risk: "green" | "yellow" | "red";
+  requiredRole: ControlAuthSession["role"];
+  actor: string;
+  boundSessionId: string | null;
+  parameters: JsonObject;
+  impact: string[];
+  warnings: string[];
+  stateFingerprint: string;
+  status: "previewed" | "executing" | "succeeded" | "failed" | "cancelled" | "expired" | "state_changed" | "denied";
+  createdAt: string;
+  expiresAt: string;
+  reason: string | null;
+  result: JsonObject | null;
+  errorCode: string | null;
+  confirmationPhrase: string | null;
+}

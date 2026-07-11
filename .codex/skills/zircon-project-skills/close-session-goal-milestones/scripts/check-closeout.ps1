@@ -301,11 +301,27 @@ try {
     }
 
     $subject = ($CommitMessage -split "`r?`n", 2)[0].Trim()
+    $expectedModule = if ($null -eq $planRelative) {
+        $null
+    }
+    else {
+        Split-Path -Leaf (Split-Path -Parent $planRelative)
+    }
+    $moduleMatch = [Regex]::Match($subject, '^【([^【】\r\n/\\]+)】(.+)$')
+    $semanticSubject = $subject
+    if (-not $moduleMatch.Success -or
+        $null -eq $expectedModule -or
+        -not [string]::Equals($moduleMatch.Groups[1].Value, $expectedModule, [StringComparison]::OrdinalIgnoreCase)) {
+        Add-CloseoutError "invalid_commit_module" "Prefix the subject with the registered plan folder, for example 【runtime】."
+    }
+    elseif ($moduleMatch.Success) {
+        $semanticSubject = $moduleMatch.Groups[2].Value
+    }
     $conventional = '^(feat|fix|docs|test|refactor|perf|build|ci|chore|revert)(\([^)]+\))?!?: .+'
-    if ($subject -notmatch $conventional -or
+    if ($semanticSubject -notmatch $conventional -or
         $CommitMessage -match '(?i)\[zircon-session:' -or
         $CommitMessage -match '(?i)\bcheckpoint\b') {
-        Add-CloseoutError "invalid_commit_message" "Use a normal Conventional Commit without Session tags or checkpoint wording."
+        Add-CloseoutError "invalid_commit_message" "Use a Conventional Commit after the module prefix, without Session tags or checkpoint wording."
     }
 
     $diffLines = Invoke-GitText -Arguments @("diff", "--cached", "--unified=0", "--no-color")

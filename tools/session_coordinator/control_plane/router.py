@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Callable, Mapping
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from ..models import CoordinatorError, WebControlRole
 from ..workflows.projections import WorkflowProjectionService
+from .actions.models import ActionContext
+from .actions.service import ActionService
 from .auth import WebControlAuth, WebSessionRecord
 from .contracts import CONTROL_API_VERSION, ControlResponse
 from .snapshot import ControlSnapshotService
@@ -17,6 +19,7 @@ class ControlIdentity:
     actor: str
     role: str
     web_session_id: str | None
+    bound_session_id: str | None = None
 
 
 class ControlPlaneRouter:
@@ -30,12 +33,16 @@ class ControlPlaneRouter:
         snapshot: ControlSnapshotService,
         workflows: WorkflowProjectionService,
         database,
+        actions: ActionService | None = None,
+        maintenance_authorizer: Callable[[dict[str, object]], None] | None = None,
     ):
         self.instance_id = instance_id
         self.auth = auth
         self.snapshot = snapshot
         self.workflows = workflows
         self.database = database
+        self.actions = actions
+        self.maintenance_authorizer = maintenance_authorizer
 
     def dispatch(
         self,
@@ -85,7 +92,75 @@ class ControlPlaneRouter:
                 headers={"Cache-Control": "no-store"},
             )
 
+        if method == "POST" and path == "/control/v1/elevation-grants":
+            if not runtime_authorized:
+                raise CoordinatorError(
+                    "runtime_auth_required",
+                    "Elevation grants require the local runtime credential",
+                )
+            payload = self._json_body(body)
+            role = WebControlRole(str(payload.get("role") or "operator"))
+            maintenance_authorized = False
+            if role is WebControlRole.MAINTAINER:
+                if self.maintenance_authorizer is None:
+                    raise CoordinatorError(
+                        "maintenance_unauthorized", "Maintainer elevation is unavailable"
+                    )
+                self.maintenance_authorizer(payload)
+                maintenance_authorized = True
+            grant = self.auth.issue_elevation_grant(
+                str(payload.get("actor") or "local-cli"),
+                role,
+                self.instance_id,
+                bound_session_id=(
+                    str(payload["sessionId"]) if payload.get("sessionId") else None
+                ),
+                maintenance_authorized=maintenance_authorized,
+            )
+            return ControlResponse(
+                201,
+                {
+                    "grant": grant,
+                    "expiresInSeconds": 60,
+                    "role": role.value,
+                    "boundSessionId": payload.get("sessionId"),
+                },
+                headers={"Cache-Control": "no-store"},
+            )
+
+        if method == "POST" and path == "/control/v1/auth/elevate":
+            if runtime_authorized:
+                raise CoordinatorError(
+                    "browser_session_required", "Elevation consumption requires a browser cookie"
+                )
+            payload = self._json_body(body)
+            csrf, session = self.auth.consume_elevation_grant(
+                str(payload.get("grant") or ""),
+                headers.get("Cookie", ""),
+                self.instance_id,
+            )
+            return ControlResponse(
+                200,
+                {
+                    "actor": session.actor,
+                    "role": session.role,
+                    "boundSessionId": session.bound_session_id,
+                    "elevatedUntil": session.elevated_until,
+                    "csrfToken": csrf,
+                },
+                headers={"Cache-Control": "no-store"},
+            )
+
         identity = self.authenticate(headers, runtime_authorized=runtime_authorized)
+        if method not in {"GET", "HEAD"} and not runtime_authorized:
+            session = self.auth.validate_csrf(
+                headers.get("Cookie", ""),
+                headers.get("X-CSRF-Token", ""),
+                self.instance_id,
+            )
+            identity = ControlIdentity(
+                session.actor, session.role, session.session_id, session.bound_session_id
+            )
         if method == "GET" and path == "/control/v1/meta":
             return ControlResponse(
                 200,
@@ -94,9 +169,55 @@ class ControlPlaneRouter:
                     "instanceId": self.instance_id,
                     "role": identity.role,
                     "actor": identity.actor,
-                    "mutationEnabled": False,
+                    "boundSessionId": identity.bound_session_id,
+                    "mutationEnabled": identity.role != WebControlRole.OBSERVER.value,
                 },
             )
+        if method == "GET" and path == "/control/v1/auth/session":
+            return ControlResponse(
+                200,
+                {
+                    "actor": identity.actor,
+                    "role": identity.role,
+                    "boundSessionId": identity.bound_session_id,
+                    "mutationEnabled": identity.role != WebControlRole.OBSERVER.value,
+                },
+            )
+        if method == "GET" and path == "/control/v1/actions/catalog":
+            return ControlResponse(200, self._actions().catalog())
+        if method == "POST" and path == "/control/v1/actions/preview":
+            payload = self._json_body(body)
+            parameters = payload.get("parameters") or {}
+            if not isinstance(parameters, dict):
+                raise CoordinatorError("invalid_request", "Action parameters must be an object")
+            context = self._action_context(identity, runtime_authorized, parameters)
+            record = self._actions().preview(
+                context, str(payload.get("kind") or ""), parameters
+            )
+            return ControlResponse(201, {"action": record.to_dict()})
+        if path.startswith("/control/v1/actions/"):
+            suffix = unquote(path.removeprefix("/control/v1/actions/"))
+            parts = suffix.split("/")
+            action_id = parts[0]
+            context = self._action_context(identity, runtime_authorized, {})
+            if method == "GET" and len(parts) == 1:
+                return ControlResponse(
+                    200, {"action": self._actions().get(context, action_id).to_dict()}
+                )
+            payload = self._json_body(body)
+            if method == "POST" and parts[1:] == ["confirm"]:
+                record = self._actions().confirm(
+                    context,
+                    action_id,
+                    phrase=str(payload.get("phrase") or ""),
+                    reason=str(payload.get("reason") or ""),
+                )
+                return ControlResponse(200, {"action": record.to_dict()})
+            if method == "POST" and parts[1:] == ["cancel"]:
+                record = self._actions().cancel(
+                    context, action_id, reason=str(payload.get("reason") or "")
+                )
+                return ControlResponse(200, {"action": record.to_dict()})
         if method == "GET" and path == "/control/v1/snapshot":
             return ControlResponse(200, self.snapshot.build())
         if method == "GET" and path == "/control/v1/logs":
@@ -151,11 +272,35 @@ class ControlPlaneRouter:
         self, headers: Mapping[str, str], *, runtime_authorized: bool
     ) -> ControlIdentity:
         if runtime_authorized:
-            return ControlIdentity("local-runtime", "maintainer", None)
+            return ControlIdentity("local-runtime", "maintainer", None, None)
         session: WebSessionRecord = self.auth.authenticate_cookie(
             headers.get("Cookie", ""), self.instance_id
         )
-        return ControlIdentity(session.actor, session.role, session.session_id)
+        return ControlIdentity(
+            session.actor, session.role, session.session_id, session.bound_session_id
+        )
+
+    def _actions(self) -> ActionService:
+        if self.actions is None:
+            raise CoordinatorError("action_unavailable", "Controlled actions are unavailable")
+        return self.actions
+
+    def _action_context(
+        self,
+        identity: ControlIdentity,
+        runtime_authorized: bool,
+        parameters: Mapping[str, object],
+    ) -> ActionContext:
+        bound_session_id = identity.bound_session_id
+        if runtime_authorized and parameters.get("sessionId"):
+            bound_session_id = str(parameters["sessionId"])
+        return ActionContext(
+            actor=identity.actor,
+            role=WebControlRole(identity.role),
+            web_session_id=identity.web_session_id,
+            bound_session_id=bound_session_id,
+            daemon_instance_id=self.instance_id,
+        )
 
     @staticmethod
     def _json_body(body: bytes) -> dict[str, object]:

@@ -38,6 +38,12 @@ def _parser() -> argparse.ArgumentParser:
     control = commands.add_parser("control")
     control_commands = control.add_subparsers(dest="control_command", required=True)
     control_commands.add_parser("snapshot")
+    control_elevate = control_commands.add_parser("elevate")
+    control_elevate.add_argument(
+        "--role", choices=("operator", "committer", "maintainer"), default="operator"
+    )
+    control_elevate.add_argument("--session-id")
+    control_elevate.add_argument("--actor", default="local-cli")
 
     session = commands.add_parser("session")
     session_commands = session.add_subparsers(dest="session_command", required=True)
@@ -306,6 +312,17 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         return {"status": "opened", "url": f"{client.base_url}/ui/"}
     if arguments.command == "control" and arguments.control_command == "snapshot":
         return client.control_snapshot()
+    if arguments.command == "control" and arguments.control_command == "elevate":
+        return client.issue_elevation_grant(
+            actor=arguments.actor,
+            role=arguments.role,
+            session_id=arguments.session_id,
+            maintenance_capability=(
+                os.environ.get("ZIRCON_COORDINATOR_MAINTENANCE_TOKEN")
+                if arguments.role == "maintainer"
+                else None
+            ),
+        )
     if arguments.command == "session" and arguments.session_command == "register":
         return client.command(
             "session.register",
