@@ -25,6 +25,7 @@ class CoordinatorClient:
     base_url: str
     token: str
     timeout_seconds: float = 3.0
+    command_timeout_seconds: float = 300.0
 
     @classmethod
     def from_runtime(cls, config: CoordinatorConfig) -> "CoordinatorClient":
@@ -45,6 +46,7 @@ class CoordinatorClient:
             "POST",
             "/command",
             {"command": command, "arguments": arguments or {}},
+            timeout_seconds=self.command_timeout_seconds,
         )
 
     def shutdown(self) -> dict[str, Any]:
@@ -55,6 +57,8 @@ class CoordinatorClient:
         method: str,
         path: str,
         payload: dict[str, Any] | None = None,
+        *,
+        timeout_seconds: float | None = None,
     ) -> dict[str, Any]:
         data = json.dumps(payload).encode("utf-8") if payload is not None else None
         request = urllib.request.Request(
@@ -67,7 +71,9 @@ class CoordinatorClient:
             method=method,
         )
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+            with urllib.request.urlopen(
+                request, timeout=timeout_seconds or self.timeout_seconds
+            ) as response:
                 body = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
             try:

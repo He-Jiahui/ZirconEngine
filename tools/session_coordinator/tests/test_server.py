@@ -8,16 +8,32 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 from tools.session_coordinator.client import CoordinatorClient, CoordinatorClientError
 from tools.session_coordinator.config import CoordinatorConfig
-from tools.session_coordinator.server import RunningCoordinator
+from tools.session_coordinator.server import CoordinatorApplication, RunningCoordinator
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 
 
 class ServerTests(unittest.TestCase):
+    def test_maintenance_requires_separate_local_capability(self) -> None:
+        with mock.patch.dict("os.environ", {}, clear=True):
+            with self.assertRaises(CoordinatorError) as rejected:
+                CoordinatorApplication._authorize_maintenance({"maintenance": True})
+        self.assertEqual("maintenance_unauthorized", rejected.exception.code)
+
+        with mock.patch.dict(
+            "os.environ", {"ZIRCON_COORDINATOR_MAINTENANCE_TOKEN": "local-only"}
+        ):
+            self.assertTrue(
+                CoordinatorApplication._authorize_maintenance(
+                    {"maintenance": True, "maintenance_capability": "local-only"}
+                )
+            )
+
     def test_second_instance_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

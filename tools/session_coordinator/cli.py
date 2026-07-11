@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import sys
 import time
 import uuid
@@ -152,11 +153,55 @@ def _parser() -> argparse.ArgumentParser:
     cleanup_apply = cleanup_commands.add_parser("apply")
     cleanup_apply.add_argument("--older-than-hours", type=int, default=2)
     cleanup_apply.add_argument("--plan-id", required=True)
+
+    finalize = commands.add_parser("finalize")
+    finalize.add_argument("--commit", dest="finalize_commit", action="store_true")
+    finalize.add_argument("--session-id", dest="direct_session_id")
+    finalize.add_argument("--message", dest="direct_message")
+    finalize.add_argument("--path", dest="direct_paths", action="append")
+    finalize.add_argument(
+        "--validation-command", dest="direct_validation_commands", action="append", default=[]
+    )
+    finalize.add_argument("--maintenance", dest="direct_maintenance", action="store_true")
+    finalize_commands = finalize.add_subparsers(dest="finalize_command", required=False)
+    for finalize_name in ("preview", "commit"):
+        finalize_parser = finalize_commands.add_parser(finalize_name)
+        finalize_parser.add_argument("--session-id")
+        finalize_parser.add_argument("--message", required=True)
+        finalize_parser.add_argument("--path", action="append", required=True)
+        finalize_parser.add_argument("--validation-command", action="append", default=[])
+        finalize_parser.add_argument("--maintenance", action="store_true")
+
+    validation_copy = commands.add_parser("validation-copy")
+    validation_copy_commands = validation_copy.add_subparsers(
+        dest="validation_copy_command", required=True
+    )
+    for copy_name in ("plan", "materialize"):
+        copy_parser = validation_copy_commands.add_parser(copy_name)
+        copy_parser.add_argument("--session-id")
+        copy_parser.add_argument("--path", action="append", required=True)
+    copy_cleanup = validation_copy_commands.add_parser("cleanup")
+    copy_cleanup.add_argument("job_root")
+    copy_cleanup.add_argument("--session-id")
+    copy_run = validation_copy_commands.add_parser("run")
+    copy_run.add_argument("job_id")
+    copy_run.add_argument("--session-id")
+    copy_run.add_argument("command_args", nargs=argparse.REMAINDER)
     return parser
 
 
 def _session_id(value: str | None) -> str:
     return value or os.environ.get("CODEX_THREAD_ID") or f"manual-{uuid.uuid4()}"
+
+
+def _split_command(value: str) -> list[str]:
+    parts = shlex.split(value, posix=False)
+    return [
+        part[1:-1]
+        if len(part) >= 2 and part[0] == part[-1] and part[0] in {'"', "'"}
+        else part
+        for part in parts
+    ]
 
 
 def _config(arguments: argparse.Namespace) -> CoordinatorConfig:
@@ -357,6 +402,74 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         if arguments.cleanup_command == "apply":
             payload.update({"plan_id": arguments.plan_id})
         return client.command(f"cleanup.{arguments.cleanup_command}", payload)
+    if arguments.command == "finalize":
+        direct = arguments.finalize_command is None
+        if direct and not arguments.finalize_commit:
+            raise CoordinatorError(
+                "finalize_arguments_missing",
+                "Use finalize preview, finalize commit, or finalize --commit with finalize arguments",
+            )
+        session_id = arguments.direct_session_id if direct else arguments.session_id
+        message = arguments.direct_message if direct else arguments.message
+        paths = arguments.direct_paths if direct else arguments.path
+        validation_commands = (
+            arguments.direct_validation_commands
+            if direct
+            else arguments.validation_command
+        )
+        maintenance = arguments.direct_maintenance if direct else arguments.maintenance
+        if not message or not paths:
+            raise CoordinatorError(
+                "finalize_arguments_missing", "Finalize requires --message and at least one --path"
+            )
+        return client.command(
+            "finalize.preview"
+            if not direct and arguments.finalize_command == "preview" and not arguments.finalize_commit
+            else "finalize.commit",
+            {
+                "session_id": _session_id(session_id),
+                "message": message,
+                "paths": paths,
+                "validation_commands": [
+                    _split_command(command)
+                    for command in validation_commands
+                ],
+                "maintenance": maintenance,
+                "maintenance_capability": (
+                    os.environ.get("ZIRCON_COORDINATOR_MAINTENANCE_TOKEN")
+                    if maintenance
+                    else None
+                ),
+            },
+        )
+    if arguments.command == "validation-copy":
+        if arguments.validation_copy_command == "cleanup":
+            return client.command(
+                "validation_copy.cleanup",
+                {
+                    "job_root": arguments.job_root,
+                    "session_id": _session_id(arguments.session_id),
+                },
+            )
+        if arguments.validation_copy_command == "run":
+            command = list(arguments.command_args)
+            if command and command[0] == "--":
+                command = command[1:]
+            return client.command(
+                "validation_copy.run",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "job_id": arguments.job_id,
+                    "command": command,
+                },
+            )
+        return client.command(
+            f"validation_copy.{arguments.validation_copy_command}",
+            {
+                "session_id": _session_id(arguments.session_id),
+                "paths": arguments.path,
+            },
+        )
     raise CoordinatorClientError("invalid_command", f"Unsupported command {arguments.command}")
 
 

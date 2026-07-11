@@ -230,12 +230,12 @@ Expected: all target selection modes return an allowlisted lane; arbitrary and r
 
 **Implementation slices:**
 
-- [ ] **M5.1 Implement finalize request model:** ensure `completed` alone never commits; require an explicit `finalize --commit` command tied to the current user request, record message/paths/validation profile and move Session through `finalizing` transactionally.
-- [ ] **M5.2 Implement finalize guards:** reject degraded baseline, unattributed files, foreign leases, queued/`needs_rebase` patches, invalid plan output, open required Failure acceptance and active Git mutex.
-- [ ] **M5.3 Implement scoped Git transaction:** snapshot index state, stage only service-owned paths, compare staged names to the approved set, run configured checks, create an ordinary semantic commit without Session tags, record SHA and open a new epoch; restore index on every failure without reverting worktree content.
-- [ ] **M5.4 Support normal workflow-maintenance commits:** expose the same index mutex and staged-scope audit to repository skill/tooling maintenance, but do not store those changes as business Session intermediate commits.
-- [ ] **M5.5 Implement validation copies:** materialize a manifest-selected source tree under `{target-root}\verify\{job-id}\source`, exclude `.git`, other Session changes and build output, run commands with adjacent managed target, record evidence and delete only after resolved-root validation.
-- [ ] **M5.6 Add temporary-repository Git tests:** prove completed-without-finalize creates no commit, explicit finalize commits only owned files, foreign staged paths abort, hook failure restores index, no `[zircon-session:*]` appears, concurrent finalize serializes, and validation copy never contains `.git`.
+- [x] **M5.1 Implement finalize request model:** ensure `completed` alone never commits; require an explicit `finalize --commit` command tied to the current user request, record message/paths/validation profile and move Session through `finalizing` transactionally.
+- [x] **M5.2 Implement finalize guards:** reject degraded baseline, unattributed files, foreign leases, queued/`needs_rebase` patches, invalid plan output, open required Failure acceptance and active Git mutex.
+- [x] **M5.3 Implement scoped Git transaction:** snapshot index state, stage only service-owned paths, compare staged names to the approved set, run configured checks, create an ordinary semantic commit without Session tags, record SHA and open a new epoch; restore index on every failure without reverting worktree content.
+- [x] **M5.4 Support normal workflow-maintenance commits:** expose the same index mutex and staged-scope audit to repository skill/tooling maintenance, but do not store those changes as business Session intermediate commits.
+- [x] **M5.5 Implement validation copies:** materialize a manifest-selected source tree under `{target-root}\verify\{job-id}\source`, exclude `.git`, other Session changes and build output, run commands with adjacent managed target, record evidence and delete only after resolved-root validation.
+- [x] **M5.6 Add temporary-repository Git tests:** prove completed-without-finalize creates no commit, explicit finalize commits only owned files, foreign staged paths abort, hook failure restores index, no `[zircon-session:*]` appears, concurrent finalize serializes, and validation copy never contains `.git`.
 
 **Lightweight checks:**
 
@@ -256,6 +256,8 @@ git log --all --format=%s --fixed-strings --grep="[zircon-session:"
 Expected: temp-repo finalize tests pass; completion never commits implicitly; staged-scope violation produces no commit and restores the prior index; validation copies are deleted inside their job root; grep produces no new special-tag commits. Debug ownership calculation before index mutation, then validation hooks, commit, rollback and copy cleanup.
 
 **Exit evidence:** one explicit test finalize yields exactly one normal commit containing only approved files; all negative cases yield zero commits and preserved worktree content.
+
+**Accepted 2026-07-11:** the complete coordinator suite passed 87/87 with `ResourceWarning` promoted to errors; the M5 temporary-repository PowerShell smoke passed; scoped diff checking passed; the historical Session-tag subject scan returned no matches. Temporary-repository tests also verify categorized/untracked manifests, omitted-owned-file rejection, validation/index widening rejection, staged-blob race rejection, commit-derived partial baseline advancement, webhook-secret rejection, persisted finalize recovery, concurrent mutex ownership, pinned validation-copy HEAD, junction rejection, run/cleanup exclusion, stale-job recovery, adjacent managed targets and recorded command evidence.
 
 ## Milestone M6: Legacy Migration, Archival, Documentation, and Full Rollout
 

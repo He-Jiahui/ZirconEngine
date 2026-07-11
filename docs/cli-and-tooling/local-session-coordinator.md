@@ -273,6 +273,58 @@ Installation creates a hidden at-logon daemon task and a 15-minute maintenance t
 
 M4 adds unit coverage for direct-child and junction/symlink escapes, unavailable roots, case aliases, nested legacy overlap, explicit reuse, foreign-session mutation, running/pre-start orphan reconciliation, positive retention, reviewed-plan non-expansion, reservation/acquire concurrency and transaction-free deletion. The PowerShell smoke also validates the scheduled-task plan, while validator tests assert that command-line/environment overrides cannot bypass the service and pre-start failures release their job.
 
+## Explicit Git Finalize
+
+Completing a business Session records lifecycle state only; it never creates a Git commit. A commit requires a separate explicit request. Preview is read-only with respect to Git, while `--commit` enters the serialized Git transaction:
+
+```powershell
+.\tools\zircon-session.ps1 finalize preview `
+  --message "feat(runtime): converge lifecycle" `
+  --path zircon_runtime/src/lifecycle.rs
+
+.\tools\zircon-session.ps1 finalize --commit `
+  --message "feat(runtime): converge lifecycle" `
+  --path zircon_runtime/src/lifecycle.rs
+```
+
+Every requested path must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
+
+Before index mutation, the service rejects a degraded/stale baseline, an active Git mutex, foreign leases, queued or `needs_rebase` patches, foreign staged paths, protected/global plan output, output outside the registered numbered child plan, and an unresolved Failure routed to the Session plan. Staged added lines are also scanned for Enterprise WeChat webhook URLs and credential markers. Webhook configuration remains local and must never enter Git.
+
+The service persists the pre-transaction HEAD and exact Git index bytes after taking its database mutex, calculates each approved worktree file's Git-cleaned blob identity, stages only the approved paths, then verifies both the exact staged name set and staged blob identities. This closes the last-write race between attribution checking and staging. After optional validation commands, it repeats scope, blob and secret checks. The final commit is built from the verified index tree and advances `HEAD` with an expected-old-SHA compare-and-swap, so repository hooks or validation cannot silently widen the commit. A pre-commit or validation failure atomically restores the prior index and preserves every worktree file. Successful commits record their SHA and open a new baseline epoch that advances only committed paths; other Sessions' dirty files remain visible as baseline differences.
+
+Service restart restores a persisted pre-commit index when HEAD did not advance, returns an interrupted Session to `completed`, and marks the request failed. The `ref_updated_sha` intent closes the post-commit/pre-baseline window: if the exact expected scoped commit already advanced HEAD before a process interruption, startup reconciles its SHA and commit-derived partial baseline instead of reporting a false failure or capturing the full dirty worktree.
+
+Health probes keep a short three-second timeout. Mutating service commands use a separate five-minute client timeout so a busy shared disk, Git hook or configured validation command is not misreported as an offline daemon.
+
+Workflow/skill maintenance uses the same transaction with explicit `--maintenance`; the daemon authorizes it with a separate local `ZIRCON_COORDINATOR_MAINTENANCE_TOKEN` capability that is never written to the runtime descriptor or Git. The ordinary shared service bearer and a client boolean are insufficient. Authorized maintenance bypasses business attribution/status checks but retains index scope, repository path, semantic-message and secret guards. Business intermediate versions continue to live in coordinator snapshots rather than Git history.
+
+## Stable Validation Copies
+
+Validation copies provide a stable source view without a branch, worktree or repo-local build directory:
+
+```powershell
+.\tools\zircon-session.ps1 validation-copy materialize `
+  --path Cargo.toml `
+  --path zircon_runtime/Cargo.toml `
+  --path zircon_runtime/src/lib.rs
+
+.\tools\zircon-session.ps1 validation-copy run <job-id> -- cargo check --workspace
+.\tools\zircon-session.ps1 validation-copy cleanup <job-root>
+```
+
+The manifest is materialized under `{drive}:\targets\zircon-engine\verify\{job-id}\source`. Planning pins one HEAD SHA; every unowned tracked path is read from that exact commit, so concurrent finalization cannot create a mixed-version copy. Paths owned by the requesting Session are copied from the worktree only while their attribution hash still matches. Unowned untracked paths, `.git`, coordinator state and repository build output are rejected. The resolved `verify` root and job root are revalidated during plan, materialize, run and cleanup; junction/symlink escapes fail closed.
+
+Validation commands acquire the job's `running` state and run with `CARGO_TARGET_DIR` fixed to the adjacent `{job-root}\target`; a second run and cleanup are rejected until execution returns to `materialized`. Exit code and bounded stdout/stderr evidence are stored in SQLite. Cleanup requires the owning Session, atomically reserves `cleanup_pending`, and cannot race a run.
+
+Cleanup accepts only a job root already recorded by the service and only when its resolved path is a direct child of an allowlisted `verify` root. It removes that single job tree, including the adjacent target, then records the removal.
+
+Validation runs persist the real validation child PID. Startup releases only dead `running` reservations, while live processes remain protected. An interrupted `cleanup_pending` reservation returns to `materialized` only during startup; periodic maintenance never releases a deletion still owned by the live daemon. Ordinary deletion failures also roll back the reservation so the owner can retry safely.
+
+## M5 Validation
+
+M5 acceptance uses generated temporary Git repositories for all commit mutations. Coverage proves completion is non-committing, explicit finalization contains exactly the approved categorized files, foreign index state survives rejection, validation failure restores the index, webhook material is blocked, the Git mutex has one owner, validation overlays reject stale hashes, command evidence uses the adjacent target, and cleanup cannot escape its job root.
+
 ## Follow-up Boundaries
 
-M5 will add explicit Git finalize and stable validation copies. M4 does not convert business Session intermediate versions into commits.
+M6 will migrate and archive legacy Session notes, perform scheduled-task cutover, add retention/GC and complete the real-repository rollout audit. M5 does not import or delete legacy Session artifacts.

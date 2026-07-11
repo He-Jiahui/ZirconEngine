@@ -1,0 +1,254 @@
+from __future__ import annotations
+
+import sys
+import tempfile
+import threading
+import unittest
+from unittest import mock
+from pathlib import Path
+
+from tools.session_coordinator.baselines import BaselineService
+from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.database import Database
+from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.sessions import SessionService
+from tools.session_coordinator.tests.helpers import init_repo
+from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+
+
+class WorkspaceCopyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory()
+        root = Path(self.temporary_directory.name)
+        self.repo = init_repo(root / "repo")
+        self.target_root = root / "drive/targets/zircon-engine"
+        self.target_root.mkdir(parents=True)
+        config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
+        self.database = Database(config.database_path)
+        migrate(self.database)
+        SessionService(self.database, self.repo).register(session_id="session-a")
+        self.baselines = BaselineService(self.database, self.repo)
+        self.baselines.initialize()
+        self.service = WorkspaceCopyService(
+            self.database, self.repo, (self.target_root,)
+        )
+
+    def tearDown(self) -> None:
+        self.temporary_directory.cleanup()
+
+    def test_copy_uses_head_for_foreign_dirty_and_overlay_for_owned_files(self) -> None:
+        (self.repo / "README.md").write_text("foreign dirty\n", encoding="utf-8")
+        owned = self.repo / "src/owned.txt"
+        owned.parent.mkdir()
+        owned.write_text("owned change\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["src/owned.txt"])
+
+        result = self.service.materialize(
+            "session-a", include_paths=("README.md", "src/owned.txt")
+        )
+
+        self.assertEqual("baseline\n", (result.source_root / "README.md").read_text())
+        self.assertEqual("owned change\n", (result.source_root / "src/owned.txt").read_text())
+        self.assertFalse((result.source_root / ".git").exists())
+        self.assertFalse((result.source_root / "target").exists())
+        self.assertTrue(result.target_root.is_dir())
+
+    def test_copy_pins_head_even_if_repository_head_changes_during_materialize(self) -> None:
+        original = self.service._head_content
+        changed = False
+
+        def advance_head(job_id: str, path: str) -> bytes | None:
+            nonlocal changed
+            if not changed:
+                changed = True
+                (self.repo / "README.md").write_text("new head\n", encoding="utf-8")
+                import subprocess
+
+                subprocess.run(["git", "add", "README.md"], cwd=self.repo, check=True)
+                subprocess.run(
+                    ["git", "commit", "-m", "test: advance head"],
+                    cwd=self.repo,
+                    check=True,
+                    capture_output=True,
+                )
+            return original(job_id, path)
+
+        self.service._head_content = advance_head  # type: ignore[method-assign]
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        self.assertEqual("baseline\n", (result.source_root / "README.md").read_text())
+
+    def test_owned_overlay_rejects_content_changed_after_attribution(self) -> None:
+        owned = self.repo / "owned.txt"
+        owned.write_text("owned\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["owned.txt"])
+        owned.write_text("overwritten\n", encoding="utf-8")
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.materialize("session-a", include_paths=("owned.txt",))
+
+        self.assertEqual("validation_copy_attribution_stale", rejected.exception.code)
+
+    def test_run_uses_adjacent_target_and_records_evidence(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        evidence = self.service.run(
+            "session-a",
+            result.job_id,
+            command=(
+                sys.executable,
+                "-c",
+                "import os, pathlib; pathlib.Path('target-path.txt').write_text(os.environ['CARGO_TARGET_DIR'])",
+            ),
+        )
+
+        self.assertEqual(0, evidence.exit_code)
+        recorded = (result.source_root / "target-path.txt").read_text(encoding="utf-8")
+        self.assertEqual(str(result.target_root), recorded)
+
+    def test_cleanup_rejects_paths_outside_managed_verify_job(self) -> None:
+        with self.assertRaises(CoordinatorError):
+            self.service.cleanup("session-a", self.repo)
+
+    def test_cleanup_removes_only_materialized_job_root(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        removed = self.service.cleanup("session-a", result.job_root)
+
+        self.assertEqual(result.job_root, removed)
+        self.assertFalse(result.job_root.exists())
+        self.assertTrue(self.target_root.exists())
+
+    def test_materialize_rejects_verify_root_resolving_outside_managed_root(self) -> None:
+        outside = self.target_root.parent / "outside"
+        outside.mkdir()
+        original_resolve = Path.resolve
+
+        def escaped_resolve(path: Path, *args, **kwargs) -> Path:
+            if path == self.target_root / "verify":
+                return outside
+            return original_resolve(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "resolve", escaped_resolve):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service.materialize("session-a", include_paths=("README.md",))
+
+        self.assertEqual("validation_copy_verify_escape", rejected.exception.code)
+
+    def test_foreign_session_cannot_cleanup_copy(self) -> None:
+        SessionService(self.database, self.repo).register(session_id="session-b")
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.cleanup("session-b", result.job_root)
+
+        self.assertEqual("validation_copy_foreign_session", rejected.exception.code)
+        self.assertTrue(result.job_root.exists())
+
+    def test_running_copy_rejects_second_run_and_cleanup(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        errors: list[BaseException] = []
+
+        def run_first() -> None:
+            try:
+                self.service.run(
+                    "session-a",
+                    result.job_id,
+                    command=(sys.executable, "-c", "import time; time.sleep(2)"),
+                )
+            except BaseException as error:
+                errors.append(error)
+
+        thread = threading.Thread(target=run_first)
+        thread.start()
+        for _ in range(50):
+            with self.database.connect() as connection:
+                running = connection.execute(
+                    "SELECT status, run_pid FROM validation_copies WHERE job_id = ?",
+                    (result.job_id,),
+                ).fetchone()
+            if running["status"] == "running" and running["run_pid"]:
+                break
+            threading.Event().wait(0.05)
+        self.assertEqual("running", running["status"])
+        self.assertGreater(int(running["run_pid"]), 0)
+        with self.assertRaises(CoordinatorError) as second:
+            self.service.run("session-a", result.job_id, command=(sys.executable, "-V"))
+        self.assertEqual("validation_copy_not_materialized", second.exception.code)
+        with self.assertRaises(CoordinatorError) as cleanup:
+            self.service.cleanup("session-a", result.job_root)
+        self.assertEqual("validation_copy_cleanup_busy", cleanup.exception.code)
+        thread.join(timeout=5)
+        self.assertFalse(errors)
+        self.assertFalse(thread.is_alive())
+
+    def test_restart_recovers_dead_run_and_cleanup_reservations(self) -> None:
+        first = self.service.materialize("session-a", include_paths=("README.md",))
+        second = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status = 'running', run_pid = 999999 WHERE job_id = ?",
+                (first.job_id,),
+            )
+            connection.execute(
+                "UPDATE validation_copies SET status = 'cleanup_pending' WHERE job_id = ?",
+                (second.job_id,),
+            )
+
+        recovered = self.service.recover_interrupted_jobs(process_alive=lambda _pid: False)
+
+        self.assertEqual((1, 1), recovered)
+        with self.database.connect() as connection:
+            statuses = {
+                row["job_id"]: row["status"]
+                for row in connection.execute(
+                    "SELECT job_id, status FROM validation_copies WHERE job_id IN (?, ?)",
+                    (first.job_id, second.job_id),
+                )
+            }
+        self.assertEqual("materialized", statuses[first.job_id])
+        self.assertEqual("materialized", statuses[second.job_id])
+
+    def test_periodic_recovery_never_releases_cleanup_in_progress(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status = 'cleanup_pending' WHERE job_id = ?",
+                (result.job_id,),
+            )
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda _pid: False, startup=False
+        )
+
+        self.assertEqual((0, 0), recovered)
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()["status"]
+        self.assertEqual("cleanup_pending", status)
+
+    def test_run_preparation_failure_releases_running_state(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with mock.patch.object(
+            self.service,
+            "_validate_job_root",
+            side_effect=CoordinatorError("injected", "path validation failed"),
+        ):
+            with self.assertRaises(CoordinatorError):
+                self.service.run(
+                    "session-a", result.job_id, command=(sys.executable, "-V")
+                )
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, run_pid FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+        self.assertEqual("materialized", row["status"])
+        self.assertIsNone(row["run_pid"])
+
+
+if __name__ == "__main__":
+    unittest.main()

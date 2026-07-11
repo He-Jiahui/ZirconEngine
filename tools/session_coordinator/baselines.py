@@ -169,6 +169,37 @@ class BaselineService:
             raise ValueError("baseline acceptance requires a reason")
         return self._capture(BaselineHealth.HEALTHY, reason=reason)
 
+    def accept_commit(
+        self,
+        committed_paths: list[str] | tuple[str, ...],
+        *,
+        commit_sha: str,
+        reason: str,
+    ) -> BaselineEpoch:
+        """Advance HEAD while preserving unrelated dirty paths as baseline differences."""
+        if not reason.strip():
+            raise ValueError("baseline acceptance requires a reason")
+        manifest = dict(self.current().manifest)
+        for display_path in committed_paths:
+            normalized = self._normalize_repo_path(display_path)
+            result = subprocess.run(
+                ["git", "show", f"{commit_sha}:{normalized}"],
+                cwd=self.repo_root,
+                check=False,
+                capture_output=True,
+            )
+            content_hash = hash_bytes(result.stdout) if result.returncode == 0 else None
+            if content_hash is None:
+                manifest.pop(normalized, None)
+            else:
+                manifest[normalized] = content_hash
+        return self._capture(
+            BaselineHealth.HEALTHY,
+            reason=reason,
+            manifest=dict(sorted(manifest.items(), key=lambda item: item[0].casefold())),
+            head_commit=commit_sha,
+        )
+
     def build_manifest(self) -> dict[str, str]:
         result = subprocess.run(
             ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
@@ -188,8 +219,15 @@ class BaselineService:
                 manifest[display_path] = content_hash
         return dict(sorted(manifest.items(), key=lambda item: item[0].casefold()))
 
-    def _capture(self, health: BaselineHealth, *, reason: str) -> BaselineEpoch:
-        manifest = self.build_manifest()
+    def _capture(
+        self,
+        health: BaselineHealth,
+        *,
+        reason: str,
+        manifest: dict[str, str] | None = None,
+        head_commit: str | None = None,
+    ) -> BaselineEpoch:
+        manifest = self.build_manifest() if manifest is None else manifest
         now = utc_text()
         with self.database.transaction() as connection:
             cursor = connection.execute(
@@ -199,7 +237,7 @@ class BaselineService:
                 ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    self._git_output("rev-parse", "HEAD"),
+                    head_commit or self._git_output("rev-parse", "HEAD"),
                     self._git_output("write-tree"),
                     health.value,
                     json.dumps(manifest, sort_keys=True),

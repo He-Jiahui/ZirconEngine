@@ -213,6 +213,98 @@ function Test-CargoAndCleanup {
     Write-Host "PASS: managed Cargo lanes and cleanup smoke"
 }
 
+function Test-FinalizeInTempRepo {
+    $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("zircon-coordinator-finalize-" + [guid]::NewGuid().ToString("N"))
+    $repo = Join-Path $testRoot "repo"
+    New-Item -ItemType Directory -Path $repo -Force | Out-Null
+    $process = $null
+    try {
+        & git -C $repo init -q
+        & git -C $repo config user.email "coordinator-smoke@example.invalid"
+        & git -C $repo config user.name "Coordinator Smoke"
+        & git -C $repo config core.autocrlf false
+        & git -C $repo branch -M main
+        [System.IO.File]::WriteAllText(
+            (Join-Path $repo "README.md"),
+            "baseline`n",
+            [System.Text.UTF8Encoding]::new($false)
+        )
+        & git -C $repo add README.md
+        & git -C $repo commit -q -m "test: baseline"
+        $before = (& git -C $repo rev-parse HEAD).Trim()
+
+        $oldPythonPath = $env:PYTHONPATH
+        $env:PYTHONPATH = $sourceRoot
+        $process = Start-Process -FilePath $python `
+            -ArgumentList @("-m", "tools.session_coordinator", "--repo-root", $repo, "serve") `
+            -WorkingDirectory $repo -WindowStyle Hidden -PassThru
+        $env:PYTHONPATH = $oldPythonPath
+
+        for ($attempt = 0; $attempt -lt 50; $attempt++) {
+            Start-Sleep -Milliseconds 100
+            $status = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("status")
+            if ($status.ExitCode -eq 0) { break }
+        }
+        Assert-True ($status.ExitCode -eq 0) "Coordinator did not become healthy."
+        $registered = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "session", "register", "--session-id", "session-a"
+        )
+        Assert-True ($registered.ExitCode -eq 0) "Finalize Session registration failed."
+        $activated = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "session", "set-status", "active", "--session-id", "session-a"
+        )
+        Assert-True ($activated.ExitCode -eq 0) "Finalize Session activation failed."
+        $baseline = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("baseline", "init")
+        Assert-True ($baseline.ExitCode -eq 0) "Finalize baseline initialization failed."
+
+        $paths = @("src/feature.py", "docs/feature.md", "tests/test_feature.py", "tools/check.ps1")
+        foreach ($path in $paths) {
+            $absolute = Join-Path $repo $path
+            New-Item -ItemType Directory -Path (Split-Path -Parent $absolute) -Force | Out-Null
+            [System.IO.File]::WriteAllText($absolute, "$path`n", [System.Text.UTF8Encoding]::new($false))
+        }
+        $attributed = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "baseline", "attribute", $paths[0], $paths[1], $paths[2], $paths[3], "--session-id", "session-a"
+        )
+        Assert-True ($attributed.ExitCode -eq 0) "Finalize attribution failed: $($attributed.Output)"
+        $completed = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "session", "set-status", "completed", "--session-id", "session-a"
+        )
+        Assert-True ($completed.ExitCode -eq 0) "Finalize Session completion failed."
+        Assert-True ((& git -C $repo rev-parse HEAD).Trim() -eq $before) "Completion created an implicit commit."
+
+        $finalized = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @(
+            "finalize", "--commit", "--session-id", "session-a",
+            "--message", "feat(test): finalize owned files",
+            "--path", $paths[0], "--path", $paths[1], "--path", $paths[2], "--path", $paths[3]
+        )
+        Assert-True ($finalized.ExitCode -eq 0) "Explicit finalize failed: $($finalized.Output)"
+        $after = (& git -C $repo rev-parse HEAD).Trim()
+        Assert-True ($after -ne $before) "Explicit finalize did not create a commit."
+        $committed = @(& git -C $repo show --pretty= --name-only HEAD | Where-Object { $_ })
+        $committedText = (($committed | Sort-Object) -join "`n")
+        $expectedText = (($paths | Sort-Object) -join "`n")
+        Assert-True ($committedText -eq $expectedText) "Finalize commit scope mismatch."
+        $subject = (& git -C $repo log -1 --format=%s).Trim()
+        Assert-True ($subject -eq "feat(test): finalize owned files") "Finalize commit message mismatch."
+        Assert-True ($subject -notmatch '\[zircon-session:') "Finalize introduced a forbidden Session tag."
+
+        $stopped = Invoke-PythonCoordinator -RepoRoot $repo -CommandArguments @("stop")
+        Assert-True ($stopped.ExitCode -eq 0) "Coordinator stop failed."
+        $process.WaitForExit(5000) | Out-Null
+        Assert-True $process.HasExited "Coordinator process remained alive after finalize smoke."
+        Write-Host "PASS: explicit finalize temporary-repository smoke"
+    }
+    finally {
+        if ($null -ne $process -and -not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path -LiteralPath $testRoot) {
+            Remove-Item -LiteralPath $testRoot -Recurse -Force
+        }
+    }
+}
+
 if ($KernelOnly -or (-not $LeaseAndPatch -and -not $CargoAndCleanup -and -not $FinalizeInTempRepo)) {
     Test-Kernel
 }
@@ -226,5 +318,5 @@ if ($CargoAndCleanup) {
 }
 
 if ($FinalizeInTempRepo) {
-    throw "FinalizeInTempRepo belongs to milestone M5 and is not available during M1-M2."
+    Test-FinalizeInTempRepo
 }

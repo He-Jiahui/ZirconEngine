@@ -6,7 +6,7 @@ from sqlite3 import Connection
 from .database import Database
 
 
-LATEST_SCHEMA_VERSION = 7
+LATEST_SCHEMA_VERSION = 11
 
 
 def _migration_1(connection: Connection) -> None:
@@ -240,6 +240,136 @@ def _migration_7(connection: Connection) -> None:
     )
 
 
+def _migration_8(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE git_mutex (
+            lock_name TEXT PRIMARY KEY,
+            owner_id TEXT NOT NULL,
+            acquired_at TEXT NOT NULL
+        );
+
+        CREATE TABLE finalize_requests (
+            request_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            message TEXT NOT NULL,
+            paths_json TEXT NOT NULL,
+            categories_json TEXT NOT NULL,
+            untracked_json TEXT NOT NULL,
+            validation_json TEXT NOT NULL DEFAULT '[]',
+            maintenance INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL CHECK (status IN (
+                'previewed', 'finalizing', 'committed', 'failed'
+            )),
+            commit_sha TEXT,
+            error_text TEXT,
+            created_at TEXT NOT NULL,
+            completed_at TEXT
+        );
+        CREATE INDEX finalize_requests_session_created
+            ON finalize_requests(session_id, created_at);
+
+        CREATE TABLE validation_copies (
+            job_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            job_root TEXT NOT NULL,
+            source_root TEXT NOT NULL,
+            manifest_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('planned', 'materialized', 'removed', 'failed')),
+            created_at TEXT NOT NULL,
+            removed_at TEXT
+        );
+        """
+    )
+
+
+def _migration_9(connection: Connection) -> None:
+    connection.executescript(
+        """
+        ALTER TABLE validation_copies
+            ADD COLUMN target_root TEXT NOT NULL DEFAULT '';
+
+        CREATE TABLE validation_copy_runs (
+            run_id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL REFERENCES validation_copies(job_id),
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            command_json TEXT NOT NULL,
+            exit_code INTEGER NOT NULL,
+            stdout_text TEXT NOT NULL,
+            stderr_text TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            completed_at TEXT NOT NULL
+        );
+        CREATE INDEX validation_copy_runs_job_started
+            ON validation_copy_runs(job_id, started_at);
+        """
+    )
+
+
+def _migration_10(connection: Connection) -> None:
+    connection.executescript(
+        """
+        ALTER TABLE finalize_requests ADD COLUMN start_head TEXT;
+        ALTER TABLE finalize_requests ADD COLUMN index_existed INTEGER;
+        ALTER TABLE finalize_requests ADD COLUMN index_snapshot BLOB;
+
+        DROP INDEX validation_copy_runs_job_started;
+        ALTER TABLE validation_copy_runs RENAME TO validation_copy_runs_v9;
+        ALTER TABLE validation_copies RENAME TO validation_copies_v9;
+
+        CREATE TABLE validation_copies (
+            job_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            job_root TEXT NOT NULL,
+            source_root TEXT NOT NULL,
+            target_root TEXT NOT NULL,
+            head_commit TEXT NOT NULL,
+            manifest_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'planned', 'materialized', 'running', 'cleanup_pending', 'removed', 'failed'
+            )),
+            created_at TEXT NOT NULL,
+            removed_at TEXT
+        );
+        INSERT INTO validation_copies(
+            job_id, session_id, job_root, source_root, target_root, head_commit,
+            manifest_json, status, created_at, removed_at
+        )
+        SELECT job_id, session_id, job_root, source_root, target_root, '',
+               manifest_json, status, created_at, removed_at
+        FROM validation_copies_v9;
+
+        CREATE TABLE validation_copy_runs (
+            run_id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL REFERENCES validation_copies(job_id),
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            command_json TEXT NOT NULL,
+            exit_code INTEGER NOT NULL,
+            stdout_text TEXT NOT NULL,
+            stderr_text TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            completed_at TEXT NOT NULL
+        );
+        INSERT INTO validation_copy_runs
+        SELECT * FROM validation_copy_runs_v9;
+        CREATE INDEX validation_copy_runs_job_started
+            ON validation_copy_runs(job_id, started_at);
+
+        DROP TABLE validation_copy_runs_v9;
+        DROP TABLE validation_copies_v9;
+        """
+    )
+
+
+def _migration_11(connection: Connection) -> None:
+    connection.executescript(
+        """
+        ALTER TABLE finalize_requests ADD COLUMN ref_updated_sha TEXT;
+        ALTER TABLE validation_copies ADD COLUMN run_pid INTEGER;
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -248,6 +378,10 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     5: _migration_5,
     6: _migration_6,
     7: _migration_7,
+    8: _migration_8,
+    9: _migration_9,
+    10: _migration_10,
+    11: _migration_11,
 }
 
 

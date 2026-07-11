@@ -60,7 +60,7 @@ ALLOWED_STATUS_TRANSITIONS: dict[SessionStatus, frozenset[SessionStatus]] = {
         {SessionStatus.ACTIVE, SessionStatus.COMPLETED, SessionStatus.STALE}
     ),
     SessionStatus.COMPLETED: frozenset(
-        {SessionStatus.ACTIVE, SessionStatus.ARCHIVED}
+        {SessionStatus.ACTIVE, SessionStatus.FINALIZING, SessionStatus.ARCHIVED}
     ),
     SessionStatus.STALE: frozenset(
         {SessionStatus.ACTIVE, SessionStatus.ARCHIVED, SessionStatus.CANCELLED}

@@ -27,6 +27,8 @@ from .watch import WorkspaceWatcher
 from .cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
 from .cleanup import CleanupService
 from .processes import process_is_alive
+from .git_finalize import GitFinalizeService
+from .workspace_copy import WorkspaceCopyService
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -68,6 +70,15 @@ class CoordinatorApplication:
         self.watcher = WorkspaceWatcher(self.baselines)
         self.plans = PlanRepository(config.repo_root)
         self.failures = FailureGraphService(self.database, config.repo_root)
+        self.finalize = GitFinalizeService(
+            self.database,
+            config.repo_root,
+            self.baselines,
+            self.sessions,
+            self.plans,
+            self.failures,
+        )
+        self.finalize.recover_stale_mutex()
         if config.enabled_target_roots:
             self.cargo_jobs: CargoJobService | None = CargoJobService(
                 self.database,
@@ -80,9 +91,14 @@ class CoordinatorApplication:
                 process_alive=process_is_alive,
             )
             self.cleanup.recover_reservations()
+            self.workspace_copy: WorkspaceCopyService | None = WorkspaceCopyService(
+                self.database, config.repo_root, config.enabled_target_roots
+            )
+            self.workspace_copy.recover_interrupted_jobs()
         else:
             self.cargo_jobs = None
             self.cleanup = None
+            self.workspace_copy = None
         self.branch = self._branch()
 
     @property
@@ -319,6 +335,56 @@ class CoordinatorApplication:
                     "denied": [asdict(item) for item in result.denied],
                 },
             }
+        if name == "finalize.preview":
+            maintenance = self._authorize_maintenance(arguments)
+            preview = self.finalize.preview(
+                str(arguments["session_id"]),
+                paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                message=str(arguments["message"]),
+                validation_commands=tuple(
+                    tuple(str(part) for part in command)
+                    for command in arguments.get("validation_commands") or ()
+                ),
+                maintenance=maintenance,
+            )
+            return {"preview": preview.to_dict()}
+        if name == "finalize.commit":
+            maintenance = self._authorize_maintenance(arguments)
+            result = self.finalize.finalize(
+                str(arguments["session_id"]),
+                paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                message=str(arguments["message"]),
+                validation_commands=tuple(
+                    tuple(str(part) for part in command)
+                    for command in arguments.get("validation_commands") or ()
+                ),
+                maintenance=maintenance,
+            )
+            return {"result": result.to_dict()}
+        if name == "validation_copy.plan":
+            record = self._require_workspace_copy().plan(
+                str(arguments["session_id"]),
+                include_paths=tuple(str(path) for path in arguments.get("paths") or ()),
+            )
+            return {"copy": record.to_dict()}
+        if name == "validation_copy.materialize":
+            record = self._require_workspace_copy().materialize(
+                str(arguments["session_id"]),
+                include_paths=tuple(str(path) for path in arguments.get("paths") or ()),
+            )
+            return {"copy": record.to_dict()}
+        if name == "validation_copy.cleanup":
+            removed = self._require_workspace_copy().cleanup(
+                str(arguments["session_id"]), str(arguments["job_root"])
+            )
+            return {"removed": str(removed)}
+        if name == "validation_copy.run":
+            evidence = self._require_workspace_copy().run(
+                str(arguments["session_id"]),
+                str(arguments["job_id"]),
+                command=tuple(str(part) for part in arguments.get("command") or ()),
+            )
+            return {"evidence": evidence.to_dict()}
         raise CoordinatorError("unknown_command", f"Unknown coordinator command {name}")
 
     @staticmethod
@@ -371,6 +437,27 @@ class CoordinatorApplication:
                 "target_root_unavailable", "No managed targets root is available for cleanup"
             )
         return self.cleanup
+
+    def _require_workspace_copy(self) -> WorkspaceCopyService:
+        if self.workspace_copy is None:
+            raise CoordinatorError(
+                "target_root_unavailable",
+                "No managed targets root is available for validation copies",
+            )
+        return self.workspace_copy
+
+    @staticmethod
+    def _authorize_maintenance(arguments: dict[str, Any]) -> bool:
+        if not bool(arguments.get("maintenance")):
+            return False
+        configured = os.environ.get("ZIRCON_COORDINATOR_MAINTENANCE_TOKEN")
+        supplied = str(arguments.get("maintenance_capability") or "")
+        if not configured or not secrets.compare_digest(configured, supplied):
+            raise CoordinatorError(
+                "maintenance_unauthorized",
+                "Maintenance finalize requires the separate local maintenance capability",
+            )
+        return True
 
     def _branch(self) -> str:
         result = subprocess.run(
@@ -582,6 +669,35 @@ class RunningCoordinator:
                             "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
                             (
                                 "cargo.reconcile_failed",
+                                json.dumps({"error": str(error)}, sort_keys=True),
+                            ),
+                        )
+            if application.workspace_copy is not None:
+                try:
+                    recovered_running, recovered_cleanup = (
+                        application.workspace_copy.recover_interrupted_jobs(startup=False)
+                    )
+                    if recovered_running or recovered_cleanup:
+                        with application.database.transaction() as connection:
+                            connection.execute(
+                                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                                (
+                                    "validation_copy.recovered",
+                                    json.dumps(
+                                        {
+                                            "running": recovered_running,
+                                            "cleanup_pending": recovered_cleanup,
+                                        },
+                                        sort_keys=True,
+                                    ),
+                                ),
+                            )
+                except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    with application.database.transaction() as connection:
+                        connection.execute(
+                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                            (
+                                "validation_copy.recovery_failed",
                                 json.dumps({"error": str(error)}, sort_keys=True),
                             ),
                         )
