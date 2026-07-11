@@ -1,7 +1,7 @@
 # Zircon Workflow Control Center and Windows Tray Design
 
 **Date:** 2026-07-11
-**Status:** Review requested
+**Status:** Approved for implementation planning
 **Scope:** Local Jenkins-style workflow visualization, controlled web operations, and Windows tray supervision for the Zircon Session Coordinator.
 
 ## 1. Goals
@@ -386,15 +386,15 @@ End-to-end tests use temporary Git repositories, databases, ports, target roots,
 
 ### M1: Control-plane foundation
 
-Add workflow/event schema, projections, loopback `/control/v1`, snapshot, SSE replay, and contract tests. Exit gate: existing CLI behavior remains unchanged and the control plane is read-only.
+Add workflow/event schema, projections, loopback `/control/v1`, snapshot, SSE replay, one-time Observer bootstrap tickets, read-only web sessions, and contract tests. Exit gate: existing CLI behavior remains unchanged, the browser never receives the runtime bearer token, and the control plane is read-only.
 
 ### M2: Read-only web console
 
-Add React/Vite, overview, workflow graph, Session, Failure, lease, Cargo, logs, and audit pages. Exit gate: all coordinator state is observable with no mutation surface.
+Add React/Vite, overview, workflow graph, Session, Failure, lease, Cargo, logs, and audit pages. Exit gate: the console opens through the Observer bootstrap flow, all coordinator state is observable, and no mutation surface exists.
 
 ### M3: Controlled actions
 
-Add bootstrap tickets, Cookie/CSRF, permissions, Action Catalog, Preview/Confirm, audit, and yellow operations. Exit gate: no catalog-external or repository-external operation is possible.
+Extend read-only web sessions with short-lived Operator/Maintainer elevation, CSRF protection, permissions, Action Catalog, Preview/Confirm, audit, and yellow operations. Exit gate: no catalog-external or repository-external operation is possible.
 
 ### M4: Milestone and Goal management
 
