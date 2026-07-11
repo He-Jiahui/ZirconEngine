@@ -237,7 +237,11 @@ class ActionService:
     ) -> ActionRecord:
         try:
             result = self.executor.execute(
-                spec, parameters, resource_snapshot=resource_snapshot
+                spec,
+                parameters,
+                resource_snapshot=resource_snapshot,
+                action_id=action_id,
+                actor=context.actor,
             )
         except CoordinatorError as error:
             self._finish_failure(action_id, parameters, error.code)

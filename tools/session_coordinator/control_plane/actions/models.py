@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import ClassVar, Mapping, TypeVar
+import re
 
 from ...models import CoordinatorError, WebControlRole
 
@@ -100,7 +101,11 @@ class ValidationTemplate(StrEnum):
 class ValidationStartParameters(ActionParameters):
     session_id: str
     template: ValidationTemplate
-    fields: ClassVar[frozenset[str]] = frozenset({"sessionId", "template"})
+    run_id: str
+    milestone_id: str
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {"sessionId", "template", "runId", "milestoneId"}
+    )
 
     @classmethod
     def _from_payload(cls, payload: Mapping[str, object]) -> "ValidationStartParameters":
@@ -111,10 +116,22 @@ class ValidationStartParameters(ActionParameters):
             raise CoordinatorError(
                 "action_parameters_invalid", "Unknown server validation template"
             ) from error
-        return cls(session.session_id, template)
+        milestone = MilestoneParameters._from_payload(
+            {
+                "sessionId": session.session_id,
+                "runId": payload["runId"],
+                "milestoneId": payload["milestoneId"],
+            }
+        )
+        return cls(session.session_id, template, milestone.run_id, milestone.milestone_id)
 
     def to_payload(self) -> dict[str, object]:
-        return {"sessionId": self.session_id, "template": self.template.value}
+        return {
+            "sessionId": self.session_id,
+            "template": self.template.value,
+            "runId": self.run_id,
+            "milestoneId": self.milestone_id,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +150,129 @@ class ValidationCancelParameters(ActionParameters):
 
     def to_payload(self) -> dict[str, object]:
         return {"sessionId": self.session_id, "jobId": self.job_id}
+
+
+@dataclass(frozen=True, slots=True)
+class MilestoneParameters(ActionParameters):
+    session_id: str
+    run_id: str
+    milestone_id: str
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {"sessionId", "runId", "milestoneId"}
+    )
+
+    @classmethod
+    def _from_payload(cls, payload: Mapping[str, object]) -> "MilestoneParameters":
+        session = SessionParameters._from_payload({"sessionId": payload["sessionId"]})
+        run_id = str(payload["runId"]).strip()
+        milestone_id = str(payload["milestoneId"]).strip().upper()
+        if not run_id or len(run_id) > 128 or not re.fullmatch(r"[a-zA-Z0-9-]+", run_id):
+            raise CoordinatorError("action_parameters_invalid", "Workflow run ID is invalid")
+        if not re.fullmatch(r"M[1-9]\d*", milestone_id):
+            raise CoordinatorError("action_parameters_invalid", "Milestone ID is invalid")
+        return cls(session.session_id, run_id, milestone_id)
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "sessionId": self.session_id,
+            "runId": self.run_id,
+            "milestoneId": self.milestone_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class GoalCloseoutParameters(ActionParameters):
+    session_id: str
+    run_id: str
+    fields: ClassVar[frozenset[str]] = frozenset({"sessionId", "runId"})
+
+    @classmethod
+    def _from_payload(cls, payload: Mapping[str, object]) -> "GoalCloseoutParameters":
+        session = SessionParameters._from_payload({"sessionId": payload["sessionId"]})
+        run_id = str(payload["runId"]).strip()
+        if not run_id or len(run_id) > 128 or not re.fullmatch(r"[a-zA-Z0-9-]+", run_id):
+            raise CoordinatorError("action_parameters_invalid", "Workflow run ID is invalid")
+        return cls(session.session_id, run_id)
+
+    def to_payload(self) -> dict[str, object]:
+        return {"sessionId": self.session_id, "runId": self.run_id}
+
+
+@dataclass(frozen=True, slots=True)
+class TopologyRefreshParameters(ActionParameters):
+    session_id: str
+    executor_session_id: str | None = None
+    run_id: str | None = None
+    milestone_id: str | None = None
+    critical_count: int | None = None
+    important_count: int | None = None
+    summary: str | None = None
+
+    @classmethod
+    def parse(cls, payload: Mapping[str, object]) -> "TopologyRefreshParameters":
+        keys = set(payload)
+        basic = {"sessionId"}
+        review = {
+            "sessionId", "executorSessionId", "runId", "milestoneId", "criticalCount",
+            "importantCount", "summary",
+        }
+        if keys not in (basic, review):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Topology refresh accepts either a Session or one complete review submission",
+            )
+        session = SessionParameters._from_payload({"sessionId": payload["sessionId"]})
+        if keys == basic:
+            return cls(session.session_id)
+        executor = SessionParameters._from_payload(
+            {"sessionId": payload["executorSessionId"]}
+        )
+        if executor.session_id == session.session_id:
+            raise CoordinatorError(
+                "workflow_review_not_independent",
+                "Reviewer Session must differ from executor Session",
+            )
+        milestone = MilestoneParameters._from_payload(
+            {
+                "sessionId": executor.session_id,
+                "runId": payload["runId"],
+                "milestoneId": payload["milestoneId"],
+            }
+        )
+        try:
+            critical = int(payload["criticalCount"])
+            important = int(payload["importantCount"])
+        except (TypeError, ValueError) as error:
+            raise CoordinatorError(
+                "action_parameters_invalid", "Review finding counts must be integers"
+            ) from error
+        summary = str(payload["summary"]).strip()
+        if critical < 0 or important < 0 or not summary or len(summary) > 2_000:
+            raise CoordinatorError(
+                "action_parameters_invalid", "Review findings or summary are invalid"
+            )
+        return cls(
+            session.session_id,
+            executor.session_id,
+            milestone.run_id,
+            milestone.milestone_id,
+            critical,
+            important,
+            summary,
+        )
+
+    def to_payload(self) -> dict[str, object]:
+        if self.run_id is None:
+            return {"sessionId": self.session_id}
+        return {
+            "sessionId": self.session_id,
+            "executorSessionId": self.executor_session_id or "",
+            "runId": self.run_id,
+            "milestoneId": self.milestone_id or "",
+            "criticalCount": self.critical_count or 0,
+            "importantCount": self.important_count or 0,
+            "summary": self.summary or "",
+        }
 
 
 @dataclass(frozen=True, slots=True)

@@ -47,6 +47,14 @@ export interface WorkflowNode {
   statusReason: string | null;
   currentAttempt: WorkflowAttempt | null;
   attemptHistory: WorkflowAttempt[];
+  commitEligibility?: {
+    eligible: boolean;
+    code: string;
+    missing: string[];
+    rejected: string[];
+    fingerprintConsistent: boolean;
+    independentReviewAccepted: boolean;
+  } | null;
 }
 
 export interface WorkflowDetail {
@@ -60,7 +68,16 @@ export interface WorkflowDetail {
   nodes: WorkflowNode[];
   edges: Array<{ fromNodeId: string; toNodeId: string; kind: string }>;
   artifacts: WorkflowArtifact[];
+  topologyVersions: WorkflowTopologyVersion[];
+  gates: WorkflowGateEvidence[];
+  reviews: WorkflowReviewEvidence[];
+  notifications: WorkflowNotificationAttempt[];
 }
+
+export interface WorkflowTopologyVersion { topologyVersionId: string; versionNumber: number; schemaVersion: number; sourceKind: string; contentHash: string; topologyHash: string; supersedesId: string | null; active: boolean; createdAt: string; }
+export interface WorkflowGateEvidence { evidenceId: string; topologyVersionId: string; nodeId: string | null; attemptId: string | null; kind: string; decision: string; code: string; inputFingerprint: string; blockingNodeIds: string[]; applicableFailureIds: string[]; requiredEvidence: string[]; createdAt: string; }
+export interface WorkflowReviewEvidence { reviewId: string; topologyVersionId: string; nodeId: string | null; attemptId: string | null; reviewer: string; executor: string; verdict: string; criticalCount: number; importantCount: number; summary: string; createdAt: string; }
+export interface WorkflowNotificationAttempt { attemptId: string; commitSha: string; channel: string; status: string; attemptedAt: string; completedAt: string | null; exitCode: number | null; providerErrcode: string | null; sanitizedError: string | null; retryAllowed: boolean; }
 
 export interface WorkflowArtifact {
   artifactId: string;

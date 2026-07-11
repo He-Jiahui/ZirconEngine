@@ -131,6 +131,24 @@ export function parseWorkflowDetail(value: unknown): WorkflowDetail {
     string(artifact.kind, "工件.kind"); string(artifact.displayName, "工件.displayName"); nullableString(artifact.contentHash, "工件.contentHash");
     if (artifact.byteCount !== null) integer(artifact.byteCount, "工件.byteCount"); object(artifact.metadata, "工件.metadata"); string(artifact.createdAt, "工件.createdAt");
   });
+  array(root.topologyVersions, "拓扑版本").forEach((item, index) => {
+    const version = object(item, `topologyVersions[${index}]`);
+    string(version.topologyVersionId, "拓扑版本.id"); integer(version.versionNumber, "拓扑版本.number"); integer(version.schemaVersion, "拓扑版本.schema");
+    string(version.sourceKind, "拓扑版本.source"); string(version.contentHash, "拓扑版本.contentHash"); string(version.topologyHash, "拓扑版本.topologyHash"); nullableString(version.supersedesId, "拓扑版本.supersedesId"); string(version.createdAt, "拓扑版本.createdAt");
+    if (typeof version.active !== "boolean") throw new Error("拓扑版本.active 必须是布尔值");
+  });
+  array(root.gates, "门禁证据").forEach((item, index) => {
+    const gate = object(item, `gates[${index}]`); for (const key of ["evidenceId", "topologyVersionId", "kind", "decision", "code", "inputFingerprint", "createdAt"]) string(gate[key], `门禁.${key}`);
+    nullableString(gate.nodeId, "门禁.nodeId"); nullableString(gate.attemptId, "门禁.attemptId"); stringArray(gate.blockingNodeIds, "门禁.blockingNodeIds"); stringArray(gate.applicableFailureIds, "门禁.applicableFailureIds"); stringArray(gate.requiredEvidence, "门禁.requiredEvidence");
+  });
+  array(root.reviews, "评审证据").forEach((item, index) => {
+    const review = object(item, `reviews[${index}]`); for (const key of ["reviewId", "topologyVersionId", "reviewer", "executor", "verdict", "summary", "createdAt"]) string(review[key], `评审.${key}`);
+    nullableString(review.nodeId, "评审.nodeId"); nullableString(review.attemptId, "评审.attemptId"); integer(review.criticalCount, "评审.criticalCount"); integer(review.importantCount, "评审.importantCount");
+  });
+  array(root.notifications, "通知尝试").forEach((item, index) => {
+    const notification = object(item, `notifications[${index}]`); for (const key of ["attemptId", "commitSha", "channel", "status", "attemptedAt"]) string(notification[key], `通知.${key}`);
+    nullableString(notification.completedAt, "通知.completedAt"); nullableString(notification.providerErrcode, "通知.providerErrcode"); nullableString(notification.sanitizedError, "通知.sanitizedError"); if (notification.exitCode !== null) integer(notification.exitCode, "通知.exitCode"); if (typeof notification.retryAllowed !== "boolean") throw new Error("通知.retryAllowed 必须是布尔值");
+  });
   return value as unknown as WorkflowDetail;
 }
 
@@ -185,6 +203,15 @@ function validateNode(value: unknown, label: string): void {
   nullableString(node.ownerSessionId, `${label}.ownerSessionId`); nullableString(node.statusReason, `${label}.statusReason`);
   if (node.currentAttempt !== null) validateAttempt(node.currentAttempt, `${label}.currentAttempt`);
   array(node.attemptHistory, `${label}.attemptHistory`).forEach((attempt, index) => validateAttempt(attempt, `${label}.attemptHistory[${index}]`));
+  if (node.commitEligibility !== undefined && node.commitEligibility !== null) {
+    const eligibility = object(node.commitEligibility, `${label}.commitEligibility`);
+    if (typeof eligibility.eligible !== "boolean") throw new Error(`${label}.commitEligibility.eligible 必须是布尔值`);
+    string(eligibility.code, `${label}.commitEligibility.code`);
+    stringArray(eligibility.missing, `${label}.commitEligibility.missing`);
+    stringArray(eligibility.rejected, `${label}.commitEligibility.rejected`);
+    if (typeof eligibility.fingerprintConsistent !== "boolean") throw new Error(`${label}.commitEligibility.fingerprintConsistent 必须是布尔值`);
+    if (typeof eligibility.independentReviewAccepted !== "boolean") throw new Error(`${label}.commitEligibility.independentReviewAccepted 必须是布尔值`);
+  }
 }
 
 function validateAttempt(value: unknown, label: string): void {

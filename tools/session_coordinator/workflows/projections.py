@@ -71,6 +71,16 @@ class WorkflowProjectionService:
             attempt_history = [self._attempt_projection(attempt) for attempt in attempts]
             accepted = [attempt for attempt in attempts if bool(attempt["accepted"])]
             current = self._attempt_projection(accepted[-1]) if accepted else None
+            eligibility = (
+                self._commit_eligibility(
+                    connection,
+                    run_id,
+                    node["node_id"],
+                    run["current_topology_version_id"],
+                )
+                if node["kind"] == "milestone"
+                else None
+            )
             nodes.append(
                 {
                     "nodeId": node["node_id"],
@@ -83,6 +93,7 @@ class WorkflowProjectionService:
                     "statusReason": node["status_reason"],
                     "currentAttempt": current,
                     "attemptHistory": attempt_history,
+                    "commitEligibility": eligibility,
                 }
             )
         edges = [
@@ -116,6 +127,84 @@ class WorkflowProjectionService:
                     "createdAt": row["created_at"],
                 }
             )
+        topology_versions = [
+            {
+                "topologyVersionId": row["topology_version_id"],
+                "versionNumber": int(row["version_number"]),
+                "schemaVersion": int(row["schema_version"]),
+                "sourceKind": row["source_kind"],
+                "contentHash": row["content_hash"],
+                "topologyHash": row["topology_hash"],
+                "supersedesId": row["supersedes_id"],
+                "active": row["topology_version_id"] == run["current_topology_version_id"],
+                "createdAt": row["created_at"],
+            }
+            for row in connection.execute(
+                """SELECT * FROM workflow_topology_versions
+                   WHERE run_id=? ORDER BY version_number""",
+                (run_id,),
+            )
+        ]
+        gates = [
+            {
+                "evidenceId": row["evidence_id"],
+                "topologyVersionId": row["topology_version_id"],
+                "nodeId": row["node_id"],
+                "attemptId": row["attempt_id"],
+                "kind": row["gate_kind"],
+                "decision": row["decision"],
+                "code": row["decision_code"],
+                "inputFingerprint": row["input_fingerprint"],
+                "blockingNodeIds": json.loads(row["blocking_node_ids_json"]),
+                "applicableFailureIds": json.loads(row["applicable_failure_ids_json"]),
+                "requiredEvidence": json.loads(row["required_evidence_json"]),
+                "createdAt": row["created_at"],
+            }
+            for row in connection.execute(
+                """SELECT * FROM workflow_gate_evidence
+                   WHERE run_id=? ORDER BY created_at, evidence_id""",
+                (run_id,),
+            )
+        ]
+        reviews = [
+            {
+                "reviewId": row["review_id"],
+                "topologyVersionId": row["topology_version_id"],
+                "nodeId": row["node_id"],
+                "attemptId": row["attempt_id"],
+                "reviewer": row["reviewer"],
+                "executor": row["executor"],
+                "verdict": row["verdict"],
+                "criticalCount": int(row["critical_count"]),
+                "importantCount": int(row["important_count"]),
+                "summary": row["summary"],
+                "createdAt": row["created_at"],
+            }
+            for row in connection.execute(
+                """SELECT * FROM workflow_review_evidence
+                   WHERE run_id=? ORDER BY created_at, review_id""",
+                (run_id,),
+            )
+        ]
+        notifications = [
+            {
+                "attemptId": row["notification_attempt_id"],
+                "commitSha": row["commit_sha"],
+                "channel": row["channel"],
+                "status": row["status"],
+                "attemptedAt": row["attempted_at"],
+                "completedAt": row["completed_at"],
+                "exitCode": row["exit_code"],
+                "providerErrcode": row["provider_errcode"],
+                "sanitizedError": row["sanitized_error"],
+                "retryAllowed": False,
+            }
+            for row in connection.execute(
+                """SELECT * FROM notification_attempts
+                   WHERE run_id=? ORDER BY attempted_at, notification_attempt_id""",
+                (run_id,),
+            )
+        ]
         return {
             "runId": run["run_id"],
             "sessionId": run["session_id"],
@@ -127,6 +216,67 @@ class WorkflowProjectionService:
             "nodes": nodes,
             "edges": edges,
             "artifacts": artifacts,
+            "topologyVersions": topology_versions,
+            "gates": gates,
+            "reviews": reviews,
+            "notifications": notifications,
+        }
+
+    @staticmethod
+    def _commit_eligibility(
+        connection: sqlite3.Connection,
+        run_id: str,
+        node_id: str,
+        topology_version_id: str | None,
+    ) -> dict[str, object]:
+        required = {
+            "validation", "review", "failure_audit", "plan_output", "commit_manifest"
+        }
+        if topology_version_id is None:
+            return {"eligible": False, "code": "workflow_topology_not_active", "missing": sorted(required)}
+        rows = connection.execute(
+            """SELECT evidence.* FROM workflow_gate_evidence evidence
+               WHERE evidence.run_id=? AND evidence.topology_version_id=?
+                 AND evidence.node_id=? AND evidence.rowid=(
+                    SELECT latest.rowid FROM workflow_gate_evidence latest
+                    WHERE latest.run_id=evidence.run_id
+                      AND latest.topology_version_id=evidence.topology_version_id
+                      AND latest.node_id=evidence.node_id
+                      AND latest.gate_kind=evidence.gate_kind
+                    ORDER BY latest.created_at DESC, latest.rowid DESC LIMIT 1
+                 )""",
+            (run_id, topology_version_id, node_id),
+        ).fetchall()
+        latest = {row["gate_kind"]: row for row in rows}
+        missing = sorted(required - set(latest))
+        rejected = sorted(
+            kind for kind in required & set(latest) if latest[kind]["decision"] != "accepted"
+        )
+        fingerprints = {
+            latest[kind]["input_fingerprint"] for kind in required & set(latest)
+        }
+        review_ok = False
+        if "review" in latest:
+            review_ok = connection.execute(
+                """SELECT 1 FROM workflow_review_evidence
+                   WHERE run_id=? AND topology_version_id=? AND node_id=?
+                     AND input_fingerprint=? AND verdict='accepted' LIMIT 1""",
+                (
+                    run_id,
+                    topology_version_id,
+                    node_id,
+                    latest["review"]["input_fingerprint"],
+                ),
+            ).fetchone() is not None
+        eligible = not missing and not rejected and len(fingerprints) == 1 and review_ok
+        code = "database_evidence_ready" if eligible else "database_evidence_not_ready"
+        return {
+            "eligible": eligible,
+            "code": code,
+            "missing": missing,
+            "rejected": rejected,
+            "fingerprintConsistent": len(fingerprints) <= 1,
+            "independentReviewAccepted": review_ok,
         }
 
     @staticmethod

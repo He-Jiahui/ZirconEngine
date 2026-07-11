@@ -24,8 +24,8 @@ class WorkflowSchemaTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE type = 'table'"
                     )
                 }
-            self.assertEqual(16, LATEST_SCHEMA_VERSION)
-            self.assertEqual(16, version)
+            self.assertEqual(19, LATEST_SCHEMA_VERSION)
+            self.assertEqual(19, version)
             self.assertTrue(
                 {
                     "workflow_runs",
@@ -61,7 +61,7 @@ class WorkflowSchemaTests(unittest.TestCase):
                     """
                 )
 
-            self.assertEqual(16, migrate(database))
+            self.assertEqual(19, migrate(database))
 
             with database.connect() as connection:
                 self.assertIsNotNone(
@@ -81,7 +81,7 @@ class WorkflowSchemaTests(unittest.TestCase):
             migrate(database)
             with database.transaction() as connection:
                 connection.execute(
-                    "INSERT INTO schema_version(version, applied_at) VALUES (17, 'future')"
+                    "INSERT INTO schema_version(version, applied_at) VALUES (20, 'future')"
                 )
                 connection.execute("CREATE TABLE future_marker(value TEXT)")
                 connection.execute("INSERT INTO future_marker VALUES ('preserved')")

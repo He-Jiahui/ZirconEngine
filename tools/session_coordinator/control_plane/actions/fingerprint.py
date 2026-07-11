@@ -64,7 +64,17 @@ class ActionFingerprinter:
         ).fetchone()
         resources = self._action_resources(connection, spec, parameters, session_id)
         targets = self._target_paths(connection, session_id, session)
-        plan_path = str(session["plan_path"]) if session is not None and session["plan_path"] else None
+        plan_session = session
+        executor_session_id = getattr(parameters, "executor_session_id", None)
+        if executor_session_id:
+            plan_session = connection.execute(
+                "SELECT * FROM sessions WHERE session_id=?", (executor_session_id,)
+            ).fetchone()
+        plan_path = (
+            str(plan_session["plan_path"])
+            if plan_session is not None and plan_session["plan_path"]
+            else None
+        )
         payload: dict[str, object] = {
             "actionKind": spec.kind.value,
             "parameters": parameters.to_payload(),
@@ -114,6 +124,7 @@ class ActionFingerprinter:
         failure_nodes: list[dict[str, object]] = []
         failure_artifacts: tuple[dict[str, str], ...] = ()
         leases: list[dict[str, object]] = []
+        workflow: dict[str, object] | None = None
         if spec.kind is ActionKind.PATCH_PROCESS and session_id:
             patches = [dict(row) for row in connection.execute(
                 """SELECT patch_id, session_id, patch_object_hash, targets_json,
@@ -161,12 +172,55 @@ class ActionFingerprinter:
                 (session_id, session_id),
             )]
             failure_artifacts = failure_artifact_snapshot(self.repo_root)
+        if spec.kind in {
+            ActionKind.VALIDATION_START,
+            ActionKind.TOPOLOGY_REFRESH,
+            ActionKind.MILESTONE_COMMIT,
+            ActionKind.SESSION_COMPLETE,
+        } and getattr(parameters, "run_id", None):
+            run_id = getattr(parameters, "run_id", "")
+            workflow_session_id = (
+                getattr(parameters, "executor_session_id", None) or session_id
+            )
+            run = connection.execute(
+                """SELECT run_id, session_id, topology_hash,
+                          current_topology_version_id, state, updated_at
+                   FROM workflow_runs WHERE run_id=? AND session_id=?""",
+                (run_id, workflow_session_id),
+            ).fetchone()
+            if run is None:
+                raise CoordinatorError(
+                    "workflow_run_session_mismatch",
+                    "Workflow run does not belong to the requested Session",
+                )
+            workflow = {
+                "run": dict(run),
+                "nodes": [
+                    dict(row)
+                    for row in connection.execute(
+                        """SELECT node_id, node_key, kind, state, attempt_count, updated_at
+                           FROM workflow_nodes WHERE run_id=? ORDER BY node_key""",
+                        (run_id,),
+                    )
+                ],
+                "gates": [
+                    dict(row)
+                    for row in connection.execute(
+                        """SELECT evidence_id, gate_kind, decision,
+                                  input_fingerprint, created_at
+                           FROM workflow_gate_evidence WHERE run_id=?
+                           ORDER BY created_at, evidence_id""",
+                        (run_id,),
+                    )
+                ],
+            }
         return {
             "leases": leases,
             "patches": patches,
             "validationCopies": validation_copies,
             "failureNodes": failure_nodes,
             "failureArtifacts": failure_artifacts,
+            "workflow": workflow,
         }
 
     @staticmethod

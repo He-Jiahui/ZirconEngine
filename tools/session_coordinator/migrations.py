@@ -7,7 +7,7 @@ from .database import Database
 from .models import CoordinatorError
 
 
-LATEST_SCHEMA_VERSION = 16
+LATEST_SCHEMA_VERSION = 19
 
 
 def _migration_1(connection: Connection) -> None:
@@ -711,6 +711,324 @@ def _migration_16(connection: Connection) -> None:
     )
 
 
+def _migration_17(connection: Connection) -> None:
+    """Add versioned milestone topology, gate, review, and notification evidence.
+
+    Schema 16 was already released for the M3 closed action enum.  Keeping this
+    as a new migration avoids silently giving two databases with version 16
+    different layouts.
+    """
+    connection.executescript(
+        """
+        ALTER TABLE workflow_runs ADD COLUMN current_topology_version_id TEXT;
+
+        CREATE TABLE workflow_topology_versions (
+            topology_version_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            version_number INTEGER NOT NULL CHECK (version_number > 0),
+            plan_path TEXT NOT NULL,
+            plan_id TEXT NOT NULL,
+            schema_version INTEGER NOT NULL CHECK (schema_version > 0),
+            source_kind TEXT NOT NULL CHECK (source_kind IN ('zircon-workflow', 'headings')),
+            content_hash TEXT NOT NULL,
+            topology_hash TEXT NOT NULL,
+            topology_json TEXT NOT NULL,
+            supersedes_id TEXT REFERENCES workflow_topology_versions(topology_version_id),
+            created_at TEXT NOT NULL,
+            UNIQUE(run_id, version_number),
+            UNIQUE(run_id, content_hash),
+            UNIQUE(run_id, topology_version_id)
+        );
+        CREATE INDEX workflow_topology_versions_run_created
+            ON workflow_topology_versions(run_id, created_at);
+        CREATE TRIGGER workflow_topology_versions_no_update
+        BEFORE UPDATE ON workflow_topology_versions
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow topology versions are immutable');
+        END;
+        CREATE TRIGGER workflow_topology_versions_no_delete
+        BEFORE DELETE ON workflow_topology_versions
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow topology versions are immutable');
+        END;
+
+        CREATE TABLE workflow_gate_evidence (
+            evidence_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            topology_version_id TEXT NOT NULL
+                REFERENCES workflow_topology_versions(topology_version_id) ON DELETE RESTRICT,
+            node_id TEXT,
+            attempt_id TEXT,
+            gate_kind TEXT NOT NULL CHECK (gate_kind IN (
+                'dependencies', 'slices', 'validation', 'review',
+                'failure_audit', 'plan_output', 'commit_manifest'
+            )),
+            decision TEXT NOT NULL CHECK (decision IN ('accepted', 'rejected', 'stale')),
+            decision_code TEXT NOT NULL,
+            input_fingerprint TEXT NOT NULL,
+            evidence_hash TEXT NOT NULL,
+            blocking_node_ids_json TEXT NOT NULL DEFAULT '[]',
+            applicable_failure_ids_json TEXT NOT NULL DEFAULT '[]',
+            required_evidence_json TEXT NOT NULL DEFAULT '[]',
+            payload_json TEXT NOT NULL DEFAULT '{}',
+            source_revision TEXT,
+            actor TEXT NOT NULL,
+            action_id TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, node_id, attempt_id)
+                REFERENCES workflow_attempts(run_id, node_id, attempt_id) ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, topology_version_id)
+                REFERENCES workflow_topology_versions(run_id, topology_version_id)
+                ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_gate_evidence_run_gate_created
+            ON workflow_gate_evidence(run_id, gate_kind, created_at DESC);
+        CREATE TRIGGER workflow_gate_evidence_no_update
+        BEFORE UPDATE ON workflow_gate_evidence
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow gate evidence is immutable');
+        END;
+        CREATE TRIGGER workflow_gate_evidence_no_delete
+        BEFORE DELETE ON workflow_gate_evidence
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow gate evidence is immutable');
+        END;
+
+        CREATE TABLE workflow_review_evidence (
+            review_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE CASCADE,
+            topology_version_id TEXT NOT NULL
+                REFERENCES workflow_topology_versions(topology_version_id) ON DELETE RESTRICT,
+            node_id TEXT,
+            attempt_id TEXT,
+            reviewer TEXT NOT NULL,
+            executor TEXT NOT NULL,
+            verdict TEXT NOT NULL CHECK (verdict IN ('accepted', 'rejected')),
+            critical_count INTEGER NOT NULL CHECK (critical_count >= 0),
+            important_count INTEGER NOT NULL CHECK (important_count >= 0),
+            evidence_hash TEXT NOT NULL,
+            input_fingerprint TEXT NOT NULL,
+            summary TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, node_id, attempt_id)
+                REFERENCES workflow_attempts(run_id, node_id, attempt_id) ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, topology_version_id)
+                REFERENCES workflow_topology_versions(run_id, topology_version_id)
+                ON DELETE RESTRICT,
+            CHECK(reviewer <> executor)
+        );
+        CREATE INDEX workflow_review_evidence_run_created
+            ON workflow_review_evidence(run_id, created_at DESC);
+        CREATE TRIGGER workflow_review_evidence_no_update
+        BEFORE UPDATE ON workflow_review_evidence
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow review evidence is immutable');
+        END;
+        CREATE TRIGGER workflow_review_evidence_no_delete
+        BEFORE DELETE ON workflow_review_evidence
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow review evidence is immutable');
+        END;
+
+        CREATE TABLE notification_attempts (
+            notification_attempt_id TEXT PRIMARY KEY,
+            run_id TEXT REFERENCES workflow_runs(run_id) ON DELETE SET NULL,
+            topology_version_id TEXT
+                REFERENCES workflow_topology_versions(topology_version_id) ON DELETE SET NULL,
+            node_id TEXT,
+            action_id TEXT,
+            commit_sha TEXT NOT NULL,
+            channel TEXT NOT NULL CHECK (channel IN ('wecom')),
+            status TEXT NOT NULL CHECK (status IN ('reserved', 'succeeded', 'failed', 'unknown')),
+            message_hash TEXT NOT NULL,
+            attempted_at TEXT NOT NULL,
+            completed_at TEXT,
+            exit_code INTEGER,
+            provider_errcode TEXT,
+            sanitized_error TEXT,
+            UNIQUE(commit_sha, channel),
+            CHECK(topology_version_id IS NULL OR run_id IS NOT NULL),
+            CHECK(node_id IS NULL OR run_id IS NOT NULL),
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, topology_version_id)
+                REFERENCES workflow_topology_versions(run_id, topology_version_id)
+                ON DELETE RESTRICT
+        );
+        CREATE INDEX notification_attempts_run_time
+            ON notification_attempts(run_id, attempted_at DESC);
+        CREATE TRIGGER notification_attempts_terminal_update_only
+        BEFORE UPDATE ON notification_attempts
+        WHEN OLD.status <> 'reserved'
+          OR NEW.status NOT IN ('succeeded', 'failed', 'unknown')
+          OR NEW.notification_attempt_id <> OLD.notification_attempt_id
+          OR NEW.run_id IS NOT OLD.run_id
+          OR NEW.topology_version_id IS NOT OLD.topology_version_id
+          OR NEW.node_id IS NOT OLD.node_id
+          OR NEW.action_id IS NOT OLD.action_id
+          OR NEW.commit_sha <> OLD.commit_sha
+          OR NEW.channel <> OLD.channel
+          OR NEW.message_hash <> OLD.message_hash
+          OR NEW.attempted_at <> OLD.attempted_at
+        BEGIN
+            SELECT RAISE(ABORT, 'notification reservation may transition once to a terminal result');
+        END;
+        CREATE TRIGGER notification_attempts_no_delete
+        BEFORE DELETE ON notification_attempts
+        BEGIN
+            SELECT RAISE(ABORT, 'notification attempts are immutable');
+        END;
+
+        CREATE TABLE workflow_commit_intents (
+            intent_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE RESTRICT,
+            topology_version_id TEXT NOT NULL,
+            node_id TEXT NOT NULL,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE RESTRICT,
+            action_id TEXT,
+            actor TEXT NOT NULL,
+            gate_fingerprint TEXT NOT NULL,
+            paths_json TEXT NOT NULL,
+            message TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'prepared', 'committed', 'reconciled', 'failed'
+            )),
+            commit_sha TEXT,
+            error_text TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(run_id, topology_version_id)
+                REFERENCES workflow_topology_versions(run_id, topology_version_id)
+                ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_commit_intents_status_created
+            ON workflow_commit_intents(status, created_at);
+
+        CREATE TABLE workflow_validation_bindings (
+            validation_run_id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL REFERENCES validation_copies(job_id) ON DELETE RESTRICT,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE RESTRICT,
+            topology_version_id TEXT NOT NULL,
+            node_id TEXT NOT NULL,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE RESTRICT,
+            template TEXT NOT NULL CHECK (template IN ('coordinator-actions', 'web-check')),
+            input_fingerprint TEXT NOT NULL,
+            action_id TEXT,
+            actor TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            imported_at TEXT,
+            FOREIGN KEY(run_id, topology_version_id)
+                REFERENCES workflow_topology_versions(run_id, topology_version_id)
+                ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_validation_bindings_pending
+            ON workflow_validation_bindings(imported_at, created_at);
+        """
+    )
+
+
+def _migration_18(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE workflow_milestone_manifests (
+            manifest_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL REFERENCES workflow_runs(run_id) ON DELETE RESTRICT,
+            topology_version_id TEXT NOT NULL,
+            node_id TEXT NOT NULL,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id) ON DELETE RESTRICT,
+            paths_json TEXT NOT NULL,
+            manifest_hash TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            action_id TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(run_id, topology_version_id)
+                REFERENCES workflow_topology_versions(run_id, topology_version_id)
+                ON DELETE RESTRICT,
+            FOREIGN KEY(run_id, node_id)
+                REFERENCES workflow_nodes(run_id, node_id) ON DELETE RESTRICT
+        );
+        CREATE INDEX workflow_milestone_manifests_node_created
+            ON workflow_milestone_manifests(run_id, node_id, created_at DESC, manifest_id DESC);
+        CREATE TRIGGER workflow_milestone_manifests_no_update
+        BEFORE UPDATE ON workflow_milestone_manifests
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow milestone manifests are immutable');
+        END;
+        CREATE TRIGGER workflow_milestone_manifests_no_delete
+        BEFORE DELETE ON workflow_milestone_manifests
+        BEGIN
+            SELECT RAISE(ABORT, 'workflow milestone manifests are immutable');
+        END;
+
+        CREATE TRIGGER workflow_runs_topology_same_run_insert
+        BEFORE INSERT ON workflow_runs
+        WHEN NEW.current_topology_version_id IS NOT NULL
+         AND NOT EXISTS (
+             SELECT 1 FROM workflow_topology_versions version
+             WHERE version.topology_version_id=NEW.current_topology_version_id
+               AND version.run_id=NEW.run_id
+         )
+        BEGIN
+            SELECT RAISE(ABORT, 'active topology version must belong to workflow run');
+        END;
+        CREATE TRIGGER workflow_runs_topology_same_run_update
+        BEFORE UPDATE OF current_topology_version_id ON workflow_runs
+        WHEN NEW.current_topology_version_id IS NOT NULL
+         AND NOT EXISTS (
+             SELECT 1 FROM workflow_topology_versions version
+             WHERE version.topology_version_id=NEW.current_topology_version_id
+               AND version.run_id=NEW.run_id
+         )
+        BEGIN
+            SELECT RAISE(ABORT, 'active topology version must belong to workflow run');
+        END;
+        CREATE TRIGGER workflow_topology_supersedes_same_run_insert
+        BEFORE INSERT ON workflow_topology_versions
+        WHEN NEW.supersedes_id IS NOT NULL
+         AND NOT EXISTS (
+             SELECT 1 FROM workflow_topology_versions previous
+             WHERE previous.topology_version_id=NEW.supersedes_id
+               AND previous.run_id=NEW.run_id
+         )
+        BEGIN
+            SELECT RAISE(ABORT, 'superseded topology version must belong to workflow run');
+        END;
+        """
+    )
+
+
+def _migration_19(connection: Connection) -> None:
+    """Upgrade already-released v17/v18 databases without rewriting history."""
+    connection.executescript(
+        """
+        ALTER TABLE workflow_validation_bindings ADD COLUMN source_manifest_hash TEXT;
+        ALTER TABLE workflow_validation_bindings ADD COLUMN paths_json TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE workflow_validation_bindings ADD COLUMN terminal_status TEXT NOT NULL
+            DEFAULT 'pending' CHECK (terminal_status IN ('pending', 'accepted', 'rejected'));
+        ALTER TABLE workflow_validation_bindings ADD COLUMN terminal_code TEXT;
+
+        CREATE UNIQUE INDEX workflow_milestone_manifest_single_binding
+            ON workflow_milestone_manifests(run_id, topology_version_id, node_id);
+
+        CREATE TRIGGER workflow_review_registered_sessions_insert
+        BEFORE INSERT ON workflow_review_evidence
+        WHEN NOT EXISTS (SELECT 1 FROM sessions WHERE session_id=NEW.reviewer)
+          OR NOT EXISTS (SELECT 1 FROM sessions WHERE session_id=NEW.executor)
+        BEGIN
+            SELECT RAISE(ABORT, 'reviewer and executor must be registered Sessions');
+        END;
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -728,6 +1046,9 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     14: _migration_14,
     15: _migration_15,
     16: _migration_16,
+    17: _migration_17,
+    18: _migration_18,
+    19: _migration_19,
 }
 
 

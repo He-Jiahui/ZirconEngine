@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import uuid
 from typing import Any, Mapping
 
 from ...models import CoordinatorError, SessionStatus
@@ -10,9 +11,12 @@ from .models import (
     ActionParameters,
     ActionSpec,
     SessionParameters,
+    GoalCloseoutParameters,
+    MilestoneParameters,
     ValidationCancelParameters,
     ValidationStartParameters,
     ValidationTemplate,
+    TopologyRefreshParameters,
 )
 
 
@@ -28,6 +32,8 @@ class ActionExecutor:
         failures,
         workspace_copy,
         workflows,
+        topology_importer=None,
+        milestones=None,
     ):
         self.sessions = sessions
         self.leases = leases
@@ -35,6 +41,8 @@ class ActionExecutor:
         self.failures = failures
         self.workspace_copy = workspace_copy
         self.workflows = workflows
+        self.topology_importer = topology_importer
+        self.milestones = milestones
 
     def execute(
         self,
@@ -42,6 +50,8 @@ class ActionExecutor:
         parameters: ActionParameters,
         *,
         resource_snapshot: Mapping[str, object],
+        action_id: str | None = None,
+        actor: str | None = None,
     ) -> dict[str, object]:
         kind = spec.kind
         if kind is ActionKind.SESSION_HEARTBEAT:
@@ -105,14 +115,40 @@ class ActionExecutor:
             if self.workspace_copy is None:
                 raise CoordinatorError("action_unavailable", "Validation-copy service is unavailable")
             value = self._typed(parameters, ValidationStartParameters)
-            manifest = self.workspace_copy.validation_manifest(value.session_id)
+            if self.milestones is None:
+                raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
+            paths = self.milestones.milestone_paths(value.run_id, value.milestone_id)
+            if not paths:
+                paths = self.milestones.bind_manifest(
+                    session_id=value.session_id,
+                    run_id=value.run_id,
+                    milestone_key=value.milestone_id,
+                    actor=actor or "controlled-action",
+                    action_id=action_id,
+                )
             record = self.workspace_copy.materialize(
-                value.session_id, include_paths=manifest
+                value.session_id, include_paths=paths
+            )
+            validation_run_id = uuid.uuid4().hex
+            source_manifest_hash = self.workspace_copy.scoped_manifest_hash(
+                record.job_id, paths
+            )
+            self.milestones.bind_validation(
+                session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_key=value.milestone_id,
+                validation_run_id=validation_run_id,
+                job_id=record.job_id,
+                template=value.template.value,
+                source_manifest_hash=source_manifest_hash,
+                actor=actor or "controlled-action",
+                action_id=action_id,
             )
             started = self.workspace_copy.start(
                 value.session_id,
                 record.job_id,
                 command=self._validation_command(value.template),
+                run_id=validation_run_id,
             )
             return {"copy": record.to_dict(), "validation": started}
         if kind is ActionKind.VALIDATION_CANCEL:
@@ -135,12 +171,83 @@ class ActionExecutor:
                 }
             }
         if kind is ActionKind.TOPOLOGY_REFRESH:
-            value = self._session(parameters)
-            if self.workflows is None:
+            value = self._typed(parameters, TopologyRefreshParameters)
+            if self.topology_importer is None:
                 raise CoordinatorError("action_unavailable", "Workflow store is unavailable")
-            session = self.sessions.get(value.session_id)
-            self.workflows.synchronize_sessions([session])
-            return {"sessionId": value.session_id, "refreshed": True}
+            executor_session_id = value.executor_session_id or value.session_id
+            session = self.sessions.get(executor_session_id)
+            if not session.plan_path:
+                raise CoordinatorError("session_plan_missing", "Session has no numbered plan")
+            imported = self.topology_importer.import_plan(
+                executor_session_id,
+                session.plan_path,
+                activate_candidate=value.run_id is None,
+            )
+            review = None
+            if value.run_id is not None:
+                if self.milestones is None:
+                    raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
+                review = self.milestones.submit_review(
+                    session_id=executor_session_id,
+                    run_id=value.run_id,
+                    milestone_key=value.milestone_id or "",
+                    reviewer_session_id=value.session_id,
+                    reviewer_actor=actor or "controlled-action",
+                    critical_count=value.critical_count or 0,
+                    important_count=value.important_count or 0,
+                    summary=value.summary or "",
+                    action_id=action_id,
+                )
+            gates = self.milestones.refresh_gates(
+                session_id=executor_session_id,
+                run_id=imported.run_id,
+                actor=actor or "controlled-action",
+                action_id=action_id,
+            ) if self.milestones is not None else {}
+            return {
+                "sessionId": value.session_id,
+                "refreshed": True,
+                "topologyVersionId": imported.topology_version_id,
+                "versionNumber": imported.version_number,
+                "activated": imported.activated,
+                "review": review,
+                "gates": gates,
+            }
+        if kind is ActionKind.MILESTONE_COMMIT:
+            if self.milestones is None:
+                raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
+            value = self._typed(parameters, MilestoneParameters)
+            paths = self.milestones.milestone_paths(value.run_id, value.milestone_id)
+            if not paths:
+                paths = self.milestones.attributed_changes(value.session_id)
+            result = self.milestones.commit(
+                session_id=value.session_id,
+                run_id=value.run_id,
+                milestone_key=value.milestone_id,
+                paths=paths,
+                message=f"feat(workflow): complete {value.milestone_id} milestone",
+                actor=actor or "controlled-action",
+                action_id=action_id,
+            )
+            return {
+                "commitSha": result.finalize.commit_sha,
+                "message": result.finalize.message,
+                "paths": list(paths),
+                "shortstat": result.shortstat,
+                "notification": (
+                    {
+                        "attemptId": result.notification.notification_attempt_id,
+                        "status": result.notification.status,
+                    }
+                    if result.notification
+                    else None
+                ),
+            }
+        if kind is ActionKind.SESSION_COMPLETE:
+            if self.milestones is None:
+                raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
+            value = self._typed(parameters, GoalCloseoutParameters)
+            return self.milestones.close_goal(value.session_id, value.run_id)
         raise CoordinatorError("action_executor_missing", "Action has no M3 executor")
 
     @staticmethod

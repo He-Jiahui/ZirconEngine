@@ -35,6 +35,7 @@ class ControlPlaneRouter:
         database,
         actions: ActionService | None = None,
         maintenance_authorizer: Callable[[dict[str, object]], None] | None = None,
+        live_workflow_eligibility: Callable[[str, str], dict[str, object]] | None = None,
     ):
         self.instance_id = instance_id
         self.auth = auth
@@ -43,6 +44,7 @@ class ControlPlaneRouter:
         self.database = database
         self.actions = actions
         self.maintenance_authorizer = maintenance_authorizer
+        self.live_workflow_eligibility = live_workflow_eligibility
 
     def dispatch(
         self,
@@ -227,6 +229,12 @@ class ControlPlaneRouter:
             try:
                 with self.database.connect() as connection:
                     detail = self.workflows.workflow_detail(connection, run_id)
+                if self.live_workflow_eligibility is not None:
+                    for node in detail["nodes"]:
+                        if node["kind"] == "milestone":
+                            node["commitEligibility"] = self.live_workflow_eligibility(
+                                run_id, str(node["nodeKey"])
+                            )
             except KeyError as error:
                 raise CoordinatorError("workflow_not_found", "Workflow run was not found") from error
             return ControlResponse(200, detail)

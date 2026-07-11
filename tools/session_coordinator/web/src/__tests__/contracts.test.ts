@@ -5,7 +5,7 @@ import { parseControlEvent, parseSnapshot, parseWorkflowDetail } from "../api/va
 test("runtime contracts reject incomplete snapshots", () => assert.throws(() => parseSnapshot({ eventCursor: 1 })));
 test("runtime contracts parse text-only events", () => assert.equal(parseControlEvent("7", '{"type":"session.updated","payload":{},"createdAt":"now"}').id, 7));
 test("runtime contracts accept the default Session goal before topology compilation", () => {
-  const detail = parseWorkflowDetail({ runId: "r", sessionId: "s", workflowKey: "session:s", planPath: null, topologyHash: null, state: "registered", statusReason: null, nodes: [{ nodeId: "r:goal", nodeKey: "goal", kind: "goal", title: "Session Goal", stage: "goal", state: "pending", ownerSessionId: "s", statusReason: null, currentAttempt: null, attemptHistory: [] }], edges: [], artifacts: [] });
+  const detail = parseWorkflowDetail({ runId: "r", sessionId: "s", workflowKey: "session:s", planPath: null, topologyHash: null, state: "registered", statusReason: null, nodes: [{ nodeId: "r:goal", nodeKey: "goal", kind: "goal", title: "Session Goal", stage: "goal", state: "pending", ownerSessionId: "s", statusReason: null, currentAttempt: null, attemptHistory: [] }], edges: [], artifacts: [], topologyVersions: [], gates: [], reviews: [], notifications: [] });
   assert.equal(detail.topologyHash, null);
   assert.equal(detail.nodes[0]?.stage, "goal");
 });

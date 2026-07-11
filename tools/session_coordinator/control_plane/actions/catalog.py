@@ -7,8 +7,11 @@ from .models import (
     ActionRisk,
     ActionSpec,
     SessionParameters,
+    GoalCloseoutParameters,
+    MilestoneParameters,
     ValidationCancelParameters,
     ValidationStartParameters,
+    TopologyRefreshParameters,
 )
 
 
@@ -59,7 +62,13 @@ _SPECS = (
         ValidationCancelParameters,
     ),
     _spec(ActionKind.FAILURE_REFRESH, "刷新 Failure 图", ActionRisk.YELLOW, WebControlRole.OPERATOR),
-    _spec(ActionKind.TOPOLOGY_REFRESH, "刷新计划拓扑", ActionRisk.YELLOW, WebControlRole.OPERATOR),
+    _spec(
+        ActionKind.TOPOLOGY_REFRESH,
+        "刷新计划拓扑/导入独立评审",
+        ActionRisk.YELLOW,
+        WebControlRole.OPERATOR,
+        TopologyRefreshParameters,
+    ),
     _spec(
         ActionKind.DRAIN_PREVIEW,
         "预览服务排空",
@@ -68,8 +77,22 @@ _SPECS = (
         preview_only=True,
         warnings=("M5 前仅提供影响预览，不执行进程生命周期变更。",),
     ),
-    _spec(ActionKind.MILESTONE_COMMIT, "提交里程碑", ActionRisk.RED, WebControlRole.COMMITTER, enabled=False),
-    _spec(ActionKind.SESSION_COMPLETE, "完成 Session", ActionRisk.RED, WebControlRole.COMMITTER, enabled=False),
+    _spec(
+        ActionKind.MILESTONE_COMMIT,
+        "提交里程碑",
+        ActionRisk.RED,
+        WebControlRole.COMMITTER,
+        MilestoneParameters,
+        warnings=("提交前将重新验证拓扑、尝试、Failure、评审、清单和 Git 基线。",),
+    ),
+    _spec(
+        ActionKind.SESSION_COMPLETE,
+        "完成 Goal 和 Session",
+        ActionRisk.RED,
+        WebControlRole.COMMITTER,
+        GoalCloseoutParameters,
+        warnings=("仅当所有里程碑完成且 Session 自有范围干净时允许关闭。",),
+    ),
     _spec(ActionKind.SERVICE_RESTART, "重启服务", ActionRisk.RED, WebControlRole.MAINTAINER, enabled=False),
     _spec(ActionKind.MAINTENANCE_CLEANUP, "执行维护清理", ActionRisk.RED, WebControlRole.MAINTAINER, enabled=False),
 )

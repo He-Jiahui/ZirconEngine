@@ -9,16 +9,17 @@ from tools.session_coordinator.models import CoordinatorError, WebControlRole
 
 
 class ActionCatalogTests(unittest.TestCase):
-    def test_catalog_is_closed_typed_and_keeps_red_actions_disabled(self) -> None:
+    def test_catalog_is_closed_typed_and_enables_only_m4_red_actions(self) -> None:
         expected = {kind.value for kind in ActionKind}
         self.assertEqual(expected, set(ACTION_CATALOG))
         self.assertTrue(all(dataclasses.is_dataclass(spec) for spec in ACTION_CATALOG.values()))
-        self.assertTrue(
-            all(
-                not spec.enabled
-                for spec in ACTION_CATALOG.values()
-                if spec.risk is ActionRisk.RED
-            )
+        enabled_red = {
+            spec.kind
+            for spec in ACTION_CATALOG.values()
+            if spec.risk is ActionRisk.RED and spec.enabled
+        }
+        self.assertEqual(
+            {ActionKind.MILESTONE_COMMIT, ActionKind.SESSION_COMPLETE}, enabled_red
         )
         forbidden = {"shell", "command", "git", "cargo", "sql", "path", "webhook"}
         self.assertFalse(
@@ -41,6 +42,37 @@ class ActionCatalogTests(unittest.TestCase):
             )
         self.assertEqual("action_parameters_invalid", rejected.exception.code)
         self.assertEqual(WebControlRole.OPERATOR, spec.required_role)
+
+    def test_topology_refresh_accepts_only_complete_typed_review(self) -> None:
+        spec = action_spec(ActionKind.TOPOLOGY_REFRESH.value)
+        basic = spec.parse_parameters({"sessionId": "session-a"})
+        self.assertEqual({"sessionId": "session-a"}, basic.to_payload())
+        review = spec.parse_parameters(
+            {
+                "sessionId": "session-a",
+                "executorSessionId": "session-b",
+                "runId": "run-a",
+                "milestoneId": "M1",
+                "criticalCount": 0,
+                "importantCount": 0,
+                "summary": "independent review accepted",
+            }
+        )
+        self.assertEqual("M1", review.to_payload()["milestoneId"])
+        self.assertEqual("session-b", review.to_payload()["executorSessionId"])
+        with self.assertRaises(CoordinatorError) as self_review:
+            spec.parse_parameters(
+                {
+                    "sessionId": "session-a", "executorSessionId": "session-a",
+                    "runId": "run-a", "milestoneId": "M1", "criticalCount": 0,
+                    "importantCount": 0, "summary": "self approval",
+                }
+            )
+        self.assertEqual("workflow_review_not_independent", self_review.exception.code)
+        with self.assertRaises(CoordinatorError):
+            spec.parse_parameters(
+                {"sessionId": "session-a", "summary": "incomplete browser payload"}
+            )
 
 
 if __name__ == "__main__":

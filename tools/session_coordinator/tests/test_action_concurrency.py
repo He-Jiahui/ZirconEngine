@@ -152,7 +152,9 @@ class _BlockingExecutor:
         self.release = threading.Event()
         self.status_during_execute: SessionStatus | None = None
 
-    def execute(self, _spec, _parameters, *, resource_snapshot):
+    def execute(
+        self, _spec, _parameters, *, resource_snapshot, action_id=None, actor=None
+    ):
         self.entered.set()
         if not self.release.wait(timeout=2):
             raise AssertionError("test executor was not released")

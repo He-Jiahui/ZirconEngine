@@ -45,6 +45,9 @@ from .control_plane.router import ControlPlaneRouter
 from .control_plane.snapshot import ControlSnapshotService
 from .workflows.projections import WorkflowProjectionService
 from .workflows.store import WorkflowStore
+from .workflows.plan_import import TopologyImporter
+from .workflows.milestones import MilestoneWorkflowService
+from .notifications import WeComNotificationService
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -172,6 +175,25 @@ class CoordinatorApplication:
         )
         self.branch = self._branch()
         self.workflow_projections = WorkflowProjectionService()
+        self.topology_importer = TopologyImporter(self.database, config.repo_root)
+        self.notifications = WeComNotificationService(self.database)
+        self.notifications.recover_reserved()
+        self.milestone_workflows = MilestoneWorkflowService(
+            self.database,
+            config.repo_root,
+            self.baselines,
+            self.finalize,
+            self.notifications,
+            sessions=self.sessions,
+            leases=self.leases,
+            failures=self.failures,
+        )
+        self.milestone_workflows.recover_pending_commits()
+        if self.workspace_copy is not None:
+            self.workspace_copy.set_completion_hook(
+                self.milestone_workflows.import_validation_result
+            )
+            self.milestone_workflows.recover_validation_results()
         self.workflows.synchronize_sessions(self.sessions.list(include_archived=True))
         self.web_auth = WebControlAuth(self.database)
         self.control_actions = ActionService(
@@ -188,6 +210,8 @@ class CoordinatorApplication:
                 failures=self.failures,
                 workspace_copy=self.workspace_copy,
                 workflows=self.workflows,
+                topology_importer=self.topology_importer,
+                milestones=self.milestone_workflows,
             ),
             daemon_instance_id=self.instance_id,
             mutation_lock=self._mutation_lock,
@@ -776,6 +800,7 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
             database=application.database,
             actions=application.control_actions,
             maintenance_authorizer=application._require_maintenance_capability,
+            live_workflow_eligibility=application.milestone_workflows.live_eligibility,
         )
         self.control_http = ControlPlaneHttp(
             router,

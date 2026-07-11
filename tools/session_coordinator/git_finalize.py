@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from sqlite3 import IntegrityError
-from typing import Iterator
+from typing import Callable, Iterator
 
 from .baselines import BaselineHealth, BaselineService, hash_file
 from .database import Database
@@ -292,6 +292,8 @@ class GitFinalizeService:
         paths: list[str] | tuple[str, ...],
         message: str,
         validation_commands: tuple[tuple[str, ...], ...] = (),
+        precommit_guard: Callable[[], None] | None = None,
+        request_id: str | None = None,
     ) -> FinalizeResult:
         """Commit one accepted milestone while keeping its Session active.
 
@@ -303,7 +305,7 @@ class GitFinalizeService:
         if not normalized:
             raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
         untracked_paths = tuple(path for path in normalized if not self._is_tracked_in_head(path))
-        request_id = uuid.uuid4().hex
+        request_id = request_id or uuid.uuid4().hex
         session = self.sessions.get(session_id)
         formatted_message = self._format_message(session.plan_path, message)
         if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
@@ -311,6 +313,8 @@ class GitFinalizeService:
                 "milestone_session_not_active",
                 f"Session {session_id} cannot commit a milestone while {session.status.value}",
             )
+        committed = False
+        commit_sha = ""
         with self.git_mutex(session_id):
             session = self.sessions.get(session_id)
             if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
@@ -331,23 +335,7 @@ class GitFinalizeService:
             self._require_failure_acceptance(session, maintenance=False)
             self._require_live_owned_leases(session_id, normalized)
             self._require_no_pending_patches(session_id)
-            self._require_index_scope(normalized)
             expected_blobs = self._expected_staged_blobs(normalized, maintenance=False)
-            self._require_staged_attribution(expected_blobs, maintenance=False)
-            self._require_no_staged_secrets()
-            for command in validation_commands:
-                result = subprocess.run(command, cwd=self.repo_root, check=False)
-                if result.returncode != 0:
-                    raise CoordinatorError(
-                        "milestone_validation_failed",
-                        f"Milestone validation failed with exit code {result.returncode}",
-                        details={"command": list(command), "exit_code": result.returncode},
-                    )
-            self._require_index_scope(normalized)
-            self._require_staged_attribution(expected_blobs, maintenance=False)
-            self._require_no_staged_secrets()
-            self._require_live_owned_leases(session_id, normalized)
-            self._require_failure_acceptance(session, maintenance=False)
             with self.database.transaction() as connection:
                 connection.execute(
                     """
@@ -376,32 +364,60 @@ class GitFinalizeService:
                 index_existed=index_existed,
                 index_content=index_content,
             )
-            commit_sha = self._create_scoped_commit(
-                formatted_message, expected_head=expected_head
-            )
-            with self.database.transaction() as connection:
-                connection.execute(
-                    """
-                    UPDATE finalize_requests
-                    SET ref_updated_sha = ?
-                    WHERE request_id = ?
-                    """,
-                    (commit_sha, request_id),
+            try:
+                # Build the commit tree from HEAD and this manifest only. The
+                # shared index is restored afterwards so another Session's
+                # staged work remains intact and cannot enter this commit.
+                self._git("read-tree", expected_head)
+                self._git("add", "-A", "--", *normalized)
+                self._require_index_scope(normalized)
+                self._require_staged_attribution(expected_blobs, maintenance=False)
+                self._require_no_staged_secrets()
+                for command in validation_commands:
+                    result = subprocess.run(command, cwd=self.repo_root, check=False)
+                    if result.returncode != 0:
+                        raise CoordinatorError(
+                            "milestone_validation_failed",
+                            f"Milestone validation failed with exit code {result.returncode}",
+                            details={"command": list(command), "exit_code": result.returncode},
+                        )
+                self._require_index_scope(normalized)
+                self._require_staged_attribution(expected_blobs, maintenance=False)
+                self._require_no_staged_secrets()
+                self._require_live_owned_leases(session_id, normalized)
+                self._require_failure_acceptance(session, maintenance=False)
+                if precommit_guard is not None:
+                    precommit_guard()
+                commit_sha = self._create_scoped_commit(
+                    formatted_message, expected_head=expected_head
                 )
-            self.baselines.accept_commit(
-                normalized,
-                commit_sha=commit_sha,
-                reason=f"milestone commit {commit_sha}",
-            )
-            with self.database.transaction() as connection:
-                connection.execute(
-                    """
-                    UPDATE finalize_requests
-                    SET status = 'committed', commit_sha = ?, ref_updated_sha = ?, completed_at = ?
-                    WHERE request_id = ?
-                    """,
-                    (commit_sha, commit_sha, utc_text(), request_id),
+                committed = True
+                with self.database.transaction() as connection:
+                    connection.execute(
+                        """UPDATE finalize_requests SET ref_updated_sha = ?
+                           WHERE request_id = ?""",
+                        (commit_sha, request_id),
+                    )
+                self.baselines.accept_commit(
+                    normalized,
+                    commit_sha=commit_sha,
+                    reason=f"milestone commit {commit_sha}",
                 )
+                with self.database.transaction() as connection:
+                    connection.execute(
+                        """UPDATE finalize_requests
+                           SET status = 'committed', commit_sha = ?, ref_updated_sha = ?, completed_at = ?
+                           WHERE request_id = ?""",
+                        (commit_sha, commit_sha, utc_text(), request_id),
+                    )
+            except BaseException as error:
+                if not committed:
+                    self._set_request_failed(request_id, str(error))
+                raise
+            finally:
+                self._restore_index(index_path, index_existed, index_content)
+                if committed:
+                    self._git("reset", "--quiet", commit_sha, "--", *normalized)
         categories = self._categorize(normalized)
         return FinalizeResult(
             request_id,
@@ -431,6 +447,53 @@ class GitFinalizeService:
                     "DELETE FROM git_mutex WHERE lock_name = 'index' AND owner_id = ?",
                     (owner_id,),
                 )
+
+    def reconcile_request(self, request_id: str) -> FinalizeResult | None:
+        """Finish every post-CAS obligation before workflow evidence may succeed."""
+        with self.git_mutex(f"reconcile:{request_id}"):
+            with self.database.connect() as connection:
+                row = connection.execute(
+                    "SELECT * FROM finalize_requests WHERE request_id=?",
+                    (request_id,),
+                ).fetchone()
+            if row is None:
+                return None
+            commit_sha = row["commit_sha"] or row["ref_updated_sha"]
+            if not commit_sha:
+                return None
+            if self._git("rev-parse", "HEAD") != commit_sha:
+                raise CoordinatorError(
+                    "finalize_reconcile_head_changed",
+                    "Cannot reconcile a finalized commit after HEAD changed",
+                    details={"requestId": request_id, "commitSha": commit_sha},
+                )
+            paths = tuple(json.loads(row["paths_json"]))
+            baseline = self.baselines.current()
+            if baseline.head_commit != commit_sha:
+                self.baselines.accept_commit(
+                    paths,
+                    commit_sha=commit_sha,
+                    reason=f"forward reconcile finalize {commit_sha}",
+                )
+            with self.database.transaction() as connection:
+                connection.execute(
+                    """UPDATE finalize_requests
+                       SET status='committed', commit_sha=?, ref_updated_sha=?,
+                           error_text=NULL, completed_at=COALESCE(completed_at, ?)
+                       WHERE request_id=?""",
+                    (commit_sha, commit_sha, utc_text(), request_id),
+                )
+            categories = {
+                key: tuple(value)
+                for key, value in json.loads(row["categories_json"]).items()
+            }
+            return FinalizeResult(
+                request_id,
+                commit_sha,
+                row["message"],
+                categories,
+                tuple(json.loads(row["untracked_json"])),
+            )
 
     def recover_stale_mutex(self) -> int:
         """Recover an index transaction left by the previous single service process."""

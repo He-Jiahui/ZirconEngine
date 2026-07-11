@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -75,7 +76,7 @@ class WorkspaceCopyService:
                 "target_root_unavailable", "No managed target root is available for validation copy"
             )
         for root in roots:
-            if root.name.casefold() != "zircon-engine" or root.parent.name.casefold() != "targets":
+            if root.name.casefold() != "cargo-targets" or root.parent != Path(root.anchor):
                 raise CoordinatorError(
                     "invalid_target_root", f"Invalid validation-copy target root: {root}"
                 )
@@ -83,6 +84,41 @@ class WorkspaceCopyService:
         self._running_lock = threading.Lock()
         self._running_processes: dict[str, subprocess.Popen[str]] = {}
         self._mutation_gate = mutation_gate
+        self._completion_hook: Callable[[str], None] | None = None
+
+    def set_completion_hook(self, hook: Callable[[str], None]) -> None:
+        self._completion_hook = hook
+
+    def scoped_manifest_hash(
+        self, job_id: str, paths: tuple[str, ...] | list[str]
+    ) -> str:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT source_root, status FROM validation_copies WHERE job_id=?",
+                (job_id,),
+            ).fetchone()
+        if row is None or row["status"] not in {"materialized", "running"}:
+            raise CoordinatorError(
+                "validation_copy_not_materialized",
+                "Validation source manifest is not available",
+            )
+        source_root = Path(row["source_root"]).resolve()
+        manifest: list[dict[str, object]] = []
+        for raw in sorted(set(paths), key=str.casefold):
+            normalized = self._normalize(raw)
+            target = (source_root / normalized).resolve()
+            if not target.is_relative_to(source_root):
+                raise CoordinatorError(
+                    "validation_copy_path_not_managed", "Validation manifest escaped its source root"
+                )
+            if target.is_file():
+                digest = hashlib.sha256(target.read_bytes()).hexdigest()
+                manifest.append({"path": normalized, "kind": "file", "blob": digest})
+            else:
+                manifest.append({"path": normalized, "kind": "deletion", "blob": None})
+        return hashlib.sha256(
+            json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
 
     def validation_manifest(self, session_id: str) -> tuple[str, ...]:
         """Derive a validation copy from tracked files plus current Session ownership."""
@@ -301,6 +337,8 @@ class WorkspaceCopyService:
                     "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
                     (job_id,),
                 )
+            if self._completion_hook is not None:
+                self._completion_hook(run_id)
         except BaseException:
             if process is not None and process.poll() is None:
                 process.kill()
@@ -319,7 +357,12 @@ class WorkspaceCopyService:
         )
 
     def start(
-        self, session_id: str, job_id: str, *, command: tuple[str, ...] | list[str]
+        self,
+        session_id: str,
+        job_id: str,
+        *,
+        command: tuple[str, ...] | list[str],
+        run_id: str | None = None,
     ) -> dict[str, object]:
         """Launch a managed validation and return after the process is registered."""
         command_tuple = tuple(str(part) for part in command if str(part))
@@ -350,7 +393,7 @@ class WorkspaceCopyService:
                     "validation_copy_not_materialized",
                     "Validation copy is already running or unavailable",
                 )
-        run_id = uuid.uuid4().hex
+        run_id = run_id or uuid.uuid4().hex
         started_at = utc_text()
         process: subprocess.Popen[str] | None = None
         try:
@@ -439,6 +482,8 @@ class WorkspaceCopyService:
                     "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
                     (job_id,),
                 )
+            if self._completion_hook is not None:
+                self._completion_hook(run_id)
         except BaseException:
             gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
             with gate, self.database.transaction() as connection:
