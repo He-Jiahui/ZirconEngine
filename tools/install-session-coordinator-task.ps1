@@ -385,7 +385,7 @@ if (-not (Test-Path -LiteralPath $client) -or -not (Test-Path -LiteralPath $clea
     throw "Coordinator scripts are incomplete under $resolvedRepoRoot"
 }
 
-$daemonScriptArguments = @("start", "-RepoRoot", $resolvedRepoRoot)
+$daemonScriptArguments = @("start", "-RepoRoot", $resolvedRepoRoot, "-Automatic")
 $daemonTaskArguments = New-TaskArguments -ScriptPath $client -ScriptArguments $daemonScriptArguments
 $daemonCommand = New-TaskCommandLine -ScriptPath $client -ScriptArguments $daemonScriptArguments
 $disabledLegacy = @()

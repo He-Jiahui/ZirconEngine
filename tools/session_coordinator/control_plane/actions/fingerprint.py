@@ -17,11 +17,17 @@ class ActionFingerprinter:
     """Captures every authority surface that can invalidate an action preview."""
 
     def __init__(
-        self, database: Database, repo_root: str | Path, *, daemon_instance_id: str
+        self,
+        database: Database,
+        repo_root: str | Path,
+        *,
+        daemon_instance_id: str,
+        supervision=None,
     ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
         self.daemon_instance_id = daemon_instance_id
+        self.supervision = supervision
 
     def capture(
         self,
@@ -125,6 +131,16 @@ class ActionFingerprinter:
         failure_artifacts: tuple[dict[str, str], ...] = ()
         leases: list[dict[str, object]] = []
         workflow: dict[str, object] | None = None
+        supervision: dict[str, object] | None = None
+        if spec.kind in {
+            ActionKind.DRAIN_PREVIEW,
+            ActionKind.SERVICE_DRAIN,
+            ActionKind.SERVICE_RESUME,
+            ActionKind.SERVICE_STOP,
+            ActionKind.SERVICE_RESTART,
+            ActionKind.SERVICE_FORCE_STOP,
+        } and self.supervision is not None:
+            supervision = self.supervision.snapshot(connection).to_dict()
         if spec.kind is ActionKind.PATCH_PROCESS and session_id:
             patches = [dict(row) for row in connection.execute(
                 """SELECT patch_id, session_id, patch_object_hash, targets_json,
@@ -221,6 +237,7 @@ class ActionFingerprinter:
             "failureNodes": failure_nodes,
             "failureArtifacts": failure_artifacts,
             "workflow": workflow,
+            "supervision": supervision,
         }
 
     @staticmethod
@@ -236,6 +253,15 @@ class ActionFingerprinter:
             lines.append(f"Failure: {row['lifecycle_key']} [{row['status']}]")
         for row in resources["failureArtifacts"]:
             lines.append(f"Failure artifact: {row['path']} sha256={row['hash'][:12]}")
+        supervision = resources.get("supervision")
+        if isinstance(supervision, dict):
+            lines.append(f"Supervision: {supervision.get('state', 'unknown')}")
+            for blocker in supervision.get("blockers", []):
+                if isinstance(blocker, dict):
+                    lines.append(
+                        f"Blocker: {blocker.get('kind')} {blocker.get('identity')} "
+                        f"[{blocker.get('status')}]"
+                    )
         return tuple(lines)
 
     def _target_paths(self, connection, session_id: str | None, session) -> tuple[str, ...]:

@@ -101,6 +101,73 @@ function Resolve-AbsoluteTargetDir {
     return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $CliTargetDir))
 }
 
+function Get-RustCompatibilityIdentity {
+    param([switch]$DryRunMode)
+
+    if ($DryRunMode) {
+        $toolchain = if ([string]::IsNullOrWhiteSpace($env:RUSTUP_TOOLCHAIN)) {
+            "dry-run-unresolved-windows-toolchain"
+        } else {
+            $env:RUSTUP_TOOLCHAIN
+        }
+        $target = if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_TARGET)) {
+            "dry-run-unresolved-windows-target"
+        } else {
+            $env:CARGO_BUILD_TARGET
+        }
+        return [pscustomobject]@{ Toolchain = $toolchain; TargetArchitecture = $target }
+    }
+
+    Get-Command rustc -ErrorAction Stop | Out-Null
+    $versionText = @(& rustc -vV)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not determine the active Rust toolchain."
+    }
+    $release = [string](($versionText | Where-Object { $_ -match '^release:\s*' }) -replace '^release:\s*', '')
+    $host = [string](($versionText | Where-Object { $_ -match '^host:\s*' }) -replace '^host:\s*', '')
+    if ([string]::IsNullOrWhiteSpace($release) -or [string]::IsNullOrWhiteSpace($host)) {
+        throw "rustc -vV did not report both release and host identities."
+    }
+    $target = if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_TARGET)) {
+        $host
+    } else {
+        $env:CARGO_BUILD_TARGET
+    }
+    return [pscustomobject]@{
+        Toolchain         = "$release@$host"
+        TargetArchitecture = $target
+    }
+}
+
+function New-CargoCompatibilityJson {
+    param(
+        [string]$ResolvedRepoRoot,
+        [switch]$DryRunMode
+    )
+
+    $rust = Get-RustCompatibilityIdentity -DryRunMode:$DryRunMode
+    $configuration = [ordered]@{
+        profile_feature_contract = if ($RunProfileFeatureContract) {
+            if ([string]::IsNullOrWhiteSpace($ProfileFeatureContractLabel)) { "all" } else { $ProfileFeatureContractLabel }
+        } else { "off" }
+        export_platform_contract = if ($RunExportPlatformContract) {
+            if ([string]::IsNullOrWhiteSpace($ExportContractPlatform)) { "all" } else { $ExportContractPlatform }
+        } else { "off" }
+        rustflags = [string]$env:RUSTFLAGS
+        cargo_incremental = [string]$env:CARGO_INCREMENTAL
+        dev_debug = [string]$env:CARGO_PROFILE_DEV_DEBUG
+        release_debug = [string]$env:CARGO_PROFILE_RELEASE_DEBUG
+    }
+    $compatibility = [ordered]@{
+        platform = "windows"
+        toolchain = $rust.Toolchain
+        target_architecture = $rust.TargetArchitecture
+        workspace = "Cargo.toml"
+        build_config = ($configuration | ConvertTo-Json -Compress)
+    }
+    return ($compatibility | ConvertTo-Json -Compress)
+}
+
 function Invoke-SessionCoordinatorJson {
     param(
         [string]$RepoRoot,
@@ -129,6 +196,9 @@ function Resolve-CoordinatorCargoTarget {
     )
 
     $ownerId = Resolve-OwnerId -RepoRoot $RepoRoot
+    $compatibilityJson = New-CargoCompatibilityJson `
+        -ResolvedRepoRoot $RepoRoot `
+        -DryRunMode:$DryRunMode
     Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
         "session", "register", "--session-id", $ownerId,
         "--display-name", "validate-matrix", "--write-scope", "Cargo validation"
@@ -146,7 +216,8 @@ function Resolve-CoordinatorCargoTarget {
     $arguments = @(
         "cargo", "acquire", $LaneKind,
         "--session-id", $ownerId,
-        "--pid", [string]$PID
+        "--pid", [string]$PID,
+        "--compatibility-json", $compatibilityJson
     )
     if (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
         $absoluteRequestedTarget = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $requestedTarget

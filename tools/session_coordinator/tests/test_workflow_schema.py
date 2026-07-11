@@ -24,8 +24,8 @@ class WorkflowSchemaTests(unittest.TestCase):
                         "SELECT name FROM sqlite_master WHERE type = 'table'"
                     )
                 }
-            self.assertEqual(19, LATEST_SCHEMA_VERSION)
-            self.assertEqual(19, version)
+            self.assertEqual(21, LATEST_SCHEMA_VERSION)
+            self.assertEqual(21, version)
             self.assertTrue(
                 {
                     "workflow_runs",
@@ -61,7 +61,7 @@ class WorkflowSchemaTests(unittest.TestCase):
                     """
                 )
 
-            self.assertEqual(19, migrate(database))
+            self.assertEqual(21, migrate(database))
 
             with database.connect() as connection:
                 self.assertIsNotNone(
@@ -81,7 +81,7 @@ class WorkflowSchemaTests(unittest.TestCase):
             migrate(database)
             with database.transaction() as connection:
                 connection.execute(
-                    "INSERT INTO schema_version(version, applied_at) VALUES (20, 'future')"
+                    "INSERT INTO schema_version(version, applied_at) VALUES (22, 'future')"
                 )
                 connection.execute("CREATE TABLE future_marker(value TEXT)")
                 connection.execute("INSERT INTO future_marker VALUES ('preserved')")
@@ -95,6 +95,48 @@ class WorkflowSchemaTests(unittest.TestCase):
                     "preserved",
                     connection.execute("SELECT value FROM future_marker").fetchone()[0],
                 )
+
+    def test_schema_20_upgrade_preserves_cargo_history_and_adds_cache_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with database.transaction() as connection:
+                connection.execute(
+                    "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+                )
+                for version in range(1, 21):
+                    MIGRATIONS[version](connection)
+                    connection.execute(
+                        "INSERT INTO schema_version(version, applied_at) VALUES (?, 'now')",
+                        (version,),
+                    )
+                connection.execute(
+                    """
+                    INSERT INTO sessions(
+                        session_id, status, created_at, updated_at, last_heartbeat_at
+                    ) VALUES ('session-a', 'registered', 'now', 'now', 'now')
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO cargo_jobs(
+                        job_id, session_id, lane_kind, target_dir, target_key,
+                        status, created_at, last_heartbeat_at
+                    ) VALUES ('job-a', 'session-a', 'check', 'D:\\cargo-targets\\old',
+                              'd:\\cargo-targets\\old', 'released', 'now', 'now')
+                    """
+                )
+
+            self.assertEqual(21, migrate(database))
+
+            with database.connect() as connection:
+                row = connection.execute(
+                    "SELECT cleanup_policy, cleanup_status, reuse_key, compatibility_key, reuse_profile FROM cargo_jobs WHERE job_id='job-a'"
+                ).fetchone()
+            self.assertEqual("retained", row["cleanup_policy"])
+            self.assertEqual("retained", row["cleanup_status"])
+            self.assertIsNone(row["reuse_key"])
+            self.assertIsNone(row["compatibility_key"])
+            self.assertIsNone(row["reuse_profile"])
 
     def test_workflow_state_checks_reject_free_form_values(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

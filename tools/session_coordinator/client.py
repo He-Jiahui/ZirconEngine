@@ -50,7 +50,27 @@ class CoordinatorClient:
         )
 
     def shutdown(self) -> dict[str, Any]:
-        return self._request("POST", "/shutdown", {})
+        preview = self.control_request(
+            "POST",
+            "/control/v1/actions/preview",
+            {"kind": "service.stop", "parameters": {"timeoutSeconds": 30}},
+        )
+        action = preview.get("action") or {}
+        action_id = str(action.get("actionId") or "")
+        phrase = str(action.get("confirmationPhrase") or "")
+        if not action_id or not phrase:
+            raise CoordinatorClientError(
+                "invalid_response", "Stop preview omitted controlled confirmation data"
+            )
+        confirmed = self.control_request(
+            "POST",
+            f"/control/v1/actions/{action_id}/confirm",
+            {"phrase": phrase, "reason": "explicit local CLI stop"},
+        )
+        return {
+            "status": "stopping",
+            "action": confirmed.get("action") or {},
+        }
 
     def issue_ui_ticket(self, *, actor: str, role: str = "observer") -> dict[str, Any]:
         return self.control_request(

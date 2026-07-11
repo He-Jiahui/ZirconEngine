@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import sqlite3
 import subprocess
 import threading
 import time
@@ -18,17 +19,17 @@ from .config import CoordinatorConfig
 from .baselines import BaselineService
 from .database import Database
 from .leases import LeaseService, PathPolicy
-from .migrations import migrate
-from .models import CoordinatorError, SessionStatus, utc_text
+from .migrations import LATEST_SCHEMA_VERSION, migrate
+from .models import CoordinatorError, SessionStatus, SupervisionState, utc_text
 from .sessions import SessionService
 from .patches import PatchService, PatchStatus
 from .failures import FailureGraphService, FailureResolution
 from .plans import PlanRepository
 from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
-from .cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
+from .cargo_jobs import CargoCompatibility, CargoJobService, CargoLaneKind, TargetPathPolicy
 from .cleanup import CleanupService, RetentionService
-from .processes import process_is_alive
+from .processes import current_process_identity, process_is_alive
 from .git_finalize import GitFinalizeService
 from .workspace_copy import WorkspaceCopyService
 from .legacy import LegacyMigrationService
@@ -48,6 +49,10 @@ from .workflows.store import WorkflowStore
 from .workflows.plan_import import TopologyImporter
 from .workflows.milestones import MilestoneWorkflowService
 from .notifications import WeComNotificationService
+from .supervision.lifecycle import LifecycleService
+from .supervision.repository_identity import repository_identity
+from .supervision.runtime_descriptor import RuntimeDescriptor
+from .supervision.service import SupervisionService
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -89,6 +94,7 @@ class CoordinatorApplication:
         *,
         instance_id: str | None = None,
         started_at: str | None = None,
+        automatic_start: bool = False,
     ):
         self.config = config
         self.instance_id = instance_id or uuid.uuid4().hex
@@ -144,6 +150,7 @@ class CoordinatorApplication:
             self.cargo_jobs: CargoJobService | None = CargoJobService(
                 self.database,
                 TargetPathPolicy(config.enabled_target_roots),
+                repo_root=config.repo_root,
                 process_alive=process_is_alive,
             )
             self.cleanup: CleanupService | None = CleanupService(
@@ -155,7 +162,11 @@ class CoordinatorApplication:
             self.workspace_copy: WorkspaceCopyService | None = WorkspaceCopyService(
                 self.database,
                 config.repo_root,
-                config.enabled_target_roots,
+                tuple(
+                    root
+                    for root in config.enabled_target_roots
+                    if root.name.casefold() == "cargo-targets"
+                ),
                 mutation_gate=lambda: self._mutation_lock,
             )
             self.workspace_copy.recover_interrupted_jobs()
@@ -174,6 +185,17 @@ class CoordinatorApplication:
             target_roots=config.enabled_target_roots,
         )
         self.branch = self._branch()
+        self.process_identity = current_process_identity()
+        self.repository_identity = repository_identity(config.repo_root)
+        self.supervision = SupervisionService(
+            self.database,
+            repository_key=self.repository_identity.key,
+            daemon_instance_id=self.instance_id,
+            process_creation_time=self.process_identity.creation_time,
+            maintenance_active=self._maintenance_lock.locked,
+        )
+        self.supervision.initialize(automatic_start=automatic_start)
+        self.lifecycle = LifecycleService(self.supervision)
         self.workflow_projections = WorkflowProjectionService()
         self.topology_importer = TopologyImporter(self.database, config.repo_root)
         self.notifications = WeComNotificationService(self.database)
@@ -202,6 +224,7 @@ class CoordinatorApplication:
                 self.database,
                 config.repo_root,
                 daemon_instance_id=self.instance_id,
+                supervision=self.supervision,
             ),
             ActionExecutor(
                 sessions=self.sessions,
@@ -212,9 +235,11 @@ class CoordinatorApplication:
                 workflows=self.workflows,
                 topology_importer=self.topology_importer,
                 milestones=self.milestone_workflows,
+                lifecycle=self.lifecycle,
             ),
             daemon_instance_id=self.instance_id,
             mutation_lock=self._mutation_lock,
+            mutation_gate=self.supervision.require_mutation_allowed,
         )
         self.control_events = EventStreamService(self.database)
         self.control_snapshot = ControlSnapshotService(
@@ -244,6 +269,12 @@ class CoordinatorApplication:
             "instance_id": self.instance_id,
             "started_at": self.started_at,
             "control_api_versions": [1],
+            "supervision_api_versions": [1],
+            "schema_version": LATEST_SCHEMA_VERSION,
+            "repository_key": self.repository_identity.key,
+            "process_creation_time": self.process_identity.creation_time,
+            "executable": self.process_identity.executable,
+            "supervision": self.supervision.snapshot().to_dict(),
         }
 
     def control_service_state(self, connection) -> dict[str, object]:
@@ -251,6 +282,7 @@ class CoordinatorApplication:
             "SELECT * FROM baseline_epochs ORDER BY epoch_id DESC LIMIT 1"
         ).fetchone()
         baseline_state = "uninitialized" if baseline is None else baseline["health"]
+        supervision = self.supervision.snapshot(connection).to_dict()
         return {
             "status": "ok",
             "branch": self.branch,
@@ -259,11 +291,21 @@ class CoordinatorApplication:
             "instanceId": self.instance_id,
             "startedAt": self.started_at,
             "controlApiVersions": [1],
+            "supervisionApiVersions": [1],
+            "schemaVersion": LATEST_SCHEMA_VERSION,
+            "repositoryKey": self.repository_identity.key,
+            "processCreationTime": self.process_identity.creation_time,
+            "supervision": supervision,
         }
 
     def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         if name in self.READ_ONLY_COMMANDS:
             return self._command_unlocked(name, arguments)
+        if self.read_only:
+            return self._command_unlocked(name, arguments)
+        if name == "legacy.import" and bool(arguments.get("apply")):
+            self._require_maintenance_capability(arguments)
+        self.supervision.require_mutation_allowed(name)
         with self._mutation_lock:
             return self._command_unlocked(name, arguments)
 
@@ -410,14 +452,32 @@ class CoordinatorApplication:
             return {"fixed_artifact": destination.relative_to(self.config.repo_root).as_posix()}
         if name == "cargo.acquire":
             cargo_jobs = self._require_cargo_jobs()
+            compatibility_payload = arguments.get("compatibility")
+            compatibility = None
+            if compatibility_payload is not None:
+                if not isinstance(compatibility_payload, dict):
+                    raise CoordinatorError(
+                        "invalid_cargo_compatibility",
+                        "Cargo compatibility must be a JSON object",
+                    )
+                try:
+                    compatibility = CargoCompatibility(**compatibility_payload)
+                except TypeError as error:
+                    raise CoordinatorError(
+                        "invalid_cargo_compatibility",
+                        f"Cargo compatibility fields are invalid: {error}",
+                    ) from error
             job = cargo_jobs.acquire(
                 str(arguments["session_id"]),
                 CargoLaneKind(str(arguments["lane_kind"])),
                 requested_target=arguments.get("target_dir"),
                 dry_run=bool(arguments.get("dry_run")),
                 owner_pid=int(arguments["pid"]) if arguments.get("pid") else None,
+                ephemeral=bool(arguments.get("ephemeral")),
+                compatibility=compatibility,
             )
-            return {"job": job.to_dict()}
+            cleanup_scheduled = self._require_cleanup().schedule_pending_cleanup()
+            return {"job": job.to_dict(), "cleanup_scheduled": cleanup_scheduled}
         if name == "cargo.start":
             job = self._require_cargo_jobs().start(
                 str(arguments["job_id"]),
@@ -442,11 +502,14 @@ class CoordinatorApplication:
                 ).to_dict()
             }
         if name == "cargo.release":
+            job = self._require_cargo_jobs().release(
+                str(arguments["job_id"]),
+                session_id=str(arguments["session_id"]),
+            )
+            cleanup_scheduled = self._require_cleanup().schedule_pending_cleanup()
             return {
-                "job": self._require_cargo_jobs().release(
-                    str(arguments["job_id"]),
-                    session_id=str(arguments["session_id"]),
-                ).to_dict()
+                "job": job.to_dict(),
+                "cleanup_scheduled": cleanup_scheduled,
             }
         if name == "cargo.list":
             return {"jobs": [job.to_dict() for job in self._require_cargo_jobs().list()]}
@@ -834,8 +897,11 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         if not self._authorized():
             return
         if self.path == "/shutdown":
-            self._write_json(HTTPStatus.OK, {"status": "stopping"})
-            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            self._write_error(
+                HTTPStatus.GONE,
+                "controlled_lifecycle_required",
+                "Use the controlled service.stop action",
+            )
             return
         if self.path != "/command":
             self._write_error(HTTPStatus.NOT_FOUND, "not_found", "Unknown endpoint")
@@ -910,7 +976,9 @@ class RunningCoordinator:
     started_at: str
 
     @classmethod
-    def start(cls, config: CoordinatorConfig) -> "RunningCoordinator":
+    def start(
+        cls, config: CoordinatorConfig, *, automatic_start: bool = False
+    ) -> "RunningCoordinator":
         if config.host != "127.0.0.1":
             raise CoordinatorError(
                 "invalid_bind_host",
@@ -923,7 +991,10 @@ class RunningCoordinator:
         started_at = utc_text()
         try:
             application = CoordinatorApplication(
-                config, instance_id=instance_id, started_at=started_at
+                config,
+                instance_id=instance_id,
+                started_at=started_at,
+                automatic_start=automatic_start,
             )
             httpd = _CoordinatorHttpServer(
                 (config.host, config.port),
@@ -931,6 +1002,7 @@ class RunningCoordinator:
                 application=application,
                 token=token,
             )
+            application.lifecycle.set_shutdown(lambda _kind: httpd.shutdown())
             thread = threading.Thread(target=httpd.serve_forever, name="zircon-session-coordinator", daemon=True)
             thread.start()
             maintenance_stop = threading.Event()
@@ -947,19 +1019,27 @@ class RunningCoordinator:
             )
             maintenance_thread.start()
             host, port = httpd.server_address[:2]
-            _atomic_json_write(
-                config.runtime_path,
-                {
-                    "host": host,
-                    "port": port,
-                    "token": token,
-                    "pid": os.getpid(),
-                    "repo_root": str(config.repo_root),
-                    "instance_id": instance_id,
-                    "started_at": started_at,
-                    "control_api_versions": [1],
-                },
+            descriptor = RuntimeDescriptor(
+                host=str(host),
+                port=int(port),
+                token=token,
+                repo_root=config.repo_root,
+                repository=application.repository_identity,
+                instance_id=instance_id,
+                started_at=started_at,
+                process=application.process_identity,
             )
+            _atomic_json_write(config.runtime_path, descriptor.to_payload())
+            if application.read_only:
+                application.supervision.transition(
+                    SupervisionState.READ_ONLY,
+                    reason_code="startup.read_only_branch",
+                    actor="daemon",
+                )
+            else:
+                application.supervision.mark_healthy()
+                application.lifecycle.recover_restart_intents()
+            (config.state_root / "startup-failure.json").unlink(missing_ok=True)
             return cls(
                 config=config,
                 httpd=httpd,
@@ -970,7 +1050,16 @@ class RunningCoordinator:
                 instance_id=instance_id,
                 started_at=started_at,
             )
-        except BaseException:
+        except BaseException as error:
+            if isinstance(error, sqlite3.DatabaseError):
+                _atomic_json_write(
+                    config.state_root / "startup-failure.json",
+                    {
+                        "kind": "migration_or_integrity_failure",
+                        "errorType": type(error).__name__,
+                        "occurredAt": utc_text(),
+                    },
+                )
             cls._remove_owned_file(config.lock_path, os.getpid())
             raise
 
@@ -1030,8 +1119,9 @@ class RunningCoordinator:
         next_maintenance = time.monotonic() + maintenance_interval
         while not stop_event.wait(watch_interval):
             try:
+                observation = application.watcher.prepare_scan()
                 with application._mutation_lock:
-                    application.watcher.scan_once()
+                    application.watcher.apply_scan(observation)
             except Exception as error:  # pragma: no cover - defensive long-lived boundary
                 with application.database.transaction() as connection:
                     connection.execute(
@@ -1057,6 +1147,8 @@ class RunningCoordinator:
                                     ),
                                 ),
                             )
+                    application.cleanup.retry_pending_jobs()
+                    application.cleanup.evict_idle_pools_under_pressure()
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
                     with application.database.transaction() as connection:
                         connection.execute(
@@ -1119,8 +1211,8 @@ class RunningCoordinator:
                     next_maintenance = time.monotonic() + maintenance_interval
 
 
-def run_forever(config: CoordinatorConfig) -> None:
-    running = RunningCoordinator.start(config)
+def run_forever(config: CoordinatorConfig, *, automatic_start: bool = False) -> None:
+    running = RunningCoordinator.start(config, automatic_start=automatic_start)
     try:
         running.thread.join()
     except KeyboardInterrupt:

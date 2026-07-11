@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "No webview capability; the tray is a native supervisor only.",
+  "local": true,
+  "windows": [],
+  "permissions": ["core:default"]
+}

@@ -139,7 +139,7 @@ class ActionExecutionTests(unittest.TestCase):
         cancelled = self.service.cancel(self.context, preview.action_id, reason="no longer needed")
         self.assertEqual("cancelled", cancelled.status.value)
 
-        disabled = action_spec(ActionKind.SERVICE_RESTART.value)
+        disabled = action_spec(ActionKind.MAINTENANCE_CLEANUP.value)
         self.assertFalse(disabled.enabled)
         with self.assertRaises(CoordinatorError) as red:
             self.service.preview(

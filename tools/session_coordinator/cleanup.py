@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import sqlite3
+import threading
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -12,6 +13,9 @@ from typing import Callable
 
 from .cargo_jobs import (
     ACTIVE_CARGO_STATUSES,
+    CargoCleanupPolicy,
+    CargoCleanupStatus,
+    CargoJobStatus,
     CargoJobService,
     target_identity,
     targets_overlap,
@@ -384,6 +388,8 @@ class CleanupService:
             lambda path: shutil.disk_usage(path.anchor or path.parent).free
         )
         self.pressure_threshold_bytes = pressure_threshold_bytes
+        self._async_cleanup_lock = threading.Lock()
+        self._async_cleanup_requested = threading.Event()
 
     def recover_reservations(self) -> int:
         with self.database.transaction() as connection:
@@ -404,6 +410,306 @@ class CleanupService:
                 "UPDATE cleanup_plans SET status = 'planned' WHERE status = 'applying'"
             )
         return count
+
+    def cleanup_job_now(self, job_id: str) -> CleanupResult:
+        """Delete a non-reusable lane immediately after ownership has ended."""
+        job = self.cargo_jobs.get(job_id)
+        if job.cleanup_policy is not CargoCleanupPolicy.DELETE_ON_RELEASE:
+            return CleanupResult((), ())
+        if job.status not in {
+            CargoJobStatus.RELEASED,
+            CargoJobStatus.ORPHANED,
+        }:
+            denial = CleanupDenial(
+                job.target_dir,
+                "cargo_job_active",
+                f"Cargo job {job.job_id} is {job.status.value}",
+            )
+            return CleanupResult((), (denial,))
+        target = self.cargo_jobs.target_policy.validate(job.target_dir)
+        key = target_identity(target)
+        with self.database.transaction() as connection:
+            rows = connection.execute(
+                "SELECT * FROM cargo_jobs WHERE status IN ('leased', 'running')"
+            ).fetchall()
+            active = [
+                self.cargo_jobs._from_row(row)
+                for row in rows
+                if targets_overlap(key, row["target_key"])
+            ]
+            live = [item for item in active if item.pid and self.process_alive(item.pid)]
+            if live or active:
+                denial = CleanupDenial(
+                    str(target),
+                    "active_process" if live else "active_lease",
+                    "Cargo lane became active before immediate cleanup",
+                )
+                return CleanupResult((), (denial,))
+            if connection.execute(
+                "SELECT 1 FROM cleanup_reservations WHERE target_key=?", (key,)
+            ).fetchone() is not None:
+                denial = CleanupDenial(
+                    str(target),
+                    "cleanup_already_reserved",
+                    "Cargo lane is already reserved for cleanup",
+                )
+                return CleanupResult((), (denial,))
+            connection.execute(
+                "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, ?)",
+                (key, str(target), utc_text()),
+            )
+        error: OSError | None = None
+        deleted: tuple[str, ...] = ()
+        try:
+            if target.exists():
+                shutil.rmtree(target)
+            deleted = (str(target),)
+        except OSError as caught:
+            error = caught
+        finally:
+            with self.database.transaction() as connection:
+                connection.execute(
+                    "DELETE FROM cleanup_reservations WHERE target_key=?", (key,)
+                )
+                connection.execute(
+                    """
+                    UPDATE cargo_jobs
+                    SET cleanup_status=?, cleanup_error=?
+                    WHERE job_id=?
+                    """,
+                    (
+                        CargoCleanupStatus.DELETED.value
+                        if error is None
+                        else CargoCleanupStatus.FAILED.value,
+                        str(error) if error else None,
+                        job_id,
+                    ),
+                )
+                connection.execute(
+                    "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                    (
+                        "cleanup.ephemeral_lane_deleted"
+                        if error is None
+                        else "cleanup.ephemeral_lane_failed",
+                        json.dumps(
+                            {"job_id": job_id, "target_dir": str(target), "error": str(error) if error else None},
+                            sort_keys=True,
+                        ),
+                        utc_text(),
+                    ),
+                )
+        denied = (
+            (CleanupDenial(str(target), "cleanup_failed", str(error)),)
+            if error is not None
+            else ()
+        )
+        return CleanupResult(deleted, denied)
+
+    def schedule_pending_cleanup(self) -> bool:
+        """Start prompt cleanup after the command lock has been released."""
+        self._async_cleanup_requested.set()
+        if not self._async_cleanup_lock.acquire(blocking=False):
+            return False
+
+        def worker() -> None:
+            try:
+                while True:
+                    self._async_cleanup_requested.clear()
+                    self.retry_pending_jobs()
+                    self.evict_idle_pools_under_pressure()
+                    if not self._async_cleanup_requested.is_set():
+                        break
+            finally:
+                self._async_cleanup_lock.release()
+                # A release can arrive after the loop's final check but before the
+                # worker drops its lock. Hand that request to a fresh worker.
+                if self._async_cleanup_requested.is_set():
+                    self.schedule_pending_cleanup()
+
+        threading.Thread(
+            target=worker,
+            name="zircon-cargo-ephemeral-cleanup",
+            daemon=True,
+        ).start()
+        return True
+
+    def retry_pending_jobs(self) -> tuple[str, ...]:
+        with self.database.connect() as connection:
+            job_ids = tuple(
+                row["job_id"]
+                for row in connection.execute(
+                    """
+                    SELECT job_id FROM cargo_jobs
+                    WHERE cleanup_policy='delete_on_release'
+                      AND cleanup_status IN ('pending', 'failed')
+                      AND status IN ('released', 'orphaned')
+                    ORDER BY released_at, finished_at, created_at
+                    """
+                )
+            )
+        deleted: list[str] = []
+        for job_id in job_ids:
+            result = self.cleanup_job_now(job_id)
+            if result.deleted:
+                deleted.append(job_id)
+        return tuple(deleted)
+
+    def evict_idle_pools_under_pressure(self) -> CleanupResult:
+        """Evict the least-recently-used idle reusable pools until each root recovers."""
+        deleted: list[str] = []
+        denied: list[CleanupDenial] = []
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT * FROM cargo_jobs
+                WHERE reuse_key IS NOT NULL AND cleanup_status='retained'
+                ORDER BY COALESCE(released_at, finished_at, last_heartbeat_at), created_at
+                """
+            ).fetchall()
+        jobs = [self.cargo_jobs._from_row(row) for row in rows]
+
+        for root in self.cargo_jobs.target_policy.roots:
+            available_bytes = self.free_space(root)
+            if available_bytes > self.pressure_threshold_bytes:
+                continue
+            groups: dict[str, list] = {}
+            for job in jobs:
+                target = Path(job.target_dir)
+                if target == root or not target.is_relative_to(root):
+                    continue
+                groups.setdefault(target_identity(target), []).append(job)
+
+            idle_groups: list[tuple[datetime, str, list]] = []
+            for target_key, target_jobs in groups.items():
+                target_text = target_jobs[-1].target_dir
+                live = [
+                    job for job in target_jobs if job.pid and self.process_alive(job.pid)
+                ]
+                if live:
+                    denied.append(
+                        CleanupDenial(
+                            target_text,
+                            "active_process",
+                            f"PID {live[0].pid} is still alive",
+                        )
+                    )
+                    continue
+                active = [
+                    job for job in target_jobs if job.status.value in ACTIVE_CARGO_STATUSES
+                ]
+                if active:
+                    denied.append(
+                        CleanupDenial(
+                            target_text,
+                            "active_lease",
+                            f"Cargo pool is owned by job {active[0].job_id}",
+                        )
+                    )
+                    continue
+                reference_time = max(
+                    job.released_at or job.finished_at or job.last_heartbeat_at
+                    for job in target_jobs
+                )
+                idle_groups.append((reference_time, target_key, target_jobs))
+
+            for _reference_time, target_key, target_jobs in sorted(
+                idle_groups, key=lambda item: (item[0], item[1])
+            ):
+                if available_bytes > self.pressure_threshold_bytes:
+                    break
+                target = self.cargo_jobs.target_policy.validate(target_jobs[-1].target_dir)
+                with self.database.transaction() as connection:
+                    current_rows = connection.execute(
+                        """
+                        SELECT job_id, pid, status FROM cargo_jobs
+                        WHERE target_key=?
+                        """,
+                        (target_key,),
+                    ).fetchall()
+                    live = next(
+                        (
+                            row
+                            for row in current_rows
+                            if row["pid"] and self.process_alive(int(row["pid"]))
+                        ),
+                        None,
+                    )
+                    if live is not None:
+                        denied.append(
+                            CleanupDenial(
+                                str(target),
+                                "active_process",
+                                f"PID {live['pid']} became active before cleanup",
+                            )
+                        )
+                        continue
+                    active = next(
+                        (
+                            row
+                            for row in current_rows
+                            if row["status"] in ACTIVE_CARGO_STATUSES
+                        ),
+                        None,
+                    )
+                    if active is not None:
+                        denied.append(
+                            CleanupDenial(
+                                str(target),
+                                "active_lease",
+                                f"Cargo pool became owned by job {active['job_id']}",
+                            )
+                        )
+                        continue
+                    reservation = connection.execute(
+                        "SELECT 1 FROM cleanup_reservations WHERE target_key=?",
+                        (target_key,),
+                    ).fetchone()
+                    if reservation is not None:
+                        denied.append(
+                            CleanupDenial(
+                                str(target),
+                                "cleanup_already_reserved",
+                                "Cargo pool is already reserved for cleanup",
+                            )
+                        )
+                        continue
+                    connection.execute(
+                        "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) "
+                        "VALUES (?, ?, ?)",
+                        (target_key, str(target), utc_text()),
+                    )
+                error: OSError | None = None
+                try:
+                    if target.exists():
+                        shutil.rmtree(target)
+                except OSError as caught:
+                    error = caught
+                finally:
+                    with self.database.transaction() as connection:
+                        connection.execute(
+                            "DELETE FROM cleanup_reservations WHERE target_key=?",
+                            (target_key,),
+                        )
+                        connection.execute(
+                            """
+                            UPDATE cargo_jobs
+                            SET cleanup_status=?, cleanup_error=?
+                            WHERE target_key=?
+                            """,
+                            (
+                                CargoCleanupStatus.DELETED.value
+                                if error is None
+                                else CargoCleanupStatus.FAILED.value,
+                                str(error) if error else None,
+                                target_key,
+                            ),
+                        )
+                if error is None:
+                    deleted.append(str(target))
+                else:
+                    denied.append(CleanupDenial(str(target), "cleanup_failed", str(error)))
+                available_bytes = self.free_space(root)
+        return CleanupResult(tuple(deleted), tuple(denied))
 
     def plan(
         self,
@@ -430,6 +736,11 @@ class CleanupService:
             jobs_by_target.setdefault(target_identity(job.target_dir), []).append(job)
         for jobs in jobs_by_target.values():
             target = jobs[-1].target_dir
+            if all(
+                job.cleanup_policy is CargoCleanupPolicy.DELETE_ON_RELEASE
+                for job in jobs
+            ):
+                continue
             try:
                 self.cargo_jobs.target_policy.validate(target)
             except CoordinatorError as error:
@@ -664,6 +975,14 @@ class CleanupService:
                         "DELETE FROM cleanup_reservations WHERE target_key = ?",
                         (key,),
                     )
+                    if deletion_error is None and target_text in deleted:
+                        connection.execute(
+                            """
+                            UPDATE cargo_jobs SET cleanup_status='deleted', cleanup_error=NULL
+                            WHERE target_key=?
+                            """,
+                            (key,),
+                        )
                     connection.execute(
                         "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
                         (

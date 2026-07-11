@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from .baselines import BaselineService, WorkspaceChange
+from .baselines import (
+    BaselineService,
+    PreparedWorkspaceScan,
+    WorkspaceChange,
+    WorkspaceScanResult,
+)
 
 
 class WorkspaceWatcher:
@@ -14,5 +19,10 @@ class WorkspaceWatcher:
         self.baselines = baselines
 
     def scan_once(self) -> list[WorkspaceChange]:
-        self.baselines.refresh_for_head_change()
-        return self.baselines.scan()
+        return list(self.apply_scan(self.prepare_scan()).changes)
+
+    def prepare_scan(self) -> PreparedWorkspaceScan:
+        return self.baselines.prepare_scan()
+
+    def apply_scan(self, observation: PreparedWorkspaceScan) -> WorkspaceScanResult:
+        return self.baselines.apply_scan(observation)

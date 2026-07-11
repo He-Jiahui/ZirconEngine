@@ -397,6 +397,39 @@ Describe "Get-PrebuildCleanupDecision" {
     }
 }
 
+Describe "Cargo compatibility identity" {
+    It "includes platform toolchain architecture workspace and canonical build configuration" {
+        $previousToolchain = $env:RUSTUP_TOOLCHAIN
+        $previousTarget = $env:CARGO_BUILD_TARGET
+        try {
+            $env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-msvc"
+            $env:CARGO_BUILD_TARGET = "x86_64-pc-windows-msvc"
+
+            $compatibility = New-CargoCompatibilityJson `
+                -ResolvedRepoRoot $script:ValidateMatrixTestRepoRoot `
+                -DryRunMode | ConvertFrom-Json
+
+            $compatibility.platform | Should Be "windows"
+            $compatibility.toolchain | Should Be "stable-x86_64-pc-windows-msvc"
+            $compatibility.target_architecture | Should Be "x86_64-pc-windows-msvc"
+            $compatibility.workspace | Should Be "Cargo.toml"
+            $compatibility.build_config | Should Match "rustflags"
+            $compatibility.build_config | Should Match "cargo_incremental"
+        } finally {
+            $env:RUSTUP_TOOLCHAIN = $previousToolchain
+            $env:CARGO_BUILD_TARGET = $previousTarget
+        }
+    }
+
+    It "passes the complete document through the coordinator acquire command" {
+        $source = Get-Content -Raw -Encoding UTF8 $script:ValidateMatrixScript
+
+        $source | Should Match "--compatibility-json"
+        $source | Should Match "New-CargoCompatibilityJson"
+        $source | Should Not Match "--reuse-key"
+    }
+}
+
 Describe "Validate matrix CLI dry-run parsing" {
     It "allocates a managed drive-root lane for no-stage sanity checks" {
         $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
@@ -407,7 +440,7 @@ Describe "Validate matrix CLI dry-run parsing" {
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Dry run: on"
-        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "Target dir: [D-F]:\\cargo-targets\\zircon-engine-workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
         $result.Output | Should Match "No stages selected"
         $result.Output | Should Not Match "target\\manual-check"
     }
@@ -422,7 +455,7 @@ Describe "Validate matrix CLI dry-run parsing" {
         )
 
         $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "cargo_target_not_managed|managed targets/zircon-engine/lanes"
+        $result.Output | Should Match "cargo_target_not_managed|D:\\\\cargo-targets"
     }
 
     It "rejects an inherited target outside managed lane roots" {
@@ -431,7 +464,7 @@ Describe "Validate matrix CLI dry-run parsing" {
             -Arguments @("-DryRun", "-SkipBuild", "-SkipTest")
 
         $result.ExitCode | Should Not Be 0
-        $result.Output | Should Match "cargo_target_not_managed|managed targets/zircon-engine/lanes"
+        $result.Output | Should Match "cargo_target_not_managed|D:\\\\cargo-targets"
     }
 }
 
@@ -573,7 +606,7 @@ Describe "Export platform contract validation" {
             "-ExportContractPlatform",
             "headless",
             "-TargetDir",
-            "E:\targets\zircon-engine\lanes\pester-custom-dry-run"
+            "E:\cargo-targets\pester-custom-dry-run"
         )
 
         $result.ExitCode | Should Be 0
@@ -899,7 +932,7 @@ Describe "Profile feature contract validation" {
             "-ProfileFeatureContractLabel",
             "zircon_runtime target-server",
             "-TargetDir",
-            "E:\targets\zircon-engine\lanes\pester-custom-dry-run"
+            "E:\cargo-targets\pester-custom-dry-run"
         )
 
         $result.ExitCode | Should Be 0
@@ -1363,6 +1396,6 @@ Describe "M5 contract documentation index" {
         $combinedDocs | Should Match "without requiring Cargo discovery"
         $combinedDocs | Should Match "target-directory cleanup checks"
         $combinedDocs | Should Match "managed.*lane"
-        $combinedDocs | Should Match "targets\\zircon-engine\\lanes|targets/zircon-engine/lanes"
+        $combinedDocs | Should Match "cargo-targets"
     }
 }

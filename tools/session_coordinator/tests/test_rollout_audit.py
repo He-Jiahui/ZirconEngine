@@ -43,7 +43,7 @@ class RolloutAuditTests(unittest.TestCase):
                 plans=PlanRepository(repo),
                 failures=FailureGraphService(database, repo),
                 legacy=legacy,
-                target_roots=(root / "drive/targets/zircon-engine",),
+                target_roots=(root / "drive/cargo-targets",),
             )
 
             first = service.audit_all().to_dict()
@@ -103,11 +103,11 @@ class RolloutAuditTests(unittest.TestCase):
 
             self.assertEqual((".codex/targets/old-lane",), diagnostics)
 
-    def test_audit_uses_exact_direct_lane_policy_for_recorded_targets(self) -> None:
+    def test_audit_accepts_only_descendants_of_cargo_target_roots(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             repo = init_repo(root / "repo")
-            managed = root / "drive/targets/zircon-engine"
+            managed = root / "drive/cargo-targets"
             config = CoordinatorConfig.for_repo(repo, state_root=root / "state")
             database = Database(config.database_path)
             migrate(database)
@@ -126,11 +126,8 @@ class RolloutAuditTests(unittest.TestCase):
                 target_roots=(managed,),
             )
 
-            self.assertTrue(service._target_is_managed(managed / "lanes/direct"))
-            self.assertFalse(
-                service._target_is_managed(managed / "lanes/direct/nested")
-            )
-            self.assertFalse(service._target_is_managed(managed / "verify/job"))
+            self.assertTrue(service._target_is_managed(managed / "direct"))
+            self.assertTrue(service._target_is_managed(managed / "nested/job"))
             self.assertFalse(service._target_is_managed(managed))
 
 

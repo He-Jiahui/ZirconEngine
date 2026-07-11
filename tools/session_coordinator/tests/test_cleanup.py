@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import json
 import tempfile
+import threading
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-from tools.session_coordinator.cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
+from tools.session_coordinator.cargo_jobs import (
+    CargoCompatibility,
+    CargoJobService,
+    CargoLaneKind,
+    TargetPathPolicy,
+)
 from tools.session_coordinator.cleanup import CleanupService
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
@@ -23,7 +29,7 @@ class CleanupTests(unittest.TestCase):
         self.temporary_directory = tempfile.TemporaryDirectory()
         root = Path(self.temporary_directory.name)
         self.repo = init_repo(root / "repo")
-        self.target_root = root / "drive/targets/zircon-engine"
+        self.target_root = root / "drive/cargo-targets"
         self.target_root.mkdir(parents=True)
         config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(config.database_path)
@@ -33,6 +39,7 @@ class CleanupTests(unittest.TestCase):
         self.jobs = CargoJobService(
             self.database,
             TargetPathPolicy([self.target_root]),
+            repo_root=self.repo,
             free_space=lambda _path: 200 * 1024**3,
             process_alive=lambda pid: pid in self.alive_pids,
         )
@@ -46,8 +53,28 @@ class CleanupTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
 
+    def acquire_reusable(
+        self,
+        lane_kind: CargoLaneKind,
+        *,
+        build_config: str = "profile=test;features=default",
+        requested_target: Path | None = None,
+    ):
+        return self.jobs.acquire(
+            "session-a",
+            lane_kind,
+            requested_target=requested_target,
+            compatibility=CargoCompatibility(
+                platform="windows",
+                toolchain="stable-x86_64-pc-windows-msvc",
+                target_architecture="x86_64-pc-windows-msvc",
+                workspace="Cargo.toml",
+                build_config=build_config,
+            ),
+        )
+
     def test_active_pid_and_lease_are_never_cleanup_candidates(self) -> None:
-        job = self.jobs.acquire("session-a", CargoLaneKind.TEST)
+        job = self.acquire_reusable(CargoLaneKind.TEST)
         (Path(job.target_dir) / "artifact").write_text("live", encoding="utf-8")
         self.jobs.start(
             job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
@@ -60,7 +87,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(Path(job.target_dir).exists())
 
     def test_released_stale_lane_is_deleted_only_after_plan(self) -> None:
-        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
         (Path(job.target_dir) / "artifact").write_text("stale", encoding="utf-8")
         self.jobs.release(job.job_id, session_id="session-a")
         cleanup_time = datetime.now(UTC) + timedelta(days=2)
@@ -72,8 +99,65 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual((job.target_dir,), applied.deleted)
         self.assertFalse(Path(job.target_dir).exists())
 
-    def test_apply_revalidates_process_liveness(self) -> None:
+    def test_ephemeral_lane_is_deleted_immediately_after_release(self) -> None:
         job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        (Path(job.target_dir) / "artifact").write_text("temporary", encoding="utf-8")
+        self.jobs.release(job.job_id, session_id="session-a")
+
+        result = self.cleanup.cleanup_job_now(job.job_id)
+
+        self.assertEqual((job.target_dir,), result.deleted)
+        self.assertFalse(Path(job.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
+    def test_failed_ephemeral_cleanup_is_retryable(self) -> None:
+        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        self.jobs.release(job.job_id, session_id="session-a")
+        original = __import__("shutil").rmtree
+        with patch(
+            "tools.session_coordinator.cleanup.shutil.rmtree",
+            side_effect=OSError("locked"),
+        ):
+            failed = self.cleanup.cleanup_job_now(job.job_id)
+        self.assertEqual("failed", self.jobs.get(job.job_id).cleanup_status.value)
+        self.assertTrue(failed.denied)
+
+        with patch("tools.session_coordinator.cleanup.shutil.rmtree", side_effect=original):
+            retried = self.cleanup.retry_pending_jobs()
+
+        self.assertEqual((job.job_id,), retried)
+        self.assertEqual("deleted", self.jobs.get(job.job_id).cleanup_status.value)
+
+    def test_async_cleanup_drains_release_requested_during_running_pass(self) -> None:
+        first_pass_entered = threading.Event()
+        allow_first_pass_to_finish = threading.Event()
+        second_pass_finished = threading.Event()
+        retry_calls = 0
+
+        def retry_pending_jobs() -> tuple[str, ...]:
+            nonlocal retry_calls
+            retry_calls += 1
+            if retry_calls == 1:
+                first_pass_entered.set()
+                self.assertTrue(allow_first_pass_to_finish.wait(timeout=2))
+            elif retry_calls == 2:
+                second_pass_finished.set()
+            return ()
+
+        with (
+            patch.object(self.cleanup, "retry_pending_jobs", side_effect=retry_pending_jobs),
+            patch.object(self.cleanup, "evict_idle_pools_under_pressure"),
+        ):
+            self.assertTrue(self.cleanup.schedule_pending_cleanup())
+            self.assertTrue(first_pass_entered.wait(timeout=2))
+            self.assertFalse(self.cleanup.schedule_pending_cleanup())
+            allow_first_pass_to_finish.set()
+            self.assertTrue(second_pass_finished.wait(timeout=2))
+
+        self.assertGreaterEqual(retry_calls, 2)
+
+    def test_apply_revalidates_process_liveness(self) -> None:
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
         plan = self.cleanup.plan(now=datetime.now(UTC) + timedelta(days=2), older_than_hours=1)
         with self.database.transaction() as connection:
@@ -88,7 +172,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(Path(job.target_dir).exists())
 
     def test_apply_revalidates_retention_window(self) -> None:
-        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
         plan = self.cleanup.plan(now=datetime.now(UTC) + timedelta(days=2), older_than_hours=1)
 
@@ -110,17 +194,88 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(((str(self.target_root.resolve()), 40 * 1024**3),), plan.free_bytes_by_root)
         self.assertEqual((str(self.target_root.resolve()),), plan.pressure_roots)
 
+    def test_pressure_eviction_removes_oldest_idle_pool_until_reserve_is_restored(self) -> None:
+        oldest = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            build_config="profile=dev;features=oldest",
+        )
+        newest = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            build_config="profile=dev;features=newest",
+        )
+        self.jobs.release(oldest.job_id, session_id="session-a")
+        self.jobs.release(newest.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET released_at=? WHERE job_id=?",
+                ((datetime.now(UTC) - timedelta(days=2)).isoformat(), oldest.job_id),
+            )
+        free_values = iter((40 * 1024**3, 60 * 1024**3))
+        self.cleanup.free_space = lambda _path: next(free_values)
+
+        result = self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assertEqual((oldest.target_dir,), result.deleted)
+        self.assertFalse(Path(oldest.target_dir).exists())
+        self.assertTrue(Path(newest.target_dir).exists())
+        self.assertEqual("deleted", self.jobs.get(oldest.job_id).cleanup_status.value)
+
+    def test_pressure_eviction_never_deletes_an_active_pool(self) -> None:
+        active = self.acquire_reusable(CargoLaneKind.TEST)
+        self.cleanup.free_space = lambda _path: 40 * 1024**3
+
+        result = self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assertEqual((), result.deleted)
+        self.assertTrue(Path(active.target_dir).exists())
+        self.assertTrue(any(item.code == "active_lease" for item in result.denied))
+
+    def test_pressure_eviction_never_deletes_pool_with_live_recorded_process(self) -> None:
+        released = self.acquire_reusable(CargoLaneKind.TEST)
+        self.jobs.release(released.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET pid=? WHERE job_id=?",
+                (4242, released.job_id),
+            )
+        self.cleanup.free_space = lambda _path: 40 * 1024**3
+
+        result = self.cleanup.evict_idle_pools_under_pressure()
+
+        self.assertEqual((), result.deleted)
+        self.assertTrue(Path(released.target_dir).exists())
+        self.assertTrue(any(item.code == "active_process" for item in result.denied))
+
+    def test_orphaned_ephemeral_pool_is_retried_and_deleted(self) -> None:
+        job = self.jobs.acquire(
+            "session-a", CargoLaneKind.CHECK, owner_pid=9999
+        )
+        orphaned = self.jobs.reconcile_orphans(
+            now=datetime.now(UTC) + timedelta(minutes=10),
+            leased_timeout_seconds=1,
+        )
+
+        deleted = self.cleanup.retry_pending_jobs()
+
+        self.assertEqual((job.job_id,), tuple(item.job_id for item in orphaned))
+        self.assertEqual((job.job_id,), deleted)
+        self.assertFalse(Path(job.target_dir).exists())
+
     def test_non_positive_retention_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             self.cleanup.plan(older_than_hours=0)
 
     def test_cleanup_plan_never_expands_to_newer_candidates(self) -> None:
-        first = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        first = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(first.job_id, session_id="session-a")
         cleanup_time = datetime.now(UTC) + timedelta(days=2)
         reviewed = self.cleanup.plan(now=cleanup_time, older_than_hours=1)
 
-        second = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        second = self.acquire_reusable(
+            CargoLaneKind.CHECK,
+            build_config="profile=dev;features=default",
+            requested_target=self.target_root / "newer-independent-lane",
+        )
         self.jobs.release(second.job_id, session_id="session-a")
         applied = self.cleanup.apply(reviewed, now=cleanup_time)
 
@@ -128,7 +283,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(Path(second.target_dir).exists())
 
     def test_cleanup_reservation_blocks_reacquire_without_holding_writer_lock(self) -> None:
-        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
         with self.database.transaction() as connection:
             connection.execute(
@@ -146,7 +301,7 @@ class CleanupTests(unittest.TestCase):
         with self.database.transaction() as connection:
             connection.execute(
                 "INSERT INTO cleanup_reservations(target_key, target_dir, reserved_at) VALUES (?, ?, datetime('now'))",
-                ("abandoned", str(self.target_root / "lanes/abandoned")),
+                ("abandoned", str(self.target_root / "abandoned")),
             )
 
         self.assertEqual(1, self.cleanup.recover_reservations())
@@ -157,7 +312,7 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(0, remaining)
 
     def test_persisted_plan_still_refuses_untracked_managed_directory(self) -> None:
-        untracked = self.target_root / "lanes/untracked"
+        untracked = self.target_root / "untracked"
         untracked.mkdir(parents=True)
         generated_at = datetime.now(UTC)
         with self.database.transaction() as connection:
@@ -179,7 +334,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(untracked.exists())
 
     def test_cleanup_refuses_active_legacy_descendant(self) -> None:
-        parent = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        parent = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(parent.job_id, session_id="session-a")
         cleanup_time = datetime.now(UTC) + timedelta(days=2)
         reviewed = self.cleanup.plan(now=cleanup_time, older_than_hours=1)
@@ -212,7 +367,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue(Path(parent.target_dir).exists())
 
     def test_cleanup_deletes_outside_writer_transaction_and_blocks_reacquire(self) -> None:
-        job = self.jobs.acquire("session-a", CargoLaneKind.CHECK)
+        job = self.acquire_reusable(CargoLaneKind.CHECK)
         self.jobs.release(job.job_id, session_id="session-a")
         cleanup_time = datetime.now(UTC) + timedelta(days=2)
         reviewed = self.cleanup.plan(now=cleanup_time, older_than_hours=1)

@@ -76,5 +76,8 @@ class CoordinatorConfig:
         for drive in ("D:\\", "E:\\", "F:\\"):
             drive_path = Path(drive)
             if drive_path.exists():
-                roots.append(drive_path / "targets" / "zircon-engine")
+                roots.extend(
+                    drive_path / name
+                    for name in ("cargo-targets", "targets", "ZirconBuilds")
+                )
         return tuple(roots)

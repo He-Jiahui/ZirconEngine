@@ -36,12 +36,14 @@ class ActionService:
         *,
         daemon_instance_id: str,
         mutation_lock=None,
+        mutation_gate=None,
     ):
         self.database = database
         self.fingerprinter = fingerprinter
         self.executor = executor
         self.daemon_instance_id = daemon_instance_id
         self._confirmation_lock = mutation_lock or threading.RLock()
+        self._mutation_gate = mutation_gate
 
     def catalog(self) -> dict[str, object]:
         return {"actions": [spec.to_dict() for spec in ACTION_CATALOG.values()]}
@@ -53,6 +55,8 @@ class ActionService:
         payload: dict[str, object],
     ) -> ActionRecord:
         spec = action_spec(kind)
+        if self._mutation_gate is not None:
+            self._mutation_gate(spec.kind.value)
         parameters = spec.parse_parameters(payload)
         target_session_id = getattr(parameters, "session_id", None)
         try:
@@ -137,6 +141,11 @@ class ActionService:
             raise CoordinatorError("action_reason_invalid", "Confirmation reason is required")
         state_changed = False
         expired = False
+        preview_row = None
+        with self.database.connect() as connection:
+            preview_row = self._request_row(connection, action_id)
+        if self._mutation_gate is not None:
+            self._mutation_gate(str(preview_row["action_kind"]))
         with self._confirmation_lock:
             with self.database.transaction() as connection:
                 row = self._request_row(connection, action_id)
@@ -251,19 +260,28 @@ class ActionService:
             raise CoordinatorError(
                 "action_execution_failed", "Controlled action execution failed"
             ) from error
+        deferred = bool(result.get("deferred"))
         with self.database.transaction() as connection:
-            connection.execute(
+            if deferred:
+                self._event(
+                    connection,
+                    getattr(parameters, "session_id", None),
+                    "action.accepted",
+                    {"actionId": action_id, "kind": spec.kind.value},
+                )
+            else:
+                connection.execute(
                 """UPDATE action_requests
                    SET status = 'succeeded', result_json = ?, completed_at = ?
                    WHERE action_id = ? AND status = 'executing'""",
                 (json.dumps(result, sort_keys=True), utc_text(), action_id),
-            )
-            self._event(
-                connection,
-                getattr(parameters, "session_id", None),
-                "action.succeeded",
-                {"actionId": action_id, "kind": spec.kind.value},
-            )
+                )
+                self._event(
+                    connection,
+                    getattr(parameters, "session_id", None),
+                    "action.succeeded",
+                    {"actionId": action_id, "kind": spec.kind.value},
+                )
         return self.get(context, action_id)
 
     def cancel(

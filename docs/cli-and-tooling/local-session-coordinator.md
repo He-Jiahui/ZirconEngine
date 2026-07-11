@@ -21,6 +21,7 @@ related_code:
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
+  - tools/session_coordinator/supervision/
   - tools/session_coordinator/git_finalize.py
   - tools/session_coordinator/control_plane/auth.py
   - tools/session_coordinator/control_plane/contracts.py
@@ -39,6 +40,8 @@ related_code:
   - tools/zircon-session.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
+  - tools/install-session-tray-startup.ps1
+  - tools/session_tray/
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 implementation_files:
   - tools/session_coordinator/__main__.py
@@ -304,14 +307,18 @@ The coordination context script now queries service health, indexed Session coun
 
 ## Managed Cargo Jobs
 
-Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plans. Jobs use `check`, `test`, `workspace`, and `gpu` lanes with `leased`, `running`, `succeeded`, `failed`, `released`, and `orphaned` states. Targets must be direct children of an available `D:\targets\zircon-engine\lanes`, `E:\targets\zircon-engine\lanes`, or `F:\targets\zircon-engine\lanes` root. A case- and separator-normalized identity plus ancestor/descendant overlap checks prevent Windows path aliases or nested lanes from becoming simultaneous writers. Repo-local targets, nested lanes, symlink/junction escapes and arbitrary paths fail with `cargo_target_not_managed`.
+Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plans; schema v21 adds reusable-cache identity and cleanup state. Jobs use `check`, `test`, `workspace`, and `gpu` lanes with `leased`, `running`, `succeeded`, `failed`, `released`, and `orphaned` states. Targets must remain below one of the nine drive-root trees named `cargo-targets`, `targets`, or `ZirconBuilds` on `D:`, `E:`, or `F:`. A case- and separator-normalized identity plus ancestor/descendant overlap checks prevent Windows path aliases or nested pools from becoming simultaneous writers. Repo-local targets, symlink/junction escapes and arbitrary paths fail with `cargo_target_not_managed`.
 
 ```powershell
-.\tools\zircon-session.ps1 cargo acquire workspace
+.\tools\zircon-session.ps1 cargo acquire workspace --ephemeral
+.\tools\zircon-session.ps1 cargo acquire test --compatibility-json '{"platform":"windows","toolchain":"1.88.0@x86_64-pc-windows-msvc","target_architecture":"x86_64-pc-windows-msvc","workspace":"Cargo.toml","build_config":"profile=test;features=default"}'
+.\tools\zircon-session.ps1 cargo acquire check --ephemeral
 .\tools\zircon-session.ps1 cargo list
 ```
 
-`validate-matrix.ps1` performs the lifecycle automatically: register the caller, acquire a unique lane with the wrapper PID, immediately enter `try/finally`, record the process command line at start, run validation, record the exit code, and owner-checked release. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy; released explicit lanes may be reused. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned`.
+Reusable acquisition requires a complete compatibility document containing platform (`windows` or `wsl`), Rust toolchain, target architecture, repository-relative workspace and canonical build configuration. The service adds normalized repository identity and hashes that document. Source and `Cargo.lock` changes deliberately do not split the pool because Cargo performs unit-level invalidation. Check/test lane labels also do not split it. Exactly one primary directory exists per compatibility key across Sessions and exactly one task may own it; concurrent compatible acquisition returns `cargo_reuse_pool_busy` instead of creating a fallback pool. Missing compatibility metadata fails closed to ephemeral by default, as does an explicit `--ephemeral` request; release promptly reserves, revalidates and deletes that exact directory outside the writer transaction. A locked deletion becomes `failed` and the maintenance loop retries it.
+
+`validate-matrix.ps1` performs the lifecycle automatically: register the caller, derive the compatibility document, acquire the primary pool with the wrapper PID, immediately enter `try/finally`, record the process command line at start, run validation, record the exit code, and owner-checked release. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy and cannot create an alternate primary directory. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned` and immediately retries pending ephemeral cleanup.
 
 ## Cleanup and Service-Owned Maintenance
 
@@ -323,7 +330,9 @@ Cleanup is deliberately two-phase:
 .\tools\cleanup-stale-targets.ps1 -Apply
 ```
 
-Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, direct-child realpath, overlapping live PID, active lease and positive retention. An untracked directory is never deletable even if a plan row is corrupted. A short SQLite transaction writes a cleanup reservation; deletion runs outside the global writer lock; a final short transaction records success/failure and clears the reservation. New Cargo acquisition observes the reservation, and daemon restart recovers abandoned reservations. The script never enumerates fuzzy drive-root names and never deletes directly.
+Reusable caches use the reviewed two-phase retention path. Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, managed-root realpath, overlapping live PID, active lease and positive retention. Under disk pressure, the daemon evicts idle reusable pools oldest-first until the free-space reserve is restored; active pools remain protected. Ephemeral lanes bypass only the age delay, never the path/identity/process/lease checks. A short SQLite transaction writes a cleanup reservation; deletion runs outside the global writer lock; a final short transaction records success/failure and clears the reservation. New Cargo acquisition observes the reservation, and daemon restart recovers abandoned reservations.
+
+The wrapper scans only direct child directories of the exact nine approved roots. It excludes every coordinator-known target and any ancestor containing a nested managed pool, skips reparse points, checks the stale cutoff, refreshes coordinator state immediately before deletion, and directly removes only stale unmanaged children. This is the intentional unmanaged exception: they have no service job history to retain, while managed paths remain service-owned.
 
 The user-level startup definition is idempotent and repository-specific. The preferred backend uses Task Scheduler; systems that deny task creation can use the current-user Run key while the daemon owns the 15-minute maintenance cadence internally:
 

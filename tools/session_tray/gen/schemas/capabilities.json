@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"No webview capability; the tray is a native supervisor only.","local":true,"permissions":["core:default"]}}

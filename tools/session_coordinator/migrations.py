@@ -5,9 +5,10 @@ from sqlite3 import Connection
 
 from .database import Database
 from .models import CoordinatorError
+from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 19
+LATEST_SCHEMA_VERSION = 21
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1029,6 +1030,34 @@ def _migration_19(connection: Connection) -> None:
     )
 
 
+def _migration_21(connection: Connection) -> None:
+    """Track reusable Cargo cache identity and deterministic cleanup state."""
+    connection.executescript(
+        """
+        ALTER TABLE cargo_jobs ADD COLUMN reuse_key TEXT;
+        ALTER TABLE cargo_jobs ADD COLUMN compatibility_json TEXT;
+        ALTER TABLE cargo_jobs ADD COLUMN compatibility_key TEXT;
+        ALTER TABLE cargo_jobs ADD COLUMN reuse_profile TEXT;
+        ALTER TABLE cargo_jobs ADD COLUMN cleanup_policy TEXT NOT NULL DEFAULT 'retained'
+            CHECK (cleanup_policy IN ('retained', 'delete_on_release'));
+        ALTER TABLE cargo_jobs ADD COLUMN cleanup_status TEXT NOT NULL DEFAULT 'retained'
+            CHECK (cleanup_status IN ('retained', 'pending', 'deleted', 'failed'));
+        ALTER TABLE cargo_jobs ADD COLUMN reused_from_job_id TEXT REFERENCES cargo_jobs(job_id);
+        ALTER TABLE cargo_jobs ADD COLUMN cleanup_error TEXT;
+
+        CREATE INDEX cargo_jobs_reuse_lookup
+            ON cargo_jobs(reuse_key, status, released_at);
+        CREATE UNIQUE INDEX cargo_jobs_active_reuse_key
+            ON cargo_jobs(reuse_key)
+            WHERE reuse_key IS NOT NULL AND status IN ('leased', 'running');
+        CREATE INDEX cargo_jobs_compatibility_cleanup
+            ON cargo_jobs(lane_kind, compatibility_key, status, released_at);
+        CREATE INDEX cargo_jobs_cleanup_pending
+            ON cargo_jobs(cleanup_status, released_at);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1049,6 +1078,8 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     17: _migration_17,
     18: _migration_18,
     19: _migration_19,
+    20: migrate_supervision_schema,
+    21: _migration_21,
 }
 
 

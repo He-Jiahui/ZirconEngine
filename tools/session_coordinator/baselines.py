@@ -35,6 +35,22 @@ class WorkspaceChange:
     current_hash: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class PreparedWorkspaceScan:
+    """Filesystem-heavy observation awaiting a short serialized apply step."""
+
+    source_epoch_id: int
+    observed_head: str
+    baseline_manifest: dict[str, str]
+    current_manifest: dict[str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class WorkspaceScanResult:
+    applied: bool
+    changes: tuple[WorkspaceChange, ...]
+
+
 def hash_bytes(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
@@ -76,15 +92,7 @@ class BaselineService:
         new_head = self._git_output("rev-parse", "HEAD")
         if current.head_commit == new_head:
             return current
-        old_tracked = self._tracked_paths(current.head_commit)
-        # Keep only prior untracked baseline entries; tracked paths come from the new
-        # commit through Git's worktree filters, never from another Session's dirty file.
-        manifest = {
-            path: content_hash
-            for path, content_hash in current.manifest.items()
-            if path not in old_tracked
-        }
-        manifest.update(self._commit_manifest(new_head))
+        manifest = self._baseline_manifest_for_head(current, new_head)
         return self._capture(
             BaselineHealth.HEALTHY,
             reason="HEAD changed",
@@ -93,15 +101,47 @@ class BaselineService:
         )
 
     def scan(self) -> list[WorkspaceChange]:
+        return list(self.apply_scan(self.prepare_scan()).changes)
+
+    def prepare_scan(self) -> PreparedWorkspaceScan:
+        """Hash the shared workspace without holding the coordinator mutation lock."""
         baseline = self.initialize()
-        current_manifest = self.build_manifest()
+        observed_head = self._git_output("rev-parse", "HEAD")
+        baseline_manifest = (
+            baseline.manifest
+            if baseline.head_commit == observed_head
+            else self._baseline_manifest_for_head(baseline, observed_head)
+        )
+        return PreparedWorkspaceScan(
+            source_epoch_id=baseline.epoch_id,
+            observed_head=observed_head,
+            baseline_manifest=baseline_manifest,
+            current_manifest=self.build_manifest(),
+        )
+
+    def apply_scan(self, observation: PreparedWorkspaceScan) -> WorkspaceScanResult:
+        """Apply an observation only if its baseline epoch and HEAD are still current."""
+        baseline = self.initialize()
+        current_head = self._git_output("rev-parse", "HEAD")
+        if (
+            baseline.epoch_id != observation.source_epoch_id
+            or current_head != observation.observed_head
+        ):
+            return WorkspaceScanResult(False, ())
+        if baseline.head_commit != observation.observed_head:
+            baseline = self._capture(
+                BaselineHealth.HEALTHY,
+                reason="HEAD changed",
+                manifest=observation.baseline_manifest,
+                head_commit=observation.observed_head,
+            )
         changes = self._unattributed_changes(
-            self._compare(baseline.manifest, current_manifest),
+            self._compare(observation.baseline_manifest, observation.current_manifest),
             baseline_epoch=baseline.epoch_id,
         )
         if changes:
             self._mark_degraded(baseline.epoch_id, changes)
-        return changes
+        return WorkspaceScanResult(True, tuple(changes))
 
     def reconcile_health(self) -> BaselineEpoch:
         """Restore health only when every workspace difference is attributed.
@@ -374,6 +414,20 @@ class BaselineService:
             for raw in result.stdout.split(b"\0")
             if raw
         }
+
+    def _baseline_manifest_for_head(
+        self, baseline: BaselineEpoch, new_head: str
+    ) -> dict[str, str]:
+        old_tracked = self._tracked_paths(baseline.head_commit)
+        # Preserve only prior untracked baseline entries. Tracked paths always come
+        # from the new commit through Git's worktree filters, never dirty worktree bytes.
+        manifest = {
+            path: content_hash
+            for path, content_hash in baseline.manifest.items()
+            if path not in old_tracked
+        }
+        manifest.update(self._commit_manifest(new_head))
+        return dict(sorted(manifest.items(), key=lambda item: item[0].casefold()))
 
     def _commit_manifest(self, commit: str) -> dict[str, str]:
         manifest: dict[str, str] = {}

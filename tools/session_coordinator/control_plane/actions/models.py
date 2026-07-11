@@ -36,9 +36,13 @@ class ActionKind(StrEnum):
     FAILURE_REFRESH = "failure.refresh"
     TOPOLOGY_REFRESH = "topology.refresh"
     DRAIN_PREVIEW = "service.drain_preview"
+    SERVICE_DRAIN = "service.drain"
+    SERVICE_RESUME = "service.resume"
+    SERVICE_STOP = "service.stop"
     MILESTONE_COMMIT = "milestone.commit"
     SESSION_COMPLETE = "session.complete"
     SERVICE_RESTART = "service.restart"
+    SERVICE_FORCE_STOP = "service.force_stop"
     MAINTENANCE_CLEANUP = "maintenance.cleanup"
 
 
@@ -74,6 +78,29 @@ class ActionParameters:
 
     def to_payload(self) -> dict[str, object]:
         return {}
+
+
+@dataclass(frozen=True, slots=True)
+class LifecycleParameters(ActionParameters):
+    timeout_seconds: int
+    fields: ClassVar[frozenset[str]] = frozenset({"timeoutSeconds"})
+
+    @classmethod
+    def _from_payload(cls, payload: Mapping[str, object]) -> "LifecycleParameters":
+        try:
+            timeout = int(payload["timeoutSeconds"])
+        except (TypeError, ValueError) as error:
+            raise CoordinatorError(
+                "action_parameters_invalid", "Lifecycle timeout must be an integer"
+            ) from error
+        if timeout < 1 or timeout > 300:
+            raise CoordinatorError(
+                "action_parameters_invalid", "Lifecycle timeout must be within 1-300 seconds"
+            )
+        return cls(timeout)
+
+    def to_payload(self) -> dict[str, object]:
+        return {"timeoutSeconds": self.timeout_seconds}
 
 
 @dataclass(frozen=True, slots=True)

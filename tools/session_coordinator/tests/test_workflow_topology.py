@@ -30,7 +30,7 @@ class WorkflowTopologyTests(unittest.TestCase):
     def _write(self, body: str) -> None:
         self.plan.write_text(body, encoding="utf-8")
 
-    def test_schema_16_upgrades_to_topology_evidence_schema_19(self) -> None:
+    def test_schema_16_upgrades_through_current_schema(self) -> None:
         database = Database(Path(self.temporary.name) / "state.sqlite3")
         with database.transaction() as connection:
             connection.execute(
@@ -42,7 +42,7 @@ class WorkflowTopologyTests(unittest.TestCase):
                     "INSERT INTO schema_version VALUES (?, 'now')", (version,)
                 )
 
-        self.assertEqual(19, migrate(database))
+        self.assertEqual(21, migrate(database))
         with database.connect() as connection:
             tables = {
                 row[0]
@@ -77,7 +77,7 @@ class WorkflowTopologyTests(unittest.TestCase):
             }
         self.assertNotIn("source_manifest_hash", before)
 
-        self.assertEqual(19, migrate(database))
+        self.assertEqual(21, migrate(database))
         with database.connect() as connection:
             after = {
                 row[1] for row in connection.execute(

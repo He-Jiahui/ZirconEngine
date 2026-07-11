@@ -9,7 +9,7 @@ from tools.session_coordinator.models import CoordinatorError, WebControlRole
 
 
 class ActionCatalogTests(unittest.TestCase):
-    def test_catalog_is_closed_typed_and_enables_only_m4_red_actions(self) -> None:
+    def test_catalog_is_closed_typed_and_enables_only_reviewed_red_actions(self) -> None:
         expected = {kind.value for kind in ActionKind}
         self.assertEqual(expected, set(ACTION_CATALOG))
         self.assertTrue(all(dataclasses.is_dataclass(spec) for spec in ACTION_CATALOG.values()))
@@ -19,7 +19,14 @@ class ActionCatalogTests(unittest.TestCase):
             if spec.risk is ActionRisk.RED and spec.enabled
         }
         self.assertEqual(
-            {ActionKind.MILESTONE_COMMIT, ActionKind.SESSION_COMPLETE}, enabled_red
+            {
+                ActionKind.MILESTONE_COMMIT,
+                ActionKind.SESSION_COMPLETE,
+                ActionKind.SERVICE_STOP,
+                ActionKind.SERVICE_RESTART,
+                ActionKind.SERVICE_FORCE_STOP,
+            },
+            enabled_red,
         )
         forbidden = {"shell", "command", "git", "cargo", "sql", "path", "webhook"}
         self.assertFalse(
@@ -73,6 +80,27 @@ class ActionCatalogTests(unittest.TestCase):
             spec.parse_parameters(
                 {"sessionId": "session-a", "summary": "incomplete browser payload"}
             )
+
+    def test_lifecycle_parameters_are_service_scoped_and_bounded(self) -> None:
+        for kind in (
+            ActionKind.SERVICE_DRAIN,
+            ActionKind.SERVICE_RESUME,
+            ActionKind.SERVICE_STOP,
+            ActionKind.SERVICE_RESTART,
+            ActionKind.SERVICE_FORCE_STOP,
+        ):
+            spec = action_spec(kind.value)
+            self.assertFalse(spec.session_bound)
+            self.assertEqual(
+                {"timeoutSeconds": 30},
+                spec.parse_parameters({"timeoutSeconds": 30}).to_payload(),
+            )
+            with self.assertRaises(CoordinatorError):
+                spec.parse_parameters({"timeoutSeconds": 301})
+            with self.assertRaises(CoordinatorError):
+                spec.parse_parameters(
+                    {"timeoutSeconds": 30, "command": "Stop-Process -Id 1"}
+                )
 
 
 if __name__ == "__main__":

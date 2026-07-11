@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Zircon Session Coordinator",
+  "version": "0.1.0",
+  "identifier": "com.zirconengine.session-tray",
+  "build": {
+    "frontendDist": "dist"
+  },
+  "app": {
+    "windows": [],
+    "trayIcon": {
+      "id": "zircon-session-tray",
+      "iconPath": "../../zircon_hub/icons/icon.ico",
+      "tooltip": "Zircon Session Coordinator",
+      "menuOnLeftClick": true
+    },
+    "security": {
+      "capabilities": ["default"],
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["../../zircon_hub/icons/icon.ico"]
+  }
+}

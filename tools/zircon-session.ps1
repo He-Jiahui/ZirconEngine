@@ -4,6 +4,7 @@ param(
     [string]$Command = "status",
     [string]$RepoRoot,
     [switch]$Json,
+    [switch]$Automatic,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Arguments
 )
@@ -36,6 +37,9 @@ function Start-Coordinator {
     }
 
     $serveArguments = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "serve")
+    if ($Automatic) {
+        $serveArguments += "--automatic-start"
+    }
     Start-Process -FilePath $python -ArgumentList $serveArguments -WorkingDirectory $resolvedRepoRoot -WindowStyle Hidden | Out-Null
 
     for ($attempt = 0; $attempt -lt 300; $attempt++) {

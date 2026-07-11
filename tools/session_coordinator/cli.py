@@ -23,7 +23,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--state-root")
     parser.add_argument("--json", action="store_true", dest="json_output")
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("serve")
+    serve = commands.add_parser("serve")
+    serve.add_argument("--automatic-start", action="store_true")
     commands.add_parser("status")
     commands.add_parser("stop")
 
@@ -148,6 +149,8 @@ def _parser() -> argparse.ArgumentParser:
     cargo_acquire.add_argument("--target-dir")
     cargo_acquire.add_argument("--dry-run", action="store_true")
     cargo_acquire.add_argument("--pid", type=int)
+    cargo_acquire.add_argument("--ephemeral", action="store_true")
+    cargo_acquire.add_argument("--compatibility-json")
     cargo_start = cargo_commands.add_parser("start")
     cargo_start.add_argument("job_id")
     cargo_start.add_argument("--pid", type=int, required=True)
@@ -285,7 +288,7 @@ def _write_report(path: str | None, payload: dict[str, Any]) -> None:
 def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     config = _config(arguments)
     if arguments.command == "serve":
-        run_forever(config)
+        run_forever(config, automatic_start=arguments.automatic_start)
         return {"status": "stopped"}
     client = CoordinatorClient.from_runtime(config)
     if arguments.command == "status":
@@ -455,6 +458,12 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "target_dir": arguments.target_dir,
                     "dry_run": arguments.dry_run,
                     "pid": arguments.pid,
+                    "ephemeral": arguments.ephemeral,
+                    "compatibility": (
+                        json.loads(arguments.compatibility_json)
+                        if arguments.compatibility_json
+                        else None
+                    ),
                 },
             )
         if arguments.cargo_command == "start":

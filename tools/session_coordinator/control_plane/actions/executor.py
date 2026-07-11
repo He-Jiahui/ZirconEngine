@@ -13,11 +13,13 @@ from .models import (
     SessionParameters,
     GoalCloseoutParameters,
     MilestoneParameters,
+    LifecycleParameters,
     ValidationCancelParameters,
     ValidationStartParameters,
     ValidationTemplate,
     TopologyRefreshParameters,
 )
+from ...supervision.models import LifecycleKind
 
 
 class ActionExecutor:
@@ -34,6 +36,7 @@ class ActionExecutor:
         workflows,
         topology_importer=None,
         milestones=None,
+        lifecycle=None,
     ):
         self.sessions = sessions
         self.leases = leases
@@ -43,6 +46,7 @@ class ActionExecutor:
         self.workflows = workflows
         self.topology_importer = topology_importer
         self.milestones = milestones
+        self.lifecycle = lifecycle
 
     def execute(
         self,
@@ -213,6 +217,22 @@ class ActionExecutor:
                 "review": review,
                 "gates": gates,
             }
+        if kind in {
+            ActionKind.SERVICE_DRAIN,
+            ActionKind.SERVICE_RESUME,
+            ActionKind.SERVICE_STOP,
+            ActionKind.SERVICE_RESTART,
+            ActionKind.SERVICE_FORCE_STOP,
+        }:
+            if self.lifecycle is None or action_id is None:
+                raise CoordinatorError("action_unavailable", "Lifecycle service is unavailable")
+            value = self._typed(parameters, LifecycleParameters)
+            return self.lifecycle.request(
+                LifecycleKind(kind.value),
+                action_id=action_id,
+                actor=actor or "controlled-action",
+                timeout_seconds=value.timeout_seconds,
+            )
         if kind is ActionKind.MILESTONE_COMMIT:
             if self.milestones is None:
                 raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
