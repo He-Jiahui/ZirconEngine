@@ -26,6 +26,7 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 class WorkflowCommitTests(unittest.TestCase):
     def setUp(self) -> None:
+        self.notification_messages: list[str] = []
         self.temporary = tempfile.TemporaryDirectory()
         root = Path(self.temporary.name)
         self.repo = init_repo(root / "repo")
@@ -77,6 +78,7 @@ class WorkflowCommitTests(unittest.TestCase):
 
     def _service(self, returncode: int = 0) -> MilestoneWorkflowService:
         def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+            self.notification_messages.append(command[command.index("-Message") + 1])
             return subprocess.CompletedProcess(
                 command,
                 returncode,
@@ -176,11 +178,28 @@ class WorkflowCommitTests(unittest.TestCase):
             text=True,
         ).stdout.splitlines()
         self.assertEqual(sorted(paths), sorted(item for item in committed if item))
+        subject = subprocess.run(
+            ["git", "show", "-s", "--format=%s", result.finalize.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual("feat(workflow): complete M1 milestone", subject)
+        self.assertEqual(1, len(self.notification_messages))
+        self.assertTrue(
+            self.notification_messages[0].startswith("核心内容摘要：【runtime】")
+        )
+        self.assertIn(
+            f"\n提交的commit内容：{result.finalize.commit_sha} {subject}",
+            self.notification_messages[0],
+        )
         self.assertTrue(result.gate.allowed)
         self.assertEqual("succeeded", result.notification.status)
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
 
     def test_notification_failure_does_not_rollback_commit(self) -> None:
+        self.notification_messages = []
         service = self._service(returncode=1)
         paths = self._prepare_change_and_gates(service)
 

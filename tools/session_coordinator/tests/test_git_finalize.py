@@ -114,20 +114,18 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(sorted(paths), sorted(item for item in committed if item))
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
         self.assertEqual(result.commit_sha, self._head())
-        self.assertEqual(
-            "【runtime】feat(runtime): complete M2 milestone", result.message
-        )
+        self.assertEqual("feat(runtime): complete M2 milestone", result.message)
 
-    def test_preview_uses_registered_plan_folder_as_commit_module(self) -> None:
+    def test_preview_preserves_conventional_commit_without_module_prefix(self) -> None:
         paths = self._complete_with_changes()
 
         preview = self.service.preview(
             "session-a", paths=paths, message="feat(runtime): add feature"
         )
 
-        self.assertEqual("【runtime】feat(runtime): add feature", preview.message)
+        self.assertEqual("feat(runtime): add feature", preview.message)
 
-    def test_preview_rejects_a_module_prefix_that_disagrees_with_plan(self) -> None:
+    def test_preview_rejects_any_module_prefix(self) -> None:
         paths = self._complete_with_changes()
 
         with self.assertRaises(CoordinatorError) as rejected:
@@ -137,7 +135,7 @@ class GitFinalizeTests(unittest.TestCase):
                 message="【editor_ui】feat(runtime): add feature",
             )
 
-        self.assertEqual("finalize_message_module_mismatch", rejected.exception.code)
+        self.assertEqual("finalize_message_prefix_forbidden", rejected.exception.code)
 
     def test_milestone_commit_requires_live_owned_leases(self) -> None:
         path = "src/milestone.py"

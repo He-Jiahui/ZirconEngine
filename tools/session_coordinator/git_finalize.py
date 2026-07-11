@@ -22,7 +22,7 @@ if False:  # pragma: no cover - import only for static typing without a runtime 
 
 
 SEMANTIC_MESSAGE = re.compile(r"^[a-z]+(?:\([^)]+\))?!?: .+")
-MODULE_MESSAGE = re.compile(r"^【([^【】\r\n/\\]+)】(.+)$", re.DOTALL)
+MODULE_PREFIX = re.compile(r"^【[^】\r\n]*】")
 _WECOM_ENDPOINT_MARKER = "qyapi" + ".weixin.qq.com/cgi-bin/" + "webhook/send?" + "key="
 FORBIDDEN_SECRET = re.compile(
     re.escape(_WECOM_ENDPOINT_MARKER) + r"|(?:WECOM|WECHAT).*WEBHOOK.*(?:URL|KEY)",
@@ -100,7 +100,7 @@ class GitFinalizeService:
         if not normalized:
             raise CoordinatorError("finalize_paths_empty", "Finalize requires at least one path")
         session = self.sessions.get(session_id)
-        formatted_message = self._format_message(session.plan_path, message)
+        formatted_message = self._format_message(message)
         if not maintenance and session.status is not SessionStatus.COMPLETED:
             raise CoordinatorError(
                 "finalize_session_not_completed",
@@ -307,7 +307,7 @@ class GitFinalizeService:
         untracked_paths = tuple(path for path in normalized if not self._is_tracked_in_head(path))
         request_id = request_id or uuid.uuid4().hex
         session = self.sessions.get(session_id)
-        formatted_message = self._format_message(session.plan_path, message)
+        formatted_message = self._format_message(message)
         if session.status not in {SessionStatus.ACTIVE, SessionStatus.WAITING_VALIDATION}:
             raise CoordinatorError(
                 "milestone_session_not_active",
@@ -897,37 +897,23 @@ class GitFinalizeService:
             raise CoordinatorError("path_outside_repo", f"Path is outside repository: {value}") from error
 
     @staticmethod
-    def _format_message(plan_path: str | None, message: str) -> str:
+    def _format_message(message: str) -> str:
         value = message.strip()
         if "[zircon-session:" in value.casefold():
             raise CoordinatorError(
                 "finalize_message_forbidden", "Session-tagged Git messages are forbidden"
             )
-        expected_module = Path(plan_path).parent.name if plan_path else None
-        prefixed = MODULE_MESSAGE.fullmatch(value)
-        if prefixed is None:
-            if expected_module is None:
-                raise CoordinatorError(
-                    "finalize_message_module_missing",
-                    "Finalize message requires a module prefix when the Session has no plan",
-                )
-            module = expected_module
-            semantic = value
-        else:
-            module, semantic = prefixed.groups()
-            if expected_module is not None and module.casefold() != expected_module.casefold():
-                raise CoordinatorError(
-                    "finalize_message_module_mismatch",
-                    f"Commit module {module} does not match plan folder {expected_module}",
-                    details={"expected_module": expected_module, "actual_module": module},
-                )
-            module = expected_module or module
-        if not SEMANTIC_MESSAGE.fullmatch(semantic):
+        if MODULE_PREFIX.match(value):
+            raise CoordinatorError(
+                "finalize_message_prefix_forbidden",
+                "Git commit subjects must not contain a plan-module prefix",
+            )
+        if not SEMANTIC_MESSAGE.fullmatch(value):
             raise CoordinatorError(
                 "finalize_message_invalid",
-                "Finalize message must contain a Conventional Commit after its module prefix",
+                "Finalize message must be a Conventional Commit without a module prefix",
             )
-        return f"【{module}】{semantic}"
+        return value
 
     def _index_path(self) -> Path:
         value = self._git("rev-parse", "--git-path", "index")

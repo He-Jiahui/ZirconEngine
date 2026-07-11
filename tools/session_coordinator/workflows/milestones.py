@@ -27,6 +27,29 @@ class MilestoneCommitResult:
     shortstat: str
 
 
+_MODULE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def plan_module_name(plan_path: str) -> str:
+    """Return the safe plan-folder name used only by external notifications."""
+    normalized_plan = plan_path.replace("\\", "/").rstrip("/")
+    parts = [part for part in normalized_plan.split("/") if part]
+    if len(parts) < 2:
+        raise CoordinatorError(
+            "notification_module_unavailable",
+            "Milestone notification requires a plan path inside a module folder",
+            details={"planPath": plan_path},
+        )
+    module_name = parts[-2].strip()
+    if not _MODULE_NAME.fullmatch(module_name):
+        raise CoordinatorError(
+            "notification_module_invalid",
+            "Plan module folder cannot form a safe notification prefix",
+            details={"planPath": plan_path, "module": module_name},
+        )
+    return module_name
+
+
 class MilestoneWorkflowService:
     """Join accepted workflow evidence to the authoritative scoped finalizer."""
 
@@ -593,6 +616,19 @@ class MilestoneWorkflowService:
         action_id: str | None = None,
     ) -> MilestoneCommitResult:
         self._require_run_owner(run_id, session_id)
+        notification_module = None
+        if self.notifications is not None:
+            with self.database.connect() as connection:
+                run = connection.execute(
+                    "SELECT plan_path FROM workflow_runs WHERE run_id=?", (run_id,)
+                ).fetchone()
+            if run is None or not run["plan_path"]:
+                raise CoordinatorError(
+                    "notification_module_unavailable",
+                    "Milestone notification requires a workflow run bound to a plan module",
+                    details={"runId": run_id},
+                )
+            notification_module = plan_module_name(str(run["plan_path"]))
         bound_paths = self.milestone_paths(run_id, milestone_key)
         if bound_paths:
             if tuple(sorted(paths, key=str.casefold)) != tuple(sorted(bound_paths, key=str.casefold)):
@@ -674,9 +710,11 @@ class MilestoneWorkflowService:
 
         notification = None
         if self.notifications is not None:
+            assert notification_module is not None
             commit_time = self._git("show", "-s", "--format=%cI", result.commit_sha)
             commit_subject = self._git("show", "-s", "--format=%s", result.commit_sha)
             formatted = self.notifications.format_message(
+                module=notification_module,
                 summary=f"{milestone_key} 里程碑已通过全部门禁并完成提交",
                 commit_time=commit_time,
                 shortstat=shortstat or "0 files changed",

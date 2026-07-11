@@ -349,11 +349,11 @@ Completing a business Session records lifecycle state only; it never creates a G
 
 ```powershell
 .\tools\zircon-session.ps1 finalize preview `
-  --message "【frameworks】feat(runtime): converge lifecycle" `
+  --message "feat(runtime): converge lifecycle" `
   --path zircon_runtime/src/lifecycle.rs
 
 .\tools\zircon-session.ps1 finalize --commit `
-  --message "【frameworks】feat(runtime): converge lifecycle" `
+  --message "feat(runtime): converge lifecycle" `
   --path zircon_runtime/src/lifecycle.rs
 ```
 
@@ -362,12 +362,12 @@ An accepted milestone uses the same service-owned mutex while keeping the Sessio
 ```powershell
 .\tools\zircon-session.ps1 finalize --commit --milestone `
   --session-id <session-id> `
-  --message "【frameworks】feat(runtime): complete M2 milestone" `
+  --message "feat(runtime): complete M2 milestone" `
   --path zircon_runtime/src/lifecycle.rs `
   --path docs/plans/zircon_runtime/frameworks/02/2026-07-11-m2.md
 ```
 
-The full-width prefix is mandatory and comes from the directory containing the registered numbered plan definition. For the example plan under `docs/plans/zircon_runtime/frameworks/`, the module is `frameworks`; the service fills a missing prefix for direct callers and rejects a conflicting prefix, while closeout independently requires the explicit canonical subject.
+Git subjects must be plain Conventional Commits and must not begin with a full-width module prefix. For the example plan under `docs/plans/zircon_runtime/frameworks/`, the service uses `frameworks` only when it formats the WeCom first line as `核心内容摘要：【frameworks】...`; the committed subject and the notification's fourth line remain unprefixed.
 
 Milestone commit paths must have live leases owned by the Session and current-hash attribution. The service re-imports canonical Failure Markdown, rejects validator diagnostics or open Failure nodes where the Session plan is either origin or fixer, takes `git_mutex`, rechecks the exact index and staged blob identities, and advances `HEAD` with compare-and-swap. The Session remains active after success. This command is the only business-Session commit path; a plain `git commit` is outside the workflow.
 

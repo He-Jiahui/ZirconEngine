@@ -26,7 +26,7 @@ Treat each accepted milestone as a normal Git commit boundary. Preserve foreign 
 
 ## Validate and commit
 
-Build every automatic commit subject as `【{module}】{conventional subject}`. Derive `module` from the directory that directly contains the registered numbered plan definition; for example, `docs/plans/zircon_tooling/session_coordinator/01-workflow.md` requires `【session_coordinator】feat(workflow): ...`. Use the exact full-width brackets and do not insert a space before the Conventional Commit. Never invent a broader crate label when it differs from the registered plan folder.
+Build every automatic Git subject as a plain Conventional Commit, for example `feat(workflow): complete M5 milestone`. A subject beginning with `【{module}】` is invalid. Derive the module from the registered numbered plan's parent directory only after the commit, exclusively for the WeCom summary line; never insert it into Git history.
 
 Stage only the manifest paths. If a repository-owned skill path is intentionally covered by the blanket `.codex` ignore, use `git add -f -- <exact-path>` only for that attributed manifest entry. Then run:
 
@@ -52,11 +52,13 @@ Never run a plain business-Session `git commit`. Never use `[zircon-session:*]`,
 After each commit, invoke `wecom-push-message` once with four lines:
 
 ```text
-核心内容摘要：<中文核心摘要>
+核心内容摘要：【{module}】<中文核心摘要>
 提交时间：<commit ISO time>
 修改情况统计：<shortstat>
 提交的commit内容：<SHA> <subject>
 ```
+
+The fourth line must contain the real unprefixed Conventional Commit subject. For example, a plan under `docs/plans/zircon_tooling/session_coordinator/` uses `【session_coordinator】` only on the first line, while the Git subject remains `feat(workflow): ...`.
 
 Never store the webhook URL in Git. If sending fails, report it; do not retry automatically and do not roll back the commit.
 

@@ -15,6 +15,7 @@ from .models import CoordinatorError, utc_text
 
 _URL = re.compile(r"https://[^\s\"']+", re.IGNORECASE)
 _KEY = re.compile(r"(?i)(?:key|webhook|token)\s*[=:]\s*[^\s,;]+")
+_MODULE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,8 +49,19 @@ class WeComNotificationService:
 
     @staticmethod
     def format_message(
-        *, summary: str, commit_time: str, shortstat: str, commit_content: str
+        *,
+        module: str,
+        summary: str,
+        commit_time: str,
+        shortstat: str,
+        commit_content: str,
     ) -> str:
+        normalized_module = module.strip()
+        if not _MODULE.fullmatch(normalized_module):
+            raise CoordinatorError(
+                "notification_module_invalid",
+                "Notification module must be a safe plan-folder name",
+            )
         values = (summary, commit_time, shortstat, commit_content)
         if any(not value.strip() or "\n" in value or "\r" in value for value in values):
             raise CoordinatorError(
@@ -58,7 +70,7 @@ class WeComNotificationService:
             )
         return "\n".join(
             (
-                f"核心内容摘要：{summary.strip()}",
+                f"核心内容摘要：【{normalized_module}】{summary.strip()}",
                 f"提交时间：{commit_time.strip()}",
                 f"修改情况统计：{shortstat.strip()}",
                 f"提交的commit内容：{commit_content.strip()}",

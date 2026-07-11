@@ -22,17 +22,33 @@ class NotificationTests(unittest.TestCase):
 
     def test_formats_exactly_four_server_derived_lines(self) -> None:
         message = WeComNotificationService.format_message(
+            module="session_coordinator",
             summary="完成 M4 工作流门禁",
             commit_time="2026-07-12T02:00:00+08:00",
             shortstat="5 files changed, 10 insertions(+)",
-            commit_content="【session_coordinator】feat(workflow): complete M4",
+            commit_content="881600cc feat(workflow): complete M4",
         )
 
         self.assertEqual(4, len(message.splitlines()))
-        self.assertTrue(message.startswith("核心内容摘要："))
+        self.assertTrue(message.startswith("核心内容摘要：【session_coordinator】"))
         self.assertIn("\n提交时间：", message)
         self.assertIn("\n修改情况统计：", message)
-        self.assertIn("\n提交的commit内容：", message)
+        self.assertIn(
+            "\n提交的commit内容：881600cc feat(workflow): complete M4", message
+        )
+        self.assertNotIn("【session_coordinator】feat(workflow)", message)
+
+    def test_rejects_unsafe_notification_module(self) -> None:
+        with self.assertRaises(CoordinatorError) as rejected:
+            WeComNotificationService.format_message(
+                module="runtime】\n伪造字段：值",
+                summary="完成提交",
+                commit_time="2026-07-12T02:00:00+08:00",
+                shortstat="1 file changed",
+                commit_content="abc1234 fix(runtime): repair gate",
+            )
+
+        self.assertEqual("notification_module_invalid", rejected.exception.code)
 
     def test_reserves_before_one_call_and_refuses_retry(self) -> None:
         calls: list[list[str]] = []

@@ -56,7 +56,8 @@ and review evidence; browser assertions never satisfy a gate.
 `milestone.commit` and `session.complete` are red actions requiring a
 Session-bound `committer` role and explicit preview confirmation. Their browser
 parameters contain only Session, workflow-run, and milestone identifiers; file
-scope and commit text are service-derived.
+scope and commit text are service-derived. Git subjects use plain Conventional
+Commits without a plan-module prefix.
 
 The milestone service revalidates all gates inside the finalizer's single Git
 mutex immediately before the compare-and-swap update of `main`. It builds a
@@ -88,11 +89,15 @@ personal `wecom-push-message` script exactly once. The four lines are built only
 from server commit data:
 
 ```text
-核心内容摘要：<中文里程碑摘要>
+核心内容摘要：【{计划模块文件夹名}】<中文里程碑摘要>
 提交时间：<commit ISO time>
 修改情况统计：<git shortstat>
 提交的commit内容：<SHA> <subject>
 ```
+
+The module name is derived from the registered numbered plan's parent folder
+and appears only on the first line. `<subject>` is the real unprefixed
+Conventional Commit stored in Git.
 
 The database stores only message hashes, timing, result codes, and sanitized
 errors. It never stores the webhook URL or key. A failed or unknown call is not
