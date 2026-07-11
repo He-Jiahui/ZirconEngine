@@ -1,0 +1,30 @@
+{
+  "name": "zircon-session-control-center",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4317",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/run-tests.mjs",
+    "build": "vite build",
+    "check": "npm run typecheck && npm run test && npm run build && node scripts/verify-dist.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/material": "9.0.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.1",
+    "@types/jsdom": "28.0.3",
+    "@types/react": "19.2.16",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "jsdom": "28.0.0",
+    "typescript": "6.0.3",
+    "vite": "8.0.16"
+  }
+}

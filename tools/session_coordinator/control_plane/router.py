@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from typing import Mapping
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from ..models import CoordinatorError, WebControlRole
 from ..workflows.projections import WorkflowProjectionService
@@ -99,6 +99,8 @@ class ControlPlaneRouter:
             )
         if method == "GET" and path == "/control/v1/snapshot":
             return ControlResponse(200, self.snapshot.build())
+        if method == "GET" and path == "/control/v1/logs":
+            return ControlResponse(200, self._logs(raw_path))
         if method == "GET" and path.startswith("/control/v1/workflows/"):
             run_id = unquote(path.removeprefix("/control/v1/workflows/"))
             try:
@@ -108,6 +110,42 @@ class ControlPlaneRouter:
                 raise CoordinatorError("workflow_not_found", "Workflow run was not found") from error
             return ControlResponse(200, detail)
         raise CoordinatorError("not_found", "Unknown control endpoint")
+
+    def _logs(self, raw_path: str) -> dict[str, object]:
+        query = parse_qs(urlsplit(raw_path).query)
+        try:
+            limit = min(500, max(1, int(query.get("limit", ["250"])[0])))
+            before_text = query.get("before", [""])[0]
+            before = int(before_text) if before_text else None
+        except ValueError as error:
+            raise CoordinatorError("invalid_request", "Log range must use integer values") from error
+        if before is not None and before < 1:
+            raise CoordinatorError("invalid_request", "Log range before cursor must be positive")
+        where = "WHERE event_id < ?" if before is not None else ""
+        parameters: tuple[object, ...] = (before, limit + 1) if before is not None else (limit + 1,)
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                f"""SELECT event_id, session_id, event_type, payload_json, created_at
+                    FROM events {where} ORDER BY event_id DESC LIMIT ?""",
+                parameters,
+            ).fetchall()
+        truncated = len(rows) > limit
+        selected = rows[:limit]
+        events = [
+            {
+                "eventId": int(row["event_id"]),
+                "sessionId": row["session_id"],
+                "type": row["event_type"],
+                "payload": json.loads(row["payload_json"]),
+                "createdAt": row["created_at"],
+            }
+            for row in reversed(selected)
+        ]
+        return {
+            "events": events,
+            "truncated": truncated,
+            "nextBefore": int(selected[-1]["event_id"]) if truncated and selected else None,
+        }
 
     def authenticate(
         self, headers: Mapping[str, str], *, runtime_authorized: bool

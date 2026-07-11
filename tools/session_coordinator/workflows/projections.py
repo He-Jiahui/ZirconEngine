@@ -96,6 +96,26 @@ class WorkflowProjectionService:
                 (run_id,),
             )
         ]
+        artifacts = []
+        for row in connection.execute(
+            """SELECT artifact_id, node_id, attempt_id, artifact_kind, display_name,
+                      content_hash, byte_count, metadata_json, created_at
+               FROM workflow_artifacts WHERE run_id = ? ORDER BY created_at, artifact_id""",
+            (run_id,),
+        ):
+            artifacts.append(
+                {
+                    "artifactId": row["artifact_id"],
+                    "nodeId": row["node_id"],
+                    "attemptId": row["attempt_id"],
+                    "kind": row["artifact_kind"],
+                    "displayName": row["display_name"],
+                    "contentHash": row["content_hash"],
+                    "byteCount": row["byte_count"],
+                    "metadata": json.loads(row["metadata_json"]),
+                    "createdAt": row["created_at"],
+                }
+            )
         return {
             "runId": run["run_id"],
             "sessionId": run["session_id"],
@@ -106,6 +126,7 @@ class WorkflowProjectionService:
             "statusReason": run["status_reason"],
             "nodes": nodes,
             "edges": edges,
+            "artifacts": artifacts,
         }
 
     @staticmethod

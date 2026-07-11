@@ -15,6 +15,31 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ControlHttpTests(unittest.TestCase):
+    def test_ui_assets_are_served_without_exposing_api_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            dist = repo / "tools" / "session_coordinator" / "web" / "dist"
+            dist.mkdir(parents=True)
+            (dist / "index.html").write_text("<main>control console</main>", encoding="utf-8")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                page = urllib.request.urlopen(f"{running.base_url}/ui/workflows/run-a", timeout=2)
+                self.assertEqual("no-store", page.headers["Cache-Control"])
+                self.assertIn(b"control console", page.read())
+                page.close()
+
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(
+                        f"{running.base_url}/control/v1/not-a-page", timeout=2
+                    )
+                self.assertEqual(403, rejected.exception.code)
+                self.assertEqual(
+                    "application/json; charset=utf-8",
+                    rejected.exception.headers["Content-Type"],
+                )
+                rejected.exception.close()
+
     def test_observer_bootstrap_opens_cookie_snapshot_without_bearer(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -56,6 +81,30 @@ class ControlHttpTests(unittest.TestCase):
             self.assertTrue(runtime["instance_id"])
             self.assertTrue(runtime["started_at"])
 
+    def test_log_range_is_bounded_and_cursor_based(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                client = CoordinatorClient.from_runtime(config)
+                for suffix in ("a", "b", "c"):
+                    client.command("session.register", {"session_id": f"session-{suffix}"})
+                request = urllib.request.Request(
+                    f"{running.base_url}/control/v1/logs?limit=2",
+                    headers={"Authorization": f"Bearer {running.token}"},
+                )
+                payload = json.loads(urllib.request.urlopen(request, timeout=2).read())["data"]
+                self.assertEqual(2, len(payload["events"]))
+                self.assertTrue(payload["truncated"])
+                before = payload["events"][0]["eventId"]
+                older = urllib.request.Request(
+                    f"{running.base_url}/control/v1/logs?limit=2&before={before}",
+                    headers={"Authorization": f"Bearer {running.token}"},
+                )
+                older_payload = json.loads(urllib.request.urlopen(older, timeout=2).read())["data"]
+                self.assertTrue(all(event["eventId"] < before for event in older_payload["events"]))
+
     def test_malicious_host_is_rejected_before_authentication(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -73,6 +122,28 @@ class ControlHttpTests(unittest.TestCase):
                 self.assertNotIn("Traceback", body)
                 self.assertNotIn(running.token, body)
                 rejected.exception.close()
+
+    def test_artifact_http_requires_browser_origin_and_session(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                without_origin = urllib.request.Request(
+                    f"{running.base_url}/control/v1/artifacts/opaque"
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected_origin:
+                    urllib.request.urlopen(without_origin, timeout=2)
+                self.assertEqual(403, rejected_origin.exception.code)
+                rejected_origin.exception.close()
+                without_session = urllib.request.Request(
+                    f"{running.base_url}/control/v1/artifacts/opaque",
+                    headers={"Origin": running.base_url},
+                )
+                with self.assertRaises(urllib.error.HTTPError) as rejected_session:
+                    urllib.request.urlopen(without_session, timeout=2)
+                self.assertEqual(401, rejected_session.exception.code)
+                rejected_session.exception.close()
 
     def test_non_loopback_bind_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

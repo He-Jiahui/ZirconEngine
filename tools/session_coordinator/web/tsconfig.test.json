@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "node_modules/.cache/zircon-control-tests",
+    "rootDir": "../../..",
+    "types": ["node"],
+    "jsx": "react-jsx",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["src/api/contracts.ts", "src/api/validation.ts", "src/api/events.ts", "src/navigation.ts", "src/state/reducer.ts", "src/components/failure/failureModel.ts", "src/__tests__/*.test.ts", "src/__tests__/*.test.tsx"],
+  "exclude": []
+}

@@ -8,6 +8,8 @@ related_code:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/control_plane/assets.py
+  - tools/session_coordinator/control_plane/artifact_downloads.py
   - tools/session_coordinator/server.py
 implementation_files:
   - tools/session_coordinator/control_plane/__init__.py
@@ -18,6 +20,8 @@ implementation_files:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/control_plane/assets.py
+  - tools/session_coordinator/control_plane/artifact_downloads.py
   - tools/session_coordinator/server.py
 plan_sources:
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
@@ -28,6 +32,8 @@ tests:
   - tools/session_coordinator/tests/test_control_http.py
   - tools/session_coordinator/tests/test_control_security.py
   - tools/session_coordinator/tests/test_control_snapshot.py
+  - tools/session_coordinator/tests/test_control_assets.py
+  - tools/session_coordinator/tests/test_artifact_downloads.py
 doc_type: module-detail
 ---
 
@@ -46,6 +52,8 @@ doc_type: module-detail
 - `events.py` owns monotonically ordered replay, bounded retention and explicit client-capacity accounting.
 - `router.py` maps bounded v1 routes to application services without knowing socket details.
 - `http.py` translates `BaseHTTPRequestHandler` input/output, enforces the one MiB body limit and performs SSE streaming.
+- `assets.py` resolves only built `/ui/` assets, enforces cache policy and confines SPA fallback to navigation routes.
+- `artifact_downloads.py` resolves opaque evidence IDs below the configured artifact root and implements bounded byte ranges.
 - `server.py` composes the module and delegates `/control/v1/*` and `/ui/*` before the legacy bearer route handling.
 
 ## Invariants
@@ -56,11 +64,15 @@ doc_type: module-detail
 4. Snapshot cursor and panel data come from the same SQLite read transaction.
 5. Event replay is ordered and bounded to a 4,096-position logical window with 256-event batches; stale and future cursors both result in refresh-required semantics.
 6. Internal exception detail, bearer tokens, maintenance tokens, ticket values and cookie values never enter response bodies.
-7. M1 is read-only. No generic command endpoint or direct database mutation endpoint exists; every HTTP verb under `/control/v1` receives the same sanitized v1 envelope, with HEAD suppressing the body.
+7. M1-M2 are read-only. No generic command endpoint or direct database mutation endpoint exists; every HTTP verb under `/control/v1` receives the same sanitized v1 envelope, with HEAD suppressing the body.
+8. API paths never fall back to HTML. Only extensionless navigation below `/ui/` may receive the SPA shell.
+9. Artifact paths are database-selected, canonically confined and never disclosed to the browser.
 
 ## Data Flow
 
 The authenticated CLI asks the legacy coordinator route to issue a bootstrap ticket. A browser consumes that ticket through the loopback facade and receives an Observer cookie. Subsequent snapshot, workflow-detail and SSE requests resolve the cookie to an identity, call projection services and serialize only versioned contracts. A daemon restart changes `instance_id`, invalidating previously issued browser credentials.
+
+The production React console validates and installs one coherent snapshot before opening SSE at its cursor. Duplicate event IDs are ignored. A gap, malformed event or `resync_required` signal causes a fresh snapshot rather than client-side inference. Coordinator values render as text nodes, never as HTML.
 
 ## Edge Cases
 
@@ -70,7 +82,9 @@ The authenticated CLI asks the legacy coordinator route to issue a bootstrap tic
 - Unknown routes return a bounded v1 not-found envelope.
 - SSE capacity exhaustion returns an explicit service-unavailable response; disconnect cleanup releases the slot, and a five-second socket-write deadline prevents a non-reading client from retaining it indefinitely.
 - Cursor eviction never produces a partial reconstruction. The consumer must obtain a new coherent snapshot.
+- Static traversal, directory requests and missing file extensions cannot enumerate the distribution tree. Hashed assets are immutable; `index.html` remains `no-store`.
+- Artifact downloads larger than the direct-response bound require a bounded byte range; multi-range and out-of-root paths fail closed.
 
 ## Verification
 
-The focused tests cover ticket lifetime and reuse, cookie attributes and instance binding, Host/Origin validation, snapshot transaction shape, replay ordering/capacity, HTTP bootstrap and response contracts. Existing server and Session regression suites verify that control-plane composition does not break legacy coordinator behavior.
+The focused tests cover ticket lifetime and reuse, cookie attributes and instance binding, Host/Origin validation, snapshot transaction shape, replay ordering/capacity, HTTP bootstrap and response contracts, static cache/fallback behavior, traversal rejection and artifact range confinement. The independent web `check` command verifies strict types, reducers/contracts, production build output and forbidden distribution material.

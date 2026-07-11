@@ -7,8 +7,14 @@ from urllib.parse import parse_qs, urlsplit
 
 from ..models import CoordinatorError
 from .contracts import ControlResponse, error_payload, new_correlation_id
+from .artifact_downloads import ArtifactDownloadService
+from .assets import BinaryResponse, StaticAssetService
 from .events import EventStreamService
-from .http_security import validate_loopback_host, validate_loopback_origin
+from .http_security import (
+    validate_browser_read_origin,
+    validate_loopback_host,
+    validate_loopback_origin,
+)
 from .router import ControlPlaneRouter
 
 
@@ -21,10 +27,14 @@ class ControlPlaneHttp:
         events: EventStreamService,
         *,
         runtime_token: str,
+        assets: StaticAssetService,
+        artifact_downloads: ArtifactDownloadService,
     ):
         self.router = router
         self.events = events
         self.runtime_token = runtime_token
+        self.assets = assets
+        self.artifact_downloads = artifact_downloads
 
     @staticmethod
     def handles(path: str) -> bool:
@@ -42,7 +52,15 @@ class ControlPlaneHttp:
             route = urlsplit(handler.path).path
             browser_control = route.startswith("/control/v1/") and not runtime_authorized
             if browser_control:
-                validate_loopback_origin(handler.headers.get("Origin"), port)
+                if handler.command in {"GET", "HEAD"}:
+                    validate_browser_read_origin(
+                        handler.headers.get("Origin"),
+                        handler.headers.get("Referer"),
+                        handler.headers.get("Sec-Fetch-Site"),
+                        port,
+                    )
+                else:
+                    validate_loopback_origin(handler.headers.get("Origin"), port)
             elif handler.headers.get("Origin"):
                 validate_loopback_origin(handler.headers.get("Origin"), port)
             if handler.command == "GET" and route == "/control/v1/events/stream":
@@ -51,6 +69,19 @@ class ControlPlaneHttp:
                     runtime_authorized=runtime_authorized,
                     correlation_id=correlation_id,
                 )
+                return
+            if handler.command in {"GET", "HEAD"} and route.startswith("/ui/"):
+                asset = self.assets.resolve(handler.path)
+                if asset is not None:
+                    self._write_binary(handler, asset)
+                    return
+            if handler.command in {"GET", "HEAD"} and route.startswith("/control/v1/artifacts/"):
+                self.router.authenticate(handler.headers, runtime_authorized=runtime_authorized)
+                artifact_id = route.removeprefix("/control/v1/artifacts/")
+                response = self.artifact_downloads.download(
+                    artifact_id, handler.headers.get("Range")
+                )
+                self._write_binary(handler, response)
                 return
             body = self._read_body(handler)
             response = self.router.dispatch(
@@ -137,6 +168,16 @@ class ControlPlaneHttp:
             handler.wfile.write(encoded)
 
     @staticmethod
+    def _write_binary(handler, response: BinaryResponse) -> None:
+        handler.send_response(response.status)
+        handler.send_header("Content-Length", str(len(response.body)))
+        for name, value in response.headers.items():
+            handler.send_header(name, value)
+        handler.end_headers()
+        if handler.command != "HEAD":
+            handler.wfile.write(response.body)
+
+    @staticmethod
     def _status_for(code: str) -> int:
         if code in {"invalid_host", "invalid_origin", "origin_required"}:
             return HTTPStatus.FORBIDDEN
@@ -146,6 +187,8 @@ class ControlPlaneHttp:
             return HTTPStatus.NOT_FOUND
         if code in {"invalid_json", "invalid_request", "invalid_cursor", "request_too_large"}:
             return HTTPStatus.BAD_REQUEST
+        if code == "invalid_range":
+            return HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE
         if code == "sse_capacity":
             return HTTPStatus.SERVICE_UNAVAILABLE
         return HTTPStatus.CONFLICT

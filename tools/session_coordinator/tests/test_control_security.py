@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from tools.session_coordinator.control_plane.http_security import (
+    validate_browser_read_origin,
     validate_loopback_host,
     validate_loopback_origin,
 )
@@ -23,6 +24,21 @@ class ControlSecurityTests(unittest.TestCase):
         for origin in ("https://127.0.0.1:14250", "http://example.com:14250", "null"):
             with self.subTest(origin=origin), self.assertRaises(CoordinatorError):
                 validate_loopback_origin(origin, 14250)
+
+    def test_same_origin_browser_get_metadata_replaces_missing_origin(self) -> None:
+        validate_browser_read_origin(
+            None,
+            "http://127.0.0.1:14250/ui/workflows/run-a",
+            "same-origin",
+            14250,
+        )
+        for referer, site in (
+            ("http://example.com/ui/", "same-origin"),
+            ("http://127.0.0.1:14250/ui/", "cross-site"),
+            (None, "same-origin"),
+        ):
+            with self.subTest(referer=referer, site=site), self.assertRaises(CoordinatorError):
+                validate_browser_read_origin(None, referer, site, 14250)
 
 
 if __name__ == "__main__":

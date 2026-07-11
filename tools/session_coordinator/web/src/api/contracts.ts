@@ -1,0 +1,246 @@
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+export type JsonObject = { [key: string]: JsonValue };
+
+export interface ServiceProjection {
+  status: string;
+  branch: string;
+  mode: string;
+  baseline: string;
+  instanceId: string;
+  startedAt: string;
+  controlApiVersions: number[];
+}
+
+export interface WorkflowSummary {
+  runId: string;
+  sessionId: string | null;
+  workflowKey: string;
+  planPath: string | null;
+  topologyHash: string | null;
+  state: string;
+  statusReason: string | null;
+  nodeCount: number;
+  succeededCount: number;
+  failedCount: number;
+  updatedAt: string;
+}
+
+export interface WorkflowAttempt {
+  attemptId: string;
+  attemptNumber: number;
+  state: string;
+  accepted: boolean;
+  evidence: JsonValue;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface WorkflowNode {
+  nodeId: string;
+  nodeKey: string;
+  kind: string;
+  title: string;
+  stage: string;
+  state: string;
+  ownerSessionId: string | null;
+  statusReason: string | null;
+  currentAttempt: WorkflowAttempt | null;
+  attemptHistory: WorkflowAttempt[];
+}
+
+export interface WorkflowDetail {
+  runId: string;
+  sessionId: string | null;
+  workflowKey: string;
+  planPath: string | null;
+  topologyHash: string | null;
+  state: string;
+  statusReason: string | null;
+  nodes: WorkflowNode[];
+  edges: Array<{ fromNodeId: string; toNodeId: string; kind: string }>;
+  artifacts: WorkflowArtifact[];
+}
+
+export interface WorkflowArtifact {
+  artifactId: string;
+  nodeId: string | null;
+  attemptId: string | null;
+  kind: string;
+  displayName: string;
+  contentHash: string | null;
+  byteCount: number | null;
+  metadata: JsonObject;
+  createdAt: string;
+}
+
+export interface SessionProjection {
+  sessionId: string;
+  displayName: string | null;
+  planPath: string | null;
+  status: string;
+  statusReason: string | null;
+  baseHead: string | null;
+  baselineEpoch: number | null;
+  writeScope: string[];
+  updatedAt: string;
+  lastHeartbeatAt: string;
+}
+
+export interface FailureProjection {
+  nodes: FailureNode[];
+  diagnostics: Array<{ diagnosticId: number; code: string; message: string; paths: string[]; createdAt: string }>;
+}
+
+export interface CollaborationProjection {
+  baseline: BaselineEpoch | null;
+  leases: LeaseProjection[];
+  patches: PatchProjection[];
+}
+
+export interface ValidationProjection {
+  cargoJobs: CargoJobProjection[];
+  validationCopies: ValidationCopyProjection[];
+}
+
+export interface GitProjection { finalizeRequests: FinalizeRequestProjection[] }
+
+export interface FailureNode extends JsonObject {
+  node_id: number;
+  lifecycle_key: string;
+  artifact_path: string;
+  kind: "failure" | "fixed";
+  status: "open" | "fixed";
+  created_at: string;
+  resolved_at: string | null;
+  summary_slug: string;
+  origin_plan: string;
+  fixing_plan: string;
+  origin_child_dir: string;
+  fixing_child_dir: string;
+  priority: number;
+  imported_at: string;
+}
+
+export interface BaselineEpoch extends JsonObject {
+  epoch_id: number;
+  head_commit: string;
+  index_tree: string;
+  health: "healthy" | "degraded";
+  manifest_json: string;
+  created_at: string;
+  degraded_at: string | null;
+  degraded_reason: string | null;
+}
+
+export interface LeaseProjection extends JsonObject {
+  path_key: string;
+  display_path: string;
+  session_id: string;
+  base_hash: string | null;
+  acquired_at: string;
+  last_heartbeat_at: string;
+  expires_at: string;
+}
+
+export interface PatchProjection extends JsonObject {
+  patch_id: number;
+  session_id: string;
+  patch_object_hash: string;
+  targets: string[];
+  base_hashes: JsonObject;
+  base_objects: JsonObject;
+  current_objects: JsonObject | null;
+  status: "queued" | "applying" | "applied" | "needs_rebase" | "failed" | "cancelled";
+  error_text: string | null;
+  created_at: string;
+  updated_at: string;
+  applied_at: string | null;
+}
+
+export interface CargoJobProjection extends JsonObject {
+  job_id: string;
+  session_id: string;
+  lane_kind: "check" | "test" | "workspace" | "gpu";
+  target_dir: string;
+  status: "leased" | "running" | "succeeded" | "failed" | "released" | "orphaned";
+  dry_run: number;
+  pid: number | null;
+  command: string[];
+  exit_code: number | null;
+  created_at: string;
+  last_heartbeat_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  released_at: string | null;
+}
+
+export interface ValidationCopyProjection extends JsonObject {
+  job_id: string;
+  session_id: string;
+  job_root: string;
+  source_root: string;
+  target_root: string;
+  head_commit: string;
+  manifest: string[];
+  status: "planned" | "materialized" | "running" | "cleanup_pending" | "removed" | "failed";
+  created_at: string;
+  removed_at: string | null;
+}
+
+export interface FinalizeRequestProjection extends JsonObject {
+  request_id: string;
+  session_id: string;
+  message: string;
+  paths: string[];
+  categories: Record<string, string[]>;
+  untracked: string[];
+  validation: string[][];
+  maintenance: number;
+  status: "previewed" | "finalizing" | "committed" | "failed";
+  commit_sha: string | null;
+  error_text: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface AuditEvent {
+  eventId: number;
+  sessionId: string | null;
+  type: string;
+  payload: JsonObject;
+  createdAt: string;
+}
+
+export interface LogRange {
+  events: AuditEvent[];
+  truncated: boolean;
+  nextBefore: number | null;
+}
+
+export interface ControlSnapshot {
+  projectionVersion: number;
+  eventCursor: number;
+  service: ServiceProjection;
+  workflows: WorkflowSummary[];
+  sessions: SessionProjection[];
+  failures: FailureProjection;
+  collaboration: CollaborationProjection;
+  validation: ValidationProjection;
+  git: GitProjection;
+  audit: AuditEvent[];
+}
+
+export interface ControlEvent {
+  id: number;
+  type: string;
+  payload: JsonObject;
+  createdAt: string;
+}
+
+export interface ApiEnvelope<T> {
+  ok: boolean;
+  data?: T;
+  error?: { code: string; message: string; retryable: boolean; details: JsonObject };
+  meta: { apiVersion: number; correlationId: string };
+}

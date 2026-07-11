@@ -63,6 +63,14 @@ class CoordinatorConfig:
         return self.state_root / "patch-artifacts"
 
     @property
+    def workflow_artifact_root(self) -> Path:
+        return self.state_root / "workflow-artifacts"
+
+    @property
+    def control_web_dist_root(self) -> Path:
+        return self.repo_root / "tools" / "session_coordinator" / "web" / "dist"
+
+    @property
     def enabled_target_roots(self) -> tuple[Path, ...]:
         roots: list[Path] = []
         for drive in ("D:\\", "E:\\", "F:\\"):

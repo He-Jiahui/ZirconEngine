@@ -34,6 +34,8 @@ from .workspace_copy import WorkspaceCopyService
 from .legacy import LegacyMigrationService
 from .audit import RolloutAuditService
 from .control_plane.auth import WebControlAuth
+from .control_plane.artifact_downloads import ArtifactDownloadService
+from .control_plane.assets import StaticAssetService
 from .control_plane.events import EventStreamService
 from .control_plane.http import ControlPlaneHttp
 from .control_plane.router import ControlPlaneRouter
@@ -736,7 +738,13 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
             database=application.database,
         )
         self.control_http = ControlPlaneHttp(
-            router, application.control_events, runtime_token=token
+            router,
+            application.control_events,
+            runtime_token=token,
+            assets=StaticAssetService(application.config.control_web_dist_root),
+            artifact_downloads=ArtifactDownloadService(
+                application.database, application.config.workflow_artifact_root
+            ),
         )
 
 

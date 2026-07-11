@@ -30,3 +30,29 @@ def validate_loopback_origin(origin: str | None, port: int, *, required: bool = 
         raise CoordinatorError(
             "invalid_origin", "Control API requests require the bound loopback Origin"
         )
+
+
+def validate_browser_read_origin(
+    origin: str | None,
+    referer: str | None,
+    fetch_site: str | None,
+    port: int,
+) -> None:
+    """Authenticate the browser origin signals emitted by safe same-origin GETs."""
+    if origin:
+        validate_loopback_origin(origin, port)
+        return
+    if fetch_site != "same-origin" or not referer:
+        raise CoordinatorError(
+            "origin_required", "Browser control reads require same-origin fetch metadata"
+        )
+    parsed = urlsplit(referer)
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname not in {"127.0.0.1", "localhost"}
+        or parsed.port != port
+        or not parsed.path.startswith("/ui/")
+    ):
+        raise CoordinatorError(
+            "invalid_origin", "Control API requests require a loopback UI referrer"
+        )

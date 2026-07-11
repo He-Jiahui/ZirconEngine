@@ -41,6 +41,13 @@ class ControlSnapshotTests(unittest.TestCase):
             self.assertGreaterEqual(snapshot["eventCursor"], 1)
             self.assertEqual("session-a", snapshot["sessions"][0]["sessionId"])
             self.assertEqual(1, len(snapshot["workflows"]))
+            self.assertIsNone(snapshot["workflows"][0]["topologyHash"])
+            with database.connect() as detail_connection:
+                detail = WorkflowProjectionService().workflow_detail(
+                    detail_connection, snapshot["workflows"][0]["runId"]
+                )
+            self.assertIsNone(detail["topologyHash"])
+            self.assertEqual("goal", detail["nodes"][0]["stage"])
             self.assertEqual(snapshot["eventCursor"], snapshot["service"]["eventCount"])
             self.assertEqual(
                 {

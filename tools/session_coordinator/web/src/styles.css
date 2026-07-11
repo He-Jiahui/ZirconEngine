@@ -1,0 +1,11 @@
+:root { font-family: Inter, Roboto, "Segoe UI", Arial, sans-serif; background: #111212; color: #eee; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 30% 18%, rgba(38,86,82,.13), transparent 30%), linear-gradient(180deg,#161616,#111); }
+a { color: #21d5cf; }
+code, pre { font-family: "Cascadia Code", Consolas, monospace; }
+.json-evidence { overflow: auto; max-height: 260px; padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 7px; background: #151515; white-space: pre-wrap; overflow-wrap: anywhere; }
+.graph-node { padding: 10px 12px; border: 1px solid rgba(255,255,255,.10); border-radius: 7px; }
+.virtual-list { max-height: 58vh; overflow: auto; border: 1px solid rgba(255,255,255,.10); border-radius: 7px; }
+.virtual-row { box-sizing: border-box; min-height: 34px; padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.07); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.virtual-row:last-child { border-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }

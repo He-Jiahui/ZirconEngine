@@ -7,6 +7,9 @@ related_code:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/control_plane/assets.py
+  - tools/session_coordinator/control_plane/artifact_downloads.py
+  - tools/session_coordinator/web/src/App.tsx
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
@@ -18,6 +21,9 @@ implementation_files:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/control_plane/assets.py
+  - tools/session_coordinator/control_plane/artifact_downloads.py
+  - tools/session_coordinator/web/src/App.tsx
   - tools/session_coordinator/workflows/projections.py
   - tools/session_coordinator/client.py
   - tools/session_coordinator/cli.py
@@ -30,14 +36,23 @@ tests:
   - tools/session_coordinator/tests/test_control_http.py
   - tools/session_coordinator/tests/test_control_security.py
   - tools/session_coordinator/tests/test_control_snapshot.py
+  - tools/session_coordinator/tests/test_control_assets.py
+  - tools/session_coordinator/tests/test_artifact_downloads.py
+  - tools/session_coordinator/web/src/__tests__/components.test.tsx
+  - tools/session_coordinator/web/src/__tests__/contracts.test.ts
+  - tools/session_coordinator/web/src/__tests__/events.test.ts
+  - tools/session_coordinator/web/src/__tests__/failureGraph.test.ts
+  - tools/session_coordinator/web/src/__tests__/graphLayout.test.ts
+  - tools/session_coordinator/web/src/__tests__/navigation.test.ts
+  - tools/session_coordinator/web/src/__tests__/reducer.test.ts
 doc_type: operator-guide
 ---
 
 # Workflow Control Center
 
-## Current M1 Surface
+## Current M2 Surface
 
-M1 adds a read-only, loopback-only control facade to the existing Session coordinator. It exposes one coherent snapshot of service health, workflow projections, Sessions, Failures, collaboration state, validation activity, Git baseline state and audit history. It does not add browser-side mutations, a tray process or the final visual shell; those belong to later milestones.
+M1 adds the read-only, loopback-only control facade. M2 adds the production browser console that renders the coherent snapshot and ordered event stream. The console covers overview, workflow pipelines, Sessions, Failure graph, collaboration leases and delayed patches, Cargo/validation-copy activity, milestone Git evidence, audit, logs and service metadata. It contains no browser-side mutations; controlled actions and the tray process belong to later milestones.
 
 The facade is versioned under `/control/v1`. Existing coordinator commands and authenticated legacy routes remain available and unchanged.
 
@@ -53,6 +68,8 @@ Start or verify the coordinator first, then request a short-lived Observer boots
 
 `ui open` asks the daemon for a one-time ticket and opens the loopback URL. The ticket expires after 30 seconds, is stored only as a digest, can be consumed once and is bound to the current daemon instance. Successful consumption creates an eight-hour `HttpOnly`, `SameSite=Strict` cookie scoped to `/control`; ordinary output does not print the ticket.
 
+After authentication the daemon serves the production console at `/ui/`. Deep links below `/ui/` use the console shell, while `/control/v1/*` never falls back to HTML. The page remains explicitly read-only even when the daemon itself runs on `main` in read-write mode.
+
 For terminal inspection without a browser:
 
 ```powershell
@@ -66,7 +83,9 @@ For terminal inspection without a browser:
 - `GET /control/v1/meta` reports API and daemon-instance metadata.
 - `GET /control/v1/snapshot` returns the bounded coherent dashboard snapshot.
 - `GET /control/v1/workflows/{run-id}` returns a workflow projection with its current accepted attempt and immutable attempt history.
+- `GET /control/v1/logs?limit={count}&before={event-id}` returns a bounded audit range for virtualized log paging.
 - `GET /control/v1/events/stream` streams ordered Server-Sent Events from `Last-Event-ID` or the `cursor` query parameter and rejects capacity overflow instead of silently adding unbounded clients.
+- `GET /control/v1/artifacts/{opaque-id}` downloads coordinator-owned evidence. The database mapping, not a browser path, selects the file; resolved files must remain below the workflow artifact root. Single byte ranges are supported and bounded.
 
 Every JSON response uses the v1 envelope and carries a correlation identifier. Unexpected internal exceptions are logged server-side and returned as sanitized error contracts.
 
@@ -88,7 +107,14 @@ Workflow lists are projections over coordinator-owned data. M1 creates one stabl
 - If the daemon restarts, old tickets and cookies are rejected by daemon-instance binding; reopen the UI.
 - If an event cursor is too old, discard the partial client view and fetch `/control/v1/snapshot` again.
 - If the coordinator reports degraded baseline or read-only branch state, treat the control view as diagnostic and resolve the underlying shared-workspace condition through the coordinator workflow.
+- If the top bar reports a disconnected event stream or a cursor gap, leave the page open. The client discards partial state and loads a fresh coherent snapshot before reconnecting.
+
+## Production Asset Policy
+
+The web package lives at `tools/session_coordinator/web` and is independent from Zircon Hub runtime behavior. It imports only Hub visual tokens, the MUI theme and the generic `HubPanel`/`HubButton` components. It does not import Hub API calls, Tauri bindings, project DTOs or Hub persistence.
+
+`npm run check` performs strict type checking, Node component/model tests, a production Vite build and a distribution audit. Production source maps, absolute development URLs, credential/capability names, webhook material, unhashed assets and unreferenced output files fail that audit. `index.html` is served with `no-store`; content-hashed JavaScript and CSS use one-year immutable caching.
 
 ## Validation State
 
-M1 unit and integration coverage is defined in the files listed in this document header. Full M1 acceptance evidence is recorded under the owning numbered plan after the M1-T gate; this document does not claim that pending gate has passed.
+M1 and M2 unit and integration coverage is defined in the files listed in this document header. Accepted milestone evidence is recorded under the owning numbered plan directory.
