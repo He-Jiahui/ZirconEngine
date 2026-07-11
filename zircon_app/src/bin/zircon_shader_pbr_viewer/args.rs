@@ -11,6 +11,8 @@ pub(crate) struct ViewerConfig {
     pub(crate) face_size: u32,
     pub(crate) renderdoc_capture_once: bool,
     pub(crate) exit_after_capture: bool,
+    pub(crate) initial_yaw_degrees: f32,
+    pub(crate) initial_pitch_degrees: f32,
     pub(crate) help_requested: bool,
 }
 
@@ -22,6 +24,8 @@ impl ViewerConfig {
         let mut face_size = DEFAULT_FACE_SIZE;
         let mut renderdoc_capture_once = false;
         let mut exit_after_capture = false;
+        let mut initial_yaw_degrees = 0.0;
+        let mut initial_pitch_degrees = 0.0;
         let mut help_requested = false;
         let mut args = args.into_iter();
 
@@ -30,6 +34,12 @@ impl ViewerConfig {
                 "-h" | "--help" => help_requested = true,
                 "--renderdoc-capture-once" => renderdoc_capture_once = true,
                 "--exit-after-capture" => exit_after_capture = true,
+                "--yaw" => {
+                    initial_yaw_degrees = parse_angle("--yaw", args.next())?;
+                }
+                "--pitch" => {
+                    initial_pitch_degrees = parse_angle("--pitch", args.next())?;
+                }
                 "--hdri" => {
                     let Some(path) = args.next() else {
                         return Err("--hdri requires a file path".into());
@@ -56,9 +66,22 @@ impl ViewerConfig {
             face_size,
             renderdoc_capture_once,
             exit_after_capture,
+            initial_yaw_degrees,
+            initial_pitch_degrees,
             help_requested,
         })
     }
+}
+
+fn parse_angle(name: &str, value: Option<String>) -> Result<f32, Box<dyn Error>> {
+    let Some(value) = value else {
+        return Err(format!("{name} requires a finite degree value").into());
+    };
+    let value = value.parse::<f32>()?;
+    if !value.is_finite() {
+        return Err(format!("{name} requires a finite degree value").into());
+    }
+    Ok(value)
 }
 
 fn parse_face_size(value: &str) -> Result<u32, Box<dyn Error>> {
@@ -92,6 +115,7 @@ pub(crate) fn print_help() {
         "zircon_shader_pbr_viewer [--hdri <path>]\n\
          Optional: --face-size <64|128|256|512>\n\
          Optional: --renderdoc-capture-once [--exit-after-capture]\n\
+         Optional: --yaw <degrees> --pitch <degrees>\n\
          Left mouse drag: orbit camera\n\
          Mouse wheel: zoom\n\
          Default HDRI: {}\n\
@@ -99,4 +123,31 @@ pub(crate) fn print_help() {
         default_hdri_path().display(),
         DEFAULT_FACE_SIZE
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ViewerConfig;
+
+    #[test]
+    fn exact_multiview_angles_accept_signed_degrees() {
+        let config = ViewerConfig::from_args([
+            "--yaw".to_owned(),
+            "-120".to_owned(),
+            "--pitch".to_owned(),
+            "120".to_owned(),
+        ])
+        .expect("signed finite viewer angles should parse");
+
+        assert_eq!(config.initial_yaw_degrees, -120.0);
+        assert_eq!(config.initial_pitch_degrees, 120.0);
+    }
+
+    #[test]
+    fn exact_multiview_angles_reject_non_finite_values() {
+        let error = ViewerConfig::from_args(["--yaw".to_owned(), "NaN".to_owned()])
+            .expect_err("non-finite viewer angles must be rejected");
+
+        assert!(error.to_string().contains("finite degree value"));
+    }
 }

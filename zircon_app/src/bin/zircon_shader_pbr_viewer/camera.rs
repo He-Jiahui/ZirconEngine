@@ -32,6 +32,23 @@ impl Default for OrbitCamera {
 }
 
 impl OrbitCamera {
+    pub(crate) fn from_angles(yaw_degrees: f32, pitch_degrees: f32) -> Self {
+        Self {
+            yaw_degrees,
+            pitch_degrees: pitch_degrees
+                .clamp(-CAMERA_PITCH_LIMIT_DEGREES, CAMERA_PITCH_LIMIT_DEGREES),
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn yaw_degrees(self) -> f32 {
+        self.yaw_degrees
+    }
+
+    pub(crate) fn pitch_degrees(self) -> f32 {
+        self.pitch_degrees
+    }
+
     pub(crate) fn drag(&mut self, delta_x: f32, delta_y: f32) {
         self.yaw_degrees += delta_x * CAMERA_DRAG_DEGREES_PER_PIXEL;
         self.pitch_degrees = (self.pitch_degrees - delta_y * CAMERA_DRAG_DEGREES_PER_PIXEL)
@@ -83,5 +100,21 @@ fn stable_camera_up(forward: Vec3) -> Vec3 {
         Vec3::Z
     } else {
         Vec3::Y
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{OrbitCamera, CAMERA_PITCH_LIMIT_DEGREES};
+
+    #[test]
+    fn initial_angles_preserve_yaw_and_clamp_pitch() {
+        let upper = OrbitCamera::from_angles(-120.0, 220.0);
+        let lower = OrbitCamera::from_angles(120.0, -220.0);
+
+        assert_eq!(upper.yaw_degrees(), -120.0);
+        assert_eq!(upper.pitch_degrees(), CAMERA_PITCH_LIMIT_DEGREES);
+        assert_eq!(lower.yaw_degrees(), 120.0);
+        assert_eq!(lower.pitch_degrees(), -CAMERA_PITCH_LIMIT_DEGREES);
     }
 }

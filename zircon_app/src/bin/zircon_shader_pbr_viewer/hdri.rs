@@ -12,7 +12,7 @@ const DEFAULT_ENVIRONMENT_INTENSITY: f32 = 0.65;
 pub(crate) fn source_cubemap_environment(
     hdri_path: &Path,
     requested_face_size: u32,
-    library_root: &Path,
+    cache_root: &Path,
 ) -> Result<SourceCubemapEnvironment, Box<dyn Error>> {
     let bytes = fs::read(hdri_path)?;
     let image = image::load_from_memory_with_format(&bytes, ImageFormat::Hdr)?.to_rgb32f();
@@ -25,22 +25,24 @@ pub(crate) fn source_cubemap_environment(
         format!("environment_ibl = true\nenvironment_ibl_face_size = {requested_face_size}")
             .parse()?,
     );
-    let staged = stage_environment_ibl_source(&context, library_root)?;
+    let staged = stage_environment_ibl_source(&context, cache_root)?;
     let request = *staged.request().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             "viewer HDRI did not produce a staged IBL request",
         )
     })?;
-    let store = IblSourceCubemapStagingStore::new(library_root);
+    let store = IblSourceCubemapStagingStore::new(cache_root);
     let mut environment = store.read_source_cubemap_environment(&request, uri)?;
     environment.intensity = DEFAULT_ENVIRONMENT_INTENSITY * exposure;
     environment.rotation_radians = 0.0;
     println!(
-        "loaded staged HDRI environment: status={:?}, face_size={}, mip_count={}, source={}, derived={}",
+        "loaded staged HDRI environment: status={:?}, source_face_size={}, source_mip_count={}, pmrem_face_size={}, pmrem_mip_count={}, source={}, derived={}",
         staged.status(),
-        request.face_size(),
-        request.mip_count(),
+        request.source_face_size(),
+        request.source_mip_count(),
+        request.pmrem_face_size(),
+        request.pmrem_mip_count(),
         staged
             .source_zcube_path()
             .map(|path| path.display().to_string())

@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize, Size};
 use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy};
 use winit::window::{Window, WindowAttributes};
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
@@ -20,6 +20,7 @@ const DEFAULT_WINDOW_WIDTH: u32 = 1280;
 const DEFAULT_WINDOW_HEIGHT: u32 = 960;
 const MIN_WINDOW_WIDTH: f64 = 480.0;
 const MIN_WINDOW_HEIGHT: f64 = 360.0;
+const LOAD_STATUS_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
 pub(crate) struct PbrMirrorViewerApp {
     hdri_path: PathBuf,
@@ -54,7 +55,10 @@ impl PbrMirrorViewerApp {
             scene_load_started_at: None,
             load_error: None,
             event_loop_proxy,
-            camera: OrbitCamera::default(),
+            camera: OrbitCamera::from_angles(
+                config.initial_yaw_degrees,
+                config.initial_pitch_degrees,
+            ),
             window: None,
             presenter: None,
             size: UVec2::new(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT),
@@ -70,7 +74,7 @@ impl PbrMirrorViewerApp {
         }
 
         let attributes = WindowAttributes::default()
-            .with_title("Zircon PBR HDRI Mirror Viewer - loading HDRI/PMREM")
+            .with_title(loading_window_title(Duration::ZERO))
             .with_surface_size(Size::Physical(PhysicalSize::new(
                 DEFAULT_WINDOW_WIDTH,
                 DEFAULT_WINDOW_HEIGHT,
@@ -147,7 +151,11 @@ impl PbrMirrorViewerApp {
                     .take()
                     .map(|started| started.elapsed());
                 if let Some(window) = self.window.as_ref() {
-                    window.set_title("Zircon PBR HDRI Mirror Viewer - Ready");
+                    window.set_title(&format!(
+                        "Zircon PBR HDRI Mirror Viewer - Ready - yaw {:.0} pitch {:.0}",
+                        self.camera.yaw_degrees(),
+                        self.camera.pitch_degrees()
+                    ));
                 }
                 if let Some(elapsed) = elapsed {
                     println!("HDRI/PMREM scene ready after {:.2?}", elapsed);
@@ -156,6 +164,22 @@ impl PbrMirrorViewerApp {
             }
             Err(message) => self.handle_scene_load_failure(event_loop, message),
         }
+    }
+
+    fn refresh_scene_load_status(&self, event_loop: &dyn ActiveEventLoop) {
+        let Some(started_at) = self.scene_load_started_at else {
+            return;
+        };
+        if self.scene_loader.is_none() {
+            return;
+        }
+
+        if let Some(window) = self.window.as_ref() {
+            window.set_title(&loading_window_title(started_at.elapsed()));
+        }
+        event_loop.set_control_flow(ControlFlow::WaitUntil(
+            Instant::now() + LOAD_STATUS_REFRESH_INTERVAL,
+        ));
     }
 
     fn handle_scene_load_failure(&mut self, event_loop: &dyn ActiveEventLoop, message: String) {
@@ -372,10 +396,33 @@ impl ApplicationHandler for PbrMirrorViewerApp {
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
         self.finish_scene_load(event_loop);
+        self.refresh_scene_load_status(event_loop);
         if self.redraw_requested {
             if let Some(window) = self.window.as_ref() {
                 window.request_redraw();
             }
         }
+    }
+}
+
+fn loading_window_title(elapsed: Duration) -> String {
+    format!(
+        "Zircon PBR HDRI Mirror Viewer - preparing HDRI/PMREM - {}s - window responsive",
+        elapsed.as_secs()
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::loading_window_title;
+
+    #[test]
+    fn loading_title_reports_elapsed_time_and_responsive_state() {
+        assert_eq!(
+            loading_window_title(Duration::from_millis(12_999)),
+            "Zircon PBR HDRI Mirror Viewer - preparing HDRI/PMREM - 12s - window responsive"
+        );
     }
 }

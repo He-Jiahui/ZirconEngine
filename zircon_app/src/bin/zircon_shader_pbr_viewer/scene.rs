@@ -30,11 +30,12 @@ impl PbrMirrorScene {
     pub(crate) fn new(hdri_path: &Path, face_size: u32) -> Result<Self, Box<dyn Error>> {
         let project_root = unique_temp_project_root("shader_pbr_viewer");
         let paths = ProjectPaths::from_root(&project_root)?;
-        paths.ensure_layout()?;
         let scene_uri = AssetUri::parse("res://scenes/single_pbr_sphere.scene.toml")?;
-        ProjectManifest::new("ShaderPbrMirrorViewer", scene_uri.clone(), 1)
-            .save(paths.manifest_path())?;
-        write_viewer_project_assets(&paths)?;
+        let manifest = ProjectManifest::new("ShaderPbrMirrorViewer", scene_uri.clone(), 1);
+        paths.ensure_layout(&manifest.asset_roots)?;
+        manifest.save(paths.manifest_path())?;
+        let asset_root = manifest.primary_asset_root_path(&paths)?;
+        write_viewer_project_assets(&asset_root)?;
 
         let asset_manager = Arc::new(ProjectAssetManager::default());
         asset_manager.open_project(project_root.to_string_lossy().as_ref())?;
@@ -45,7 +46,7 @@ impl PbrMirrorScene {
         let environment = EnvironmentExtract::source_cubemap(source_cubemap_environment(
             hdri_path,
             face_size,
-            paths.library_root(),
+            paths.cache_root(),
         )?);
 
         Ok(Self {
