@@ -1,51 +1,44 @@
 # Manual Commands
 
-## Shared Target Setup
+## Managed Target Setup
 
-Prefer a shared external `CARGO_TARGET_DIR` across clones and worktrees:
+Do not run bare `cargo` commands from the repository. Use the validator so acquire/start/finish/release and `--target-dir` cannot be skipped:
 
 ```powershell
-$env:CARGO_TARGET_DIR = "E:\cargo-targets\zircon-shared"
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1
 ```
+
+The validator acquires, starts, finishes and releases the Cargo job automatically. If `CARGO_TARGET_DIR` is inherited, it must already resolve below `D:`, `E:`, or `F:` `\targets\zircon-engine\lanes`.
 
 ## Low-Disk Rule
 
-Before build or test, inspect the drive that hosts the active target directory. If the remaining free space is `<= 50 GB`, clean that target directory first:
+The validator checks the granted target drive and runs a scoped clean when free space is `<= 50 GB`. Preview scheduled stale-lane cleanup separately:
 
 ```powershell
-cargo clean --target-dir $env:CARGO_TARGET_DIR
+.\tools\cleanup-stale-targets.ps1
 ```
-
-If you are using the repo-local fallback slots instead of `CARGO_TARGET_DIR`, replace the argument with the active slot such as `target/codex-shared-a`.
 
 ## Workspace Build
 
 ```powershell
-cargo build --workspace --locked --verbose
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipTest -VerboseOutput
 ```
 
 ## Workspace Tests
 
 ```powershell
-cargo test --workspace --locked --verbose
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -VerboseOutput
 ```
 
 ## Single-Crate Loop
 
 ```powershell
-cargo test -p zircon_runtime --locked --verbose
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -VerboseOutput
 ```
 
 ## Export Platform Contract
 
-To mirror the CI export-platform policy matrix locally without running unrelated tests, set `ZR_EXPORT_CONTRACT_PLATFORM` and run the focused runtime export policy test for each platform:
-
-```powershell
-$env:ZR_EXPORT_CONTRACT_PLATFORM = "headless"
-cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose
-```
-
-The current platform set is `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, `wasm`, and `headless`. The validator shortcut is:
+To mirror the CI export-platform policy matrix locally without running unrelated tests, use the validator. The current platform set is `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, `wasm`, and `headless`:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunExportPlatformContract
@@ -59,7 +52,7 @@ When the shared checkout already has active Cargo/Rust compiler lanes, run one l
 
 The platform selector is stage-scoped: `-ExportContractPlatform` without `-RunExportPlatformContract` is rejected so it cannot be silently ignored.
 
-To inspect the selected command without requiring Cargo discovery, target-directory cleanup checks, or shared target slot claims, add `-DryRun`. Without explicit `-TargetDir`, dry-run renders `target/manual-check`:
+To inspect the selected command without requiring Cargo discovery or target-directory cleanup checks, add `-DryRun`. Dry-run still receives a managed, non-created audit lane:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -DryRun -SkipBuild -SkipTest -RunExportPlatformContract -ExportContractPlatform headless
@@ -67,17 +60,7 @@ To inspect the selected command without requiring Cargo discovery, target-direct
 
 ## Profile Feature Contract
 
-To mirror the profile feature CI contract locally, run no-default-features checks for the default profile combinations:
-
-```powershell
-cargo check -p zircon_app --no-default-features --features target-server --locked --verbose
-cargo check -p zircon_app --no-default-features --features target-client,platform-winit,input-gamepad,gamepad-gilrs --locked --verbose
-cargo check -p zircon_runtime --no-default-features --features target-client --locked --verbose
-cargo check -p zircon_runtime --no-default-features --features target-editor-host --locked --verbose
-cargo check -p zircon_runtime --no-default-features --features target-server --locked --verbose
-```
-
-The validator shortcut is:
+To mirror the profile feature CI contract locally, use the validator so all no-default-features cases share the managed lifecycle:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract
@@ -91,18 +74,18 @@ When the shared checkout already has active Cargo/Rust compiler lanes, run one l
 
 The profile selector is stage-scoped: `-ProfileFeatureContractLabel` without `-RunProfileFeatureContract` is rejected so it cannot be silently ignored.
 
-To inspect the selected command without requiring Cargo discovery, target-directory cleanup checks, or shared target slot claims, add `-DryRun`. Without explicit `-TargetDir`, dry-run renders `target/manual-check`:
+To inspect the selected command without requiring Cargo discovery or target-directory cleanup checks, add `-DryRun`. Dry-run still receives a managed, non-created audit lane:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -DryRun -SkipBuild -SkipTest -RunProfileFeatureContract -ProfileFeatureContractLabel "zircon_runtime target-server"
 ```
 
-## Shared Target Rules
+## Managed Target Rules
 
-- Prefer one shared external `CARGO_TARGET_DIR` for routine local validation loops across multiple clones or worktrees.
-- If no shared `CARGO_TARGET_DIR` is configured, `validate-matrix.ps1` falls back to `target/codex-shared-a` or `target/codex-shared-b`.
-- Do not keep minting new `target/<name>` directories for normal Cargo build/test commands.
-- If you need strict one-off isolation, use an explicit temporary `--target-dir` and treat it as an exception, not the default workflow.
+- Use one coordinator job per validation process; lanes are unique, audited and stored outside the repository.
+- Do not create `target/<name>` directories or use arbitrary `--target-dir` values.
+- Explicit targets are allowed only below `D:\targets\zircon-engine\lanes`, `E:\targets\zircon-engine\lanes`, or `F:\targets\zircon-engine\lanes` and still pass through the coordinator.
+- Use `.\tools\cleanup-stale-targets.ps1` to preview cleanup and add `-Apply` only for service-revalidated deletion.
 - Read `../references/cargo-target-disk-policy.md` for cleanup and disk-usage guidance.
 
 ## CI Parity Notes

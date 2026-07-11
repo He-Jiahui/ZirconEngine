@@ -17,11 +17,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$script:SharedTargetLeaseTtl = [TimeSpan]::FromHours(12)
-$script:SharedTargetLockRetryCount = 50
-$script:SharedTargetLockRetryDelayMs = 200
 $script:LowDiskCleanupThresholdBytes = 50GB
-$script:DryRunDefaultTargetDir = Join-Path "target" "manual-check"
 $script:ExportContractPlatforms = @(
     "windows",
     "linux",
@@ -79,179 +75,6 @@ function Find-RepoRoot {
     }
 }
 
-function Normalize-PathString {
-    param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        return $null
-    }
-
-    return [System.IO.Path]::GetFullPath($Path).TrimEnd('\', '/').ToLowerInvariant()
-}
-
-function Get-LeaseValue {
-    param(
-        [object]$Lease,
-        [string]$Name
-    )
-
-    if ($null -eq $Lease) {
-        return $null
-    }
-
-    if ($Lease -is [hashtable]) {
-        if ($Lease.ContainsKey($Name)) {
-            return $Lease[$Name]
-        }
-
-        return $null
-    }
-
-    $property = $Lease.PSObject.Properties[$Name]
-    if ($null -ne $property) {
-        return $property.Value
-    }
-
-    return $null
-}
-
-function ConvertTo-UtcDateTimeOrNull {
-    param([object]$Value)
-
-    if ($null -eq $Value) {
-        return $null
-    }
-
-    $text = [string]$Value
-    if ([string]::IsNullOrWhiteSpace($text)) {
-        return $null
-    }
-
-    try {
-        return [datetime]::Parse(
-            $text,
-            [System.Globalization.CultureInfo]::InvariantCulture,
-            [System.Globalization.DateTimeStyles]::RoundtripKind
-        ).ToUniversalTime()
-    } catch {
-        return $null
-    }
-}
-
-function Get-TargetLeaseDirectory {
-    param([string]$RepoRoot)
-
-    return Join-Path $RepoRoot ".codex\tmp\cargo-target-slots"
-}
-
-function Get-SharedCargoSlotDefinitions {
-    param([string]$RepoRoot)
-
-    $leaseRoot = Get-TargetLeaseDirectory -RepoRoot $RepoRoot
-
-    return @(
-        [pscustomobject]@{
-            SlotName          = "a"
-            CliTargetDir      = Join-Path "target" "codex-shared-a"
-            AbsoluteTargetDir = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot (Join-Path "target" "codex-shared-a")))
-            LeasePath         = Join-Path $leaseRoot "slot-a.json"
-        },
-        [pscustomobject]@{
-            SlotName          = "b"
-            CliTargetDir      = Join-Path "target" "codex-shared-b"
-            AbsoluteTargetDir = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot (Join-Path "target" "codex-shared-b")))
-            LeasePath         = Join-Path $leaseRoot "slot-b.json"
-        }
-    )
-}
-
-function Read-TargetLease {
-    param([string]$LeasePath)
-
-    if (-not (Test-Path $LeasePath)) {
-        return $null
-    }
-
-    try {
-        return Get-Content -Raw $LeasePath | ConvertFrom-Json
-    } catch {
-        return [pscustomobject]@{
-            _invalid = $true
-        }
-    }
-}
-
-function Write-TargetLease {
-    param(
-        [string]$LeasePath,
-        [hashtable]$Lease
-    )
-
-    New-Item -ItemType Directory -Force -Path (Split-Path $LeasePath -Parent) | Out-Null
-    $Lease | ConvertTo-Json | Set-Content -Encoding utf8 $LeasePath
-}
-
-function Test-TargetLeaseStale {
-    param(
-        [object]$Lease,
-        [string]$RepoRoot,
-        [datetime]$NowUtc
-    )
-
-    if ($null -eq $Lease) {
-        return $true
-    }
-
-    if ([bool](Get-LeaseValue -Lease $Lease -Name "_invalid")) {
-        return $true
-    }
-
-    $leaseRepoRoot = Normalize-PathString -Path ([string](Get-LeaseValue -Lease $Lease -Name "repo_root"))
-    $currentRepoRoot = Normalize-PathString -Path $RepoRoot
-    if ($leaseRepoRoot -ne $currentRepoRoot) {
-        return $true
-    }
-
-    $lastSeenUtc = ConvertTo-UtcDateTimeOrNull -Value (Get-LeaseValue -Lease $Lease -Name "last_seen_utc")
-    if ($null -eq $lastSeenUtc) {
-        return $true
-    }
-
-    return (($NowUtc - $lastSeenUtc) -gt $script:SharedTargetLeaseTtl)
-}
-
-function Get-TargetLeaseState {
-    param(
-        [object]$Lease,
-        [string]$RepoRoot,
-        [string]$OwnerId,
-        [datetime]$NowUtc
-    )
-
-    if ($null -eq $Lease) {
-        return "free"
-    }
-
-    if ([bool](Get-LeaseValue -Lease $Lease -Name "_invalid")) {
-        return "stale"
-    }
-
-    if (Test-TargetLeaseStale -Lease $Lease -RepoRoot $RepoRoot -NowUtc $NowUtc) {
-        return "stale"
-    }
-
-    $existingOwnerId = [string](Get-LeaseValue -Lease $Lease -Name "owner_id")
-    if ([string]::IsNullOrWhiteSpace($existingOwnerId)) {
-        return "free"
-    }
-
-    if ($existingOwnerId -eq $OwnerId) {
-        return "owner"
-    }
-
-    return "occupied"
-}
-
 function Resolve-OwnerId {
     param([string]$RepoRoot)
 
@@ -261,98 +84,8 @@ function Resolve-OwnerId {
 
     $user = [Environment]::UserName
     $machine = [Environment]::MachineName
-    return "manual:{0}@{1}:{2}" -f $user, $machine, (Normalize-PathString -Path $RepoRoot)
-}
-
-function Use-TargetLeaseLock {
-    param(
-        [string]$LeaseRoot,
-        [scriptblock]$Action
-    )
-
-    New-Item -ItemType Directory -Force -Path $LeaseRoot | Out-Null
-
-    $lockDir = Join-Path $LeaseRoot ".lock"
-    $lockTaken = $false
-
-    try {
-        for ($attempt = 0; $attempt -lt $script:SharedTargetLockRetryCount; $attempt++) {
-            try {
-                New-Item -ItemType Directory -Path $lockDir -ErrorAction Stop | Out-Null
-                $lockTaken = $true
-                break
-            } catch {
-                if ($attempt -eq ($script:SharedTargetLockRetryCount - 1)) {
-                    throw "Could not acquire shared cargo target lock at $lockDir"
-                }
-
-                Start-Sleep -Milliseconds $script:SharedTargetLockRetryDelayMs
-            }
-        }
-
-        return & $Action
-    } finally {
-        if ($lockTaken -and (Test-Path $lockDir)) {
-            Remove-Item -Recurse -Force $lockDir -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-function Resolve-SharedCargoTarget {
-    param(
-        [string]$RepoRoot,
-        [string]$OwnerId,
-        [object[]]$Leases,
-        [datetime]$NowUtc
-    )
-
-    $slotDefinitions = Get-SharedCargoSlotDefinitions -RepoRoot $RepoRoot
-    $leaseBySlot = @{}
-
-    foreach ($lease in $Leases) {
-        $slotName = [string](Get-LeaseValue -Lease $lease -Name "slot_name")
-        if (-not [string]::IsNullOrWhiteSpace($slotName)) {
-            $leaseBySlot[$slotName] = $lease
-        }
-    }
-
-    foreach ($slotDefinition in $slotDefinitions) {
-        $lease = $leaseBySlot[$slotDefinition.SlotName]
-        $existingOwnerId = [string](Get-LeaseValue -Lease $lease -Name "owner_id")
-        if (-not [string]::IsNullOrWhiteSpace($existingOwnerId) -and $existingOwnerId -eq $OwnerId) {
-            return [pscustomobject]@{
-                SelectionMode    = "shared"
-                SlotName         = $slotDefinition.SlotName
-                TargetDir        = $slotDefinition.CliTargetDir
-                AbsoluteTargetDir = $slotDefinition.AbsoluteTargetDir
-                Reason           = "reused current thread slot $($slotDefinition.SlotName)"
-                PreviousLease    = $lease
-            }
-        }
-    }
-
-    foreach ($slotDefinition in $slotDefinitions) {
-        $lease = $leaseBySlot[$slotDefinition.SlotName]
-        $leaseState = Get-TargetLeaseState -Lease $lease -RepoRoot $RepoRoot -OwnerId $OwnerId -NowUtc $NowUtc
-        if ($leaseState -eq "free" -or $leaseState -eq "stale") {
-            $reason = if ($leaseState -eq "free") {
-                "claimed free slot $($slotDefinition.SlotName)"
-            } else {
-                "claimed stale slot $($slotDefinition.SlotName)"
-            }
-
-            return [pscustomobject]@{
-                SelectionMode    = "shared"
-                SlotName         = $slotDefinition.SlotName
-                TargetDir        = $slotDefinition.CliTargetDir
-                AbsoluteTargetDir = $slotDefinition.AbsoluteTargetDir
-                Reason           = $reason
-                PreviousLease    = $lease
-            }
-        }
-    }
-
-    throw "Both shared cargo target slots are occupied by other active sessions. Pass -TargetDir to override."
+    $repoId = [System.IO.Path]::GetFullPath($RepoRoot).TrimEnd('\', '/').ToLowerInvariant()
+    return "manual:{0}@{1}:{2}" -f $user, $machine, $repoId
 }
 
 function Resolve-AbsoluteTargetDir {
@@ -368,131 +101,111 @@ function Resolve-AbsoluteTargetDir {
     return [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $CliTargetDir))
 }
 
-function Resolve-EnvironmentTargetDir {
-    param([string]$RepoRoot)
-
-    if ([string]::IsNullOrWhiteSpace($env:CARGO_TARGET_DIR)) {
-        return $null
-    }
-
-    $absoluteTargetDir = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $env:CARGO_TARGET_DIR
-    New-Item -ItemType Directory -Force -Path $absoluteTargetDir | Out-Null
-
-    return [pscustomobject]@{
-        SelectionMode     = "environment"
-        SlotName          = $null
-        TargetDir         = $env:CARGO_TARGET_DIR
-        AbsoluteTargetDir = $absoluteTargetDir
-        Reason            = "CARGO_TARGET_DIR environment override"
-        OwnerId           = $null
-    }
-}
-
-function Resolve-EffectiveTargetDir {
+function Invoke-SessionCoordinatorJson {
     param(
         [string]$RepoRoot,
-        [string]$ManualTargetDir
+        [string[]]$Arguments
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($ManualTargetDir)) {
-        return [pscustomobject]@{
-            SelectionMode    = "manual"
-            SlotName         = $null
-            TargetDir        = $ManualTargetDir
-            AbsoluteTargetDir = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $ManualTargetDir
-            Reason           = "manual override"
-            OwnerId          = $null
-        }
+    $client = Join-Path $RepoRoot "tools\zircon-session.ps1"
+    if (-not (Test-Path -LiteralPath $client)) {
+        throw "Session coordinator client is missing: $client"
     }
-
-    $environmentTarget = Resolve-EnvironmentTargetDir -RepoRoot $RepoRoot
-    if ($null -ne $environmentTarget) {
-        return $environmentTarget
+    $command = $Arguments[0]
+    $remaining = if ($Arguments.Count -gt 1) { $Arguments[1..($Arguments.Count - 1)] } else { @() }
+    $raw = & $client -Command $command -RepoRoot $RepoRoot -Json @remaining
+    if ($LASTEXITCODE -ne 0) {
+        throw "Session coordinator command failed: $($raw -join [Environment]::NewLine)"
     }
+    return (($raw -join [Environment]::NewLine) | ConvertFrom-Json)
+}
 
-    $leaseRoot = Get-TargetLeaseDirectory -RepoRoot $RepoRoot
+function Resolve-CoordinatorCargoTarget {
+    param(
+        [string]$RepoRoot,
+        [string]$ManualTargetDir,
+        [string]$LaneKind,
+        [switch]$DryRunMode
+    )
+
     $ownerId = Resolve-OwnerId -RepoRoot $RepoRoot
-    $nowUtc = (Get-Date).ToUniversalTime()
+    Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+        "session", "register", "--session-id", $ownerId,
+        "--display-name", "validate-matrix", "--write-scope", "Cargo validation"
+    ) | Out-Null
 
-    return Use-TargetLeaseLock -LeaseRoot $leaseRoot -Action {
-        $slotDefinitions = Get-SharedCargoSlotDefinitions -RepoRoot $RepoRoot
-        $leases = foreach ($slotDefinition in $slotDefinitions) {
-            $lease = Read-TargetLease -LeasePath $slotDefinition.LeasePath
-            if ($null -eq $lease) {
-                [pscustomobject]@{
-                    slot_name  = $slotDefinition.SlotName
-                    target_dir = $slotDefinition.CliTargetDir
-                }
-            } else {
-                if ($null -eq (Get-LeaseValue -Lease $lease -Name "slot_name")) {
-                    $lease | Add-Member -NotePropertyName slot_name -NotePropertyValue $slotDefinition.SlotName -Force
-                }
+    $requestedTarget = $ManualTargetDir
+    $selectionMode = "managed"
+    if ([string]::IsNullOrWhiteSpace($requestedTarget) -and -not [string]::IsNullOrWhiteSpace($env:CARGO_TARGET_DIR)) {
+        $requestedTarget = $env:CARGO_TARGET_DIR
+        $selectionMode = "environment"
+    } elseif (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
+        $selectionMode = "manual"
+    }
 
-                if ($null -eq (Get-LeaseValue -Lease $lease -Name "target_dir")) {
-                    $lease | Add-Member -NotePropertyName target_dir -NotePropertyValue $slotDefinition.CliTargetDir -Force
-                }
-
-                $lease
-            }
-        }
-
-        $selection = Resolve-SharedCargoTarget -RepoRoot $RepoRoot -OwnerId $ownerId -Leases $leases -NowUtc $nowUtc
-
-        New-Item -ItemType Directory -Force -Path $selection.AbsoluteTargetDir | Out-Null
-
-        $claimedAtUtc = ConvertTo-UtcDateTimeOrNull -Value (Get-LeaseValue -Lease $selection.PreviousLease -Name "claimed_at_utc")
-        if ($null -eq $claimedAtUtc -or ([string](Get-LeaseValue -Lease $selection.PreviousLease -Name "owner_id")) -ne $ownerId) {
-            $claimedAtUtc = $nowUtc
-        }
-
-        $slotDefinition = $slotDefinitions | Where-Object { $_.SlotName -eq $selection.SlotName } | Select-Object -First 1
-        Write-TargetLease -LeasePath $slotDefinition.LeasePath -Lease @{
-            slot_name      = $selection.SlotName
-            target_dir     = $selection.TargetDir
-            owner_id       = $ownerId
-            owner_pid      = $PID
-            claimed_at_utc = $claimedAtUtc.ToString("o")
-            last_seen_utc  = $nowUtc.ToString("o")
-            host_name      = [Environment]::MachineName
-            repo_root      = [System.IO.Path]::GetFullPath($RepoRoot)
-        }
-
-        return [pscustomobject]@{
-            SelectionMode    = $selection.SelectionMode
-            SlotName         = $selection.SlotName
-            TargetDir        = $selection.TargetDir
-            AbsoluteTargetDir = $selection.AbsoluteTargetDir
-            Reason           = $selection.Reason
-            OwnerId          = $ownerId
-        }
+    $arguments = @(
+        "cargo", "acquire", $LaneKind,
+        "--session-id", $ownerId,
+        "--pid", [string]$PID
+    )
+    if (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
+        $absoluteRequestedTarget = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $requestedTarget
+        $arguments += @("--target-dir", $absoluteRequestedTarget)
+    }
+    if ($DryRunMode) {
+        $arguments += "--dry-run"
+    }
+    $response = Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments $arguments
+    $reason = if ($selectionMode -eq "managed") {
+        "coordinator managed $LaneKind lane"
+    } else {
+        "coordinator validated $selectionMode target"
+    }
+    return [pscustomobject]@{
+        SelectionMode     = $selectionMode
+        SlotName          = $null
+        JobId             = [string]$response.job.job_id
+        TargetDir         = [string]$response.job.target_dir
+        AbsoluteTargetDir = [string]$response.job.target_dir
+        Reason            = $reason
+        OwnerId           = $ownerId
+        DryRun            = [bool]$response.job.dry_run
     }
 }
 
-function Resolve-DryRunTargetDir {
+function Start-CoordinatorCargoTarget {
+    param([string]$RepoRoot, [object]$ResolvedTarget)
+
+    if ($ResolvedTarget.DryRun) {
+        return
+    }
+    Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+        "cargo", "start", $ResolvedTarget.JobId,
+        "--pid", [string]$PID,
+        "--session-id", $ResolvedTarget.OwnerId,
+        [Environment]::CommandLine
+    ) | Out-Null
+}
+
+function Complete-CoordinatorCargoTarget {
     param(
         [string]$RepoRoot,
-        [string]$ManualTargetDir
+        [object]$ResolvedTarget,
+        [int]$ExitCode,
+        [switch]$Started
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($ManualTargetDir)) {
-        return [pscustomobject]@{
-            SelectionMode     = "manual"
-            SlotName          = $null
-            TargetDir         = $ManualTargetDir
-            AbsoluteTargetDir = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $ManualTargetDir
-            Reason            = "manual override"
-            OwnerId           = $null
-        }
+    if ($Started) {
+        Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+            "cargo", "finish", $ResolvedTarget.JobId,
+            "--exit-code", [string]$ExitCode,
+            "--session-id", $ResolvedTarget.OwnerId
+        ) | Out-Null
     }
-
-    return [pscustomobject]@{
-        SelectionMode     = "dry-run"
-        SlotName          = $null
-        TargetDir         = $script:DryRunDefaultTargetDir
-        AbsoluteTargetDir = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $script:DryRunDefaultTargetDir
-        Reason            = "dry-run default"
-        OwnerId           = $null
-    }
+    Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+        "cargo", "release", $ResolvedTarget.JobId,
+        "--session-id", $ResolvedTarget.OwnerId
+    ) | Out-Null
 }
 
 function Format-ByteCount {
@@ -776,12 +489,21 @@ function Invoke-ValidateMatrixMain {
         Find-RepoRoot $PSScriptRoot
     }
 
-    $resolvedTarget = if ($DryRun) {
-        Resolve-DryRunTargetDir -RepoRoot $resolvedRepoRoot -ManualTargetDir $TargetDir
+    $laneKind = if (-not [string]::IsNullOrWhiteSpace($Package)) {
+        if ($SkipTest) { "check" } else { "test" }
     } else {
-        Resolve-EffectiveTargetDir -RepoRoot $resolvedRepoRoot -ManualTargetDir $TargetDir
+        "workspace"
     }
+    $resolvedTarget = Resolve-CoordinatorCargoTarget `
+        -RepoRoot $resolvedRepoRoot `
+        -ManualTargetDir $TargetDir `
+        -LaneKind $laneKind `
+        -DryRunMode:$DryRun
 
+    $coordinatorJobFailed = $false
+    $coordinatorJobStarted = $false
+    $locationPushed = $false
+    try {
     Write-Host "Repo root: $resolvedRepoRoot"
     Write-Host ("Scope: {0}" -f $(if ([string]::IsNullOrWhiteSpace($Package)) { "workspace" } else { "package $Package" }))
     Write-Host ("Locked mode: {0}" -f $(if ($NoLocked) { "off" } else { "on" }))
@@ -799,8 +521,10 @@ function Invoke-ValidateMatrixMain {
         Write-Host ("Free space on {0}: {1} (threshold {2})" -f $cleanupStatus.DriveRoot, (Format-ByteCount -Bytes $cleanupStatus.FreeBytes), (Format-ByteCount -Bytes $cleanupStatus.ThresholdBytes))
     }
 
+    Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
+    $coordinatorJobStarted = -not $resolvedTarget.DryRun
     Push-Location $resolvedRepoRoot
-    try {
+    $locationPushed = $true
         if ($null -ne $cleanupStatus -and $cleanupStatus.RequiresCleanup) {
             Write-Host ("Free space is at or below the cleanup threshold. Running cargo clean before build/test.") -ForegroundColor Yellow
             Invoke-Step "Cargo clean" {
@@ -843,8 +567,19 @@ function Invoke-ValidateMatrixMain {
                 }
             }
         }
+    } catch {
+        $coordinatorJobFailed = $true
+        throw
     } finally {
-        Pop-Location
+        if ($locationPushed) {
+            Pop-Location
+        }
+        $jobExitCode = if ($coordinatorJobFailed -or ($Results | Where-Object { $_.ExitCode -ne 0 })) { 1 } else { 0 }
+        Complete-CoordinatorCargoTarget `
+            -RepoRoot $resolvedRepoRoot `
+            -ResolvedTarget $resolvedTarget `
+            -ExitCode $jobExitCode `
+            -Started:$coordinatorJobStarted
     }
 
     Write-Host ""

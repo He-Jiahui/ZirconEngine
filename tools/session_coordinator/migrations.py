@@ -6,7 +6,7 @@ from sqlite3 import Connection
 from .database import Database
 
 
-LATEST_SCHEMA_VERSION = 3
+LATEST_SCHEMA_VERSION = 7
 
 
 def _migration_1(connection: Connection) -> None:
@@ -168,10 +168,86 @@ def _migration_3(connection: Connection) -> None:
     )
 
 
+def _migration_4(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE cargo_jobs (
+            job_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            lane_kind TEXT NOT NULL CHECK (lane_kind IN ('check', 'test', 'workspace', 'gpu')),
+            target_dir TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'leased', 'running', 'succeeded', 'failed', 'released', 'orphaned'
+            )),
+            dry_run INTEGER NOT NULL DEFAULT 0,
+            pid INTEGER,
+            command_json TEXT NOT NULL DEFAULT '[]',
+            exit_code INTEGER,
+            created_at TEXT NOT NULL,
+            last_heartbeat_at TEXT NOT NULL,
+            started_at TEXT,
+            finished_at TEXT,
+            released_at TEXT
+        );
+
+        CREATE UNIQUE INDEX cargo_jobs_active_target
+            ON cargo_jobs(target_dir)
+            WHERE status IN ('leased', 'running');
+        CREATE INDEX cargo_jobs_status_heartbeat
+            ON cargo_jobs(status, last_heartbeat_at);
+        """
+    )
+
+
+def _migration_5(connection: Connection) -> None:
+    connection.executescript(
+        """
+        ALTER TABLE cargo_jobs ADD COLUMN target_key TEXT NOT NULL DEFAULT '';
+        UPDATE cargo_jobs
+        SET target_key = lower(replace(target_dir, '/', '\\'));
+        DROP INDEX cargo_jobs_active_target;
+        CREATE UNIQUE INDEX cargo_jobs_active_target
+            ON cargo_jobs(target_key)
+            WHERE status IN ('leased', 'running');
+        """
+    )
+
+
+def _migration_6(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE cleanup_reservations (
+            target_key TEXT PRIMARY KEY,
+            target_dir TEXT NOT NULL,
+            reserved_at TEXT NOT NULL
+        );
+        """
+    )
+
+
+def _migration_7(connection: Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE cleanup_plans (
+            plan_id TEXT PRIMARY KEY,
+            generated_at TEXT NOT NULL,
+            older_than_hours INTEGER NOT NULL CHECK (older_than_hours > 0),
+            candidates_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('planned', 'applying', 'applied', 'failed')),
+            applied_at TEXT
+        );
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
     3: _migration_3,
+    4: _migration_4,
+    5: _migration_5,
+    6: _migration_6,
+    7: _migration_7,
 }
 
 

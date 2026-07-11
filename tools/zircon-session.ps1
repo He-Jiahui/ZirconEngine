@@ -2,7 +2,7 @@
 param(
     [Parameter(Position = 0)]
     [string]$Command = "status",
-    [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot),
+    [string]$RepoRoot,
     [switch]$Json,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Arguments
@@ -10,6 +10,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Split-Path -Parent $PSScriptRoot
+}
 
 $resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 $python = (Get-Command python -ErrorAction Stop).Source

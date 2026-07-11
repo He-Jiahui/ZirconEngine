@@ -119,6 +119,39 @@ def _parser() -> argparse.ArgumentParser:
     failure_return.add_argument("--architecture-fix", required=True)
     failure_return.add_argument("--validation", required=True)
     failure_return.add_argument("--return-summary", required=True)
+
+    cargo = commands.add_parser("cargo")
+    cargo_commands = cargo.add_subparsers(dest="cargo_command", required=True)
+    cargo_acquire = cargo_commands.add_parser("acquire")
+    cargo_acquire.add_argument("lane_kind", choices=("check", "test", "workspace", "gpu"))
+    cargo_acquire.add_argument("--session-id")
+    cargo_acquire.add_argument("--target-dir")
+    cargo_acquire.add_argument("--dry-run", action="store_true")
+    cargo_acquire.add_argument("--pid", type=int)
+    cargo_start = cargo_commands.add_parser("start")
+    cargo_start.add_argument("job_id")
+    cargo_start.add_argument("--pid", type=int, required=True)
+    cargo_start.add_argument("--session-id")
+    cargo_start.add_argument("command_args", nargs="*")
+    cargo_heartbeat = cargo_commands.add_parser("heartbeat")
+    cargo_heartbeat.add_argument("job_id")
+    cargo_heartbeat.add_argument("--session-id")
+    cargo_finish = cargo_commands.add_parser("finish")
+    cargo_finish.add_argument("job_id")
+    cargo_finish.add_argument("--exit-code", type=int, required=True)
+    cargo_finish.add_argument("--session-id")
+    cargo_release = cargo_commands.add_parser("release")
+    cargo_release.add_argument("job_id")
+    cargo_release.add_argument("--session-id")
+    cargo_commands.add_parser("list")
+
+    cleanup = commands.add_parser("cleanup")
+    cleanup_commands = cleanup.add_subparsers(dest="cleanup_command", required=True)
+    cleanup_plan = cleanup_commands.add_parser("plan")
+    cleanup_plan.add_argument("--older-than-hours", type=int, default=2)
+    cleanup_apply = cleanup_commands.add_parser("apply")
+    cleanup_apply.add_argument("--older-than-hours", type=int, default=2)
+    cleanup_apply.add_argument("--plan-id", required=True)
     return parser
 
 
@@ -270,6 +303,60 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "return_summary": arguments.return_summary,
                 },
             )
+    if arguments.command == "cargo":
+        if arguments.cargo_command == "acquire":
+            return client.command(
+                "cargo.acquire",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "lane_kind": arguments.lane_kind,
+                    "target_dir": arguments.target_dir,
+                    "dry_run": arguments.dry_run,
+                    "pid": arguments.pid,
+                },
+            )
+        if arguments.cargo_command == "start":
+            return client.command(
+                "cargo.start",
+                {
+                    "job_id": arguments.job_id,
+                    "pid": arguments.pid,
+                    "session_id": _session_id(arguments.session_id),
+                    "command": arguments.command_args,
+                },
+            )
+        if arguments.cargo_command == "heartbeat":
+            return client.command(
+                "cargo.heartbeat",
+                {
+                    "job_id": arguments.job_id,
+                    "session_id": _session_id(arguments.session_id),
+                },
+            )
+        if arguments.cargo_command == "finish":
+            return client.command(
+                "cargo.finish",
+                {
+                    "job_id": arguments.job_id,
+                    "session_id": _session_id(arguments.session_id),
+                    "exit_code": arguments.exit_code,
+                },
+            )
+        if arguments.cargo_command == "release":
+            return client.command(
+                "cargo.release",
+                {
+                    "job_id": arguments.job_id,
+                    "session_id": _session_id(arguments.session_id),
+                },
+            )
+        if arguments.cargo_command == "list":
+            return client.command("cargo.list")
+    if arguments.command == "cleanup":
+        payload = {"older_than_hours": arguments.older_than_hours}
+        if arguments.cleanup_command == "apply":
+            payload.update({"plan_id": arguments.plan_id})
+        return client.command(f"cleanup.{arguments.cleanup_command}", payload)
     raise CoordinatorClientError("invalid_command", f"Unsupported command {arguments.command}")
 
 

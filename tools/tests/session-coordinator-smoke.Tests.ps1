@@ -192,6 +192,27 @@ diff --git a/README.md b/README.md
     }
 }
 
+function Test-CargoAndCleanup {
+    $oldPythonPath = $env:PYTHONPATH
+    try {
+        $env:PYTHONPATH = $sourceRoot
+        & $python -u -m unittest `
+            tools.session_coordinator.tests.test_cargo_jobs `
+            tools.session_coordinator.tests.test_cleanup
+        Assert-True ($LASTEXITCODE -eq 0) "Cargo lane or cleanup unit smoke failed."
+    }
+    finally {
+        $env:PYTHONPATH = $oldPythonPath
+    }
+
+    $taskInstaller = Join-Path $sourceRoot "tools\install-session-coordinator-task.ps1"
+    $taskPlan = & $taskInstaller -Action Install -RepoRoot $sourceRoot -DryRun
+    Assert-True ($LASTEXITCODE -eq 0) "Scheduled-task dry-run failed."
+    Assert-True (($taskPlan -join "`n") -match "ONLOGON") "Daemon at-logon task was not planned."
+    Assert-True (($taskPlan -join "`n") -match "MINUTE") "Maintenance interval task was not planned."
+    Write-Host "PASS: managed Cargo lanes and cleanup smoke"
+}
+
 if ($KernelOnly -or (-not $LeaseAndPatch -and -not $CargoAndCleanup -and -not $FinalizeInTempRepo)) {
     Test-Kernel
 }
@@ -201,7 +222,7 @@ if ($LeaseAndPatch) {
 }
 
 if ($CargoAndCleanup) {
-    throw "CargoAndCleanup belongs to milestone M4 and is not available during M1-M2."
+    Test-CargoAndCleanup
 }
 
 if ($FinalizeInTempRepo) {

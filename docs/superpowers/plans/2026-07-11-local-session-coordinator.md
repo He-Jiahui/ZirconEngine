@@ -210,9 +210,9 @@ Run:
 
 ```powershell
 python -m unittest tools.session_coordinator.tests.test_cargo_jobs tools.session_coordinator.tests.test_cleanup -v
-powershell -NoProfile -ExecutionPolicy Bypass -File .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -Command '$result = Invoke-Pester .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1 -PassThru; if ($result.FailedCount -gt 0) { exit 1 }'
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/tests/session-coordinator-smoke.Tests.ps1 -CargoAndCleanup
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/install-session-coordinator-task.ps1 -DryRun
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/install-session-coordinator-task.ps1 -Action Install -DryRun
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/cleanup-stale-targets.ps1 -WhatIf
 ```
 
@@ -336,3 +336,11 @@ Expected: all coordinator and integration suites pass; existing handoff validato
 | M3 | M3.6 Integrate project skills | 完成（待 M3-T） | 2026-07-11 | 更新 cross-session、failure、plan-output、milestone policy、父索引/skill catalog 与递归 context reader；服务优先、Markdown canonical、离线兼容边界明确。 |
 | M3 | M3.7 Add fixtures and real-tree read-only audit | 完成（待 M3-T） | 2026-07-11 | 临时 plan/failure fixture 覆盖 protected/legacy/cycle/depth/return/rollback；真实树只读导入 130 个正式计划、126 个 legacy 文档、6 个 handoff 节点与 28 项并发 schema diagnostic，未改业务 artifact。 |
 | M3 | M3-T Plan and graph acceptance | 通过 | 2026-07-11 | `compileall` exit 0；handoff validator tests 15/15；coordinator suite 30/30；Kernel/LeaseAndPatch smoke PASS；skill quick validation PASS；scoped diff check exit 0。 |
+| M4 | M4.1 Implement target allowlist and lane records | 完成（待 M4-T） | 2026-07-11 | schema v4-v7 与 `cargo_jobs.py`：Cargo jobs、cleanup reservations/persisted plans；仅 `lanes` 直接子目录，case/separator identity、overlap、junction/symlink/repo-local 统一拒绝。 |
+| M4 | M4.2 Implement Cargo job lifecycle | 完成（待 M4-T） | 2026-07-11 | check/test/workspace/gpu lane，owner-checked leased/running/succeeded/failed/released/orphaned 状态，PID/真实进程命令/exit/heartbeat 审计，running 与 pre-start leased 失联回收，显式 lane 安全复用。 |
+| M4 | M4.3 Integrate `validate-matrix.ps1` | 完成（待 M4-T） | 2026-07-11 | 删除 repo-local JSON 双槽；CLI/env/默认目标统一经服务校验；acquire 后立即进入外层 finally，pre-start/Cargo 缺失/正常/异常路径均释放。 |
+| M4 | M4.4 Implement cleanup planning | 完成（待 M4-T） | 2026-07-11 | 持久化、单次、30 分钟有效 `plan_id` 锁定候选/retention；apply 只可缩减且拒绝 untracked；短事务 reservation、事务外 rmtree、重启恢复。 |
+| M4 | M4.5 Replace stale-target script behavior | 完成（待 M4-T） | 2026-07-11 | `cleanup-stale-targets.ps1` 只调用服务，不模糊枚举盘符、不直接删除；默认 preview，`-Apply` 与 `-WhatIf` 边界保留。 |
+| M4 | M4.6 Install user-level scheduled task | 完成（待 M4-T） | 2026-07-11 | 新增 repo-hash 隔离的 at-logon 隐藏 daemon 与 15 分钟 maintenance 两任务，Install/Update/Query/Remove 幂等入口和 DryRun 输出；验收阶段未实际安装。 |
+| M4 | M4.7 Add fake-Cargo and cleanup tests | 完成（待 M4-T） | 2026-07-11 | Cargo/cleanup smoke 27/27：junction/symlink、unavailable root、nested overlap、case identity、显式复用、foreign owner、pre-start orphan、persisted plan、untracked拒绝、reservation/acquire 并发与事务外删除。 |
+| M4 | M4-T Cargo and maintenance acceptance | 通过 | 2026-07-11 | Python full 57/57；Windows PowerShell 5 Pester 68/68；CargoAndCleanup smoke 27/27；installer DryRun/cleanup plan/compile/diff/secret scan exit 0；最终 reviewer 无 Critical/Important。 |

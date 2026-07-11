@@ -1,183 +1,76 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [int]$OlderThanHours = 2
+    [ValidateRange(1, 8760)]
+    [int]$OlderThanHours = 2,
+    [string]$RepoRoot,
+    [switch]$Apply
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Get-CargoManifestDirectory {
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.IO.DirectoryInfo]$TargetDirectory
-    )
-
-    $cursor = $TargetDirectory.Parent
-    while ($null -ne $cursor) {
-        $manifestPath = Join-Path -Path $cursor.FullName -ChildPath "Cargo.toml"
-        if (Test-Path -LiteralPath $manifestPath) {
-            return $cursor
-        }
-
-        $cursor = $cursor.Parent
-    }
-
-    return $null
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Split-Path -Parent $PSScriptRoot
 }
 
-function Get-TargetDirectoriesFromCandidate {
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.IO.DirectoryInfo]$Candidate
-    )
-
-    $targets = [System.Collections.Generic.List[System.IO.DirectoryInfo]]::new()
-
-    $looksLikeTargetRoot = $Candidate.Name -eq "target" -or
-        $Candidate.Name -like "cargo-targets*" -or
-        (Test-Path -LiteralPath (Join-Path -Path $Candidate.FullName -ChildPath "debug")) -or
-        (Test-Path -LiteralPath (Join-Path -Path $Candidate.FullName -ChildPath "release")) -or
-        (Test-Path -LiteralPath (Join-Path -Path $Candidate.FullName -ChildPath ".fingerprint"))
-
-    if ($looksLikeTargetRoot) {
-        $targets.Add($Candidate)
-    }
-
-    $nestedTargetPath = Join-Path -Path $Candidate.FullName -ChildPath "target"
-    if (Test-Path -LiteralPath $nestedTargetPath) {
-        $nestedTarget = Get-Item -LiteralPath $nestedTargetPath
-        if ($nestedTarget -is [System.IO.DirectoryInfo]) {
-            $targets.Add($nestedTarget)
-        }
-    }
-
-    return $targets
+$resolvedRepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
+$client = Join-Path $resolvedRepoRoot "tools\zircon-session.ps1"
+if (-not (Test-Path -LiteralPath $client)) {
+    throw "Session coordinator client is missing: $client"
 }
 
-function Invoke-TargetCleanup {
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.IO.DirectoryInfo]$TargetDirectory,
-        [Parameter(Mandatory = $true)]
-        [datetime]$CutoffTime,
-        [switch]$CargoAvailable
-    )
+function Invoke-CleanupCommand {
+    param([string]$Action, [object]$ReviewedPlan)
 
-    $staleDirectories = @(
-        Get-ChildItem -LiteralPath $TargetDirectory.FullName -Directory -Force |
-            Where-Object { $_.LastWriteTime -lt $CutoffTime }
-    )
-
-    if ($staleDirectories.Count -eq 0) {
-        Write-Host "[Skip] No stale directories: $($TargetDirectory.FullName)"
-        return
+    $arguments = @($Action, "--older-than-hours", [string]$OlderThanHours)
+    if ($Action -eq "apply") {
+        $arguments += @("--plan-id", [string]$ReviewedPlan.plan_id)
     }
-
-    Write-Host "[Scan] Found $($staleDirectories.Count) stale directories: $($TargetDirectory.FullName)"
-    $manifestDirectory = Get-CargoManifestDirectory -TargetDirectory $TargetDirectory
-
-    $manifestPath = $null
-    if ($null -ne $manifestDirectory) {
-        $manifestPath = Join-Path -Path $manifestDirectory.FullName -ChildPath "Cargo.toml"
+    $raw = & $client -Command cleanup -RepoRoot $resolvedRepoRoot -Json @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Coordinator cleanup $Action failed: $($raw -join [Environment]::NewLine)"
     }
-
-    foreach ($directory in $staleDirectories) {
-        $cleaned = $false
-
-        if ($CargoAvailable -and $null -ne $manifestPath) {
-            $cargoArgs = @(
-                "clean"
-                "--manifest-path", $manifestPath
-                "--target-dir", $directory.FullName
-            )
-
-            if ($PSCmdlet.ShouldProcess($directory.FullName, "cargo $($cargoArgs -join ' ')")) {
-                try {
-                    Write-Host "[Rust] Running cargo clean: $($directory.FullName)"
-                    & cargo @cargoArgs
-                    if ($LASTEXITCODE -eq 0) {
-                        $cleaned = $true
-                    }
-                    else {
-                        Write-Warning "cargo clean failed for $($directory.FullName), will try direct deletion."
-                    }
-                }
-                catch {
-                    Write-Warning "cargo clean threw an exception for $($directory.FullName): $($_.Exception.Message)"
-                }
-            }
-        }
-
-        if (-not $cleaned) {
-            if ($PSCmdlet.ShouldProcess($directory.FullName, "Remove-Item -Recurse -Force")) {
-                try {
-                    Write-Host "[Delete] Removing stale directory: $($directory.FullName)"
-                    Remove-Item -LiteralPath $directory.FullName -Recurse -Force
-                }
-                catch {
-                    Write-Warning "Failed to remove $($directory.FullName): $($_.Exception.Message)"
-                }
-            }
-        }
-    }
+    return (($raw -join [Environment]::NewLine) | ConvertFrom-Json)
 }
 
-$now = Get-Date
-$cutoffTime = $now.AddHours(-$OlderThanHours)
-
-$searchCandidates = [System.Collections.Generic.List[System.IO.DirectoryInfo]]::new()
-
-$workspaceTargetPath = Join-Path -Path (Get-Location).Path -ChildPath "target"
-if (Test-Path -LiteralPath $workspaceTargetPath) {
-    $searchCandidates.Add((Get-Item -LiteralPath $workspaceTargetPath))
+$response = Invoke-CleanupCommand -Action "plan"
+$plan = $response.plan
+Write-Host "Managed Cargo cleanup plan"
+foreach ($root in @($plan.free_bytes_by_root.PSObject.Properties)) {
+    $pressure = if (@($plan.pressure_roots) -contains $root.Name) { " LOW-DISK" } else { "" }
+    Write-Host ("  Root {0}: {1:N2} GB free{2}" -f $root.Name, ([int64]$root.Value / 1GB), $pressure)
+}
+Write-Host "  Candidates: $(@($plan.candidates).Count)"
+foreach ($candidate in @($plan.candidates)) {
+    Write-Host "  - $candidate"
+}
+Write-Host "  Denied/retained: $(@($plan.denied).Count)"
+foreach ($denial in @($plan.denied)) {
+    Write-Host "  - [$($denial.code)] $($denial.path): $($denial.message)"
 }
 
-foreach ($drive in @("D:\", "E:\", "F:\")) {
-    if (-not (Test-Path -LiteralPath $drive)) {
-        continue
-    }
-
-    $rootMatches = Get-ChildItem -LiteralPath $drive -Directory -Force |
-        Where-Object {
-            $_.Name -like "codex*" -or
-            $_.Name -like "target*" -or
-            $_.Name -like "cargo-targets*"
-        }
-
-    foreach ($match in $rootMatches) {
-        $searchCandidates.Add($match)
-    }
-}
-
-if ($searchCandidates.Count -eq 0) {
-    Write-Host "No candidate directories found."
+if (-not $Apply) {
+    Write-Host "Plan only. Pass -Apply to request deletion after service revalidation."
     exit 0
 }
 
-$cargoAvailable = $null -ne (Get-Command cargo -ErrorAction SilentlyContinue)
-if (-not $cargoAvailable) {
-    Write-Warning "cargo is not available; Rust-like targets will fall back to direct stale-directory deletion."
-}
-
-$targetDirectories = [System.Collections.Generic.Dictionary[string, System.IO.DirectoryInfo]]::new([System.StringComparer]::OrdinalIgnoreCase)
-foreach ($candidate in $searchCandidates) {
-    foreach ($target in (Get-TargetDirectoriesFromCandidate -Candidate $candidate)) {
-        if (-not $targetDirectories.ContainsKey($target.FullName)) {
-            $targetDirectories.Add($target.FullName, $target)
-        }
-    }
-}
-
-if ($targetDirectories.Count -eq 0) {
-    Write-Host "No target directories detected."
+if (@($plan.candidates).Count -eq 0) {
+    Write-Host "No reviewed cleanup candidates; nothing to apply."
     exit 0
 }
 
-Write-Host "Cleanup started. Threshold: $OlderThanHours hour(s), older than $cutoffTime."
-Write-Host "[Roots] Scanning target roots:"
-foreach ($target in $targetDirectories.Values) {
-    Write-Host "  - $($target.FullName)"
-    Invoke-TargetCleanup -TargetDirectory $target -CutoffTime $cutoffTime -CargoAvailable:$cargoAvailable
+if (-not $PSCmdlet.ShouldProcess(
+        "$(@($plan.candidates).Count) managed Cargo lane(s)",
+        "service cleanup apply with PID, lease, retention, and realpath revalidation"
+    )) {
+    exit 0
 }
 
-Write-Host "Cleanup completed."
+$applied = Invoke-CleanupCommand -Action "apply" -ReviewedPlan $plan
+Write-Host "Deleted: $(@($applied.result.deleted).Count)"
+foreach ($target in @($applied.result.deleted)) {
+    Write-Host "  - $target"
+}
+foreach ($denial in @($applied.result.denied)) {
+    Write-Host "  - retained [$($denial.code)] $($denial.path): $($denial.message)"
+}

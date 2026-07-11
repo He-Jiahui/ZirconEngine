@@ -24,7 +24,7 @@ Useful switches:
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -SkipTest -RunProfileFeatureContract -ProfileFeatureContractLabel "zircon_runtime target-server"
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -VerboseOutput
-.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir target/manual-check
+.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir E:\targets\zircon-engine\lanes\manual-check
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -DryRun -SkipBuild -SkipTest -RunExportPlatformContract -ExportContractPlatform headless
 ```
 
@@ -42,11 +42,11 @@ Read `../references/cargo-target-disk-policy.md` when shared-target setup, clean
 - In the milestone testing stage, match CI first: `cargo build --workspace --locked --verbose` and `cargo test --workspace --locked --verbose`.
 - If the milestone is clearly crate-local, start the testing stage with `cargo test -p <crate>` and then expand back to workspace validation when shared contracts or manifests move.
 - Keep `--locked` on by default. Disable it only when lockfile work is explicitly in scope.
-- Prefer setting a shared external `CARGO_TARGET_DIR` across clones or worktrees when disk usage matters; the validator respects that environment variable automatically.
-- If no shared `CARGO_TARGET_DIR` is configured, the validator auto-selects one of `target/codex-shared-a` or `target/codex-shared-b` and reuses it per active session instead of minting unlimited new target directories.
+- Every validator run acquires a unique Cargo lane from the local Session coordinator under an available `D:\targets\zircon-engine\lanes`, `E:\targets\zircon-engine\lanes`, or `F:\targets\zircon-engine\lanes` root.
+- Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` values are accepted only when they resolve below a managed `targets\zircon-engine\lanes` root. Repo-local and arbitrary external targets fail before Cargo runs.
 - Before build or test, the validator checks remaining free space on the drive that hosts the active target directory. If that free space is `<= 50 GB`, it runs `cargo clean --target-dir <active-target-dir>` before continuing.
-- `-DryRun` renders selected commands without running `cargo`, requiring cargo discovery, running target-directory cleanup checks, or claiming a shared target slot. Without explicit `-TargetDir`, dry-run renders commands against `target/manual-check`; pass `-TargetDir` only when you need a different displayed path.
-- If both shared slots are occupied by other active sessions, pass `-TargetDir` explicitly instead of inventing a third default slot.
+- `-DryRun` renders selected commands without running `cargo`, requiring Cargo discovery, or running target-directory cleanup checks. It still asks the coordinator for a managed audit lane, does not create the directory, and releases the lane in `finally`.
+- Never create `target/<name>` directories in the repository. Use the validator or request an explicit path below a managed lane root.
 - Use `-RunExportPlatformContract` to mirror the CI export-platform policy matrix locally. The matrix covers `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, `wasm`, and `headless` by setting `ZR_EXPORT_CONTRACT_PLATFORM` for the focused `zircon_runtime` export policy test.
 - Add `-ExportContractPlatform <platform>` only with `-RunExportPlatformContract` when active shared compile lanes make a single low-interference export-platform check safer than the full eight-platform matrix. Passing `-ExportContractPlatform` without `-RunExportPlatformContract` is rejected so the selector cannot be silently ignored.
 - Use `-RunProfileFeatureContract` to mirror `.github/workflows/profile-feature-contract.yml` locally. The matrix checks the M5 no-default-features profile contracts for `zircon_app` server/client-platform and `zircon_runtime` client/editor-host/server.

@@ -9,7 +9,7 @@ $env:VALIDATE_MATRIX_TEST_MODE = $script:OriginalValidateMatrixTestMode
 
 function Get-CiExportPlatformMatrix {
     $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\ci.yml"
-    $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
     $match = [regex]::Match($workflow, "(?m)^\s*export-platform:\s*\[(?<platforms>[^\]]+)\]")
 
     if (-not $match.Success) {
@@ -23,7 +23,7 @@ function Get-CiExportPlatformMatrix {
 
 function Get-CiProfileFeatureMatrix {
     $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
-    $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
     $caseMatches = [regex]::Matches(
         $workflow,
         "(?ms)^\s*-\s+label:\s*(?<label>[^\r\n]+)\s+package:\s*(?<package>[^\r\n]+)\s+features:\s*(?<features>[^\r\n]+)"
@@ -49,7 +49,7 @@ function Get-WorkflowAptPackages {
     )
 
     $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot $WorkflowRelativePath
-    $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
     $escapedStepName = [regex]::Escape($StepName)
     $stepMatch = [regex]::Match(
         $workflow,
@@ -110,7 +110,10 @@ function Assert-WorkflowHasContractScaffolding {
 }
 
 function Invoke-ValidateMatrixCli {
-    param([string[]]$Arguments)
+    param(
+        [string[]]$Arguments,
+        [switch]$PreserveCargoTargetDir
+    )
 
     $powershell = Get-Command pwsh -ErrorAction SilentlyContinue
     if ($null -eq $powershell) {
@@ -124,10 +127,26 @@ function Invoke-ValidateMatrixCli {
         "-File",
         $script:ValidateMatrixScript
     ) + $Arguments
-    $output = & $powershell.Source @commandArgs 2>&1
+    $previousCargoTargetDir = $env:CARGO_TARGET_DIR
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        if (-not $PreserveCargoTargetDir) {
+            Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
+        }
+        $output = & $powershell.Source @commandArgs 2>&1
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+        if ($null -eq $previousCargoTargetDir) {
+            Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_TARGET_DIR = $previousCargoTargetDir
+        }
+    }
 
     return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
+        ExitCode = $exitCode
         Output   = ($output | ForEach-Object { $_.ToString() }) -join "`n"
     }
 }
@@ -135,13 +154,18 @@ function Invoke-ValidateMatrixCli {
 function Invoke-ValidateMatrixCliWithCargoTargetDir {
     param(
         [string[]]$Arguments,
-        [string]$CargoTargetDir = "E:\cargo-targets\zircon-dry-run-should-not-use"
+        [AllowNull()]
+        [string]$CargoTargetDir = $null
     )
 
     $previousCargoTargetDir = $env:CARGO_TARGET_DIR
     try {
-        $env:CARGO_TARGET_DIR = $CargoTargetDir
-        return Invoke-ValidateMatrixCli -Arguments $Arguments
+        if ($null -eq $CargoTargetDir) {
+            Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_TARGET_DIR = $CargoTargetDir
+        }
+        return Invoke-ValidateMatrixCli -Arguments $Arguments -PreserveCargoTargetDir
     } finally {
         if ($null -eq $previousCargoTargetDir) {
             Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
@@ -169,15 +193,27 @@ function Invoke-ValidateMatrixCliWithoutCargo {
     ) + $Arguments
 
     $previousPath = $env:PATH
+    $previousCargoTargetDir = $env:CARGO_TARGET_DIR
+    $previousErrorActionPreference = $ErrorActionPreference
     try {
-        $env:PATH = $scriptDir
+        $ErrorActionPreference = "Continue"
+        Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
+        $pythonDirectory = Split-Path (Get-Command python -ErrorAction Stop).Source -Parent
+        $env:PATH = "$scriptDir;$pythonDirectory"
         $output = & $powershell.Source @commandArgs 2>&1
+        $exitCode = $LASTEXITCODE
     } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
         $env:PATH = $previousPath
+        if ($null -eq $previousCargoTargetDir) {
+            Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
+        } else {
+            $env:CARGO_TARGET_DIR = $previousCargoTargetDir
+        }
     }
 
     return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
+        ExitCode = $exitCode
         Output   = ($output | ForEach-Object { $_.ToString() }) -join "`n"
     }
 }
@@ -188,7 +224,7 @@ function Get-CargoFeatureValues {
         [string]$FeatureName
     )
 
-    $cargoToml = Get-Content -Raw $CargoTomlPath
+    $cargoToml = Get-Content -Raw -Encoding UTF8 $CargoTomlPath
     $featuresMatch = [regex]::Match($cargoToml, "(?ms)^\[features\]\s*(?<features>.*?)(?=^\[|\z)")
     if (-not $featuresMatch.Success) {
         throw "Could not find [features] in $CargoTomlPath"
@@ -214,7 +250,7 @@ function Get-CargoPackageStringValue {
         [string]$Key
     )
 
-    $cargoToml = Get-Content -Raw $CargoTomlPath
+    $cargoToml = Get-Content -Raw -Encoding UTF8 $CargoTomlPath
     $packageMatch = [regex]::Match($cargoToml, "(?ms)^\[package\]\s*(?<package>.*?)(?=^\[|\z)")
     if (-not $packageMatch.Success) {
         throw "Could not find [package] in $CargoTomlPath"
@@ -250,7 +286,7 @@ function Get-RustEnumAsStrTokens {
         [string]$EnumName
     )
 
-    $source = Get-Content -Raw $RustPath
+    $source = Get-Content -Raw -Encoding UTF8 $RustPath
     $escapedEnumName = [regex]::Escape($EnumName)
     $implMatch = [regex]::Match($source, "(?ms)impl\s+$escapedEnumName\s*\{(?<body>.*?)^\}")
     if (-not $implMatch.Success) {
@@ -275,7 +311,7 @@ function Get-RustMatchStringArms {
         [string]$FunctionName
     )
 
-    $source = Get-Content -Raw $RustPath
+    $source = Get-Content -Raw -Encoding UTF8 $RustPath
     $escapedFunctionName = [regex]::Escape($FunctionName)
     $functionMatch = [regex]::Match(
         $source,
@@ -296,7 +332,7 @@ function Get-RustMatchArmBody {
         [string]$ArmLiteral
     )
 
-    $source = Get-Content -Raw $RustPath
+    $source = Get-Content -Raw -Encoding UTF8 $RustPath
     $escapedFunctionName = [regex]::Escape($FunctionName)
     $functionMatch = [regex]::Match(
         $source,
@@ -318,136 +354,29 @@ function Get-RustMatchArmBody {
     return $armMatch.Groups["body"].Value
 }
 
-function New-TestLease {
-    param(
-        [string]$SlotName,
-        [string]$OwnerId,
-        [string]$LastSeenUtc,
-        [string]$RepoRoot = "E:/Git/ZirconEngine"
-    )
+Describe "Coordinator Cargo target hard cutover" {
+    It "contains no repo-local shared-slot implementation" {
+    $source = Get-Content -Raw -Encoding UTF8 $script:ValidateMatrixScript
 
-    @{
-        slot_name     = $SlotName
-        owner_id      = $OwnerId
-        target_dir    = "target/codex-shared-$SlotName"
-        last_seen_utc = $LastSeenUtc
-        repo_root     = $RepoRoot
-    }
-}
-
-Describe "Resolve-SharedCargoTarget" {
-    It "reuses the current owner slot before claiming another slot" {
-        $leases = @(
-            (New-TestLease -SlotName "a" -OwnerId "thread-1" -LastSeenUtc "2026-04-18T00:00:00Z"),
-            (New-TestLease -SlotName "b" -OwnerId "thread-2" -LastSeenUtc "2026-04-18T00:30:00Z")
-        )
-
-        $result = Resolve-SharedCargoTarget -RepoRoot "E:/Git/ZirconEngine" -OwnerId "thread-1" -Leases $leases -NowUtc ([datetime]"2026-04-18T01:00:00Z")
-
-        $result.SlotName | Should Be "a"
+        $source | Should Not Match "Resolve-SharedCargoTarget"
+        $source | Should Not Match "codex-shared-[ab]"
+        $source | Should Not Match "target.manual-check"
+        $source | Should Match "Resolve-CoordinatorCargoTarget"
     }
 
-    It "claims slot b when slot a is occupied by another active owner" {
-        $leases = @(
-            (New-TestLease -SlotName "a" -OwnerId "thread-2" -LastSeenUtc "2026-04-18T01:00:00Z"),
-            (New-TestLease -SlotName "b" -OwnerId $null -LastSeenUtc $null)
-        )
+    It "releases a leased job when Cargo discovery fails before start" {
+        $client = Join-Path $script:ValidateMatrixTestRepoRoot "tools\zircon-session.ps1"
+        $beforeRaw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
+        $beforeIds = @((($beforeRaw -join "`n") | ConvertFrom-Json).jobs | ForEach-Object job_id)
+        $result = Invoke-ValidateMatrixCliWithoutCargo -Arguments @("-SkipTest")
 
-        $result = Resolve-SharedCargoTarget -RepoRoot "E:/Git/ZirconEngine" -OwnerId "thread-1" -Leases $leases -NowUtc ([datetime]"2026-04-18T02:00:00Z")
-
-        $result.SlotName | Should Be "b"
-    }
-
-    It "reclaims stale slots" {
-        $leases = @(
-            (New-TestLease -SlotName "a" -OwnerId "old-thread" -LastSeenUtc "2026-04-17T00:00:00Z"),
-            (New-TestLease -SlotName "b" -OwnerId "thread-2" -LastSeenUtc "2026-04-18T01:30:00Z")
-        )
-
-        $result = Resolve-SharedCargoTarget -RepoRoot "E:/Git/ZirconEngine" -OwnerId "thread-1" -Leases $leases -NowUtc ([datetime]"2026-04-18T14:00:00Z")
-
-        $result.SlotName | Should Be "a"
-    }
-
-    It "keeps the current owner on its slot even when the lease timestamp is old" {
-        $leases = @(
-            (New-TestLease -SlotName "a" -OwnerId "thread-1" -LastSeenUtc "2026-04-17T00:00:00Z"),
-            (New-TestLease -SlotName "b" -OwnerId "thread-2" -LastSeenUtc "2026-04-18T01:30:00Z")
-        )
-
-        $result = Resolve-SharedCargoTarget -RepoRoot "E:/Git/ZirconEngine" -OwnerId "thread-1" -Leases $leases -NowUtc ([datetime]"2026-04-18T14:00:00Z")
-
-        $result.SlotName | Should Be "a"
-        $result.Reason | Should Match "reused current thread slot a"
-    }
-
-    It "throws when both slots are occupied by other active owners" {
-        $leases = @(
-            (New-TestLease -SlotName "a" -OwnerId "thread-2" -LastSeenUtc "2026-04-18T01:00:00Z"),
-            (New-TestLease -SlotName "b" -OwnerId "thread-3" -LastSeenUtc "2026-04-18T01:30:00Z")
-        )
-
-        $threw = $false
-
-        try {
-            Resolve-SharedCargoTarget -RepoRoot "E:/Git/ZirconEngine" -OwnerId "thread-1" -Leases $leases -NowUtc ([datetime]"2026-04-18T02:00:00Z") | Out-Null
-        } catch {
-            $threw = $true
-            $_.Exception.Message | Should Match "Both shared cargo target slots are occupied"
-        }
-
-        $threw | Should Be $true
-    }
-}
-
-Describe "Resolve-EffectiveTargetDir" {
-    AfterEach {
-        if ($null -eq $script:OriginalCargoTargetDir) {
-            Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
-        } else {
-            $env:CARGO_TARGET_DIR = $script:OriginalCargoTargetDir
-        }
-    }
-
-    It "bypasses shared slot selection when TargetDir is provided" {
-        $env:CARGO_TARGET_DIR = "E:/cargo-targets/zircon-shared"
-        $result = Resolve-EffectiveTargetDir -RepoRoot "E:/Git/ZirconEngine" -ManualTargetDir "target/manual-check"
-
-        $result.SelectionMode | Should Be "manual"
-        $result.TargetDir | Should Match "target[\\\\/]manual-check$"
-    }
-
-    It "uses CARGO_TARGET_DIR before falling back to shared slots" {
-        $env:CARGO_TARGET_DIR = "E:/cargo-targets/zircon-shared"
-
-        $result = Resolve-EffectiveTargetDir -RepoRoot "E:/Git/ZirconEngine" -ManualTargetDir $null
-
-        $result.SelectionMode | Should Be "environment"
-        $result.TargetDir | Should Be "E:/cargo-targets/zircon-shared"
-        $result.AbsoluteTargetDir | Should Match "cargo-targets[\\\\/]zircon-shared$"
-        $result.Reason | Should Match "CARGO_TARGET_DIR"
-    }
-}
-
-Describe "Resolve-DryRunTargetDir" {
-    It "uses a stable manual-check target without claiming a shared slot when TargetDir is omitted" {
-        $env:CARGO_TARGET_DIR = "E:/cargo-targets/zircon-shared"
-
-        $result = Resolve-DryRunTargetDir -RepoRoot "E:/Git/ZirconEngine" -ManualTargetDir $null
-
-        $result.SelectionMode | Should Be "dry-run"
-        $result.TargetDir | Should Match "target[\\\\/]manual-check$"
-        $result.Reason | Should Be "dry-run default"
-        $result.SlotName | Should Be $null
-        $result.OwnerId | Should Be $null
-    }
-
-    It "keeps explicit dry-run TargetDir values as manual overrides" {
-        $result = Resolve-DryRunTargetDir -RepoRoot "E:/Git/ZirconEngine" -ManualTargetDir "target/custom-dry-run"
-
-        $result.SelectionMode | Should Be "manual"
-        $result.TargetDir | Should Match "target[\\\\/]custom-dry-run$"
-        $result.Reason | Should Be "manual override"
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "cargo"
+        $raw = & $client -Command cargo -RepoRoot $script:ValidateMatrixTestRepoRoot -Json list
+        $jobs = (($raw -join "`n") | ConvertFrom-Json).jobs
+        $created = @($jobs | Where-Object { $beforeIds -notcontains $_.job_id })
+        $created.Count | Should Be 1
+        $created[0].status | Should Be "released"
     }
 }
 
@@ -466,7 +395,7 @@ Describe "Get-PrebuildCleanupDecision" {
 }
 
 Describe "Validate matrix CLI dry-run parsing" {
-    It "uses the dry-run default target for no-stage sanity checks without inheriting CARGO_TARGET_DIR" {
+    It "allocates a managed drive-root lane for no-stage sanity checks" {
         $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
             "-DryRun",
             "-SkipBuild",
@@ -475,12 +404,12 @@ Describe "Validate matrix CLI dry-run parsing" {
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Dry run: on"
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
         $result.Output | Should Match "No stages selected"
-        $result.Output | Should Not Match "zircon-dry-run-should-not-use"
+        $result.Output | Should Not Match "target\\manual-check"
     }
 
-    It "uses an explicit TargetDir override for no-stage sanity checks" {
+    It "rejects an explicit repo-local TargetDir instead of bypassing the service" {
         $result = Invoke-ValidateMatrixCliWithCargoTargetDir -Arguments @(
             "-DryRun",
             "-SkipBuild",
@@ -489,12 +418,17 @@ Describe "Validate matrix CLI dry-run parsing" {
             "target\custom-dry-run"
         )
 
-        $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Dry run: on"
-        $result.Output | Should Match "Target dir: target\\custom-dry-run \(manual override\)"
-        $result.Output | Should Match "No stages selected"
-        $result.Output | Should Not Match "zircon-dry-run-should-not-use"
-        $result.Output | Should Not Match "target\\manual-check"
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "cargo_target_not_managed|managed targets/zircon-engine/lanes"
+    }
+
+    It "rejects an inherited target outside managed lane roots" {
+        $result = Invoke-ValidateMatrixCliWithCargoTargetDir `
+            -CargoTargetDir "E:\cargo-targets\unmanaged" `
+            -Arguments @("-DryRun", "-SkipBuild", "-SkipTest")
+
+        $result.ExitCode | Should Not Be 0
+        $result.Output | Should Match "cargo_target_not_managed|managed targets/zircon-engine/lanes"
     }
 }
 
@@ -553,9 +487,7 @@ Describe "Export platform contract validation" {
             "-DryRun",
             "-SkipBuild",
             "-SkipTest",
-            "-RunExportPlatformContract",
-            "-TargetDir",
-            "target\manual-check"
+            "-RunExportPlatformContract"
         )
 
         $result.ExitCode | Should Be 0
@@ -563,7 +495,7 @@ Describe "Export platform contract validation" {
             $result.Output | Should Match ("Export platform contract \({0}\)" -f [regex]::Escape($platform))
             $result.Output | Should Match ("ZR_EXPORT_CONTRACT_PLATFORM={0}" -f [regex]::Escape($platform))
         }
-        ([regex]::Matches($result.Output, "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir target\\manual-check")).Count |
+        ([regex]::Matches($result.Output, "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+")).Count |
             Should Be $script:ExportContractPlatforms.Count
     }
 
@@ -581,15 +513,13 @@ Describe "Export platform contract validation" {
             "-SkipTest",
             "-RunExportPlatformContract",
             "-ExportContractPlatform",
-            "headless",
-            "-TargetDir",
-            "target\manual-check"
+            "headless"
         )
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Export platform contract \(headless\)"
         $result.Output | Should Match "ZR_EXPORT_CONTRACT_PLATFORM=headless"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
         $result.Output | Should Not Match "Export platform contract \(windows\)"
         $result.Output | Should Not Match "Export platform contract \(linux\)"
         $result.Output | Should Not Match "Export platform contract \(macos\)"
@@ -610,10 +540,10 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Dry run selected; skipping cargo discovery and target directory cleanup checks"
         $result.Output | Should Match "Export platform contract \(headless\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
     }
 
     It "dry-runs selected export platform commands without inheriting CARGO_TARGET_DIR" {
@@ -627,9 +557,8 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir target\\manual-check"
-        $result.Output | Should Not Match "zircon-dry-run-should-not-use"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
     }
 
     It "dry-runs selected export platform commands with an explicit TargetDir override" {
@@ -641,14 +570,12 @@ Describe "Export platform contract validation" {
             "-ExportContractPlatform",
             "headless",
             "-TargetDir",
-            "target\custom-dry-run"
+            "E:\targets\zircon-engine\lanes\pester-custom-dry-run"
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\custom-dry-run \(manual override\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir target\\custom-dry-run"
-        $result.Output | Should Not Match "zircon-dry-run-should-not-use"
-        $result.Output | Should Not Match "target\\manual-check"
+        $result.Output | Should Match "Target dir: E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run \(coordinator validated manual target\)"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --target-dir E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run"
     }
 
     It "dry-runs selected export platform commands with verbose cargo output" {
@@ -663,9 +590,9 @@ Describe "Export platform contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Export platform contract \(headless\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
     }
 
     It "dry-runs selected export platform commands without locked mode only when requested" {
@@ -682,7 +609,7 @@ Describe "Export platform contract validation" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Locked mode: off"
         $result.Output | Should Match "Export platform contract \(headless\)"
-        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
         $result.Output | Should Not Match "--locked"
     }
 
@@ -706,9 +633,7 @@ Describe "Export platform contract validation" {
             "-SkipTest",
             "-RunExportPlatformContract",
             "-ExportContractPlatform",
-            "console",
-            "-TargetDir",
-            "target\manual-check"
+            "console"
         )
 
         $result.ExitCode | Should Not Be 0
@@ -736,9 +661,7 @@ Describe "Export platform contract validation" {
             "-SkipBuild",
             "-SkipTest",
             "-ExportContractPlatform",
-            "headless",
-            "-TargetDir",
-            "target\manual-check"
+            "headless"
         )
 
         $result.ExitCode | Should Not Be 0
@@ -747,7 +670,7 @@ Describe "Export platform contract validation" {
 
     It "keeps CI wiring on the same focused export policy test and environment variable" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\ci.yml"
-        $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
 
         $workflow | Should Match "ZR_EXPORT_CONTRACT_PLATFORM:\s*\$\{\{\s*matrix\.export-platform\s*\}\}"
         $workflow | Should Match "cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose"
@@ -755,7 +678,7 @@ Describe "Export platform contract validation" {
 
     It "keeps export contract workflow scaffolding aligned with the main CI shape" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\ci.yml"
-        $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
 
         Assert-WorkflowHasContractScaffolding `
             -WorkflowRelativePath ".github\workflows\ci.yml" `
@@ -764,7 +687,7 @@ Describe "Export platform contract validation" {
 
     It "keeps export contract workflow centered on a matrix-driven focused test job" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\ci.yml"
-        $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
         $jobMatch = [regex]::Match(
             $workflow,
             "(?ms)^  export-platform-contract:\s*\r?\n(?<body>.*?)(?=^  [A-Za-z0-9_-]+:\s*$|\z)"
@@ -803,7 +726,7 @@ Describe "Export platform contract validation" {
     }
 
     It "keeps runtime export policy test CI platform parsing aligned with the validator matrix" {
-        $exportPlanTestPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\tests\plugin_extensions\export_build_plan.rs"
+        $exportPlanTestPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\tests\plugin_extensions\export_build_plan_platform.rs"
 
         Get-RustMatchStringArms `
             -RustPath $exportPlanTestPath `
@@ -848,7 +771,7 @@ Describe "Profile feature contract validation" {
 
     It "keeps every workflow profile feature case renderable by the local validator" {
         foreach ($case in Get-CiProfileFeatureMatrix) {
-            $localCase = Get-SelectedProfileFeatureContractCases -Label $case.Label
+            $localCase = @(Get-SelectedProfileFeatureContractCases -Label $case.Label)
             $args = Get-ProfileFeatureContractArgs -Case $localCase[0] -ResolvedTargetDir "target/manual-check"
             $command = $args -join " "
 
@@ -889,26 +812,24 @@ Describe "Profile feature contract validation" {
             "-DryRun",
             "-SkipBuild",
             "-SkipTest",
-            "-RunProfileFeatureContract",
-            "-TargetDir",
-            "target\manual-check"
+            "-RunProfileFeatureContract"
         )
 
         $result.ExitCode | Should Be 0
         foreach ($case in $script:ProfileFeatureContractCases) {
             $result.Output | Should Match ("Profile feature contract \({0}\)" -f [regex]::Escape($case.Label))
             $result.Output | Should Match (
-                "cargo check -p {0} --no-default-features --features {1} --locked --target-dir target\\manual-check" -f
+                "cargo check -p {0} --no-default-features --features {1} --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+" -f
                 [regex]::Escape($case.Package),
                 [regex]::Escape($case.Features)
             )
         }
-        ([regex]::Matches($result.Output, "cargo check -p .* --no-default-features --features .* --locked --target-dir target\\manual-check")).Count |
+        ([regex]::Matches($result.Output, "cargo check -p .* --no-default-features --features .* --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+")).Count |
             Should Be $script:ProfileFeatureContractCases.Count
     }
 
     It "filters profile feature contract cases by label for low-interference validation" {
-        $cases = Get-SelectedProfileFeatureContractCases -Label "zircon_runtime target-server"
+        $cases = @(Get-SelectedProfileFeatureContractCases -Label "zircon_runtime target-server")
 
         $cases.Count | Should Be 1
         $cases[0].Package | Should Be "zircon_runtime"
@@ -922,14 +843,12 @@ Describe "Profile feature contract validation" {
             "-SkipTest",
             "-RunProfileFeatureContract",
             "-ProfileFeatureContractLabel",
-            "zircon_runtime target-server",
-            "-TargetDir",
-            "target\manual-check"
+            "zircon_runtime target-server"
         )
 
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
         $result.Output | Should Not Match "Profile feature contract \(zircon_app target-server\)"
         $result.Output | Should Not Match "Profile feature contract \(zircon_app target-client-platform\)"
         $result.Output | Should Not Match "Profile feature contract \(zircon_runtime target-client\)"
@@ -947,10 +866,10 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Dry run selected; skipping cargo discovery and target directory cleanup checks"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
     }
 
     It "dry-runs selected profile feature commands without inheriting CARGO_TARGET_DIR" {
@@ -964,9 +883,8 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir target\\manual-check"
-        $result.Output | Should Not Match "zircon-dry-run-should-not-use"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
     }
 
     It "dry-runs selected profile feature commands with an explicit TargetDir override" {
@@ -978,14 +896,12 @@ Describe "Profile feature contract validation" {
             "-ProfileFeatureContractLabel",
             "zircon_runtime target-server",
             "-TargetDir",
-            "target\custom-dry-run"
+            "E:\targets\zircon-engine\lanes\pester-custom-dry-run"
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\custom-dry-run \(manual override\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir target\\custom-dry-run"
-        $result.Output | Should Not Match "zircon-dry-run-should-not-use"
-        $result.Output | Should Not Match "target\\manual-check"
+        $result.Output | Should Match "Target dir: E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run \(coordinator validated manual target\)"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --target-dir E:\\targets\\zircon-engine\\lanes\\pester-custom-dry-run"
     }
 
     It "dry-runs selected profile feature commands with verbose cargo output" {
@@ -1000,9 +916,9 @@ Describe "Profile feature contract validation" {
         )
 
         $result.ExitCode | Should Be 0
-        $result.Output | Should Match "Target dir: target\\manual-check \(dry-run default\)"
+        $result.Output | Should Match "Target dir: [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+ \(coordinator managed workspace lane\)"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --verbose --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --locked --verbose --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
     }
 
     It "dry-runs selected profile feature commands without locked mode only when requested" {
@@ -1019,7 +935,7 @@ Describe "Profile feature contract validation" {
         $result.ExitCode | Should Be 0
         $result.Output | Should Match "Locked mode: off"
         $result.Output | Should Match "Profile feature contract \(zircon_runtime target-server\)"
-        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --target-dir target\\manual-check"
+        $result.Output | Should Match "cargo check -p zircon_runtime --no-default-features --features target-server --target-dir [D-F]:\\targets\\zircon-engine\\lanes\\workspace-[0-9a-f]+"
         $result.Output | Should Not Match "--locked"
     }
 
@@ -1043,9 +959,7 @@ Describe "Profile feature contract validation" {
             "-SkipTest",
             "-RunProfileFeatureContract",
             "-ProfileFeatureContractLabel",
-            "missing profile",
-            "-TargetDir",
-            "target\manual-check"
+            "missing profile"
         )
 
         $result.ExitCode | Should Not Be 0
@@ -1074,9 +988,7 @@ Describe "Profile feature contract validation" {
             "-SkipBuild",
             "-SkipTest",
             "-ProfileFeatureContractLabel",
-            "zircon_runtime target-server",
-            "-TargetDir",
-            "target\manual-check"
+            "zircon_runtime target-server"
         )
 
         $result.ExitCode | Should Not Be 0
@@ -1085,7 +997,7 @@ Describe "Profile feature contract validation" {
 
     It "keeps CI profile feature checks on no-default-features cargo check" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
-        $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
 
         $workflow | Should Match "profile-feature-contract:"
         $workflow | Should Match "cargo check -p .*\{\{ matrix\.package \}\} --no-default-features --features .*\{\{ matrix\.features \}\} --locked --verbose"
@@ -1093,7 +1005,7 @@ Describe "Profile feature contract validation" {
 
     It "keeps profile contract workflow scaffolding aligned with the main CI shape" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
-        $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
 
         Assert-WorkflowHasContractScaffolding `
             -WorkflowRelativePath ".github\workflows\profile-feature-contract.yml" `
@@ -1102,7 +1014,7 @@ Describe "Profile feature contract validation" {
 
     It "keeps profile contract workflow centered on a single matrix-driven job" {
         $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
-        $workflow = Get-Content -Raw $workflowPath
+    $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
 
         $workflow | Should Match "(?ms)^jobs:\s*\r?\n\s*profile-feature-contract:"
         $jobsBlock = [regex]::Match($workflow, "(?ms)^jobs:[ \t]*\r?\n(?<body>.*)\z").Groups["body"].Value
@@ -1132,13 +1044,23 @@ Describe "Default profile feature topology" {
 
         Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "default" |
             Should Be @("target-client")
-        Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-client" |
-            Should Be @("zircon_runtime/target-client", "default-platform", "plugin-ui")
-        Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-editor-host" |
-            Should Be @("zircon_runtime/target-editor-host", "dep:zircon_editor", "default-platform")
+        @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-client") |
+            Should Be @(
+                "zircon_runtime/target-client", "ai-contracts", "net-contracts",
+                "physics-contracts", "sound-contracts", "animation", "diagnostic-log",
+                "dynamic-api", "graphics", "navigation", "script", "text", "ui",
+                "default-platform"
+            )
+        @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-editor-host") |
+            Should Be @(
+                "zircon_runtime/target-editor-host", "ai-contracts", "net-contracts",
+                "physics-contracts", "sound-contracts", "animation", "diagnostic-log",
+                "dynamic-api", "graphics", "navigation", "script", "text", "ui",
+                "dep:zircon_editor", "default-platform"
+            )
 
         $serverFeatures = @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-server")
-        $serverFeatures | Should Be @("zircon_runtime/target-server", "platform-headless")
+        $serverFeatures | Should Be @("zircon_runtime/target-server", "diagnostic-log", "platform-headless")
         $forbiddenServerFeatures = @(
             "default-platform",
             "platform-window",
@@ -1161,13 +1083,18 @@ Describe "Default profile feature topology" {
 
         Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "default" |
             Should Be @("target-client")
-        Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-client" |
-            Should Be @("core-min", "plugin-ui", "default-platform")
-        Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-editor-host" |
-            Should Be @("core-min", "plugin-ui", "default-platform")
+        $expectedInteractiveFeatures = @(
+            "core-min", "ai-contracts", "net-contracts", "physics-contracts",
+            "sound-contracts", "animation", "diagnostic-log", "dynamic-api",
+            "graphics", "navigation", "script", "text", "ui", "default-platform"
+        )
+        @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-client") |
+            Should Be $expectedInteractiveFeatures
+        @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-editor-host") |
+            Should Be $expectedInteractiveFeatures
 
         $serverFeatures = @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-server")
-        $serverFeatures | Should Be @("core-min", "platform-headless")
+        $serverFeatures | Should Be @("core-min", "diagnostic-log", "platform-headless")
         $forbiddenServerFeatures = @(
             "default-platform",
             "platform-window",
@@ -1233,9 +1160,11 @@ Describe "Default profile feature topology" {
         $cargoManifestTemplatePath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\plugin\export_build_plan\cargo_manifest_template.rs"
         $platformHostFilesPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\plugin\export_build_plan\platform_host_files.rs"
         $mainTemplatePath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\plugin\export_build_plan\main_template.rs"
-        $cargoManifestTemplate = Get-Content -Raw $cargoManifestTemplatePath
-        $platformHostFiles = Get-Content -Raw $platformHostFilesPath
-        $mainTemplate = Get-Content -Raw $mainTemplatePath
+        $pluginSelectionTemplatePath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\plugin\export_build_plan\plugin_selection_template.rs"
+        $cargoManifestTemplate = Get-Content -Raw -Encoding UTF8 $cargoManifestTemplatePath
+        $platformHostFiles = Get-Content -Raw -Encoding UTF8 $platformHostFilesPath
+        $mainTemplate = Get-Content -Raw -Encoding UTF8 $mainTemplatePath
+        $pluginSelectionTemplate = Get-Content -Raw -Encoding UTF8 $pluginSelectionTemplatePath
 
         $cargoManifestTemplate | Should Match 'features = \[\\"\{target_feature\}\\"\]'
         $cargoManifestTemplate | Should Match 'RuntimeTargetMode::ServerRuntime\s*=>\s*"target-server"'
@@ -1252,8 +1181,9 @@ Describe "Default profile feature topology" {
         $headlessHostArm.Groups["body"].Value | Should Not Match 'platform/'
         $headlessHostArm.Groups["body"].Value | Should Not Match 'runtime_library_file'
 
-        $mainTemplate | Should Match 'RuntimeTargetMode::ServerRuntime\s*=>\s*"Headless"'
-        $mainTemplate | Should Match 'EntryProfile::\{entry_profile\}'
+        $pluginSelectionTemplate | Should Match 'RuntimeTargetMode::ServerRuntime\s*=>\s*"EntryProfile::Headless"'
+        $mainTemplate | Should Match 'bootstrap_export_runtime'
+        $mainTemplate | Should Match 'bootstrap_export_runtime_with_native_plugins_from_export_root'
     }
 
     It "keeps default-platform window and gamepad capabilities explicit in app and runtime manifests" {
@@ -1303,7 +1233,7 @@ Describe "Platform capability matrix topology" {
         $matrixSources = Get-ChildItem -Path $matrixRoot -Filter "*.rs" -Recurse
 
         foreach ($sourceFile in $matrixSources) {
-            $source = Get-Content -Raw $sourceFile.FullName
+        $source = Get-Content -Raw -Encoding UTF8 $sourceFile.FullName
             $source | Should Not Match 'panic!\s*\('
             $source | Should Not Match 'todo!\s*\('
             $source | Should Not Match 'unimplemented!\s*\('
@@ -1315,10 +1245,10 @@ Describe "Platform capability matrix topology" {
         $inputMatrixPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\capability\matrix\input.rs"
         $gamepadMatrixPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\capability\matrix\gamepad.rs"
         $policyMatrixPath = Join-Path $script:ValidateMatrixTestRepoRoot "zircon_runtime\src\platform\capability\matrix\policy.rs"
-        $windowMatrix = Get-Content -Raw $windowMatrixPath
-        $inputMatrix = Get-Content -Raw $inputMatrixPath
-        $gamepadMatrix = Get-Content -Raw $gamepadMatrixPath
-        $policyMatrix = Get-Content -Raw $policyMatrixPath
+        $windowMatrix = Get-Content -Raw -Encoding UTF8 $windowMatrixPath
+        $inputMatrix = Get-Content -Raw -Encoding UTF8 $inputMatrixPath
+        $gamepadMatrix = Get-Content -Raw -Encoding UTF8 $gamepadMatrixPath
+        $policyMatrix = Get-Content -Raw -Encoding UTF8 $policyMatrixPath
 
         $serverOrHeadlessGuard = 'target_mode == RuntimeTargetMode::ServerRuntime \|\| target == PlatformTarget::Headless'
         $windowMatrix | Should Match $serverOrHeadlessGuard
@@ -1343,8 +1273,11 @@ Describe "Platform capability matrix topology" {
 
 Describe "M5 contract documentation index" {
     It "keeps the active platform plan pointing at both focused validator contracts" {
-        $planPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\plans\ZirconEngine Bevy 式 Platform Window Input Gilrs 完成度计划.md"
-        $plan = Get-Content -Raw $planPath
+        $planPath = Get-ChildItem `
+            -LiteralPath (Join-Path $script:ValidateMatrixTestRepoRoot ".codex\plans") `
+            -Filter "ZirconEngine Bevy*Platform Window Input Gilrs*.md" |
+            Select-Object -First 1 -ExpandProperty FullName
+        $plan = Get-Content -Raw -Encoding UTF8 $planPath
 
         $plan | Should Match "RunExportPlatformContract"
         $plan | Should Match "RunProfileFeatureContract"
@@ -1353,7 +1286,7 @@ Describe "M5 contract documentation index" {
 
     It "keeps the profile feature documentation linked to the workflow and local validator" {
         $docPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\profile_feature_contract.md"
-        $doc = Get-Content -Raw $docPath
+        $doc = Get-Content -Raw -Encoding UTF8 $docPath
 
         $doc | Should Match "\.github/workflows/profile-feature-contract\.yml"
         $doc | Should Match "RunProfileFeatureContract"
@@ -1362,7 +1295,7 @@ Describe "M5 contract documentation index" {
 
     It "keeps the export platform documentation linked to CI and local validator" {
         $docPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\export_platform_contract.md"
-        $doc = Get-Content -Raw $docPath
+        $doc = Get-Content -Raw -Encoding UTF8 $docPath
 
         $doc | Should Match "\.github/workflows/ci\.yml"
         $doc | Should Match "RunExportPlatformContract"
@@ -1373,16 +1306,19 @@ Describe "M5 contract documentation index" {
     It "documents both low-interference validator selectors" {
         $skillPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\SKILL.md"
         $manualPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\skills\zircon-dev\validation\manual-commands.md"
-        $planPath = Join-Path $script:ValidateMatrixTestRepoRoot ".codex\plans\ZirconEngine Bevy 式 Platform Window Input Gilrs 完成度计划.md"
+        $planPath = Get-ChildItem `
+            -LiteralPath (Join-Path $script:ValidateMatrixTestRepoRoot ".codex\plans") `
+            -Filter "ZirconEngine Bevy*Platform Window Input Gilrs*.md" |
+            Select-Object -First 1 -ExpandProperty FullName
         $exportDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\export_platform_contract.md"
         $profileDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\profile_feature_contract.md"
 
         $combinedDocs = @(
-            Get-Content -Raw $skillPath
-            Get-Content -Raw $manualPath
-            Get-Content -Raw $planPath
-            Get-Content -Raw $exportDocPath
-            Get-Content -Raw $profileDocPath
+            Get-Content -Raw -Encoding UTF8 $skillPath
+            Get-Content -Raw -Encoding UTF8 $manualPath
+            Get-Content -Raw -Encoding UTF8 $planPath
+            Get-Content -Raw -Encoding UTF8 $exportDocPath
+            Get-Content -Raw -Encoding UTF8 $profileDocPath
         ) -join "`n"
 
         $combinedDocs | Should Match "ExportContractPlatform"
@@ -1396,10 +1332,10 @@ Describe "M5 contract documentation index" {
         $profileDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\profile_feature_contract.md"
 
         $combinedDocs = @(
-            Get-Content -Raw $skillPath
-            Get-Content -Raw $manualPath
-            Get-Content -Raw $exportDocPath
-            Get-Content -Raw $profileDocPath
+            Get-Content -Raw -Encoding UTF8 $skillPath
+            Get-Content -Raw -Encoding UTF8 $manualPath
+            Get-Content -Raw -Encoding UTF8 $exportDocPath
+            Get-Content -Raw -Encoding UTF8 $profileDocPath
         ) -join "`n"
 
         $combinedDocs | Should Match 'ExportContractPlatform.*without `-RunExportPlatformContract` is rejected'
@@ -1414,16 +1350,16 @@ Describe "M5 contract documentation index" {
         $profileDocPath = Join-Path $script:ValidateMatrixTestRepoRoot "docs\zircon_runtime\platform\profile_feature_contract.md"
 
         $combinedDocs = @(
-            Get-Content -Raw $skillPath
-            Get-Content -Raw $manualPath
-            Get-Content -Raw $exportDocPath
-            Get-Content -Raw $profileDocPath
+            Get-Content -Raw -Encoding UTF8 $skillPath
+            Get-Content -Raw -Encoding UTF8 $manualPath
+            Get-Content -Raw -Encoding UTF8 $exportDocPath
+            Get-Content -Raw -Encoding UTF8 $profileDocPath
         ) -join "`n"
 
         $combinedDocs | Should Match "DryRun"
         $combinedDocs | Should Match "without requiring Cargo discovery"
         $combinedDocs | Should Match "target-directory cleanup checks"
-        $combinedDocs | Should Match "shared target slot"
-        $combinedDocs | Should Match "target/manual-check"
+        $combinedDocs | Should Match "managed.*lane"
+        $combinedDocs | Should Match "targets\\zircon-engine\\lanes|targets/zircon-engine/lanes"
     }
 }

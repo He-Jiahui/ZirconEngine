@@ -1,29 +1,29 @@
 # Cargo Target Disk Policy
 
-- Prefer one shared `CARGO_TARGET_DIR` outside the repository across clones and worktrees when local disk usage matters.
-- PowerShell example:
+- All Cargo output belongs to a coordinator-managed lane under an available drive-root target tree:
 
 ```powershell
-$env:CARGO_TARGET_DIR = "E:\cargo-targets\zircon-shared"
+D:\targets\zircon-engine\lanes\<kind>-<job-id>
 ```
 
-- Keep machine-specific paths out of committed repository files.
-- Do not run multiple conflicting Cargo writers against the same shared target directory at the same time.
+- The service may choose `D:`, `E:`, or `F:` by available space. Machine-specific granted paths remain runtime data, not committed configuration.
+- Each active target has one job owner. Explicit and inherited targets pass through the same allowlist and active-owner check.
+- Repo-local `target` directories and arbitrary external targets are forbidden for development validation.
 - Prefer crate-scoped loops such as `cargo build -p <crate>` and `cargo test -p <crate>` before escalating to full-workspace commands.
 - Before build or test, check free space on the drive that hosts the active target directory. If remaining space is `<= 50 GB`, clean that target directory first.
 - Clean stale outputs intentionally: use `cargo clean` after major profile or feature churn, or `cargo clean --release` when only release artifacts need pruning.
 - Treat release-size tweaks such as `[profile.release] strip = true` as secondary. They do not replace shared target directories, targeted builds, or cleanup.
 
-## Validator Target Priority
+## Validator Target Resolution
 
 - `validate-matrix.ps1` uses this priority order:
-  1. Explicit `-TargetDir`
-  2. Inherited `CARGO_TARGET_DIR`
-  3. Repo-local fallback slots `target/codex-shared-a` or `target/codex-shared-b`
+  1. Explicit `-TargetDir`, validated by the service.
+  2. Inherited `CARGO_TARGET_DIR`, validated by the service.
+  3. A fresh service-selected lane.
 - Before entering `cargo build` or `cargo test`, the validator checks remaining free space on the target drive and runs `cargo clean --target-dir <active-target-dir>` first when that free space is `<= 50 GB`.
-- The repo-local slots are a fallback for sessions that did not preconfigure a shared `CARGO_TARGET_DIR`; they are not the preferred steady-state workflow across multiple checkouts.
+- The validator records PID, rendered command and exit status, then releases the job in `finally`. The daemon marks a running job `orphaned` when its process disappears.
 
 ## Diagnostics
 
-- When `target` grows unexpectedly, measure subdirectory sizes first so cleanup decisions distinguish `debug`, `release`, and one-off custom target paths.
-- When recommending new clones or worktrees, mention the shared `CARGO_TARGET_DIR` strategy up front instead of assuming each checkout should own a full `target`.
+- Preview managed cleanup with `.\tools\cleanup-stale-targets.ps1`. Apply with `-Apply`; the service rechecks allowlist realpath, PID, active lease and retention immediately before deletion.
+- Use `.\tools\install-session-coordinator-task.ps1 -Action Install -DryRun` to inspect the hidden at-logon daemon and 15-minute maintenance task before installation.

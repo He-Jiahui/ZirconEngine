@@ -16,7 +16,13 @@ related_code:
   - tools/session_coordinator/watch.py
   - tools/session_coordinator/plans.py
   - tools/session_coordinator/failures.py
+  - tools/session_coordinator/cargo_jobs.py
+  - tools/session_coordinator/cleanup.py
+  - tools/session_coordinator/processes.py
   - tools/zircon-session.ps1
+  - tools/cleanup-stale-targets.ps1
+  - tools/install-session-coordinator-task.ps1
+  - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 implementation_files:
   - tools/session_coordinator/__main__.py
   - tools/session_coordinator/cli.py
@@ -34,7 +40,13 @@ implementation_files:
   - tools/session_coordinator/watch.py
   - tools/session_coordinator/plans.py
   - tools/session_coordinator/failures.py
+  - tools/session_coordinator/cargo_jobs.py
+  - tools/session_coordinator/cleanup.py
+  - tools/session_coordinator/processes.py
   - tools/zircon-session.ps1
+  - tools/cleanup-stale-targets.ps1
+  - tools/install-session-coordinator-task.ps1
+  - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 plan_sources:
   - user: 2026-07-11 implement local multi-Session coordination on shared main
   - docs/superpowers/specs/2026-07-11-local-session-coordinator-design.md
@@ -51,6 +63,8 @@ tests:
   - tools/session_coordinator/tests/test_concurrent_writers.py
   - tools/session_coordinator/tests/test_plans.py
   - tools/session_coordinator/tests/test_failures.py
+  - tools/session_coordinator/tests/test_cargo_jobs.py
+  - tools/session_coordinator/tests/test_cleanup.py
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -59,9 +73,9 @@ doc_type: workflow-detail
 
 ## Purpose
 
-The local Session coordinator is the M1-M2 foundation for developing ZirconEngine directly in one shared `main` checkout. It gives each Session a typed identity and lifecycle, records a hash-based workspace baseline, stores intermediate file contents outside Git, and serializes writes to concrete files.
+The local Session coordinator is the shared-`main` control plane for ZirconEngine development. It gives each Session a typed lifecycle, records a hash-based workspace baseline, stores intermediate file contents outside Git, serializes concrete file writes, governs plan/failure records, and owns isolated Cargo validation lanes.
 
-M1-M2 deliberately do not create Git commits, manage Cargo lanes, migrate old Session notes, or modify plan/failure artifacts. Those capabilities are later milestones. The current service protects the file-write boundary while leaving unrelated active Sessions and their dirty files untouched.
+Business Session intermediate versions remain service-managed rather than Git commits. Git finalization stays explicit. The service protects unrelated active Sessions and their dirty files without creating branches or worktrees.
 
 ## Runtime and State
 
@@ -221,6 +235,44 @@ M3 tests use generated temporary plan trees. They never move or rewrite live bus
 
 The coordination context script now queries service health, indexed Session count and Failure graph first. Its offline fallback recursively scans both `docs/plans` and `.codex/plans`, correcting the previous formal-root omission.
 
+## Managed Cargo Jobs
+
+Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plans. Jobs use `check`, `test`, `workspace`, and `gpu` lanes with `leased`, `running`, `succeeded`, `failed`, `released`, and `orphaned` states. Targets must be direct children of an available `D:\targets\zircon-engine\lanes`, `E:\targets\zircon-engine\lanes`, or `F:\targets\zircon-engine\lanes` root. A case- and separator-normalized identity plus ancestor/descendant overlap checks prevent Windows path aliases or nested lanes from becoming simultaneous writers. Repo-local targets, nested lanes, symlink/junction escapes and arbitrary paths fail with `cargo_target_not_managed`.
+
+```powershell
+.\tools\zircon-session.ps1 cargo acquire workspace
+.\tools\zircon-session.ps1 cargo list
+```
+
+`validate-matrix.ps1` performs the lifecycle automatically: register the caller, acquire a unique lane with the wrapper PID, immediately enter `try/finally`, record the process command line at start, run validation, record the exit code, and owner-checked release. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy; released explicit lanes may be reused. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned`.
+
+## Cleanup and Scheduled Maintenance
+
+Cleanup is deliberately two-phase:
+
+```powershell
+.\tools\cleanup-stale-targets.ps1
+.\tools\cleanup-stale-targets.ps1 -Apply -WhatIf
+.\tools\cleanup-stale-targets.ps1 -Apply
+```
+
+Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, direct-child realpath, overlapping live PID, active lease and positive retention. An untracked directory is never deletable even if a plan row is corrupted. A short SQLite transaction writes a cleanup reservation; deletion runs outside the global writer lock; a final short transaction records success/failure and clears the reservation. New Cargo acquisition observes the reservation, and daemon restart recovers abandoned reservations. The script never enumerates fuzzy drive-root names and never deletes directly.
+
+The user-level scheduler definition is idempotent and repository-specific:
+
+```powershell
+.\tools\install-session-coordinator-task.ps1 -Action Install -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Update -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Query -DryRun
+.\tools\install-session-coordinator-task.ps1 -Action Remove -DryRun
+```
+
+Installation creates a hidden at-logon daemon task and a 15-minute maintenance task with limited user privileges. Dry-run prints exact commands without changing Task Scheduler. No webhook address, credential or machine secret is part of this service configuration.
+
+## M4 Validation
+
+M4 adds unit coverage for direct-child and junction/symlink escapes, unavailable roots, case aliases, nested legacy overlap, explicit reuse, foreign-session mutation, running/pre-start orphan reconciliation, positive retention, reviewed-plan non-expansion, reservation/acquire concurrency and transaction-free deletion. The PowerShell smoke also validates the scheduled-task plan, while validator tests assert that command-line/environment overrides cannot bypass the service and pre-start failures release their job.
+
 ## Follow-up Boundaries
 
-M4 will move Cargo and scheduled cleanup into managed lanes. M5 will add explicit Git finalize and stable validation copies. M3 does not claim those later boundaries.
+M5 will add explicit Git finalize and stable validation copies. M4 does not convert business Session intermediate versions into commits.

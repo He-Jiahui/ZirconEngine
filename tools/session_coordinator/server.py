@@ -5,7 +5,6 @@ import os
 import secrets
 import subprocess
 import threading
-import ctypes
 from dataclasses import asdict, dataclass
 from datetime import date
 from http import HTTPStatus
@@ -25,6 +24,9 @@ from .failures import FailureGraphService, FailureResolution
 from .plans import PlanRepository
 from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
+from .cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
+from .cleanup import CleanupService
+from .processes import process_is_alive
 
 
 def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
@@ -35,27 +37,7 @@ def _atomic_json_write(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _pid_is_alive(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    if os.name == "nt":
-        process_query_limited_information = 0x1000
-        kernel32 = ctypes.windll.kernel32
-        kernel32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_bool, ctypes.c_uint32]
-        kernel32.OpenProcess.restype = ctypes.c_void_p
-        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
-        kernel32.CloseHandle.restype = ctypes.c_bool
-        handle = kernel32.OpenProcess(
-            process_query_limited_information, False, pid
-        )
-        if not handle:
-            return False
-        kernel32.CloseHandle(handle)
-        return True
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        return False
-    return True
+    return process_is_alive(pid)
 
 
 class CoordinatorApplication:
@@ -86,6 +68,21 @@ class CoordinatorApplication:
         self.watcher = WorkspaceWatcher(self.baselines)
         self.plans = PlanRepository(config.repo_root)
         self.failures = FailureGraphService(self.database, config.repo_root)
+        if config.enabled_target_roots:
+            self.cargo_jobs: CargoJobService | None = CargoJobService(
+                self.database,
+                TargetPathPolicy(config.enabled_target_roots),
+                process_alive=process_is_alive,
+            )
+            self.cleanup: CleanupService | None = CleanupService(
+                self.database,
+                self.cargo_jobs,
+                process_alive=process_is_alive,
+            )
+            self.cleanup.recover_reservations()
+        else:
+            self.cargo_jobs = None
+            self.cleanup = None
         self.branch = self._branch()
 
     @property
@@ -121,6 +118,8 @@ class CoordinatorApplication:
             "plan.owner",
             "failure.audit",
             "failure.open",
+            "cargo.list",
+            "cleanup.plan",
         }
         if self.read_only and name not in read_only_commands:
             raise CoordinatorError(
@@ -258,6 +257,68 @@ class CoordinatorApplication:
                 resolved_at=date.fromisoformat(str(arguments["resolved_at"])),
             )
             return {"fixed_artifact": destination.relative_to(self.config.repo_root).as_posix()}
+        if name == "cargo.acquire":
+            cargo_jobs = self._require_cargo_jobs()
+            job = cargo_jobs.acquire(
+                str(arguments["session_id"]),
+                CargoLaneKind(str(arguments["lane_kind"])),
+                requested_target=arguments.get("target_dir"),
+                dry_run=bool(arguments.get("dry_run")),
+                owner_pid=int(arguments["pid"]) if arguments.get("pid") else None,
+            )
+            return {"job": job.to_dict()}
+        if name == "cargo.start":
+            job = self._require_cargo_jobs().start(
+                str(arguments["job_id"]),
+                session_id=str(arguments["session_id"]),
+                pid=int(arguments["pid"]),
+                command=arguments.get("command") or [],
+            )
+            return {"job": job.to_dict()}
+        if name == "cargo.heartbeat":
+            return {
+                "job": self._require_cargo_jobs().heartbeat(
+                    str(arguments["job_id"]),
+                    session_id=str(arguments["session_id"]),
+                ).to_dict()
+            }
+        if name == "cargo.finish":
+            return {
+                "job": self._require_cargo_jobs().finish(
+                    str(arguments["job_id"]),
+                    session_id=str(arguments["session_id"]),
+                    exit_code=int(arguments["exit_code"]),
+                ).to_dict()
+            }
+        if name == "cargo.release":
+            return {
+                "job": self._require_cargo_jobs().release(
+                    str(arguments["job_id"]),
+                    session_id=str(arguments["session_id"]),
+                ).to_dict()
+            }
+        if name == "cargo.list":
+            return {"jobs": [job.to_dict() for job in self._require_cargo_jobs().list()]}
+        if name == "cleanup.plan":
+            plan = self._require_cleanup().plan(older_than_hours=int(arguments.get("older_than_hours", 2)))
+            return {"plan": self._cleanup_plan_dict(plan)}
+        if name == "cleanup.apply":
+            cleanup = self._require_cleanup()
+            older_than_hours = int(arguments.get("older_than_hours", 2))
+            plan = cleanup.get_plan(str(arguments["plan_id"]))
+            if plan.older_than_hours != older_than_hours:
+                raise CoordinatorError(
+                    "cleanup_plan_retention_mismatch",
+                    "cleanup.apply retention must match the reviewed plan",
+                )
+            result = cleanup.apply(plan)
+            return {
+                "plan": self._cleanup_plan_dict(plan),
+                "result": {
+                    "deleted": list(result.deleted),
+                    "denied": [asdict(item) for item in result.denied],
+                },
+            }
         raise CoordinatorError("unknown_command", f"Unknown coordinator command {name}")
 
     @staticmethod
@@ -284,6 +345,32 @@ class CoordinatorApplication:
             "nodes": [asdict(item) for item in audit.nodes],
             "diagnostics": [asdict(item) for item in audit.diagnostics],
         }
+
+    @staticmethod
+    def _cleanup_plan_dict(plan) -> dict[str, Any]:
+        return {
+            "plan_id": plan.plan_id,
+            "candidates": list(plan.candidates),
+            "denied": [asdict(item) for item in plan.denied],
+            "generated_at": plan.generated_at.isoformat(),
+            "free_bytes_by_root": dict(plan.free_bytes_by_root),
+            "pressure_roots": list(plan.pressure_roots),
+            "older_than_hours": plan.older_than_hours,
+        }
+
+    def _require_cargo_jobs(self) -> CargoJobService:
+        if self.cargo_jobs is None:
+            raise CoordinatorError(
+                "target_root_unavailable", "No D:/E:/F: managed targets root is available"
+            )
+        return self.cargo_jobs
+
+    def _require_cleanup(self) -> CleanupService:
+        if self.cleanup is None:
+            raise CoordinatorError(
+                "target_root_unavailable", "No managed targets root is available for cleanup"
+            )
+        return self.cleanup
 
     def _branch(self) -> str:
         result = subprocess.run(
@@ -474,6 +561,30 @@ class RunningCoordinator:
                             json.dumps({"error": str(error)}, sort_keys=True),
                         ),
                     )
+            if application.cargo_jobs is not None:
+                try:
+                    orphaned = application.cargo_jobs.reconcile_orphans()
+                    if orphaned:
+                        with application.database.transaction() as connection:
+                            connection.execute(
+                                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                                (
+                                    "cargo.jobs_orphaned",
+                                    json.dumps(
+                                        {"job_ids": [job.job_id for job in orphaned]},
+                                        sort_keys=True,
+                                    ),
+                                ),
+                            )
+                except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    with application.database.transaction() as connection:
+                        connection.execute(
+                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                            (
+                                "cargo.reconcile_failed",
+                                json.dumps({"error": str(error)}, sort_keys=True),
+                            ),
+                        )
 
 
 def run_forever(config: CoordinatorConfig) -> None:
