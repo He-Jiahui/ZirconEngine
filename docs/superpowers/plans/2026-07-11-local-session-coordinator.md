@@ -257,7 +257,7 @@ Expected: temp-repo finalize tests pass; completion never commits implicitly; st
 
 **Exit evidence:** one explicit test finalize yields exactly one normal commit containing only approved files; all negative cases yield zero commits and preserved worktree content.
 
-**Accepted 2026-07-11:** the complete coordinator suite passed 87/87 with `ResourceWarning` promoted to errors; the M5 temporary-repository PowerShell smoke passed; scoped diff checking passed; the historical Session-tag subject scan returned no matches. Temporary-repository tests also verify categorized/untracked manifests, omitted-owned-file rejection, validation/index widening rejection, staged-blob race rejection, commit-derived partial baseline advancement, webhook-secret rejection, persisted finalize recovery, concurrent mutex ownership, pinned validation-copy HEAD, junction rejection, run/cleanup exclusion, stale-job recovery, adjacent managed targets and recorded command evidence.
+**Accepted 2026-07-11:** the complete coordinator suite passed 85/85 with `ResourceWarning` promoted to errors; the M5 temporary-repository PowerShell smoke passed; scoped diff checking passed; the historical Session-tag subject scan returned no matches. Temporary-repository tests also verify categorized/untracked manifests, omitted-owned-file rejection, validation/index widening rejection, staged-blob race rejection, commit-derived partial baseline advancement, webhook-secret rejection, persisted finalize recovery, concurrent mutex ownership, pinned validation-copy HEAD, junction rejection, run/cleanup exclusion, stale-job recovery, adjacent managed targets and recorded command evidence.
 
 ## Milestone M6: Legacy Migration, Archival, Documentation, and Full Rollout
 
