@@ -259,6 +259,15 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("finalize_secret_detected", rejected.exception.code)
         self.assertEqual("", self._staged_names())
 
+    def test_secret_scan_decodes_utf8_independently_of_host_locale(self) -> None:
+        target = self.repo / "docs" / "utf8.md"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("里程碑验证通过\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", "docs/utf8.md"], cwd=self.repo, check=True)
+
+        with mock.patch("locale.getencoding", return_value="ascii"):
+            self.service._require_no_staged_secrets()
+
     def test_unattributed_path_is_rejected_before_index_mutation(self) -> None:
         paths = self._complete_with_changes()
         unowned = self.repo / "unowned.txt"
